@@ -21,11 +21,15 @@ export type Database = {
           created_at: string
           data_corte: number | null
           dia_movimentacao: number | null
+          email_empresa: string | null
           id: string
           nome: string
           observacoes: string | null
           operadora_plano: string | null
+          periodo_movimentacao: string | null
           responsavel_contrato: string | null
+          status_empresa: string | null
+          tipo_movimentacao: string | null
           updated_at: string
         }
         Insert: {
@@ -34,11 +38,15 @@ export type Database = {
           created_at?: string
           data_corte?: number | null
           dia_movimentacao?: number | null
+          email_empresa?: string | null
           id?: string
           nome: string
           observacoes?: string | null
           operadora_plano?: string | null
+          periodo_movimentacao?: string | null
           responsavel_contrato?: string | null
+          status_empresa?: string | null
+          tipo_movimentacao?: string | null
           updated_at?: string
         }
         Update: {
@@ -47,11 +55,15 @@ export type Database = {
           created_at?: string
           data_corte?: number | null
           dia_movimentacao?: number | null
+          email_empresa?: string | null
           id?: string
           nome?: string
           observacoes?: string | null
           operadora_plano?: string | null
+          periodo_movimentacao?: string | null
           responsavel_contrato?: string | null
+          status_empresa?: string | null
+          tipo_movimentacao?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -62,12 +74,14 @@ export type Database = {
           data_envio_empresa: string | null
           data_envio_financeiro: string | null
           data_retorno_empresa: string | null
+          dentro_prazo: boolean | null
           empresa_id: string
           id: string
           mes_referencia: string
           observacoes: string | null
           periodo: string
           responsavel_movimentacao: string | null
+          tipo_movimentacao: string | null
           updated_at: string
         }
         Insert: {
@@ -75,12 +89,14 @@ export type Database = {
           data_envio_empresa?: string | null
           data_envio_financeiro?: string | null
           data_retorno_empresa?: string | null
+          dentro_prazo?: boolean | null
           empresa_id: string
           id?: string
           mes_referencia: string
           observacoes?: string | null
           periodo: string
           responsavel_movimentacao?: string | null
+          tipo_movimentacao?: string | null
           updated_at?: string
         }
         Update: {
@@ -88,12 +104,14 @@ export type Database = {
           data_envio_empresa?: string | null
           data_envio_financeiro?: string | null
           data_retorno_empresa?: string | null
+          dentro_prazo?: boolean | null
           empresa_id?: string
           id?: string
           mes_referencia?: string
           observacoes?: string | null
           periodo?: string
           responsavel_movimentacao?: string | null
+          tipo_movimentacao?: string | null
           updated_at?: string
         }
         Relationships: [

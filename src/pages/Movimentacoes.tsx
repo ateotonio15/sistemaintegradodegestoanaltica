@@ -20,23 +20,29 @@ import {
   PERIODOS,
   calcularStatus,
   statusColor,
+  calcularPeriodoPorData,
   getCurrentMesReferencia,
   formatMesReferencia,
 } from "@/lib/movimentacao-utils";
 
-const emptyForm: Omit<TablesInsert<"movimentacoes">, "empresa_id" | "mes_referencia" | "periodo"> & {
-  empresa_id: string;
-  mes_referencia: string;
-  periodo: string;
-} = {
+type EmpresaOption = {
+  id: string;
+  nome: string;
+  codigo_contrato: string | null;
+  tipo_movimentacao: string | null;
+  periodo_movimentacao: string | null;
+};
+
+const emptyForm = {
   empresa_id: "",
   mes_referencia: getCurrentMesReferencia(),
   periodo: "01-05",
-  data_envio_empresa: null,
-  data_retorno_empresa: null,
-  data_envio_financeiro: null,
+  data_envio_empresa: null as string | null,
+  data_retorno_empresa: null as string | null,
+  data_envio_financeiro: null as string | null,
   responsavel_movimentacao: "",
   observacoes: "",
+  tipo_movimentacao: null as string | null,
 };
 
 export default function Movimentacoes() {
@@ -54,9 +60,12 @@ export default function Movimentacoes() {
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("empresas").select("id, nome, codigo_contrato").order("nome");
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao")
+        .order("nome");
       if (error) throw error;
-      return data;
+      return data as EmpresaOption[];
     },
   });
 
@@ -65,7 +74,7 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas(nome, codigo_contrato)")
+        .select("*, empresas(nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -73,13 +82,43 @@ export default function Movimentacoes() {
     },
   });
 
+  // When empresa changes, auto-fill tipo and periodo
+  const handleEmpresaChange = (empresaId: string) => {
+    const empresa = empresas.find((e) => e.id === empresaId);
+    const tipo = empresa?.tipo_movimentacao ?? "Fechada";
+    const periodo = tipo === "Fechada" && empresa?.periodo_movimentacao
+      ? empresa.periodo_movimentacao
+      : form.periodo;
+    setForm({ ...form, empresa_id: empresaId, tipo_movimentacao: tipo, periodo });
+  };
+
+  // For Diária, auto-calc period from data_envio_empresa
+  const handleDataEnvioChange = (dateStr: string | null) => {
+    const newForm = { ...form, data_envio_empresa: dateStr };
+    if (form.tipo_movimentacao === "Diária" && dateStr) {
+      newForm.periodo = calcularPeriodoPorData(dateStr);
+    }
+    setForm(newForm);
+  };
+
   const upsert = useMutation({
-    mutationFn: async (values: TablesInsert<"movimentacoes">) => {
+    mutationFn: async (values: typeof emptyForm) => {
+      const payload: TablesInsert<"movimentacoes"> = {
+        empresa_id: values.empresa_id,
+        mes_referencia: values.mes_referencia,
+        periodo: values.periodo,
+        data_envio_empresa: values.data_envio_empresa,
+        data_retorno_empresa: values.data_retorno_empresa,
+        data_envio_financeiro: values.data_envio_financeiro,
+        responsavel_movimentacao: values.responsavel_movimentacao || null,
+        observacoes: values.observacoes || null,
+        tipo_movimentacao: values.tipo_movimentacao,
+      };
       if (editingId) {
-        const { error } = await supabase.from("movimentacoes").update(values).eq("id", editingId);
+        const { error } = await supabase.from("movimentacoes").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("movimentacoes").insert(values);
+        const { error } = await supabase.from("movimentacoes").insert(payload);
         if (error) throw error;
       }
     },
@@ -120,6 +159,7 @@ export default function Movimentacoes() {
       data_envio_financeiro: m.data_envio_financeiro,
       responsavel_movimentacao: m.responsavel_movimentacao ?? "",
       observacoes: m.observacoes ?? "",
+      tipo_movimentacao: m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? null,
     });
     setDialogOpen(true);
   };
@@ -135,7 +175,6 @@ export default function Movimentacoes() {
     });
   }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes]);
 
-  // Generate month options (current + 11 previous)
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
     const now = new Date();
@@ -146,10 +185,8 @@ export default function Movimentacoes() {
     return options;
   }, []);
 
-  const responsaveis = useMemo(() => {
-    const set = new Set(movimentacoes.map((m) => m.responsavel_movimentacao).filter(Boolean) as string[]);
-    return Array.from(set).sort();
-  }, [movimentacoes]);
+  const selectedEmpresa = empresas.find((e) => e.id === form.empresa_id);
+  const isFechada = (form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao) === "Fechada";
 
   return (
     <AppLayout>
@@ -168,7 +205,7 @@ export default function Movimentacoes() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Empresa *</Label>
-                    <Select value={form.empresa_id} onValueChange={(v) => setForm({ ...form, empresa_id: v })}>
+                    <Select value={form.empresa_id} onValueChange={handleEmpresaChange}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
                         {empresas.map((e) => (
@@ -182,13 +219,21 @@ export default function Movimentacoes() {
                     <Input type="month" value={form.mes_referencia} onChange={(e) => setForm({ ...form, mes_referencia: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
-                    <Label>Período *</Label>
-                    <Select value={form.periodo} onValueChange={(v) => setForm({ ...form, periodo: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <Label>Tipo Movimentação</Label>
+                    <Input value={form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao ?? "—"} disabled className="bg-muted" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Período {isFechada ? "(fixo)" : "(automático)"}</Label>
+                    {isFechada ? (
+                      <Input value={form.periodo} disabled className="bg-muted" />
+                    ) : (
+                      <Select value={form.periodo} onValueChange={(v) => setForm({ ...form, periodo: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Responsável</Label>
@@ -196,7 +241,7 @@ export default function Movimentacoes() {
                   </div>
                   <div className="space-y-2">
                     <Label>Data Envio p/ Empresa</Label>
-                    <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => setForm({ ...form, data_envio_empresa: e.target.value || null })} />
+                    <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} />
                   </div>
                   <div className="space-y-2">
                     <Label>Data Retorno Empresa</Label>
@@ -277,6 +322,7 @@ export default function Movimentacoes() {
                 <TableRow>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Cód. Contrato</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Período</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Responsável</TableHead>
@@ -288,16 +334,18 @@ export default function Movimentacoes() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
                 ) : (
                   filtered.map((m) => {
                     const status = calcularStatus(m);
+                    const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
                     return (
                       <TableRow key={m.id} className={status === "Fora do prazo" ? "bg-destructive/5" : ""}>
                         <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
                         <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                        <TableCell><Badge variant="outline">{tipo}</Badge></TableCell>
                         <TableCell>{m.periodo}</TableCell>
                         <TableCell>
                           <Badge className={statusColor(status)}>{status}</Badge>
