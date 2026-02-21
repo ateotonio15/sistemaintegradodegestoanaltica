@@ -1,0 +1,1 @@
+ALTER TABLE public.empresas ADD COLUMN codigo_contrato text;
