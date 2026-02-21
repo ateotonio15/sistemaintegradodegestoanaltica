@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building2, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Building2, Clock, AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react";
 import {
   type Movimentacao,
   PERIODOS,
@@ -20,6 +20,7 @@ import {
 
 export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
+  const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
 
   const { data: movimentacoes = [], isLoading } = useQuery({
@@ -27,7 +28,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas(nome, codigo_contrato)")
+        .select("*, empresas(nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -50,9 +51,6 @@ export default function Dashboard() {
     return Array.from(set).sort();
   }, [movimentacoes]);
 
-  const currentPeriodo = getCurrentPeriodo();
-
-  // Stats
   const withStatus = useMemo(() => movimentacoes.map((m) => ({ ...m, status: calcularStatus(m) })), [movimentacoes]);
 
   const filteredByResponsavel = useMemo(() => {
@@ -60,23 +58,27 @@ export default function Dashboard() {
     return withStatus.filter((m) => m.responsavel_movimentacao === filterResponsavel);
   }, [withStatus, filterResponsavel]);
 
-  // Painel: only current period, pending items
-  const painelItems = useMemo(() => {
-    return filteredByResponsavel.filter(
-      (m) => m.periodo === currentPeriodo && m.status !== "Enviado ao financeiro"
-    );
-  }, [filteredByResponsavel, currentPeriodo]);
+  // Filter by selected period
+  const periodItems = useMemo(() => {
+    return filteredByResponsavel.filter((m) => m.periodo === filterPeriodo);
+  }, [filteredByResponsavel, filterPeriodo]);
 
-  const totalEmpresas = filteredByResponsavel.length;
-  const foraDoPrazo = filteredByResponsavel.filter((m) => m.status === "Fora do prazo").length;
-  const concluidas = filteredByResponsavel.filter((m) => m.status === "Enviado ao financeiro").length;
-  const pendentes = totalEmpresas - concluidas;
+  // Stats based on period
+  const totalNoPeriodo = periodItems.length;
+  const retornadas = periodItems.filter((m) => m.status === "Retornado pela empresa").length;
+  const pendentes = periodItems.filter((m) => m.status === "Enviado para empresa").length;
+  const concluidas = periodItems.filter((m) => m.status === "Enviado ao financeiro").length;
+
+  // Lista de trabalho: items in period, excluding "Enviado ao financeiro"
+  const listaTrabalho = useMemo(() => {
+    return periodItems.filter((m) => m.status !== "Enviado ao financeiro");
+  }, [periodItems]);
 
   return (
     <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Painel Inicial</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         </div>
 
         {/* Filters */}
@@ -87,6 +89,15 @@ export default function Dashboard() {
               <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {mesesOptions.map((m) => <SelectItem key={m} value={m}>{formatMesReferencia(m)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Período</Label>
+            <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
+              <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -106,10 +117,17 @@ export default function Dashboard() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Movimentações</CardTitle>
+              <CardTitle className="text-sm font-medium">Total no Período</CardTitle>
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{totalEmpresas}</div></CardContent>
+            <CardContent><div className="text-2xl font-bold">{totalNoPeriodo}</div></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Retornadas</CardTitle>
+              <RotateCcw className="h-4 w-4 text-info" />
+            </CardHeader>
+            <CardContent><div className="text-2xl font-bold text-info">{retornadas}</div></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -120,25 +138,18 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Fora do Prazo</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-destructive">{foraDoPrazo}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
+              <CardTitle className="text-sm font-medium">Enviadas ao Financeiro</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold text-success">{concluidas}</div></CardContent>
           </Card>
         </div>
 
-        {/* Painel — lista de trabalho do dia */}
+        {/* Lista de Empresas no Período */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              Lista de Trabalho — Período {currentPeriodo} ({formatMesReferencia(filterMes)})
+              Empresas no Período {filterPeriodo} — {formatMesReferencia(filterMes)}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -147,6 +158,7 @@ export default function Dashboard() {
                 <TableRow>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Cód. Contrato</TableHead>
+                  <TableHead>Tipo Mov.</TableHead>
                   <TableHead>Período</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Responsável</TableHead>
@@ -154,19 +166,23 @@ export default function Dashboard() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                ) : painelItems.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhuma pendência no período atual 🎉</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                ) : listaTrabalho.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
                 ) : (
-                  painelItems.map((m) => (
-                    <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/5" : ""}>
-                      <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                      <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
-                      <TableCell>{m.periodo}</TableCell>
-                      <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
-                      <TableCell>{m.responsavel_movimentacao || "—"}</TableCell>
-                    </TableRow>
-                  ))
+                  listaTrabalho.map((m) => {
+                    const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
+                    return (
+                      <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/5" : ""}>
+                        <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
+                        <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                        <TableCell><Badge variant="outline">{tipo}</Badge></TableCell>
+                        <TableCell>{m.periodo}</TableCell>
+                        <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
+                        <TableCell>{m.responsavel_movimentacao || "—"}</TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -175,20 +191,25 @@ export default function Dashboard() {
 
         {/* Resumo por período */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Resumo por Período</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Resumo Geral por Período</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {PERIODOS.map((p) => {
                 const items = filteredByResponsavel.filter((m) => m.periodo === p);
                 const done = items.filter((m) => m.status === "Enviado ao financeiro").length;
                 const late = items.filter((m) => m.status === "Fora do prazo").length;
+                const isActive = p === filterPeriodo;
                 return (
-                  <div key={p} className="rounded-lg border p-3 text-center space-y-1">
+                  <button
+                    key={p}
+                    onClick={() => setFilterPeriodo(p)}
+                    className={`rounded-lg border p-3 text-center space-y-1 transition-colors ${isActive ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
+                  >
                     <div className="font-semibold text-sm">{p}</div>
                     <div className="text-xs text-muted-foreground">{items.length} total</div>
                     {done > 0 && <div className="text-xs text-success">{done} concluída(s)</div>}
                     {late > 0 && <div className="text-xs text-destructive">{late} fora do prazo</div>}
-                  </div>
+                  </button>
                 );
               })}
             </div>

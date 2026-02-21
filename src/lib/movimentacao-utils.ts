@@ -1,7 +1,7 @@
 import type { Tables } from "@/integrations/supabase/types";
 
 export type Movimentacao = Tables<"movimentacoes"> & {
-  empresas?: { nome: string; codigo_contrato: string | null } | null;
+  empresas?: { nome: string; codigo_contrato: string | null; tipo_movimentacao: string | null; periodo_movimentacao: string | null } | null;
 };
 
 export const PERIODOS = ["01-05", "05-10", "10-15", "15-20", "20-25", "25-30"] as const;
@@ -18,7 +18,6 @@ export function calcularStatus(mov: Tables<"movimentacoes">): StatusMovimentacao
   if (mov.data_retorno_empresa) return "Retornado pela empresa";
   if (mov.data_envio_empresa) return "Enviado para empresa";
 
-  // Check if fora do prazo: current date past the period end day in the reference month
   const foraDoParzo = isForaDoPrazo(mov);
   if (foraDoParzo) return "Fora do prazo";
 
@@ -28,7 +27,6 @@ export function calcularStatus(mov: Tables<"movimentacoes">): StatusMovimentacao
 function isForaDoPrazo(mov: Tables<"movimentacoes">): boolean {
   try {
     const endDay = parseInt(mov.periodo.split("-")[1]);
-    // mes_referencia format: "2026-02" (YYYY-MM)
     const [year, month] = mov.mes_referencia.split("-").map(Number);
     if (!year || !month) return false;
     const deadlineDate = new Date(year, month - 1, endDay);
@@ -61,6 +59,20 @@ export function getCurrentPeriodo(): string {
     if (day >= start && day < end) return p;
   }
   return "25-30";
+}
+
+/** Calculate period from a date (for Diária type) */
+export function calcularPeriodoPorData(dateStr: string): string {
+  try {
+    const day = new Date(dateStr + "T12:00:00").getDate();
+    for (const p of PERIODOS) {
+      const [start, end] = p.split("-").map(Number);
+      if (day >= start && day < end) return p;
+    }
+    return "25-30";
+  } catch {
+    return "01-05";
+  }
 }
 
 export function getCurrentMesReferencia(): string {
