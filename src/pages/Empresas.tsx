@@ -18,6 +18,7 @@ type Empresa = Tables<"empresas">;
 const emptyForm: TablesInsert<"empresas"> = {
   nome: "",
   cnpj: "",
+  codigo_contrato: "",
   responsavel_contrato: "",
   operadora_plano: "",
   data_corte: null,
@@ -83,6 +84,7 @@ export default function Empresas() {
     setForm({
       nome: e.nome,
       cnpj: e.cnpj ?? "",
+      codigo_contrato: e.codigo_contrato ?? "",
       responsavel_contrato: e.responsavel_contrato ?? "",
       operadora_plano: e.operadora_plano ?? "",
       data_corte: e.data_corte,
@@ -121,6 +123,10 @@ export default function Empresas() {
                   <div className="space-y-2">
                     <Label>CNPJ</Label>
                     <Input value={form.cnpj ?? ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Código do Contrato</Label>
+                    <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label>Responsável pelo Contrato</Label>
@@ -163,6 +169,7 @@ export default function Empresas() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
+                  <TableHead>Cód. Contrato</TableHead>
                   <TableHead>CNPJ</TableHead>
                   <TableHead>Responsável</TableHead>
                   <TableHead>Operadora/Plano</TableHead>
@@ -171,13 +178,14 @@ export default function Empresas() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
                 ) : (
                   filtered.map((e) => (
                     <TableRow key={e.id}>
                       <TableCell className="font-medium">{e.nome}</TableCell>
+                      <TableCell>{e.codigo_contrato || "—"}</TableCell>
                       <TableCell>{e.cnpj || "—"}</TableCell>
                       <TableCell>{e.responsavel_contrato || "—"}</TableCell>
                       <TableCell>{e.operadora_plano || "—"}</TableCell>

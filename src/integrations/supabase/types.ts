@@ -17,6 +17,7 @@ export type Database = {
       empresas: {
         Row: {
           cnpj: string | null
+          codigo_contrato: string | null
           created_at: string
           data_corte: number | null
           dia_movimentacao: number | null
@@ -29,6 +30,7 @@ export type Database = {
         }
         Insert: {
           cnpj?: string | null
+          codigo_contrato?: string | null
           created_at?: string
           data_corte?: number | null
           dia_movimentacao?: number | null
@@ -41,6 +43,7 @@ export type Database = {
         }
         Update: {
           cnpj?: string | null
+          codigo_contrato?: string | null
           created_at?: string
           data_corte?: number | null
           dia_movimentacao?: number | null
