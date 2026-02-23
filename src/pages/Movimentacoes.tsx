@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Download } from "lucide-react";
 import {
   type Movimentacao,
   PERIODOS,
@@ -24,6 +24,7 @@ import {
   getCurrentMesReferencia,
   formatMesReferencia,
 } from "@/lib/movimentacao-utils";
+import * as XLSX from "xlsx";
 
 type EmpresaOption = {
   id: string;
@@ -31,6 +32,7 @@ type EmpresaOption = {
   codigo_contrato: string | null;
   tipo_movimentacao: string | null;
   periodo_movimentacao: string | null;
+  responsavel_contrato: string | null;
 };
 
 const emptyForm = {
@@ -62,7 +64,7 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao")
+        .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato")
         .order("nome");
       if (error) throw error;
       return data as EmpresaOption[];
@@ -74,15 +76,14 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas(nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao)")
+        .select("*, empresas(nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Movimentacao[];
+      return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
     },
   });
 
-  // When empresa changes, auto-fill tipo and periodo
   const handleEmpresaChange = (empresaId: string) => {
     const empresa = empresas.find((e) => e.id === empresaId);
     const tipo = empresa?.tipo_movimentacao ?? "Fechada";
@@ -92,7 +93,6 @@ export default function Movimentacoes() {
     setForm({ ...form, empresa_id: empresaId, tipo_movimentacao: tipo, periodo });
   };
 
-  // For Diária, auto-calc period from data_envio_empresa
   const handleDataEnvioChange = (dateStr: string | null) => {
     const newForm = { ...form, data_envio_empresa: dateStr };
     if (form.tipo_movimentacao === "Diária" && dateStr) {
@@ -148,7 +148,7 @@ export default function Movimentacoes() {
     setEditingId(null);
   };
 
-  const openEdit = (m: Movimentacao) => {
+  const openEdit = (m: Movimentacao & { empresas?: { responsavel_contrato: string | null } | null }) => {
     setEditingId(m.id);
     setForm({
       empresa_id: m.empresa_id,
@@ -185,6 +185,27 @@ export default function Movimentacoes() {
     return options;
   }, []);
 
+  const handleExportExcel = () => {
+    const rows = filtered.map((m) => {
+      const status = calcularStatus(m);
+      return {
+        Empresa: m.empresas?.nome ?? "",
+        "Cód. Contrato": m.empresas?.codigo_contrato ?? "",
+        "Resp. Contrato": (m.empresas as any)?.responsavel_contrato ?? "",
+        Período: m.periodo,
+        "Data Envio Empresa": m.data_envio_empresa ?? "",
+        "Data Retorno": m.data_retorno_empresa ?? "",
+        "Data Financeiro": m.data_envio_financeiro ?? "",
+        Status: status,
+        "Dentro do Prazo": m.dentro_prazo ? "Sim" : "Não",
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Movimentações");
+    XLSX.writeFile(wb, `movimentacoes_${filterMes}.xlsx`);
+  };
+
   const selectedEmpresa = empresas.find((e) => e.id === form.empresa_id);
   const isFechada = (form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao) === "Fechada";
 
@@ -193,76 +214,81 @@ export default function Movimentacoes() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Movimentações</h1>
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>{editingId ? "Editar Movimentação" : "Nova Movimentação"}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Empresa *</Label>
-                    <Select value={form.empresa_id} onValueChange={handleEmpresaChange}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        {empresas.map((e) => (
-                          <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Mês Referência *</Label>
-                    <Input type="month" value={form.mes_referencia} onChange={(e) => setForm({ ...form, mes_referencia: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tipo Movimentação</Label>
-                    <Input value={form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao ?? "—"} disabled className="bg-muted" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Período {isFechada ? "(fixo)" : "(automático)"}</Label>
-                    {isFechada ? (
-                      <Input value={form.periodo} disabled className="bg-muted" />
-                    ) : (
-                      <Select value={form.periodo} onValueChange={(v) => setForm({ ...form, periodo: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportExcel}>
+              <Download className="mr-2 h-4 w-4 text-icon" />Exportar Excel
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{editingId ? "Editar Movimentação" : "Nova Movimentação"}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Empresa *</Label>
+                      <Select value={form.empresa_id} onValueChange={handleEmpresaChange}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
-                          {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          {empresas.map((e) => (
+                            <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
-                    )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Mês Referência *</Label>
+                      <Input type="month" value={form.mes_referencia} onChange={(e) => setForm({ ...form, mes_referencia: e.target.value })} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tipo Movimentação</Label>
+                      <Input value={form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao ?? "—"} disabled className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Período {isFechada ? "(fixo)" : "(automático)"}</Label>
+                      {isFechada ? (
+                        <Input value={form.periodo} disabled className="bg-muted" />
+                      ) : (
+                        <Select value={form.periodo} onValueChange={(v) => setForm({ ...form, periodo: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Responsável</Label>
+                      <Input value={form.responsavel_movimentacao ?? ""} onChange={(e) => setForm({ ...form, responsavel_movimentacao: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Data Envio p/ Empresa</Label>
+                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Data Retorno Empresa</Label>
+                      <Input type="date" value={form.data_retorno_empresa ?? ""} onChange={(e) => setForm({ ...form, data_retorno_empresa: e.target.value || null })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Data Envio Financeiro</Label>
+                      <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Responsável</Label>
-                    <Input value={form.responsavel_movimentacao ?? ""} onChange={(e) => setForm({ ...form, responsavel_movimentacao: e.target.value })} />
+                    <Label>Observações</Label>
+                    <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Data Envio p/ Empresa</Label>
-                    <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} />
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
+                    <Button type="submit" disabled={upsert.isPending || !form.empresa_id}>{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Data Retorno Empresa</Label>
-                    <Input type="date" value={form.data_retorno_empresa ?? ""} onChange={(e) => setForm({ ...form, data_retorno_empresa: e.target.value || null })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Data Envio Financeiro</Label>
-                    <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Observações</Label>
-                  <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-                  <Button type="submit" disabled={upsert.isPending || !form.empresa_id}>{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Filters */}
@@ -322,10 +348,11 @@ export default function Movimentacoes() {
                 <TableRow>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Cód. Contrato</TableHead>
+                  <TableHead>Resp. Contrato</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Período</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Responsável</TableHead>
+                  <TableHead>Resp. Mov.</TableHead>
                   <TableHead>Envio Empresa</TableHead>
                   <TableHead>Retorno</TableHead>
                   <TableHead>Financeiro</TableHead>
@@ -334,17 +361,18 @@ export default function Movimentacoes() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
                 ) : (
                   filtered.map((m) => {
                     const status = calcularStatus(m);
                     const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
                     return (
-                      <TableRow key={m.id} className={status === "Fora do prazo" ? "bg-destructive/5" : ""}>
+                      <TableRow key={m.id} className={status === "Fora do prazo" ? "bg-destructive/10" : ""}>
                         <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
                         <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                        <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
                         <TableCell><Badge variant="outline">{tipo}</Badge></TableCell>
                         <TableCell>{m.periodo}</TableCell>
                         <TableCell>
@@ -356,7 +384,7 @@ export default function Movimentacoes() {
                         <TableCell>{m.data_envio_financeiro || "—"}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(m)}><Pencil className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(m)}><Pencil className="h-4 w-4 text-icon" /></Button>
                             <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                           </div>
                         </TableCell>
