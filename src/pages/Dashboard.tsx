@@ -28,11 +28,11 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas(nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao)")
+        .select("*, empresas(nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Movimentacao[];
+      return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
     },
   });
 
@@ -58,18 +58,16 @@ export default function Dashboard() {
     return withStatus.filter((m) => m.responsavel_movimentacao === filterResponsavel);
   }, [withStatus, filterResponsavel]);
 
-  // Filter by selected period
   const periodItems = useMemo(() => {
     return filteredByResponsavel.filter((m) => m.periodo === filterPeriodo);
   }, [filteredByResponsavel, filterPeriodo]);
 
-  // Stats based on period
   const totalNoPeriodo = periodItems.length;
   const retornadas = periodItems.filter((m) => m.status === "Retornado pela empresa").length;
   const pendentes = periodItems.filter((m) => m.status === "Enviado para empresa").length;
   const concluidas = periodItems.filter((m) => m.status === "Enviado ao financeiro").length;
+  const foraDoPrazo = filteredByResponsavel.filter((m) => m.status === "Fora do prazo");
 
-  // Lista de trabalho: items in period, excluding "Enviado ao financeiro"
   const listaTrabalho = useMemo(() => {
     return periodItems.filter((m) => m.status !== "Enviado ao financeiro");
   }, [periodItems]);
@@ -114,34 +112,41 @@ export default function Dashboard() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total no Período</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <Building2 className="h-4 w-4 text-icon" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{totalNoPeriodo}</div></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Retornadas</CardTitle>
-              <RotateCcw className="h-4 w-4 text-info" />
+              <RotateCcw className="h-4 w-4 text-icon" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold text-info">{retornadas}</div></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-              <Clock className="h-4 w-4 text-warning" />
+              <Clock className="h-4 w-4 text-icon" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold text-warning">{pendentes}</div></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Enviadas ao Financeiro</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-success" />
+              <CheckCircle2 className="h-4 w-4 text-icon" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold text-success">{concluidas}</div></CardContent>
+          </Card>
+          <Card className={foraDoPrazo.length > 0 ? "border-destructive/50" : ""}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Fora do Período</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent><div className="text-2xl font-bold text-destructive">{foraDoPrazo.length}</div></CardContent>
           </Card>
         </div>
 
@@ -158,10 +163,10 @@ export default function Dashboard() {
                 <TableRow>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Cód. Contrato</TableHead>
-                  <TableHead>Tipo Mov.</TableHead>
+                  <TableHead>Resp. Contrato</TableHead>
                   <TableHead>Período</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Responsável</TableHead>
+                  <TableHead>Resp. Movimentação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -170,24 +175,57 @@ export default function Dashboard() {
                 ) : listaTrabalho.length === 0 ? (
                   <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
                 ) : (
-                  listaTrabalho.map((m) => {
-                    const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
-                    return (
-                      <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/5" : ""}>
-                        <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                        <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
-                        <TableCell><Badge variant="outline">{tipo}</Badge></TableCell>
-                        <TableCell>{m.periodo}</TableCell>
-                        <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
-                        <TableCell>{m.responsavel_movimentacao || "—"}</TableCell>
-                      </TableRow>
-                    );
-                  })
+                  listaTrabalho.map((m) => (
+                    <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/10" : ""}>
+                      <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
+                      <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                      <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                      <TableCell>{m.periodo}</TableCell>
+                      <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
+                      <TableCell>{m.responsavel_movimentacao || "—"}</TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
+
+        {/* Fora do período list */}
+        {foraDoPrazo.length > 0 && (
+          <Card className="border-destructive/30">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                Contratos Fora do Período
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>Cód. Contrato</TableHead>
+                    <TableHead>Resp. Contrato</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {foraDoPrazo.map((m) => (
+                    <TableRow key={m.id} className="bg-destructive/5">
+                      <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
+                      <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                      <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                      <TableCell>{m.periodo}</TableCell>
+                      <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Resumo por período */}
         <Card>
@@ -203,7 +241,7 @@ export default function Dashboard() {
                   <button
                     key={p}
                     onClick={() => setFilterPeriodo(p)}
-                    className={`rounded-lg border p-3 text-center space-y-1 transition-colors ${isActive ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
+                    className={`rounded-lg border p-3 text-center space-y-1 transition-colors ${isActive ? "border-primary bg-primary/10" : "hover:bg-muted/50"}`}
                   >
                     <div className="font-semibold text-sm">{p}</div>
                     <div className="text-xs text-muted-foreground">{items.length} total</div>
