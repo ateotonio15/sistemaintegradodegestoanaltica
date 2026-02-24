@@ -1,13 +1,14 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building2, Clock, AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react";
+import { Building2, Clock, AlertTriangle, CheckCircle2, RotateCcw, RefreshCw } from "lucide-react";
 import {
   type Movimentacao,
   PERIODOS,
@@ -22,8 +23,9 @@ export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
+  const queryClient = useQueryClient();
 
-  const { data: movimentacoes = [], isLoading } = useQuery({
+  const { data: movimentacoes = [], isLoading, isFetching } = useQuery({
     queryKey: ["movimentacoes-dashboard", filterMes],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -35,6 +37,11 @@ export default function Dashboard() {
       return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
     },
   });
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+    queryClient.invalidateQueries({ queryKey: ["movimentacoes-notifications"] });
+  };
 
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
@@ -77,6 +84,10 @@ export default function Dashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching}>
+            <RefreshCw className={`mr-2 h-4 w-4 text-icon ${isFetching ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
         </div>
 
         {/* Filters */}
