@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Trash2, Search, Upload } from "lucide-react";
 import { PERIODOS } from "@/lib/movimentacao-utils";
 import * as XLSX from "xlsx";
@@ -39,9 +40,11 @@ export default function Empresas() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TablesInsert<"empresas">>(emptyForm);
+  const [dataImplantacao, setDataImplantacao] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
 
   const { data: empresas = [], isLoading } = useQuery({
     queryKey: ["empresas"],
@@ -54,9 +57,12 @@ export default function Empresas() {
 
   const upsert = useMutation({
     mutationFn: async (values: TablesInsert<"empresas">) => {
-      const payload = { ...values };
+      const payload: any = { ...values };
       if (payload.tipo_movimentacao === "Diária") {
         payload.periodo_movimentacao = null;
+      }
+      if (dataImplantacao) {
+        payload.data_implantacao = dataImplantacao;
       }
       if (editingId) {
         const { error } = await supabase.from("empresas").update(payload).eq("id", editingId);
@@ -129,6 +135,7 @@ export default function Empresas() {
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setDataImplantacao("");
   };
 
   const openEdit = (e: Empresa) => {
@@ -147,6 +154,7 @@ export default function Empresas() {
       status_empresa: e.status_empresa ?? "Ativa",
       observacoes: e.observacoes ?? "",
     });
+    setDataImplantacao((e as any).data_implantacao ?? "");
     setDialogOpen(true);
   };
 
@@ -159,103 +167,111 @@ export default function Empresas() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
-          <div className="flex gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={handleImport}
-            />
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
-              <Upload className="mr-2 h-4 w-4 text-icon" />
-              {importMutation.isPending ? "Importando..." : "Importar Excel"}
-            </Button>
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-              <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>{editingId ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
-                </DialogHeader>
-                <form
-                  onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }}
-                  className="space-y-4"
-                >
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Nome *</Label>
-                      <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>CNPJ</Label>
-                      <Input value={form.cnpj ?? ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Código do Contrato</Label>
-                      <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Operadora / Plano</Label>
-                      <Input value={form.operadora_plano ?? ""} onChange={(e) => setForm({ ...form, operadora_plano: e.target.value })} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Responsável pelo Contrato</Label>
-                      <Input value={form.responsavel_contrato ?? ""} onChange={(e) => setForm({ ...form, responsavel_contrato: e.target.value })} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tipo de Movimentação</Label>
-                      <Select value={form.tipo_movimentacao ?? "Fechada"} onValueChange={(v) => setForm({ ...form, tipo_movimentacao: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Diária">Diária</SelectItem>
-                          <SelectItem value="Fechada">Fechada</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {form.tipo_movimentacao === "Fechada" && (
+          {isAdmin && (
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={handleImport}
+              />
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
+                <Upload className="mr-2 h-4 w-4 text-icon" />
+                {importMutation.isPending ? "Importando..." : "Importar Excel"}
+              </Button>
+              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingId ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
+                  </DialogHeader>
+                  <form
+                    onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }}
+                    className="space-y-4"
+                  >
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <Label>Período de Movimentação *</Label>
-                        <Select value={form.periodo_movimentacao ?? ""} onValueChange={(v) => setForm({ ...form, periodo_movimentacao: v })}>
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <Label>Nome *</Label>
+                        <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>CNPJ</Label>
+                        <Input value={form.cnpj ?? ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Código do Contrato *</Label>
+                        <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Responsável pelo Contrato *</Label>
+                        <Input value={form.responsavel_contrato ?? ""} onChange={(e) => setForm({ ...form, responsavel_contrato: e.target.value })} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Data de Implantação *</Label>
+                        <Input type="date" value={dataImplantacao} onChange={(e) => setDataImplantacao(e.target.value)} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Operadora / Plano</Label>
+                        <Input value={form.operadora_plano ?? ""} onChange={(e) => setForm({ ...form, operadora_plano: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Tipo de Contrato *</Label>
+                        <Select value={form.tipo_movimentacao ?? "Fechada"} onValueChange={(v) => setForm({ ...form, tipo_movimentacao: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                            <SelectItem value="Diária">Diário</SelectItem>
+                            <SelectItem value="Fechada">Período</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
-                    <div className="space-y-2">
-                      <Label>Data de Corte (dia)</Label>
-                      <Input type="number" min={1} max={31} value={form.data_corte ?? ""} onChange={(e) => setForm({ ...form, data_corte: e.target.value ? Number(e.target.value) : null })} />
+                      {form.tipo_movimentacao === "Fechada" && (
+                        <div className="space-y-2">
+                          <Label>Período de Movimentação *</Label>
+                          <Select value={form.periodo_movimentacao ?? ""} onValueChange={(v) => setForm({ ...form, periodo_movimentacao: v })}>
+                            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      {form.tipo_movimentacao === "Diária" && (
+                        <div className="space-y-2">
+                          <Label>Data de Corte (dia) *</Label>
+                          <Input type="number" min={1} max={31} value={form.data_corte ?? ""} onChange={(e) => setForm({ ...form, data_corte: e.target.value ? Number(e.target.value) : null })} required />
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <Label>E-mail da Empresa</Label>
+                        <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Status da Empresa</Label>
+                        <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Ativa">Ativa</SelectItem>
+                            <SelectItem value="Inativa">Inativa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>E-mail da Empresa</Label>
-                      <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} />
+                      <Label>Observações</Label>
+                      <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Status da Empresa</Label>
-                      <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Ativa">Ativa</SelectItem>
-                          <SelectItem value="Inativa">Inativa</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
+                      <Button type="submit" disabled={upsert.isPending}>{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Observações</Label>
-                    <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-                    <Button type="submit" disabled={upsert.isPending}>{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
         </div>
 
         <div className="relative max-w-sm">
@@ -272,17 +288,17 @@ export default function Empresas() {
                   <TableHead>Cód. Contrato</TableHead>
                   <TableHead>Resp. Contrato</TableHead>
                   <TableHead>CNPJ</TableHead>
-                  <TableHead>Tipo Mov.</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Período</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-24">Ações</TableHead>
+                  {isAdmin && <TableHead className="w-24">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                 <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                 <TableRow><TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
                 ) : (
                   filtered.map((e) => (
                     <TableRow key={e.id}>
@@ -291,7 +307,7 @@ export default function Empresas() {
                       <TableCell>{e.responsavel_contrato || "—"}</TableCell>
                       <TableCell>{e.cnpj || "—"}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{e.tipo_movimentacao ?? "Fechada"}</Badge>
+                        <Badge variant="outline">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
                       </TableCell>
                       <TableCell>{e.periodo_movimentacao || "—"}</TableCell>
                       <TableCell>
@@ -299,12 +315,14 @@ export default function Empresas() {
                           {e.status_empresa ?? "Ativa"}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4 text-icon" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                        </div>
-                      </TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4 text-icon" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}

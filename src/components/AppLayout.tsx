@@ -1,16 +1,19 @@
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { calcularStatus } from "@/lib/movimentacao-utils";
 import type { Tables } from "@/integrations/supabase/types";
+import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -20,6 +23,8 @@ const navItems = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { signOut, user, isAdmin } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const { data: movimentacoes = [] } = useQuery({
     queryKey: ["movimentacoes-notifications"],
@@ -73,43 +78,67 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
 
-          {/* Notification bell */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="relative p-2 rounded-md hover:bg-accent transition-colors">
-                <Bell className="h-5 w-5 text-icon" />
-                {foraDosPrazos.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                    {foraDosPrazos.length}
-                  </span>
-                )}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="end">
-              <div className="p-3 border-b">
-                <h4 className="font-semibold text-sm">Notificações</h4>
-              </div>
-              <div className="max-h-72 overflow-y-auto">
-                {foraDosPrazos.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">
-                    Nenhum contrato fora do período ✅
-                  </div>
-                ) : (
-                  foraDosPrazos.map((m) => (
-                    <div key={m.id} className="p-3 border-b last:border-0 hover:bg-accent/50">
-                      <p className="text-sm font-medium">{m.empresas?.nome ?? "—"}</p>
-                      <p className="text-xs text-destructive mt-0.5">
-                        Contrato fora do período de movimentação
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Período: {m.periodo} · Cód: {m.empresas?.codigo_contrato || "—"}
-                      </p>
+          <div className="flex items-center gap-2">
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-md hover:bg-accent transition-colors"
+              title={theme === "dark" ? "Modo claro" : "Modo escuro"}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-5 w-5 text-icon" />
+              ) : (
+                <Moon className="h-5 w-5 text-icon" />
+              )}
+            </button>
+
+            {/* Notification bell */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="relative p-2 rounded-md hover:bg-accent transition-colors">
+                  <Bell className="h-5 w-5 text-icon" />
+                  {foraDosPrazos.length > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                      {foraDosPrazos.length}
+                    </span>
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="p-3 border-b">
+                  <h4 className="font-semibold text-sm">Notificações</h4>
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {foraDosPrazos.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      Nenhum contrato fora do período ✅
                     </div>
-                  ))
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
+                  ) : (
+                    foraDosPrazos.map((m) => (
+                      <div key={m.id} className="p-3 border-b last:border-0 hover:bg-accent/50">
+                        <p className="text-sm font-medium">{m.empresas?.nome ?? "—"}</p>
+                        <p className="text-xs text-destructive mt-0.5">
+                          Contrato fora do período de movimentação
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Período: {m.periodo} · Cód: {m.empresas?.codigo_contrato || "—"}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Logout */}
+            <button
+              onClick={signOut}
+              className="p-2 rounded-md hover:bg-accent transition-colors"
+              title="Sair"
+            >
+              <LogOut className="h-5 w-5 text-icon" />
+            </button>
+          </div>
         </div>
       </header>
       <main className="container py-6">{children}</main>

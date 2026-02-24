@@ -188,10 +188,12 @@ export default function Movimentacoes() {
   const handleExportExcel = () => {
     const rows = filtered.map((m) => {
       const status = calcularStatus(m);
+      const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "";
       return {
         Empresa: m.empresas?.nome ?? "",
         "Cód. Contrato": m.empresas?.codigo_contrato ?? "",
         "Resp. Contrato": (m.empresas as any)?.responsavel_contrato ?? "",
+        "Tipo de Contrato": tipo === "Diária" ? "Diário" : "Período",
         Período: m.periodo,
         "Data Envio Empresa": m.data_envio_empresa ?? "",
         "Data Retorno": m.data_retorno_empresa ?? "",
