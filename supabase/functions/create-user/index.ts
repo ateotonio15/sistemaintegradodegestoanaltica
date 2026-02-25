@@ -71,8 +71,11 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 400,
+    const message = String(err?.message || "Erro inesperado");
+    const emailExists = message.toLowerCase().includes("already been registered") || message.toLowerCase().includes("email_exists");
+
+    return new Response(JSON.stringify({ error: emailExists ? "Já existe um usuário com este e-mail" : message }), {
+      status: emailExists ? 409 : 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

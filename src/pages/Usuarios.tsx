@@ -160,7 +160,15 @@ export default function Usuarios() {
       setNewEmpresas([]);
       toast({ title: "Usuário criado com sucesso!" });
     },
-    onError: (err: any) => toast({ title: err.message || "Erro ao criar usuário", variant: "destructive" }),
+    onError: (err: any) => {
+      const raw = String(err?.context?.error || err?.message || "");
+      const duplicated = raw.toLowerCase().includes("já existe um usuário") || raw.toLowerCase().includes("already been registered") || raw.toLowerCase().includes("email_exists");
+      toast({
+        title: duplicated ? "E-mail já cadastrado" : "Erro ao criar usuário",
+        description: duplicated ? "Use outro e-mail para criar o usuário." : raw || "Tente novamente.",
+        variant: "destructive",
+      });
+    },
   });
 
   const openEdit = (u: UserProfile) => {
