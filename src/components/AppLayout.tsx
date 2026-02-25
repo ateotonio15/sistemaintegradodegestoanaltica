@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/empresas", label: "Empresas", icon: Building2 },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
+  { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -60,7 +61,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               Fechamento
             </Link>
             <nav className="flex items-center gap-1">
-              {navItems.map((item) => (
+              {navItems
+                .filter((item) => !("adminOnly" in item && item.adminOnly) || isAdmin)
+                .map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
