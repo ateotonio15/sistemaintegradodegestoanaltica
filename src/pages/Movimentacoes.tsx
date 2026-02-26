@@ -76,9 +76,10 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas(nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato)")
+        .select("*, empresas:empresa_id(nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
+      console.log("[Movimentacoes] Supabase raw response:", { data, error });
       if (error) throw error;
       return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
     },
