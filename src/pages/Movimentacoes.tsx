@@ -56,6 +56,7 @@ export default function Movimentacoes() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterResponsavel, setFilterResponsavel] = useState("");
   const [somentePendentes, setSomentePendentes] = useState(false);
+  const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -81,9 +82,16 @@ export default function Movimentacoes() {
         .order("created_at", { ascending: false });
       console.log("[Movimentacoes] Supabase raw response:", { data, error });
       if (error) throw error;
+      console.log("Movimentações carregadas:", data);
       return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
     },
   });
+
+  const movimentacoesSemEmpresa = useMemo(() => {
+    return movimentacoes.filter((m) => !m.empresa_id || !m.empresas);
+  }, [movimentacoes]);
+
+  console.log("Sem empresa:", movimentacoesSemEmpresa);
 
   const handleEmpresaChange = (empresaId: string) => {
     const empresa = empresas.find((e) => e.id === empresaId);
@@ -167,6 +175,7 @@ export default function Movimentacoes() {
 
   const filtered = useMemo(() => {
     return movimentacoes.filter((m) => {
+      if (verSomenteSemEmpresa) return !m.empresas;
       const status = calcularStatus(m);
       if (filterPeriodo !== "all" && m.periodo !== filterPeriodo) return false;
       if (filterStatus !== "all" && status !== filterStatus) return false;
@@ -174,7 +183,7 @@ export default function Movimentacoes() {
       if (somentePendentes && status === "Enviado ao financeiro") return false;
       return true;
     });
-  }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes]);
+  }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa]);
 
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
@@ -339,9 +348,25 @@ export default function Movimentacoes() {
                 <Checkbox id="pendentes" checked={somentePendentes} onCheckedChange={(v) => setSomentePendentes(v === true)} />
                 <Label htmlFor="pendentes" className="text-xs cursor-pointer">Somente pendentes</Label>
               </div>
+              <Button
+                variant={verSomenteSemEmpresa ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => setVerSomenteSemEmpresa(!verSomenteSemEmpresa)}
+              >
+                {verSomenteSemEmpresa ? "Mostrar todas" : "Ver sem empresa"}
+              </Button>
             </div>
           </CardContent>
         </Card>
+
+        {movimentacoesSemEmpresa.length > 0 && (
+          <Card className="border-destructive/40">
+            <CardContent className="pt-4 text-sm text-destructive">
+              ⚠️ Existem {movimentacoesSemEmpresa.length} movimentações sem empresa vinculada.
+              Verifique o cadastro ou corrija o empresa_id no banco.
+            </CardContent>
+          </Card>
+        )}
 
         {/* Table */}
         <Card>
@@ -372,8 +397,10 @@ export default function Movimentacoes() {
                     const status = calcularStatus(m);
                     const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
                     return (
-                      <TableRow key={m.id} className={status === "Fora do prazo" ? "bg-destructive/10" : ""}>
-                        <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
+                      <TableRow key={m.id} className={!m.empresas ? "bg-destructive/10" : status === "Fora do prazo" ? "bg-destructive/10" : ""}>
+                        <TableCell className="font-medium">
+                          {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
+                        </TableCell>
                         <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
                         <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
                         <TableCell><Badge variant="outline">{tipo}</Badge></TableCell>
