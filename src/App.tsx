@@ -21,6 +21,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminOrComumRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading, isExecutivo } = useAuth();
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (isExecutivo) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function AuthRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -33,7 +41,7 @@ const AppRoutes = () => (
     <Route path="/auth" element={<AuthRoute />} />
     <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-    <Route path="/empresas" element={<ProtectedRoute><Empresas /></ProtectedRoute>} />
+    <Route path="/empresas" element={<AdminOrComumRoute><Empresas /></AdminOrComumRoute>} />
     <Route path="/movimentacoes" element={<ProtectedRoute><Movimentacoes /></ProtectedRoute>} />
     <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />

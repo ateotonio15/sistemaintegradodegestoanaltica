@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Download } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import {
   type Movimentacao,
   PERIODOS,
@@ -59,6 +60,8 @@ export default function Movimentacoes() {
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAdmin, isExecutivo, role } = useAuth();
+  const canEdit = isAdmin; // only admin can edit
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas"],
@@ -230,6 +233,7 @@ export default function Movimentacoes() {
             <Button variant="outline" onClick={handleExportExcel}>
               <Download className="mr-2 h-4 w-4 text-icon" />Exportar Excel
             </Button>
+            {canEdit && (
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
               <DialogTrigger asChild>
                 <Button><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
@@ -300,6 +304,7 @@ export default function Movimentacoes() {
                 </form>
               </DialogContent>
             </Dialog>
+            )}
           </div>
         </div>
 
@@ -384,14 +389,14 @@ export default function Movimentacoes() {
                   <TableHead>Envio Empresa</TableHead>
                   <TableHead>Retorno</TableHead>
                   <TableHead>Financeiro</TableHead>
-                  <TableHead className="w-24">Ações</TableHead>
+                  {canEdit && <TableHead className="w-24">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
                 ) : (
                   filtered.map((m) => {
                     const status = calcularStatus(m);
@@ -412,12 +417,14 @@ export default function Movimentacoes() {
                         <TableCell>{m.data_envio_empresa || "—"}</TableCell>
                         <TableCell>{m.data_retorno_empresa || "—"}</TableCell>
                         <TableCell>{m.data_envio_financeiro || "—"}</TableCell>
+                        {canEdit && (
                         <TableCell>
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" onClick={() => openEdit(m)}><Pencil className="h-4 w-4 text-icon" /></Button>
                             <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                           </div>
                         </TableCell>
+                        )}
                       </TableRow>
                     );
                   })

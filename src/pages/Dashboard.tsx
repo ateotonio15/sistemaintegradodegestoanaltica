@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building2, Clock, AlertTriangle, CheckCircle2, RotateCcw, RefreshCw } from "lucide-react";
+import { Building2, Clock, AlertTriangle, CheckCircle2, RotateCcw, RefreshCw, Users } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import {
   type Movimentacao,
   PERIODOS,
@@ -24,6 +25,32 @@ export default function Dashboard() {
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
   const queryClient = useQueryClient();
+  const { user, isAdmin, isExecutivo, role } = useAuth();
+
+  // Count of active companies linked to user
+  const { data: userCompanyCount = 0 } = useQuery({
+    queryKey: ["user-company-count", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      if (isAdmin || isExecutivo) {
+        // Admin/Executivo sees all active companies
+        const { count, error } = await supabase
+          .from("empresas")
+          .select("id", { count: "exact", head: true })
+          .eq("status_empresa", "Ativa");
+        if (error) throw error;
+        return count ?? 0;
+      }
+      // Comum: only linked companies
+      const { data: links, error: lErr } = await supabase
+        .from("empresa_usuarios")
+        .select("empresa_id, empresas(status_empresa)")
+        .eq("user_id", user.id);
+      if (lErr) throw lErr;
+      return (links || []).filter((l: any) => l.empresas?.status_empresa === "Ativa").length;
+    },
+    enabled: !!user,
+  });
 
   const { data: movimentacoes = [], isLoading, isFetching } = useQuery({
     queryKey: ["movimentacoes-dashboard", filterMes],
@@ -41,6 +68,7 @@ export default function Dashboard() {
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-notifications"] });
+    queryClient.invalidateQueries({ queryKey: ["user-company-count"] });
   };
 
   const mesesOptions = useMemo(() => {
@@ -123,7 +151,14 @@ export default function Dashboard() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Empresas Ativas</CardTitle>
+              <Users className="h-4 w-4 text-icon" />
+            </CardHeader>
+            <CardContent><div className="text-2xl font-bold">{userCompanyCount}</div></CardContent>
+          </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total no Período</CardTitle>
