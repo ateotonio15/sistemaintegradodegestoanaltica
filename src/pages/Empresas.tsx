@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
@@ -44,7 +44,9 @@ export default function Empresas() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isExecutivo } = useAuth();
+
+  const canEdit = isAdmin;
 
   const { data: empresas = [], isLoading } = useQuery({
     queryKey: ["empresas"],
@@ -158,16 +160,21 @@ export default function Empresas() {
     setDialogOpen(true);
   };
 
-  const filtered = empresas.filter((e) =>
-    e.nome.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return empresas.filter((e) =>
+      e.nome.toLowerCase().includes(q) ||
+      (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
+      (e.cnpj ?? "").toLowerCase().includes(q)
+    );
+  }, [empresas, search]);
 
   return (
     <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
-          {isAdmin && (
+          {canEdit && (
             <div className="flex gap-2">
               <input
                 ref={fileInputRef}
@@ -214,7 +221,7 @@ export default function Empresas() {
                         <Input type="date" value={dataImplantacao} onChange={(e) => setDataImplantacao(e.target.value)} required />
                       </div>
                       <div className="space-y-2">
-                        <Label>Operadora / Plano</Label>
+                        <Label>Corretora</Label>
                         <Input value={form.operadora_plano ?? ""} onChange={(e) => setForm({ ...form, operadora_plano: e.target.value })} />
                       </div>
                       <div className="space-y-2">
@@ -276,7 +283,7 @@ export default function Empresas() {
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-icon" />
-          <Input placeholder="Buscar empresa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Buscar por nome, código ou CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
 
         <Card>
@@ -288,17 +295,19 @@ export default function Empresas() {
                   <TableHead>Cód. Contrato</TableHead>
                   <TableHead>Resp. Contrato</TableHead>
                   <TableHead>CNPJ</TableHead>
+                  <TableHead>Corretora</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead>Período</TableHead>
+                  <TableHead>Período / Corte</TableHead>
+                  <TableHead>Implantação</TableHead>
                   <TableHead>Status</TableHead>
-                  {isAdmin && <TableHead className="w-24">Ações</TableHead>}
+                  {canEdit && <TableHead className="w-24">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                 <TableRow><TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                 <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
                 ) : (
                   filtered.map((e) => (
                     <TableRow key={e.id}>
@@ -306,16 +315,22 @@ export default function Empresas() {
                       <TableCell>{e.codigo_contrato || "—"}</TableCell>
                       <TableCell>{e.responsavel_contrato || "—"}</TableCell>
                       <TableCell>{e.cnpj || "—"}</TableCell>
+                      <TableCell>{e.operadora_plano || "—"}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
                       </TableCell>
-                      <TableCell>{e.periodo_movimentacao || "—"}</TableCell>
+                      <TableCell>
+                        {e.tipo_movimentacao === "Diária"
+                          ? `Corte: dia ${e.data_corte ?? "—"}`
+                          : e.periodo_movimentacao || "—"}
+                      </TableCell>
+                      <TableCell>{e.data_implantacao || "—"}</TableCell>
                       <TableCell>
                         <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"}>
                           {e.status_empresa ?? "Ativa"}
                         </Badge>
                       </TableCell>
-                      {isAdmin && (
+                      {canEdit && (
                         <TableCell>
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4 text-icon" /></Button>

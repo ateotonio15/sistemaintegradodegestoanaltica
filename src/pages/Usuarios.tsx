@@ -12,15 +12,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Search, Users, Shield, User } from "lucide-react";
+import { Plus, Pencil, Search, Shield, User, Eye } from "lucide-react";
 import { Navigate } from "react-router-dom";
+
+type AppRole = "admin" | "comum" | "executivo";
 
 interface UserProfile {
   user_id: string;
   display_name: string | null;
-  role: "admin" | "comum" | null;
+  role: AppRole | null;
   empresas: { id: string; nome: string }[];
 }
+
+const roleLabel: Record<AppRole, string> = {
+  admin: "Administrador",
+  comum: "Usuário Comum",
+  executivo: "Executivo",
+};
+
+const roleIcon: Record<AppRole, typeof Shield> = {
+  admin: Shield,
+  comum: User,
+  executivo: Eye,
+};
 
 export default function Usuarios() {
   const { isAdmin } = useAuth();
@@ -28,12 +42,12 @@ export default function Usuarios() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-  const [selectedRole, setSelectedRole] = useState<"admin" | "comum">("comum");
+  const [selectedRole, setSelectedRole] = useState<AppRole>("comum");
   const [selectedEmpresas, setSelectedEmpresas] = useState<string[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState<"admin" | "comum">("comum");
+  const [newRole, setNewRole] = useState<AppRole>("comum");
   const [newEmpresas, setNewEmpresas] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -52,25 +66,22 @@ export default function Usuarios() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users-management"],
     queryFn: async () => {
-      // Get all profiles
       const { data: profiles, error: pErr } = await supabase
         .from("profiles")
         .select("user_id, display_name");
       if (pErr) throw pErr;
 
-      // Get all roles
       const { data: roles, error: rErr } = await supabase
         .from("user_roles")
         .select("user_id, role");
       if (rErr) throw rErr;
 
-      // Get all empresa links
       const { data: links, error: lErr } = await supabase
         .from("empresa_usuarios")
         .select("user_id, empresa_id, empresas(id, nome)");
       if (lErr) throw lErr;
 
-      const rolesMap = new Map(roles.map((r) => [r.user_id, r.role as "admin" | "comum"]));
+      const rolesMap = new Map(roles.map((r) => [r.user_id, r.role as AppRole]));
       const linksMap = new Map<string, { id: string; nome: string }[]>();
       links.forEach((l: any) => {
         const list = linksMap.get(l.user_id) || [];
@@ -88,8 +99,7 @@ export default function Usuarios() {
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "comum" }) => {
-      // Upsert role
+    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
       const { data: existing } = await supabase
         .from("user_roles")
         .select("id")
@@ -113,11 +123,9 @@ export default function Usuarios() {
 
   const updateEmpresasMutation = useMutation({
     mutationFn: async ({ userId, empresaIds }: { userId: string; empresaIds: string[] }) => {
-      // Remove all existing links
       const { error: delErr } = await supabase.from("empresa_usuarios").delete().eq("user_id", userId);
       if (delErr) throw delErr;
 
-      // Insert new links
       if (empresaIds.length > 0) {
         const rows = empresaIds.map((empresa_id) => ({ user_id: userId, empresa_id }));
         const { error } = await supabase.from("empresa_usuarios").insert(rows);
@@ -133,7 +141,6 @@ export default function Usuarios() {
 
   const createUserMutation = useMutation({
     mutationFn: async () => {
-      // Create user via edge function
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: { email: newEmail, password: newPassword, displayName: newName },
       });
@@ -141,10 +148,8 @@ export default function Usuarios() {
       const userId = data?.user_id;
       if (!userId) throw new Error("Falha ao criar usuário");
 
-      // Set role
       await supabase.from("user_roles").insert({ user_id: userId, role: newRole });
 
-      // Link empresas
       if (newEmpresas.length > 0) {
         const rows = newEmpresas.map((empresa_id) => ({ user_id: userId, empresa_id }));
         await supabase.from("empresa_usuarios").insert(rows);
@@ -209,7 +214,7 @@ export default function Usuarios() {
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); createUserMutation.mutate(); }} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Nome do Usuário *</Label>
+                    <Label>Nome Completo *</Label>
                     <Input value={newName} onChange={(e) => setNewName(e.target.value)} required />
                   </div>
                   <div className="space-y-2">
@@ -222,11 +227,12 @@ export default function Usuarios() {
                   </div>
                   <div className="space-y-2">
                     <Label>Perfil *</Label>
-                    <Select value={newRole} onValueChange={(v) => setNewRole(v as "admin" | "comum")}>
+                    <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="admin">Administrador</SelectItem>
                         <SelectItem value="comum">Usuário Comum</SelectItem>
+                        <SelectItem value="executivo">Executivo</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -281,33 +287,31 @@ export default function Usuarios() {
                 ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</TableCell></TableRow>
                 ) : (
-                  filtered.map((u) => (
-                    <TableRow key={u.user_id}>
-                      <TableCell className="font-medium">{u.display_name || "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={u.role === "admin" ? "default" : "secondary"} className="gap-1">
-                          {u.role === "admin" ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                          {u.role === "admin" ? "Admin" : "Comum"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {u.empresas.length === 0 ? (
-                            <span className="text-muted-foreground text-sm">Nenhuma</span>
-                          ) : (
-                            u.empresas.map((e) => (
-                              <Badge key={e.id} variant="outline" className="text-xs">{e.nome}</Badge>
-                            ))
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
-                          <Pencil className="h-4 w-4 text-icon" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filtered.map((u) => {
+                    const role = u.role ?? "comum";
+                    const Icon = roleIcon[role];
+                    return (
+                      <TableRow key={u.user_id}>
+                        <TableCell className="font-medium">{u.display_name || "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant={role === "admin" ? "default" : "secondary"} className="gap-1">
+                            <Icon className="h-3 w-3" />
+                            {roleLabel[role]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {u.empresas.length === 0 ? "Nenhuma" : `${u.empresas.length} empresa(s)`}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
+                            <Pencil className="h-4 w-4 text-icon" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -323,16 +327,17 @@ export default function Usuarios() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Perfil</Label>
-                <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as "admin" | "comum")}>
+                <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as AppRole)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Administrador</SelectItem>
                     <SelectItem value="comum">Usuário Comum</SelectItem>
+                    <SelectItem value="executivo">Executivo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Empresas Vinculadas</Label>
+                <Label>Empresas Vinculadas ({selectedEmpresas.length})</Label>
                 <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
                   {empresas.map((emp) => (
                     <label key={emp.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5">

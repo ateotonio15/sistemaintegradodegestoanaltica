@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
+const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/empresas", label: "Empresas", icon: Building2 },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
@@ -24,8 +24,17 @@ const navItems = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { signOut, user, isAdmin } = useAuth();
+  const { signOut, user, isAdmin, isExecutivo, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
+
+  // Executivo only sees Dashboard and Movimentações
+  const navItems = useMemo(() => {
+    return allNavItems.filter((item) => {
+      if (item.adminOnly && !isAdmin) return false;
+      if (isExecutivo && item.to === "/empresas") return false;
+      return true;
+    });
+  }, [isAdmin, isExecutivo]);
 
   const { data: movimentacoes = [] } = useQuery({
     queryKey: ["movimentacoes-notifications"],
@@ -61,9 +70,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               Fechamento
             </Link>
             <nav className="flex items-center gap-1">
-              {navItems
-                .filter((item) => !("adminOnly" in item && item.adminOnly) || isAdmin)
-                .map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
@@ -82,7 +89,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Theme toggle */}
             <button
               onClick={toggleTheme}
               className="p-2 rounded-md hover:bg-accent transition-colors"
@@ -95,7 +101,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               )}
             </button>
 
-            {/* Notification bell */}
             <Popover>
               <PopoverTrigger asChild>
                 <button className="relative p-2 rounded-md hover:bg-accent transition-colors">
@@ -133,7 +138,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </PopoverContent>
             </Popover>
 
-            {/* Logout */}
             <button
               onClick={signOut}
               className="p-2 rounded-md hover:bg-accent transition-colors"
