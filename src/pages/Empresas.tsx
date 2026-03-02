@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Trash2, Search, Upload } from "lucide-react";
-import { PERIODOS } from "@/lib/movimentacao-utils";
+import { PERIODOS, calcularStatusPeriodoEmpresa } from "@/lib/movimentacao-utils";
 import * as XLSX from "xlsx";
 
 type Empresa = Tables<"empresas">;
@@ -44,8 +44,7 @@ export default function Empresas() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin, isExecutivo } = useAuth();
-
+  const { isAdmin } = useAuth();
   const canEdit = isAdmin;
 
   const { data: empresas = [], isLoading } = useQuery({
@@ -176,29 +175,17 @@ export default function Empresas() {
           <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
           {canEdit && (
             <div className="flex gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={handleImport}
-              />
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
               <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
-                <Upload className="mr-2 h-4 w-4 text-icon" />
-                {importMutation.isPending ? "Importando..." : "Importar Excel"}
+                <Upload className="mr-2 h-4 w-4 text-icon" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
               </Button>
               <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
                 <DialogTrigger asChild>
                   <Button><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>{editingId ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
-                  </DialogHeader>
-                  <form
-                    onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }}
-                    className="space-y-4"
-                  >
+                  <DialogHeader><DialogTitle>{editingId ? "Editar Empresa" : "Nova Empresa"}</DialogTitle></DialogHeader>
+                  <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label>Nome *</Label>
@@ -300,46 +287,55 @@ export default function Empresas() {
                   <TableHead>Período / Corte</TableHead>
                   <TableHead>Implantação</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Situação Período</TableHead>
                   {canEdit && <TableHead className="w-24">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                 <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
                 ) : (
-                  filtered.map((e) => (
-                    <TableRow key={e.id}>
-                      <TableCell className="font-medium">{e.nome}</TableCell>
-                      <TableCell>{e.codigo_contrato || "—"}</TableCell>
-                      <TableCell>{e.responsavel_contrato || "—"}</TableCell>
-                      <TableCell>{e.cnpj || "—"}</TableCell>
-                      <TableCell>{e.operadora_plano || "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {e.tipo_movimentacao === "Diária"
-                          ? `Corte: dia ${e.data_corte ?? "—"}`
-                          : e.periodo_movimentacao || "—"}
-                      </TableCell>
-                      <TableCell>{e.data_implantacao || "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"}>
-                          {e.status_empresa ?? "Ativa"}
-                        </Badge>
-                      </TableCell>
-                      {canEdit && (
+                  filtered.map((e) => {
+                    const statusPeriodo = calcularStatusPeriodoEmpresa(e);
+                    return (
+                      <TableRow key={e.id} className={statusPeriodo === "Fora do período" && e.status_empresa === "Ativa" ? "bg-destructive/5" : ""}>
+                        <TableCell className="font-medium">{e.nome}</TableCell>
+                        <TableCell>{e.codigo_contrato || "—"}</TableCell>
+                        <TableCell>{e.responsavel_contrato || "—"}</TableCell>
+                        <TableCell>{e.cnpj || "—"}</TableCell>
+                        <TableCell>{e.operadora_plano || "—"}</TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4 text-icon" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          </div>
+                          <Badge variant="outline">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
                         </TableCell>
-                      )}
-                    </TableRow>
-                  ))
+                        <TableCell>
+                          {e.tipo_movimentacao === "Diária"
+                            ? `Corte: dia ${e.data_corte ?? "—"}`
+                            : e.periodo_movimentacao || "—"}
+                        </TableCell>
+                        <TableCell>{e.data_implantacao || "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"}>
+                            {e.status_empresa ?? "Ativa"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={statusPeriodo === "Em período" ? "default" : "destructive"}>
+                            {statusPeriodo}
+                          </Badge>
+                        </TableCell>
+                        {canEdit && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4 text-icon" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

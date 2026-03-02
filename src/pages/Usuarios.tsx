@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Search, Shield, User, Eye } from "lucide-react";
+import { Plus, Pencil, Search, Shield, User, Eye, KeyRound } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 type AppRole = "admin" | "comum" | "executivo";
@@ -36,11 +36,19 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   executivo: Eye,
 };
 
+function generatePassword(length = 10) {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
 export default function Usuarios() {
   const { isAdmin } = useAuth();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<UserProfile | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("comum");
   const [selectedEmpresas, setSelectedEmpresas] = useState<string[]>([]);
@@ -66,19 +74,13 @@ export default function Usuarios() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users-management"],
     queryFn: async () => {
-      const { data: profiles, error: pErr } = await supabase
-        .from("profiles")
-        .select("user_id, display_name");
+      const { data: profiles, error: pErr } = await supabase.from("profiles").select("user_id, display_name");
       if (pErr) throw pErr;
 
-      const { data: roles, error: rErr } = await supabase
-        .from("user_roles")
-        .select("user_id, role");
+      const { data: roles, error: rErr } = await supabase.from("user_roles").select("user_id, role");
       if (rErr) throw rErr;
 
-      const { data: links, error: lErr } = await supabase
-        .from("empresa_usuarios")
-        .select("user_id, empresa_id, empresas(id, nome)");
+      const { data: links, error: lErr } = await supabase.from("empresa_usuarios").select("user_id, empresa_id, empresas(id, nome)");
       if (lErr) throw lErr;
 
       const rolesMap = new Map(roles.map((r) => [r.user_id, r.role as AppRole]));
@@ -100,12 +102,7 @@ export default function Usuarios() {
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { data: existing } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
-
+      const { data: existing } = await supabase.from("user_roles").select("id").eq("user_id", userId).maybeSingle();
       if (existing) {
         const { error } = await supabase.from("user_roles").update({ role }).eq("user_id", userId);
         if (error) throw error;
@@ -125,7 +122,6 @@ export default function Usuarios() {
     mutationFn: async ({ userId, empresaIds }: { userId: string; empresaIds: string[] }) => {
       const { error: delErr } = await supabase.from("empresa_usuarios").delete().eq("user_id", userId);
       if (delErr) throw delErr;
-
       if (empresaIds.length > 0) {
         const rows = empresaIds.map((empresa_id) => ({ user_id: userId, empresa_id }));
         const { error } = await supabase.from("empresa_usuarios").insert(rows);
@@ -158,21 +154,36 @@ export default function Usuarios() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users-management"] });
       setCreateDialogOpen(false);
-      setNewEmail("");
-      setNewName("");
-      setNewPassword("");
-      setNewRole("comum");
-      setNewEmpresas([]);
+      setNewEmail(""); setNewName(""); setNewPassword(""); setNewRole("comum"); setNewEmpresas([]);
       toast({ title: "Usuário criado com sucesso!" });
     },
     onError: (err: any) => {
       const raw = String(err?.context?.error || err?.message || "");
-      const duplicated = raw.toLowerCase().includes("já existe um usuário") || raw.toLowerCase().includes("already been registered") || raw.toLowerCase().includes("email_exists");
+      const duplicated = raw.toLowerCase().includes("já existe") || raw.toLowerCase().includes("already been registered") || raw.toLowerCase().includes("email_exists");
       toast({
         title: duplicated ? "E-mail já cadastrado" : "Erro ao criar usuário",
-        description: duplicated ? "Use outro e-mail para criar o usuário." : raw || "Tente novamente.",
+        description: duplicated ? "Use outro e-mail." : raw || "Tente novamente.",
         variant: "destructive",
       });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { action: "reset-password", userId, newPassword },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      setResetPasswordDialogOpen(false);
+      setResetPasswordUser(null);
+      setResetPassword("");
+      toast({ title: "Senha redefinida com sucesso!" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao redefinir senha", description: String(err?.message || ""), variant: "destructive" });
     },
   });
 
@@ -190,6 +201,12 @@ export default function Usuarios() {
     setDialogOpen(false);
   };
 
+  const openResetPassword = (u: UserProfile) => {
+    setResetPasswordUser(u);
+    setResetPassword("");
+    setResetPasswordDialogOpen(true);
+  };
+
   const toggleEmpresa = (id: string, list: string[], setter: (v: string[]) => void) => {
     setter(list.includes(id) ? list.filter((e) => e !== id) : [...list, id]);
   };
@@ -203,66 +220,55 @@ export default function Usuarios() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Usuários</h1>
-          <div className="flex gap-2">
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" />Novo Usuário</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Cadastro de Usuário</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={(e) => { e.preventDefault(); createUserMutation.mutate(); }} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Nome Completo *</Label>
-                    <Input value={newName} onChange={(e) => setNewName(e.target.value)} required />
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" />Novo Usuário</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>Cadastro de Usuário</DialogTitle></DialogHeader>
+              <form onSubmit={(e) => { e.preventDefault(); createUserMutation.mutate(); }} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome Completo *</Label>
+                  <Input value={newName} onChange={(e) => setNewName(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>E-mail *</Label>
+                  <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Senha *</Label>
+                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Perfil *</Label>
+                  <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="comum">Usuário Comum</SelectItem>
+                      <SelectItem value="executivo">Executivo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Empresas Vinculadas</Label>
+                  <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
+                    {empresas.map((emp) => (
+                      <label key={emp.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5">
+                        <input type="checkbox" checked={newEmpresas.includes(emp.id)} onChange={() => toggleEmpresa(emp.id, newEmpresas, setNewEmpresas)} className="rounded" />
+                        {emp.nome}
+                      </label>
+                    ))}
+                    {empresas.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma empresa cadastrada</p>}
                   </div>
-                  <div className="space-y-2">
-                    <Label>E-mail *</Label>
-                    <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Senha *</Label>
-                    <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Perfil *</Label>
-                    <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="comum">Usuário Comum</SelectItem>
-                        <SelectItem value="executivo">Executivo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Empresas Vinculadas</Label>
-                    <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
-                      {empresas.map((emp) => (
-                        <label key={emp.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5">
-                          <input
-                            type="checkbox"
-                            checked={newEmpresas.includes(emp.id)}
-                            onChange={() => toggleEmpresa(emp.id, newEmpresas, setNewEmpresas)}
-                            className="rounded"
-                          />
-                          {emp.nome}
-                        </label>
-                      ))}
-                      {empresas.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma empresa cadastrada</p>}
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
-                    <Button type="submit" disabled={createUserMutation.isPending}>
-                      {createUserMutation.isPending ? "Criando..." : "Criar Usuário"}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
+                  <Button type="submit" disabled={createUserMutation.isPending}>{createUserMutation.isPending ? "Criando..." : "Criar Usuário"}</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="relative max-w-sm">
@@ -277,8 +283,8 @@ export default function Usuarios() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Perfil</TableHead>
-                  <TableHead>Empresas Vinculadas</TableHead>
-                  <TableHead className="w-24">Ações</TableHead>
+                  <TableHead>Empresas</TableHead>
+                  <TableHead className="w-32">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -295,8 +301,7 @@ export default function Usuarios() {
                         <TableCell className="font-medium">{u.display_name || "—"}</TableCell>
                         <TableCell>
                           <Badge variant={role === "admin" ? "default" : "secondary"} className="gap-1">
-                            <Icon className="h-3 w-3" />
-                            {roleLabel[role]}
+                            <Icon className="h-3 w-3" />{roleLabel[role]}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -305,9 +310,14 @@ export default function Usuarios() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
-                            <Pencil className="h-4 w-4 text-icon" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Editar">
+                              <Pencil className="h-4 w-4 text-icon" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => openResetPassword(u)} title="Redefinir Senha">
+                              <KeyRound className="h-4 w-4 text-icon" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -321,9 +331,7 @@ export default function Usuarios() {
         {/* Edit dialog */}
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingUser(null); }}>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Editar Usuário: {editingUser?.display_name}</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Editar Usuário: {editingUser?.display_name}</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Perfil</Label>
@@ -341,12 +349,7 @@ export default function Usuarios() {
                 <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
                   {empresas.map((emp) => (
                     <label key={emp.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5">
-                      <input
-                        type="checkbox"
-                        checked={selectedEmpresas.includes(emp.id)}
-                        onChange={() => toggleEmpresa(emp.id, selectedEmpresas, setSelectedEmpresas)}
-                        className="rounded"
-                      />
+                      <input type="checkbox" checked={selectedEmpresas.includes(emp.id)} onChange={() => toggleEmpresa(emp.id, selectedEmpresas, setSelectedEmpresas)} className="rounded" />
                       {emp.nome}
                     </label>
                   ))}
@@ -356,6 +359,36 @@ export default function Usuarios() {
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
                 <Button onClick={handleSaveEdit} disabled={updateRoleMutation.isPending}>Salvar</Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reset Password dialog */}
+        <Dialog open={resetPasswordDialogOpen} onOpenChange={(open) => { setResetPasswordDialogOpen(open); if (!open) { setResetPasswordUser(null); setResetPassword(""); } }}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader><DialogTitle>Redefinir Senha</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">Usuário: <strong>{resetPasswordUser?.display_name}</strong></p>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Nova Senha *</Label>
+                <Input type="text" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} minLength={6} placeholder="Mínimo 6 caracteres" />
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => setResetPassword(generatePassword())}>
+                Gerar senha automática
+              </Button>
+            </div>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="outline" onClick={() => setResetPasswordDialogOpen(false)}>Cancelar</Button>
+              <Button
+                disabled={resetPassword.length < 6 || resetPasswordMutation.isPending}
+                onClick={() => {
+                  if (resetPasswordUser) {
+                    resetPasswordMutation.mutate({ userId: resetPasswordUser.user_id, newPassword: resetPassword });
+                  }
+                }}
+              >
+                {resetPasswordMutation.isPending ? "Redefinindo..." : "Redefinir"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

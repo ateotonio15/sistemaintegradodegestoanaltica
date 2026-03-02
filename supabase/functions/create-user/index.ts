@@ -26,11 +26,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
 
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      console.error("Missing required env vars", {
-        hasSupabaseUrl: Boolean(supabaseUrl),
-        hasServiceRoleKey: Boolean(serviceRoleKey),
-        hasAnonOrPublishableKey: Boolean(anonKey),
-      });
       return new Response(JSON.stringify({ error: "Configuração do servidor incompleta" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -53,9 +48,28 @@ Deno.serve(async (req) => {
       .eq("role", "admin")
       .maybeSingle();
 
-    if (!roleData) throw new Error("Apenas administradores podem criar usuários");
+    if (!roleData) throw new Error("Apenas administradores podem executar esta ação");
 
-    const { email, password, displayName } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+
+    // --- RESET PASSWORD ---
+    if (action === "reset-password") {
+      const { userId, newPassword } = body;
+      if (!userId || !newPassword) throw new Error("userId e newPassword são obrigatórios");
+
+      const { error } = await adminClient.auth.admin.updateUserById(userId, {
+        password: newPassword,
+      });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- CREATE USER (default) ---
+    const { email, password, displayName } = body;
     if (!email || !password) throw new Error("E-mail e senha são obrigatórios");
 
     const { data: newUser, error } = await adminClient.auth.admin.createUser({
