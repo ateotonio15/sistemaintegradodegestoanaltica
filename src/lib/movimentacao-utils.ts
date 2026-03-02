@@ -52,23 +52,64 @@ export function statusColor(status: StatusMovimentacao) {
   }
 }
 
+/**
+ * Get current period based on today's day.
+ * Day 01-05 → 01-05, Day 06-10 → 05-10, Day 11-15 → 10-15,
+ * Day 16-20 → 15-20, Day 21-25 → 20-25, Day 26-31 → 25-30
+ */
 export function getCurrentPeriodo(): string {
   const day = new Date().getDate();
-  for (const p of PERIODOS) {
-    const [start, end] = p.split("-").map(Number);
-    if (day >= start && day < end) return p;
-  }
+  if (day <= 5) return "01-05";
+  if (day <= 10) return "05-10";
+  if (day <= 15) return "10-15";
+  if (day <= 20) return "15-20";
+  if (day <= 25) return "20-25";
   return "25-30";
+}
+
+/**
+ * Map a data_corte value to a period.
+ * Corte 05 → 01-05, Corte 10 → 05-10, etc.
+ */
+export function periodoDaDataCorte(dataCorte: number): string {
+  if (dataCorte <= 5) return "01-05";
+  if (dataCorte <= 10) return "05-10";
+  if (dataCorte <= 15) return "10-15";
+  if (dataCorte <= 20) return "15-20";
+  if (dataCorte <= 25) return "20-25";
+  return "25-30";
+}
+
+/**
+ * Determine if an empresa is "Em período" or "Fora do período"
+ * based on current period vs the empresa's configured period.
+ */
+export function calcularStatusPeriodoEmpresa(empresa: Tables<"empresas">): "Em período" | "Fora do período" {
+  if (empresa.status_empresa !== "Ativa") return "Fora do período";
+
+  const periodoAtual = getCurrentPeriodo();
+
+  if (empresa.tipo_movimentacao === "Diária" && empresa.data_corte) {
+    const periodoEmpresa = periodoDaDataCorte(empresa.data_corte);
+    return periodoEmpresa === periodoAtual ? "Em período" : "Fora do período";
+  }
+
+  if (empresa.periodo_movimentacao) {
+    return empresa.periodo_movimentacao === periodoAtual ? "Em período" : "Fora do período";
+  }
+
+  return "Fora do período";
 }
 
 /** Calculate period from a date (for Diária type) */
 export function calcularPeriodoPorData(dateStr: string): string {
   try {
     const day = new Date(dateStr + "T12:00:00").getDate();
-    for (const p of PERIODOS) {
-      const [start, end] = p.split("-").map(Number);
-      if (day >= start && day < end) return p;
-    }
+    if (day <= 5) return "01-05";
+    if (day <= 10) return "05-10";
+    if (day <= 15) return "10-15";
+    if (day <= 20) return "15-20";
+    if (day <= 25) return "20-25";
     return "25-30";
   } catch {
     return "01-05";

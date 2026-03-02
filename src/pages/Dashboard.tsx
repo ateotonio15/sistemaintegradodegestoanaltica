@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ import {
   getCurrentMesReferencia,
   getCurrentPeriodo,
   formatMesReferencia,
+  calcularStatusPeriodoEmpresa,
 } from "@/lib/movimentacao-utils";
 
 export default function Dashboard() {
@@ -27,30 +29,41 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role } = useAuth();
 
-  // Count of active companies linked to user
-  const { data: userCompanyCount = 0 } = useQuery({
-    queryKey: ["user-company-count", user?.id],
+  // Fetch empresas to compute period status from source of truth
+  const { data: allEmpresas = [] } = useQuery({
+    queryKey: ["empresas-dashboard"],
     queryFn: async () => {
-      if (!user) return 0;
-      if (isAdmin || isExecutivo) {
-        // Admin/Executivo sees all active companies
-        const { count, error } = await supabase
-          .from("empresas")
-          .select("id", { count: "exact", head: true })
-          .eq("status_empresa", "Ativa");
-        if (error) throw error;
-        return count ?? 0;
-      }
-      // Comum: only linked companies
-      const { data: links, error: lErr } = await supabase
-        .from("empresa_usuarios")
-        .select("empresa_id, empresas(status_empresa)")
-        .eq("user_id", user.id);
-      if (lErr) throw lErr;
-      return (links || []).filter((l: any) => l.empresas?.status_empresa === "Ativa").length;
+      const { data, error } = await supabase.from("empresas").select("*").order("nome");
+      if (error) throw error;
+      return data as Tables<"empresas">[];
     },
-    enabled: !!user,
   });
+
+  // For comum users, get linked empresa IDs
+  const { data: linkedEmpresaIds = [] } = useQuery({
+    queryKey: ["user-empresa-links", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase.from("empresa_usuarios").select("empresa_id").eq("user_id", user.id);
+      if (error) throw error;
+      return data.map((l) => l.empresa_id);
+    },
+    enabled: !!user && role === "comum",
+  });
+
+  // Filter empresas by role
+  const visibleEmpresas = useMemo(() => {
+    if (role === "comum") {
+      return allEmpresas.filter((e) => linkedEmpresaIds.includes(e.id) && e.status_empresa === "Ativa");
+    }
+    // Admin sees all, Executivo sees all
+    return allEmpresas;
+  }, [allEmpresas, linkedEmpresaIds, role]);
+
+  const empresasAtivas = useMemo(() => visibleEmpresas.filter((e) => e.status_empresa === "Ativa"), [visibleEmpresas]);
+
+  const empresasEmPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Em período"), [empresasAtivas]);
+  const empresasForaDoPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Fora do período"), [empresasAtivas]);
 
   const { data: movimentacoes = [], isLoading, isFetching } = useQuery({
     queryKey: ["movimentacoes-dashboard", filterMes],
@@ -68,7 +81,8 @@ export default function Dashboard() {
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-notifications"] });
-    queryClient.invalidateQueries({ queryKey: ["user-company-count"] });
+    queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+    queryClient.invalidateQueries({ queryKey: ["user-empresa-links"] });
   };
 
   const mesesOptions = useMemo(() => {
@@ -151,13 +165,27 @@ export default function Dashboard() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Empresas Ativas</CardTitle>
               <Users className="h-4 w-4 text-icon" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{userCompanyCount}</div></CardContent>
+            <CardContent><div className="text-2xl font-bold">{empresasAtivas.length}</div></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Em Período</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-success" />
+            </CardHeader>
+            <CardContent><div className="text-2xl font-bold text-success">{empresasEmPeriodo.length}</div></CardContent>
+          </Card>
+          <Card className={empresasForaDoPeriodo.length > 0 ? "border-destructive/50" : ""}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Fora do Período</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent><div className="text-2xl font-bold text-destructive">{empresasForaDoPeriodo.length}</div></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -187,20 +215,49 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent><div className="text-2xl font-bold text-success">{concluidas}</div></CardContent>
           </Card>
-          <Card className={foraDoPrazo.length > 0 ? "border-destructive/50" : ""}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Fora do Período</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-destructive">{foraDoPrazo.length}</div></CardContent>
-          </Card>
         </div>
+
+        {/* Empresas fora do período */}
+        {empresasForaDoPeriodo.length > 0 && (
+          <Card className="border-destructive/30">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                Empresas Fora do Período ({empresasForaDoPeriodo.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>Cód. Contrato</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Período / Corte</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {empresasForaDoPeriodo.map((e) => (
+                    <TableRow key={e.id} className="bg-destructive/5">
+                      <TableCell className="font-medium">{e.nome}</TableCell>
+                      <TableCell>{e.codigo_contrato || "—"}</TableCell>
+                      <TableCell>{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</TableCell>
+                      <TableCell>
+                        {e.tipo_movimentacao === "Diária" ? `Corte: dia ${e.data_corte ?? "—"}` : e.periodo_movimentacao || "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Lista de Empresas no Período */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              Empresas no Período {filterPeriodo} — {formatMesReferencia(filterMes)}
+              Movimentações no Período {filterPeriodo} — {formatMesReferencia(filterMes)}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -236,42 +293,6 @@ export default function Dashboard() {
             </Table>
           </CardContent>
         </Card>
-
-        {/* Fora do período list */}
-        {foraDoPrazo.length > 0 && (
-          <Card className="border-destructive/30">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                Contratos Fora do Período
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>Cód. Contrato</TableHead>
-                    <TableHead>Resp. Contrato</TableHead>
-                    <TableHead>Período</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {foraDoPrazo.map((m) => (
-                    <TableRow key={m.id} className="bg-destructive/5">
-                      <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                      <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
-                      <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                      <TableCell>{m.periodo}</TableCell>
-                      <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Resumo por período */}
         <Card>
