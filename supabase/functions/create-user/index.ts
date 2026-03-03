@@ -53,6 +53,25 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
+    // --- DELETE USER ---
+    if (action === "delete-user") {
+      const { userId } = body;
+      if (!userId) throw new Error("userId é obrigatório");
+      if (userId === caller.id) throw new Error("Não é permitido excluir seu próprio usuário");
+
+      // Delete links, profile, roles, then auth user
+      await adminClient.from("empresa_usuarios").delete().eq("user_id", userId);
+      await adminClient.from("user_roles").delete().eq("user_id", userId);
+      await adminClient.from("profiles").delete().eq("user_id", userId);
+
+      const { error: authErr } = await adminClient.auth.admin.deleteUser(userId);
+      if (authErr) throw authErr;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // --- RESET PASSWORD ---
     if (action === "reset-password") {
       const { userId, newPassword } = body;
@@ -69,8 +88,18 @@ Deno.serve(async (req) => {
     }
 
     // --- CREATE USER (default) ---
-    const { email, password, displayName } = body;
+    const { email, password, displayName, username } = body;
     if (!email || !password) throw new Error("E-mail e senha são obrigatórios");
+    if (!username) throw new Error("Nome de usuário é obrigatório");
+
+    // Check username uniqueness
+    const { data: existingUsername } = await adminClient
+      .from("profiles")
+      .select("user_id")
+      .eq("username", username.toLowerCase())
+      .maybeSingle();
+
+    if (existingUsername) throw new Error("Já existe um usuário com este nome de usuário");
 
     const { data: newUser, error } = await adminClient.auth.admin.createUser({
       email,
@@ -80,6 +109,12 @@ Deno.serve(async (req) => {
     });
 
     if (error) throw error;
+
+    // Update the profile with the username (profile created by trigger)
+    await adminClient
+      .from("profiles")
+      .update({ username: username.toLowerCase() })
+      .eq("user_id", newUser.user.id);
 
     return new Response(JSON.stringify({ user_id: newUser.user.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

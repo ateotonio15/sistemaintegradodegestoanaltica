@@ -62,7 +62,8 @@ export default function Movimentacoes() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin, isExecutivo, role } = useAuth();
-  const canEdit = isAdmin; // only admin can edit
+  const canEdit = isAdmin; // admin can do full CRUD
+  const canEditDates = isAdmin || role === "comum"; // common users can edit dates
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas"],
@@ -234,11 +235,11 @@ export default function Movimentacoes() {
             <Button variant="outline" onClick={handleExportExcel}>
               <Download className="mr-2 h-4 w-4 text-icon" />Exportar Excel
             </Button>
-            {canEdit && (
+            {canEditDates && (
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-              <DialogTrigger asChild>
+              {canEdit && <DialogTrigger asChild>
                 <Button><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
-              </DialogTrigger>
+              </DialogTrigger>}
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle>{editingId ? "Editar Movimentação" : "Nova Movimentação"}</DialogTitle>
@@ -247,7 +248,7 @@ export default function Movimentacoes() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Empresa *</Label>
-                      <Select value={form.empresa_id} onValueChange={handleEmpresaChange}>
+                      <Select value={form.empresa_id} onValueChange={handleEmpresaChange} disabled={!canEdit && !!editingId}>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
                           {empresas.map((e) => (
@@ -258,7 +259,7 @@ export default function Movimentacoes() {
                     </div>
                     <div className="space-y-2">
                       <Label>Mês Referência *</Label>
-                      <Input type="month" value={form.mes_referencia} onChange={(e) => setForm({ ...form, mes_referencia: e.target.value })} required />
+                      <Input type="month" value={form.mes_referencia} onChange={(e) => setForm({ ...form, mes_referencia: e.target.value })} required disabled={!canEdit && !!editingId} />
                     </div>
                     <div className="space-y-2">
                       <Label>Tipo Movimentação</Label>
@@ -269,7 +270,7 @@ export default function Movimentacoes() {
                       {isFechada ? (
                         <Input value={form.periodo} disabled className="bg-muted" />
                       ) : (
-                        <Select value={form.periodo} onValueChange={(v) => setForm({ ...form, periodo: v })}>
+                        <Select value={form.periodo} onValueChange={(v) => setForm({ ...form, periodo: v })} disabled={!canEdit && !!editingId}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
@@ -279,7 +280,7 @@ export default function Movimentacoes() {
                     </div>
                     <div className="space-y-2">
                       <Label>Responsável</Label>
-                      <Input value={form.responsavel_movimentacao ?? ""} onChange={(e) => setForm({ ...form, responsavel_movimentacao: e.target.value })} />
+                      <Input value={form.responsavel_movimentacao ?? ""} onChange={(e) => setForm({ ...form, responsavel_movimentacao: e.target.value })} disabled={!canEdit && !!editingId} />
                     </div>
                     <div className="space-y-2">
                       <Label>Data Envio p/ Empresa</Label>
@@ -296,7 +297,7 @@ export default function Movimentacoes() {
                   </div>
                   <div className="space-y-2">
                     <Label>Observações</Label>
-                    <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
+                    <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} disabled={!canEdit && !!editingId} />
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
@@ -390,14 +391,14 @@ export default function Movimentacoes() {
                   <TableHead>Envio Empresa</TableHead>
                   <TableHead>Retorno</TableHead>
                   <TableHead>Financeiro</TableHead>
-                  {canEdit && <TableHead className="w-24">Ações</TableHead>}
+                  {canEditDates && <TableHead className="w-24">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
                 ) : (
                   filtered.map((m) => {
                     const status = calcularStatus(m);
@@ -418,11 +419,11 @@ export default function Movimentacoes() {
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                         <TableCell>{formatDateBR(m.data_retorno_empresa)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
-                        {canEdit && (
+                        {canEditDates && (
                         <TableCell>
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" onClick={() => openEdit(m)}><Pencil className="h-4 w-4 text-icon" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            {canEdit && <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
                           </div>
                         </TableCell>
                         )}
