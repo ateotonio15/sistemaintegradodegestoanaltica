@@ -126,3 +126,11 @@ export function formatMesReferencia(mes: string): string {
   const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   return `${months[parseInt(month) - 1]}/${year}`;
 }
+
+/** Formats a date string (YYYY-MM-DD) to DD/MM/YYYY for display */
+export function formatDateBR(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}

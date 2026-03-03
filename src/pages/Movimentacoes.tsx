@@ -24,6 +24,7 @@ import {
   calcularPeriodoPorData,
   getCurrentMesReferencia,
   formatMesReferencia,
+  formatDateBR,
 } from "@/lib/movimentacao-utils";
 import * as XLSX from "xlsx";
 
@@ -414,9 +415,9 @@ export default function Movimentacoes() {
                           <Badge className={statusColor(status)}>{status}</Badge>
                         </TableCell>
                         <TableCell>{m.responsavel_movimentacao || "—"}</TableCell>
-                        <TableCell>{m.data_envio_empresa || "—"}</TableCell>
-                        <TableCell>{m.data_retorno_empresa || "—"}</TableCell>
-                        <TableCell>{m.data_envio_financeiro || "—"}</TableCell>
+                        <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
+                        <TableCell>{formatDateBR(m.data_retorno_empresa)}</TableCell>
+                        <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                         {canEdit && (
                         <TableCell>
                           <div className="flex gap-1">
