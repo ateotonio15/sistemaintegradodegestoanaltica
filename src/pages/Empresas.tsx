@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, Link } from "lucide-react";
 import { PERIODOS, calcularStatusPeriodoEmpresa } from "@/lib/movimentacao-utils";
 import * as XLSX from "xlsx";
 
@@ -175,6 +175,20 @@ export default function Empresas() {
           <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
           {canEdit && (
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const { error } = await supabase.rpc("vincular_empresas_por_responsavel");
+                  if (error) {
+                    toast({ title: "Erro ao vincular empresas", description: error.message, variant: "destructive" });
+                  } else {
+                    toast({ title: "Empresas vinculadas com sucesso!" });
+                    queryClient.invalidateQueries({ queryKey: ["empresas"] });
+                  }
+                }}
+              >
+                <Link className="mr-2 h-4 w-4 text-icon" />Vincular Automático
+              </Button>
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
               <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
                 <Upload className="mr-2 h-4 w-4 text-icon" />{importMutation.isPending ? "Importando..." : "Importar Excel"}

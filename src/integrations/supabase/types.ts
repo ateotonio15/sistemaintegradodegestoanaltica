@@ -210,6 +210,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      vincular_empresas_por_responsavel: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "comum" | "executivo"
