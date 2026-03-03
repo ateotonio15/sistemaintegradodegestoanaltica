@@ -39,26 +39,11 @@ export default function Dashboard() {
     },
   });
 
-  // For comum users, get linked empresa IDs
-  const { data: linkedEmpresaIds = [] } = useQuery({
-    queryKey: ["user-empresa-links", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await supabase.from("empresa_usuarios").select("empresa_id").eq("user_id", user.id);
-      if (error) throw error;
-      return data.map((l) => l.empresa_id);
-    },
-    enabled: !!user && role === "comum",
-  });
-
-  // Filter empresas by role
+  // RLS already filters empresas for comum users (via responsavel_user_id or empresa_usuarios)
+  // So we just use allEmpresas directly
   const visibleEmpresas = useMemo(() => {
-    if (role === "comum") {
-      return allEmpresas.filter((e) => linkedEmpresaIds.includes(e.id) && e.status_empresa === "Ativa");
-    }
-    // Admin sees all, Executivo sees all
     return allEmpresas;
-  }, [allEmpresas, linkedEmpresaIds, role]);
+  }, [allEmpresas]);
 
   const empresasAtivas = useMemo(() => visibleEmpresas.filter((e) => e.status_empresa === "Ativa"), [visibleEmpresas]);
 
@@ -70,7 +55,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato)")
+        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -82,7 +67,6 @@ export default function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-notifications"] });
     queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
-    queryClient.invalidateQueries({ queryKey: ["user-empresa-links"] });
   };
 
   const mesesOptions = useMemo(() => {

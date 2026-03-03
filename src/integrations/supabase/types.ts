@@ -41,6 +41,13 @@ export type Database = {
             referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "empresa_usuarios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       empresas: {
@@ -58,6 +65,7 @@ export type Database = {
           operadora_plano: string | null
           periodo_movimentacao: string | null
           responsavel_contrato: string | null
+          responsavel_user_id: string | null
           status_empresa: string | null
           tipo_movimentacao: string | null
           updated_at: string
@@ -76,6 +84,7 @@ export type Database = {
           operadora_plano?: string | null
           periodo_movimentacao?: string | null
           responsavel_contrato?: string | null
+          responsavel_user_id?: string | null
           status_empresa?: string | null
           tipo_movimentacao?: string | null
           updated_at?: string
@@ -94,11 +103,20 @@ export type Database = {
           operadora_plano?: string | null
           periodo_movimentacao?: string | null
           responsavel_contrato?: string | null
+          responsavel_user_id?: string | null
           status_empresa?: string | null
           tipo_movimentacao?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "empresas_responsavel_user_id_fkey"
+            columns: ["responsavel_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       movimentacoes: {
         Row: {
