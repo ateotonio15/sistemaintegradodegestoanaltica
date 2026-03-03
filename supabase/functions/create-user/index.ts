@@ -59,7 +59,8 @@ Deno.serve(async (req) => {
       if (!userId) throw new Error("userId é obrigatório");
       if (userId === caller.id) throw new Error("Não é permitido excluir seu próprio usuário");
 
-      // Delete links, profile, roles, then auth user
+      // Clear empresa references, delete links, roles, profile, then auth user
+      await adminClient.from("empresas").update({ responsavel_user_id: null }).eq("responsavel_user_id", userId);
       await adminClient.from("empresa_usuarios").delete().eq("user_id", userId);
       await adminClient.from("user_roles").delete().eq("user_id", userId);
       await adminClient.from("profiles").delete().eq("user_id", userId);
