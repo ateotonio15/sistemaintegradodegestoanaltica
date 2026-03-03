@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Search, Shield, User, Eye, KeyRound } from "lucide-react";
+import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 type AppRole = "admin" | "comum" | "executivo";
@@ -20,6 +20,7 @@ type AppRole = "admin" | "comum" | "executivo";
 interface UserProfile {
   user_id: string;
   display_name: string | null;
+  username: string | null;
   role: AppRole | null;
   empresas: { id: string; nome: string }[];
 }
@@ -54,6 +55,7 @@ export default function Usuarios() {
   const [selectedEmpresas, setSelectedEmpresas] = useState<string[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
+  const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<AppRole>("comum");
   const [newEmpresas, setNewEmpresas] = useState<string[]>([]);
@@ -74,7 +76,7 @@ export default function Usuarios() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users-management"],
     queryFn: async () => {
-      const { data: profiles, error: pErr } = await supabase.from("profiles").select("user_id, display_name");
+      const { data: profiles, error: pErr } = await supabase.from("profiles").select("user_id, display_name, username");
       if (pErr) throw pErr;
 
       const { data: roles, error: rErr } = await supabase.from("user_roles").select("user_id, role");
@@ -94,6 +96,7 @@ export default function Usuarios() {
       return (profiles || []).map((p) => ({
         user_id: p.user_id,
         display_name: p.display_name,
+        username: (p as any).username ?? null,
         role: rolesMap.get(p.user_id) ?? "comum",
         empresas: linksMap.get(p.user_id) || [],
       })) as UserProfile[];
@@ -138,7 +141,7 @@ export default function Usuarios() {
   const createUserMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("create-user", {
-        body: { email: newEmail, password: newPassword, displayName: newName },
+        body: { email: newEmail, password: newPassword, displayName: newName, username: newUsername },
       });
       if (error) throw error;
       const userId = data?.user_id;
@@ -154,7 +157,7 @@ export default function Usuarios() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users-management"] });
       setCreateDialogOpen(false);
-      setNewEmail(""); setNewName(""); setNewPassword(""); setNewRole("comum"); setNewEmpresas([]);
+      setNewEmail(""); setNewName(""); setNewUsername(""); setNewPassword(""); setNewRole("comum"); setNewEmpresas([]);
       toast({ title: "Usuário criado com sucesso!" });
     },
     onError: (err: any) => {
@@ -165,6 +168,23 @@ export default function Usuarios() {
         description: duplicated ? "Use outro e-mail." : raw || "Tente novamente.",
         variant: "destructive",
       });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { action: "delete-user", userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users-management"] });
+      toast({ title: "Usuário excluído com sucesso!" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao excluir usuário", description: String(err?.message || ""), variant: "destructive" });
     },
   });
 
@@ -232,6 +252,10 @@ export default function Usuarios() {
                   <Input value={newName} onChange={(e) => setNewName(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
+                  <Label>Usuário (login) *</Label>
+                  <Input value={newUsername} onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))} required placeholder="ex: joao.silva" />
+                </div>
+                <div className="space-y-2">
                   <Label>E-mail *</Label>
                   <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
                 </div>
@@ -282,16 +306,17 @@ export default function Usuarios() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
+                  <TableHead>Usuário</TableHead>
                   <TableHead>Perfil</TableHead>
                   <TableHead>Empresas</TableHead>
-                  {isAdmin && <TableHead className="w-32">Ações</TableHead>}
+                  {isAdmin && <TableHead className="w-40">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</TableCell></TableRow>
                 ) : (
                   filtered.map((u) => {
                     const role = u.role ?? "comum";
@@ -299,6 +324,7 @@ export default function Usuarios() {
                     return (
                       <TableRow key={u.user_id}>
                         <TableCell className="font-medium">{u.display_name || "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{u.username || "—"}</TableCell>
                         <TableCell>
                           <Badge variant={role === "admin" ? "default" : "secondary"} className="gap-1">
                             <Icon className="h-3 w-3" />{roleLabel[role]}
@@ -316,6 +342,18 @@ export default function Usuarios() {
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => openResetPassword(u)} title="Redefinir Senha">
                               <KeyRound className="h-4 w-4 text-icon" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Excluir Usuário"
+                              onClick={() => {
+                                if (confirm(`Excluir o usuário "${u.display_name}"? Esta ação não pode ser desfeita.`)) {
+                                  deleteUserMutation.mutate(u.user_id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         </TableCell>}

@@ -5,13 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, LogIn, UserPlus } from "lucide-react";
+import { Building2, LogIn } from "lucide-react";
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -19,28 +17,20 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { display_name: displayName },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
-        toast({
-          title: "Cadastro realizado!",
-          description: "Verifique seu e-mail para confirmar a conta.",
-        });
-        setIsLogin(true);
-        return;
+      // Lookup email by username using security definer function
+      const { data: email, error: lookupError } = await supabase.rpc("get_email_by_username", {
+        _username: username,
+      });
+
+      if (lookupError || !email) {
+        throw new Error("Usuário não encontrado");
       }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      const msg = err.message?.includes("Invalid login") ? "Usuário ou senha inválidos" : err.message;
+      toast({ title: "Erro", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -54,40 +44,36 @@ export default function Auth() {
             <Building2 className="h-10 w-10 text-icon" />
           </div>
           <CardTitle className="text-2xl">Fechamento</CardTitle>
-          <CardDescription>
-            {isLogin ? "Faça login para acessar o sistema" : "Crie sua conta"}
-          </CardDescription>
+          <CardDescription>Faça login para acessar o sistema</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
-              </div>
-            )}
             <div className="space-y-2">
-              <Label>E-mail</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Label>Usuário</Label>
+              <Input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                placeholder="Digite seu nome de usuário"
+                autoComplete="username"
+              />
             </div>
             <div className="space-y-2">
               <Label>Senha</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                autoComplete="current-password"
+              />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {isLogin ? <LogIn className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
-              {loading ? "Aguarde..." : isLogin ? "Entrar" : "Cadastrar"}
+              <LogIn className="mr-2 h-4 w-4" />
+              {loading ? "Aguarde..." : "Entrar"}
             </Button>
           </form>
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              className="text-sm text-primary hover:underline"
-              onClick={() => setIsLogin(!isLogin)}
-            >
-              {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça login"}
-            </button>
-          </div>
         </CardContent>
       </Card>
     </div>
