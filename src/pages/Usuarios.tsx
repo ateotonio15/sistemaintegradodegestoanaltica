@@ -42,7 +42,7 @@ function generatePassword(length = 10) {
 }
 
 export default function Usuarios() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isExecutivo } = useAuth();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -60,7 +60,7 @@ export default function Usuarios() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!isAdmin && !isExecutivo) return <Navigate to="/" replace />;
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas-list"],
@@ -220,7 +220,7 @@ export default function Usuarios() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Usuários</h1>
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          {isAdmin && <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="mr-2 h-4 w-4" />Novo Usuário</Button>
             </DialogTrigger>
@@ -268,7 +268,7 @@ export default function Usuarios() {
                 </div>
               </form>
             </DialogContent>
-          </Dialog>
+          </Dialog>}
         </div>
 
         <div className="relative max-w-sm">
@@ -284,7 +284,7 @@ export default function Usuarios() {
                   <TableHead>Nome</TableHead>
                   <TableHead>Perfil</TableHead>
                   <TableHead>Empresas</TableHead>
-                  <TableHead className="w-32">Ações</TableHead>
+                  {isAdmin && <TableHead className="w-32">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -309,7 +309,7 @@ export default function Usuarios() {
                             {u.empresas.length === 0 ? "Nenhuma" : `${u.empresas.length} empresa(s)`}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        {isAdmin && <TableCell>
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Editar">
                               <Pencil className="h-4 w-4 text-icon" />
@@ -318,7 +318,7 @@ export default function Usuarios() {
                               <KeyRound className="h-4 w-4 text-icon" />
                             </Button>
                           </div>
-                        </TableCell>
+                        </TableCell>}
                       </TableRow>
                     );
                   })
