@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Trash2, Search, Upload } from "lucide-react";
-import { PERIODOS } from "@/lib/movimentacao-utils";
+import { PERIODOS, formatDateBR } from "@/lib/movimentacao-utils";
 import * as XLSX from "xlsx";
 
 type Empresa = Tables<"empresas">;
@@ -351,7 +351,7 @@ export default function Empresas() {
                           ? `Corte: dia ${e.data_corte ?? "—"}`
                           : e.periodo_movimentacao || "—"}
                       </TableCell>
-                      <TableCell>{e.data_implantacao || "—"}</TableCell>
+                      <TableCell>{formatDateBR(e.data_implantacao)}</TableCell>
                       <TableCell>
                         <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"}>
                           {e.status_empresa ?? "Ativa"}
