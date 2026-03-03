@@ -14,13 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload, Link } from "lucide-react";
-import { PERIODOS, calcularStatusPeriodoEmpresa } from "@/lib/movimentacao-utils";
+import { Plus, Pencil, Trash2, Search, Upload } from "lucide-react";
+import { PERIODOS } from "@/lib/movimentacao-utils";
 import * as XLSX from "xlsx";
 
 type Empresa = Tables<"empresas">;
 
-const emptyForm: TablesInsert<"empresas"> = {
+const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | null } = {
   nome: "",
   cnpj: "",
   codigo_contrato: "",
@@ -33,19 +33,31 @@ const emptyForm: TablesInsert<"empresas"> = {
   email_empresa: "",
   status_empresa: "Ativa",
   observacoes: "",
+  responsavel_user_id: null,
 };
 
 export default function Empresas() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<TablesInsert<"empresas">>(emptyForm);
+  const [form, setForm] = useState(emptyForm);
   const [dataImplantacao, setDataImplantacao] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
   const canEdit = isAdmin;
+
+  // Fetch users for the responsável select
+  const { data: usuarios = [] } = useQuery({
+    queryKey: ["profiles-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name").order("display_name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: canEdit,
+  });
 
   const { data: empresas = [], isLoading } = useQuery({
     queryKey: ["empresas"],
@@ -57,13 +69,18 @@ export default function Empresas() {
   });
 
   const upsert = useMutation({
-    mutationFn: async (values: TablesInsert<"empresas">) => {
+    mutationFn: async (values: typeof emptyForm) => {
       const payload: any = { ...values };
       if (payload.tipo_movimentacao === "Diária") {
         payload.periodo_movimentacao = null;
       }
       if (dataImplantacao) {
         payload.data_implantacao = dataImplantacao;
+      }
+      // Set responsavel_contrato from selected user's display_name
+      if (payload.responsavel_user_id) {
+        const selectedUser = usuarios.find((u) => u.user_id === payload.responsavel_user_id);
+        payload.responsavel_contrato = selectedUser?.display_name || payload.responsavel_contrato;
       }
       if (editingId) {
         const { error } = await supabase.from("empresas").update(payload).eq("id", editingId);
@@ -154,9 +171,20 @@ export default function Empresas() {
       email_empresa: e.email_empresa ?? "",
       status_empresa: e.status_empresa ?? "Ativa",
       observacoes: e.observacoes ?? "",
+      responsavel_user_id: (e as any).responsavel_user_id ?? null,
     });
     setDataImplantacao((e as any).data_implantacao ?? "");
     setDialogOpen(true);
+  };
+
+  // Get display name for a user_id
+  const getResponsavelName = (empresa: Empresa) => {
+    const userId = (empresa as any).responsavel_user_id;
+    if (userId) {
+      const user = usuarios.find((u) => u.user_id === userId);
+      if (user) return user.display_name || "—";
+    }
+    return empresa.responsavel_contrato || "—";
   };
 
   const filtered = useMemo(() => {
@@ -175,20 +203,6 @@ export default function Empresas() {
           <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
           {canEdit && (
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  const { error } = await supabase.rpc("vincular_empresas_por_responsavel");
-                  if (error) {
-                    toast({ title: "Erro ao vincular empresas", description: error.message, variant: "destructive" });
-                  } else {
-                    toast({ title: "Empresas vinculadas com sucesso!" });
-                    queryClient.invalidateQueries({ queryKey: ["empresas"] });
-                  }
-                }}
-              >
-                <Link className="mr-2 h-4 w-4 text-icon" />Vincular Automático
-              </Button>
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
               <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
                 <Upload className="mr-2 h-4 w-4 text-icon" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
@@ -215,7 +229,19 @@ export default function Empresas() {
                       </div>
                       <div className="space-y-2">
                         <Label>Responsável pelo Contrato *</Label>
-                        <Input value={form.responsavel_contrato ?? ""} onChange={(e) => setForm({ ...form, responsavel_contrato: e.target.value })} required />
+                        <Select
+                          value={form.responsavel_user_id ?? ""}
+                          onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                          <SelectContent>
+                            {usuarios.map((u) => (
+                              <SelectItem key={u.user_id} value={u.user_id}>
+                                {u.display_name || u.user_id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Data de Implantação *</Label>
@@ -301,7 +327,6 @@ export default function Empresas() {
                   <TableHead>Período / Corte</TableHead>
                   <TableHead>Implantação</TableHead>
                   <TableHead>Status</TableHead>
-                  
                   {canEdit && <TableHead className="w-24">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -311,39 +336,37 @@ export default function Empresas() {
                 ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
                 ) : (
-                  filtered.map((e) => {
-                    return (
-                      <TableRow key={e.id}>
-                        <TableCell className="font-medium">{e.nome}</TableCell>
-                        <TableCell>{e.codigo_contrato || "—"}</TableCell>
-                        <TableCell>{e.responsavel_contrato || "—"}</TableCell>
-                        <TableCell>{e.cnpj || "—"}</TableCell>
-                        <TableCell>{e.operadora_plano || "—"}</TableCell>
+                  filtered.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell className="font-medium">{e.nome}</TableCell>
+                      <TableCell>{e.codigo_contrato || "—"}</TableCell>
+                      <TableCell>{getResponsavelName(e)}</TableCell>
+                      <TableCell>{e.cnpj || "—"}</TableCell>
+                      <TableCell>{e.operadora_plano || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {e.tipo_movimentacao === "Diária"
+                          ? `Corte: dia ${e.data_corte ?? "—"}`
+                          : e.periodo_movimentacao || "—"}
+                      </TableCell>
+                      <TableCell>{e.data_implantacao || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"}>
+                          {e.status_empresa ?? "Ativa"}
+                        </Badge>
+                      </TableCell>
+                      {canEdit && (
                         <TableCell>
-                          <Badge variant="outline">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4 text-icon" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </div>
                         </TableCell>
-                        <TableCell>
-                          {e.tipo_movimentacao === "Diária"
-                            ? `Corte: dia ${e.data_corte ?? "—"}`
-                            : e.periodo_movimentacao || "—"}
-                        </TableCell>
-                        <TableCell>{e.data_implantacao || "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"}>
-                            {e.status_empresa ?? "Ativa"}
-                          </Badge>
-                        </TableCell>
-                        {canEdit && (
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4 text-icon" /></Button>
-                              <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    );
-                  })
+                      )}
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
