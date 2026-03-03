@@ -301,20 +301,19 @@ export default function Empresas() {
                   <TableHead>Período / Corte</TableHead>
                   <TableHead>Implantação</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Situação Período</TableHead>
+                  
                   {canEdit && <TableHead className="w-24">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
                 ) : (
                   filtered.map((e) => {
-                    const statusPeriodo = calcularStatusPeriodoEmpresa(e);
                     return (
-                      <TableRow key={e.id} className={statusPeriodo === "Fora do período" && e.status_empresa === "Ativa" ? "bg-destructive/5" : ""}>
+                      <TableRow key={e.id}>
                         <TableCell className="font-medium">{e.nome}</TableCell>
                         <TableCell>{e.codigo_contrato || "—"}</TableCell>
                         <TableCell>{e.responsavel_contrato || "—"}</TableCell>
@@ -332,11 +331,6 @@ export default function Empresas() {
                         <TableCell>
                           <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"}>
                             {e.status_empresa ?? "Ativa"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={statusPeriodo === "Em período" ? "default" : "destructive"}>
-                            {statusPeriodo}
                           </Badge>
                         </TableCell>
                         {canEdit && (
