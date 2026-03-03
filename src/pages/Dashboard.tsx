@@ -70,7 +70,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas(nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato)")
+        .select("*, empresas:empresa_id(id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
