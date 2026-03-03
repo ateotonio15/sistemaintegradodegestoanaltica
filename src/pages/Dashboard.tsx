@@ -63,7 +63,7 @@ export default function Dashboard() {
   const empresasAtivas = useMemo(() => visibleEmpresas.filter((e) => e.status_empresa === "Ativa"), [visibleEmpresas]);
 
   const empresasEmPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Em período"), [empresasAtivas]);
-  const empresasForaDoPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Fora do período"), [empresasAtivas]);
+  
 
   const { data: movimentacoes = [], isLoading, isFetching } = useQuery({
     queryKey: ["movimentacoes-dashboard", filterMes],
@@ -165,7 +165,7 @@ export default function Dashboard() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Empresas Ativas</CardTitle>
@@ -179,13 +179,6 @@ export default function Dashboard() {
               <CheckCircle2 className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold text-success">{empresasEmPeriodo.length}</div></CardContent>
-          </Card>
-          <Card className={empresasForaDoPeriodo.length > 0 ? "border-destructive/50" : ""}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Fora do Período</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-destructive">{empresasForaDoPeriodo.length}</div></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -217,41 +210,6 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Empresas fora do período */}
-        {empresasForaDoPeriodo.length > 0 && (
-          <Card className="border-destructive/30">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                Empresas Fora do Período ({empresasForaDoPeriodo.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>Cód. Contrato</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Período / Corte</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {empresasForaDoPeriodo.map((e) => (
-                    <TableRow key={e.id} className="bg-destructive/5">
-                      <TableCell className="font-medium">{e.nome}</TableCell>
-                      <TableCell>{e.codigo_contrato || "—"}</TableCell>
-                      <TableCell>{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</TableCell>
-                      <TableCell>
-                        {e.tipo_movimentacao === "Diária" ? `Corte: dia ${e.data_corte ?? "—"}` : e.periodo_movimentacao || "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Lista de Empresas no Período */}
         <Card>
