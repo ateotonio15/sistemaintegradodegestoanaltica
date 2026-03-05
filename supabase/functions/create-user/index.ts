@@ -73,6 +73,35 @@ Deno.serve(async (req) => {
       });
     }
 
+    // --- UPDATE USER (name/username) ---
+    if (action === "update-user") {
+      const { userId, displayName, username } = body;
+      if (!userId) throw new Error("userId é obrigatório");
+
+      const updates: Record<string, string> = {};
+      if (displayName !== undefined) updates.display_name = displayName;
+      if (username !== undefined) {
+        const lower = username.toLowerCase();
+        const { data: existing } = await adminClient
+          .from("profiles")
+          .select("user_id")
+          .eq("username", lower)
+          .neq("user_id", userId)
+          .maybeSingle();
+        if (existing) throw new Error("Já existe um usuário com este nome de usuário");
+        updates.username = lower;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        const { error } = await adminClient.from("profiles").update(updates).eq("user_id", userId);
+        if (error) throw error;
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // --- RESET PASSWORD ---
     if (action === "reset-password") {
       const { userId, newPassword } = body;
