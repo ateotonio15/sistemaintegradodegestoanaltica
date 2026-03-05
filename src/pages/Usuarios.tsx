@@ -59,6 +59,8 @@ export default function Usuarios() {
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<AppRole>("comum");
   const [newEmpresas, setNewEmpresas] = useState<string[]>([]);
+  const [editDisplayName, setEditDisplayName] = useState("");
+  const [editUsername, setEditUsername] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -207,15 +209,34 @@ export default function Usuarios() {
     },
   });
 
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async ({ userId, displayName, username }: { userId: string; displayName: string; username: string }) => {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { action: "update-user", userId, displayName, username },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users-management"] });
+      toast({ title: "Dados do usuário atualizados!" });
+    },
+    onError: (err: any) => toast({ title: "Erro ao atualizar usuário", description: String(err?.message || ""), variant: "destructive" }),
+  });
+
   const openEdit = (u: UserProfile) => {
     setEditingUser(u);
     setSelectedRole(u.role ?? "comum");
     setSelectedEmpresas(u.empresas.map((e) => e.id));
+    setEditDisplayName(u.display_name || "");
+    setEditUsername(u.username || "");
     setDialogOpen(true);
   };
 
   const handleSaveEdit = () => {
     if (!editingUser) return;
+    updateProfileMutation.mutate({ userId: editingUser.user_id, displayName: editDisplayName, username: editUsername });
     updateRoleMutation.mutate({ userId: editingUser.user_id, role: selectedRole });
     updateEmpresasMutation.mutate({ userId: editingUser.user_id, empresaIds: selectedEmpresas });
     setDialogOpen(false);
@@ -371,6 +392,14 @@ export default function Usuarios() {
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Editar Usuário: {editingUser?.display_name}</DialogTitle></DialogHeader>
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome Completo</Label>
+                <Input value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Usuário (login)</Label>
+                <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))} />
+              </div>
               <div className="space-y-2">
                 <Label>Perfil</Label>
                 <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as AppRole)}>
