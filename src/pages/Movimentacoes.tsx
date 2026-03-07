@@ -22,6 +22,7 @@ import {
   calcularStatus,
   statusColor,
   calcularPeriodoPorData,
+  periodoDaDataCorte,
   getCurrentMesReferencia,
   formatMesReferencia,
   formatDateBR,
@@ -35,6 +36,7 @@ type EmpresaOption = {
   tipo_movimentacao: string | null;
   periodo_movimentacao: string | null;
   responsavel_contrato: string | null;
+  data_corte: number | null;
 };
 
 const emptyForm = {
@@ -70,7 +72,7 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id, status_empresa")
+        .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id, status_empresa, data_corte")
         .order("nome");
       if (error) throw error;
       return data as EmpresaOption[];
@@ -101,9 +103,12 @@ export default function Movimentacoes() {
   const handleEmpresaChange = (empresaId: string) => {
     const empresa = empresas.find((e) => e.id === empresaId);
     const tipo = empresa?.tipo_movimentacao ?? "Fechada";
-    const periodo = tipo === "Fechada" && empresa?.periodo_movimentacao
-      ? empresa.periodo_movimentacao
-      : form.periodo;
+    let periodo = form.periodo;
+    if (tipo === "Fechada" && empresa?.periodo_movimentacao) {
+      periodo = empresa.periodo_movimentacao;
+    } else if (tipo === "Diária" && empresa?.data_corte) {
+      periodo = periodoDaDataCorte(empresa.data_corte);
+    }
     setForm({ ...form, empresa_id: empresaId, tipo_movimentacao: tipo, periodo });
   };
 
