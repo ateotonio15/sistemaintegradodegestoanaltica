@@ -213,7 +213,7 @@ export default function Movimentacoes() {
         "Tipo de Contrato": tipo === "Diária" ? "Diário" : "Período",
         Período: m.periodo,
         "Data Envio Empresa": m.data_envio_empresa ?? "",
-        "Data Retorno": m.data_retorno_empresa ?? "",
+        
         "Data Financeiro": m.data_envio_financeiro ?? "",
         Status: status,
         "Dentro do Prazo": m.dentro_prazo ? "Sim" : "Não",
@@ -289,10 +289,6 @@ export default function Movimentacoes() {
                       <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Data Retorno Empresa</Label>
-                      <Input type="date" value={form.data_retorno_empresa ?? ""} onChange={(e) => setForm({ ...form, data_retorno_empresa: e.target.value || null })} />
-                    </div>
-                    <div className="space-y-2">
                       <Label>Data Envio Financeiro</Label>
                       <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} />
                     </div>
@@ -343,7 +339,7 @@ export default function Movimentacoes() {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="Aguardando envio">Aguardando envio</SelectItem>
                     <SelectItem value="Enviado para empresa">Enviado p/ empresa</SelectItem>
-                    <SelectItem value="Retornado pela empresa">Retornado</SelectItem>
+                    
                     <SelectItem value="Enviado ao financeiro">Enviado ao financeiro</SelectItem>
                     <SelectItem value="Fora do prazo">Fora do prazo</SelectItem>
                   </SelectContent>
@@ -391,16 +387,16 @@ export default function Movimentacoes() {
                   <TableHead>Status</TableHead>
                   <TableHead>Resp. Mov.</TableHead>
                   <TableHead>Envio Empresa</TableHead>
-                  <TableHead>Retorno</TableHead>
+                  
                   <TableHead>Financeiro</TableHead>
                   {canEditDates && <TableHead className="w-24">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
+                   <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                 ) : filtered.length === 0 ? (
+                   <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
                 ) : (
                   filtered.map((m) => {
                     const status = calcularStatus(m);
@@ -419,7 +415,7 @@ export default function Movimentacoes() {
                         </TableCell>
                         <TableCell>{m.responsavel_movimentacao || "—"}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
-                        <TableCell>{formatDateBR(m.data_retorno_empresa)}</TableCell>
+                        
                         <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                         {canEditDates && (
                         <TableCell>

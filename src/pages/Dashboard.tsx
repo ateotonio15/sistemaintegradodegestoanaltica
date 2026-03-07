@@ -97,8 +97,8 @@ export default function Dashboard() {
   }, [filteredByResponsavel, filterPeriodo]);
 
   const totalNoPeriodo = periodItems.length;
-  const retornadas = periodItems.filter((m) => m.status === "Retornado pela empresa").length;
-  const pendentes = periodItems.filter((m) => m.status === "Enviado para empresa").length;
+  const enviadas = periodItems.filter((m) => m.status === "Enviado para empresa").length;
+  const pendentes = periodItems.filter((m) => m.status === "Aguardando envio" || m.status === "Fora do prazo").length;
   const concluidas = periodItems.filter((m) => m.status === "Enviado ao financeiro").length;
   const foraDoPrazo = filteredByResponsavel.filter((m) => m.status === "Fora do prazo");
 
@@ -174,10 +174,10 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Retornadas</CardTitle>
+              <CardTitle className="text-sm font-medium">Enviadas p/ Empresa</CardTitle>
               <RotateCcw className="h-4 w-4 text-icon" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-info">{retornadas}</div></CardContent>
+            <CardContent><div className="text-2xl font-bold text-info">{enviadas}</div></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">

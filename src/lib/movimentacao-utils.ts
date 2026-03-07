@@ -9,13 +9,11 @@ export const PERIODOS = ["01-05", "05-10", "10-15", "15-20", "20-25", "25-30"] a
 export type StatusMovimentacao =
   | "Aguardando envio"
   | "Enviado para empresa"
-  | "Retornado pela empresa"
   | "Enviado ao financeiro"
   | "Fora do prazo";
 
 export function calcularStatus(mov: Tables<"movimentacoes">): StatusMovimentacao {
   if (mov.data_envio_financeiro) return "Enviado ao financeiro";
-  if (mov.data_retorno_empresa) return "Retornado pela empresa";
   if (mov.data_envio_empresa) return "Enviado para empresa";
 
   const foraDoParzo = isForaDoPrazo(mov);
@@ -40,8 +38,6 @@ export function statusColor(status: StatusMovimentacao) {
   switch (status) {
     case "Enviado ao financeiro":
       return "bg-success text-success-foreground";
-    case "Retornado pela empresa":
-      return "bg-info text-info-foreground";
     case "Enviado para empresa":
       return "bg-warning text-warning-foreground";
     case "Fora do prazo":
