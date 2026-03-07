@@ -224,6 +224,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_comum_users_empresa_count: {
+        Args: never
+        Returns: {
+          display_name: string
+          empresa_count: number
+          user_id: string
+        }[]
+      }
       get_email_by_username: { Args: { _username: string }; Returns: string }
       has_role: {
         Args: {
