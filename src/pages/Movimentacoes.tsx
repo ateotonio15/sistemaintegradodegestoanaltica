@@ -70,7 +70,7 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id")
+        .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id, status_empresa")
         .order("nome");
       if (error) throw error;
       return data as EmpresaOption[];
@@ -82,7 +82,7 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id)")
+        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id, status_empresa)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       console.log("[Movimentacoes] Supabase raw response:", { data, error });
@@ -180,6 +180,8 @@ export default function Movimentacoes() {
 
   const filtered = useMemo(() => {
     return movimentacoes.filter((m) => {
+      // Ocultar empresas inativas
+      if ((m.empresas as any)?.status_empresa === "Inativa") return false;
       if (verSomenteSemEmpresa) return !m.empresas;
       const status = calcularStatus(m);
       if (filterPeriodo !== "all" && m.periodo !== filterPeriodo) return false;
@@ -251,7 +253,7 @@ export default function Movimentacoes() {
                       <Select value={form.empresa_id} onValueChange={handleEmpresaChange} disabled={!canEdit && !!editingId}>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
-                          {empresas.map((e) => (
+                          {empresas.filter((e) => (e as any).status_empresa === "Ativa").map((e) => (
                             <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
                           ))}
                         </SelectContent>
