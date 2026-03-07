@@ -277,6 +277,54 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal Empresas Ativas por Responsável */}
+        <Dialog open={showEmpresasAtivasModal} onOpenChange={setShowEmpresasAtivasModal}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Empresas Ativas por Responsável</DialogTitle>
+            </DialogHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead className="text-right">Total de Empresas</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {empresasPorResponsavel.map(({ responsavel, empresas, total }) => (
+                  <Collapsible key={responsavel} asChild>
+                    <>
+                      <CollapsibleTrigger asChild>
+                        <TableRow className="cursor-pointer hover:bg-muted/50">
+                          <TableCell className="font-medium flex items-center gap-1">
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            {responsavel}
+                          </TableCell>
+                          <TableCell className="text-right font-bold">{total}</TableCell>
+                        </TableRow>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent asChild>
+                        <tr>
+                          <td colSpan={2} className="p-0">
+                            <div className="bg-muted/30 px-8 py-2 space-y-1">
+                              {empresas.map((emp) => (
+                                <div key={emp.id} className="text-sm text-muted-foreground flex justify-between">
+                                  <span>{emp.nome}</span>
+                                  <span className="text-xs">{emp.codigo_contrato || ""}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      </CollapsibleContent>
+                    </>
+                  </Collapsible>
+                ))}
+              </TableBody>
+            </Table>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
