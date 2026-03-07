@@ -42,9 +42,23 @@ export default function Dashboard() {
   });
 
   const { data: allProfiles = [] } = useQuery({
-    queryKey: ["profiles-dashboard"],
+    queryKey: ["profiles-dashboard-comum"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("user_id, display_name").order("display_name");
+      // Fetch only users with "comum" role
+      const { data: comunRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "comum");
+      if (rolesError) throw rolesError;
+
+      const comunUserIds = (comunRoles ?? []).map((r) => r.user_id);
+      if (comunUserIds.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", comunUserIds)
+        .order("display_name");
       if (error) throw error;
       return data as Pick<Tables<"profiles">, "user_id" | "display_name">[];
     },
