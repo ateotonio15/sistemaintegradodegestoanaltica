@@ -22,6 +22,7 @@ import {
   calcularStatus,
   statusColor,
   calcularPeriodoPorData,
+  periodoDaDataCorte,
   getCurrentMesReferencia,
   formatMesReferencia,
   formatDateBR,
@@ -101,9 +102,12 @@ export default function Movimentacoes() {
   const handleEmpresaChange = (empresaId: string) => {
     const empresa = empresas.find((e) => e.id === empresaId);
     const tipo = empresa?.tipo_movimentacao ?? "Fechada";
-    const periodo = tipo === "Fechada" && empresa?.periodo_movimentacao
-      ? empresa.periodo_movimentacao
-      : form.periodo;
+    let periodo = form.periodo;
+    if (tipo === "Fechada" && empresa?.periodo_movimentacao) {
+      periodo = empresa.periodo_movimentacao;
+    } else if (tipo === "Diária" && (empresa as any)?.data_corte) {
+      periodo = periodoDaDataCorte((empresa as any).data_corte);
+    }
     setForm({ ...form, empresa_id: empresaId, tipo_movimentacao: tipo, periodo });
   };
 
