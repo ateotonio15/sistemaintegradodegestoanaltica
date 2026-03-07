@@ -98,7 +98,7 @@ export default function Dashboard() {
 
   const totalNoPeriodo = periodItems.length;
   const enviadas = periodItems.filter((m) => m.status === "Enviado para empresa").length;
-  const pendentes = periodItems.filter((m) => m.status === "Enviado para empresa").length;
+  const pendentes = periodItems.filter((m) => m.status === "Aguardando envio" || m.status === "Fora do prazo").length;
   const concluidas = periodItems.filter((m) => m.status === "Enviado ao financeiro").length;
   const foraDoPrazo = filteredByResponsavel.filter((m) => m.status === "Fora do prazo");
 
