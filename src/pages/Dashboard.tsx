@@ -225,7 +225,7 @@ export default function Dashboard() {
                       <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
                       <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
                       <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                      <TableCell>{m.periodo}</TableCell>
+                      <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
                       <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
                       <TableCell>{m.responsavel_movimentacao || "—"}</TableCell>
                     </TableRow>
