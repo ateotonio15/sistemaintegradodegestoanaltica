@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Building2, Clock, AlertTriangle, CheckCircle2, RotateCcw, RefreshCw, Users, ChevronDown } from "lucide-react";
+import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   type Movimentacao,
@@ -42,6 +41,15 @@ export default function Dashboard() {
     },
   });
 
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ["profiles-dashboard"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name").order("display_name");
+      if (error) throw error;
+      return data as Pick<Tables<"profiles">, "user_id" | "display_name">[];
+    },
+  });
+
   // RLS already filters empresas for comum users (via responsavel_user_id or empresa_usuarios)
   // So we just use allEmpresas directly
   const visibleEmpresas = useMemo(() => {
@@ -53,16 +61,34 @@ export default function Dashboard() {
   const empresasEmPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Em período"), [empresasAtivas]);
 
   const empresasPorResponsavel = useMemo(() => {
-    const map = new Map<string, Tables<"empresas">[]>();
-    empresasAtivas.forEach((e) => {
-      const resp = e.responsavel_contrato || "Sem responsável";
-      if (!map.has(resp)) map.set(resp, []);
-      map.get(resp)!.push(e);
+    const totalPorUserId = new Map<string, number>();
+    const totalSemVinculo = new Map<string, number>();
+
+    empresasAtivas.forEach((empresa) => {
+      if (empresa.responsavel_user_id) {
+        totalPorUserId.set(empresa.responsavel_user_id, (totalPorUserId.get(empresa.responsavel_user_id) ?? 0) + 1);
+        return;
+      }
+
+      const nome = empresa.responsavel_contrato?.trim() || "Sem responsável";
+      totalSemVinculo.set(nome, (totalSemVinculo.get(nome) ?? 0) + 1);
     });
-    return Array.from(map.entries())
-      .map(([responsavel, empresas]) => ({ responsavel, empresas, total: empresas.length }))
-      .sort((a, b) => b.total - a.total);
-  }, [empresasAtivas]);
+
+    const merged = new Map<string, number>();
+
+    allProfiles.forEach((profile) => {
+      const nome = profile.display_name?.trim() || "Sem nome";
+      merged.set(nome, totalPorUserId.get(profile.user_id) ?? 0);
+    });
+
+    totalSemVinculo.forEach((total, nome) => {
+      merged.set(nome, (merged.get(nome) ?? 0) + total);
+    });
+
+    return Array.from(merged.entries())
+      .map(([responsavel, total]) => ({ responsavel, total }))
+      .sort((a, b) => b.total - a.total || a.responsavel.localeCompare(b.responsavel));
+  }, [allProfiles, empresasAtivas]);
 
   const { data: movimentacoes = [], isLoading, isFetching } = useQuery({
     queryKey: ["movimentacoes-dashboard", filterMes],
@@ -292,35 +318,20 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {empresasPorResponsavel.map(({ responsavel, empresas, total }) => (
-                  <Collapsible key={responsavel} asChild>
-                    <>
-                      <CollapsibleTrigger asChild>
-                        <TableRow className="cursor-pointer hover:bg-muted/50">
-                          <TableCell className="font-medium flex items-center gap-1">
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            {responsavel}
-                          </TableCell>
-                          <TableCell className="text-right font-bold">{total}</TableCell>
-                        </TableRow>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent asChild>
-                        <tr>
-                          <td colSpan={2} className="p-0">
-                            <div className="bg-muted/30 px-8 py-2 space-y-1">
-                              {empresas.map((emp) => (
-                                <div key={emp.id} className="text-sm text-muted-foreground flex justify-between">
-                                  <span>{emp.nome}</span>
-                                  <span className="text-xs">{emp.codigo_contrato || ""}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      </CollapsibleContent>
-                    </>
-                  </Collapsible>
-                ))}
+                {empresasPorResponsavel.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground py-6">
+                      Nenhum responsável encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  empresasPorResponsavel.map(({ responsavel, total }) => (
+                    <TableRow key={responsavel}>
+                      <TableCell className="font-medium">{responsavel}</TableCell>
+                      <TableCell className="text-right font-bold">{total}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </DialogContent>
