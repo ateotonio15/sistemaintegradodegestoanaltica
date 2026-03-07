@@ -31,7 +31,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
       if (item.adminOrExecutivo && !isAdmin && !isExecutivo) return false;
-      if (isExecutivo && item.to === "/empresas") return false;
       return true;
     });
   }, [isAdmin, isExecutivo]);
