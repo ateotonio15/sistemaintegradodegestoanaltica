@@ -41,7 +41,7 @@ const AppRoutes = () => (
     <Route path="/auth" element={<AuthRoute />} />
     <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-    <Route path="/empresas" element={<AdminOrComumRoute><Empresas /></AdminOrComumRoute>} />
+    <Route path="/empresas" element={<ProtectedRoute><Empresas /></ProtectedRoute>} />
     <Route path="/movimentacoes" element={<ProtectedRoute><Movimentacoes /></ProtectedRoute>} />
     <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} /> {/* Access controlled inside component */}
     <Route path="*" element={<NotFound />} />
