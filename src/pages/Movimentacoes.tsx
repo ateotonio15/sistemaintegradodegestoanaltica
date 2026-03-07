@@ -36,6 +36,7 @@ type EmpresaOption = {
   tipo_movimentacao: string | null;
   periodo_movimentacao: string | null;
   responsavel_contrato: string | null;
+  data_corte: number | null;
 };
 
 const emptyForm = {
