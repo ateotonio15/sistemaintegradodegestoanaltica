@@ -174,10 +174,10 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Retornadas</CardTitle>
+              <CardTitle className="text-sm font-medium">Enviadas p/ Empresa</CardTitle>
               <RotateCcw className="h-4 w-4 text-icon" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-info">{retornadas}</div></CardContent>
+            <CardContent><div className="text-2xl font-bold text-info">{enviadas}</div></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
