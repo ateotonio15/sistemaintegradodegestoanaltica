@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building2, Clock, AlertTriangle, CheckCircle2, RotateCcw, RefreshCw, Users } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Building2, Clock, AlertTriangle, CheckCircle2, RotateCcw, RefreshCw, Users, ChevronDown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   type Movimentacao,
@@ -26,6 +28,7 @@ export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
+  const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role } = useAuth();
 
@@ -48,7 +51,18 @@ export default function Dashboard() {
   const empresasAtivas = useMemo(() => visibleEmpresas.filter((e) => e.status_empresa === "Ativa"), [visibleEmpresas]);
 
   const empresasEmPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Em período"), [empresasAtivas]);
-  
+
+  const empresasPorResponsavel = useMemo(() => {
+    const map = new Map<string, Tables<"empresas">[]>();
+    empresasAtivas.forEach((e) => {
+      const resp = e.responsavel_contrato || "Sem responsável";
+      if (!map.has(resp)) map.set(resp, []);
+      map.get(resp)!.push(e);
+    });
+    return Array.from(map.entries())
+      .map(([responsavel, empresas]) => ({ responsavel, empresas, total: empresas.length }))
+      .sort((a, b) => b.total - a.total);
+  }, [empresasAtivas]);
 
   const { data: movimentacoes = [], isLoading, isFetching } = useQuery({
     queryKey: ["movimentacoes-dashboard", filterMes],
@@ -151,7 +165,7 @@ export default function Dashboard() {
 
         {/* Summary cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setShowEmpresasAtivasModal(true)}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Empresas Ativas</CardTitle>
               <Users className="h-4 w-4 text-icon" />
@@ -263,6 +277,54 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal Empresas Ativas por Responsável */}
+        <Dialog open={showEmpresasAtivasModal} onOpenChange={setShowEmpresasAtivasModal}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Empresas Ativas por Responsável</DialogTitle>
+            </DialogHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead className="text-right">Total de Empresas</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {empresasPorResponsavel.map(({ responsavel, empresas, total }) => (
+                  <Collapsible key={responsavel} asChild>
+                    <>
+                      <CollapsibleTrigger asChild>
+                        <TableRow className="cursor-pointer hover:bg-muted/50">
+                          <TableCell className="font-medium flex items-center gap-1">
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            {responsavel}
+                          </TableCell>
+                          <TableCell className="text-right font-bold">{total}</TableCell>
+                        </TableRow>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent asChild>
+                        <tr>
+                          <td colSpan={2} className="p-0">
+                            <div className="bg-muted/30 px-8 py-2 space-y-1">
+                              {empresas.map((emp) => (
+                                <div key={emp.id} className="text-sm text-muted-foreground flex justify-between">
+                                  <span>{emp.nome}</span>
+                                  <span className="text-xs">{emp.codigo_contrato || ""}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      </CollapsibleContent>
+                    </>
+                  </Collapsible>
+                ))}
+              </TableBody>
+            </Table>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
