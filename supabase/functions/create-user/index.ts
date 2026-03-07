@@ -37,16 +37,15 @@ Deno.serve(async (req) => {
     const anonClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) throw new Error("Não autorizado");
-    const callerId = claimsData.claims.sub as string;
+    const { data: { user: caller }, error: authError } = await anonClient.auth.getUser(token);
+    if (authError || !caller) throw new Error("Não autorizado");
 
     // Check admin role
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", callerId)
+      .eq("user_id", caller.id)
       .eq("role", "admin")
       .maybeSingle();
 
@@ -59,7 +58,7 @@ Deno.serve(async (req) => {
     if (action === "delete-user") {
       const { userId } = body;
       if (!userId) throw new Error("userId é obrigatório");
-      if (userId === callerId) throw new Error("Não é permitido excluir seu próprio usuário");
+      if (userId === caller.id) throw new Error("Não é permitido excluir seu próprio usuário");
 
       // Clear empresa references, delete links, roles, profile, then auth user
       await adminClient.from("empresas").update({ responsavel_user_id: null }).eq("responsavel_user_id", userId);
