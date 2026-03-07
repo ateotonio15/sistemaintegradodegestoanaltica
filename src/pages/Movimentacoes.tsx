@@ -106,8 +106,8 @@ export default function Movimentacoes() {
     let periodo = form.periodo;
     if (tipo === "Fechada" && empresa?.periodo_movimentacao) {
       periodo = empresa.periodo_movimentacao;
-    } else if (tipo === "Diária" && (empresa as any)?.data_corte) {
-      periodo = periodoDaDataCorte((empresa as any).data_corte);
+    } else if (tipo === "Diária" && empresa?.data_corte) {
+      periodo = periodoDaDataCorte(empresa.data_corte);
     }
     setForm({ ...form, empresa_id: empresaId, tipo_movimentacao: tipo, periodo });
   };
