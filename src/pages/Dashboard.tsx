@@ -51,7 +51,18 @@ export default function Dashboard() {
   const empresasAtivas = useMemo(() => visibleEmpresas.filter((e) => e.status_empresa === "Ativa"), [visibleEmpresas]);
 
   const empresasEmPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Em período"), [empresasAtivas]);
-  
+
+  const empresasPorResponsavel = useMemo(() => {
+    const map = new Map<string, Tables<"empresas">[]>();
+    empresasAtivas.forEach((e) => {
+      const resp = e.responsavel_contrato || "Sem responsável";
+      if (!map.has(resp)) map.set(resp, []);
+      map.get(resp)!.push(e);
+    });
+    return Array.from(map.entries())
+      .map(([responsavel, empresas]) => ({ responsavel, empresas, total: empresas.length }))
+      .sort((a, b) => b.total - a.total);
+  }, [empresasAtivas]);
 
   const { data: movimentacoes = [], isLoading, isFetching } = useQuery({
     queryKey: ["movimentacoes-dashboard", filterMes],
