@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
+  const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role } = useAuth();
 
