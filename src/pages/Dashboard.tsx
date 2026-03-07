@@ -41,26 +41,13 @@ export default function Dashboard() {
     },
   });
 
-  const { data: allProfiles = [] } = useQuery({
-    queryKey: ["profiles-dashboard-comum"],
+  // Use SECURITY DEFINER function so all users can see comum users + their empresa counts
+  const { data: comunUsersEmpresas = [] } = useQuery({
+    queryKey: ["comum-users-empresa-count"],
     queryFn: async () => {
-      // Fetch only users with "comum" role
-      const { data: comunRoles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "comum");
-      if (rolesError) throw rolesError;
-
-      const comunUserIds = (comunRoles ?? []).map((r) => r.user_id);
-      if (comunUserIds.length === 0) return [];
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, display_name")
-        .in("user_id", comunUserIds)
-        .order("display_name");
+      const { data, error } = await supabase.rpc("get_comum_users_empresa_count");
       if (error) throw error;
-      return data as Pick<Tables<"profiles">, "user_id" | "display_name">[];
+      return data as { user_id: string; display_name: string; empresa_count: number }[];
     },
   });
 
@@ -75,34 +62,13 @@ export default function Dashboard() {
   const empresasEmPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Em período"), [empresasAtivas]);
 
   const empresasPorResponsavel = useMemo(() => {
-    const totalPorUserId = new Map<string, number>();
-    const totalSemVinculo = new Map<string, number>();
-
-    empresasAtivas.forEach((empresa) => {
-      if (empresa.responsavel_user_id) {
-        totalPorUserId.set(empresa.responsavel_user_id, (totalPorUserId.get(empresa.responsavel_user_id) ?? 0) + 1);
-        return;
-      }
-
-      const nome = empresa.responsavel_contrato?.trim() || "Sem responsável";
-      totalSemVinculo.set(nome, (totalSemVinculo.get(nome) ?? 0) + 1);
-    });
-
-    const merged = new Map<string, number>();
-
-    allProfiles.forEach((profile) => {
-      const nome = profile.display_name?.trim() || "Sem nome";
-      merged.set(nome, totalPorUserId.get(profile.user_id) ?? 0);
-    });
-
-    totalSemVinculo.forEach((total, nome) => {
-      merged.set(nome, (merged.get(nome) ?? 0) + total);
-    });
-
-    return Array.from(merged.entries())
-      .map(([responsavel, total]) => ({ responsavel, total }))
+    return comunUsersEmpresas
+      .map((u) => ({
+        responsavel: u.display_name?.trim() || "Sem nome",
+        total: Number(u.empresa_count),
+      }))
       .sort((a, b) => b.total - a.total || a.responsavel.localeCompare(b.responsavel));
-  }, [allProfiles, empresasAtivas]);
+  }, [comunUsersEmpresas]);
 
   const { data: movimentacoes = [], isLoading, isFetching } = useQuery({
     queryKey: ["movimentacoes-dashboard", filterMes],
