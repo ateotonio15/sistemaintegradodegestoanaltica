@@ -165,7 +165,7 @@ export default function Dashboard() {
 
         {/* Summary cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setShowEmpresasAtivasModal(true)}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Empresas Ativas</CardTitle>
               <Users className="h-4 w-4 text-icon" />
