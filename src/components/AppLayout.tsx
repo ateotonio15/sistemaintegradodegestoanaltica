@@ -19,7 +19,7 @@ const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/empresas", label: "Empresas", icon: Building2 },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
-  { to: "/usuarios", label: "Usuários", icon: Users, adminOrExecutivo: true },
+  { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -30,10 +30,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // Executivo only sees Dashboard and Movimentações
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
-      if (item.adminOrExecutivo && !isAdmin && !isExecutivo) return false;
+      if (item.adminOnly && !isAdmin) return false;
       return true;
     });
-  }, [isAdmin, isExecutivo]);
+  }, [isAdmin]);
 
   const { data: movimentacoes = [] } = useQuery({
     queryKey: ["movimentacoes-notifications"],
