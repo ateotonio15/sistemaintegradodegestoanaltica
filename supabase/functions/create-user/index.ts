@@ -37,9 +37,8 @@ Deno.serve(async (req) => {
     const anonClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) throw new Error("Não autorizado");
-    const callerId = claimsData.claims.sub as string;
+    const { data: { user: caller }, error: authError } = await anonClient.auth.getUser(token);
+    if (authError || !caller) throw new Error("Não autorizado");
 
     // Check admin role
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
