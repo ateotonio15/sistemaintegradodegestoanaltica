@@ -291,26 +291,30 @@ export default function Dashboard() {
               <TableHeader>
                  <TableRow>
                    <TableHead>Empresa</TableHead>
-                   <TableHead>Cód. Contrato</TableHead>
-                   <TableHead>Resp. Contrato</TableHead>
-                   <TableHead>Período</TableHead>
-                   <TableHead>Status</TableHead>
-                   {canEditDates && <TableHead className="w-12">Editar</TableHead>}
+                    <TableHead>Cód. Contrato</TableHead>
+                    <TableHead>Resp. Contrato</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead>Envio Empresa</TableHead>
+                    <TableHead>Financeiro</TableHead>
+                    <TableHead>Status</TableHead>
+                    {canEditDates && <TableHead className="w-12">Editar</TableHead>}
                  </TableRow>
                </TableHeader>
                <TableBody>
                  {isLoading ? (
-                   <TableRow><TableCell colSpan={canEditDates ? 6 : 5} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                 ) : listaTrabalho.length === 0 ? (
-                   <TableRow><TableCell colSpan={canEditDates ? 6 : 5} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
-                 ) : (
+                    <TableRow><TableCell colSpan={canEditDates ? 8 : 7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                  ) : listaTrabalho.length === 0 ? (
+                    <TableRow><TableCell colSpan={canEditDates ? 8 : 7} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
+                  ) : (
                    listaTrabalho.map((m) => (
                      <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/10" : ""}>
                        <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
                        <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
                        <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                       <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
-                       <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
+                        <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
+                        <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
+                        <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
+                        <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
                        {canEditDates && (
                          <TableCell>
                            <Button variant="ghost" size="icon" onClick={() => openEditFromDashboard(m)}>
