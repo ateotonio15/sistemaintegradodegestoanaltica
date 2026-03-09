@@ -27,6 +27,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { signOut, user, isAdmin, isExecutivo, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
+  // Dismissed notifications (persisted in localStorage per user)
+  const storageKey = user ? `dismissed-notifs-${user.id}` : "dismissed-notifs";
+  const [dismissed, setDismissed] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(storageKey) || "[]");
+    } catch { return []; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(dismissed));
+  }, [dismissed, storageKey]);
+
+  const dismiss = useCallback((id: string) => {
+    setDismissed((prev) => prev.includes(id) ? prev : [...prev, id]);
+  }, []);
+
+  const dismissAll = useCallback(() => {
+    setDismissed((prev) => {
+      const allIds = foraDosPrazos.map((m) => m.id);
+      return [...new Set([...prev, ...allIds])];
+    });
+  }, []);
+
   // Executivo only sees Dashboard and Movimentações
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
@@ -53,6 +76,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       .filter((m) => calcularStatus(m) === "Fora do prazo")
       .slice(0, 20);
   }, [movimentacoes]);
+
+  const pendingNotifs = useMemo(() => foraDosPrazos.filter((m) => !dismissed.includes(m.id)), [foraDosPrazos, dismissed]);
 
   const isActive = (to: string) => {
     if (to === "/") return location.pathname === "/" || location.pathname === "/dashboard";
