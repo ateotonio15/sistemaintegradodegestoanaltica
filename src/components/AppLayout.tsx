@@ -129,32 +129,51 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <PopoverTrigger asChild>
                 <button className="relative p-2 rounded-md hover:bg-accent transition-colors">
                   <Bell className="h-5 w-5 text-icon" />
-                  {foraDosPrazos.length > 0 && (
+                  {pendingNotifs.length > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                      {foraDosPrazos.length}
+                      {pendingNotifs.length}
                     </span>
                   )}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0" align="end">
-                <div className="p-3 border-b">
+                <div className="p-3 border-b flex items-center justify-between">
                   <h4 className="font-semibold text-sm">Notificações</h4>
+                  {pendingNotifs.length > 0 && (
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={dismissAll}>
+                      <CheckCheck className="h-3.5 w-3.5" />
+                      Concluir todas
+                    </Button>
+                  )}
                 </div>
                 <div className="max-h-72 overflow-y-auto">
                   {foraDosPrazos.length === 0 ? (
                     <div className="p-4 text-center text-sm text-muted-foreground">
                       Nenhum contrato fora do período ✅
                     </div>
+                  ) : pendingNotifs.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      Todas as notificações foram concluídas ✅
+                    </div>
                   ) : (
-                    foraDosPrazos.map((m) => (
-                      <div key={m.id} className="p-3 border-b last:border-0 hover:bg-accent/50">
-                        <p className="text-sm font-medium">{m.empresas?.nome ?? "—"}</p>
-                        <p className="text-xs text-destructive mt-0.5">
-                          Contrato fora do período de movimentação
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Período: {m.periodo} · Cód: {m.empresas?.codigo_contrato || "—"}
-                        </p>
+                    pendingNotifs.map((m) => (
+                      <div key={m.id} className="p-3 border-b last:border-0 hover:bg-accent/50 flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{m.empresas?.nome ?? "—"}</p>
+                          <p className="text-xs text-destructive mt-0.5">
+                            Contrato fora do período de movimentação
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Período: {m.periodo} · Cód: {m.empresas?.codigo_contrato || "—"}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => dismiss(m.id)}
+                          className="shrink-0 mt-0.5 p-1 rounded hover:bg-primary/10 transition-colors"
+                          title="Marcar como concluída"
+                        >
+                          <Check className="h-4 w-4 text-primary" />
+                        </button>
                       </div>
                     ))
                   )}
