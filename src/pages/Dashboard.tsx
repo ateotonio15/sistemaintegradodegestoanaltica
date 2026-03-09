@@ -1,17 +1,19 @@
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users } from "lucide-react";
+import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import {
   type Movimentacao,
   PERIODOS,
@@ -21,6 +23,7 @@ import {
   getCurrentPeriodo,
   formatMesReferencia,
   calcularStatusPeriodoEmpresa,
+  formatDateBR,
 } from "@/lib/movimentacao-utils";
 
 export default function Dashboard() {
@@ -28,8 +31,13 @@ export default function Dashboard() {
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
   const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingMov, setEditingMov] = useState<Movimentacao | null>(null);
+  const [editForm, setEditForm] = useState({ data_envio_empresa: "", data_envio_financeiro: "" });
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role } = useAuth();
+  const { toast } = useToast();
+  const canEditDates = isAdmin || role === "comum";
 
   // Fetch empresas to compute period status from source of truth
   const { data: allEmpresas = [] } = useQuery({
@@ -83,6 +91,33 @@ export default function Dashboard() {
       return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
     },
   });
+
+  const updateMov = useMutation({
+    mutationFn: async (values: { id: string; data_envio_empresa: string | null; data_envio_financeiro: string | null }) => {
+      const { error } = await supabase.from("movimentacoes").update({
+        data_envio_empresa: values.data_envio_empresa,
+        data_envio_financeiro: values.data_envio_financeiro,
+      }).eq("id", values.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      setEditDialogOpen(false);
+      setEditingMov(null);
+      toast({ title: "Movimentação atualizada!" });
+    },
+    onError: () => toast({ title: "Erro ao salvar", variant: "destructive" }),
+  });
+
+  const openEditFromDashboard = (m: Movimentacao) => {
+    setEditingMov(m);
+    setEditForm({
+      data_envio_empresa: m.data_envio_empresa ?? "",
+      data_envio_financeiro: m.data_envio_financeiro ?? "",
+    });
+    setEditDialogOpen(true);
+  };
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
@@ -254,33 +289,39 @@ export default function Dashboard() {
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Cód. Contrato</TableHead>
-                  <TableHead>Resp. Contrato</TableHead>
-                  <TableHead>Período</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Resp. Movimentação</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                ) : listaTrabalho.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
-                ) : (
-                  listaTrabalho.map((m) => (
-                    <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/10" : ""}>
-                      <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                      <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
-                      <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                      <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
-                      <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
-                      <TableCell>{m.responsavel_movimentacao || "—"}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
+                 <TableRow>
+                   <TableHead>Empresa</TableHead>
+                   <TableHead>Cód. Contrato</TableHead>
+                   <TableHead>Resp. Contrato</TableHead>
+                   <TableHead>Período</TableHead>
+                   <TableHead>Status</TableHead>
+                   {canEditDates && <TableHead className="w-12">Editar</TableHead>}
+                 </TableRow>
+               </TableHeader>
+               <TableBody>
+                 {isLoading ? (
+                   <TableRow><TableCell colSpan={canEditDates ? 6 : 5} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                 ) : listaTrabalho.length === 0 ? (
+                   <TableRow><TableCell colSpan={canEditDates ? 6 : 5} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
+                 ) : (
+                   listaTrabalho.map((m) => (
+                     <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/10" : ""}>
+                       <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
+                       <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                       <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                       <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
+                       <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
+                       {canEditDates && (
+                         <TableCell>
+                           <Button variant="ghost" size="icon" onClick={() => openEditFromDashboard(m)}>
+                             <Pencil className="h-4 w-4 text-icon" />
+                           </Button>
+                         </TableCell>
+                       )}
+                     </TableRow>
+                   ))
+                 )}
+               </TableBody>
             </Table>
           </CardContent>
         </Card>
@@ -315,6 +356,46 @@ export default function Dashboard() {
                 )}
               </TableBody>
             </Table>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Movimentação Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingMov(null); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editar Movimentação</DialogTitle>
+            </DialogHeader>
+            {editingMov && (
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{(editingMov as any).empresas?.nome}</span>
+                  {" — "}{(editingMov as any).empresas?.codigo_contrato || ""}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Data Envio p/ Empresa</Label>
+                    <Input type="date" value={editForm.data_envio_empresa} onChange={(e) => setEditForm({ ...editForm, data_envio_empresa: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data Envio Financeiro</Label>
+                    <Input type="date" value={editForm.data_envio_financeiro} onChange={(e) => setEditForm({ ...editForm, data_envio_financeiro: e.target.value })} />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingMov(null); }}>Cancelar</Button>
+                  <Button
+                    onClick={() => updateMov.mutate({
+                      id: editingMov.id,
+                      data_envio_empresa: editForm.data_envio_empresa || null,
+                      data_envio_financeiro: editForm.data_envio_financeiro || null,
+                    })}
+                    disabled={updateMov.isPending}
+                  >
+                    {updateMov.isPending ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
