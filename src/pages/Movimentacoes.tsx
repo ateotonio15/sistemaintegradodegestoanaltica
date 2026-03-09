@@ -159,6 +159,8 @@ export default function Movimentacoes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       toast({ title: "Movimentação excluída!" });
     },
     onError: () => toast({ title: "Erro ao excluir", variant: "destructive" }),
