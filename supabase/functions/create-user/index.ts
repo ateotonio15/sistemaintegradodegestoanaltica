@@ -32,30 +32,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify caller identity
+    // Verify caller identity using admin client (service role can validate any token)
     const token = authHeader.replace("Bearer ", "");
-    const anonClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    let callerId: string | null = null;
-    const authWithClaims = anonClient.auth as typeof anonClient.auth & {
-      getClaims?: (jwt: string) => Promise<{ data: { claims?: { sub?: string } | null }; error: unknown }>;
-    };
-
-    if (typeof authWithClaims.getClaims === "function") {
-      const { data: claimsData, error: claimsError } = await authWithClaims.getClaims(token);
-      const sub = claimsData?.claims?.sub;
-      if (!claimsError && typeof sub === "string") {
-        callerId = sub;
-      }
+    const { data: { user: caller }, error: authError } = await adminClient.auth.getUser(token);
+    if (authError || !caller) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-
-    if (!callerId) {
-      const { data: { user: caller }, error: authError } = await anonClient.auth.getUser(token);
-      if (authError || !caller) throw new Error("Não autorizado");
-      callerId = caller.id;
-    }
+    const callerId = caller.id;
 
     // Check admin role
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
