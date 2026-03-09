@@ -43,7 +43,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setDismissed((prev) => prev.includes(id) ? prev : [...prev, id]);
   }, []);
 
-  // dismissAll is defined after foraDosPrazos below
+  
 
   // Executivo only sees Dashboard and Movimentações
   const navItems = useMemo(() => {
