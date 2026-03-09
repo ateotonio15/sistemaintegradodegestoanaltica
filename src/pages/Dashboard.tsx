@@ -237,6 +237,13 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+              <Clock className="h-4 w-4 text-icon" />
+            </CardHeader>
+            <CardContent><div className="text-2xl font-bold text-warning">{pendentes}</div></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Enviadas ao Financeiro</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-icon" />
             </CardHeader>
