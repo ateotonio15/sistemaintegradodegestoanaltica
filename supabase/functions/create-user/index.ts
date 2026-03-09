@@ -21,44 +21,28 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const anonKey =
-      Deno.env.get("SUPABASE_ANON_KEY") ??
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
 
-    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
+    if (!supabaseUrl || !serviceRoleKey) {
       return new Response(JSON.stringify({ error: "Configuração do servidor incompleta" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verify caller identity
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Verify caller identity using admin client (service role can validate any token)
     const token = authHeader.replace("Bearer ", "");
-    const anonClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    let callerId: string | null = null;
-    const authWithClaims = anonClient.auth as typeof anonClient.auth & {
-      getClaims?: (jwt: string) => Promise<{ data: { claims?: { sub?: string } | null }; error: unknown }>;
-    };
-
-    if (typeof authWithClaims.getClaims === "function") {
-      const { data: claimsData, error: claimsError } = await authWithClaims.getClaims(token);
-      const sub = claimsData?.claims?.sub;
-      if (!claimsError && typeof sub === "string") {
-        callerId = sub;
-      }
+    const { data: { user: caller }, error: authError } = await adminClient.auth.getUser(token);
+    if (authError || !caller) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-
-    if (!callerId) {
-      const { data: { user: caller }, error: authError } = await anonClient.auth.getUser(token);
-      if (authError || !caller) throw new Error("Não autorizado");
-      callerId = caller.id;
-    }
+    const callerId = caller.id;
 
     // Check admin role
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
