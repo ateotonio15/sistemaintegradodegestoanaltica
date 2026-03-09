@@ -311,9 +311,17 @@ export default function Empresas() {
           )}
         </div>
 
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-icon" />
-          <Input placeholder="Buscar por nome, código ou CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex items-center gap-3">
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-icon" />
+            <Input placeholder="Buscar por nome, código ou CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Button
+            variant={showInativas ? "default" : "outline"}
+            onClick={() => setShowInativas(!showInativas)}
+          >
+            {showInativas ? "Ver Ativas" : "Ver Inativas"}
+          </Button>
         </div>
 
         <Card>
