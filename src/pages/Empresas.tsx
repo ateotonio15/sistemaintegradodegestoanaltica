@@ -109,6 +109,8 @@ export default function Empresas() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       toast({ title: "Empresa excluída!" });
     },
     onError: () => toast({ title: "Erro ao excluir", variant: "destructive" }),
