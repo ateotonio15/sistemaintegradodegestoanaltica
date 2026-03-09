@@ -123,6 +123,8 @@ export default function Empresas() {
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       toast({ title: `${vars.length} empresa(s) importada(s) com sucesso!` });
     },
     onError: () => toast({ title: "Erro ao importar empresas", variant: "destructive" }),
