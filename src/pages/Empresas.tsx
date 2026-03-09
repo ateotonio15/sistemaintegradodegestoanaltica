@@ -190,12 +190,14 @@ export default function Empresas() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return empresas.filter((e) =>
-      e.nome.toLowerCase().includes(q) ||
-      (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
-      (e.cnpj ?? "").toLowerCase().includes(q)
-    );
-  }, [empresas, search]);
+    return empresas
+      .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
+      .filter((e) =>
+        e.nome.toLowerCase().includes(q) ||
+        (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
+        (e.cnpj ?? "").toLowerCase().includes(q)
+      );
+  }, [empresas, search, showInativas]);
 
   return (
     <AppLayout>
