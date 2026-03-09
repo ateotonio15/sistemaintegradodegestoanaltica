@@ -143,6 +143,8 @@ export default function Movimentacoes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       setDialogOpen(false);
       resetForm();
       toast({ title: editingId ? "Movimentação atualizada!" : "Movimentação criada!" });
