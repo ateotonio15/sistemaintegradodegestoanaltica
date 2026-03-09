@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
