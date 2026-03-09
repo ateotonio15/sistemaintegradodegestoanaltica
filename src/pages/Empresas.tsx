@@ -93,6 +93,8 @@ export default function Empresas() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       setDialogOpen(false);
       resetForm();
       toast({ title: editingId ? "Empresa atualizada!" : "Empresa cadastrada!" });
@@ -107,6 +109,8 @@ export default function Empresas() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       toast({ title: "Empresa excluída!" });
     },
     onError: () => toast({ title: "Erro ao excluir", variant: "destructive" }),
@@ -119,6 +123,8 @@ export default function Empresas() {
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       toast({ title: `${vars.length} empresa(s) importada(s) com sucesso!` });
     },
     onError: () => toast({ title: "Erro ao importar empresas", variant: "destructive" }),

@@ -39,6 +39,7 @@ export default function Dashboard() {
       if (error) throw error;
       return data as Tables<"empresas">[];
     },
+    refetchOnWindowFocus: true,
   });
 
   // Use SECURITY DEFINER function so all users can see comum users + their empresa counts
