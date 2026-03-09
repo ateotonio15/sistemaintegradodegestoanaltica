@@ -291,11 +291,13 @@ export default function Dashboard() {
               <TableHeader>
                  <TableRow>
                    <TableHead>Empresa</TableHead>
-                   <TableHead>Cód. Contrato</TableHead>
-                   <TableHead>Resp. Contrato</TableHead>
-                   <TableHead>Período</TableHead>
-                   <TableHead>Status</TableHead>
-                   {canEditDates && <TableHead className="w-12">Editar</TableHead>}
+                    <TableHead>Cód. Contrato</TableHead>
+                    <TableHead>Resp. Contrato</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead>Envio Empresa</TableHead>
+                    <TableHead>Financeiro</TableHead>
+                    <TableHead>Status</TableHead>
+                    {canEditDates && <TableHead className="w-12">Editar</TableHead>}
                  </TableRow>
                </TableHeader>
                <TableBody>
