@@ -92,6 +92,33 @@ export default function Dashboard() {
     },
   });
 
+  const updateMov = useMutation({
+    mutationFn: async (values: { id: string; data_envio_empresa: string | null; data_envio_financeiro: string | null }) => {
+      const { error } = await supabase.from("movimentacoes").update({
+        data_envio_empresa: values.data_envio_empresa,
+        data_envio_financeiro: values.data_envio_financeiro,
+      }).eq("id", values.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      setEditDialogOpen(false);
+      setEditingMov(null);
+      toast({ title: "Movimentação atualizada!" });
+    },
+    onError: () => toast({ title: "Erro ao salvar", variant: "destructive" }),
+  });
+
+  const openEditFromDashboard = (m: Movimentacao) => {
+    setEditingMov(m);
+    setEditForm({
+      data_envio_empresa: m.data_envio_empresa ?? "",
+      data_envio_financeiro: m.data_envio_financeiro ?? "",
+    });
+    setEditDialogOpen(true);
+  };
+
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-notifications"] });
