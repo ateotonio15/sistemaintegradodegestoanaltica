@@ -358,6 +358,46 @@ export default function Dashboard() {
             </Table>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Movimentação Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingMov(null); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editar Movimentação</DialogTitle>
+            </DialogHeader>
+            {editingMov && (
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{(editingMov as any).empresas?.nome}</span>
+                  {" — "}{(editingMov as any).empresas?.codigo_contrato || ""}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Data Envio p/ Empresa</Label>
+                    <Input type="date" value={editForm.data_envio_empresa} onChange={(e) => setEditForm({ ...editForm, data_envio_empresa: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data Envio Financeiro</Label>
+                    <Input type="date" value={editForm.data_envio_financeiro} onChange={(e) => setEditForm({ ...editForm, data_envio_financeiro: e.target.value })} />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingMov(null); }}>Cancelar</Button>
+                  <Button
+                    onClick={() => updateMov.mutate({
+                      id: editingMov.id,
+                      data_envio_empresa: editForm.data_envio_empresa || null,
+                      data_envio_financeiro: editForm.data_envio_financeiro || null,
+                    })}
+                    disabled={updateMov.isPending}
+                  >
+                    {updateMov.isPending ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
