@@ -21,21 +21,18 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const anonKey =
-      Deno.env.get("SUPABASE_ANON_KEY") ??
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
 
-    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
+    if (!supabaseUrl || !serviceRoleKey) {
       return new Response(JSON.stringify({ error: "Configuração do servidor incompleta" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verify caller identity using admin client (service role can validate any token)
-    const token = authHeader.replace("Bearer ", "");
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    // Verify caller identity using admin client (service role can validate any token)
+    const token = authHeader.replace("Bearer ", "");
     const { data: { user: caller }, error: authError } = await adminClient.auth.getUser(token);
     if (authError || !caller) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
@@ -46,7 +43,6 @@ Deno.serve(async (req) => {
     const callerId = caller.id;
 
     // Check admin role
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
