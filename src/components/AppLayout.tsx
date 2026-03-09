@@ -72,6 +72,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       .slice(0, 20);
   }, [movimentacoes]);
 
+  const dismissAll = useCallback(() => {
+    setDismissed((prev) => {
+      const allIds = foraDosPrazos.map((m) => m.id);
+      return [...new Set([...prev, ...allIds])];
+    });
+  }, [foraDosPrazos]);
+
   const pendingNotifs = useMemo(() => foraDosPrazos.filter((m) => !dismissed.includes(m.id)), [foraDosPrazos, dismissed]);
 
   const isActive = (to: string) => {
