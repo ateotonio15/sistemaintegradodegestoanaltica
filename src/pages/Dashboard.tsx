@@ -162,6 +162,10 @@ export default function Dashboard() {
     return periodItems.filter((m) => m.status !== "Enviado ao financeiro");
   }, [periodItems]);
 
+  const listaConcluidas = useMemo(() => {
+    return periodItems.filter((m) => m.status === "Enviado ao financeiro");
+  }, [periodItems]);
+
   return (
     <AppLayout>
       <div className="space-y-6">
