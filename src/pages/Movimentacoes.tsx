@@ -84,7 +84,7 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id, status_empresa)")
+        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       console.log("[Movimentacoes] Supabase raw response:", { data, error });
@@ -210,18 +210,19 @@ export default function Movimentacoes() {
   const handleExportExcel = () => {
     const rows = filtered.map((m) => {
       const status = calcularStatus(m);
-      const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "";
+      const tipo = (m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao) === "Diária" ? "Diário" : "Período";
       return {
-        Empresa: m.empresas?.nome ?? "",
-        "Cód. Contrato": m.empresas?.codigo_contrato ?? "",
-        "Resp. Contrato": (m.empresas as any)?.responsavel_contrato ?? "",
-        "Tipo de Contrato": tipo === "Diária" ? "Diário" : "Período",
-        Período: m.periodo,
-        "Data Envio Empresa": m.data_envio_empresa ?? "",
-        
-        "Data Financeiro": m.data_envio_financeiro ?? "",
-        Status: status,
-        "Dentro do Prazo": m.dentro_prazo ? "Sim" : "Não",
+        "Contrato": m.empresas?.codigo_contrato ?? "",
+        "CNPJ": m.empresas?.cnpj ?? "",
+        "Empresa": m.empresas?.nome ?? "",
+        "Resp. Contrato": m.empresas?.responsavel_contrato ?? "",
+        "Tipo": tipo,
+        "Período": m.periodo ?? "",
+        "Envio Empresa": m.data_envio_empresa ?? "",
+        "Financeiro": m.data_envio_financeiro ?? "",
+        "Status": status,
+        "Implantação": m.empresas?.data_implantacao ?? "",
+        "Corretora": m.empresas?.operadora_plano ?? "",
       };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
