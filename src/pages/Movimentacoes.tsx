@@ -210,18 +210,19 @@ export default function Movimentacoes() {
   const handleExportExcel = () => {
     const rows = filtered.map((m) => {
       const status = calcularStatus(m);
-      const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "";
+      const tipo = (m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao) === "Diária" ? "Diário" : "Período";
       return {
-        Empresa: m.empresas?.nome ?? "",
-        "Cód. Contrato": m.empresas?.codigo_contrato ?? "",
-        "Resp. Contrato": (m.empresas as any)?.responsavel_contrato ?? "",
-        "Tipo de Contrato": tipo === "Diária" ? "Diário" : "Período",
-        Período: m.periodo,
-        "Data Envio Empresa": m.data_envio_empresa ?? "",
-        
-        "Data Financeiro": m.data_envio_financeiro ?? "",
-        Status: status,
-        "Dentro do Prazo": m.dentro_prazo ? "Sim" : "Não",
+        "Contrato": m.empresas?.codigo_contrato ?? "",
+        "CNPJ": m.empresas?.cnpj ?? "",
+        "Empresa": m.empresas?.nome ?? "",
+        "Resp. Contrato": m.empresas?.responsavel_contrato ?? "",
+        "Tipo": tipo,
+        "Período": m.periodo ?? "",
+        "Envio Empresa": m.data_envio_empresa ?? "",
+        "Financeiro": m.data_envio_financeiro ?? "",
+        "Status": status,
+        "Implantação": m.empresas?.data_implantacao ?? "",
+        "Corretora": m.empresas?.operadora_plano ?? "",
       };
     });
     const ws = XLSX.utils.json_to_sheet(rows);

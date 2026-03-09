@@ -1,7 +1,7 @@
 import type { Tables } from "@/integrations/supabase/types";
 
 export type Movimentacao = Tables<"movimentacoes"> & {
-  empresas?: { nome: string; codigo_contrato: string | null; tipo_movimentacao: string | null; periodo_movimentacao: string | null } | null;
+  empresas?: { nome: string; codigo_contrato: string | null; tipo_movimentacao: string | null; periodo_movimentacao: string | null; cnpj: string | null; responsavel_contrato: string | null; data_implantacao: string | null; operadora_plano: string | null } | null;
 };
 
 export const PERIODOS = ["01-05", "05-10", "10-15", "15-20", "20-25", "25-30"] as const;
