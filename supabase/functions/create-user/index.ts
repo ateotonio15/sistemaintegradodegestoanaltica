@@ -21,26 +21,31 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
       return new Response(JSON.stringify({ error: "Configuração do servidor incompleta" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller identity using admin client (service role can validate any token)
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user: caller }, error: authError } = await adminClient.auth.getUser(token);
-    if (authError || !caller) {
+    // Validate caller token in user context (signing-keys compatible)
+    const token = authHeader.replace("Bearer ", "").trim();
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    const callerId = claimsData?.claims?.sub;
+
+    if (claimsError || !callerId) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = caller.id;
 
     // Check admin role
     const { data: roleData } = await adminClient
