@@ -31,8 +31,13 @@ export default function Dashboard() {
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
   const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingMov, setEditingMov] = useState<Movimentacao | null>(null);
+  const [editForm, setEditForm] = useState({ data_envio_empresa: "", data_envio_financeiro: "" });
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role } = useAuth();
+  const { toast } = useToast();
+  const canEditDates = isAdmin || role === "comum";
 
   // Fetch empresas to compute period status from source of truth
   const { data: allEmpresas = [] } = useQuery({
