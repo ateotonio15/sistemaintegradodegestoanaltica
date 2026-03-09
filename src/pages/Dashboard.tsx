@@ -334,7 +334,47 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Modal Empresas Ativas por Responsável */}
+        {/* Enviadas ao Financeiro */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Enviadas ao Financeiro — Período {filterPeriodo} — {formatMesReferencia(filterMes)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Cód. Contrato</TableHead>
+                  <TableHead>Resp. Contrato</TableHead>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Envio Empresa</TableHead>
+                  <TableHead>Financeiro</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {listaConcluidas.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
+                ) : (
+                  listaConcluidas.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
+                      <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                      <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                      <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
+                      <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
+                      <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
+                      <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
         <Dialog open={showEmpresasAtivasModal} onOpenChange={setShowEmpresasAtivasModal}>
           <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
             <DialogHeader>
