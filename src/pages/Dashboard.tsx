@@ -216,6 +216,33 @@ export default function Dashboard() {
         </div>
 
 
+        {/* Resumo por período */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Resumo Geral por Período</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {PERIODOS.map((p) => {
+                const items = filteredByResponsavel.filter((m) => m.periodo === p);
+                const done = items.filter((m) => m.status === "Enviado ao financeiro").length;
+                const late = items.filter((m) => m.status === "Fora do prazo").length;
+                const isActive = p === filterPeriodo;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setFilterPeriodo(p)}
+                    className={`rounded-lg border p-3 text-center space-y-1 transition-colors ${isActive ? "border-primary bg-primary/10" : "hover:bg-muted/50"}`}
+                  >
+                    <div className="font-semibold text-sm">{p}</div>
+                    <div className="text-xs text-muted-foreground">{items.length} total</div>
+                    {done > 0 && <div className="text-xs text-success">{done} concluída(s)</div>}
+                    {late > 0 && <div className="text-xs text-destructive">{late} fora do prazo</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Lista de Empresas no Período */}
         <Card>
           <CardHeader>
@@ -254,33 +281,6 @@ export default function Dashboard() {
                 )}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-
-        {/* Resumo por período */}
-        <Card>
-          <CardHeader><CardTitle className="text-base">Resumo Geral por Período</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              {PERIODOS.map((p) => {
-                const items = filteredByResponsavel.filter((m) => m.periodo === p);
-                const done = items.filter((m) => m.status === "Enviado ao financeiro").length;
-                const late = items.filter((m) => m.status === "Fora do prazo").length;
-                const isActive = p === filterPeriodo;
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setFilterPeriodo(p)}
-                    className={`rounded-lg border p-3 text-center space-y-1 transition-colors ${isActive ? "border-primary bg-primary/10" : "hover:bg-muted/50"}`}
-                  >
-                    <div className="font-semibold text-sm">{p}</div>
-                    <div className="text-xs text-muted-foreground">{items.length} total</div>
-                    {done > 0 && <div className="text-xs text-success">{done} concluída(s)</div>}
-                    {late > 0 && <div className="text-xs text-destructive">{late} fora do prazo</div>}
-                  </button>
-                );
-              })}
-            </div>
           </CardContent>
         </Card>
 
