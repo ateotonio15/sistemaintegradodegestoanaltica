@@ -93,6 +93,8 @@ export default function Empresas() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       setDialogOpen(false);
       resetForm();
       toast({ title: editingId ? "Empresa atualizada!" : "Empresa cadastrada!" });
