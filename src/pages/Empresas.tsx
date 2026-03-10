@@ -459,6 +459,8 @@ export default function Empresas() {
                     <div><p className="text-xs text-muted-foreground">Data de Implantação</p><p className="font-medium">{formatDateBR(detailEmpresa.data_implantacao) || "—"}</p></div>
                     <div><p className="text-xs text-muted-foreground">Data de Corte</p><p className="font-medium">{detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : "—"}</p></div>
                     <div><p className="text-xs text-muted-foreground">E-mail da Empresa</p><p className="font-medium">{detailEmpresa.email_empresa || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Prazo (Entrada sem carência)</p><p className="font-medium">{(detailEmpresa as any).prazo || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Grupo de Contrato</p><p className="font-medium">{(detailEmpresa as any).grupo_contrato || "—"}</p></div>
                     <div>
                       <p className="text-xs text-muted-foreground">Status da Empresa</p>
                       <Badge variant={detailEmpresa.status_empresa === "Ativa" ? "default" : "secondary"}>
