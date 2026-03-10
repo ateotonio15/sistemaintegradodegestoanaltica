@@ -60,11 +60,13 @@ export type Database = {
           data_rescisao: string | null
           dia_movimentacao: number | null
           email_empresa: string | null
+          grupo_contrato: string | null
           id: string
           nome: string
           observacoes: string | null
           operadora_plano: string | null
           periodo_movimentacao: string | null
+          prazo: string | null
           responsavel_contrato: string | null
           responsavel_user_id: string | null
           status_empresa: string | null
@@ -80,11 +82,13 @@ export type Database = {
           data_rescisao?: string | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
+          grupo_contrato?: string | null
           id?: string
           nome: string
           observacoes?: string | null
           operadora_plano?: string | null
           periodo_movimentacao?: string | null
+          prazo?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
           status_empresa?: string | null
@@ -100,11 +104,13 @@ export type Database = {
           data_rescisao?: string | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
+          grupo_contrato?: string | null
           id?: string
           nome?: string
           observacoes?: string | null
           operadora_plano?: string | null
           periodo_movimentacao?: string | null
+          prazo?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
           status_empresa?: string | null

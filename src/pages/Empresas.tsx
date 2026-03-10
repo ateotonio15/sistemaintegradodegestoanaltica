@@ -20,6 +20,13 @@ import * as XLSX from "xlsx";
 
 type Empresa = Tables<"empresas">;
 
+const GRUPO_CONTRATO_OPTIONS = [
+  "Compulsória - Sem Dependentes",
+  "Adesão - Titular / Dependente",
+  "Compulsória - Titular / Adesão - Dependente",
+  "Compulsória - Todos",
+];
+
 const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | null } = {
   nome: "",
   cnpj: "",
@@ -201,7 +208,9 @@ export default function Empresas() {
       status_empresa: e.status_empresa ?? "Ativa",
       observacoes: e.observacoes ?? "",
       responsavel_user_id: (e as any).responsavel_user_id ?? null,
-    });
+      prazo: (e as any).prazo ?? "",
+      grupo_contrato: (e as any).grupo_contrato ?? "",
+    } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
     setDialogOpen(true);
   };
@@ -312,6 +321,21 @@ export default function Empresas() {
                       <div className="space-y-2">
                         <Label>E-mail da Empresa</Label>
                         <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Prazo (Entrada sem carência)</Label>
+                        <Input value={(form as any).prazo ?? ""} onChange={(e) => setForm({ ...form, prazo: e.target.value } as any)} placeholder="Ex: 30 dias" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Grupo de Contrato</Label>
+                        <Select value={(form as any).grupo_contrato ?? ""} onValueChange={(v) => setForm({ ...form, grupo_contrato: v } as any)}>
+                          <SelectTrigger><SelectValue placeholder="Selecione o grupo" /></SelectTrigger>
+                          <SelectContent>
+                            {GRUPO_CONTRATO_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Status da Empresa</Label>
@@ -435,6 +459,8 @@ export default function Empresas() {
                     <div><p className="text-xs text-muted-foreground">Data de Implantação</p><p className="font-medium">{formatDateBR(detailEmpresa.data_implantacao) || "—"}</p></div>
                     <div><p className="text-xs text-muted-foreground">Data de Corte</p><p className="font-medium">{detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : "—"}</p></div>
                     <div><p className="text-xs text-muted-foreground">E-mail da Empresa</p><p className="font-medium">{detailEmpresa.email_empresa || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Prazo (Entrada sem carência)</p><p className="font-medium">{(detailEmpresa as any).prazo || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Grupo de Contrato</p><p className="font-medium">{(detailEmpresa as any).grupo_contrato || "—"}</p></div>
                     <div>
                       <p className="text-xs text-muted-foreground">Status da Empresa</p>
                       <Badge variant={detailEmpresa.status_empresa === "Ativa" ? "default" : "secondary"}>
