@@ -57,7 +57,7 @@ export default function Empresas() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin, role } = useAuth();
-  const canEdit = isAdmin;
+  const canEdit = isAdmin || role === "comum";
   const isComum = role === "comum";
 
   // Fetch users for the responsável select
