@@ -40,6 +40,7 @@ export default function Empresas() {
   const [search, setSearch] = useState("");
   const [showInativas, setShowInativas] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailEmpresa, setDetailEmpresa] = useState<Empresa | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [dataImplantacao, setDataImplantacao] = useState("");
