@@ -1,0 +1,1 @@
+ALTER TABLE public.empresas ADD COLUMN data_rescisao date DEFAULT NULL;
