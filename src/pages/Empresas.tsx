@@ -465,7 +465,24 @@ export default function Empresas() {
                 </div>
               </div>
             )}
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              {(isComum || isAdmin) && detailEmpresa && (
+                <Button
+                  variant={detailEmpresa.status_empresa === "Ativa" ? "destructive" : "default"}
+                  disabled={toggleStatusMutation.isPending}
+                  onClick={() => {
+                    const newStatus = detailEmpresa.status_empresa === "Ativa" ? "Inativa" : "Ativa";
+                    const dataRescisao = newStatus === "Inativa" ? new Date().toISOString().split("T")[0] : null;
+                    toggleStatusMutation.mutate({ id: detailEmpresa.id, newStatus, dataRescisao });
+                  }}
+                >
+                  {toggleStatusMutation.isPending
+                    ? "Atualizando..."
+                    : detailEmpresa.status_empresa === "Ativa"
+                      ? "Inativar Contrato"
+                      : "Reativar Contrato"}
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setDetailEmpresa(null)}>Fechar</Button>
             </DialogFooter>
           </DialogContent>
