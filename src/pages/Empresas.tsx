@@ -323,6 +323,21 @@ export default function Empresas() {
                         <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} />
                       </div>
                       <div className="space-y-2">
+                        <Label>Prazo (Entrada sem carência)</Label>
+                        <Input value={(form as any).prazo ?? ""} onChange={(e) => setForm({ ...form, prazo: e.target.value } as any)} placeholder="Ex: 30 dias" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Grupo de Contrato</Label>
+                        <Select value={(form as any).grupo_contrato ?? ""} onValueChange={(v) => setForm({ ...form, grupo_contrato: v } as any)}>
+                          <SelectTrigger><SelectValue placeholder="Selecione o grupo" /></SelectTrigger>
+                          <SelectContent>
+                            {GRUPO_CONTRATO_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
                         <Label>Status da Empresa</Label>
                         <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
