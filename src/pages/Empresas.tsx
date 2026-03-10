@@ -390,6 +390,64 @@ export default function Empresas() {
             </Table>
           </CardContent>
         </Card>
+
+
+        {/* Detail Modal */}
+        <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) setDetailEmpresa(null); }}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Detalhes da Empresa</DialogTitle>
+              <DialogDescription>Informações completas da empresa cadastrada.</DialogDescription>
+            </DialogHeader>
+            {detailEmpresa && (
+              <div className="space-y-6">
+                {/* Dados do Contrato */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Dados do Contrato</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div><p className="text-xs text-muted-foreground">Empresa</p><p className="font-medium">{detailEmpresa.nome || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Código do Contrato</p><p className="font-medium">{detailEmpresa.codigo_contrato || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">CNPJ</p><p className="font-medium">{detailEmpresa.cnpj || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Operadora / Corretora</p><p className="font-medium">{detailEmpresa.operadora_plano || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Tipo de Movimentação</p><p className="font-medium">{detailEmpresa.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Período de Movimentação</p><p className="font-medium">{detailEmpresa.periodo_movimentacao || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Data de Implantação</p><p className="font-medium">{formatDateBR(detailEmpresa.data_implantacao) || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Data de Corte</p><p className="font-medium">{detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">E-mail da Empresa</p><p className="font-medium">{detailEmpresa.email_empresa || "—"}</p></div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Status da Empresa</p>
+                      <Badge variant={detailEmpresa.status_empresa === "Ativa" ? "default" : "secondary"}>
+                        {detailEmpresa.status_empresa ?? "Ativa"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Responsável */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Responsável</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div><p className="text-xs text-muted-foreground">Responsável pelo Contrato</p><p className="font-medium">{detailEmpresa.responsavel_contrato || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Usuário Responsável</p><p className="font-medium">{getResponsavelName(detailEmpresa)}</p></div>
+                  </div>
+                </div>
+
+                {/* Informações Operacionais */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Informações Operacionais</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Observações</p><p className="font-medium">{detailEmpresa.observacoes || "—"}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Data de Criação</p><p className="font-medium">{formatDateBR(detailEmpresa.created_at)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Última Atualização</p><p className="font-medium">{formatDateBR(detailEmpresa.updated_at)}</p></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDetailEmpresa(null)}>Fechar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
