@@ -20,6 +20,13 @@ import * as XLSX from "xlsx";
 
 type Empresa = Tables<"empresas">;
 
+const GRUPO_CONTRATO_OPTIONS = [
+  "Compulsória - Sem Dependentes",
+  "Adesão - Titular / Dependente",
+  "Compulsória - Titular / Adesão - Dependente",
+  "Compulsória - Todos",
+];
+
 const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | null } = {
   nome: "",
   cnpj: "",
