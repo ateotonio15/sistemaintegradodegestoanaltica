@@ -57,6 +57,7 @@ export type Database = {
           created_at: string
           data_corte: number | null
           data_implantacao: string | null
+          data_rescisao: string | null
           dia_movimentacao: number | null
           email_empresa: string | null
           id: string
@@ -76,6 +77,7 @@ export type Database = {
           created_at?: string
           data_corte?: number | null
           data_implantacao?: string | null
+          data_rescisao?: string | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
           id?: string
@@ -95,6 +97,7 @@ export type Database = {
           created_at?: string
           data_corte?: number | null
           data_implantacao?: string | null
+          data_rescisao?: string | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
           id?: string

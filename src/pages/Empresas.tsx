@@ -420,6 +420,9 @@ export default function Empresas() {
                         {detailEmpresa.status_empresa ?? "Ativa"}
                       </Badge>
                     </div>
+                    {detailEmpresa.status_empresa === "Inativa" && (
+                      <div><p className="text-xs text-muted-foreground">Data de Rescisão do Contrato</p><p className="font-medium">{formatDateBR((detailEmpresa as any).data_rescisao) || "—"}</p></div>
+                    )}
                   </div>
                 </div>
 
