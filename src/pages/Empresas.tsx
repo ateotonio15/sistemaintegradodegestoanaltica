@@ -414,7 +414,7 @@ export default function Empresas() {
 
 
         {/* Detail Modal */}
-        <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) setDetailEmpresa(null); }}>
+        <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
           <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Detalhes da Empresa</DialogTitle>
