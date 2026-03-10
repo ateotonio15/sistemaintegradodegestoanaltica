@@ -61,6 +61,35 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     });
   }, [isAdmin]);
 
+  // Fetch user profile
+  const { data: profile } = useQuery({
+    queryKey: ["user-profile", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, username")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const displayName = profile?.display_name || user?.email || "Usuário";
+  const username = profile?.username || "—";
+  const email = user?.email || "—";
+  const initials = useMemo(() => {
+    const name = profile?.display_name || user?.email || "";
+    const parts = name.split(" ").filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  }, [profile, user]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
   const { data: movimentacoes = [] } = useQuery({
     queryKey: ["movimentacoes-notifications"],
     queryFn: async () => {
