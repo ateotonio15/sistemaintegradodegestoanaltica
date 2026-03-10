@@ -41,6 +41,8 @@ export default function Empresas() {
   const [showInativas, setShowInativas] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailEmpresa, setDetailEmpresa] = useState<Empresa | null>(null);
+  const [rescisaoDate, setRescisaoDate] = useState("");
+  const [showRescisaoInput, setShowRescisaoInput] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [dataImplantacao, setDataImplantacao] = useState("");
