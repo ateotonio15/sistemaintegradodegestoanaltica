@@ -47,8 +47,9 @@ export default function Empresas() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { isAdmin, role } = useAuth();
   const canEdit = isAdmin;
+  const isComum = role === "comum";
 
   // Fetch users for the responsável select
   const { data: usuarios = [] } = useQuery({
@@ -101,6 +102,24 @@ export default function Empresas() {
       toast({ title: editingId ? "Empresa atualizada!" : "Empresa cadastrada!" });
     },
     onError: () => toast({ title: "Erro ao salvar empresa", variant: "destructive" }),
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ id, newStatus, dataRescisao }: { id: string; newStatus: string; dataRescisao: string | null }) => {
+      const { error } = await supabase.from("empresas").update({
+        status_empresa: newStatus,
+        data_rescisao: dataRescisao,
+      } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      toast({ title: "Status da empresa atualizado!" });
+      setDetailEmpresa(null);
+    },
+    onError: () => toast({ title: "Erro ao atualizar status", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -446,7 +465,24 @@ export default function Empresas() {
                 </div>
               </div>
             )}
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              {(isComum || isAdmin) && detailEmpresa && (
+                <Button
+                  variant={detailEmpresa.status_empresa === "Ativa" ? "destructive" : "default"}
+                  disabled={toggleStatusMutation.isPending}
+                  onClick={() => {
+                    const newStatus = detailEmpresa.status_empresa === "Ativa" ? "Inativa" : "Ativa";
+                    const dataRescisao = newStatus === "Inativa" ? new Date().toISOString().split("T")[0] : null;
+                    toggleStatusMutation.mutate({ id: detailEmpresa.id, newStatus, dataRescisao });
+                  }}
+                >
+                  {toggleStatusMutation.isPending
+                    ? "Atualizando..."
+                    : detailEmpresa.status_empresa === "Ativa"
+                      ? "Inativar Contrato"
+                      : "Reativar Contrato"}
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setDetailEmpresa(null)}>Fechar</Button>
             </DialogFooter>
           </DialogContent>
