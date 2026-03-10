@@ -104,6 +104,24 @@ export default function Empresas() {
     onError: () => toast({ title: "Erro ao salvar empresa", variant: "destructive" }),
   });
 
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ id, newStatus, dataRescisao }: { id: string; newStatus: string; dataRescisao: string | null }) => {
+      const { error } = await supabase.from("empresas").update({
+        status_empresa: newStatus,
+        data_rescisao: dataRescisao,
+      } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      toast({ title: "Status da empresa atualizado!" });
+      setDetailEmpresa(null);
+    },
+    onError: () => toast({ title: "Erro ao atualizar status", variant: "destructive" }),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("empresas").delete().eq("id", id);
