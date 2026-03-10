@@ -47,8 +47,9 @@ export default function Empresas() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { isAdmin, role } = useAuth();
   const canEdit = isAdmin;
+  const isComum = role === "comum";
 
   // Fetch users for the responsável select
   const { data: usuarios = [] } = useQuery({
