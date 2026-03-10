@@ -467,25 +467,67 @@ export default function Empresas() {
                 </div>
               </div>
             )}
+            {/* Rescisão input for inactivation */}
+            {(isComum || isAdmin) && detailEmpresa && detailEmpresa.status_empresa === "Ativa" && showRescisaoInput && (
+              <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                <Label className="text-sm font-medium">Data de Rescisão do Contrato *</Label>
+                <Input
+                  type="date"
+                  value={rescisaoDate}
+                  onChange={(e) => setRescisaoDate(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
             <DialogFooter className="flex-col sm:flex-row gap-2">
               {(isComum || isAdmin) && detailEmpresa && (
-                <Button
-                  variant={detailEmpresa.status_empresa === "Ativa" ? "destructive" : "default"}
-                  disabled={toggleStatusMutation.isPending}
-                  onClick={() => {
-                    const newStatus = detailEmpresa.status_empresa === "Ativa" ? "Inativa" : "Ativa";
-                    const dataRescisao = newStatus === "Inativa" ? new Date().toISOString().split("T")[0] : null;
-                    toggleStatusMutation.mutate({ id: detailEmpresa.id, newStatus, dataRescisao });
-                  }}
-                >
-                  {toggleStatusMutation.isPending
-                    ? "Atualizando..."
-                    : detailEmpresa.status_empresa === "Ativa"
-                      ? "Inativar Contrato"
-                      : "Reativar Contrato"}
-                </Button>
+                <>
+                  {detailEmpresa.status_empresa === "Ativa" ? (
+                    showRescisaoInput ? (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => { setShowRescisaoInput(false); setRescisaoDate(""); }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          disabled={toggleStatusMutation.isPending || !rescisaoDate}
+                          onClick={() => {
+                            if (!rescisaoDate) {
+                              toast({ title: "Informe a data de rescisão", variant: "destructive" });
+                              return;
+                            }
+                            toggleStatusMutation.mutate({ id: detailEmpresa.id, newStatus: "Inativa", dataRescisao: rescisaoDate });
+                            setShowRescisaoInput(false);
+                            setRescisaoDate("");
+                          }}
+                        >
+                          {toggleStatusMutation.isPending ? "Atualizando..." : "Confirmar Inativação"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        onClick={() => setShowRescisaoInput(true)}
+                      >
+                        Inativar Contrato
+                      </Button>
+                    )
+                  ) : (
+                    <Button
+                      variant="default"
+                      disabled={toggleStatusMutation.isPending}
+                      onClick={() => toggleStatusMutation.mutate({ id: detailEmpresa.id, newStatus: "Ativa", dataRescisao: null })}
+                    >
+                      {toggleStatusMutation.isPending ? "Atualizando..." : "Reativar Contrato"}
+                    </Button>
+                  )}
+                </>
               )}
-              <Button variant="outline" onClick={() => setDetailEmpresa(null)}>Fechar</Button>
+              <Button variant="outline" onClick={() => { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); }}>Fechar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
