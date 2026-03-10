@@ -355,7 +355,7 @@ export default function Empresas() {
                   <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
                 ) : (
                   filtered.map((e) => (
-                    <TableRow key={e.id}>
+                    <TableRow key={e.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailEmpresa(e)}>
                       <TableCell className="font-medium">{e.nome}</TableCell>
                       <TableCell>{e.codigo_contrato || "—"}</TableCell>
                       <TableCell>{getResponsavelName(e)}</TableCell>
@@ -377,7 +377,7 @@ export default function Empresas() {
                       </TableCell>
                       {canEdit && (
                         <TableCell>
-                          <div className="flex gap-1">
+                          <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
                             <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4 text-icon" /></Button>
                             <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                           </div>
