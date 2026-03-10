@@ -220,13 +220,57 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </PopoverContent>
             </Popover>
 
-            <button
-              onClick={signOut}
-              className="p-2 rounded-md hover:bg-accent transition-colors"
-              title="Sair"
-            >
-              <LogOut className="h-5 w-5 text-icon" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-1 rounded-full hover:ring-2 hover:ring-primary/30 transition-all" title="Menu do usuário">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-72 p-0" align="end">
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-primary/15 text-primary font-semibold">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate">{displayName}</p>
+                      <p className="text-xs text-muted-foreground truncate">@{username}</p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Nome</p>
+                      <p className="text-sm font-medium">{displayName}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Usuário</p>
+                      <p className="text-sm font-medium">{username}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Email</p>
+                      <p className="text-sm font-medium">{email}</p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sair do Sistema
+                  </Button>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
