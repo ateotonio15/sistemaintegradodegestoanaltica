@@ -63,7 +63,7 @@ export default function Movimentacoes() {
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin, isExecutivo, role } = useAuth();
+  const { user, isAdmin, isExecutivo, role } = useAuth();
   const canEdit = isAdmin; // admin can do full CRUD
   const canEditDates = isAdmin || role === "comum"; // common users can edit dates
 
