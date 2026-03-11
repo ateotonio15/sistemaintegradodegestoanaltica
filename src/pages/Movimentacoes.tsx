@@ -63,7 +63,7 @@ export default function Movimentacoes() {
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin, isExecutivo, role } = useAuth();
+  const { user, isAdmin, isExecutivo, role } = useAuth();
   const canEdit = isAdmin; // admin can do full CRUD
   const canEditDates = isAdmin || role === "comum"; // common users can edit dates
 
@@ -77,6 +77,7 @@ export default function Movimentacoes() {
       if (error) throw error;
       return data as EmpresaOption[];
     },
+    enabled: !!user,
   });
 
   const { data: movimentacoes = [], isLoading } = useQuery({
@@ -92,6 +93,7 @@ export default function Movimentacoes() {
       console.log("Movimentações carregadas:", data);
       return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
     },
+    enabled: !!user,
   });
 
   const movimentacoesSemEmpresa = useMemo(() => {
