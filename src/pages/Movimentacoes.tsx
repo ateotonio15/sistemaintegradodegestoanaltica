@@ -77,6 +77,7 @@ export default function Movimentacoes() {
       if (error) throw error;
       return data as EmpresaOption[];
     },
+    enabled: !!user,
   });
 
   const { data: movimentacoes = [], isLoading } = useQuery({
