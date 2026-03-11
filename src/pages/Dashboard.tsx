@@ -92,6 +92,7 @@ export default function Dashboard() {
       if (error) throw error;
       return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
     },
+    enabled: !!user,
   });
 
   const updateMov = useMutation({
