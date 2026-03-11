@@ -48,6 +48,7 @@ export default function Dashboard() {
       return data as Tables<"empresas">[];
     },
     refetchOnWindowFocus: true,
+    enabled: !!user,
   });
 
   // Use SECURITY DEFINER function so all users can see comum users + their empresa counts
@@ -58,6 +59,7 @@ export default function Dashboard() {
       if (error) throw error;
       return data as { user_id: string; display_name: string; empresa_count: number }[];
     },
+    enabled: !!user,
   });
 
   // RLS already filters empresas for comum users (via responsavel_user_id or empresa_usuarios)
