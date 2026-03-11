@@ -93,6 +93,7 @@ export default function Movimentacoes() {
       console.log("Movimentações carregadas:", data);
       return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
     },
+    enabled: !!user,
   });
 
   const movimentacoesSemEmpresa = useMemo(() => {
