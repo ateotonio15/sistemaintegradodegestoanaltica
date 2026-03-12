@@ -26,6 +26,7 @@ import {
   getCurrentMesReferencia,
   formatMesReferencia,
   formatDateBR,
+  formatPeriodoEmpresa,
 } from "@/lib/movimentacao-utils";
 import * as XLSX from "xlsx";
 
