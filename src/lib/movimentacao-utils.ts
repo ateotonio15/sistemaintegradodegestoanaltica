@@ -130,3 +130,12 @@ export function formatDateBR(dateStr: string | null | undefined): string {
   if (parts.length !== 3) return dateStr;
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
+
+/** Format período display based on tipo_movimentacao */
+export function formatPeriodoEmpresa(empresa: { tipo_movimentacao?: string | null; periodo_movimentacao?: string | null; data_corte?: number | null } | null | undefined): string {
+  if (!empresa) return "—";
+  if (empresa.tipo_movimentacao === "Diária") {
+    return empresa.data_corte ? `Corte: dia ${empresa.data_corte}` : "—";
+  }
+  return empresa.periodo_movimentacao || "—";
+}
