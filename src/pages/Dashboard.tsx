@@ -371,7 +371,7 @@ export default function Dashboard() {
                       <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
                       <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
                       <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                      <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
+                      <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                       <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                       <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                       <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
