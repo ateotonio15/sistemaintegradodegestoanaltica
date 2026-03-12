@@ -299,6 +299,7 @@ export default function Dashboard() {
                  <TableRow>
                    <TableHead>Empresa</TableHead>
                     <TableHead>Cód. Contrato</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>Resp. Contrato</TableHead>
                     <TableHead>Período</TableHead>
                     <TableHead>Envio Empresa</TableHead>
@@ -309,15 +310,16 @@ export default function Dashboard() {
                </TableHeader>
                <TableBody>
                  {isLoading ? (
-                    <TableRow><TableCell colSpan={canEditDates ? 8 : 7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                  ) : listaTrabalho.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEditDates ? 8 : 7} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                   ) : listaTrabalho.length === 0 ? (
+                     <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
                   ) : (
                    listaTrabalho.map((m) => (
                      <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/10" : ""}>
                        <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                       <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
-                       <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                        <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                        <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
+                        <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
                         <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
@@ -350,6 +352,7 @@ export default function Dashboard() {
                 <TableRow>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Cód. Contrato</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Resp. Contrato</TableHead>
                   <TableHead>Período</TableHead>
                   <TableHead>Envio Empresa</TableHead>
@@ -359,12 +362,13 @@ export default function Dashboard() {
               </TableHeader>
               <TableBody>
                 {listaConcluidas.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
                 ) : (
                   listaConcluidas.map((m) => (
                     <TableRow key={m.id}>
                       <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
                       <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                      <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
                       <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
                       <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
                       <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
