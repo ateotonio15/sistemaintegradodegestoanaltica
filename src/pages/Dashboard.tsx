@@ -299,6 +299,7 @@ export default function Dashboard() {
                  <TableRow>
                    <TableHead>Empresa</TableHead>
                     <TableHead>Cód. Contrato</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>Resp. Contrato</TableHead>
                     <TableHead>Período</TableHead>
                     <TableHead>Envio Empresa</TableHead>
