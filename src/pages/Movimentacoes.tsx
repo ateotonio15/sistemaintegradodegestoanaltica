@@ -224,7 +224,7 @@ export default function Movimentacoes() {
         "Empresa": m.empresas?.nome ?? "",
         "Resp. Contrato": m.empresas?.responsavel_contrato ?? "",
         "Tipo": tipo,
-        "Período": m.periodo ?? "",
+        "Período": formatPeriodoEmpresa(m.empresas as any),
         "Envio Empresa": m.data_envio_empresa ?? "",
         "Financeiro": m.data_envio_financeiro ?? "",
         "Status": status,
