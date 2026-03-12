@@ -310,9 +310,9 @@ export default function Dashboard() {
                </TableHeader>
                <TableBody>
                  {isLoading ? (
-                    <TableRow><TableCell colSpan={canEditDates ? 8 : 7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                  ) : listaTrabalho.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEditDates ? 8 : 7} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                   ) : listaTrabalho.length === 0 ? (
+                     <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
                   ) : (
                    listaTrabalho.map((m) => (
                      <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/10" : ""}>
