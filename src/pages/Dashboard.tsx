@@ -317,8 +317,9 @@ export default function Dashboard() {
                    listaTrabalho.map((m) => (
                      <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/10" : ""}>
                        <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                       <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
-                       <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                        <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                        <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
+                        <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
                         <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
