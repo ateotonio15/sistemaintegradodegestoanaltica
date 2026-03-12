@@ -24,6 +24,7 @@ import {
   formatMesReferencia,
   calcularStatusPeriodoEmpresa,
   formatDateBR,
+  formatPeriodoEmpresa,
 } from "@/lib/movimentacao-utils";
 
 export default function Dashboard() {
@@ -86,7 +87,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano)")
+        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -320,7 +321,7 @@ export default function Dashboard() {
                         <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
                         <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
                         <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                        <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
+                        <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                         <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
@@ -370,7 +371,7 @@ export default function Dashboard() {
                       <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
                       <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
                       <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                      <TableCell>{m.empresas?.periodo_movimentacao || m.periodo}</TableCell>
+                      <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                       <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                       <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                       <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
