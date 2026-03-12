@@ -24,6 +24,7 @@ import {
   formatMesReferencia,
   calcularStatusPeriodoEmpresa,
   formatDateBR,
+  formatPeriodoEmpresa,
 } from "@/lib/movimentacao-utils";
 
 export default function Dashboard() {
