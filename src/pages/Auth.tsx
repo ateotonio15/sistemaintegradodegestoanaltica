@@ -51,7 +51,7 @@ export default function Auth() {
             </div>
           </div>
           <div className="space-y-1.5">
-            <CardTitle className="text-2xl font-bold">Fechamento</CardTitle>
+            <CardTitle className="text-2xl font-bold">CS Control</CardTitle>
             <CardDescription className="text-muted-foreground">Faça login para acessar o sistema</CardDescription>
           </div>
         </CardHeader>
