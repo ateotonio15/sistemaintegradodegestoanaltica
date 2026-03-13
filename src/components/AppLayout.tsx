@@ -149,11 +149,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         )}>
           {!collapsed && (
             <Link to="/" className="flex items-center gap-2.5 font-bold text-lg tracking-tight text-foreground hover:opacity-80 transition-opacity">
-              <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-primary text-primary-foreground shadow-sm shrink-0">
-                <span className="font-bold text-sm">CS</span>
-               </div>
-               <span className="truncate">CS Control</span>
-             </Link>
+              <img src={logoImg} alt="CS Control" className="h-9 w-9 rounded-xl object-contain shrink-0" />
+              <span className="truncate">CS Control</span>
+            </Link>
            )}
           <button
             onClick={() => setCollapsed(!collapsed)}
