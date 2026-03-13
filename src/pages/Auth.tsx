@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
+import logoImg from "@/assets/logo-cs-control.png";
 
 export default function Auth() {
   const [username, setUsername] = useState("");
