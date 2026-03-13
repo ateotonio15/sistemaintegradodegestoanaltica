@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn } from "lucide-react";
-import logoImg from "@/assets/logo-cs-control.png";
+import loginBg from "@/assets/login-bg.png";
 
 export default function Auth() {
   const [username, setUsername] = useState("");
@@ -37,24 +37,15 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Decorative background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
-      </div>
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Left side - Login form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-foreground">Bem-vindo</h1>
+            <p className="text-muted-foreground">Faça login para acessar o sistema</p>
+          </div>
 
-      <Card className="w-full max-w-md relative rounded-2xl shadow-xl border-border/50 animate-scale-in">
-        <CardHeader className="text-center space-y-4 pb-2">
-          <div className="flex justify-center">
-            <img src={logoImg} alt="CS Control" className="h-20 w-20 object-contain" />
-          </div>
-          <div className="space-y-1.5">
-            <CardTitle className="text-2xl font-bold">CS Control</CardTitle>
-            <CardDescription className="text-muted-foreground">Faça login para acessar o sistema</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-4">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Usuário</Label>
@@ -84,8 +75,21 @@ export default function Auth() {
               {loading ? "Aguarde..." : "Entrar"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+
+          <p className="text-center text-xs text-muted-foreground">
+            CS Control — Cadastro Samel e Gestão Empresarial
+          </p>
+        </div>
+      </div>
+
+      {/* Right side - Image (hidden on mobile) */}
+      <div className="hidden lg:flex flex-1 items-center justify-center bg-[hsl(var(--muted))] relative overflow-hidden">
+        <img
+          src={loginBg}
+          alt="CS Control - Cadastro Samel e Gestão Empresarial"
+          className="w-full h-full object-cover"
+        />
+      </div>
     </div>
   );
 }
