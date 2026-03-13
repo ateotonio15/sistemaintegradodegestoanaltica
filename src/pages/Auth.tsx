@@ -38,7 +38,16 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Left side - Login form */}
+      {/* Left side - Image (hidden on mobile) */}
+      <div className="hidden lg:flex flex-1 items-center justify-center bg-[hsl(var(--muted))] relative overflow-hidden">
+        <img
+          src={loginBg}
+          alt="CS Control - Cadastro Samel e Gestão Empresarial"
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* Right side - Login form */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center space-y-2">
@@ -80,15 +89,6 @@ export default function Auth() {
             CS Control — Cadastro Samel e Gestão Empresarial
           </p>
         </div>
-      </div>
-
-      {/* Right side - Image (hidden on mobile) */}
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-[hsl(var(--muted))] relative overflow-hidden">
-        <img
-          src={loginBg}
-          alt="CS Control - Cadastro Samel e Gestão Empresarial"
-          className="w-full h-full object-cover"
-        />
       </div>
     </div>
   );
