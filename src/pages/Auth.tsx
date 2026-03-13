@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
+import logoImg from "@/assets/logo-cs-control.png";
 
 export default function Auth() {
   const [username, setUsername] = useState("");
@@ -46,9 +47,7 @@ export default function Auth() {
       <Card className="w-full max-w-md relative rounded-2xl shadow-xl border-border/50 animate-scale-in">
         <CardHeader className="text-center space-y-4 pb-2">
           <div className="flex justify-center">
-            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-primary text-primary-foreground shadow-lg">
-              <Building2 className="h-7 w-7" />
-            </div>
+            <img src={logoImg} alt="CS Control" className="h-20 w-20 object-contain" />
           </div>
           <div className="space-y-1.5">
             <CardTitle className="text-2xl font-bold">CS Control</CardTitle>
