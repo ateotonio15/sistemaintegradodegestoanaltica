@@ -65,8 +65,8 @@ export default function Movimentacoes() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role } = useAuth();
-  const canEdit = isAdmin; // admin can do full CRUD
-  const canEditDates = isAdmin || role === "comum"; // common users can edit dates
+  const canEdit = isAdmin;
+  const canEditDates = isAdmin || role === "comum";
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas"],
@@ -89,9 +89,7 @@ export default function Movimentacoes() {
         .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
-      console.log("[Movimentacoes] Supabase raw response:", { data, error });
       if (error) throw error;
-      console.log("Movimentações carregadas:", data);
       return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
     },
     enabled: !!user,
@@ -100,8 +98,6 @@ export default function Movimentacoes() {
   const movimentacoesSemEmpresa = useMemo(() => {
     return movimentacoes.filter((m) => !m.empresa_id || !m.empresas);
   }, [movimentacoes]);
-
-  console.log("Sem empresa:", movimentacoesSemEmpresa);
 
   const handleEmpresaChange = (empresaId: string) => {
     const empresa = empresas.find((e) => e.id === empresaId);
@@ -192,7 +188,6 @@ export default function Movimentacoes() {
 
   const filtered = useMemo(() => {
     return movimentacoes.filter((m) => {
-      // Ocultar empresas inativas
       if ((m.empresas as any)?.status_empresa === "Inativa") return false;
       if (verSomenteSemEmpresa) return !m.empresas;
       const status = calcularStatus(m);
@@ -245,26 +240,29 @@ export default function Movimentacoes() {
     <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Movimentações</h1>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Movimentações</h1>
+            <p className="text-sm text-muted-foreground mt-1">{filtered.length} movimentação(ões) encontrada(s)</p>
+          </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExportExcel}>
-              <Download className="mr-2 h-4 w-4 text-icon" />Exportar Excel
+            <Button variant="outline" onClick={handleExportExcel} className="rounded-lg">
+              <Download className="mr-2 h-4 w-4" />Exportar Excel
             </Button>
             {canEditDates && (
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
               {canEdit && <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
+                <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
               </DialogTrigger>}
-              <DialogContent className="sm:max-w-lg">
+              <DialogContent className="sm:max-w-lg rounded-xl">
                 <DialogHeader>
                   <DialogTitle>{editingId ? "Editar Movimentação" : "Nova Movimentação"}</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-4">
+                <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Empresa *</Label>
+                      <Label className="text-sm font-medium">Empresa *</Label>
                       <Select value={form.empresa_id} onValueChange={handleEmpresaChange} disabled={!canEdit && !!editingId}>
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
                           {empresas.filter((e) => (e as any).status_empresa === "Ativa").map((e) => (
                             <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
@@ -273,20 +271,20 @@ export default function Movimentacoes() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Mês Referência *</Label>
-                      <Input type="month" value={form.mes_referencia} onChange={(e) => setForm({ ...form, mes_referencia: e.target.value })} required disabled={!canEdit && !!editingId} />
+                      <Label className="text-sm font-medium">Mês Referência *</Label>
+                      <Input type="month" value={form.mes_referencia} onChange={(e) => setForm({ ...form, mes_referencia: e.target.value })} required disabled={!canEdit && !!editingId} className="rounded-lg" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Tipo Movimentação</Label>
-                      <Input value={form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao ?? "—"} disabled className="bg-muted" />
+                      <Label className="text-sm font-medium">Tipo Movimentação</Label>
+                      <Input value={form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao ?? "—"} disabled className="bg-accent/50 rounded-lg" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Período {isFechada ? "(fixo)" : "(automático)"}</Label>
+                      <Label className="text-sm font-medium">Período {isFechada ? "(fixo)" : "(automático)"}</Label>
                       {isFechada ? (
-                        <Input value={form.periodo} disabled className="bg-muted" />
+                        <Input value={form.periodo} disabled className="bg-accent/50 rounded-lg" />
                       ) : (
                         <Select value={form.periodo} onValueChange={(v) => setForm({ ...form, periodo: v })} disabled={!canEdit && !!editingId}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                           </SelectContent>
@@ -294,25 +292,25 @@ export default function Movimentacoes() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Responsável</Label>
-                      <Input value={form.responsavel_movimentacao ?? ""} onChange={(e) => setForm({ ...form, responsavel_movimentacao: e.target.value })} disabled={!canEdit && !!editingId} />
+                      <Label className="text-sm font-medium">Responsável</Label>
+                      <Input value={form.responsavel_movimentacao ?? ""} onChange={(e) => setForm({ ...form, responsavel_movimentacao: e.target.value })} disabled={!canEdit && !!editingId} className="rounded-lg" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Data Envio p/ Empresa</Label>
-                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} />
+                      <Label className="text-sm font-medium">Data Envio p/ Empresa</Label>
+                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} className="rounded-lg" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Data Envio Financeiro</Label>
-                      <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} />
+                      <Label className="text-sm font-medium">Data Envio Financeiro</Label>
+                      <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} className="rounded-lg" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Observações</Label>
-                    <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} disabled={!canEdit && !!editingId} />
+                    <Label className="text-sm font-medium">Observações</Label>
+                    <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} disabled={!canEdit && !!editingId} className="rounded-lg" />
                   </div>
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-                    <Button type="submit" disabled={upsert.isPending || !form.empresa_id}>{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+                    <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
+                    <Button type="submit" disabled={upsert.isPending || !form.empresa_id} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
                   </div>
                 </form>
               </DialogContent>
@@ -322,45 +320,44 @@ export default function Movimentacoes() {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="pt-4">
+        <Card className="rounded-xl shadow-sm">
+          <CardContent className="pt-5 pb-5">
             <div className="flex flex-wrap items-end gap-4">
-              <div className="space-y-1">
-                <Label className="text-xs">Mês</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
                 <Select value={filterMes} onValueChange={setFilterMes}>
-                  <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[150px] rounded-lg h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {mesesOptions.map((m) => <SelectItem key={m} value={m}>{formatMesReferencia(m)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Período</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Período</Label>
                 <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
-                  <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[130px] rounded-lg h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
                     {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Status</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Status</Label>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[190px] rounded-lg h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="Aguardando envio">Aguardando envio</SelectItem>
                     <SelectItem value="Enviado para empresa">Enviado p/ empresa</SelectItem>
-                    
                     <SelectItem value="Enviado ao financeiro">Enviado ao financeiro</SelectItem>
                     <SelectItem value="Fora do prazo">Fora do prazo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Responsável</Label>
-                <Input placeholder="Filtrar..." value={filterResponsavel} onChange={(e) => setFilterResponsavel(e.target.value)} className="w-[160px]" />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Responsável</Label>
+                <Input placeholder="Filtrar..." value={filterResponsavel} onChange={(e) => setFilterResponsavel(e.target.value)} className="w-[170px] rounded-lg h-9" />
               </div>
               <div className="flex items-center gap-2 pb-0.5">
                 <Checkbox id="pendentes" checked={somentePendentes} onCheckedChange={(v) => setSomentePendentes(v === true)} />
@@ -370,6 +367,7 @@ export default function Movimentacoes() {
                 variant={verSomenteSemEmpresa ? "destructive" : "outline"}
                 size="sm"
                 onClick={() => setVerSomenteSemEmpresa(!verSomenteSemEmpresa)}
+                className="rounded-lg"
               >
                 {verSomenteSemEmpresa ? "Mostrar todas" : "Ver sem empresa"}
               </Button>
@@ -378,7 +376,7 @@ export default function Movimentacoes() {
         </Card>
 
         {movimentacoesSemEmpresa.length > 0 && (
-          <Card className="border-destructive/40">
+          <Card className="border-destructive/40 rounded-xl">
             <CardContent className="pt-4 text-sm text-destructive">
               ⚠️ Existem {movimentacoesSemEmpresa.length} movimentações sem empresa vinculada.
               Verifique o cadastro ou corrija o empresa_id no banco.
@@ -387,63 +385,63 @@ export default function Movimentacoes() {
         )}
 
         {/* Table */}
-        <Card>
+        <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Cód. Contrato</TableHead>
-                  <TableHead>Resp. Contrato</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Período</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Resp. Mov.</TableHead>
-                  <TableHead>Envio Empresa</TableHead>
-                  
-                  <TableHead>Financeiro</TableHead>
-                  {canEditDates && <TableHead className="w-24">Ações</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                   <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                 ) : filtered.length === 0 ? (
-                   <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-8">Nenhuma movimentação encontrada</TableCell></TableRow>
-                ) : (
-                  filtered.map((m) => {
-                    const status = calcularStatus(m);
-                    const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
-                    return (
-                      <TableRow key={m.id} className={!m.empresas ? "bg-destructive/10" : status === "Fora do prazo" ? "bg-destructive/10" : ""}>
-                        <TableCell className="font-medium">
-                          {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
-                        </TableCell>
-                        <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
-                        <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                        <TableCell><Badge variant="outline">{tipo}</Badge></TableCell>
-                        <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
-                        <TableCell>
-                          <Badge className={statusColor(status)}>{status}</Badge>
-                        </TableCell>
-                        <TableCell>{m.responsavel_movimentacao || "—"}</TableCell>
-                        <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
-                        
-                        <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
-                        {canEditDates && (
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(m)}><Pencil className="h-4 w-4 text-icon" /></Button>
-                            {canEdit && <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
-                          </div>
-                        </TableCell>
-                        )}
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-accent/20 hover:bg-accent/20">
+                    <TableHead className="font-semibold">Empresa</TableHead>
+                    <TableHead className="font-semibold">Cód. Contrato</TableHead>
+                    <TableHead className="font-semibold">Resp. Contrato</TableHead>
+                    <TableHead className="font-semibold">Tipo</TableHead>
+                    <TableHead className="font-semibold">Período</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Resp. Mov.</TableHead>
+                    <TableHead className="font-semibold">Envio Empresa</TableHead>
+                    <TableHead className="font-semibold">Financeiro</TableHead>
+                    {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                     <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                   ) : filtered.length === 0 ? (
+                     <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                  ) : (
+                    filtered.map((m) => {
+                      const status = calcularStatus(m);
+                      const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
+                      return (
+                        <TableRow key={m.id} className={`transition-colors ${!m.empresas ? "bg-destructive/5" : status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : "hover:bg-accent/50"}`}>
+                          <TableCell className="font-medium">
+                            {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                          <TableCell><Badge variant="outline" className="rounded-md">{tipo}</Badge></TableCell>
+                          <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
+                          <TableCell>
+                            <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{m.responsavel_movimentacao || "—"}</TableCell>
+                          <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
+                          <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
+                          {canEditDates && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(m)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
+                              {canEdit && <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(m.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                            </div>
+                          </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -209,7 +209,6 @@ export default function Usuarios() {
     },
   });
 
-
   const updateProfileMutation = useMutation({
     mutationFn: async ({ userId, displayName, username }: { userId: string; displayName: string; username: string }) => {
       const { data, error } = await supabase.functions.invoke("create-user", {
@@ -260,34 +259,37 @@ export default function Usuarios() {
     <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Usuários</h1>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Usuários</h1>
+            <p className="text-sm text-muted-foreground mt-1">{filtered.length} usuário(s) cadastrado(s)</p>
+          </div>
           {isAdmin && <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />Novo Usuário</Button>
+              <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Novo Usuário</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-xl">
               <DialogHeader><DialogTitle>Cadastro de Usuário</DialogTitle></DialogHeader>
-              <form onSubmit={(e) => { e.preventDefault(); createUserMutation.mutate(); }} className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); createUserMutation.mutate(); }} className="space-y-5">
                 <div className="space-y-2">
-                  <Label>Nome Completo *</Label>
-                  <Input value={newName} onChange={(e) => setNewName(e.target.value)} required />
+                  <Label className="text-sm font-medium">Nome Completo *</Label>
+                  <Input value={newName} onChange={(e) => setNewName(e.target.value)} required className="rounded-lg" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Usuário (login) *</Label>
-                  <Input value={newUsername} onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))} required placeholder="ex: joao.silva" />
+                  <Label className="text-sm font-medium">Usuário (login) *</Label>
+                  <Input value={newUsername} onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))} required placeholder="ex: joao.silva" className="rounded-lg" />
                 </div>
                 <div className="space-y-2">
-                  <Label>E-mail *</Label>
-                  <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
+                  <Label className="text-sm font-medium">E-mail *</Label>
+                  <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required className="rounded-lg" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Senha *</Label>
-                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
+                  <Label className="text-sm font-medium">Senha *</Label>
+                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} className="rounded-lg" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Perfil *</Label>
+                  <Label className="text-sm font-medium">Perfil *</Label>
                   <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
                       <SelectItem value="comum">Usuário Comum</SelectItem>
@@ -296,10 +298,10 @@ export default function Usuarios() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Empresas Vinculadas</Label>
-                  <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
+                  <Label className="text-sm font-medium">Empresas Vinculadas</Label>
+                  <div className="border rounded-lg p-2.5 max-h-40 overflow-y-auto space-y-1">
                     {empresas.map((emp) => (
-                      <label key={emp.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5">
+                      <label key={emp.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 rounded-md px-2 py-1 transition-colors">
                         <input type="checkbox" checked={newEmpresas.includes(emp.id)} onChange={() => toggleEmpresa(emp.id, newEmpresas, setNewEmpresas)} className="rounded" />
                         {emp.nome}
                       </label>
@@ -308,8 +310,8 @@ export default function Usuarios() {
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
-                  <Button type="submit" disabled={createUserMutation.isPending}>{createUserMutation.isPending ? "Criando..." : "Criar Usuário"}</Button>
+                  <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)} className="rounded-lg">Cancelar</Button>
+                  <Button type="submit" disabled={createUserMutation.isPending} className="rounded-lg">{createUserMutation.isPending ? "Criando..." : "Criar Usuário"}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -317,93 +319,96 @@ export default function Usuarios() {
         </div>
 
         <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-icon" />
-          <Input placeholder="Buscar usuário..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Buscar usuário..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-lg" />
         </div>
 
-        <Card>
+        <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead>Perfil</TableHead>
-                  <TableHead>Empresas</TableHead>
-                  {isAdmin && <TableHead className="w-40">Ações</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</TableCell></TableRow>
-                ) : (
-                  filtered.map((u) => {
-                    const role = u.role ?? "comum";
-                    const Icon = roleIcon[role];
-                    return (
-                      <TableRow key={u.user_id}>
-                        <TableCell className="font-medium">{u.display_name || "—"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{u.username || "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant={role === "admin" ? "default" : "secondary"} className="gap-1">
-                            <Icon className="h-3 w-3" />{roleLabel[role]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {u.empresas.length === 0 ? "Nenhuma" : `${u.empresas.length} empresa(s)`}
-                          </span>
-                        </TableCell>
-                        {isAdmin && <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Editar">
-                              <Pencil className="h-4 w-4 text-icon" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => openResetPassword(u)} title="Redefinir Senha">
-                              <KeyRound className="h-4 w-4 text-icon" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Excluir Usuário"
-                              onClick={() => {
-                                if (confirm(`Excluir o usuário "${u.display_name}"? Esta ação não pode ser desfeita.`)) {
-                                  deleteUserMutation.mutate(u.user_id);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>}
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-accent/20 hover:bg-accent/20">
+                    <TableHead className="font-semibold">Nome</TableHead>
+                    <TableHead className="font-semibold">Usuário</TableHead>
+                    <TableHead className="font-semibold">Perfil</TableHead>
+                    <TableHead className="font-semibold">Empresas</TableHead>
+                    {isAdmin && <TableHead className="w-40 font-semibold">Ações</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                  ) : filtered.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-12">Nenhum usuário encontrado</TableCell></TableRow>
+                  ) : (
+                    filtered.map((u) => {
+                      const role = u.role ?? "comum";
+                      const Icon = roleIcon[role];
+                      return (
+                        <TableRow key={u.user_id} className="hover:bg-accent/50 transition-colors">
+                          <TableCell className="font-medium">{u.display_name || "—"}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{u.username || "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant={role === "admin" ? "default" : "secondary"} className="gap-1 rounded-md">
+                              <Icon className="h-3 w-3" />{roleLabel[role]}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {u.empresas.length === 0 ? "Nenhuma" : `${u.empresas.length} empresa(s)`}
+                            </span>
+                          </TableCell>
+                          {isAdmin && <TableCell>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Editar" className="rounded-lg hover:bg-primary/10">
+                                <Pencil className="h-4 w-4 text-primary" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => openResetPassword(u)} title="Redefinir Senha" className="rounded-lg hover:bg-warning/10">
+                                <KeyRound className="h-4 w-4 text-warning" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Excluir Usuário"
+                                className="rounded-lg hover:bg-destructive/10"
+                                onClick={() => {
+                                  if (confirm(`Excluir o usuário "${u.display_name}"? Esta ação não pode ser desfeita.`)) {
+                                    deleteUserMutation.mutate(u.user_id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>}
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
         {/* Edit dialog */}
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingUser(null); }}>
-          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-xl">
             <DialogHeader><DialogTitle>Editar Usuário: {editingUser?.display_name}</DialogTitle></DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-2">
-                <Label>Nome Completo</Label>
-                <Input value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} />
+                <Label className="text-sm font-medium">Nome Completo</Label>
+                <Input value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} className="rounded-lg" />
               </div>
               <div className="space-y-2">
-                <Label>Usuário (login)</Label>
-                <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))} />
+                <Label className="text-sm font-medium">Usuário (login)</Label>
+                <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))} className="rounded-lg" />
               </div>
               <div className="space-y-2">
-                <Label>Perfil</Label>
+                <Label className="text-sm font-medium">Perfil</Label>
                 <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as AppRole)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Administrador</SelectItem>
                     <SelectItem value="comum">Usuário Comum</SelectItem>
@@ -412,10 +417,10 @@ export default function Usuarios() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Empresas Vinculadas ({selectedEmpresas.length})</Label>
-                <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
+                <Label className="text-sm font-medium">Empresas Vinculadas ({selectedEmpresas.length})</Label>
+                <div className="border rounded-lg p-2.5 max-h-40 overflow-y-auto space-y-1">
                   {empresas.map((emp) => (
-                    <label key={emp.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5">
+                    <label key={emp.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 rounded-md px-2 py-1 transition-colors">
                       <input type="checkbox" checked={selectedEmpresas.includes(emp.id)} onChange={() => toggleEmpresa(emp.id, selectedEmpresas, setSelectedEmpresas)} className="rounded" />
                       {emp.nome}
                     </label>
@@ -423,8 +428,8 @@ export default function Usuarios() {
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleSaveEdit} disabled={updateRoleMutation.isPending}>Salvar</Button>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-lg">Cancelar</Button>
+                <Button onClick={handleSaveEdit} disabled={updateRoleMutation.isPending} className="rounded-lg">Salvar</Button>
               </div>
             </div>
           </DialogContent>
@@ -432,21 +437,22 @@ export default function Usuarios() {
 
         {/* Reset Password dialog */}
         <Dialog open={resetPasswordDialogOpen} onOpenChange={(open) => { setResetPasswordDialogOpen(open); if (!open) { setResetPasswordUser(null); setResetPassword(""); } }}>
-          <DialogContent className="sm:max-w-sm">
+          <DialogContent className="sm:max-w-sm rounded-xl">
             <DialogHeader><DialogTitle>Redefinir Senha</DialogTitle></DialogHeader>
             <p className="text-sm text-muted-foreground">Usuário: <strong>{resetPasswordUser?.display_name}</strong></p>
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label>Nova Senha *</Label>
-                <Input type="text" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} minLength={6} placeholder="Mínimo 6 caracteres" />
+                <Label className="text-sm font-medium">Nova Senha *</Label>
+                <Input type="text" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} minLength={6} placeholder="Mínimo 6 caracteres" className="rounded-lg" />
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setResetPassword(generatePassword())}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setResetPassword(generatePassword())} className="rounded-lg">
                 Gerar senha automática
               </Button>
             </div>
             <div className="flex justify-end gap-2 mt-2">
-              <Button variant="outline" onClick={() => setResetPasswordDialogOpen(false)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => setResetPasswordDialogOpen(false)} className="rounded-lg">Cancelar</Button>
               <Button
+                className="rounded-lg"
                 disabled={resetPassword.length < 6 || resetPasswordMutation.isPending}
                 onClick={() => {
                   if (resetPasswordUser) {

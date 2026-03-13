@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil } from "lucide-react";
+import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -40,7 +40,6 @@ export default function Dashboard() {
   const { toast } = useToast();
   const canEditDates = isAdmin || role === "comum";
 
-  // Fetch empresas to compute period status from source of truth
   const { data: allEmpresas = [] } = useQuery({
     queryKey: ["empresas-dashboard"],
     queryFn: async () => {
@@ -52,7 +51,6 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Use SECURITY DEFINER function so all users can see comum users + their empresa counts
   const { data: comunUsersEmpresas = [] } = useQuery({
     queryKey: ["comum-users-empresa-count"],
     queryFn: async () => {
@@ -63,14 +61,11 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // RLS already filters empresas for comum users (via responsavel_user_id or empresa_usuarios)
-  // So we just use allEmpresas directly
   const visibleEmpresas = useMemo(() => {
     return allEmpresas;
   }, [allEmpresas]);
 
   const empresasAtivas = useMemo(() => visibleEmpresas.filter((e) => e.status_empresa === "Ativa"), [visibleEmpresas]);
-
   const empresasEmPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Em período"), [empresasAtivas]);
 
   const empresasPorResponsavel = useMemo(() => {
@@ -172,114 +167,151 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-8">
+        {/* Page Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching}>
-            <RefreshCw className={`mr-2 h-4 w-4 text-icon ${isFetching ? "animate-spin" : ""}`} />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">Visão geral das movimentações e empresas</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching} className="rounded-lg gap-2">
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             Atualizar
           </Button>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="space-y-1">
-            <Label className="text-xs">Mês de Referência</Label>
-            <Select value={filterMes} onValueChange={setFilterMes}>
-              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {mesesOptions.map((m) => <SelectItem key={m} value={m}>{formatMesReferencia(m)}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Período</Label>
-            <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
-              <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Responsável</Label>
-            <Select value={filterResponsavel} onValueChange={setFilterResponsavel}>
-              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {responsaveis.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <Card className="rounded-xl shadow-sm">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Mês de Referência</Label>
+                <Select value={filterMes} onValueChange={setFilterMes}>
+                  <SelectTrigger className="w-[150px] rounded-lg h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {mesesOptions.map((m) => <SelectItem key={m} value={m}>{formatMesReferencia(m)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Período</Label>
+                <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
+                  <SelectTrigger className="w-[130px] rounded-lg h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Responsável</Label>
+                <Select value={filterResponsavel} onValueChange={setFilterResponsavel}>
+                  <SelectTrigger className="w-[170px] rounded-lg h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {responsaveis.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Summary cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setShowEmpresasAtivasModal(true)}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Empresas Ativas</CardTitle>
-              <Users className="h-4 w-4 text-icon" />
+          <Card className="cursor-pointer hover:shadow-md transition-all duration-200 rounded-xl border-border/60" onClick={() => setShowEmpresasAtivasModal(true)}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas Ativas</CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Users className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{empresasAtivas.length}</div></CardContent>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight">{empresasAtivas.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">Clique para ver detalhes</p>
+            </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Em Período</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-success" />
+
+          <Card className="rounded-xl border-border/60">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Em Período</CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="h-4 w-4 text-success" />
+              </div>
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-success">{empresasEmPeriodo.length}</div></CardContent>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-success">{empresasEmPeriodo.length}</div>
+            </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total no Período</CardTitle>
-              <Building2 className="h-4 w-4 text-icon" />
+
+          <Card className="rounded-xl border-border/60">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total no Período</CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{totalNoPeriodo}</div></CardContent>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight">{totalNoPeriodo}</div>
+            </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Enviadas p/ Empresa</CardTitle>
-              <RotateCcw className="h-4 w-4 text-icon" />
+
+          <Card className="rounded-xl border-border/60">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Enviadas p/ Empresa</CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-info/10 flex items-center justify-center">
+                <RotateCcw className="h-4 w-4 text-info" />
+              </div>
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-info">{enviadas}</div></CardContent>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-info">{enviadas}</div>
+            </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-              <Clock className="h-4 w-4 text-icon" />
+
+          <Card className="rounded-xl border-border/60">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pendentes</CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Clock className="h-4 w-4 text-warning" />
+              </div>
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-warning">{pendentes}</div></CardContent>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-warning">{pendentes}</div>
+            </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Enviadas ao Financeiro</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-icon" />
+
+          <Card className="rounded-xl border-border/60">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Financeiro</CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="h-4 w-4 text-success" />
+              </div>
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-success">{concluidas}</div></CardContent>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-success">{concluidas}</div>
+            </CardContent>
           </Card>
         </div>
 
-
         {/* Resumo por período */}
-        <Card>
-          <CardHeader><CardTitle className="text-base">Resumo Geral por Período</CardTitle></CardHeader>
+        <Card className="rounded-xl shadow-sm">
+          <CardHeader><CardTitle className="text-base font-semibold">Resumo Geral por Período</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {PERIODOS.map((p) => {
                 const items = filteredByResponsavel.filter((m) => m.periodo === p);
                 const done = items.filter((m) => m.status === "Enviado ao financeiro").length;
                 const late = items.filter((m) => m.status === "Fora do prazo").length;
-                const isActive = p === filterPeriodo;
+                const isActiveP = p === filterPeriodo;
                 return (
                   <button
                     key={p}
                     onClick={() => setFilterPeriodo(p)}
-                    className={`rounded-lg border p-3 text-center space-y-1 transition-colors ${isActive ? "border-primary bg-primary/10" : "hover:bg-muted/50"}`}
+                    className={`rounded-xl border p-4 text-center space-y-1.5 transition-all duration-200 ${isActiveP ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20" : "hover:bg-accent hover:shadow-sm border-border/60"}`}
                   >
                     <div className="font-semibold text-sm">{p}</div>
                     <div className="text-xs text-muted-foreground">{items.length} total</div>
-                    {done > 0 && <div className="text-xs text-success">{done} concluída(s)</div>}
-                    {late > 0 && <div className="text-xs text-destructive">{late} fora do prazo</div>}
+                    {done > 0 && <div className="text-xs text-success font-medium">{done} concluída(s)</div>}
+                    {late > 0 && <div className="text-xs text-destructive font-medium">{late} fora do prazo</div>}
                   </button>
                 );
               })}
@@ -288,125 +320,130 @@ export default function Dashboard() {
         </Card>
 
         {/* Lista de Empresas no Período */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
+        <Card className="rounded-xl shadow-sm overflow-hidden">
+          <CardHeader className="bg-accent/30 border-b">
+            <CardTitle className="text-base font-semibold">
               Movimentações no Período {filterPeriodo} — {formatMesReferencia(filterMes)}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                 <TableRow>
-                   <TableHead>Empresa</TableHead>
-                    <TableHead>Cód. Contrato</TableHead>
-                    <TableHead>Movimentação</TableHead>
-                    <TableHead>Resp. Contrato</TableHead>
-                    <TableHead>Período</TableHead>
-                    <TableHead>Envio Empresa</TableHead>
-                    <TableHead>Financeiro</TableHead>
-                    <TableHead>Status</TableHead>
-                    {canEditDates && <TableHead className="w-12">Editar</TableHead>}
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
-                 {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                   ) : listaTrabalho.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-8">Nenhuma pendência neste período 🎉</TableCell></TableRow>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-accent/20 hover:bg-accent/20">
+                    <TableHead className="font-semibold">Empresa</TableHead>
+                    <TableHead className="font-semibold">Cód. Contrato</TableHead>
+                    <TableHead className="font-semibold">Movimentação</TableHead>
+                    <TableHead className="font-semibold">Resp. Contrato</TableHead>
+                    <TableHead className="font-semibold">Período</TableHead>
+                    <TableHead className="font-semibold">Envio Empresa</TableHead>
+                    <TableHead className="font-semibold">Financeiro</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    {canEditDates && <TableHead className="w-12 font-semibold">Editar</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                  ) : listaTrabalho.length === 0 ? (
+                    <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-12">Nenhuma pendência neste período 🎉</TableCell></TableRow>
                   ) : (
-                   listaTrabalho.map((m) => (
-                     <TableRow key={m.id} className={m.status === "Fora do prazo" ? "bg-destructive/10" : ""}>
-                       <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                        <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
+                    listaTrabalho.map((m) => (
+                      <TableRow key={m.id} className={`transition-colors ${m.status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : "hover:bg-accent/50"}`}>
+                        <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
                         <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
-                        <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
                         <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
-                        <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
-                       {canEditDates && (
-                         <TableCell>
-                           <Button variant="ghost" size="icon" onClick={() => openEditFromDashboard(m)}>
-                             <Pencil className="h-4 w-4 text-icon" />
-                           </Button>
-                         </TableCell>
-                       )}
-                     </TableRow>
-                   ))
-                 )}
-               </TableBody>
-            </Table>
+                        <TableCell><Badge className={`${statusColor(m.status)} rounded-md`}>{m.status}</Badge></TableCell>
+                        {canEditDates && (
+                          <TableCell>
+                            <Button variant="ghost" size="icon" onClick={() => openEditFromDashboard(m)} className="rounded-lg hover:bg-primary/10">
+                              <Pencil className="h-4 w-4 text-primary" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
         {/* Enviadas ao Financeiro */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
+        <Card className="rounded-xl shadow-sm overflow-hidden">
+          <CardHeader className="bg-success/5 border-b">
+            <CardTitle className="text-base font-semibold">
               Enviadas ao Financeiro — Período {filterPeriodo} — {formatMesReferencia(filterMes)}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Cód. Contrato</TableHead>
-                  <TableHead>Movimentação</TableHead>
-                  <TableHead>Resp. Contrato</TableHead>
-                  <TableHead>Período</TableHead>
-                  <TableHead>Envio Empresa</TableHead>
-                  <TableHead>Financeiro</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {listaConcluidas.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
-                ) : (
-                  listaConcluidas.map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                      <TableCell>{m.empresas?.codigo_contrato || "—"}</TableCell>
-                      <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
-                      <TableCell>{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                      <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
-                      <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
-                      <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
-                      <TableCell><Badge className={statusColor(m.status)}>{m.status}</Badge></TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-accent/20 hover:bg-accent/20">
+                    <TableHead className="font-semibold">Empresa</TableHead>
+                    <TableHead className="font-semibold">Cód. Contrato</TableHead>
+                    <TableHead className="font-semibold">Movimentação</TableHead>
+                    <TableHead className="font-semibold">Resp. Contrato</TableHead>
+                    <TableHead className="font-semibold">Período</TableHead>
+                    <TableHead className="font-semibold">Envio Empresa</TableHead>
+                    <TableHead className="font-semibold">Financeiro</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {listaConcluidas.length === 0 ? (
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
+                  ) : (
+                    listaConcluidas.map((m) => (
+                      <TableRow key={m.id} className="hover:bg-accent/50 transition-colors">
+                        <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
+                        <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                        <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
+                        <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
+                        <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
+                        <TableCell><Badge className={`${statusColor(m.status)} rounded-md`}>{m.status}</Badge></TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
+        {/* Empresas Ativas Modal */}
         <Dialog open={showEmpresasAtivasModal} onOpenChange={setShowEmpresasAtivasModal}>
-          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto rounded-xl">
             <DialogHeader>
               <DialogTitle>Empresas Ativas por Responsável</DialogTitle>
             </DialogHeader>
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead className="text-right">Total de Empresas</TableHead>
+                <TableRow className="bg-accent/20 hover:bg-accent/20">
+                  <TableHead className="font-semibold">Responsável</TableHead>
+                  <TableHead className="text-right font-semibold">Total de Empresas</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {empresasPorResponsavel.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
                       Nenhum responsável encontrado.
                     </TableCell>
                   </TableRow>
                 ) : (
                   empresasPorResponsavel.map(({ responsavel, total }) => (
-                    <TableRow key={responsavel}>
+                    <TableRow key={responsavel} className="hover:bg-accent/50 transition-colors">
                       <TableCell className="font-medium">{responsavel}</TableCell>
-                      <TableCell className="text-right font-bold">{total}</TableCell>
+                      <TableCell className="text-right font-bold text-primary">{total}</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -417,29 +454,30 @@ export default function Dashboard() {
 
         {/* Edit Movimentação Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingMov(null); }}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md rounded-xl">
             <DialogHeader>
               <DialogTitle>Editar Movimentação</DialogTitle>
             </DialogHeader>
             {editingMov && (
-              <div className="space-y-4">
-                <div className="text-sm text-muted-foreground">
+              <div className="space-y-5">
+                <div className="text-sm text-muted-foreground p-3 bg-accent/50 rounded-lg">
                   <span className="font-medium text-foreground">{(editingMov as any).empresas?.nome}</span>
                   {" — "}{(editingMov as any).empresas?.codigo_contrato || ""}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Data Envio p/ Empresa</Label>
-                    <Input type="date" value={editForm.data_envio_empresa} onChange={(e) => setEditForm({ ...editForm, data_envio_empresa: e.target.value })} />
+                    <Label className="text-sm font-medium">Data Envio p/ Empresa</Label>
+                    <Input type="date" value={editForm.data_envio_empresa} onChange={(e) => setEditForm({ ...editForm, data_envio_empresa: e.target.value })} className="rounded-lg" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Data Envio Financeiro</Label>
-                    <Input type="date" value={editForm.data_envio_financeiro} onChange={(e) => setEditForm({ ...editForm, data_envio_financeiro: e.target.value })} />
+                    <Label className="text-sm font-medium">Data Envio Financeiro</Label>
+                    <Input type="date" value={editForm.data_envio_financeiro} onChange={(e) => setEditForm({ ...editForm, data_envio_financeiro: e.target.value })} className="rounded-lg" />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingMov(null); }}>Cancelar</Button>
+                  <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingMov(null); }} className="rounded-lg">Cancelar</Button>
                   <Button
+                    className="rounded-lg"
                     onClick={() => updateMov.mutate({
                       id: editingMov.id,
                       data_envio_empresa: editForm.data_envio_empresa || null,
