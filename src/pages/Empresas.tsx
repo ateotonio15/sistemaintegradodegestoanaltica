@@ -60,7 +60,6 @@ export default function Empresas() {
   const canEdit = isAdmin || role === "comum";
   const isComum = role === "comum";
 
-  // Fetch users for the responsável select
   const { data: usuarios = [] } = useQuery({
     queryKey: ["profiles-list"],
     queryFn: async () => {
@@ -89,7 +88,6 @@ export default function Empresas() {
       if (dataImplantacao) {
         payload.data_implantacao = dataImplantacao;
       }
-      // Set responsavel_contrato from selected user's display_name
       if (payload.responsavel_user_id) {
         const selectedUser = usuarios.find((u) => u.user_id === payload.responsavel_user_id);
         payload.responsavel_contrato = selectedUser?.display_name || payload.responsavel_contrato;
@@ -215,7 +213,6 @@ export default function Empresas() {
     setDialogOpen(true);
   };
 
-  // Get display name for a user_id
   const getResponsavelName = (empresa: Empresa) => {
     const userId = (empresa as any).responsavel_user_id;
     if (userId) {
@@ -240,40 +237,43 @@ export default function Empresas() {
     <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
+            <p className="text-sm text-muted-foreground mt-1">{filtered.length} empresa(s) {showInativas ? "inativas" : "ativas"}</p>
+          </div>
           {canEdit && (
             <div className="flex gap-2">
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
-                <Upload className="mr-2 h-4 w-4 text-icon" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="rounded-lg">
+                <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
               </Button>
               <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
                 <DialogTrigger asChild>
-                  <Button><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
+                  <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl">
                   <DialogHeader><DialogTitle>{editingId ? "Editar Empresa" : "Nova Empresa"}</DialogTitle></DialogHeader>
-                  <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-4">
+                  <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <Label>Nome *</Label>
-                        <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
+                        <Label className="text-sm font-medium">Nome *</Label>
+                        <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label>CNPJ</Label>
-                        <Input value={form.cnpj ?? ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} />
+                        <Label className="text-sm font-medium">CNPJ</Label>
+                        <Input value={form.cnpj ?? ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Código do Contrato *</Label>
-                        <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} required />
+                        <Label className="text-sm font-medium">Código do Contrato *</Label>
+                        <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Responsável pelo Contrato *</Label>
+                        <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
                         <Select
                           value={form.responsavel_user_id ?? ""}
                           onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
                         >
-                          <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
                           <SelectContent>
                             {usuarios.map((u) => (
                               <SelectItem key={u.user_id} value={u.user_id}>
@@ -284,17 +284,17 @@ export default function Empresas() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Data de Implantação *</Label>
-                        <Input type="date" value={dataImplantacao} onChange={(e) => setDataImplantacao(e.target.value)} required />
+                        <Label className="text-sm font-medium">Data de Implantação *</Label>
+                        <Input type="date" value={dataImplantacao} onChange={(e) => setDataImplantacao(e.target.value)} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Corretora</Label>
-                        <Input value={form.operadora_plano ?? ""} onChange={(e) => setForm({ ...form, operadora_plano: e.target.value })} />
+                        <Label className="text-sm font-medium">Corretora</Label>
+                        <Input value={form.operadora_plano ?? ""} onChange={(e) => setForm({ ...form, operadora_plano: e.target.value })} className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Tipo de Contrato *</Label>
+                        <Label className="text-sm font-medium">Tipo de Contrato *</Label>
                         <Select value={form.tipo_movimentacao ?? "Fechada"} onValueChange={(v) => setForm({ ...form, tipo_movimentacao: v })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Diária">Diário</SelectItem>
                             <SelectItem value="Fechada">Período</SelectItem>
@@ -303,9 +303,9 @@ export default function Empresas() {
                       </div>
                       {form.tipo_movimentacao === "Fechada" && (
                         <div className="space-y-2">
-                          <Label>Período de Movimentação *</Label>
+                          <Label className="text-sm font-medium">Período de Movimentação *</Label>
                           <Select value={form.periodo_movimentacao ?? ""} onValueChange={(v) => setForm({ ...form, periodo_movimentacao: v })}>
-                            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
                             <SelectContent>
                               {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                             </SelectContent>
@@ -314,22 +314,22 @@ export default function Empresas() {
                       )}
                       {form.tipo_movimentacao === "Diária" && (
                         <div className="space-y-2">
-                          <Label>Data de Corte (dia) *</Label>
-                          <Input type="number" min={1} max={31} value={form.data_corte ?? ""} onChange={(e) => setForm({ ...form, data_corte: e.target.value ? Number(e.target.value) : null })} required />
+                          <Label className="text-sm font-medium">Data de Corte (dia) *</Label>
+                          <Input type="number" min={1} max={31} value={form.data_corte ?? ""} onChange={(e) => setForm({ ...form, data_corte: e.target.value ? Number(e.target.value) : null })} required className="rounded-lg" />
                         </div>
                       )}
                       <div className="space-y-2">
-                        <Label>E-mail da Empresa</Label>
-                        <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} />
+                        <Label className="text-sm font-medium">E-mail da Empresa</Label>
+                        <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Prazo (Entrada sem carência)</Label>
-                        <Input value={(form as any).prazo ?? ""} onChange={(e) => setForm({ ...form, prazo: e.target.value } as any)} placeholder="Ex: 30 dias" />
+                        <Label className="text-sm font-medium">Prazo (Entrada sem carência)</Label>
+                        <Input value={(form as any).prazo ?? ""} onChange={(e) => setForm({ ...form, prazo: e.target.value } as any)} placeholder="Ex: 30 dias" className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Grupo de Contrato</Label>
+                        <Label className="text-sm font-medium">Grupo de Contrato</Label>
                         <Select value={(form as any).grupo_contrato ?? ""} onValueChange={(v) => setForm({ ...form, grupo_contrato: v } as any)}>
-                          <SelectTrigger><SelectValue placeholder="Selecione o grupo" /></SelectTrigger>
+                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o grupo" /></SelectTrigger>
                           <SelectContent>
                             {GRUPO_CONTRATO_OPTIONS.map((opt) => (
                               <SelectItem key={opt} value={opt}>{opt}</SelectItem>
@@ -338,9 +338,9 @@ export default function Empresas() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Status da Empresa</Label>
+                        <Label className="text-sm font-medium">Status da Empresa</Label>
                         <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Ativa">Ativa</SelectItem>
                             <SelectItem value="Inativa">Inativa</SelectItem>
@@ -349,12 +349,12 @@ export default function Empresas() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Observações</Label>
-                      <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
+                      <Label className="text-sm font-medium">Observações</Label>
+                      <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="rounded-lg" />
                     </div>
                     <div className="flex justify-end gap-2">
-                      <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-                      <Button type="submit" disabled={upsert.isPending}>{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+                      <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
+                      <Button type="submit" disabled={upsert.isPending} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
                     </div>
                   </form>
                 </DialogContent>
@@ -365,143 +365,142 @@ export default function Empresas() {
 
         <div className="flex items-center gap-3">
           <div className="relative max-w-sm flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-icon" />
-            <Input placeholder="Buscar por nome, código ou CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar por nome, código ou CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-lg" />
           </div>
           <Button
             variant={showInativas ? "default" : "outline"}
             onClick={() => setShowInativas(!showInativas)}
+            className="rounded-lg"
           >
             {showInativas ? "Ver Ativas" : "Ver Inativas"}
           </Button>
         </div>
 
-        <Card>
+        <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Cód. Contrato</TableHead>
-                  <TableHead>Resp. Contrato</TableHead>
-                  <TableHead>CNPJ</TableHead>
-                  <TableHead>Corretora</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Período / Corte</TableHead>
-                  <TableHead>Implantação</TableHead>
-                  <TableHead>Status</TableHead>
-                  {canEdit && <TableHead className="w-24">Ações</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell></TableRow>
-                ) : (
-                  filtered.map((e) => (
-                    <TableRow key={e.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailEmpresa(e)}>
-                      <TableCell className="font-medium">{e.nome}</TableCell>
-                      <TableCell>{e.codigo_contrato || "—"}</TableCell>
-                      <TableCell>{getResponsavelName(e)}</TableCell>
-                      <TableCell>{e.cnpj || "—"}</TableCell>
-                      <TableCell>{e.operadora_plano || "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {e.tipo_movimentacao === "Diária"
-                          ? `Corte: dia ${e.data_corte ?? "—"}`
-                          : e.periodo_movimentacao || "—"}
-                      </TableCell>
-                      <TableCell>{formatDateBR(e.data_implantacao)}</TableCell>
-                      <TableCell>
-                        <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"}>
-                          {e.status_empresa ?? "Ativa"}
-                        </Badge>
-                      </TableCell>
-                      {canEdit && (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-accent/20 hover:bg-accent/20">
+                    <TableHead className="font-semibold">Nome</TableHead>
+                    <TableHead className="font-semibold">Cód. Contrato</TableHead>
+                    <TableHead className="font-semibold">Resp. Contrato</TableHead>
+                    <TableHead className="font-semibold">CNPJ</TableHead>
+                    <TableHead className="font-semibold">Corretora</TableHead>
+                    <TableHead className="font-semibold">Tipo</TableHead>
+                    <TableHead className="font-semibold">Período / Corte</TableHead>
+                    <TableHead className="font-semibold">Implantação</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    {canEdit && <TableHead className="w-24 font-semibold">Ações</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                  ) : filtered.length === 0 ? (
+                    <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-12">Nenhuma empresa encontrada</TableCell></TableRow>
+                  ) : (
+                    filtered.map((e) => (
+                      <TableRow key={e.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setDetailEmpresa(e)}>
+                        <TableCell className="font-medium">{e.nome}</TableCell>
+                        <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
+                        <TableCell>{getResponsavelName(e)}</TableCell>
+                        <TableCell className="text-muted-foreground font-mono text-xs">{e.cnpj || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
                         <TableCell>
-                          <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4 text-icon" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          </div>
+                          <Badge variant="outline" className="rounded-md">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
                         </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                        <TableCell>
+                          {e.tipo_movimentacao === "Diária"
+                            ? `Corte: dia ${e.data_corte ?? "—"}`
+                            : e.periodo_movimentacao || "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{formatDateBR(e.data_implantacao)}</TableCell>
+                        <TableCell>
+                          <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md">
+                            {e.status_empresa ?? "Ativa"}
+                          </Badge>
+                        </TableCell>
+                        {canEdit && (
+                          <TableCell>
+                            <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
-
         {/* Detail Modal */}
         <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl">
             <DialogHeader>
               <DialogTitle>Detalhes da Empresa</DialogTitle>
               <DialogDescription>Informações completas da empresa cadastrada.</DialogDescription>
             </DialogHeader>
             {detailEmpresa && (
               <div className="space-y-6">
-                {/* Dados do Contrato */}
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Dados do Contrato</h3>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Dados do Contrato</h3>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div><p className="text-xs text-muted-foreground">Empresa</p><p className="font-medium">{detailEmpresa.nome || "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Código do Contrato</p><p className="font-medium">{detailEmpresa.codigo_contrato || "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">CNPJ</p><p className="font-medium">{detailEmpresa.cnpj || "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Operadora / Corretora</p><p className="font-medium">{detailEmpresa.operadora_plano || "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Tipo de Movimentação</p><p className="font-medium">{detailEmpresa.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Período de Movimentação</p><p className="font-medium">{detailEmpresa.periodo_movimentacao || "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Data de Implantação</p><p className="font-medium">{formatDateBR(detailEmpresa.data_implantacao) || "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Data de Corte</p><p className="font-medium">{detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">E-mail da Empresa</p><p className="font-medium">{detailEmpresa.email_empresa || "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Prazo (Entrada sem carência)</p><p className="font-medium">{(detailEmpresa as any).prazo || "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Grupo de Contrato</p><p className="font-medium">{(detailEmpresa as any).grupo_contrato || "—"}</p></div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Status da Empresa</p>
-                      <Badge variant={detailEmpresa.status_empresa === "Ativa" ? "default" : "secondary"}>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Empresa</p><p className="font-medium mt-0.5">{detailEmpresa.nome || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Código do Contrato</p><p className="font-medium mt-0.5">{detailEmpresa.codigo_contrato || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">CNPJ</p><p className="font-medium mt-0.5 font-mono text-sm">{detailEmpresa.cnpj || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Operadora / Corretora</p><p className="font-medium mt-0.5">{detailEmpresa.operadora_plano || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Tipo de Movimentação</p><p className="font-medium mt-0.5">{detailEmpresa.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Período de Movimentação</p><p className="font-medium mt-0.5">{detailEmpresa.periodo_movimentacao || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Implantação</p><p className="font-medium mt-0.5">{formatDateBR(detailEmpresa.data_implantacao) || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Corte</p><p className="font-medium mt-0.5">{detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">E-mail da Empresa</p><p className="font-medium mt-0.5">{detailEmpresa.email_empresa || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Prazo (Entrada sem carência)</p><p className="font-medium mt-0.5">{(detailEmpresa as any).prazo || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Grupo de Contrato</p><p className="font-medium mt-0.5">{(detailEmpresa as any).grupo_contrato || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30">
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Status da Empresa</p>
+                      <Badge variant={detailEmpresa.status_empresa === "Ativa" ? "default" : "secondary"} className="mt-1 rounded-md">
                         {detailEmpresa.status_empresa ?? "Ativa"}
                       </Badge>
                     </div>
                     {detailEmpresa.status_empresa === "Inativa" && (
-                      <div><p className="text-xs text-muted-foreground">Data de Rescisão do Contrato</p><p className="font-medium">{formatDateBR((detailEmpresa as any).data_rescisao) || "—"}</p></div>
+                      <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Rescisão do Contrato</p><p className="font-medium mt-0.5">{formatDateBR((detailEmpresa as any).data_rescisao) || "—"}</p></div>
                     )}
                   </div>
                 </div>
 
-                {/* Responsável */}
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Responsável</h3>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Responsável</h3>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div><p className="text-xs text-muted-foreground">Responsável pelo Contrato</p><p className="font-medium">{detailEmpresa.responsavel_contrato || "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Usuário Responsável</p><p className="font-medium">{getResponsavelName(detailEmpresa)}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Responsável pelo Contrato</p><p className="font-medium mt-0.5">{detailEmpresa.responsavel_contrato || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Usuário Responsável</p><p className="font-medium mt-0.5">{getResponsavelName(detailEmpresa)}</p></div>
                   </div>
                 </div>
 
-                {/* Informações Operacionais */}
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Informações Operacionais</h3>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Informações Operacionais</h3>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Observações</p><p className="font-medium">{detailEmpresa.observacoes || "—"}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Data de Criação</p><p className="font-medium">{formatDateBR(detailEmpresa.created_at)}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Última Atualização</p><p className="font-medium">{formatDateBR(detailEmpresa.updated_at)}</p></div>
+                    <div className="sm:col-span-2 p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Observações</p><p className="font-medium mt-0.5">{detailEmpresa.observacoes || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Criação</p><p className="font-medium mt-0.5">{formatDateBR(detailEmpresa.created_at)}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Última Atualização</p><p className="font-medium mt-0.5">{formatDateBR(detailEmpresa.updated_at)}</p></div>
                   </div>
                 </div>
               </div>
             )}
-            {/* Rescisão input for inactivation */}
             {(isComum || isAdmin) && detailEmpresa && detailEmpresa.status_empresa === "Ativa" && showRescisaoInput && (
-              <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+              <div className="border rounded-xl p-4 space-y-3 bg-accent/30">
                 <Label className="text-sm font-medium">Data de Rescisão do Contrato *</Label>
                 <Input
                   type="date"
                   value={rescisaoDate}
                   onChange={(e) => setRescisaoDate(e.target.value)}
                   required
+                  className="rounded-lg"
                 />
               </div>
             )}
@@ -512,14 +511,10 @@ export default function Empresas() {
                   {detailEmpresa.status_empresa === "Ativa" ? (
                     showRescisaoInput ? (
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => { setShowRescisaoInput(false); setRescisaoDate(""); }}
-                        >
-                          Cancelar
-                        </Button>
+                        <Button variant="outline" onClick={() => { setShowRescisaoInput(false); setRescisaoDate(""); }} className="rounded-lg">Cancelar</Button>
                         <Button
                           variant="destructive"
+                          className="rounded-lg"
                           disabled={toggleStatusMutation.isPending || !rescisaoDate}
                           onClick={() => {
                             if (!rescisaoDate) {
@@ -535,16 +530,12 @@ export default function Empresas() {
                         </Button>
                       </div>
                     ) : (
-                      <Button
-                        variant="destructive"
-                        onClick={() => setShowRescisaoInput(true)}
-                      >
-                        Inativar Contrato
-                      </Button>
+                      <Button variant="destructive" onClick={() => setShowRescisaoInput(true)} className="rounded-lg">Inativar Contrato</Button>
                     )
                   ) : (
                     <Button
                       variant="default"
+                      className="rounded-lg"
                       disabled={toggleStatusMutation.isPending}
                       onClick={() => toggleStatusMutation.mutate({ id: detailEmpresa.id, newStatus: "Ativa", dataRescisao: null })}
                     >
@@ -553,7 +544,7 @@ export default function Empresas() {
                   )}
                 </>
               )}
-              <Button variant="outline" onClick={() => { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); }}>Fechar</Button>
+              <Button variant="outline" onClick={() => { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); }} className="rounded-lg">Fechar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
