@@ -263,11 +263,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               )}
               {collapsed && !isMobile && (
                 <Link to="/" className="flex items-center gap-2.5 font-bold text-lg tracking-tight text-foreground hover:opacity-80 transition-opacity">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary text-primary-foreground shadow-sm">
-                    <span className="font-bold text-xs">CS</span>
-                   </div>
-                   <span>CS Control</span>
-                 </Link>
+                  <img src={logoImg} alt="CS Control" className="h-8 w-8 rounded-lg object-contain" />
+                  <span>CS Control</span>
+                </Link>
                )}
             </div>
 
