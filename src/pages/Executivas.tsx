@@ -64,7 +64,7 @@ export default function Executivas() {
     enabled: !!user,
   });
 
-  if (!isAdmin && !isExecutivo) return <Navigate to="/" replace />;
+  
 
 
   const profileMap = useMemo(() => {
