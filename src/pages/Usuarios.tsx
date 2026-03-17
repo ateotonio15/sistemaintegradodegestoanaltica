@@ -66,7 +66,7 @@ export default function Usuarios() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  if (!isAdmin && !isExecutivo) return <Navigate to="/" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas-list"],
