@@ -29,6 +29,7 @@ const roleLabel: Record<AppRole, string> = {
   admin: "Administrador",
   comum: "Usuário Comum",
   executivo: "Executivo",
+  visualizacao: "Visualização",
 };
 
 const roleIcon: Record<AppRole, typeof Shield> = {
