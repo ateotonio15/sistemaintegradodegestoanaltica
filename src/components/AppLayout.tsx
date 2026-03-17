@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, Lock } from "lucide-react";
 import logoImg from "@/assets/logo-cs-control.png";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,7 +40,7 @@ const allNavItems = [
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user, isAdmin, isExecutivo, role } = useAuth();
+  const { signOut, user, isAdmin, isExecutivo, isViewOnly, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
 
@@ -392,6 +392,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
+
+        {/* View Only Banner */}
+        {isViewOnly && (
+          <div className="bg-warning/10 border-b border-warning/30 px-4 py-2 flex items-center justify-center gap-2 text-sm font-medium text-warning">
+            <Lock className="h-4 w-4" />
+            Modo Visualização — Somente leitura
+          </div>
+        )}
 
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 animate-fade-in">{children}</main>

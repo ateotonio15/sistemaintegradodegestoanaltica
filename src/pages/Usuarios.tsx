@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
-type AppRole = "admin" | "comum" | "executivo";
+type AppRole = "admin" | "comum" | "executivo" | "visualizacao";
 
 interface UserProfile {
   user_id: string;
@@ -29,12 +29,14 @@ const roleLabel: Record<AppRole, string> = {
   admin: "Administrador",
   comum: "Usuário Comum",
   executivo: "Executivo",
+  visualizacao: "Visualização",
 };
 
 const roleIcon: Record<AppRole, typeof Shield> = {
   admin: Shield,
   comum: User,
   executivo: Eye,
+  visualizacao: Eye,
 };
 
 function generatePassword(length = 10) {
@@ -294,6 +296,7 @@ export default function Usuarios() {
                       <SelectItem value="admin">Administrador</SelectItem>
                       <SelectItem value="comum">Usuário Comum</SelectItem>
                       <SelectItem value="executivo">Executivo</SelectItem>
+                      <SelectItem value="visualizacao">Visualização</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -413,6 +416,7 @@ export default function Usuarios() {
                     <SelectItem value="admin">Administrador</SelectItem>
                     <SelectItem value="comum">Usuário Comum</SelectItem>
                     <SelectItem value="executivo">Executivo</SelectItem>
+                    <SelectItem value="visualizacao">Visualização</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

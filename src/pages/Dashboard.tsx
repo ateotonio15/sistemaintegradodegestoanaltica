@@ -36,9 +36,9 @@ export default function Dashboard() {
   const [editingMov, setEditingMov] = useState<Movimentacao | null>(null);
   const [editForm, setEditForm] = useState({ data_envio_empresa: "", data_envio_financeiro: "" });
   const queryClient = useQueryClient();
-  const { user, isAdmin, isExecutivo, role } = useAuth();
+  const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
   const { toast } = useToast();
-  const canEditDates = isAdmin || role === "comum";
+  const canEditDates = !isViewOnly && (isAdmin || role === "comum");
 
   const { data: allEmpresas = [] } = useQuery({
     queryKey: ["empresas-dashboard"],

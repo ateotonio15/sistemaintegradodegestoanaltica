@@ -35,7 +35,7 @@ interface ExecutivaGroup {
 }
 
 export default function Executivas() {
-  const { isAdmin, isExecutivo, user } = useAuth();
+  const { isAdmin, isExecutivo, isViewOnly, user } = useAuth();
   const [search, setSearch] = useState("");
   const [filterExecutiva, setFilterExecutiva] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -129,7 +129,7 @@ export default function Executivas() {
       .map((g) => ({ name: g.name.split(" ")[0], full: g.name, count: g.empresas.length }));
   }, [groups]);
 
-  if (!isAdmin && !isExecutivo) return <Navigate to="/" replace />;
+  if (!isAdmin && !isExecutivo && !isViewOnly) return <Navigate to="/" replace />;
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {
