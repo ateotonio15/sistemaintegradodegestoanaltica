@@ -463,6 +463,7 @@ export default function Empresas() {
                     <TableHead className="font-semibold">Nome</TableHead>
                     <TableHead className="font-semibold">Cód. Contrato</TableHead>
                     <TableHead className="font-semibold">Resp. Contrato</TableHead>
+                    <TableHead className="font-semibold">Executiva</TableHead>
                     <TableHead className="font-semibold">CNPJ</TableHead>
                     <TableHead className="font-semibold">Corretora</TableHead>
                     <TableHead className="font-semibold">Tipo</TableHead>
