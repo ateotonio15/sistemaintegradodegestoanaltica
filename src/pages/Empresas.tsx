@@ -104,7 +104,7 @@ export default function Empresas() {
         payload.data_implantacao = dataImplantacao;
       }
       if (payload.responsavel_user_id) {
-        const selectedUser = executivoUsers.find((u) => u.user_id === payload.responsavel_user_id)
+        const selectedUser = comunUsers.find((u) => u.user_id === payload.responsavel_user_id)
           || usuarios.find((u) => u.user_id === payload.responsavel_user_id);
         payload.responsavel_contrato = selectedUser?.display_name || payload.responsavel_contrato;
       }
