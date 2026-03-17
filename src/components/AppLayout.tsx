@@ -393,6 +393,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
+        {/* View Only Banner */}
+        {isViewOnly && (
+          <div className="bg-warning/10 border-b border-warning/30 px-4 py-2 flex items-center justify-center gap-2 text-sm font-medium text-warning">
+            <Lock className="h-4 w-4" />
+            Modo Visualização — Somente leitura
+          </div>
+        )}
+
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 animate-fade-in">{children}</main>
       </div>
