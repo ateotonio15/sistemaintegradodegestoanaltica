@@ -9,6 +9,7 @@ import Empresas from "./pages/Empresas";
 import Movimentacoes from "./pages/Movimentacoes";
 import Usuarios from "./pages/Usuarios";
 import Dashboard from "./pages/Dashboard";
+import Executivas from "./pages/Executivas";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -43,7 +44,8 @@ const AppRoutes = () => (
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/empresas" element={<ProtectedRoute><Empresas /></ProtectedRoute>} />
     <Route path="/movimentacoes" element={<ProtectedRoute><Movimentacoes /></ProtectedRoute>} />
-    <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} /> {/* Access controlled inside component */}
+    <Route path="/executivas" element={<ProtectedRoute><Executivas /></ProtectedRoute>} />
+    <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
