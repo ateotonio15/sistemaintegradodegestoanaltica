@@ -49,7 +49,7 @@ export default function Executivas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, cnpj, codigo_contrato, operadora_plano, tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao, status_empresa, responsavel_user_id, responsavel_contrato, email_empresa, telefone_empresa, contato_empresa")
+        .select("id, nome, cnpj, codigo_contrato, operadora_plano, tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao, status_empresa, responsavel_user_id, responsavel_contrato, executiva_user_id, email_empresa, telefone_empresa, contato_empresa")
         .order("nome");
       if (error) throw error;
       return data as EmpresaData[];
