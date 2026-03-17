@@ -305,7 +305,7 @@ export default function Empresas() {
               {isExecutivo ? `Você possui ${filtered.length} empresa(s) vinculada(s)` : `${filtered.length} empresa(s) ${showInativas ? "inativas" : "ativas"}`}
             </p>
           </div>
-          {canEdit && (
+          {canFullEdit && (
             <div className="flex gap-2">
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
               <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="rounded-lg">
