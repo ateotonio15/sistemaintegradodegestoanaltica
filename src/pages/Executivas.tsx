@@ -180,11 +180,6 @@ export default function Executivas() {
     return null;
   };
 
-  const getBarColor = (count: number) => {
-    if (count >= HIGH_THRESHOLD) return "hsl(var(--destructive))";
-    if (count < LOW_THRESHOLD) return "hsl(var(--muted-foreground))";
-    return "hsl(var(--primary))";
-  };
 
   return (
     <AppLayout>
