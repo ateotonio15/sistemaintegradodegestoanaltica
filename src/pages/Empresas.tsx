@@ -558,8 +558,8 @@ export default function Empresas() {
                 <div>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Responsável</h3>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Responsável pelo Contrato</p><p className="font-medium mt-0.5">{detailEmpresa.responsavel_contrato || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Usuário Responsável</p><p className="font-medium mt-0.5">{getResponsavelName(detailEmpresa)}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Responsável pelo Contrato</p><p className="font-medium mt-0.5">{getResponsavelName(detailEmpresa)}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Executiva Responsável</p><p className="font-medium mt-0.5">{getExecutivaName(detailEmpresa)}</p></div>
                   </div>
                 </div>
 
