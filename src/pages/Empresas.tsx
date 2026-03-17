@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, Building2 } from "lucide-react";
 import { PERIODOS, formatDateBR } from "@/lib/movimentacao-utils";
 import * as XLSX from "xlsx";
 
@@ -41,6 +41,8 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   status_empresa: "Ativa",
   observacoes: "",
   responsavel_user_id: null,
+  telefone_empresa: "",
+  contato_empresa: "",
 };
 
 export default function Empresas() {
@@ -56,7 +58,7 @@ export default function Empresas() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin, role, isViewOnly } = useAuth();
+  const { isAdmin, role, isViewOnly, isExecutivo, user } = useAuth();
   const canEdit = !isViewOnly && (isAdmin || role === "comum");
   const isComum = role === "comum";
 
@@ -208,6 +210,8 @@ export default function Empresas() {
       responsavel_user_id: (e as any).responsavel_user_id ?? null,
       prazo: (e as any).prazo ?? "",
       grupo_contrato: (e as any).grupo_contrato ?? "",
+      telefone_empresa: (e as any).telefone_empresa ?? "",
+      contato_empresa: (e as any).contato_empresa ?? "",
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
     setDialogOpen(true);
@@ -224,22 +228,46 @@ export default function Empresas() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return empresas
+    let list = empresas;
+
+    // Executivo: show only their linked companies
+    if (isExecutivo && user) {
+      list = list.filter((e) => (e as any).responsavel_user_id === user.id);
+    }
+
+    return list
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
       .filter((e) =>
         e.nome.toLowerCase().includes(q) ||
         (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
         (e.cnpj ?? "").toLowerCase().includes(q)
       );
-  }, [empresas, search, showInativas]);
+  }, [empresas, search, showInativas, isExecutivo, user]);
 
   return (
     <AppLayout>
       <div className="space-y-6">
+        {/* Executivo summary */}
+        {isExecutivo && (
+          <Card className="rounded-xl shadow-sm">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-primary/10">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Suas empresas vinculadas</p>
+                <p className="text-2xl font-bold">{filtered.length}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
-            <p className="text-sm text-muted-foreground mt-1">{filtered.length} empresa(s) {showInativas ? "inativas" : "ativas"}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {isExecutivo ? `Você possui ${filtered.length} empresa(s) vinculada(s)` : `${filtered.length} empresa(s) ${showInativas ? "inativas" : "ativas"}`}
+            </p>
           </div>
           {canEdit && (
             <div className="flex gap-2">
@@ -323,6 +351,14 @@ export default function Empresas() {
                         <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
+                        <Label className="text-sm font-medium">Telefone da Empresa</Label>
+                        <Input value={(form as any).telefone_empresa ?? ""} onChange={(e) => setForm({ ...form, telefone_empresa: e.target.value } as any)} placeholder="(92) 99999-9999" className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Contato da Empresa</Label>
+                        <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
                         <Label className="text-sm font-medium">Prazo (Entrada sem carência)</Label>
                         <Input value={(form as any).prazo ?? ""} onChange={(e) => setForm({ ...form, prazo: e.target.value } as any)} placeholder="Ex: 30 dias" className="rounded-lg" />
                       </div>
@@ -399,7 +435,7 @@ export default function Empresas() {
                   {isLoading ? (
                     <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-12">Nenhuma empresa encontrada</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
                   ) : (
                     filtered.map((e) => (
                       <TableRow key={e.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setDetailEmpresa(e)}>
@@ -460,6 +496,8 @@ export default function Empresas() {
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Implantação</p><p className="font-medium mt-0.5">{formatDateBR(detailEmpresa.data_implantacao) || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Corte</p><p className="font-medium mt-0.5">{detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">E-mail da Empresa</p><p className="font-medium mt-0.5">{detailEmpresa.email_empresa || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Telefone da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).telefone_empresa || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Contato da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).contato_empresa || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Prazo (Entrada sem carência)</p><p className="font-medium mt-0.5">{(detailEmpresa as any).prazo || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Grupo de Contrato</p><p className="font-medium mt-0.5">{(detailEmpresa as any).grupo_contrato || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30">
