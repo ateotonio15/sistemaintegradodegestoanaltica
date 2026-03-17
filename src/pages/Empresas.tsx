@@ -247,7 +247,7 @@ export default function Empresas() {
 
     // Executivo: show only their linked companies
     if (isExecutivo && user) {
-      list = list.filter((e) => (e as any).responsavel_user_id === user.id);
+      list = list.filter((e) => (e as any).executiva_user_id === user.id);
     }
 
     return list
