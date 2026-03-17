@@ -56,7 +56,7 @@ export default function Empresas() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin, role, isViewOnly } = useAuth();
+  const { isAdmin, role, isViewOnly, isExecutivo, user } = useAuth();
   const canEdit = !isViewOnly && (isAdmin || role === "comum");
   const isComum = role === "comum";
 
