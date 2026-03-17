@@ -81,7 +81,7 @@ export default function Empresas() {
       if (error) throw error;
       return data;
     },
-    enabled: canEdit,
+    enabled: canFullEdit,
   });
 
   const executivoUsers = usuarios.filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "executivo"));
