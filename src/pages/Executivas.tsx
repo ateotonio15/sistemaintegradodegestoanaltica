@@ -309,37 +309,42 @@ export default function Executivas() {
             </CardContent>
           </Card>
 
-          {/* Chart */}
+          {/* Ranking de Cadastro (Usuário Comum) */}
           <Card className="rounded-xl shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Empresas por Executiva</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Ranking de Cadastro
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              {chartData.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Sem dados para exibir</p>
+            <CardContent className="space-y-2">
+              {comunUsersEmpresas.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum usuário comum encontrado</p>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "0.5rem",
-                        fontSize: "0.875rem",
-                      }}
-                      formatter={(value: number) => [`${value} empresas`, "Quantidade"]}
-                      labelFormatter={(label: string, payload: any[]) => payload?.[0]?.payload?.full || label}
-                    />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {chartData.map((entry, index) => (
-                        <Cell key={index} fill={getBarColor(entry.count)} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                comunUsersEmpresas
+                  .sort((a, b) => Number(b.empresa_count) - Number(a.empresa_count))
+                  .map((u, i) => (
+                  <div
+                    key={u.user_id}
+                    className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
+                      i === 0
+                        ? "bg-primary/10 border border-primary/30"
+                        : i < 3
+                        ? "bg-accent/60"
+                        : "hover:bg-accent/40"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`text-sm font-bold w-6 text-center ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>
+                        {i + 1}º
+                      </span>
+                      <span className="text-sm font-medium">{u.display_name || "Sem nome"}</span>
+                    </div>
+                    <Badge variant="outline" className="rounded-md font-semibold">
+                      {Number(u.empresa_count)}
+                    </Badge>
+                  </div>
+                ))
               )}
             </CardContent>
           </Card>
