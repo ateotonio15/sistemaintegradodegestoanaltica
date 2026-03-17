@@ -10,7 +10,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { Building2, Users, TrendingUp, Search, AlertTriangle, Trophy, ChevronDown, ChevronRight, Mail, Phone, UserRound } from "lucide-react";
 import { format } from "date-fns";
-import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface EmpresaData {
