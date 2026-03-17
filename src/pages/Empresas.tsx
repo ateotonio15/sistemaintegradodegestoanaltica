@@ -545,7 +545,9 @@ export default function Empresas() {
                           <TableCell>
                             <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
                               <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
-                              <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              {canFullEdit && (
+                                <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              )}
                             </div>
                           </TableCell>
                         )}
