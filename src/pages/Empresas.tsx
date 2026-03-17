@@ -242,6 +242,15 @@ export default function Empresas() {
     return empresa.responsavel_contrato || "—";
   };
 
+  const getExecutivaName = (empresa: Empresa) => {
+    const userId = (empresa as any).executiva_user_id;
+    if (userId) {
+      const user = usuarios.find((u) => u.user_id === userId);
+      if (user) return user.display_name || "—";
+    }
+    return "—";
+  };
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let list = empresas;
