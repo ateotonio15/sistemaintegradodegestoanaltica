@@ -242,6 +242,15 @@ export default function Empresas() {
     return empresa.responsavel_contrato || "—";
   };
 
+  const getExecutivaName = (empresa: Empresa) => {
+    const userId = (empresa as any).executiva_user_id;
+    if (userId) {
+      const user = usuarios.find((u) => u.user_id === userId);
+      if (user) return user.display_name || "—";
+    }
+    return "—";
+  };
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let list = empresas;
@@ -454,6 +463,7 @@ export default function Empresas() {
                     <TableHead className="font-semibold">Nome</TableHead>
                     <TableHead className="font-semibold">Cód. Contrato</TableHead>
                     <TableHead className="font-semibold">Resp. Contrato</TableHead>
+                    <TableHead className="font-semibold">Executiva</TableHead>
                     <TableHead className="font-semibold">CNPJ</TableHead>
                     <TableHead className="font-semibold">Corretora</TableHead>
                     <TableHead className="font-semibold">Tipo</TableHead>
@@ -465,15 +475,16 @@ export default function Empresas() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
                   ) : (
                     filtered.map((e) => (
                       <TableRow key={e.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setDetailEmpresa(e)}>
                         <TableCell className="font-medium">{e.nome}</TableCell>
                         <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
                         <TableCell>{getResponsavelName(e)}</TableCell>
+                        <TableCell>{getExecutivaName(e)}</TableCell>
                         <TableCell className="text-muted-foreground font-mono text-xs">{e.cnpj || "—"}</TableCell>
                         <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
                         <TableCell>
@@ -547,8 +558,8 @@ export default function Empresas() {
                 <div>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Responsável</h3>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Responsável pelo Contrato</p><p className="font-medium mt-0.5">{detailEmpresa.responsavel_contrato || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Usuário Responsável</p><p className="font-medium mt-0.5">{getResponsavelName(detailEmpresa)}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Responsável pelo Contrato</p><p className="font-medium mt-0.5">{getResponsavelName(detailEmpresa)}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Executiva Responsável</p><p className="font-medium mt-0.5">{getExecutivaName(detailEmpresa)}</p></div>
                   </div>
                 </div>
 
