@@ -9,6 +9,7 @@ import Empresas from "./pages/Empresas";
 import Movimentacoes from "./pages/Movimentacoes";
 import Usuarios from "./pages/Usuarios";
 import Dashboard from "./pages/Dashboard";
+import Executivas from "./pages/Executivas";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
