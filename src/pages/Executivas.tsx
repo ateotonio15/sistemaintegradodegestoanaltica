@@ -41,6 +41,29 @@ export default function Executivas() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
+  const { data: empresas = [], isLoading } = useQuery({
+    queryKey: ["executivas-empresas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome, cnpj, codigo_contrato, operadora_plano, tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao, status_empresa, responsavel_user_id, responsavel_contrato")
+        .order("nome");
+      if (error) throw error;
+      return data as EmpresaData[];
+    },
+    enabled: !!user,
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["executivas-profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   if (!isAdmin && !isExecutivo) return <Navigate to="/" replace />;
 
   const { data: empresas = [], isLoading } = useQuery({
