@@ -72,6 +72,21 @@ export default function Empresas() {
     enabled: canEdit,
   });
 
+  const { data: executivos = [] } = useQuery({
+    queryKey: ["executivos-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "executivo");
+      if (error) throw error;
+      return data.map((r) => r.user_id);
+    },
+    enabled: canEdit,
+  });
+
+  const executivoUsers = usuarios.filter((u) => executivos.includes(u.user_id));
+
   const { data: empresas = [], isLoading } = useQuery({
     queryKey: ["empresas"],
     queryFn: async () => {
@@ -91,7 +106,8 @@ export default function Empresas() {
         payload.data_implantacao = dataImplantacao;
       }
       if (payload.responsavel_user_id) {
-        const selectedUser = usuarios.find((u) => u.user_id === payload.responsavel_user_id);
+        const selectedUser = executivoUsers.find((u) => u.user_id === payload.responsavel_user_id)
+          || usuarios.find((u) => u.user_id === payload.responsavel_user_id);
         payload.responsavel_contrato = selectedUser?.display_name || payload.responsavel_contrato;
       }
       if (editingId) {
@@ -296,14 +312,14 @@ export default function Empresas() {
                         <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
+                        <Label className="text-sm font-medium">Executiva Responsável *</Label>
                         <Select
                           value={form.responsavel_user_id ?? ""}
                           onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
                         >
-                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
                           <SelectContent>
-                            {usuarios.map((u) => (
+                            {executivoUsers.map((u) => (
                               <SelectItem key={u.user_id} value={u.user_id}>
                                 {u.display_name || u.user_id}
                               </SelectItem>
