@@ -252,7 +252,7 @@ export type Database = {
       vincular_empresas_por_responsavel: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "comum" | "executivo"
+      app_role: "admin" | "comum" | "executivo" | "visualizacao"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -380,7 +380,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "comum", "executivo"],
+      app_role: ["admin", "comum", "executivo", "visualizacao"],
     },
   },
 } as const
