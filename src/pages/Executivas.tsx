@@ -147,11 +147,6 @@ export default function Executivas() {
     return execs.sort((a, b) => a.name.localeCompare(b.name));
   }, [empresas, profileMap]);
 
-  const chartData = useMemo(() => {
-    return groups
-      .filter((g) => g.userId !== null)
-      .map((g) => ({ name: g.name.split(" ")[0], full: g.name, count: g.empresas.length }));
-  }, [groups]);
 
   if (!isAdmin && !isExecutivo && !isViewOnly) return <Navigate to="/" replace />;
 
