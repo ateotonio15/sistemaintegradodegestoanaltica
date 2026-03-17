@@ -416,6 +416,7 @@ export default function Usuarios() {
                     <SelectItem value="admin">Administrador</SelectItem>
                     <SelectItem value="comum">Usuário Comum</SelectItem>
                     <SelectItem value="executivo">Executivo</SelectItem>
+                    <SelectItem value="visualizacao">Visualização</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
