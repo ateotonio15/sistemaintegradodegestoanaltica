@@ -54,6 +54,7 @@ export type Database = {
         Row: {
           cnpj: string | null
           codigo_contrato: string | null
+          contato_empresa: string | null
           created_at: string
           data_corte: number | null
           data_implantacao: string | null
@@ -70,12 +71,14 @@ export type Database = {
           responsavel_contrato: string | null
           responsavel_user_id: string | null
           status_empresa: string | null
+          telefone_empresa: string | null
           tipo_movimentacao: string | null
           updated_at: string
         }
         Insert: {
           cnpj?: string | null
           codigo_contrato?: string | null
+          contato_empresa?: string | null
           created_at?: string
           data_corte?: number | null
           data_implantacao?: string | null
@@ -92,12 +95,14 @@ export type Database = {
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
           status_empresa?: string | null
+          telefone_empresa?: string | null
           tipo_movimentacao?: string | null
           updated_at?: string
         }
         Update: {
           cnpj?: string | null
           codigo_contrato?: string | null
+          contato_empresa?: string | null
           created_at?: string
           data_corte?: number | null
           data_implantacao?: string | null
@@ -114,6 +119,7 @@ export type Database = {
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
           status_empresa?: string | null
+          telefone_empresa?: string | null
           tipo_movimentacao?: string | null
           updated_at?: string
         }
