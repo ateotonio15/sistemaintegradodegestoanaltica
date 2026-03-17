@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
 
       // Clear empresa references, delete links, roles, profile, then auth user
       await adminClient.from("empresas").update({ responsavel_user_id: null }).eq("responsavel_user_id", userId);
+      await adminClient.from("empresas").update({ executiva_user_id: null }).eq("executiva_user_id", userId);
       await adminClient.from("empresa_usuarios").delete().eq("user_id", userId);
       await adminClient.from("user_roles").delete().eq("user_id", userId);
       await adminClient.from("profiles").delete().eq("user_id", userId);
