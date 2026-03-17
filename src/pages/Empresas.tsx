@@ -60,7 +60,8 @@ export default function Empresas() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin, role, isViewOnly, isExecutivo, user } = useAuth();
-  const canEdit = !isViewOnly && (isAdmin || role === "comum");
+  const canEdit = !isViewOnly && (isAdmin || role === "comum" || isExecutivo);
+  const canFullEdit = isAdmin || role === "comum";
   const isComum = role === "comum";
 
   const { data: usuarios = [] } = useQuery({
