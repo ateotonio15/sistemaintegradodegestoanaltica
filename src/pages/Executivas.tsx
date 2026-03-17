@@ -26,6 +26,9 @@ interface EmpresaData {
   status_empresa: string | null;
   responsavel_user_id: string | null;
   responsavel_contrato: string | null;
+  email_empresa: string | null;
+  telefone_empresa: string | null;
+  contato_empresa: string | null;
 }
 
 interface ExecutivaGroup {
