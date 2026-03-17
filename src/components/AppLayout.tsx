@@ -33,6 +33,7 @@ const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/empresas", label: "Empresas", icon: Building2 },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
+  { to: "/executivas", label: "Executivas", icon: UserCheck },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 

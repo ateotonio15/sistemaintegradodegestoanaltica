@@ -44,7 +44,8 @@ const AppRoutes = () => (
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/empresas" element={<ProtectedRoute><Empresas /></ProtectedRoute>} />
     <Route path="/movimentacoes" element={<ProtectedRoute><Movimentacoes /></ProtectedRoute>} />
-    <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} /> {/* Access controlled inside component */}
+    <Route path="/executivas" element={<ProtectedRoute><Executivas /></ProtectedRoute>} />
+    <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
