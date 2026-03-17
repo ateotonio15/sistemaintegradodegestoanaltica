@@ -311,7 +311,7 @@ export default function Empresas() {
               <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="rounded-lg">
                 <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
               </Button>
-              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
                 <DialogTrigger asChild>
                   <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
                 </DialogTrigger>
@@ -448,6 +448,35 @@ export default function Empresas() {
                 </DialogContent>
               </Dialog>
             </div>
+          )}
+
+          {/* Executivo edit dialog - restricted to contato, telefone, email */}
+          {isExecutivo && (
+            <Dialog open={dialogOpen && isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-xl">
+                <DialogHeader><DialogTitle>Editar Informações de Contato</DialogTitle></DialogHeader>
+                <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Contato da Empresa</Label>
+                      <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Telefone da Empresa</Label>
+                      <Input value={(form as any).telefone_empresa ?? ""} onChange={(e) => setForm({ ...form, telefone_empresa: e.target.value } as any)} placeholder="(92) 99999-9999" className="rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">E-mail da Empresa</Label>
+                      <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
+                    <Button type="submit" disabled={upsert.isPending} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
 
