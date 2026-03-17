@@ -27,7 +27,7 @@ const GRUPO_CONTRATO_OPTIONS = [
   "Compulsória - Todos",
 ];
 
-const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | null } = {
+const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | null; executiva_user_id?: string | null } = {
   nome: "",
   cnpj: "",
   codigo_contrato: "",
@@ -41,6 +41,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   status_empresa: "Ativa",
   observacoes: "",
   responsavel_user_id: null,
+  executiva_user_id: null,
   telefone_empresa: "",
   contato_empresa: "",
 };
