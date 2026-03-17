@@ -129,6 +129,8 @@ export default function Executivas() {
       .map((g) => ({ name: g.name.split(" ")[0], full: g.name, count: g.empresas.length }));
   }, [groups]);
 
+  if (!isAdmin && !isExecutivo) return <Navigate to="/" replace />;
+
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {
       const next = new Set(prev);
