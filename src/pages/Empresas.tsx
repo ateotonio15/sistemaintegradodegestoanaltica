@@ -98,6 +98,16 @@ export default function Empresas() {
 
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
+      if (isExecutivo && editingId) {
+        // Executivo can only update these 3 fields
+        const { error } = await supabase.from("empresas").update({
+          contato_empresa: values.contato_empresa,
+          telefone_empresa: values.telefone_empresa,
+          email_empresa: values.email_empresa,
+        }).eq("id", editingId);
+        if (error) throw error;
+        return;
+      }
       const payload: any = { ...values };
       if (payload.tipo_movimentacao === "Diária") {
         payload.periodo_movimentacao = null;
