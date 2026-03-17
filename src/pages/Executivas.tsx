@@ -277,10 +277,10 @@ export default function Executivas() {
             <CardContent className="space-y-2">
               {isLoading ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Carregando...</p>
-              ) : groups.filter((g) => g.userId).length === 0 ? (
+              ) : groups.filter((g) => g.userId && executivoUserIds.has(g.userId)).length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma executiva encontrada</p>
               ) : (
-                groups.filter((g) => g.userId).map((g, i) => (
+                groups.filter((g) => g.userId && executivoUserIds.has(g.userId)).map((g, i) => (
                   <div
                     key={g.userId}
                     className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
