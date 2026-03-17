@@ -317,21 +317,24 @@ export default function Executivas() {
                     key={u.user_id}
                     className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
                       i === 0
-                        ? "bg-primary/10 border border-primary/30"
+                        ? "bg-warning/10 border border-warning/30"
                         : i < 3
                         ? "bg-accent/60"
                         : "hover:bg-accent/40"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`text-sm font-bold w-6 text-center ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>
+                      <span className={`text-sm font-bold w-6 text-center ${i === 0 ? "text-warning" : "text-muted-foreground"}`}>
                         {i + 1}º
                       </span>
                       <span className="text-sm font-medium">{u.display_name || "Sem nome"}</span>
                     </div>
-                    <Badge variant="outline" className="rounded-md font-semibold">
-                      {Number(u.empresa_count)}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {getLoadBadge(Number(u.empresa_count))}
+                      <Badge variant="outline" className="rounded-md font-semibold">
+                        {Number(u.empresa_count)}
+                      </Badge>
+                    </div>
                   </div>
                 ))
               )}
