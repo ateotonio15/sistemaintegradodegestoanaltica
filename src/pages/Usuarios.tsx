@@ -36,6 +36,7 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   admin: Shield,
   comum: User,
   executivo: Eye,
+  visualizacao: Eye,
 };
 
 function generatePassword(length = 10) {
