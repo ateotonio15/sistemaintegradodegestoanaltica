@@ -60,7 +60,8 @@ export default function Empresas() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin, role, isViewOnly, isExecutivo, user } = useAuth();
-  const canEdit = !isViewOnly && (isAdmin || role === "comum");
+  const canEdit = !isViewOnly && (isAdmin || role === "comum" || isExecutivo);
+  const canFullEdit = isAdmin || role === "comum";
   const isComum = role === "comum";
 
   const { data: usuarios = [] } = useQuery({
@@ -70,7 +71,7 @@ export default function Empresas() {
       if (error) throw error;
       return data;
     },
-    enabled: canEdit,
+    enabled: canFullEdit,
   });
 
   const { data: userRolesList = [] } = useQuery({
@@ -80,7 +81,7 @@ export default function Empresas() {
       if (error) throw error;
       return data;
     },
-    enabled: canEdit,
+    enabled: canFullEdit,
   });
 
   const executivoUsers = usuarios.filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "executivo"));
@@ -97,6 +98,16 @@ export default function Empresas() {
 
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
+      if (isExecutivo && editingId) {
+        // Executivo can only update these 3 fields
+        const { error } = await supabase.from("empresas").update({
+          contato_empresa: values.contato_empresa,
+          telefone_empresa: values.telefone_empresa,
+          email_empresa: values.email_empresa,
+        }).eq("id", editingId);
+        if (error) throw error;
+        return;
+      }
       const payload: any = { ...values };
       if (payload.tipo_movimentacao === "Diária") {
         payload.periodo_movimentacao = null;
@@ -294,13 +305,13 @@ export default function Empresas() {
               {isExecutivo ? `Você possui ${filtered.length} empresa(s) vinculada(s)` : `${filtered.length} empresa(s) ${showInativas ? "inativas" : "ativas"}`}
             </p>
           </div>
-          {canEdit && (
+          {canFullEdit && (
             <div className="flex gap-2">
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
               <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="rounded-lg">
                 <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
               </Button>
-              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
                 <DialogTrigger asChild>
                   <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
                 </DialogTrigger>
@@ -438,6 +449,35 @@ export default function Empresas() {
               </Dialog>
             </div>
           )}
+
+          {/* Executivo edit dialog - restricted to contato, telefone, email */}
+          {isExecutivo && (
+            <Dialog open={dialogOpen && isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-xl">
+                <DialogHeader><DialogTitle>Editar Informações de Contato</DialogTitle></DialogHeader>
+                <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Contato da Empresa</Label>
+                      <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Telefone da Empresa</Label>
+                      <Input value={(form as any).telefone_empresa ?? ""} onChange={(e) => setForm({ ...form, telefone_empresa: e.target.value } as any)} placeholder="(92) 99999-9999" className="rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">E-mail da Empresa</Label>
+                      <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
+                    <Button type="submit" disabled={upsert.isPending} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -505,7 +545,9 @@ export default function Empresas() {
                           <TableCell>
                             <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
                               <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
-                              <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              {canFullEdit && (
+                                <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              )}
                             </div>
                           </TableCell>
                         )}
