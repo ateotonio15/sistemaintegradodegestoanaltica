@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { Building2, Users, TrendingUp, Search, AlertTriangle, Trophy, ChevronDown, ChevronRight, Mail, Phone, UserRound } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -63,6 +62,28 @@ export default function Executivas() {
       const { data, error } = await supabase.from("profiles").select("user_id, display_name");
       if (error) throw error;
       return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: userRoles = [] } = useQuery({
+    queryKey: ["executivas-user-roles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("user_roles").select("user_id, role");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const executivoUserIds = useMemo(() => new Set(userRoles.filter((r) => r.role === "executivo").map((r) => r.user_id)), [userRoles]);
+
+  const { data: comunUsersEmpresas = [] } = useQuery({
+    queryKey: ["comum-users-empresa-count-executivas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_comum_users_empresa_count");
+      if (error) throw error;
+      return data as { user_id: string; display_name: string; empresa_count: number }[];
     },
     enabled: !!user,
   });
@@ -126,11 +147,6 @@ export default function Executivas() {
     return execs.sort((a, b) => a.name.localeCompare(b.name));
   }, [empresas, profileMap]);
 
-  const chartData = useMemo(() => {
-    return groups
-      .filter((g) => g.userId !== null)
-      .map((g) => ({ name: g.name.split(" ")[0], full: g.name, count: g.empresas.length }));
-  }, [groups]);
 
   if (!isAdmin && !isExecutivo && !isViewOnly) return <Navigate to="/" replace />;
 
@@ -164,11 +180,6 @@ export default function Executivas() {
     return null;
   };
 
-  const getBarColor = (count: number) => {
-    if (count >= HIGH_THRESHOLD) return "hsl(var(--destructive))";
-    if (count < LOW_THRESHOLD) return "hsl(var(--muted-foreground))";
-    return "hsl(var(--primary))";
-  };
 
   return (
     <AppLayout>
@@ -255,10 +266,10 @@ export default function Executivas() {
             <CardContent className="space-y-2">
               {isLoading ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Carregando...</p>
-              ) : groups.filter((g) => g.userId).length === 0 ? (
+              ) : groups.filter((g) => g.userId && executivoUserIds.has(g.userId)).length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma executiva encontrada</p>
               ) : (
-                groups.filter((g) => g.userId).map((g, i) => (
+                groups.filter((g) => g.userId && executivoUserIds.has(g.userId)).map((g, i) => (
                   <div
                     key={g.userId}
                     className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
@@ -287,37 +298,42 @@ export default function Executivas() {
             </CardContent>
           </Card>
 
-          {/* Chart */}
+          {/* Ranking de Cadastro (Usuário Comum) */}
           <Card className="rounded-xl shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Empresas por Executiva</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Ranking de Cadastro
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              {chartData.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Sem dados para exibir</p>
+            <CardContent className="space-y-2">
+              {comunUsersEmpresas.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum usuário comum encontrado</p>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "0.5rem",
-                        fontSize: "0.875rem",
-                      }}
-                      formatter={(value: number) => [`${value} empresas`, "Quantidade"]}
-                      labelFormatter={(label: string, payload: any[]) => payload?.[0]?.payload?.full || label}
-                    />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {chartData.map((entry, index) => (
-                        <Cell key={index} fill={getBarColor(entry.count)} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                comunUsersEmpresas
+                  .sort((a, b) => Number(b.empresa_count) - Number(a.empresa_count))
+                  .map((u, i) => (
+                  <div
+                    key={u.user_id}
+                    className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
+                      i === 0
+                        ? "bg-primary/10 border border-primary/30"
+                        : i < 3
+                        ? "bg-accent/60"
+                        : "hover:bg-accent/40"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`text-sm font-bold w-6 text-center ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>
+                        {i + 1}º
+                      </span>
+                      <span className="text-sm font-medium">{u.display_name || "Sem nome"}</span>
+                    </div>
+                    <Badge variant="outline" className="rounded-md font-semibold">
+                      {Number(u.empresa_count)}
+                    </Badge>
+                  </div>
+                ))
               )}
             </CardContent>
           </Card>
