@@ -71,7 +71,7 @@ export default function Empresas() {
       if (error) throw error;
       return data;
     },
-    enabled: canEdit,
+    enabled: canFullEdit,
   });
 
   const { data: userRolesList = [] } = useQuery({
