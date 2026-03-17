@@ -35,7 +35,7 @@ interface ExecutivaGroup {
 }
 
 export default function Executivas() {
-  const { isAdmin, isExecutivo, user } = useAuth();
+  const { isAdmin, isExecutivo, isViewOnly, user } = useAuth();
   const [search, setSearch] = useState("");
   const [filterExecutiva, setFilterExecutiva] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
