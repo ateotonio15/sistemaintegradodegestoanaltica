@@ -64,9 +64,9 @@ export default function Movimentacoes() {
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, isAdmin, isExecutivo, role } = useAuth();
-  const canEdit = isAdmin;
-  const canEditDates = isAdmin || role === "comum";
+  const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
+  const canEdit = !isViewOnly && isAdmin;
+  const canEditDates = !isViewOnly && (isAdmin || role === "comum");
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas"],
