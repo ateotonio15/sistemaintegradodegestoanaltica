@@ -72,6 +72,21 @@ export default function Empresas() {
     enabled: canEdit,
   });
 
+  const { data: executivos = [] } = useQuery({
+    queryKey: ["executivos-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "executivo");
+      if (error) throw error;
+      return data.map((r) => r.user_id);
+    },
+    enabled: canEdit,
+  });
+
+  const executivoUsers = usuarios.filter((u) => executivos.includes(u.user_id));
+
   const { data: empresas = [], isLoading } = useQuery({
     queryKey: ["empresas"],
     queryFn: async () => {
