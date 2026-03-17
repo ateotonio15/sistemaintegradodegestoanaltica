@@ -312,10 +312,26 @@ export default function Empresas() {
                         <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Executiva Responsável *</Label>
+                        <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
                         <Select
                           value={form.responsavel_user_id ?? ""}
                           onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
+                        >
+                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                          <SelectContent>
+                            {comunUsers.map((u) => (
+                              <SelectItem key={u.user_id} value={u.user_id}>
+                                {u.display_name || u.user_id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Executiva Responsável</Label>
+                        <Select
+                          value={(form as any).executiva_user_id ?? ""}
+                          onValueChange={(v) => setForm({ ...form, executiva_user_id: v || null } as any)}
                         >
                           <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
                           <SelectContent>
