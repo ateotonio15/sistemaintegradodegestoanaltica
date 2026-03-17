@@ -498,6 +498,7 @@ export default function Empresas() {
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">E-mail da Empresa</p><p className="font-medium mt-0.5">{detailEmpresa.email_empresa || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Telefone da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).telefone_empresa || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Contato da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).contato_empresa || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Prazo (Entrada sem carência)</p><p className="font-medium mt-0.5">{(detailEmpresa as any).prazo || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Grupo de Contrato</p><p className="font-medium mt-0.5">{(detailEmpresa as any).grupo_contrato || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30">
                       <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Status da Empresa</p>
