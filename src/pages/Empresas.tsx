@@ -210,6 +210,8 @@ export default function Empresas() {
       responsavel_user_id: (e as any).responsavel_user_id ?? null,
       prazo: (e as any).prazo ?? "",
       grupo_contrato: (e as any).grupo_contrato ?? "",
+      telefone_empresa: (e as any).telefone_empresa ?? "",
+      contato_empresa: (e as any).contato_empresa ?? "",
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
     setDialogOpen(true);
