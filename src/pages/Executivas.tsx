@@ -106,8 +106,8 @@ export default function Executivas() {
         if (!e.nome.toLowerCase().includes(s) && !(e.cnpj || "").toLowerCase().includes(s) && !(e.codigo_contrato || "").toLowerCase().includes(s)) return false;
       }
       if (filterExecutiva !== "all") {
-        if (filterExecutiva === "none" && e.responsavel_user_id) return false;
-        if (filterExecutiva !== "none" && e.responsavel_user_id !== filterExecutiva) return false;
+        if (filterExecutiva === "none" && e.executiva_user_id) return false;
+        if (filterExecutiva !== "none" && e.executiva_user_id !== filterExecutiva) return false;
       }
       return true;
     });
@@ -116,11 +116,11 @@ export default function Executivas() {
   const groups = useMemo(() => {
     const map = new Map<string, ExecutivaGroup>();
     filtered.forEach((e) => {
-      const key = e.responsavel_user_id || "none";
+      const key = e.executiva_user_id || "none";
       if (!map.has(key)) {
         map.set(key, {
-          userId: e.responsavel_user_id,
-          name: e.responsavel_user_id ? (profileMap.get(e.responsavel_user_id) || e.responsavel_contrato || "Desconhecido") : "Sem responsável",
+          userId: e.executiva_user_id,
+          name: e.executiva_user_id ? (profileMap.get(e.executiva_user_id) || "Desconhecido") : "Sem executiva",
           empresas: [],
         });
       }
