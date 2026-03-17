@@ -356,6 +356,15 @@ export default function Executivas() {
                                 <th className="text-left p-3 font-medium text-muted-foreground">Nome</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Código</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">CNPJ</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">
+                                  <span className="flex items-center gap-1"><UserRound className="h-3.5 w-3.5" />Contato</span>
+                                </th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">
+                                  <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" />Telefone</span>
+                                </th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">
+                                  <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" />Email</span>
+                                </th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Corretora</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Tipo</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Período / Corte</th>
@@ -368,6 +377,13 @@ export default function Executivas() {
                                   <td className="p-3 font-medium">{e.nome}</td>
                                   <td className="p-3 text-muted-foreground">{e.codigo_contrato || "—"}</td>
                                   <td className="p-3 text-muted-foreground">{e.cnpj || "—"}</td>
+                                  <td className="p-3 text-muted-foreground">{e.contato_empresa || "—"}</td>
+                                  <td className="p-3 text-muted-foreground">{e.telefone_empresa || "—"}</td>
+                                  <td className="p-3 text-muted-foreground">
+                                    {e.email_empresa ? (
+                                      <a href={`mailto:${e.email_empresa}`} className="text-primary hover:underline">{e.email_empresa}</a>
+                                    ) : "—"}
+                                  </td>
                                   <td className="p-3 text-muted-foreground">{e.operadora_plano || "—"}</td>
                                   <td className="p-3">
                                     <Badge variant="outline" className="text-xs rounded-md">{e.tipo_movimentacao || "—"}</Badge>
