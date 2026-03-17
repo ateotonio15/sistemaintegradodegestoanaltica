@@ -137,11 +137,11 @@ export default function Executivas() {
     const execs: { id: string; name: string }[] = [];
     const seen = new Set<string>();
     empresas.forEach((e) => {
-      if (e.responsavel_user_id && !seen.has(e.responsavel_user_id)) {
-        seen.add(e.responsavel_user_id);
+      if (e.executiva_user_id && !seen.has(e.executiva_user_id)) {
+        seen.add(e.executiva_user_id);
         execs.push({
-          id: e.responsavel_user_id,
-          name: profileMap.get(e.responsavel_user_id) || e.responsavel_contrato || "Desconhecido",
+          id: e.executiva_user_id,
+          name: profileMap.get(e.executiva_user_id) || "Desconhecido",
         });
       }
     });
