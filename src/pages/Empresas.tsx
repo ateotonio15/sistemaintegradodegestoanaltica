@@ -311,14 +311,14 @@ export default function Empresas() {
                         <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
+                        <Label className="text-sm font-medium">Executiva Responsável *</Label>
                         <Select
                           value={form.responsavel_user_id ?? ""}
                           onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
                         >
-                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
                           <SelectContent>
-                            {usuarios.map((u) => (
+                            {executivoUsers.map((u) => (
                               <SelectItem key={u.user_id} value={u.user_id}>
                                 {u.display_name || u.user_id}
                               </SelectItem>
