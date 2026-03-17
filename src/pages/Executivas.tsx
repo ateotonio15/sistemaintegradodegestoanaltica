@@ -67,6 +67,28 @@ export default function Executivas() {
     enabled: !!user,
   });
 
+  const { data: userRoles = [] } = useQuery({
+    queryKey: ["executivas-user-roles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("user_roles").select("user_id, role");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const executivoUserIds = useMemo(() => new Set(userRoles.filter((r) => r.role === "executivo").map((r) => r.user_id)), [userRoles]);
+
+  const { data: comunUsersEmpresas = [] } = useQuery({
+    queryKey: ["comum-users-empresa-count-executivas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_comum_users_empresa_count");
+      if (error) throw error;
+      return data as { user_id: string; display_name: string; empresa_count: number }[];
+    },
+    enabled: !!user,
+  });
+
   
 
 
