@@ -484,6 +484,7 @@ export default function Empresas() {
                         <TableCell className="font-medium">{e.nome}</TableCell>
                         <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
                         <TableCell>{getResponsavelName(e)}</TableCell>
+                        <TableCell>{getExecutivaName(e)}</TableCell>
                         <TableCell className="text-muted-foreground font-mono text-xs">{e.cnpj || "—"}</TableCell>
                         <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
                         <TableCell>
