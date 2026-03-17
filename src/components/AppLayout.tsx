@@ -40,7 +40,7 @@ const allNavItems = [
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user, isAdmin, isExecutivo, role } = useAuth();
+  const { signOut, user, isAdmin, isExecutivo, isViewOnly, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
 
