@@ -351,6 +351,14 @@ export default function Empresas() {
                         <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
+                        <Label className="text-sm font-medium">Telefone da Empresa</Label>
+                        <Input value={(form as any).telefone_empresa ?? ""} onChange={(e) => setForm({ ...form, telefone_empresa: e.target.value } as any)} placeholder="(92) 99999-9999" className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Contato da Empresa</Label>
+                        <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
                         <Label className="text-sm font-medium">Prazo (Entrada sem carência)</Label>
                         <Input value={(form as any).prazo ?? ""} onChange={(e) => setForm({ ...form, prazo: e.target.value } as any)} placeholder="Ex: 30 dias" className="rounded-lg" />
                       </div>
