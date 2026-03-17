@@ -224,14 +224,21 @@ export default function Empresas() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return empresas
+    let list = empresas;
+
+    // Executivo: show only their linked companies
+    if (isExecutivo && user) {
+      list = list.filter((e) => (e as any).responsavel_user_id === user.id);
+    }
+
+    return list
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
       .filter((e) =>
         e.nome.toLowerCase().includes(q) ||
         (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
         (e.cnpj ?? "").toLowerCase().includes(q)
       );
-  }, [empresas, search, showInativas]);
+  }, [empresas, search, showInativas, isExecutivo, user]);
 
   return (
     <AppLayout>
