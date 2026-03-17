@@ -61,6 +61,7 @@ export type Database = {
           data_rescisao: string | null
           dia_movimentacao: number | null
           email_empresa: string | null
+          executiva_user_id: string | null
           grupo_contrato: string | null
           id: string
           nome: string
@@ -85,6 +86,7 @@ export type Database = {
           data_rescisao?: string | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
+          executiva_user_id?: string | null
           grupo_contrato?: string | null
           id?: string
           nome: string
@@ -109,6 +111,7 @@ export type Database = {
           data_rescisao?: string | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
+          executiva_user_id?: string | null
           grupo_contrato?: string | null
           id?: string
           nome?: string
