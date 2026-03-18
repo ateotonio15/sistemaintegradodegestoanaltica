@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Executivas from "./pages/Executivas";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { useNewCompanyAlert } from "@/hooks/useNewCompanyAlert";
 
 const queryClient = new QueryClient();
 
