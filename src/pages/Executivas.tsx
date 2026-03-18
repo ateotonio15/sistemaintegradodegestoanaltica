@@ -5,12 +5,20 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
-import { Building2, Users, TrendingUp, Search, AlertTriangle, Trophy, ChevronDown, ChevronRight, Mail, Phone, UserRound } from "lucide-react";
+import {
+  Building2, Users, TrendingUp, Search, AlertTriangle, Trophy,
+  ChevronDown, ChevronRight, Mail, Phone, UserRound, Copy, MessageCircle,
+  CheckCircle2, XCircle, Clock
+} from "lucide-react";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { toast } from "sonner";
+import { calcularStatusPeriodoEmpresa, getCurrentPeriodo, periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface EmpresaData {
   id: string;
@@ -37,11 +45,71 @@ interface ExecutivaGroup {
   empresas: EmpresaData[];
 }
 
+function getStatusPeriodo(e: EmpresaData): "em_periodo" | "fora_periodo" | "proximo_prazo" {
+  if (e.status_empresa !== "Ativa") return "fora_periodo";
+
+  const periodoAtual = getCurrentPeriodo();
+  const [startDay, endDay] = periodoAtual.split("-").map(Number);
+
+  let periodoEmpresa: string | null = null;
+  if ((e.tipo_movimentacao === "Diária" || e.tipo_movimentacao === "Diario") && e.data_corte) {
+    periodoEmpresa = periodoDaDataCorte(e.data_corte);
+  } else if (e.periodo_movimentacao) {
+    periodoEmpresa = e.periodo_movimentacao;
+  }
+
+  if (!periodoEmpresa) return "fora_periodo";
+
+  if (periodoEmpresa === periodoAtual) {
+    // Check if close to deadline (last 2 days of period)
+    const today = new Date().getDate();
+    if (today >= endDay - 1) return "proximo_prazo";
+    return "em_periodo";
+  }
+
+  return "fora_periodo";
+}
+
+function StatusBadge({ status }: { status: "em_periodo" | "fora_periodo" | "proximo_prazo" }) {
+  switch (status) {
+    case "em_periodo":
+      return (
+        <Badge className="bg-success/15 text-success border-success/30 text-[10px] gap-1">
+          <CheckCircle2 className="h-3 w-3" /> Em período
+        </Badge>
+      );
+    case "proximo_prazo":
+      return (
+        <Badge className="bg-warning/15 text-warning border-warning/30 text-[10px] gap-1">
+          <Clock className="h-3 w-3" /> Próximo do prazo
+        </Badge>
+      );
+    case "fora_periodo":
+      return (
+        <Badge className="bg-destructive/15 text-destructive border-destructive/30 text-[10px] gap-1">
+          <XCircle className="h-3 w-3" /> Fora do período
+        </Badge>
+      );
+  }
+}
+
+function copyToClipboard(text: string, label: string) {
+  navigator.clipboard.writeText(text);
+  toast.success(`${label} copiado!`);
+}
+
+function openWhatsApp(phone: string) {
+  const cleaned = phone.replace(/\D/g, "");
+  const number = cleaned.startsWith("55") ? cleaned : `55${cleaned}`;
+  window.open(`https://wa.me/${number}`, "_blank");
+}
+
 export default function Executivas() {
   const { isAdmin, isExecutivo, isViewOnly, user } = useAuth();
   const [search, setSearch] = useState("");
   const [filterExecutiva, setFilterExecutiva] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterPeriodo, setFilterPeriodo] = useState<string>("all");
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
   const { data: empresas = [], isLoading } = useQuery({
@@ -89,9 +157,6 @@ export default function Executivas() {
     enabled: !!user,
   });
 
-  
-
-
   const profileMap = useMemo(() => {
     const map = new Map<string, string>();
     profiles.forEach((p) => map.set(p.user_id, p.display_name || "Sem nome"));
@@ -103,15 +168,24 @@ export default function Executivas() {
       if (filterStatus !== "all" && e.status_empresa !== filterStatus) return false;
       if (search) {
         const s = search.toLowerCase();
-        if (!e.nome.toLowerCase().includes(s) && !(e.cnpj || "").toLowerCase().includes(s) && !(e.codigo_contrato || "").toLowerCase().includes(s)) return false;
+        if (
+          !e.nome.toLowerCase().includes(s) &&
+          !(e.cnpj || "").toLowerCase().includes(s) &&
+          !(e.codigo_contrato || "").toLowerCase().includes(s) &&
+          !(e.contato_empresa || "").toLowerCase().includes(s)
+        ) return false;
       }
       if (filterExecutiva !== "all") {
         if (filterExecutiva === "none" && e.executiva_user_id) return false;
         if (filterExecutiva !== "none" && e.executiva_user_id !== filterExecutiva) return false;
       }
+      if (filterPeriodo !== "all") {
+        const sp = getStatusPeriodo(e);
+        if (filterPeriodo !== sp) return false;
+      }
       return true;
     });
-  }, [empresas, search, filterExecutiva, filterStatus]);
+  }, [empresas, search, filterExecutiva, filterStatus, filterPeriodo]);
 
   const groups = useMemo(() => {
     const map = new Map<string, ExecutivaGroup>();
@@ -129,9 +203,15 @@ export default function Executivas() {
     return Array.from(map.values()).sort((a, b) => b.empresas.length - a.empresas.length);
   }, [filtered, profileMap]);
 
+  // Stats
   const totalEmpresas = filtered.length;
   const totalExecutivas = groups.filter((g) => g.userId !== null).length;
   const media = totalExecutivas > 0 ? (totalEmpresas / totalExecutivas).toFixed(1) : "0";
+  const ativas = filtered.filter((e) => e.status_empresa === "Ativa").length;
+  const inativas = filtered.filter((e) => e.status_empresa === "Inativa").length;
+  const emPeriodo = filtered.filter((e) => getStatusPeriodo(e) === "em_periodo").length;
+  const foraPeriodo = filtered.filter((e) => getStatusPeriodo(e) === "fora_periodo").length;
+  const proximoPrazo = filtered.filter((e) => getStatusPeriodo(e) === "proximo_prazo").length;
 
   const uniqueExecutivas = useMemo(() => {
     const execs: { id: string; name: string }[] = [];
@@ -147,7 +227,6 @@ export default function Executivas() {
     });
     return execs.sort((a, b) => a.name.localeCompare(b.name));
   }, [empresas, profileMap]);
-
 
   if (!isAdmin && !isExecutivo && !isViewOnly) return <Navigate to="/" replace />;
 
@@ -181,7 +260,6 @@ export default function Executivas() {
     return null;
   };
 
-
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -191,11 +269,54 @@ export default function Executivas() {
           <p className="text-sm text-muted-foreground mt-1">Painel de controle e distribuição de carga</p>
         </div>
 
+        {/* Quick Summary Bar */}
+        <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-card border shadow-sm">
+          <div className="flex items-center gap-2 text-sm">
+            <Building2 className="h-4 w-4 text-primary" />
+            <span className="font-semibold">{totalEmpresas}</span>
+            <span className="text-muted-foreground">empresas</span>
+          </div>
+          <span className="text-border">|</span>
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            <span className="font-semibold">{ativas}</span>
+            <span className="text-muted-foreground">ativas</span>
+          </div>
+          <span className="text-border">|</span>
+          <div className="flex items-center gap-2 text-sm">
+            <XCircle className="h-4 w-4 text-destructive" />
+            <span className="font-semibold">{inativas}</span>
+            <span className="text-muted-foreground">inativas</span>
+          </div>
+          <span className="text-border">|</span>
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            <span className="font-semibold">{emPeriodo}</span>
+            <span className="text-muted-foreground">em período</span>
+          </div>
+          {proximoPrazo > 0 && (
+            <>
+              <span className="text-border">|</span>
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4 text-warning" />
+                <span className="font-semibold">{proximoPrazo}</span>
+                <span className="text-muted-foreground">próximo do prazo</span>
+              </div>
+            </>
+          )}
+          <span className="text-border">|</span>
+          <div className="flex items-center gap-2 text-sm">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <span className="font-semibold">{foraPeriodo}</span>
+            <span className="text-muted-foreground">fora do período</span>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar empresa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-lg" />
+            <Input placeholder="Buscar por nome, CNPJ, código ou contato..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-lg" />
           </div>
           <Select value={filterExecutiva} onValueChange={setFilterExecutiva}>
             <SelectTrigger className="w-[200px] rounded-lg"><SelectValue placeholder="Executiva" /></SelectTrigger>
@@ -213,6 +334,15 @@ export default function Executivas() {
               <SelectItem value="all">Todos os status</SelectItem>
               <SelectItem value="Ativa">Ativa</SelectItem>
               <SelectItem value="Inativa">Inativa</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
+            <SelectTrigger className="w-[180px] rounded-lg"><SelectValue placeholder="Período" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os períodos</SelectItem>
+              <SelectItem value="em_periodo">🟢 Em período</SelectItem>
+              <SelectItem value="proximo_prazo">🟡 Próximo do prazo</SelectItem>
+              <SelectItem value="fora_periodo">🔴 Fora do período</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -254,9 +384,8 @@ export default function Executivas() {
           </Card>
         </div>
 
-        {/* Ranking + Chart */}
+        {/* Ranking */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Ranking */}
           <Card className="rounded-xl shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -274,11 +403,7 @@ export default function Executivas() {
                   <div
                     key={g.userId}
                     className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-                      i === 0
-                        ? "bg-warning/10 border border-warning/30"
-                        : i < 3
-                        ? "bg-accent/60"
-                        : "hover:bg-accent/40"
+                      i === 0 ? "bg-warning/10 border border-warning/30" : i < 3 ? "bg-accent/60" : "hover:bg-accent/40"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -289,9 +414,7 @@ export default function Executivas() {
                     </div>
                     <div className="flex items-center gap-2">
                       {getLoadBadge(g.empresas.length)}
-                      <Badge variant="outline" className="rounded-md font-semibold">
-                        {g.empresas.length}
-                      </Badge>
+                      <Badge variant="outline" className="rounded-md font-semibold">{g.empresas.length}</Badge>
                     </div>
                   </div>
                 ))
@@ -299,7 +422,6 @@ export default function Executivas() {
             </CardContent>
           </Card>
 
-          {/* Ranking de Cadastro (Usuário Comum) */}
           <Card className="rounded-xl shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -314,30 +436,24 @@ export default function Executivas() {
                 comunUsersEmpresas
                   .sort((a, b) => Number(b.empresa_count) - Number(a.empresa_count))
                   .map((u, i) => (
-                  <div
-                    key={u.user_id}
-                    className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-                      i === 0
-                        ? "bg-warning/10 border border-warning/30"
-                        : i < 3
-                        ? "bg-accent/60"
-                        : "hover:bg-accent/40"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`text-sm font-bold w-6 text-center ${i === 0 ? "text-warning" : "text-muted-foreground"}`}>
-                        {i + 1}º
-                      </span>
-                      <span className="text-sm font-medium">{u.display_name || "Sem nome"}</span>
+                    <div
+                      key={u.user_id}
+                      className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
+                        i === 0 ? "bg-warning/10 border border-warning/30" : i < 3 ? "bg-accent/60" : "hover:bg-accent/40"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`text-sm font-bold w-6 text-center ${i === 0 ? "text-warning" : "text-muted-foreground"}`}>
+                          {i + 1}º
+                        </span>
+                        <span className="text-sm font-medium">{u.display_name || "Sem nome"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getLoadBadge(Number(u.empresa_count))}
+                        <Badge variant="outline" className="rounded-md font-semibold">{Number(u.empresa_count)}</Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {getLoadBadge(Number(u.empresa_count))}
-                      <Badge variant="outline" className="rounded-md font-semibold">
-                        {Number(u.empresa_count)}
-                      </Badge>
-                    </div>
-                  </div>
-                ))
+                  ))
               )}
             </CardContent>
           </Card>
@@ -354,6 +470,9 @@ export default function Executivas() {
             groups.map((g) => {
               const key = g.userId || "none";
               const isOpen = openGroups.has(key);
+              const groupEmPeriodo = g.empresas.filter((e) => getStatusPeriodo(e) === "em_periodo").length;
+              const groupFora = g.empresas.filter((e) => getStatusPeriodo(e) === "fora_periodo").length;
+
               return (
                 <Card key={key} className="rounded-xl shadow-sm overflow-hidden">
                   <Collapsible open={isOpen} onOpenChange={() => toggleGroup(key)}>
@@ -365,6 +484,10 @@ export default function Executivas() {
                           <Badge variant="secondary" className="rounded-md text-xs">{g.empresas.length} empresa(s)</Badge>
                           {g.userId && getLoadBadge(g.empresas.length)}
                         </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-success" />{groupEmPeriodo}</span>
+                          <span className="flex items-center gap-1"><XCircle className="h-3 w-3 text-destructive" />{groupFora}</span>
+                        </div>
                       </div>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -375,7 +498,7 @@ export default function Executivas() {
                               <tr className="bg-accent/30">
                                 <th className="text-left p-3 font-medium text-muted-foreground">Nome</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Código</th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">CNPJ</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">
                                   <span className="flex items-center gap-1"><UserRound className="h-3.5 w-3.5" />Contato</span>
                                 </th>
@@ -385,33 +508,97 @@ export default function Executivas() {
                                 <th className="text-left p-3 font-medium text-muted-foreground">
                                   <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" />Email</span>
                                 </th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">Corretora</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">Ações</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Tipo</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Período / Corte</th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">Implantação</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {g.empresas.map((e) => (
-                                <tr key={e.id} className="border-t hover:bg-accent/20 transition-colors">
-                                  <td className="p-3 font-medium">{e.nome}</td>
-                                  <td className="p-3 text-muted-foreground">{e.codigo_contrato || "—"}</td>
-                                  <td className="p-3 text-muted-foreground">{e.cnpj || "—"}</td>
-                                  <td className="p-3 text-muted-foreground">{e.contato_empresa || "—"}</td>
-                                  <td className="p-3 text-muted-foreground">{e.telefone_empresa || "—"}</td>
-                                  <td className="p-3 text-muted-foreground">
-                                    {e.email_empresa ? (
-                                      <a href={`mailto:${e.email_empresa}`} className="text-primary hover:underline">{e.email_empresa}</a>
-                                    ) : "—"}
-                                  </td>
-                                  <td className="p-3 text-muted-foreground">{e.operadora_plano || "—"}</td>
-                                  <td className="p-3">
-                                    <Badge variant="outline" className="text-xs rounded-md">{e.tipo_movimentacao || "—"}</Badge>
-                                  </td>
-                                  <td className="p-3 text-muted-foreground">{formatPeriodo(e)}</td>
-                                  <td className="p-3 text-muted-foreground">{formatDate(e.data_implantacao)}</td>
-                                </tr>
-                              ))}
+                              {g.empresas.map((e) => {
+                                const status = getStatusPeriodo(e);
+                                return (
+                                  <tr
+                                    key={e.id}
+                                    className={`border-t transition-colors ${
+                                      status === "em_periodo"
+                                        ? "hover:bg-success/5"
+                                        : status === "proximo_prazo"
+                                        ? "bg-warning/5 hover:bg-warning/10"
+                                        : "hover:bg-accent/20"
+                                    }`}
+                                  >
+                                    <td className="p-3 font-medium">{e.nome}</td>
+                                    <td className="p-3 text-muted-foreground">{e.codigo_contrato || "—"}</td>
+                                    <td className="p-3">
+                                      <StatusBadge status={status} />
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-muted-foreground">{e.contato_empresa || "—"}</span>
+                                        {e.contato_empresa && (
+                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(e.contato_empresa!, "Contato")}>
+                                            <Copy className="h-3 w-3" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-muted-foreground">{e.telefone_empresa || "—"}</span>
+                                        {e.telefone_empresa && (
+                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(e.telefone_empresa!, "Telefone")}>
+                                            <Copy className="h-3 w-3" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="flex items-center gap-1">
+                                        {e.email_empresa ? (
+                                          <a href={`mailto:${e.email_empresa}`} className="text-primary hover:underline text-xs">{e.email_empresa}</a>
+                                        ) : <span className="text-muted-foreground">—</span>}
+                                        {e.email_empresa && (
+                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(e.email_empresa!, "E-mail")}>
+                                            <Copy className="h-3 w-3" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="flex items-center gap-1">
+                                        {e.telefone_empresa && (
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 text-success hover:text-success hover:bg-success/10"
+                                            title="Abrir WhatsApp"
+                                            onClick={() => openWhatsApp(e.telefone_empresa!)}
+                                          >
+                                            <MessageCircle className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                        {e.email_empresa && (
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
+                                            title="Enviar e-mail"
+                                            asChild
+                                          >
+                                            <a href={`mailto:${e.email_empresa}`}>
+                                              <Mail className="h-4 w-4" />
+                                            </a>
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <Badge variant="outline" className="text-xs rounded-md">{e.tipo_movimentacao || "—"}</Badge>
+                                    </td>
+                                    <td className="p-3 text-muted-foreground">{formatPeriodo(e)}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
