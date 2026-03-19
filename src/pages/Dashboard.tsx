@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, AlertTriangle } from "lucide-react";
+import { NewCompanyBanner } from "@/components/NewCompanyBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -168,6 +169,8 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-8">
+        {/* Real-time new company alerts */}
+        <NewCompanyBanner />
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>

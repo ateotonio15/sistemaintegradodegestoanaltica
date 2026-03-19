@@ -1,13 +1,44 @@
-import { useEffect } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
 
-export function useNewCompanyAlert() {
+export interface CompanyAlert {
+  id: string;
+  codigo_contrato: string;
+  nome: string;
+  responsavel_contrato: string;
+  data_implantacao: string;
+  timestamp: Date;
+}
+
+interface AlertContextType {
+  alerts: CompanyAlert[];
+  dismissAlert: (id: string) => void;
+  dismissAll: () => void;
+}
+
+const AlertContext = createContext<AlertContextType>({
+  alerts: [],
+  dismissAlert: () => {},
+  dismissAll: () => {},
+});
+
+export function useCompanyAlerts() {
+  return useContext(AlertContext);
+}
+
+export function CompanyAlertProvider({ children }: { children: ReactNode }) {
   const { user, role } = useAuth();
-  const navigate = useNavigate();
+  const [alerts, setAlerts] = useState<CompanyAlert[]>([]);
+
+  const dismissAlert = useCallback((id: string) => {
+    setAlerts((prev) => prev.filter((a) => a.id !== id));
+  }, []);
+
+  const dismissAll = useCallback(() => {
+    setAlerts([]);
+  }, []);
 
   useEffect(() => {
     if (!user || !role) return;
@@ -20,6 +51,7 @@ export function useNewCompanyAlert() {
         { event: "INSERT", schema: "public", table: "empresas" },
         (payload) => {
           const emp = payload.new as {
+            id?: string;
             codigo_contrato?: string;
             nome?: string;
             responsavel_contrato?: string;
@@ -37,14 +69,16 @@ export function useNewCompanyAlert() {
             ? format(new Date(emp.data_implantacao + "T00:00:00"), "dd/MM/yyyy")
             : "—";
 
-          toast("Nova empresa cadastrada!", {
-            description: `Código: ${emp.codigo_contrato || "—"}\nEmpresa: ${emp.nome || "—"}\nResponsável: ${emp.responsavel_contrato || "—"}\nImplantação: ${implantacao}`,
-            duration: 8000,
-            action: {
-              label: "Ver empresa",
-              onClick: () => navigate("/empresas"),
-            },
-          });
+          const newAlert: CompanyAlert = {
+            id: emp.id || crypto.randomUUID(),
+            codigo_contrato: emp.codigo_contrato || "—",
+            nome: emp.nome || "—",
+            responsavel_contrato: emp.responsavel_contrato || "—",
+            data_implantacao: implantacao,
+            timestamp: new Date(),
+          };
+
+          setAlerts((prev) => [newAlert, ...prev]);
         }
       )
       .subscribe();
@@ -52,5 +86,11 @@ export function useNewCompanyAlert() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, role, navigate]);
+  }, [user, role]);
+
+  return (
+    <AlertContext.Provider value={{ alerts, dismissAlert, dismissAll }}>
+      {children}
+    </AlertContext.Provider>
+  );
 }
