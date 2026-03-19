@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { CompanyAlertProvider } from "@/hooks/useNewCompanyAlert";
 import Empresas from "./pages/Empresas";
 import Movimentacoes from "./pages/Movimentacoes";
 import Usuarios from "./pages/Usuarios";
@@ -12,7 +13,6 @@ import Dashboard from "./pages/Dashboard";
 import Executivas from "./pages/Executivas";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import { useNewCompanyAlert } from "@/hooks/useNewCompanyAlert";
 
 const queryClient = new QueryClient();
 
@@ -38,38 +38,32 @@ function AuthRoute() {
   return <Auth />;
 }
 
-function NewCompanyAlertListener() {
-  useNewCompanyAlert();
-  return null;
-}
-
 const AppRoutes = () => (
-  <>
-    <NewCompanyAlertListener />
-    <Routes>
-      <Route path="/auth" element={<AuthRoute />} />
-      <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/empresas" element={<ProtectedRoute><Empresas /></ProtectedRoute>} />
-      <Route path="/movimentacoes" element={<ProtectedRoute><Movimentacoes /></ProtectedRoute>} />
-      <Route path="/executivas" element={<ProtectedRoute><Executivas /></ProtectedRoute>} />
-      <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  </>
+  <Routes>
+    <Route path="/auth" element={<AuthRoute />} />
+    <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+    <Route path="/empresas" element={<ProtectedRoute><Empresas /></ProtectedRoute>} />
+    <Route path="/movimentacoes" element={<ProtectedRoute><Movimentacoes /></ProtectedRoute>} />
+    <Route path="/executivas" element={<ProtectedRoute><Executivas /></ProtectedRoute>} />
+    <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
 );
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
+        <CompanyAlertProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </CompanyAlertProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
