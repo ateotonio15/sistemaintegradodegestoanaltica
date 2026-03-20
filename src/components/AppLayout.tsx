@@ -1,12 +1,13 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, Lock } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, Lock, CalendarClock } from "lucide-react";
 import logoImg from "@/assets/logo-cs-control.png";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { calcularStatus } from "@/lib/movimentacao-utils";
 import type { Tables } from "@/integrations/supabase/types";
+import { format, differenceInDays, parseISO, isFuture, isToday } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -400,6 +401,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             Modo Visualização — Somente leitura
           </div>
         )}
+
+        {/* Upcoming Implementation Date Alerts */}
+        <UpcomingImplantacaoAlerts />
 
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 animate-fade-in">{children}</main>
