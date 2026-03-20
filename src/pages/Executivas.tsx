@@ -251,14 +251,8 @@ export default function Executivas() {
     try { return format(new Date(d + "T00:00:00"), "dd/MM/yyyy"); } catch { return d; }
   };
 
-  const HIGH_THRESHOLD = 20;
-  const LOW_THRESHOLD = 5;
 
-  const getLoadBadge = (count: number) => {
-    if (count >= HIGH_THRESHOLD) return <Badge variant="destructive" className="text-[10px] gap-1"><AlertTriangle className="h-3 w-3" />Carga alta</Badge>;
-    if (count < LOW_THRESHOLD) return <Badge variant="secondary" className="text-[10px]">Carga baixa</Badge>;
-    return null;
-  };
+
 
   return (
     <AppLayout>
@@ -412,10 +406,7 @@ export default function Executivas() {
                       </span>
                       <span className="text-sm font-medium">{g.name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {getLoadBadge(g.empresas.length)}
-                      <Badge variant="outline" className="rounded-md font-semibold">{g.empresas.length}</Badge>
-                    </div>
+                    <Badge variant="outline" className="rounded-md font-semibold">{g.empresas.length}</Badge>
                   </div>
                 ))
               )}
@@ -448,10 +439,7 @@ export default function Executivas() {
                         </span>
                         <span className="text-sm font-medium">{u.display_name || "Sem nome"}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {getLoadBadge(Number(u.empresa_count))}
-                        <Badge variant="outline" className="rounded-md font-semibold">{Number(u.empresa_count)}</Badge>
-                      </div>
+                      <Badge variant="outline" className="rounded-md font-semibold">{Number(u.empresa_count)}</Badge>
                     </div>
                   ))
               )}
@@ -482,7 +470,6 @@ export default function Executivas() {
                           {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                           <span className="font-semibold text-sm">{g.name}</span>
                           <Badge variant="secondary" className="rounded-md text-xs">{g.empresas.length} empresa(s)</Badge>
-                          {g.userId && getLoadBadge(g.empresas.length)}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-success" />{groupEmPeriodo}</span>
@@ -498,7 +485,6 @@ export default function Executivas() {
                               <tr className="bg-accent/30">
                                 <th className="text-left p-3 font-medium text-muted-foreground">Nome</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Código</th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">
                                   <span className="flex items-center gap-1"><UserRound className="h-3.5 w-3.5" />Contato</span>
                                 </th>
@@ -514,24 +500,13 @@ export default function Executivas() {
                               </tr>
                             </thead>
                             <tbody>
-                              {g.empresas.map((e) => {
-                                const status = getStatusPeriodo(e);
-                                return (
+                              {g.empresas.map((e) => (
                                   <tr
                                     key={e.id}
-                                    className={`border-t transition-colors ${
-                                      status === "em_periodo"
-                                        ? "hover:bg-success/5"
-                                        : status === "proximo_prazo"
-                                        ? "bg-warning/5 hover:bg-warning/10"
-                                        : "hover:bg-accent/20"
-                                    }`}
+                                    className="border-t transition-colors hover:bg-accent/20"
                                   >
                                     <td className="p-3 font-medium">{e.nome}</td>
                                     <td className="p-3 text-muted-foreground">{e.codigo_contrato || "—"}</td>
-                                    <td className="p-3">
-                                      <StatusBadge status={status} />
-                                    </td>
                                     <td className="p-3">
                                       <div className="flex items-center gap-1">
                                         <span className="text-muted-foreground">{e.contato_empresa || "—"}</span>
@@ -597,8 +572,7 @@ export default function Executivas() {
                                     </td>
                                     <td className="p-3 text-muted-foreground">{formatPeriodo(e)}</td>
                                   </tr>
-                                );
-                              })}
+                                ))}
                             </tbody>
                           </table>
                         </div>
