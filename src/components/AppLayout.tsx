@@ -93,6 +93,7 @@ function UpcomingImplantacaoAlerts() {
   );
 }
 
+export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const location = useLocation();
   const navigate = useNavigate();
