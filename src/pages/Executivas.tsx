@@ -109,7 +109,7 @@ export default function Executivas() {
   const [search, setSearch] = useState("");
   const [filterExecutiva, setFilterExecutiva] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterPeriodo, setFilterPeriodo] = useState<string>("all");
+  
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
   const { data: empresas = [], isLoading } = useQuery({
@@ -179,13 +179,9 @@ export default function Executivas() {
         if (filterExecutiva === "none" && e.executiva_user_id) return false;
         if (filterExecutiva !== "none" && e.executiva_user_id !== filterExecutiva) return false;
       }
-      if (filterPeriodo !== "all") {
-        const sp = getStatusPeriodo(e);
-        if (filterPeriodo !== sp) return false;
-      }
       return true;
     });
-  }, [empresas, search, filterExecutiva, filterStatus, filterPeriodo]);
+  }, [empresas, search, filterExecutiva, filterStatus]);
 
   const groups = useMemo(() => {
     const map = new Map<string, ExecutivaGroup>();
@@ -209,9 +205,6 @@ export default function Executivas() {
   const media = totalExecutivas > 0 ? (totalEmpresas / totalExecutivas).toFixed(1) : "0";
   const ativas = filtered.filter((e) => e.status_empresa === "Ativa").length;
   const inativas = filtered.filter((e) => e.status_empresa === "Inativa").length;
-  const emPeriodo = filtered.filter((e) => getStatusPeriodo(e) === "em_periodo").length;
-  const foraPeriodo = filtered.filter((e) => getStatusPeriodo(e) === "fora_periodo").length;
-  const proximoPrazo = filtered.filter((e) => getStatusPeriodo(e) === "proximo_prazo").length;
 
   const uniqueExecutivas = useMemo(() => {
     const execs: { id: string; name: string }[] = [];
@@ -282,28 +275,6 @@ export default function Executivas() {
             <span className="font-semibold">{inativas}</span>
             <span className="text-muted-foreground">inativas</span>
           </div>
-          <span className="text-border">|</span>
-          <div className="flex items-center gap-2 text-sm">
-            <CheckCircle2 className="h-4 w-4 text-success" />
-            <span className="font-semibold">{emPeriodo}</span>
-            <span className="text-muted-foreground">em período</span>
-          </div>
-          {proximoPrazo > 0 && (
-            <>
-              <span className="text-border">|</span>
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-warning" />
-                <span className="font-semibold">{proximoPrazo}</span>
-                <span className="text-muted-foreground">próximo do prazo</span>
-              </div>
-            </>
-          )}
-          <span className="text-border">|</span>
-          <div className="flex items-center gap-2 text-sm">
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-            <span className="font-semibold">{foraPeriodo}</span>
-            <span className="text-muted-foreground">fora do período</span>
-          </div>
         </div>
 
         {/* Filters */}
@@ -328,15 +299,6 @@ export default function Executivas() {
               <SelectItem value="all">Todos os status</SelectItem>
               <SelectItem value="Ativa">Ativa</SelectItem>
               <SelectItem value="Inativa">Inativa</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
-            <SelectTrigger className="w-[180px] rounded-lg"><SelectValue placeholder="Período" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os períodos</SelectItem>
-              <SelectItem value="em_periodo">🟢 Em período</SelectItem>
-              <SelectItem value="proximo_prazo">🟡 Próximo do prazo</SelectItem>
-              <SelectItem value="fora_periodo">🔴 Fora do período</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -458,8 +420,6 @@ export default function Executivas() {
             groups.map((g) => {
               const key = g.userId || "none";
               const isOpen = openGroups.has(key);
-              const groupEmPeriodo = g.empresas.filter((e) => getStatusPeriodo(e) === "em_periodo").length;
-              const groupFora = g.empresas.filter((e) => getStatusPeriodo(e) === "fora_periodo").length;
 
               return (
                 <Card key={key} className="rounded-xl shadow-sm overflow-hidden">
@@ -470,10 +430,6 @@ export default function Executivas() {
                           {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                           <span className="font-semibold text-sm">{g.name}</span>
                           <Badge variant="secondary" className="rounded-md text-xs">{g.empresas.length} empresa(s)</Badge>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-success" />{groupEmPeriodo}</span>
-                          <span className="flex items-center gap-1"><XCircle className="h-3 w-3 text-destructive" />{groupFora}</span>
                         </div>
                       </div>
                     </CollapsibleTrigger>
