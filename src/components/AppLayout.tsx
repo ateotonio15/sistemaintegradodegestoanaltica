@@ -38,7 +38,62 @@ const allNavItems = [
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+function UpcomingImplantacaoAlerts() {
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["upcoming-implantacao-alerts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome, codigo_contrato, responsavel_contrato, data_implantacao")
+        .not("data_implantacao", "is", null)
+        .eq("status_empresa", "Ativa");
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 60000,
+  });
+
+  const upcoming = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return empresas.filter((e) => {
+      if (!e.data_implantacao) return false;
+      const implDate = parseISO(e.data_implantacao);
+      const daysUntil = differenceInDays(implDate, today);
+      return daysUntil >= 0 && daysUntil <= 2;
+    });
+  }, [empresas]);
+
+  if (upcoming.length === 0) return null;
+
+  return (
+    <div className="space-y-0">
+      {upcoming.map((e) => {
+        const implDate = parseISO(e.data_implantacao!);
+        const daysUntil = differenceInDays(implDate, new Date(new Date().setHours(0, 0, 0, 0)));
+        const dateFormatted = format(implDate, "dd/MM/yyyy");
+        const urgencyText = daysUntil === 0 ? "Hoje" : daysUntil === 1 ? "Amanhã" : "Em 2 dias";
+
+        return (
+          <div
+            key={e.id}
+            className="bg-yellow-400/20 border-b border-yellow-500/30 px-4 py-2.5 flex items-center justify-center gap-3 text-sm font-medium text-yellow-800 dark:text-yellow-300"
+          >
+            <CalendarClock className="h-4 w-4 shrink-0" />
+            <span>
+              <strong>{urgencyText}:</strong> Implantação de <strong>{e.nome}</strong>
+              {e.codigo_contrato && <> (Cód: {e.codigo_contrato})</>}
+              {e.responsavel_contrato && <> — Resp: {e.responsavel_contrato}</>}
+              {" "}em <strong>{dateFormatted}</strong>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user, isAdmin, isExecutivo, isViewOnly, role } = useAuth();
