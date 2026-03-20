@@ -1,12 +1,13 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, Lock } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, Lock, CalendarClock } from "lucide-react";
 import logoImg from "@/assets/logo-cs-control.png";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { calcularStatus } from "@/lib/movimentacao-utils";
 import type { Tables } from "@/integrations/supabase/types";
+import { format, differenceInDays, parseISO, isFuture, isToday } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -37,7 +38,63 @@ const allNavItems = [
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
+function UpcomingImplantacaoAlerts() {
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["upcoming-implantacao-alerts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome, codigo_contrato, responsavel_contrato, data_implantacao")
+        .not("data_implantacao", "is", null)
+        .eq("status_empresa", "Ativa");
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 60000,
+  });
+
+  const upcoming = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return empresas.filter((e) => {
+      if (!e.data_implantacao) return false;
+      const implDate = parseISO(e.data_implantacao);
+      const daysUntil = differenceInDays(implDate, today);
+      return daysUntil >= 0 && daysUntil <= 2;
+    });
+  }, [empresas]);
+
+  if (upcoming.length === 0) return null;
+
+  return (
+    <div className="space-y-0">
+      {upcoming.map((e) => {
+        const implDate = parseISO(e.data_implantacao!);
+        const daysUntil = differenceInDays(implDate, new Date(new Date().setHours(0, 0, 0, 0)));
+        const dateFormatted = format(implDate, "dd/MM/yyyy");
+        const urgencyText = daysUntil === 0 ? "Hoje" : daysUntil === 1 ? "Amanhã" : "Em 2 dias";
+
+        return (
+          <div
+            key={e.id}
+            className="bg-yellow-400/20 border-b border-yellow-500/30 px-4 py-2.5 flex items-center justify-center gap-3 text-sm font-medium text-yellow-800 dark:text-yellow-300"
+          >
+            <CalendarClock className="h-4 w-4 shrink-0" />
+            <span>
+              <strong>{urgencyText}:</strong> Implantação de <strong>{e.nome}</strong>
+              {e.codigo_contrato && <> (Cód: {e.codigo_contrato})</>}
+              {e.responsavel_contrato && <> — Resp: {e.responsavel_contrato}</>}
+              {" "}em <strong>{dateFormatted}</strong>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
+
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user, isAdmin, isExecutivo, isViewOnly, role } = useAuth();
@@ -400,6 +457,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             Modo Visualização — Somente leitura
           </div>
         )}
+
+        {/* Upcoming Implementation Date Alerts */}
+        <UpcomingImplantacaoAlerts />
 
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 animate-fade-in">{children}</main>
