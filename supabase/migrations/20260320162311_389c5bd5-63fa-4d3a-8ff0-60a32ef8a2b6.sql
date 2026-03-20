@@ -1,0 +1,1 @@
+ALTER TABLE public.empresas REPLICA IDENTITY FULL;

@@ -44,12 +44,16 @@ export function CompanyAlertProvider({ children }: { children: ReactNode }) {
     if (!user || !role) return;
     if (role !== "executivo" && role !== "visualizacao") return;
 
+    console.log("[CompanyAlert] Subscribing to realtime for role:", role);
+
     const channel = supabase
-      .channel("new-empresa-alerts")
+      .channel("new-empresa-alerts-" + user.id)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "empresas" },
         (payload) => {
+          console.log("[CompanyAlert] New empresa received:", payload.new);
+
           const emp = payload.new as {
             id?: string;
             codigo_contrato?: string;
@@ -66,7 +70,7 @@ export function CompanyAlertProvider({ children }: { children: ReactNode }) {
           } catch {}
 
           const implantacao = emp.data_implantacao
-            ? format(new Date(emp.data_implantacao + "T00:00:00"), "dd/MM/yyyy")
+            ? (() => { try { return format(new Date(emp.data_implantacao + "T00:00:00"), "dd/MM/yyyy"); } catch { return emp.data_implantacao; } })()
             : "—";
 
           const newAlert: CompanyAlert = {
@@ -81,7 +85,9 @@ export function CompanyAlertProvider({ children }: { children: ReactNode }) {
           setAlerts((prev) => [newAlert, ...prev]);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[CompanyAlert] Subscription status:", status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
