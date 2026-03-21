@@ -450,13 +450,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* View Only Banner */}
-        {isViewOnly && (
-          <div className="bg-warning/10 border-b border-warning/30 px-4 py-2 flex items-center justify-center gap-2 text-sm font-medium text-warning">
-            <Lock className="h-4 w-4" />
-            Modo Visualização — Somente leitura
-          </div>
-        )}
+        {/* View Only Banner removed per user request */}
 
         {/* Upcoming Implementation Date Alerts */}
         <UpcomingImplantacaoAlerts />
