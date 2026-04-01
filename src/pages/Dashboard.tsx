@@ -26,6 +26,7 @@ import {
   calcularStatusPeriodoEmpresa,
   formatDateBR,
   formatPeriodoEmpresa,
+  periodoDaDataCorte,
 } from "@/lib/movimentacao-utils";
 
 export default function Dashboard() {
