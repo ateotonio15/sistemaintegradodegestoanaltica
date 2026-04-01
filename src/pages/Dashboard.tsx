@@ -119,10 +119,69 @@ export default function Dashboard() {
     setEditDialogOpen(true);
   };
 
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-notifications"] });
     queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+  };
+
+  const handleGenerateAll = async () => {
+    if (!user || isGenerating) return;
+    setIsGenerating(true);
+    try {
+      const mesRef = filterMes;
+      // Get existing movimentações for this month to avoid duplicates
+      const { data: existing } = await supabase
+        .from("movimentacoes")
+        .select("empresa_id, periodo")
+        .eq("mes_referencia", mesRef);
+
+      const existingSet = new Set(
+        (existing || []).map((e) => `${e.empresa_id}__${e.periodo}`)
+      );
+
+      // Build inserts for all active empresas
+      const toInsert: TablesInsert<"movimentacoes">[] = [];
+      for (const emp of empresasAtivas) {
+        let periodo = "01-05";
+        if (emp.tipo_movimentacao === "Diária" && emp.data_corte) {
+          periodo = periodoDaDataCorte(emp.data_corte);
+        } else if (emp.periodo_movimentacao) {
+          periodo = emp.periodo_movimentacao;
+        }
+
+        const key = `${emp.id}__${periodo}`;
+        if (!existingSet.has(key)) {
+          toInsert.push({
+            empresa_id: emp.id,
+            mes_referencia: mesRef,
+            periodo,
+            tipo_movimentacao: emp.tipo_movimentacao || "Fechada",
+            responsavel_movimentacao: emp.responsavel_contrato || null,
+          });
+        }
+      }
+
+      if (toInsert.length === 0) {
+        toast({ title: "Todas as empresas já possuem movimentações neste mês." });
+      } else {
+        // Insert in batches of 50
+        for (let i = 0; i < toInsert.length; i += 50) {
+          const batch = toInsert.slice(i, i + 50);
+          const { error } = await supabase.from("movimentacoes").insert(batch);
+          if (error) throw error;
+        }
+        toast({ title: `${toInsert.length} movimentações geradas com sucesso!` });
+        handleRefresh();
+      }
+    } catch (err: any) {
+      console.error("Erro ao gerar movimentações:", err);
+      toast({ title: "Erro ao gerar movimentações", description: err?.message, variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const mesesOptions = useMemo(() => {
