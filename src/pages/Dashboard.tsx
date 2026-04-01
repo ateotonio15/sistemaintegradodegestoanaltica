@@ -237,10 +237,18 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-1">Visão geral das movimentações e empresas</p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching} className="rounded-lg gap-2">
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
+          <div className="flex gap-2">
+            {isAdmin && (
+              <Button variant="default" size="sm" onClick={handleGenerateAll} disabled={isGenerating} className="rounded-lg gap-2">
+                <Building2 className="h-4 w-4" />
+                {isGenerating ? "Gerando..." : "Gerar Movimentações"}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching} className="rounded-lg gap-2">
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
