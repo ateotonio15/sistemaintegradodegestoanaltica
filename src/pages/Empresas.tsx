@@ -56,6 +56,8 @@ export default function Empresas() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [dataImplantacao, setDataImplantacao] = useState("");
+  const [dataVencimentoFatura, setDataVencimentoFatura] = useState("");
+  const [dataEmissaoFatura, setDataEmissaoFatura] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -71,7 +73,7 @@ export default function Empresas() {
       if (error) throw error;
       return data;
     },
-    enabled: canFullEdit,
+    enabled: !!user,
   });
 
   const { data: userRolesList = [] } = useQuery({
@@ -81,7 +83,7 @@ export default function Empresas() {
       if (error) throw error;
       return data;
     },
-    enabled: canFullEdit,
+    enabled: !!user,
   });
 
   const executivoUsers = usuarios.filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "executivo"));
@@ -94,16 +96,17 @@ export default function Empresas() {
       if (error) throw error;
       return data as Empresa[];
     },
+    enabled: !!user,
   });
 
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
       if (isExecutivo && editingId) {
-        // Executivo can only update these 3 fields
         const { error } = await supabase.from("empresas").update({
           contato_empresa: values.contato_empresa,
           telefone_empresa: values.telefone_empresa,
           email_empresa: values.email_empresa,
+          executiva_user_id: (values as any).executiva_user_id,
         }).eq("id", editingId);
         if (error) throw error;
         return;
@@ -112,9 +115,9 @@ export default function Empresas() {
       if (payload.tipo_movimentacao === "Diária") {
         payload.periodo_movimentacao = null;
       }
-      if (dataImplantacao) {
-        payload.data_implantacao = dataImplantacao;
-      }
+      if (dataImplantacao) payload.data_implantacao = dataImplantacao;
+      if (dataVencimentoFatura) payload.data_vencimento_fatura = dataVencimentoFatura;
+      if (dataEmissaoFatura) payload.data_emissao_fatura = dataEmissaoFatura;
       if (payload.responsavel_user_id) {
         const selectedUser = comunUsers.find((u) => u.user_id === payload.responsavel_user_id)
           || usuarios.find((u) => u.user_id === payload.responsavel_user_id);
@@ -216,6 +219,8 @@ export default function Empresas() {
     setForm(emptyForm);
     setEditingId(null);
     setDataImplantacao("");
+    setDataVencimentoFatura("");
+    setDataEmissaoFatura("");
   };
 
   const openEdit = (e: Empresa) => {
@@ -241,14 +246,16 @@ export default function Empresas() {
       contato_empresa: (e as any).contato_empresa ?? "",
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
+    setDataVencimentoFatura((e as any).data_vencimento_fatura ?? "");
+    setDataEmissaoFatura((e as any).data_emissao_fatura ?? "");
     setDialogOpen(true);
   };
 
   const getResponsavelName = (empresa: Empresa) => {
     const userId = (empresa as any).responsavel_user_id;
     if (userId) {
-      const user = usuarios.find((u) => u.user_id === userId);
-      if (user) return user.display_name || "—";
+      const u = usuarios.find((u) => u.user_id === userId);
+      if (u) return u.display_name || "—";
     }
     return empresa.responsavel_contrato || "—";
   };
@@ -256,21 +263,18 @@ export default function Empresas() {
   const getExecutivaName = (empresa: Empresa) => {
     const userId = (empresa as any).executiva_user_id;
     if (userId) {
-      const user = usuarios.find((u) => u.user_id === userId);
-      if (user) return user.display_name || "—";
+      const u = usuarios.find((u) => u.user_id === userId);
+      if (u) return u.display_name || "Não definida";
     }
-    return "—";
+    return "Não definida";
   };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let list = empresas;
-
-    // Executivo: show only their linked companies
     if (isExecutivo && user) {
       list = list.filter((e) => (e as any).executiva_user_id === user.id);
     }
-
     return list
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
       .filter((e) =>
@@ -283,7 +287,6 @@ export default function Empresas() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        {/* Executivo summary */}
         {isExecutivo && (
           <Card className="rounded-xl shadow-sm">
             <CardContent className="p-4 flex items-center gap-4">
@@ -368,6 +371,14 @@ export default function Empresas() {
                         <Input type="date" value={dataImplantacao} onChange={(e) => setDataImplantacao(e.target.value)} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
+                        <Label className="text-sm font-medium">Data de Vencimento da Fatura *</Label>
+                        <Input type="date" value={dataVencimentoFatura} onChange={(e) => setDataVencimentoFatura(e.target.value)} required className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Data de Emissão da Fatura *</Label>
+                        <Input type="date" value={dataEmissaoFatura} onChange={(e) => setDataEmissaoFatura(e.target.value)} required className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
                         <Label className="text-sm font-medium">Corretora</Label>
                         <Input value={form.operadora_plano ?? ""} onChange={(e) => setForm({ ...form, operadora_plano: e.target.value })} className="rounded-lg" />
                       </div>
@@ -450,11 +461,11 @@ export default function Empresas() {
             </div>
           )}
 
-          {/* Executivo edit dialog - restricted to contato, telefone, email */}
+          {/* Executivo edit dialog - restricted to contato, telefone, email + executiva */}
           {isExecutivo && (
             <Dialog open={dialogOpen && isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
               <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-xl">
-                <DialogHeader><DialogTitle>Editar Informações de Contato</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>Editar Informações</DialogTitle></DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
                   <div className="grid gap-4">
                     <div className="space-y-2">
@@ -468,6 +479,22 @@ export default function Empresas() {
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">E-mail da Empresa</Label>
                       <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Executiva Responsável</Label>
+                      <Select
+                        value={(form as any).executiva_user_id ?? ""}
+                        onValueChange={(v) => setForm({ ...form, executiva_user_id: v || null } as any)}
+                      >
+                        <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
+                        <SelectContent>
+                          {executivoUsers.map((u) => (
+                            <SelectItem key={u.user_id} value={u.user_id}>
+                              {u.display_name || u.user_id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div className="flex justify-end gap-2">
@@ -509,15 +536,17 @@ export default function Empresas() {
                     <TableHead className="font-semibold">Tipo</TableHead>
                     <TableHead className="font-semibold">Período / Corte</TableHead>
                     <TableHead className="font-semibold">Implantação</TableHead>
+                    <TableHead className="font-semibold">Venc. Fatura</TableHead>
+                    <TableHead className="font-semibold">Emissão Fatura</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
                     {canEdit && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEdit ? 13 : 12} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={canEdit ? 13 : 12} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
                   ) : (
                     filtered.map((e) => (
                       <TableRow key={e.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setDetailEmpresa(e)}>
@@ -536,6 +565,8 @@ export default function Empresas() {
                             : e.periodo_movimentacao || "—"}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{formatDateBR(e.data_implantacao)}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDateBR((e as any).data_vencimento_fatura)}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDateBR((e as any).data_emissao_fatura)}</TableCell>
                         <TableCell>
                           <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md">
                             {e.status_empresa ?? "Ativa"}
@@ -580,6 +611,8 @@ export default function Empresas() {
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Período de Movimentação</p><p className="font-medium mt-0.5">{detailEmpresa.periodo_movimentacao || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Implantação</p><p className="font-medium mt-0.5">{formatDateBR(detailEmpresa.data_implantacao) || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Corte</p><p className="font-medium mt-0.5">{detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Vencimento da Fatura</p><p className="font-medium mt-0.5">{formatDateBR((detailEmpresa as any).data_vencimento_fatura) || "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Emissão da Fatura</p><p className="font-medium mt-0.5">{formatDateBR((detailEmpresa as any).data_emissao_fatura) || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">E-mail da Empresa</p><p className="font-medium mt-0.5">{detailEmpresa.email_empresa || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Telefone da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).telefone_empresa || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Contato da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).contato_empresa || "—"}</p></div>
