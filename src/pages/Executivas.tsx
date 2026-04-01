@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,18 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
-import { Navigate } from "react-router-dom";
 import {
-  Building2, Users, TrendingUp, Search, AlertTriangle, Trophy,
+  Building2, Users, TrendingUp, Search, Trophy,
   ChevronDown, ChevronRight, Mail, Phone, UserRound, Copy, MessageCircle,
-  CheckCircle2, XCircle, Clock
+  CheckCircle2, XCircle, Clock, Pencil
 } from "lucide-react";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { calcularStatusPeriodoEmpresa, getCurrentPeriodo, periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { getCurrentPeriodo, periodoDaDataCorte, formatDateBR } from "@/lib/movimentacao-utils";
 import type { Tables } from "@/integrations/supabase/types";
+import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
 
 interface EmpresaData {
   id: string;
@@ -37,6 +39,8 @@ interface EmpresaData {
   email_empresa: string | null;
   telefone_empresa: string | null;
   contato_empresa: string | null;
+  data_vencimento_fatura: string | null;
+  data_emissao_fatura: string | null;
 }
 
 interface ExecutivaGroup {
@@ -45,52 +49,11 @@ interface ExecutivaGroup {
   empresas: EmpresaData[];
 }
 
-function getStatusPeriodo(e: EmpresaData): "em_periodo" | "fora_periodo" | "proximo_prazo" {
-  if (e.status_empresa !== "Ativa") return "fora_periodo";
-
-  const periodoAtual = getCurrentPeriodo();
-  const [startDay, endDay] = periodoAtual.split("-").map(Number);
-
-  let periodoEmpresa: string | null = null;
-  if ((e.tipo_movimentacao === "Diária" || e.tipo_movimentacao === "Diario") && e.data_corte) {
-    periodoEmpresa = periodoDaDataCorte(e.data_corte);
-  } else if (e.periodo_movimentacao) {
-    periodoEmpresa = e.periodo_movimentacao;
-  }
-
-  if (!periodoEmpresa) return "fora_periodo";
-
-  if (periodoEmpresa === periodoAtual) {
-    // Check if close to deadline (last 2 days of period)
-    const today = new Date().getDate();
-    if (today >= endDay - 1) return "proximo_prazo";
-    return "em_periodo";
-  }
-
-  return "fora_periodo";
-}
-
-function StatusBadge({ status }: { status: "em_periodo" | "fora_periodo" | "proximo_prazo" }) {
-  switch (status) {
-    case "em_periodo":
-      return (
-        <Badge className="bg-success/15 text-success border-success/30 text-[10px] gap-1">
-          <CheckCircle2 className="h-3 w-3" /> Em período
-        </Badge>
-      );
-    case "proximo_prazo":
-      return (
-        <Badge className="bg-warning/15 text-warning border-warning/30 text-[10px] gap-1">
-          <Clock className="h-3 w-3" /> Próximo do prazo
-        </Badge>
-      );
-    case "fora_periodo":
-      return (
-        <Badge className="bg-destructive/15 text-destructive border-destructive/30 text-[10px] gap-1">
-          <XCircle className="h-3 w-3" /> Fora do período
-        </Badge>
-      );
-  }
+interface ExecutivaDetail {
+  userId: string;
+  name: string;
+  email: string | null;
+  empresaCount: number;
 }
 
 function copyToClipboard(text: string, label: string) {
@@ -105,12 +68,17 @@ function openWhatsApp(phone: string) {
 }
 
 export default function Executivas() {
-  const { isAdmin, isExecutivo, isViewOnly, user } = useAuth();
+  const { isAdmin, isExecutivo, isViewOnly, user, role } = useAuth();
+  const isComum = role === "comum";
   const [search, setSearch] = useState("");
   const [filterExecutiva, setFilterExecutiva] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [showRankingModal, setShowRankingModal] = useState(false);
+  const [editingEmpresaId, setEditingEmpresaId] = useState<string | null>(null);
+  const [editExecutivaUserId, setEditExecutivaUserId] = useState<string>("");
+  const queryClient = useQueryClient();
+  const { toast: toastHook } = useToast();
 
   const { data: empresas = [], isLoading } = useQuery({
     queryKey: ["executivas-empresas"],
@@ -120,7 +88,12 @@ export default function Executivas() {
         .select("id, nome, cnpj, codigo_contrato, operadora_plano, tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao, status_empresa, responsavel_user_id, responsavel_contrato, executiva_user_id, email_empresa, telefone_empresa, contato_empresa")
         .order("nome");
       if (error) throw error;
-      return data as EmpresaData[];
+      // Cast and add fatura fields (may not be in types yet)
+      return (data as any[]).map(d => ({
+        ...d,
+        data_vencimento_fatura: d.data_vencimento_fatura ?? null,
+        data_emissao_fatura: d.data_emissao_fatura ?? null,
+      })) as EmpresaData[];
     },
     enabled: !!user,
   });
@@ -157,11 +130,53 @@ export default function Executivas() {
     enabled: !!user,
   });
 
+  // Get auth.users emails via edge function or profiles - we use profiles for now
+  // For emails, we need to look up from auth - but we don't have access
+  // We'll use the empresa email data or display_name
+
   const profileMap = useMemo(() => {
     const map = new Map<string, string>();
     profiles.forEach((p) => map.set(p.user_id, p.display_name || "Sem nome"));
     return map;
   }, [profiles]);
+
+  const executivoUsers = useMemo(() => {
+    return profiles.filter(p => executivoUserIds.has(p.user_id));
+  }, [profiles, executivoUserIds]);
+
+  // Build executiva details for modal
+  const executivaDetails: ExecutivaDetail[] = useMemo(() => {
+    return Array.from(executivoUserIds).map(uid => {
+      const profile = profiles.find(p => p.user_id === uid);
+      const count = empresas.filter(e => e.executiva_user_id === uid).length;
+      // Try to get contact info from one of their empresas
+      const linkedEmpresa = empresas.find(e => e.executiva_user_id === uid);
+      return {
+        userId: uid,
+        name: profile?.display_name || "Sem nome",
+        email: linkedEmpresa?.email_empresa || null,
+        empresaCount: count,
+      };
+    }).sort((a, b) => b.empresaCount - a.empresaCount);
+  }, [executivoUserIds, profiles, empresas]);
+
+  const updateExecutivaMutation = useMutation({
+    mutationFn: async ({ empresaId, executivaUserId }: { empresaId: string; executivaUserId: string | null }) => {
+      const { error } = await supabase.from("empresas").update({
+        executiva_user_id: executivaUserId,
+      } as any).eq("id", empresaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["executivas-empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      setEditingEmpresaId(null);
+      setEditExecutivaUserId("");
+      toastHook({ title: "Executiva atualizada com sucesso!" });
+    },
+    onError: () => toastHook({ title: "Erro ao atualizar executiva", variant: "destructive" }),
+  });
 
   const filtered = useMemo(() => {
     return empresas.filter((e) => {
@@ -199,7 +214,6 @@ export default function Executivas() {
     return Array.from(map.values()).sort((a, b) => b.empresas.length - a.empresas.length);
   }, [filtered, profileMap]);
 
-  // Stats
   const totalEmpresas = filtered.length;
   const totalExecutivas = groups.filter((g) => g.userId !== null).length;
   const media = totalExecutivas > 0 ? (totalEmpresas / totalExecutivas).toFixed(1) : "0";
@@ -212,16 +226,14 @@ export default function Executivas() {
     empresas.forEach((e) => {
       if (e.executiva_user_id && !seen.has(e.executiva_user_id)) {
         seen.add(e.executiva_user_id);
-        execs.push({
-          id: e.executiva_user_id,
-          name: profileMap.get(e.executiva_user_id) || "Desconhecido",
-        });
+        execs.push({ id: e.executiva_user_id, name: profileMap.get(e.executiva_user_id) || "Desconhecido" });
       }
     });
     return execs.sort((a, b) => a.name.localeCompare(b.name));
   }, [empresas, profileMap]);
 
-  if (!isAdmin && !isExecutivo && !isViewOnly) return <Navigate to="/" replace />;
+  // Allow admin, executivo, visualizacao AND comum
+  const canChangeExecutiva = isAdmin || isExecutivo;
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {
@@ -244,13 +256,9 @@ export default function Executivas() {
     try { return format(new Date(d + "T00:00:00"), "dd/MM/yyyy"); } catch { return d; }
   };
 
-
-
-
   return (
     <AppLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Executivas</h1>
           <p className="text-sm text-muted-foreground mt-1">Painel de controle e distribuição de carga</p>
@@ -342,11 +350,12 @@ export default function Executivas() {
 
         {/* Ranking */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="rounded-xl shadow-sm">
+          <Card className="rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowRankingModal(true)}>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-warning" />
                 Ranking de Executivas
+                <Badge variant="outline" className="ml-auto text-xs">Clique para detalhes</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -409,6 +418,124 @@ export default function Executivas() {
           </Card>
         </div>
 
+        {/* Ranking de Executivas Modal */}
+        <Dialog open={showRankingModal} onOpenChange={setShowRankingModal}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-warning" />
+                Ranking de Executivas — Detalhes
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              {executivaDetails.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma executiva encontrada</p>
+              ) : (
+                executivaDetails.map((exec, i) => {
+                  // Find empresas for this exec to get phone/email
+                  const execEmpresas = empresas.filter(e => e.executiva_user_id === exec.userId);
+                  const phone = execEmpresas.find(e => e.telefone_empresa)?.telefone_empresa;
+
+                  return (
+                    <Card key={exec.userId} className={`rounded-xl overflow-hidden ${i === 0 ? "border-warning/40 bg-warning/5" : i < 3 ? "bg-accent/30" : ""}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${
+                              i === 0 ? "bg-warning/20 text-warning" : i < 3 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                            }`}>
+                              {i + 1}º
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm">{exec.name}</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                <Badge variant="outline" className="rounded-md text-xs gap-1">
+                                  <Building2 className="h-3 w-3" /> {exec.empresaCount} empresa(s)
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {phone && (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(phone, "Telefone")} title="Copiar telefone">
+                                  <Phone className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-success hover:text-success hover:bg-success/10"
+                                  title="Abrir WhatsApp"
+                                  onClick={() => openWhatsApp(phone)}
+                                >
+                                  <MessageCircle className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                            {exec.email && (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(exec.email!, "E-mail")} title="Copiar email">
+                                  <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" title="Enviar e-mail" asChild>
+                                  <a href={`mailto:${exec.email}`}><Mail className="h-4 w-4" /></a>
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {phone && (
+                          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                            <Phone className="h-3 w-3" /> {phone}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Executiva Modal */}
+        <Dialog open={!!editingEmpresaId} onOpenChange={(open) => { if (!open) { setEditingEmpresaId(null); setEditExecutivaUserId(""); } }}>
+          <DialogContent className="sm:max-w-md rounded-xl">
+            <DialogHeader>
+              <DialogTitle>Alterar Executiva Responsável</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-accent/30">
+                <p className="text-xs text-muted-foreground">Empresa</p>
+                <p className="font-medium">{empresas.find(e => e.id === editingEmpresaId)?.nome || ""}</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Nova Executiva Responsável</Label>
+                <Select value={editExecutivaUserId} onValueChange={setEditExecutivaUserId}>
+                  <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
+                  <SelectContent>
+                    {executivoUsers.map((u) => (
+                      <SelectItem key={u.user_id} value={u.user_id}>
+                        {u.display_name || u.user_id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setEditingEmpresaId(null); setEditExecutivaUserId(""); }} className="rounded-lg">Cancelar</Button>
+                <Button
+                  disabled={!editExecutivaUserId || updateExecutivaMutation.isPending}
+                  onClick={() => updateExecutivaMutation.mutate({ empresaId: editingEmpresaId!, executivaUserId: editExecutivaUserId || null })}
+                  className="rounded-lg"
+                >
+                  {updateExecutivaMutation.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Grouped Listing */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Listagem por Executiva</h2>
@@ -450,6 +577,8 @@ export default function Executivas() {
                                 <th className="text-left p-3 font-medium text-muted-foreground">
                                   <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" />Email</span>
                                 </th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">Venc. Fatura</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">Emissão Fatura</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Ações</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Tipo</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Período / Corte</th>
@@ -457,10 +586,7 @@ export default function Executivas() {
                             </thead>
                             <tbody>
                               {g.empresas.map((e) => (
-                                  <tr
-                                    key={e.id}
-                                    className="border-t transition-colors hover:bg-accent/20"
-                                  >
+                                  <tr key={e.id} className="border-t transition-colors hover:bg-accent/20">
                                     <td className="p-3 font-medium">{e.nome}</td>
                                     <td className="p-3 text-muted-foreground">{e.codigo_contrato || "—"}</td>
                                     <td className="p-3">
@@ -495,6 +621,8 @@ export default function Executivas() {
                                         )}
                                       </div>
                                     </td>
+                                    <td className="p-3 text-muted-foreground">{formatDateBR(e.data_vencimento_fatura)}</td>
+                                    <td className="p-3 text-muted-foreground">{formatDateBR(e.data_emissao_fatura)}</td>
                                     <td className="p-3">
                                       <div className="flex items-center gap-1">
                                         {e.telefone_empresa && (
@@ -509,16 +637,22 @@ export default function Executivas() {
                                           </Button>
                                         )}
                                         {e.email_empresa && (
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10" title="Enviar e-mail" asChild>
+                                            <a href={`mailto:${e.email_empresa}`}><Mail className="h-4 w-4" /></a>
+                                          </Button>
+                                        )}
+                                        {canChangeExecutiva && (
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
-                                            title="Enviar e-mail"
-                                            asChild
+                                            className="h-7 w-7 hover:bg-primary/10"
+                                            title="Alterar executiva"
+                                            onClick={() => {
+                                              setEditingEmpresaId(e.id);
+                                              setEditExecutivaUserId(e.executiva_user_id || "");
+                                            }}
                                           >
-                                            <a href={`mailto:${e.email_empresa}`}>
-                                              <Mail className="h-4 w-4" />
-                                            </a>
+                                            <Pencil className="h-3.5 w-3.5 text-primary" />
                                           </Button>
                                         )}
                                       </div>
