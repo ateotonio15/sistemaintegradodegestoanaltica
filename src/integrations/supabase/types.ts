@@ -57,8 +57,10 @@ export type Database = {
           contato_empresa: string | null
           created_at: string
           data_corte: number | null
+          data_emissao_fatura: string | null
           data_implantacao: string | null
           data_rescisao: string | null
+          data_vencimento_fatura: string | null
           dia_movimentacao: number | null
           email_empresa: string | null
           executiva_user_id: string | null
@@ -82,8 +84,10 @@ export type Database = {
           contato_empresa?: string | null
           created_at?: string
           data_corte?: number | null
+          data_emissao_fatura?: string | null
           data_implantacao?: string | null
           data_rescisao?: string | null
+          data_vencimento_fatura?: string | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
           executiva_user_id?: string | null
@@ -107,8 +111,10 @@ export type Database = {
           contato_empresa?: string | null
           created_at?: string
           data_corte?: number | null
+          data_emissao_fatura?: string | null
           data_implantacao?: string | null
           data_rescisao?: string | null
+          data_vencimento_fatura?: string | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
           executiva_user_id?: string | null
