@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, AlertTriangle } from "lucide-react";
+import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, AlertTriangle, Eye } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import {
   type Movimentacao,
   PERIODOS,
@@ -33,12 +34,14 @@ export default function Dashboard() {
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
   const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
+  const [showNovasEmpresasModal, setShowNovasEmpresasModal] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingMov, setEditingMov] = useState<Movimentacao | null>(null);
   const [editForm, setEditForm] = useState({ data_envio_empresa: "", data_envio_financeiro: "" });
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const canEditDates = !isViewOnly && (isAdmin || role === "comum");
 
   const { data: allEmpresas = [] } = useQuery({
@@ -65,6 +68,50 @@ export default function Dashboard() {
   const visibleEmpresas = useMemo(() => {
     return allEmpresas;
   }, [allEmpresas]);
+
+  // Novas Empresas: em fase de implantação (data_implantacao nula ou futura)
+  const novasEmpresas = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return allEmpresas.filter((e) => {
+      // Empresa sem data de implantação = ainda em fase de implantação
+      if (!e.data_implantacao) return true;
+      // Empresa com data de implantação futura = ainda não vigente
+      return e.data_implantacao > today;
+    });
+  }, [allEmpresas]);
+
+  // Fetch executiva profiles for novas empresas
+  const executivaUserIds = useMemo(() => {
+    return [...new Set(novasEmpresas.map((e) => e.executiva_user_id).filter(Boolean) as string[])];
+  }, [novasEmpresas]);
+
+  const { data: executivaProfiles = [] } = useQuery({
+    queryKey: ["executiva-profiles-dashboard", executivaUserIds],
+    queryFn: async () => {
+      if (executivaUserIds.length === 0) return [];
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name").in("user_id", executivaUserIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && executivaUserIds.length > 0,
+  });
+
+  const executivaMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    executivaProfiles.forEach((p) => { map[p.user_id] = p.display_name || "Sem nome"; });
+    return map;
+  }, [executivaProfiles]);
+
+  // Real-time: listen for empresa changes to auto-refresh
+  useEffect(() => {
+    const channel = supabase
+      .channel("dashboard-empresas-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "empresas" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const empresasAtivas = useMemo(() => visibleEmpresas.filter((e) => e.status_empresa === "Ativa"), [visibleEmpresas]);
   const empresasEmPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Em período"), [empresasAtivas]);
@@ -285,7 +332,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Summary cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
           <Card className="cursor-pointer hover:shadow-md transition-all duration-200 rounded-xl border-border/60" onClick={() => setShowEmpresasAtivasModal(true)}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas Ativas</CardTitle>
@@ -299,6 +346,23 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          <Card className="cursor-pointer hover:shadow-md transition-all duration-200 rounded-xl border-info/40 bg-info/5" onClick={() => setShowNovasEmpresasModal(true)}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-medium text-info uppercase tracking-wider">Novas Empresas</CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-info/15 flex items-center justify-center relative">
+                <Building2 className="h-4 w-4 text-info" />
+                {novasEmpresas.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-info text-info-foreground text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">
+                    {novasEmpresas.length}
+                  </span>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-info">{novasEmpresas.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">Em fase de implantação</p>
+            </CardContent>
+          </Card>
           <Card className="rounded-xl border-border/60">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Em Período</CardTitle>
@@ -520,7 +584,79 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Movimentação Dialog */}
+        {/* Novas Empresas Modal */}
+        <Dialog open={showNovasEmpresasModal} onOpenChange={setShowNovasEmpresasModal}>
+          <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto rounded-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-info" />
+                Novas Empresas — Em Fase de Implantação
+                <Badge className="bg-info/15 text-info border-info/30 ml-2">{novasEmpresas.length}</Badge>
+              </DialogTitle>
+            </DialogHeader>
+            {novasEmpresas.length === 0 ? (
+              <div className="text-center text-muted-foreground py-12">
+                Nenhuma empresa em fase de implantação no momento.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-info/5 hover:bg-info/5">
+                      <TableHead className="font-semibold">Empresa</TableHead>
+                      <TableHead className="font-semibold">Cód. Contrato</TableHead>
+                      <TableHead className="font-semibold">CNPJ</TableHead>
+                      <TableHead className="font-semibold">Responsável</TableHead>
+                      <TableHead className="font-semibold">Executiva</TableHead>
+                      <TableHead className="font-semibold">Implantação</TableHead>
+                      <TableHead className="font-semibold">Movimentação</TableHead>
+                      <TableHead className="font-semibold">Período/Corte</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {novasEmpresas.map((e) => (
+                      <TableRow key={e.id} className="hover:bg-info/5 transition-colors">
+                        <TableCell className="font-medium">{e.nome}</TableCell>
+                        <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{e.cnpj || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{e.responsavel_contrato || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{e.executiva_user_id ? (executivaMap[e.executiva_user_id] || "—") : "Não definida"}</TableCell>
+                        <TableCell>
+                          {e.data_implantacao ? (
+                            <Badge className="bg-warning/15 text-warning border-warning/30 rounded-md">
+                              {formatDateBR(e.data_implantacao)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="rounded-md text-muted-foreground">Não definida</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>{e.tipo_movimentacao || "—"}</TableCell>
+                        <TableCell>
+                          {e.tipo_movimentacao === "Diária" ? `Corte: ${e.data_corte || "—"}` : (e.periodo_movimentacao || "—")}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-lg hover:bg-info/10"
+                            onClick={() => {
+                              setShowNovasEmpresasModal(false);
+                              navigate("/empresas");
+                            }}
+                          >
+                            <Eye className="h-4 w-4 text-info" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingMov(null); }}>
           <DialogContent className="sm:max-w-md rounded-xl">
             <DialogHeader>
