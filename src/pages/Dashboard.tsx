@@ -228,8 +228,6 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        {/* Real-time new company alerts */}
-        <NewCompanyBanner />
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
