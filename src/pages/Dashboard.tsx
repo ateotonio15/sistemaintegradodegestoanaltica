@@ -363,6 +363,7 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground mt-1">Em fase de implantação</p>
             </CardContent>
           </Card>
+          <Card className="rounded-xl border-border/60">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Em Período</CardTitle>
               <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
