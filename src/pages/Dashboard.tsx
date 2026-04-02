@@ -69,6 +69,50 @@ export default function Dashboard() {
     return allEmpresas;
   }, [allEmpresas]);
 
+  // Novas Empresas: em fase de implantação (data_implantacao nula ou futura)
+  const novasEmpresas = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return allEmpresas.filter((e) => {
+      // Empresa sem data de implantação = ainda em fase de implantação
+      if (!e.data_implantacao) return true;
+      // Empresa com data de implantação futura = ainda não vigente
+      return e.data_implantacao > today;
+    });
+  }, [allEmpresas]);
+
+  // Fetch executiva profiles for novas empresas
+  const executivaUserIds = useMemo(() => {
+    return [...new Set(novasEmpresas.map((e) => e.executiva_user_id).filter(Boolean) as string[])];
+  }, [novasEmpresas]);
+
+  const { data: executivaProfiles = [] } = useQuery({
+    queryKey: ["executiva-profiles-dashboard", executivaUserIds],
+    queryFn: async () => {
+      if (executivaUserIds.length === 0) return [];
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name").in("user_id", executivaUserIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && executivaUserIds.length > 0,
+  });
+
+  const executivaMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    executivaProfiles.forEach((p) => { map[p.user_id] = p.display_name || "Sem nome"; });
+    return map;
+  }, [executivaProfiles]);
+
+  // Real-time: listen for empresa changes to auto-refresh
+  useEffect(() => {
+    const channel = supabase
+      .channel("dashboard-empresas-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "empresas" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   const empresasAtivas = useMemo(() => visibleEmpresas.filter((e) => e.status_empresa === "Ativa"), [visibleEmpresas]);
   const empresasEmPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Em período"), [empresasAtivas]);
 
