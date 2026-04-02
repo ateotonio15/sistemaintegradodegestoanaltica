@@ -584,7 +584,79 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Movimentação Dialog */}
+        {/* Novas Empresas Modal */}
+        <Dialog open={showNovasEmpresasModal} onOpenChange={setShowNovasEmpresasModal}>
+          <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto rounded-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-info" />
+                Novas Empresas — Em Fase de Implantação
+                <Badge className="bg-info/15 text-info border-info/30 ml-2">{novasEmpresas.length}</Badge>
+              </DialogTitle>
+            </DialogHeader>
+            {novasEmpresas.length === 0 ? (
+              <div className="text-center text-muted-foreground py-12">
+                Nenhuma empresa em fase de implantação no momento.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-info/5 hover:bg-info/5">
+                      <TableHead className="font-semibold">Empresa</TableHead>
+                      <TableHead className="font-semibold">Cód. Contrato</TableHead>
+                      <TableHead className="font-semibold">CNPJ</TableHead>
+                      <TableHead className="font-semibold">Responsável</TableHead>
+                      <TableHead className="font-semibold">Executiva</TableHead>
+                      <TableHead className="font-semibold">Implantação</TableHead>
+                      <TableHead className="font-semibold">Movimentação</TableHead>
+                      <TableHead className="font-semibold">Período/Corte</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {novasEmpresas.map((e) => (
+                      <TableRow key={e.id} className="hover:bg-info/5 transition-colors">
+                        <TableCell className="font-medium">{e.nome}</TableCell>
+                        <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{e.cnpj || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{e.responsavel_contrato || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{e.executiva_user_id ? (executivaMap[e.executiva_user_id] || "—") : "Não definida"}</TableCell>
+                        <TableCell>
+                          {e.data_implantacao ? (
+                            <Badge className="bg-warning/15 text-warning border-warning/30 rounded-md">
+                              {formatDateBR(e.data_implantacao)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="rounded-md text-muted-foreground">Não definida</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>{e.tipo_movimentacao || "—"}</TableCell>
+                        <TableCell>
+                          {e.tipo_movimentacao === "Diária" ? `Corte: ${e.data_corte || "—"}` : (e.periodo_movimentacao || "—")}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-lg hover:bg-info/10"
+                            onClick={() => {
+                              setShowNovasEmpresasModal(false);
+                              navigate("/empresas");
+                            }}
+                          >
+                            <Eye className="h-4 w-4 text-info" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingMov(null); }}>
           <DialogContent className="sm:max-w-md rounded-xl">
             <DialogHeader>
