@@ -34,12 +34,14 @@ export default function Dashboard() {
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
   const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
+  const [showNovasEmpresasModal, setShowNovasEmpresasModal] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingMov, setEditingMov] = useState<Movimentacao | null>(null);
   const [editForm, setEditForm] = useState({ data_envio_empresa: "", data_envio_financeiro: "" });
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const canEditDates = !isViewOnly && (isAdmin || role === "comum");
 
   const { data: allEmpresas = [] } = useQuery({
