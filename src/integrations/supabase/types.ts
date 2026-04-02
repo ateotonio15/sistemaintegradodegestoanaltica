@@ -198,6 +198,68 @@ export type Database = {
           },
         ]
       }
+      notificacoes: {
+        Row: {
+          codigo_contrato: string | null
+          created_at: string
+          data_implantacao: string | null
+          empresa_id: string
+          id: string
+          nome_empresa: string
+          responsavel_contrato: string | null
+          tipo: string
+        }
+        Insert: {
+          codigo_contrato?: string | null
+          created_at?: string
+          data_implantacao?: string | null
+          empresa_id: string
+          id?: string
+          nome_empresa: string
+          responsavel_contrato?: string | null
+          tipo: string
+        }
+        Update: {
+          codigo_contrato?: string | null
+          created_at?: string
+          data_implantacao?: string | null
+          empresa_id?: string
+          id?: string
+          nome_empresa?: string
+          responsavel_contrato?: string | null
+          tipo?: string
+        }
+        Relationships: []
+      }
+      notificacoes_lidas: {
+        Row: {
+          created_at: string
+          id: string
+          notificacao_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notificacao_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notificacao_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_lidas_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "notificacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

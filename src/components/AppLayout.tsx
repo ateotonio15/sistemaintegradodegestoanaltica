@@ -1,13 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, Lock, CalendarClock } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar } from "lucide-react";
 import logoImg from "@/assets/logo-cs-control.png";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { calcularStatus } from "@/lib/movimentacao-utils";
-import type { Tables } from "@/integrations/supabase/types";
-import { format, differenceInDays, parseISO, isFuture, isToday } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -29,6 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { format, parseISO } from "date-fns";
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -38,89 +36,41 @@ const allNavItems = [
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
-function UpcomingImplantacaoAlerts() {
-  const { data: empresas = [] } = useQuery({
-    queryKey: ["upcoming-implantacao-alerts"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("empresas")
-        .select("id, nome, codigo_contrato, responsavel_contrato, data_implantacao")
-        .not("data_implantacao", "is", null)
-        .eq("status_empresa", "Ativa");
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 60000,
-  });
+interface Notificacao {
+  id: string;
+  tipo: string;
+  empresa_id: string;
+  nome_empresa: string;
+  codigo_contrato: string | null;
+  responsavel_contrato: string | null;
+  data_implantacao: string | null;
+  created_at: string;
+}
 
-  const upcoming = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return empresas.filter((e) => {
-      if (!e.data_implantacao) return false;
-      const implDate = parseISO(e.data_implantacao);
-      const daysUntil = differenceInDays(implDate, today);
-      return daysUntil >= 0 && daysUntil <= 2;
-    });
-  }, [empresas]);
-
-  if (upcoming.length === 0) return null;
-
-  return (
-    <div className="space-y-0">
-      {upcoming.map((e) => {
-        const implDate = parseISO(e.data_implantacao!);
-        const daysUntil = differenceInDays(implDate, new Date(new Date().setHours(0, 0, 0, 0)));
-        const dateFormatted = format(implDate, "dd/MM/yyyy");
-        const urgencyText = daysUntil === 0 ? "Hoje" : daysUntil === 1 ? "Amanhã" : "Em 2 dias";
-
-        return (
-          <div
-            key={e.id}
-            className="bg-yellow-400/20 border-b border-yellow-500/30 px-4 py-2.5 flex items-center justify-center gap-3 text-sm font-medium text-yellow-800 dark:text-yellow-300"
-          >
-            <CalendarClock className="h-4 w-4 shrink-0" />
-            <span>
-              <strong>{urgencyText}:</strong> Implantação de <strong>{e.nome}</strong>
-              {e.codigo_contrato && <> (Cód: {e.codigo_contrato})</>}
-              {e.responsavel_contrato && <> — Resp: {e.responsavel_contrato}</>}
-              {" "}em <strong>{dateFormatted}</strong>
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
+function formatDateBR(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  try {
+    return format(parseISO(dateStr), "dd/MM/yyyy");
+  } catch {
+    const parts = dateStr.split("-");
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return dateStr;
+  }
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user, isAdmin, isExecutivo, isViewOnly, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
 
   const [collapsed, setCollapsed] = useState(() => isMobile);
 
   useEffect(() => {
     setCollapsed(isMobile);
   }, [isMobile]);
-
-  const storageKey = user ? `dismissed-notifs-${user.id}` : "dismissed-notifs";
-  const [dismissed, setDismissed] = useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(storageKey) || "[]");
-    } catch { return []; }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(dismissed));
-  }, [dismissed, storageKey]);
-
-  const dismiss = useCallback((id: string) => {
-    setDismissed((prev) => prev.includes(id) ? prev : [...prev, id]);
-  }, []);
 
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
@@ -142,6 +92,73 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     enabled: !!user?.id,
   });
 
+  // Fetch notifications
+  const { data: notificacoes = [] } = useQuery({
+    queryKey: ["notificacoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notificacoes")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data as Notificacao[];
+    },
+    enabled: !!user?.id,
+    refetchInterval: 30000,
+  });
+
+  // Fetch read notifications for current user
+  const { data: lidasIds = [] } = useQuery({
+    queryKey: ["notificacoes-lidas", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notificacoes_lidas")
+        .select("notificacao_id")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return data.map((d: any) => d.notificacao_id as string);
+    },
+    enabled: !!user?.id,
+  });
+
+  // Realtime subscription for new notifications
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("notificacoes-realtime-" + user.id)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notificacoes" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["notificacoes"] });
+        // Play sound
+        try {
+          const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2Nk4x/cWBTTUlLTlRdaHV+hoyQkI2IgHZqXlRMR0VIS1FaZG94gYqQlJWTj4d+dGleVExHREZJT1hibnmCi5GVl5WRi4N6cGVbUkxIRkhMU11oc4CMlJmcm5iUjoZ8cWZcU01KSUxRWWRwfIiSmJ2fnpqWj4d9c2hfV1FOS01SWmRwfIiSmJ2fn5yYko2Ee3FoX1dRTk1OVFxndIGMlZufoJ+cmJKNhXxya2NcV1NRUlZcZXF9iZOanqCgn5yYk46Ge3JrY1xXU1FSVl1mdIGMlZufoKCfnJiTjoZ8c2tjXFdTUVJWXGVxfYmTmp6goJ+cmJOOhntya2NcV1NRUlZcZXF9iZOanqCgn5yYk46GfHNrY1xXU1FSVl1mcX2Jk5qeoKCfnJiTjoZ7cmtjXFdTUVJWXGZxfYmTmp6goJ+cmJOOhntya2NcV1NRUlZdZnF9ipOanqCgn5yYk46Ge3JrY1xXU1FSVl1mcX2Jk5qeoKCfnJiTjoZ8c2tjXFdTUVJWXGZxfYmTmp6goJ+cmJOOhntya2NcV1NRUlZdZnF9ipOanqCgn5yYk46Ge3JrY1xXU1FSVl1mcX2Kk5qeoKCfnJiTjoZ8c2tjXFdTUVJWXWZxfYqTmp6goJ+cmJOOhntya2NcV1NRUlZdZnF9ipOanqCgn5yYk46Ge3JrY1xXU1FSVl1mcX2Kk5qeoKCfnJiTjoZ7cmtjXFdTUVJWXWZxfYqTmp6goJ+cmJOOhntya2NcV1NRUlZdZnF9ipOanqCgn5yYk46Ge3JrY1xXU1FSVl1mcX2Kk5qeoKCfnJiTjoZ7cmtjXFdTUVJWXWZxfYqTmp6goJ+cmJOOhntya2NcV1NRUVZXZ3F9ipOanqCgn5yYk46Ge3JrY1xXU1FSVl1mcH2Kk5qeoKCfnJiTjoZ7cmtiXFdTUVJWXWZxfYqTmp6goJ+cmJOOhntya2NcV1NSUlZdZnF9ipOanqCgn5yYk46Ge3JrY1xXU1FSVl1mcX2Kk5qeoKCfnJiTjoZ7cmtjXFdTUVJWXWZxfYqTmp6goJ+cmJOOhntya2NcV1NRUlZdZnF9ipOanqCgn5yYk46Ge3JrY11XU1FSVl1mcX2Kk5qeoKCfnJiTjoZ7cmtjXFdTUVJWXWZxfYqTmp6goJ+cmJOOhntya2NcV1NRUlZdZnF9ipOanqCgn5yYk46Ge3JrY1xXU1FSVl1mcX2Kk5qeoKCfnJiTjoZ7c2tjXFdTUVJWXWZxfYqTmp6goJ+cmJOOhntya2NcV1NRUlZdZnF9ipOanqCgn5yYk46Ge3JrY1xXU1FSVl1mcX2Kk5qeoKCfnJiTjoZ7cmtjXFdTUVJWXWZxfYqTmp6goJ+cmA==");
+          audio.volume = 0.3;
+          audio.play().catch(() => {});
+        } catch {}
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient]);
+
+  const pendingNotifs = useMemo(() => {
+    const lidasSet = new Set(lidasIds);
+    return notificacoes.filter((n) => !lidasSet.has(n.id)).slice(0, 20);
+  }, [notificacoes, lidasIds]);
+
+  const markAsRead = useCallback(async (notifId: string) => {
+    if (!user) return;
+    await supabase.from("notificacoes_lidas").insert({ notificacao_id: notifId, user_id: user.id });
+    queryClient.invalidateQueries({ queryKey: ["notificacoes-lidas", user.id] });
+  }, [user, queryClient]);
+
+  const markAllAsRead = useCallback(async () => {
+    if (!user || pendingNotifs.length === 0) return;
+    const rows = pendingNotifs.map((n) => ({ notificacao_id: n.id, user_id: user.id }));
+    await supabase.from("notificacoes_lidas").insert(rows);
+    queryClient.invalidateQueries({ queryKey: ["notificacoes-lidas", user.id] });
+  }, [user, pendingNotifs, queryClient]);
+
   const displayName = profile?.display_name || user?.email || "Usuário";
   const username = profile?.username || "—";
   const email = user?.email || "—";
@@ -156,34 +173,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     await signOut();
     navigate("/auth");
   };
-
-  const { data: movimentacoes = [] } = useQuery({
-    queryKey: ["movimentacoes-notifications"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes")
-        .select("*, empresas(nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as (Tables<"movimentacoes"> & { empresas?: { nome: string; codigo_contrato: string | null } | null })[];
-    },
-    refetchInterval: 60000,
-  });
-
-  const foraDosPrazos = useMemo(() => {
-    return movimentacoes
-      .filter((m) => calcularStatus(m) === "Fora do prazo")
-      .slice(0, 20);
-  }, [movimentacoes]);
-
-  const dismissAll = useCallback(() => {
-    setDismissed((prev) => {
-      const allIds = foraDosPrazos.map((m) => m.id);
-      return [...new Set([...prev, ...allIds])];
-    });
-  }, [foraDosPrazos]);
-
-  const pendingNotifs = useMemo(() => foraDosPrazos.filter((m) => !dismissed.includes(m.id)), [foraDosPrazos, dismissed]);
 
   const isActive = (to: string) => {
     if (to === "/") return location.pathname === "/" || location.pathname === "/dashboard";
@@ -200,7 +189,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           isMobile && collapsed && "-translate-x-full"
         )}
       >
-        {/* Sidebar Header */}
         <div className={cn(
           "flex h-16 items-center border-b px-3 shrink-0",
           collapsed ? "justify-center" : "justify-between"
@@ -210,7 +198,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <img src={logoImg} alt="CS Control" className="h-9 w-9 rounded-xl object-contain shrink-0" />
               <span className="truncate">CS Control</span>
             </Link>
-           )}
+          )}
           <button
             onClick={() => setCollapsed(!collapsed)}
             className={cn(
@@ -223,7 +211,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        {/* Nav Items */}
         <nav className="flex-1 flex flex-col gap-1 p-3 overflow-y-auto">
           {navItems.map((item) => {
             const active = isActive(item.to);
@@ -261,7 +248,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Sidebar Footer - User */}
         <div className={cn("border-t p-3 shrink-0", collapsed && "flex justify-center")}>
           {collapsed ? (
             <Tooltip delayDuration={0}>
@@ -309,7 +295,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Header */}
         <header className="sticky top-0 z-30 border-b bg-card/80 backdrop-blur-xl shadow-sm">
           <div className="flex h-14 items-center justify-between px-4 md:px-6">
-            {/* Left: Mobile menu button */}
             <div className="flex items-center gap-3">
               {isMobile && (
                 <button
@@ -324,10 +309,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <img src={logoImg} alt="CS Control" className="h-8 w-8 rounded-lg object-contain" />
                   <span>CS Control</span>
                 </Link>
-               )}
+              )}
             </div>
 
-            {/* Right: Actions */}
             <div className="flex items-center gap-1.5">
               <button
                 onClick={toggleTheme}
@@ -337,58 +321,100 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
 
-              {/* Notifications */}
+              {/* Unified Notifications Bell */}
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="relative p-2.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
                     <Bell className="h-4 w-4" />
                     {pendingNotifs.length > 0 && (
                       <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-scale-in">
-                        {pendingNotifs.length}
+                        {pendingNotifs.length > 9 ? "9+" : pendingNotifs.length}
                       </span>
                     )}
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 p-0 rounded-xl shadow-lg" align="end">
+                <PopoverContent className="w-96 p-0 rounded-xl shadow-lg" align="end">
                   <div className="p-3.5 border-b flex items-center justify-between">
                     <h4 className="font-semibold text-sm">Notificações</h4>
                     {pendingNotifs.length > 0 && (
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={dismissAll}>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={markAllAsRead}>
                         <CheckCheck className="h-3.5 w-3.5" />
-                        Concluir todas
+                        Marcar todas como lidas
                       </Button>
                     )}
                   </div>
-                  <div className="max-h-72 overflow-y-auto">
-                    {foraDosPrazos.length === 0 ? (
-                      <div className="p-6 text-center text-sm text-muted-foreground">
-                        Nenhum contrato fora do período ✅
-                      </div>
-                    ) : pendingNotifs.length === 0 ? (
-                      <div className="p-6 text-center text-sm text-muted-foreground">
-                        Todas as notificações foram concluídas ✅
+                  <div className="max-h-96 overflow-y-auto">
+                    {pendingNotifs.length === 0 ? (
+                      <div className="p-8 text-center text-sm text-muted-foreground">
+                        Nenhuma notificação pendente ✅
                       </div>
                     ) : (
-                      pendingNotifs.map((m) => (
-                        <div key={m.id} className="p-3 border-b last:border-0 hover:bg-accent/50 flex items-start gap-2.5 transition-colors">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">{m.empresas?.nome ?? "—"}</p>
-                            <p className="text-xs text-destructive mt-0.5">
-                              Contrato fora do período de movimentação
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Período: {m.periodo} · Cód: {m.empresas?.codigo_contrato || "—"}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => dismiss(m.id)}
-                            className="shrink-0 mt-0.5 p-1.5 rounded-lg hover:bg-primary/10 transition-colors"
-                            title="Marcar como concluída"
+                      pendingNotifs.map((n) => {
+                        const isNovaEmpresa = n.tipo === "nova_empresa";
+                        const iconColor = isNovaEmpresa ? "text-blue-500" : "text-green-500";
+                        const bgColor = isNovaEmpresa ? "bg-blue-500/10" : "bg-green-500/10";
+                        const title = isNovaEmpresa ? "Nova empresa cadastrada" : "Implantação realizada";
+
+                        return (
+                          <div
+                            key={n.id}
+                            className="p-3.5 border-b last:border-0 hover:bg-accent/50 transition-colors cursor-pointer"
+                            onClick={() => {
+                              markAsRead(n.id);
+                              navigate("/empresas");
+                            }}
                           >
-                            <Check className="h-4 w-4 text-primary" />
-                          </button>
-                        </div>
-                      ))
+                            <div className="flex items-start gap-3">
+                              <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5", bgColor)}>
+                                {isNovaEmpresa
+                                  ? <Building className={cn("h-4 w-4", iconColor)} />
+                                  : <CalendarClock className={cn("h-4 w-4", iconColor)} />
+                                }
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={cn("text-xs font-semibold mb-1", iconColor)}>{title}</p>
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-1.5 text-xs">
+                                    <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                                    <span className="font-medium truncate">{n.nome_empresa}</span>
+                                  </div>
+                                  {n.codigo_contrato && (
+                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                      <FileText className="h-3 w-3 shrink-0" />
+                                      <span>Cód: {n.codigo_contrato}</span>
+                                    </div>
+                                  )}
+                                  {n.responsavel_contrato && (
+                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                      <User className="h-3 w-3 shrink-0" />
+                                      <span>{n.responsavel_contrato}</span>
+                                    </div>
+                                  )}
+                                  {n.data_implantacao && (
+                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                      <Calendar className="h-3 w-3 shrink-0" />
+                                      <span>{formatDateBR(n.data_implantacao)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1.5">
+                                  {format(new Date(n.created_at), "dd/MM/yyyy HH:mm")}
+                                </p>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  markAsRead(n.id);
+                                }}
+                                className="shrink-0 p-1.5 rounded-lg hover:bg-primary/10 transition-colors"
+                                title="Marcar como lida"
+                              >
+                                <Check className="h-4 w-4 text-primary" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </PopoverContent>
@@ -449,11 +475,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-
-        {/* View Only Banner removed per user request */}
-
-        {/* Upcoming Implementation Date Alerts */}
-        <UpcomingImplantacaoAlerts />
 
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 animate-fade-in">{children}</main>
