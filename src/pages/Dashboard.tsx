@@ -332,7 +332,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Summary cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
           <Card className="cursor-pointer hover:shadow-md transition-all duration-200 rounded-xl border-border/60" onClick={() => setShowEmpresasAtivasModal(true)}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas Ativas</CardTitle>
@@ -346,7 +346,23 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-xl border-border/60">
+          <Card className="cursor-pointer hover:shadow-md transition-all duration-200 rounded-xl border-info/40 bg-info/5" onClick={() => setShowNovasEmpresasModal(true)}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-medium text-info uppercase tracking-wider">Novas Empresas</CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-info/15 flex items-center justify-center relative">
+                <Building2 className="h-4 w-4 text-info" />
+                {novasEmpresas.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-info text-info-foreground text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">
+                    {novasEmpresas.length}
+                  </span>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-info">{novasEmpresas.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">Em fase de implantação</p>
+            </CardContent>
+          </Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Em Período</CardTitle>
               <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
