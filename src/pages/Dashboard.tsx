@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, AlertTriangle, Eye } from "lucide-react";
+import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +23,6 @@ import {
   getCurrentMesReferencia,
   getCurrentPeriodo,
   formatMesReferencia,
-  calcularStatusPeriodoEmpresa,
   formatDateBR,
   formatPeriodoEmpresa,
   periodoDaDataCorte,
@@ -33,11 +32,16 @@ export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
+  const [searchGlobal, setSearchGlobal] = useState("");
   const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
   const [showNovasEmpresasModal, setShowNovasEmpresasModal] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingMov, setEditingMov] = useState<Movimentacao | null>(null);
   const [editForm, setEditForm] = useState({ data_envio_empresa: "", data_envio_financeiro: "" });
+  // Edit empresa inline
+  const [editEmpresaDialogOpen, setEditEmpresaDialogOpen] = useState(false);
+  const [editingEmpresa, setEditingEmpresa] = useState<Tables<"empresas"> | null>(null);
+  const [empresaEditForm, setEmpresaEditForm] = useState<any>({});
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
   const { toast } = useToast();
@@ -65,17 +69,34 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  const visibleEmpresas = useMemo(() => {
-    return allEmpresas;
-  }, [allEmpresas]);
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ["profiles-dashboard"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name").order("display_name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: userRolesList = [] } = useQuery({
+    queryKey: ["user-roles-dashboard"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("user_roles").select("user_id, role");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const comunUsers = allProfiles.filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "comum"));
+  const executivoUsers = allProfiles.filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "executivo"));
 
   // Novas Empresas: em fase de implantação (data_implantacao nula ou futura)
   const novasEmpresas = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     return allEmpresas.filter((e) => {
-      // Empresa sem data de implantação = ainda em fase de implantação
       if (!e.data_implantacao) return true;
-      // Empresa com data de implantação futura = ainda não vigente
       return e.data_implantacao > today;
     });
   }, [allEmpresas]);
@@ -102,7 +123,7 @@ export default function Dashboard() {
     return map;
   }, [executivaProfiles]);
 
-  // Real-time: listen for empresa changes to auto-refresh
+  // Real-time
   useEffect(() => {
     const channel = supabase
       .channel("dashboard-empresas-realtime")
@@ -113,8 +134,7 @@ export default function Dashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  const empresasAtivas = useMemo(() => visibleEmpresas.filter((e) => e.status_empresa === "Ativa"), [visibleEmpresas]);
-  const empresasEmPeriodo = useMemo(() => empresasAtivas.filter((e) => calcularStatusPeriodoEmpresa(e) === "Em período"), [empresasAtivas]);
+  const empresasAtivas = useMemo(() => allEmpresas.filter((e) => e.status_empresa === "Ativa"), [allEmpresas]);
 
   const empresasPorResponsavel = useMemo(() => {
     return comunUsersEmpresas
@@ -157,6 +177,22 @@ export default function Dashboard() {
     onError: () => toast({ title: "Erro ao salvar", variant: "destructive" }),
   });
 
+  const updateEmpresa = useMutation({
+    mutationFn: async (values: any) => {
+      const { id, ...payload } = values;
+      const { error } = await supabase.from("empresas").update(payload).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      setEditEmpresaDialogOpen(false);
+      setEditingEmpresa(null);
+      toast({ title: "Empresa atualizada!" });
+    },
+    onError: () => toast({ title: "Erro ao salvar empresa", variant: "destructive" }),
+  });
+
   const openEditFromDashboard = (m: Movimentacao) => {
     setEditingMov(m);
     setEditForm({
@@ -164,6 +200,48 @@ export default function Dashboard() {
       data_envio_financeiro: m.data_envio_financeiro ?? "",
     });
     setEditDialogOpen(true);
+  };
+
+  const openEditEmpresa = (e: Tables<"empresas">) => {
+    setEditingEmpresa(e);
+    setEmpresaEditForm({
+      nome: e.nome,
+      cnpj: e.cnpj ?? "",
+      codigo_contrato: e.codigo_contrato ?? "",
+      responsavel_user_id: e.responsavel_user_id ?? "",
+      executiva_user_id: e.executiva_user_id ?? "",
+      data_implantacao: e.data_implantacao ?? "",
+      data_vencimento_fatura: e.data_vencimento_fatura ?? "",
+      data_emissao_fatura: e.data_emissao_fatura ?? "",
+      tipo_movimentacao: e.tipo_movimentacao ?? "Fechada",
+      data_corte: e.data_corte ?? "",
+      periodo_movimentacao: e.periodo_movimentacao ?? "",
+      email_empresa: e.email_empresa ?? "",
+      telefone_empresa: e.telefone_empresa ?? "",
+      contato_empresa: e.contato_empresa ?? "",
+      operadora_plano: e.operadora_plano ?? "",
+      prazo: e.prazo ?? "",
+      grupo_contrato: e.grupo_contrato ?? "",
+      status_empresa: e.status_empresa ?? "Ativa",
+      observacoes: e.observacoes ?? "",
+    });
+    setShowNovasEmpresasModal(false);
+    setEditEmpresaDialogOpen(true);
+  };
+
+  const handleSaveEmpresa = () => {
+    if (!editingEmpresa) return;
+    const payload: any = { id: editingEmpresa.id };
+    Object.keys(empresaEditForm).forEach((k) => {
+      const val = empresaEditForm[k];
+      payload[k] = val === "" ? null : val;
+    });
+    // Map responsavel name
+    if (payload.responsavel_user_id) {
+      const u = comunUsers.find((u) => u.user_id === payload.responsavel_user_id) || allProfiles.find((u) => u.user_id === payload.responsavel_user_id);
+      payload.responsavel_contrato = u?.display_name || null;
+    }
+    updateEmpresa.mutate(payload);
   };
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -179,7 +257,6 @@ export default function Dashboard() {
     setIsGenerating(true);
     try {
       const mesRef = filterMes;
-      // Get existing movimentações for this month to avoid duplicates
       const { data: existing } = await supabase
         .from("movimentacoes")
         .select("empresa_id, periodo")
@@ -189,7 +266,6 @@ export default function Dashboard() {
         (existing || []).map((e) => `${e.empresa_id}__${e.periodo}`)
       );
 
-      // Build inserts for all active empresas
       const toInsert: TablesInsert<"movimentacoes">[] = [];
       for (const emp of empresasAtivas) {
         let periodo = "01-05";
@@ -214,7 +290,6 @@ export default function Dashboard() {
       if (toInsert.length === 0) {
         toast({ title: "Todas as empresas já possuem movimentações neste mês." });
       } else {
-        // Insert in batches of 50
         for (let i = 0; i < toInsert.length; i += 50) {
           const batch = toInsert.slice(i, i + 50);
           const { error } = await supabase.from("movimentacoes").insert(batch);
@@ -250,9 +325,22 @@ export default function Dashboard() {
   const withStatus = useMemo(() => activeMovimentacoes.map((m) => ({ ...m, status: calcularStatus(m) })), [activeMovimentacoes]);
 
   const filteredByResponsavel = useMemo(() => {
-    if (filterResponsavel === "all") return withStatus;
-    return withStatus.filter((m) => m.responsavel_movimentacao === filterResponsavel);
-  }, [withStatus, filterResponsavel]);
+    let items = withStatus;
+    if (filterResponsavel !== "all") {
+      items = items.filter((m) => m.responsavel_movimentacao === filterResponsavel);
+    }
+    // Apply global search
+    if (searchGlobal.trim()) {
+      const q = searchGlobal.toLowerCase();
+      items = items.filter((m) => {
+        const emp = m.empresas as any;
+        return (emp?.nome || "").toLowerCase().includes(q) ||
+          (emp?.codigo_contrato || "").toLowerCase().includes(q) ||
+          (emp?.cnpj || "").toLowerCase().includes(q);
+      });
+    }
+    return items;
+  }, [withStatus, filterResponsavel, searchGlobal]);
 
   const periodItems = useMemo(() => {
     return filteredByResponsavel.filter((m) => m.periodo === filterPeriodo);
@@ -262,7 +350,6 @@ export default function Dashboard() {
   const enviadas = periodItems.filter((m) => m.status === "Enviado para empresa").length;
   const pendentes = periodItems.filter((m) => m.status === "Aguardando envio" || m.status === "Fora do prazo").length;
   const concluidas = periodItems.filter((m) => m.status === "Enviado ao financeiro").length;
-  const foraDoPrazo = filteredByResponsavel.filter((m) => m.status === "Fora do prazo");
 
   const listaTrabalho = useMemo(() => {
     return periodItems.filter((m) => m.status !== "Enviado ao financeiro");
@@ -271,6 +358,13 @@ export default function Dashboard() {
   const listaConcluidas = useMemo(() => {
     return periodItems.filter((m) => m.status === "Enviado ao financeiro");
   }, [periodItems]);
+
+  const GRUPO_CONTRATO_OPTIONS = [
+    "Compulsória - Sem Dependentes",
+    "Adesão - Titular / Dependente",
+    "Compulsória - Titular / Adesão - Dependente",
+    "Compulsória - Todos",
+  ];
 
   return (
     <AppLayout>
@@ -295,10 +389,22 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters + Search */}
         <Card className="rounded-xl shadow-sm">
           <CardContent className="pt-5 pb-5">
             <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-1.5 flex-1 min-w-[200px]">
+                <Label className="text-xs font-medium text-muted-foreground">Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por empresa, código ou CNPJ..."
+                    value={searchGlobal}
+                    onChange={(e) => setSearchGlobal(e.target.value)}
+                    className="pl-9 rounded-lg h-9"
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Mês de Referência</Label>
                 <Select value={filterMes} onValueChange={setFilterMes}>
@@ -331,8 +437,9 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Summary cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
+        {/* Summary cards - 6 cards max, "Novas Empresas" only when count > 0 */}
+        <div className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-${novasEmpresas.length > 0 ? 6 : 5}`}>
+          {/* 1. Empresas Ativas */}
           <Card className="cursor-pointer hover:shadow-md transition-all duration-200 rounded-xl border-border/60" onClick={() => setShowEmpresasAtivasModal(true)}>
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresas Ativas</CardTitle>
@@ -346,35 +453,26 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:shadow-md transition-all duration-200 rounded-xl border-info/40 bg-info/5" onClick={() => setShowNovasEmpresasModal(true)}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-medium text-info uppercase tracking-wider">Novas Empresas</CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-info/15 flex items-center justify-center relative">
-                <Building2 className="h-4 w-4 text-info" />
-                {novasEmpresas.length > 0 && (
+          {/* 2. Novas Empresas - only if count > 0 */}
+          {novasEmpresas.length > 0 && (
+            <Card className="cursor-pointer hover:shadow-md transition-all duration-200 rounded-xl border-info/40 bg-info/5" onClick={() => setShowNovasEmpresasModal(true)}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-medium text-info uppercase tracking-wider">Novas Empresas</CardTitle>
+                <div className="h-8 w-8 rounded-lg bg-info/15 flex items-center justify-center relative">
+                  <Building2 className="h-4 w-4 text-info" />
                   <span className="absolute -top-1.5 -right-1.5 bg-info text-info-foreground text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">
                     {novasEmpresas.length}
                   </span>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold tracking-tight text-info">{novasEmpresas.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">Em fase de implantação</p>
-            </CardContent>
-          </Card>
-          <Card className="rounded-xl border-border/60">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Em Período</CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
-                <CheckCircle2 className="h-4 w-4 text-success" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold tracking-tight text-success">{empresasEmPeriodo.length}</div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold tracking-tight text-info">{novasEmpresas.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Em fase de implantação</p>
+              </CardContent>
+            </Card>
+          )}
 
+          {/* 3. Total no Período */}
           <Card className="rounded-xl border-border/60">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total no Período</CardTitle>
@@ -387,18 +485,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-xl border-border/60">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Enviadas p/ Empresa</CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-info/10 flex items-center justify-center">
-                <RotateCcw className="h-4 w-4 text-info" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold tracking-tight text-info">{enviadas}</div>
-            </CardContent>
-          </Card>
-
+          {/* 4. Pendentes */}
           <Card className="rounded-xl border-border/60">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pendentes</CardTitle>
@@ -411,6 +498,20 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          {/* 5. Enviadas p/ Empresa */}
+          <Card className="rounded-xl border-border/60">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Enviadas p/ Empresa</CardTitle>
+              <div className="h-8 w-8 rounded-lg bg-info/10 flex items-center justify-center">
+                <RotateCcw className="h-4 w-4 text-info" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-info">{enviadas}</div>
+            </CardContent>
+          </Card>
+
+          {/* 6. Financeiro */}
           <Card className="rounded-xl border-border/60">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Financeiro</CardTitle>
@@ -616,7 +717,7 @@ export default function Dashboard() {
                   </TableHeader>
                   <TableBody>
                     {novasEmpresas.map((e) => (
-                      <TableRow key={e.id} className="hover:bg-info/5 transition-colors">
+                      <TableRow key={e.id} className="hover:bg-info/5 transition-colors cursor-pointer" onClick={() => openEditEmpresa(e)}>
                         <TableCell className="font-medium">{e.nome}</TableCell>
                         <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
                         <TableCell className="text-muted-foreground text-xs">{e.cnpj || "—"}</TableCell>
@@ -640,12 +741,9 @@ export default function Dashboard() {
                             variant="ghost"
                             size="icon"
                             className="rounded-lg hover:bg-info/10"
-                            onClick={() => {
-                              setShowNovasEmpresasModal(false);
-                              navigate("/empresas");
-                            }}
+                            onClick={(ev) => { ev.stopPropagation(); openEditEmpresa(e); }}
                           >
-                            <Eye className="h-4 w-4 text-info" />
+                            <Pencil className="h-4 w-4 text-info" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -657,6 +755,7 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
 
+        {/* Edit Movimentação Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingMov(null); }}>
           <DialogContent className="sm:max-w-md rounded-xl">
             <DialogHeader>
@@ -690,6 +789,139 @@ export default function Dashboard() {
                     disabled={updateMov.isPending}
                   >
                     {updateMov.isPending ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Empresa Dialog - opens from Novas Empresas */}
+        <Dialog open={editEmpresaDialogOpen} onOpenChange={(open) => { setEditEmpresaDialogOpen(open); if (!open) setEditingEmpresa(null); }}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl">
+            <DialogHeader>
+              <DialogTitle>Editar Empresa</DialogTitle>
+            </DialogHeader>
+            {editingEmpresa && (
+              <div className="space-y-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Nome *</Label>
+                    <Input value={empresaEditForm.nome} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, nome: e.target.value })} className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">CNPJ</Label>
+                    <Input value={empresaEditForm.cnpj} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, cnpj: e.target.value })} className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Código do Contrato</Label>
+                    <Input value={empresaEditForm.codigo_contrato} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, codigo_contrato: e.target.value })} className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Responsável pelo Contrato</Label>
+                    <Select value={empresaEditForm.responsavel_user_id} onValueChange={(v) => setEmpresaEditForm({ ...empresaEditForm, responsavel_user_id: v })}>
+                      <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {comunUsers.map((u) => <SelectItem key={u.user_id} value={u.user_id}>{u.display_name || u.user_id}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Executiva Responsável</Label>
+                    <Select value={empresaEditForm.executiva_user_id} onValueChange={(v) => setEmpresaEditForm({ ...empresaEditForm, executiva_user_id: v })}>
+                      <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {executivoUsers.map((u) => <SelectItem key={u.user_id} value={u.user_id}>{u.display_name || u.user_id}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Data de Implantação</Label>
+                    <Input type="date" value={empresaEditForm.data_implantacao} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, data_implantacao: e.target.value })} className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Dia Vencimento Fatura (1-31)</Label>
+                    <Input type="number" min={1} max={31} value={empresaEditForm.data_vencimento_fatura} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, data_vencimento_fatura: e.target.value ? Number(e.target.value) : "" })} placeholder="Ex: 10" className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Dia Emissão Fatura (1-31)</Label>
+                    <Input type="number" min={1} max={31} value={empresaEditForm.data_emissao_fatura} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, data_emissao_fatura: e.target.value ? Number(e.target.value) : "" })} placeholder="Ex: 5" className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Corretora</Label>
+                    <Input value={empresaEditForm.operadora_plano} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, operadora_plano: e.target.value })} className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Tipo de Contrato</Label>
+                    <Select value={empresaEditForm.tipo_movimentacao} onValueChange={(v) => setEmpresaEditForm({ ...empresaEditForm, tipo_movimentacao: v })}>
+                      <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Diária">Diário</SelectItem>
+                        <SelectItem value="Fechada">Período</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {empresaEditForm.tipo_movimentacao === "Diária" && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Data de Corte (dia)</Label>
+                      <Input type="number" min={1} max={31} value={empresaEditForm.data_corte} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, data_corte: e.target.value ? Number(e.target.value) : "" })} className="rounded-lg" />
+                    </div>
+                  )}
+                  {empresaEditForm.tipo_movimentacao === "Fechada" && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Período de Movimentação</Label>
+                      <Select value={empresaEditForm.periodo_movimentacao} onValueChange={(v) => setEmpresaEditForm({ ...empresaEditForm, periodo_movimentacao: v })}>
+                        <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">E-mail da Empresa</Label>
+                    <Input type="email" value={empresaEditForm.email_empresa} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, email_empresa: e.target.value })} className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Telefone</Label>
+                    <Input value={empresaEditForm.telefone_empresa} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, telefone_empresa: e.target.value })} className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Contato</Label>
+                    <Input value={empresaEditForm.contato_empresa} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, contato_empresa: e.target.value })} className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Prazo</Label>
+                    <Input value={empresaEditForm.prazo} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, prazo: e.target.value })} className="rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Grupo de Contrato</Label>
+                    <Select value={empresaEditForm.grupo_contrato} onValueChange={(v) => setEmpresaEditForm({ ...empresaEditForm, grupo_contrato: v })}>
+                      <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {GRUPO_CONTRATO_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Status</Label>
+                    <Select value={empresaEditForm.status_empresa} onValueChange={(v) => setEmpresaEditForm({ ...empresaEditForm, status_empresa: v })}>
+                      <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Ativa">Ativa</SelectItem>
+                        <SelectItem value="Inativa">Inativa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Observações</Label>
+                  <Input value={empresaEditForm.observacoes} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, observacoes: e.target.value })} className="rounded-lg" />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => { setEditEmpresaDialogOpen(false); setEditingEmpresa(null); }} className="rounded-lg">Cancelar</Button>
+                  <Button className="rounded-lg" onClick={handleSaveEmpresa} disabled={updateEmpresa.isPending}>
+                    {updateEmpresa.isPending ? "Salvando..." : "Salvar"}
                   </Button>
                 </div>
               </div>
