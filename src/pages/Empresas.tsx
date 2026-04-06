@@ -56,8 +56,8 @@ export default function Empresas() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [dataImplantacao, setDataImplantacao] = useState("");
-  const [dataVencimentoFatura, setDataVencimentoFatura] = useState("");
-  const [dataEmissaoFatura, setDataEmissaoFatura] = useState("");
+  const [dataVencimentoFatura, setDataVencimentoFatura] = useState<number | "">("");
+  const [dataEmissaoFatura, setDataEmissaoFatura] = useState<number | "">("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -371,12 +371,12 @@ export default function Empresas() {
                         <Input type="date" value={dataImplantacao} onChange={(e) => setDataImplantacao(e.target.value)} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Data de Vencimento da Fatura *</Label>
-                        <Input type="date" value={dataVencimentoFatura} onChange={(e) => setDataVencimentoFatura(e.target.value)} required className="rounded-lg" />
+                        <Label className="text-sm font-medium">Dia Vencimento Fatura (1-31) *</Label>
+                        <Input type="number" min={1} max={31} value={dataVencimentoFatura} onChange={(e) => setDataVencimentoFatura(e.target.value ? Number(e.target.value) : "")} required placeholder="Ex: 10" className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Data de Emissão da Fatura *</Label>
-                        <Input type="date" value={dataEmissaoFatura} onChange={(e) => setDataEmissaoFatura(e.target.value)} required className="rounded-lg" />
+                        <Label className="text-sm font-medium">Dia Emissão Fatura (1-31) *</Label>
+                        <Input type="number" min={1} max={31} value={dataEmissaoFatura} onChange={(e) => setDataEmissaoFatura(e.target.value ? Number(e.target.value) : "")} required placeholder="Ex: 5" className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Corretora</Label>
