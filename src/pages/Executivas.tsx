@@ -578,8 +578,7 @@ export default function Executivas() {
                                 <th className="text-left p-3 font-medium text-muted-foreground">
                                   <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" />Email</span>
                                 </th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">Venc. Fatura</th>
-                                <th className="text-left p-3 font-medium text-muted-foreground">Emissão Fatura</th>
+                                <th className="text-left p-3 font-medium text-muted-foreground">Responsável Cadastro</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Ações</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Tipo</th>
                                 <th className="text-left p-3 font-medium text-muted-foreground">Período / Corte</th>
@@ -622,8 +621,9 @@ export default function Executivas() {
                                         )}
                                       </div>
                                     </td>
-                                    <td className="p-3 text-muted-foreground">{formatDay(e.data_vencimento_fatura)}</td>
-                                    <td className="p-3 text-muted-foreground">{formatDay(e.data_emissao_fatura)}</td>
+                                    <td className="p-3 font-medium text-primary">
+                                      {e.responsavel_user_id ? (profileMap.get(e.responsavel_user_id) || "—") : "—"}
+                                    </td>
                                     <td className="p-3">
                                       <div className="flex items-center gap-1">
                                         {e.telefone_empresa && (
