@@ -245,6 +245,46 @@ export default function Dashboard() {
   };
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingRevisao, setLoadingRevisao] = useState(false);
+
+  const handleRevisarEmpresas = async () => {
+    if (!user || loadingRevisao) return;
+    if (!confirm("Deseja revisar todas as empresas? Isso corrigirá inconsistências automaticamente.")) return;
+    setLoadingRevisao(true);
+    try {
+      const { data: empresas, error } = await supabase.from("empresas").select("*");
+      if (error) throw error;
+
+      let erros = 0;
+      let corrigidos = 0;
+
+      for (const emp of empresas) {
+        const updateData: Record<string, any> = {};
+
+        if (!emp.nome) { erros++; continue; }
+        if (!emp.status_empresa) { updateData.status_empresa = "Ativa"; corrigidos++; }
+        if (!emp.tipo_movimentacao) { updateData.tipo_movimentacao = "Fechada"; corrigidos++; }
+        if (!emp.periodo_movimentacao && emp.tipo_movimentacao !== "Diária") { updateData.periodo_movimentacao = "01-05"; corrigidos++; }
+        if (!emp.data_implantacao) { updateData.data_implantacao = new Date().toISOString().split("T")[0]; corrigidos++; }
+        if (!emp.prazo) { updateData.prazo = "Sem prazo definido"; corrigidos++; }
+        if (!emp.grupo_contrato) { updateData.grupo_contrato = "Não informado"; corrigidos++; }
+
+        if (Object.keys(updateData).length > 0) {
+          const { error: updateError } = await supabase.from("empresas").update(updateData).eq("id", emp.id);
+          if (updateError) { console.error("Erro ao atualizar:", emp.nome, updateError); erros++; }
+        }
+      }
+
+      toast({ title: "Revisão concluída!", description: `${corrigidos} corrigidos | ${erros} com erro` });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Erro na revisão", description: err?.message, variant: "destructive" });
+    } finally {
+      setLoadingRevisao(false);
+    }
+  };
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
