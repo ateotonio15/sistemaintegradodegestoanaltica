@@ -39,8 +39,8 @@ interface EmpresaData {
   email_empresa: string | null;
   telefone_empresa: string | null;
   contato_empresa: string | null;
-  data_vencimento_fatura: string | null;
-  data_emissao_fatura: string | null;
+  data_vencimento_fatura: number | null;
+  data_emissao_fatura: number | null;
 }
 
 interface ExecutivaGroup {
@@ -621,8 +621,8 @@ export default function Executivas() {
                                         )}
                                       </div>
                                     </td>
-                                    <td className="p-3 text-muted-foreground">{formatDateBR(e.data_vencimento_fatura)}</td>
-                                    <td className="p-3 text-muted-foreground">{formatDateBR(e.data_emissao_fatura)}</td>
+                                    <td className="p-3 text-muted-foreground">{e.data_vencimento_fatura ? `Dia ${e.data_vencimento_fatura}` : "—"}</td>
+                                    <td className="p-3 text-muted-foreground">{e.data_emissao_fatura ? `Dia ${e.data_emissao_fatura}` : "—"}</td>
                                     <td className="p-3">
                                       <div className="flex items-center gap-1">
                                         {e.telefone_empresa && (
