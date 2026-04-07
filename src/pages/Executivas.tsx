@@ -39,8 +39,8 @@ interface EmpresaData {
   email_empresa: string | null;
   telefone_empresa: string | null;
   contato_empresa: string | null;
-  data_vencimento_fatura: string | null;
-  data_emissao_fatura: string | null;
+  data_vencimento_fatura: number | null;
+  data_emissao_fatura: number | null;
 }
 
 interface ExecutivaGroup {
