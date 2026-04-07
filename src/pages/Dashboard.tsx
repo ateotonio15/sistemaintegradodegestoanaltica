@@ -422,6 +422,12 @@ export default function Dashboard() {
                 {isGenerating ? "Gerando..." : "Gerar Movimentações"}
               </Button>
             )}
+            {isAdmin && (
+              <Button variant="secondary" size="sm" onClick={handleRevisarEmpresas} disabled={loadingRevisao} className="rounded-lg gap-2">
+                <Search className="h-4 w-4" />
+                {loadingRevisao ? "Revisando..." : "Revisar Empresas"}
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching} className="rounded-lg gap-2">
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               Atualizar
