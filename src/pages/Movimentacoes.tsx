@@ -25,9 +25,9 @@ import {
   periodoDaDataCorte,
   getCurrentMesReferencia,
   formatMesReferencia,
-  formatDateBR,
   formatPeriodoEmpresa,
 } from "@/lib/movimentacao-utils";
+import { formatDateBR } from "@/lib/date-utils";
 import * as XLSX from "xlsx";
 
 type EmpresaOption = {

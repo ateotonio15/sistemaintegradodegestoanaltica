@@ -17,7 +17,8 @@ import {
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { getCurrentPeriodo, periodoDaDataCorte, formatDateBR } from "@/lib/movimentacao-utils";
+import { getCurrentPeriodo, periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { formatDateBR, formatDay } from "@/lib/date-utils";
 import type { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
@@ -621,8 +622,8 @@ export default function Executivas() {
                                         )}
                                       </div>
                                     </td>
-                                    <td className="p-3 text-muted-foreground">{e.data_vencimento_fatura ? `Dia ${e.data_vencimento_fatura}` : "—"}</td>
-                                    <td className="p-3 text-muted-foreground">{e.data_emissao_fatura ? `Dia ${e.data_emissao_fatura}` : "—"}</td>
+                                    <td className="p-3 text-muted-foreground">{formatDay(e.data_vencimento_fatura)}</td>
+                                    <td className="p-3 text-muted-foreground">{formatDay(e.data_emissao_fatura)}</td>
                                     <td className="p-3">
                                       <div className="flex items-center gap-1">
                                         {e.telefone_empresa && (

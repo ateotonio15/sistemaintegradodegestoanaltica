@@ -23,10 +23,10 @@ import {
   getCurrentMesReferencia,
   getCurrentPeriodo,
   formatMesReferencia,
-  formatDateBR,
   formatPeriodoEmpresa,
   periodoDaDataCorte,
 } from "@/lib/movimentacao-utils";
+import { formatDateBR } from "@/lib/date-utils";
 
 export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
