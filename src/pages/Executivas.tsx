@@ -622,8 +622,8 @@ export default function Executivas() {
                                         )}
                                       </div>
                                     </td>
-                                    <td className="p-3 text-muted-foreground">{e.data_vencimento_fatura ? `Dia ${e.data_vencimento_fatura}` : "—"}</td>
-                                    <td className="p-3 text-muted-foreground">{e.data_emissao_fatura ? `Dia ${e.data_emissao_fatura}` : "—"}</td>
+                                    <td className="p-3 text-muted-foreground">{formatDay(e.data_vencimento_fatura)}</td>
+                                    <td className="p-3 text-muted-foreground">{formatDay(e.data_emissao_fatura)}</td>
                                     <td className="p-3">
                                       <div className="flex items-center gap-1">
                                         {e.telefone_empresa && (

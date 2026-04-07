@@ -566,8 +566,8 @@ export default function Empresas() {
                             : e.periodo_movimentacao || "—"}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{formatDateBR(e.data_implantacao)}</TableCell>
-                        <TableCell className="text-muted-foreground">{e.data_vencimento_fatura ? `Dia ${e.data_vencimento_fatura}` : "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{e.data_emissao_fatura ? `Dia ${e.data_emissao_fatura}` : "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDay(e.data_vencimento_fatura)}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDay(e.data_emissao_fatura)}</TableCell>
                         <TableCell>
                           <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md">
                             {e.status_empresa ?? "Ativa"}
@@ -612,8 +612,8 @@ export default function Empresas() {
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Período de Movimentação</p><p className="font-medium mt-0.5">{detailEmpresa.periodo_movimentacao || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Implantação</p><p className="font-medium mt-0.5">{formatDateBR(detailEmpresa.data_implantacao) || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Corte</p><p className="font-medium mt-0.5">{detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Vencimento da Fatura</p><p className="font-medium mt-0.5">{detailEmpresa.data_vencimento_fatura ? `Dia ${detailEmpresa.data_vencimento_fatura}` : "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Emissão da Fatura</p><p className="font-medium mt-0.5">{detailEmpresa.data_emissao_fatura ? `Dia ${detailEmpresa.data_emissao_fatura}` : "—"}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Vencimento da Fatura</p><p className="font-medium mt-0.5">{formatDay(detailEmpresa.data_vencimento_fatura)}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Emissão da Fatura</p><p className="font-medium mt-0.5">{formatDay(detailEmpresa.data_emissao_fatura)}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">E-mail da Empresa</p><p className="font-medium mt-0.5">{detailEmpresa.email_empresa || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Telefone da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).telefone_empresa || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Contato da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).contato_empresa || "—"}</p></div>
