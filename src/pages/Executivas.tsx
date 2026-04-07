@@ -17,7 +17,8 @@ import {
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { getCurrentPeriodo, periodoDaDataCorte, formatDateBR } from "@/lib/movimentacao-utils";
+import { getCurrentPeriodo, periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { formatDateBR, formatDay } from "@/lib/date-utils";
 import type { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";

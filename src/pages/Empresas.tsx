@@ -15,7 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Trash2, Search, Upload, Building2 } from "lucide-react";
-import { PERIODOS, formatDateBR } from "@/lib/movimentacao-utils";
+import { PERIODOS } from "@/lib/movimentacao-utils";
+import { formatDateBR, formatDay } from "@/lib/date-utils";
 import * as XLSX from "xlsx";
 
 type Empresa = Tables<"empresas">;
