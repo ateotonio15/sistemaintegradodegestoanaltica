@@ -94,7 +94,8 @@ export default function Dashboard() {
 
   // Novas Empresas: em fase de implantação (data_implantacao nula ou futura)
   const novasEmpresas = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     return allEmpresas.filter((e) => {
       if (!e.data_implantacao) return true;
       return e.data_implantacao > today;
@@ -265,7 +266,7 @@ export default function Dashboard() {
         if (!emp.status_empresa) { updateData.status_empresa = "Ativa"; corrigidos++; }
         if (!emp.tipo_movimentacao) { updateData.tipo_movimentacao = "Fechada"; corrigidos++; }
         if (!emp.periodo_movimentacao && emp.tipo_movimentacao !== "Diária") { updateData.periodo_movimentacao = "01-05"; corrigidos++; }
-        if (!emp.data_implantacao) { updateData.data_implantacao = new Date().toISOString().split("T")[0]; corrigidos++; }
+        if (!emp.data_implantacao) { const n = new Date(); updateData.data_implantacao = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`; corrigidos++; }
         if (!emp.prazo) { updateData.prazo = "Sem prazo definido"; corrigidos++; }
         if (!emp.grupo_contrato) { updateData.grupo_contrato = "Não informado"; corrigidos++; }
 
