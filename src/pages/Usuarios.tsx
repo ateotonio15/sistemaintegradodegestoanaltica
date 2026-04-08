@@ -12,10 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2 } from "lucide-react";
+import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
-type AppRole = "admin" | "comum" | "executivo" | "visualizacao";
+type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "enfermeira";
 
 interface UserProfile {
   user_id: string;
@@ -30,6 +30,7 @@ const roleLabel: Record<AppRole, string> = {
   comum: "Usuário Comum",
   executivo: "Executivo",
   visualizacao: "Visualização",
+  enfermeira: "Enfermeira",
 };
 
 const roleIcon: Record<AppRole, typeof Shield> = {
@@ -37,6 +38,7 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   comum: User,
   executivo: Eye,
   visualizacao: Eye,
+  enfermeira: HeartPulse,
 };
 
 function generatePassword(length = 10) {
@@ -297,6 +299,7 @@ export default function Usuarios() {
                       <SelectItem value="comum">Usuário Comum</SelectItem>
                       <SelectItem value="executivo">Executivo</SelectItem>
                       <SelectItem value="visualizacao">Visualização</SelectItem>
+                      <SelectItem value="enfermeira">Enfermeira</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -417,6 +420,7 @@ export default function Usuarios() {
                     <SelectItem value="comum">Usuário Comum</SelectItem>
                     <SelectItem value="executivo">Executivo</SelectItem>
                     <SelectItem value="visualizacao">Visualização</SelectItem>
+                    <SelectItem value="enfermeira">Enfermeira</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

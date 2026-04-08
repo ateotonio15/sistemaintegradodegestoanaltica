@@ -33,6 +33,7 @@ const allNavItems = [
   { to: "/empresas", label: "Empresas", icon: Building2 },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/executivas", label: "Executivas", icon: UserCheck },
+  { to: "/saude", label: "Saúde nas Empresas", icon: CalendarClock },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
@@ -61,7 +62,7 @@ function formatDateBR(dateStr: string | null | undefined): string {
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user, isAdmin, isExecutivo, isViewOnly, role } = useAuth();
+  const { signOut, user, isAdmin, isExecutivo, isViewOnly, isEnfermeira, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -75,9 +76,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
       if (item.adminOnly && !isAdmin) return false;
+      // Saúde: only admin, executivo, enfermeira
+      if (item.to === "/saude" && !isAdmin && !isExecutivo && !isEnfermeira) return false;
+      // Enfermeira: restricted access
+      if (isEnfermeira) {
+        const allowed = ["/empresas", "/executivas", "/saude"];
+        return allowed.includes(item.to);
+      }
       return true;
     });
-  }, [isAdmin]);
+  }, [isAdmin, isExecutivo, isEnfermeira]);
 
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],

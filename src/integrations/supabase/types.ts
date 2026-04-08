@@ -287,6 +287,56 @@ export type Database = {
         }
         Relationships: []
       }
+      saude_agendamentos: {
+        Row: {
+          created_at: string
+          data: string
+          empresa_id: string
+          enfermeira_user_id: string
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          observacao: string | null
+          status: string
+          tipo_palestra: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          empresa_id: string
+          enfermeira_user_id: string
+          hora_fim: string
+          hora_inicio: string
+          id?: string
+          observacao?: string | null
+          status?: string
+          tipo_palestra: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          empresa_id?: string
+          enfermeira_user_id?: string
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          observacao?: string | null
+          status?: string
+          tipo_palestra?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saude_agendamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -329,7 +379,7 @@ export type Database = {
       vincular_empresas_por_responsavel: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "comum" | "executivo" | "visualizacao"
+      app_role: "admin" | "comum" | "executivo" | "visualizacao" | "enfermeira"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -457,7 +507,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "comum", "executivo", "visualizacao"],
+      app_role: ["admin", "comum", "executivo", "visualizacao", "enfermeira"],
     },
   },
 } as const
