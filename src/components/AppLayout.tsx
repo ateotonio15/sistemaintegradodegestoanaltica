@@ -78,10 +78,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       if (item.adminOnly && !isAdmin) return false;
       // Saúde: only admin, executivo, enfermeira
       if (item.to === "/saude" && !isAdmin && !isExecutivo && !isEnfermeira) return false;
-      // Enfermeira: only empresas, executivas (readonly), saude
+      // Enfermeira: restricted access
       if (isEnfermeira) {
         const allowed = ["/empresas", "/executivas", "/saude"];
-        if (!allowed.includes(item.to) && !item.adminOnly) return item.to === "/empresas" || item.to === "/executivas" || item.to === "/saude";
+        return allowed.includes(item.to);
       }
       return true;
     });
