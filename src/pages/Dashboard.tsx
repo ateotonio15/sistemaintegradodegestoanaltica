@@ -250,35 +250,96 @@ export default function Dashboard() {
 
   const handleRevisarEmpresas = async () => {
     if (!user || loadingRevisao) return;
-    if (!confirm("Deseja revisar todas as empresas? Isso corrigirá inconsistências automaticamente.")) return;
+    if (!confirm("Deseja revisar todas as empresas e movimentações? Isso corrigirá inconsistências automaticamente.")) return;
     setLoadingRevisao(true);
     try {
       const { data: empresas, error } = await supabase.from("empresas").select("*");
       if (error) throw error;
 
-      let erros = 0;
-      let corrigidos = 0;
+      let errosEmp = 0;
+      let corrigidosEmp = 0;
+
+      const empresaMap = new Map<string, Tables<"empresas">>();
 
       for (const emp of empresas) {
+        empresaMap.set(emp.id, emp);
         const updateData: Record<string, any> = {};
 
-        if (!emp.nome) { erros++; continue; }
-        if (!emp.status_empresa) { updateData.status_empresa = "Ativa"; corrigidos++; }
-        if (!emp.tipo_movimentacao) { updateData.tipo_movimentacao = "Fechada"; corrigidos++; }
-        if (!emp.periodo_movimentacao && emp.tipo_movimentacao !== "Diária") { updateData.periodo_movimentacao = "01-05"; corrigidos++; }
-        if (!emp.data_implantacao) { const n = new Date(); updateData.data_implantacao = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`; corrigidos++; }
-        if (!emp.prazo) { updateData.prazo = "Sem prazo definido"; corrigidos++; }
-        if (!emp.grupo_contrato) { updateData.grupo_contrato = "Não informado"; corrigidos++; }
+        if (!emp.nome) { errosEmp++; continue; }
+        if (!emp.status_empresa) { updateData.status_empresa = "Ativa"; corrigidosEmp++; }
+        if (!emp.tipo_movimentacao) { updateData.tipo_movimentacao = "Fechada"; corrigidosEmp++; }
+        if (!emp.periodo_movimentacao && emp.tipo_movimentacao !== "Diária") { updateData.periodo_movimentacao = "01-05"; corrigidosEmp++; }
+        if (!emp.data_implantacao) { const n = new Date(); updateData.data_implantacao = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`; corrigidosEmp++; }
+        if (!emp.prazo) { updateData.prazo = "Sem prazo definido"; corrigidosEmp++; }
+        if (!emp.grupo_contrato) { updateData.grupo_contrato = "Não informado"; corrigidosEmp++; }
 
         if (Object.keys(updateData).length > 0) {
           const { error: updateError } = await supabase.from("empresas").update(updateData).eq("id", emp.id);
-          if (updateError) { console.error("Erro ao atualizar:", emp.nome, updateError); erros++; }
+          if (updateError) { console.error("Erro ao atualizar empresa:", emp.nome, updateError); errosEmp++; }
+          else {
+            Object.assign(emp, updateData);
+            empresaMap.set(emp.id, emp);
+          }
         }
       }
 
-      toast({ title: "Revisão concluída!", description: `${corrigidos} corrigidos | ${erros} com erro` });
+      // --- REVISÃO DE MOVIMENTAÇÕES ---
+      const { data: allMovs, error: movError } = await supabase
+        .from("movimentacoes")
+        .select("id, empresa_id, periodo, tipo_movimentacao, responsavel_movimentacao, mes_referencia");
+      if (movError) throw movError;
+
+      let corrigidosMov = 0;
+      let errosMov = 0;
+
+      for (const mov of allMovs) {
+        const emp = empresaMap.get(mov.empresa_id);
+        if (!emp) continue;
+
+        const updateMov: Record<string, any> = {};
+
+        // Corrigir período baseado na configuração da empresa
+        let periodoCorreto: string;
+        if (emp.tipo_movimentacao === "Diária" && emp.data_corte) {
+          periodoCorreto = periodoDaDataCorte(emp.data_corte);
+        } else if (emp.periodo_movimentacao) {
+          periodoCorreto = emp.periodo_movimentacao;
+        } else {
+          periodoCorreto = "01-05";
+        }
+
+        if (mov.periodo !== periodoCorreto) {
+          updateMov.periodo = periodoCorreto;
+        }
+
+        // Corrigir tipo_movimentacao da movimentação
+        const tipoCorreto = emp.tipo_movimentacao || "Fechada";
+        if (mov.tipo_movimentacao !== tipoCorreto) {
+          updateMov.tipo_movimentacao = tipoCorreto;
+        }
+
+        // Corrigir responsável
+        if (!mov.responsavel_movimentacao && emp.responsavel_contrato) {
+          updateMov.responsavel_movimentacao = emp.responsavel_contrato;
+        }
+
+        if (Object.keys(updateMov).length > 0) {
+          const { error: updErr } = await supabase.from("movimentacoes").update(updateMov).eq("id", mov.id);
+          if (updErr) { console.error("Erro ao atualizar mov:", mov.id, updErr); errosMov++; }
+          else { corrigidosMov++; }
+        }
+      }
+
+      const totalCorrigidos = corrigidosEmp + corrigidosMov;
+      const totalErros = errosEmp + errosMov;
+      toast({
+        title: "Revisão concluída!",
+        description: `Empresas: ${corrigidosEmp} corrigidas | Movimentações: ${corrigidosMov} corrigidas | ${totalErros} erros`,
+      });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
     } catch (err: any) {
       console.error(err);
       toast({ title: "Erro na revisão", description: err?.message, variant: "destructive" });
