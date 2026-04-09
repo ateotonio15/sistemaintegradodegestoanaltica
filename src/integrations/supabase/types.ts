@@ -63,6 +63,7 @@ export type Database = {
           data_vencimento_fatura: number | null
           dia_movimentacao: number | null
           email_empresa: string | null
+          endereco: string | null
           executiva_user_id: string | null
           grupo_contrato: string | null
           id: string
@@ -90,6 +91,7 @@ export type Database = {
           data_vencimento_fatura?: number | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
+          endereco?: string | null
           executiva_user_id?: string | null
           grupo_contrato?: string | null
           id?: string
@@ -117,6 +119,7 @@ export type Database = {
           data_vencimento_fatura?: number | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
+          endereco?: string | null
           executiva_user_id?: string | null
           grupo_contrato?: string | null
           id?: string
@@ -292,6 +295,7 @@ export type Database = {
           created_at: string
           data: string
           empresa_id: string
+          endereco_empresa: string | null
           enfermeira_user_id: string
           hora_fim: string
           hora_inicio: string
@@ -305,6 +309,7 @@ export type Database = {
           created_at?: string
           data: string
           empresa_id: string
+          endereco_empresa?: string | null
           enfermeira_user_id: string
           hora_fim: string
           hora_inicio: string
@@ -318,6 +323,7 @@ export type Database = {
           created_at?: string
           data?: string
           empresa_id?: string
+          endereco_empresa?: string | null
           enfermeira_user_id?: string
           hora_fim?: string
           hora_inicio?: string
