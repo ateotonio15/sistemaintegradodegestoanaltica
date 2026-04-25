@@ -231,6 +231,76 @@ export default function Financeiro() {
     };
   }, [kpiRows]);
 
+  // Provisionar movimentações financeiras do mês a partir das empresas ativas
+  const provisionarMutation = useMutation({
+    mutationFn: async () => {
+      const { data: empresas, error: empErr } = await supabase
+        .from("empresas")
+        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato")
+        .eq("status_empresa", "Ativa");
+      if (empErr) throw empErr;
+
+      const PERIODOS_VALIDOS = new Set(PERIODOS_FIN as readonly string[]);
+      const linhas: Array<{
+        empresa_id: string;
+        mes_referencia: string;
+        periodo: string;
+        dentro_prazo: boolean;
+        responsavel: string | null;
+      }> = [];
+
+      for (const e of empresas || []) {
+        let periodo: string | null = null;
+        if (e.tipo_movimentacao === "Diária" && e.data_corte) {
+          periodo = periodoDaDataCorte(e.data_corte);
+        } else if (e.periodo_movimentacao) {
+          periodo = e.periodo_movimentacao;
+        }
+        if (!periodo || !PERIODOS_VALIDOS.has(periodo)) continue;
+
+        linhas.push({
+          empresa_id: e.id,
+          mes_referencia: mes,
+          periodo,
+          dentro_prazo: true,
+          responsavel: e.responsavel_contrato ?? null,
+        });
+      }
+
+      if (linhas.length === 0) {
+        return { inseridas: 0, total: 0 };
+      }
+
+      // Buscar existentes para evitar duplicatas (não há índice único)
+      const { data: existentes, error: exErr } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("empresa_id, periodo")
+        .eq("mes_referencia", mes);
+      if (exErr) throw exErr;
+
+      const chaves = new Set((existentes || []).map((r) => `${r.empresa_id}|${r.periodo}`));
+      const novas = linhas.filter((l) => !chaves.has(`${l.empresa_id}|${l.periodo}`));
+
+      if (novas.length === 0) return { inseridas: 0, total: linhas.length };
+
+      const { error: insErr } = await supabase.from("financeiro_movimentacoes").insert(novas);
+      if (insErr) throw insErr;
+
+      return { inseridas: novas.length, total: linhas.length };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      if (!res || res.total === 0) {
+        toast.warning("Nenhuma empresa ativa com período financeiro válido.");
+      } else if (res.inseridas === 0) {
+        toast.info("Todas as movimentações deste mês já estavam provisionadas.");
+      } else {
+        toast.success(`${res.inseridas} movimentação(ões) financeira(s) gerada(s).`);
+      }
+    },
+    onError: (e: any) => toast.error("Erro ao provisionar: " + e.message),
+  });
+
   // Guards de acesso
   if (loading) {
     return (
