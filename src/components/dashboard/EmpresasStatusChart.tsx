@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { Tables } from "@/integrations/supabase/types";
-import type { Movimentacao } from "@/lib/movimentacao-utils";
+import { calcularStatus, type Movimentacao } from "@/lib/movimentacao-utils";
 
 interface Props {
   empresas: Tables<"empresas">[];
