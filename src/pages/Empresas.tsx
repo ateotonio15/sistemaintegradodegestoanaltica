@@ -61,6 +61,7 @@ export default function Empresas() {
   const [dataImplantacao, setDataImplantacao] = useState("");
   const [dataVencimentoFatura, setDataVencimentoFatura] = useState<number | "">("");
   const [dataEmissaoFatura, setDataEmissaoFatura] = useState<number | "">("");
+  const [suspensaoEmpresa, setSuspensaoEmpresa] = useState<Empresa | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
