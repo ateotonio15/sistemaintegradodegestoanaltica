@@ -423,6 +423,7 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Resp. Mov.</TableHead>
                     <TableHead className="font-semibold">Envio Empresa</TableHead>
                     <TableHead className="font-semibold">Financeiro</TableHead>
+                    <TableHead className="font-semibold">Nota Enviada</TableHead>
                     {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
