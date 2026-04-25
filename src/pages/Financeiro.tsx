@@ -85,12 +85,26 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte")
         .in("id", empresaIds);
       if (error) throw error;
-      const map: Record<string, { nome: string; codigo: string | null; cnpj: string | null }> = {};
+      const map: Record<string, {
+        nome: string;
+        codigo: string | null;
+        cnpj: string | null;
+        tipo_movimentacao: string | null;
+        periodo_movimentacao: string | null;
+        data_corte: number | null;
+      }> = {};
       data.forEach((e: any) => {
-        map[e.id] = { nome: e.nome, codigo: e.codigo_contrato, cnpj: e.cnpj };
+        map[e.id] = {
+          nome: e.nome,
+          codigo: e.codigo_contrato,
+          cnpj: e.cnpj,
+          tipo_movimentacao: e.tipo_movimentacao ?? null,
+          periodo_movimentacao: e.periodo_movimentacao ?? null,
+          data_corte: e.data_corte ?? null,
+        };
       });
       return map;
     },
