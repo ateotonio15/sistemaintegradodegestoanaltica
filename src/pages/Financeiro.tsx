@@ -340,7 +340,19 @@ export default function Financeiro() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => provisionarMutation.mutate()}
+              disabled={provisionarMutation.isPending}
+              className="gap-1.5"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${provisionarMutation.isPending ? "animate-spin" : ""}`}
+              />
+              {provisionarMutation.isPending ? "Gerando..." : "Gerar movimentações"}
+            </Button>
             <Label htmlFor="mes-ref" className="text-xs text-muted-foreground">
               Mês
             </Label>
