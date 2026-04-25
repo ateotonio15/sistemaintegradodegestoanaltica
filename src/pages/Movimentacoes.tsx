@@ -95,6 +95,29 @@ export default function Movimentacoes() {
     enabled: !!user,
   });
 
+  // Mapa de "Nota Enviada" do módulo financeiro: (empresa_id|mes|periodo) -> data_envio_nota
+  const { data: notasMap = new Map<string, string>() } = useQuery({
+    queryKey: ["financeiro-notas-map", filterMes],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("empresa_id, mes_referencia, periodo, data_envio_nota")
+        .eq("mes_referencia", filterMes)
+        .not("data_envio_nota", "is", null);
+      if (error) throw error;
+      const m = new Map<string, string>();
+      for (const r of data ?? []) {
+        const key = `${r.empresa_id}|${r.mes_referencia}|${r.periodo}`;
+        const prev = m.get(key);
+        if (!prev || (r.data_envio_nota && r.data_envio_nota > prev)) {
+          m.set(key, r.data_envio_nota as string);
+        }
+      }
+      return m;
+    },
+    enabled: !!user,
+  });
+
   const movimentacoesSemEmpresa = useMemo(() => {
     return movimentacoes.filter((m) => !m.empresa_id || !m.empresas);
   }, [movimentacoes]);
