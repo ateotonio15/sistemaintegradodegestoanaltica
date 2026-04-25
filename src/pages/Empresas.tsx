@@ -768,10 +768,26 @@ export default function Empresas() {
                   )}
                 </>
               )}
+              {isAdmin && detailEmpresa && (
+                <Button
+                  variant={(detailEmpresa as any).contrato_suspenso ? "default" : "secondary"}
+                  className="rounded-lg gap-2"
+                  onClick={() => setSuspensaoEmpresa(detailEmpresa)}
+                >
+                  <Ban className="h-4 w-4" />
+                  {(detailEmpresa as any).contrato_suspenso ? "Reativar / Histórico" : "Suspender Contrato"}
+                </Button>
+              )}
               <Button variant="outline" onClick={() => { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); }} className="rounded-lg">Fechar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <SuspensaoDialog
+          open={!!suspensaoEmpresa}
+          onOpenChange={(open) => { if (!open) setSuspensaoEmpresa(null); }}
+          empresa={suspensaoEmpresa as any}
+        />
       </div>
     </AppLayout>
   );
