@@ -41,7 +41,8 @@ import {
 const STATUS_OPTIONS: StatusFinanceiro[] = ["Enviada", "Aguardando nota", "Pendente", "Fora do prazo"];
 
 export default function Financeiro() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isFinanceiro } = useAuth();
+  const canManageFinanceiro = isAdmin || isFinanceiro;
   const queryClient = useQueryClient();
 
   const [mes, setMes] = useState(getCurrentMesReferencia());
@@ -67,7 +68,7 @@ export default function Financeiro() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user && isAdmin,
+    enabled: !!user && canManageFinanceiro,
   });
 
   const empresaIds = useMemo(
@@ -345,7 +346,7 @@ export default function Financeiro() {
     );
   }
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!canManageFinanceiro) return <Navigate to="/" replace />;
 
   const handleEdit = (row: FinanceiroRow) => {
     setEditing(row);
