@@ -14,6 +14,91 @@ export type Database = {
   }
   public: {
     Tables: {
+      anexos_financeiro: {
+        Row: {
+          created_at: string
+          financeiro_movimentacao_id: string
+          id: string
+          mime_type: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          financeiro_movimentacao_id: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          financeiro_movimentacao_id?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anexos_financeiro_financeiro_movimentacao_id_fkey"
+            columns: ["financeiro_movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_movimentacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobrancas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          financeiro_movimentacao_id: string
+          id: string
+          motivo: string
+          observacao: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data: string
+          financeiro_movimentacao_id: string
+          id?: string
+          motivo: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          financeiro_movimentacao_id?: string
+          id?: string
+          motivo?: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_financeiro_movimentacao_id_fkey"
+            columns: ["financeiro_movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_movimentacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa_usuarios: {
         Row: {
           created_at: string
@@ -144,6 +229,51 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      financeiro_movimentacoes: {
+        Row: {
+          cobranca_registrada: boolean
+          created_at: string
+          data_envio_nota: string | null
+          dentro_prazo: boolean
+          empresa_id: string
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          periodo: string
+          responsavel: string | null
+          tipo_cobranca: string | null
+          updated_at: string
+        }
+        Insert: {
+          cobranca_registrada?: boolean
+          created_at?: string
+          data_envio_nota?: string | null
+          dentro_prazo?: boolean
+          empresa_id: string
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          periodo: string
+          responsavel?: string | null
+          tipo_cobranca?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cobranca_registrada?: boolean
+          created_at?: string
+          data_envio_nota?: string | null
+          dentro_prazo?: boolean
+          empresa_id?: string
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          periodo?: string
+          responsavel?: string | null
+          tipo_cobranca?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       movimentacoes: {
         Row: {
