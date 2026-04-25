@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,8 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Bell, Wallet } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 
 import { KpiCards } from "@/components/financeiro/KpiCards";
 import { StatusChart } from "@/components/financeiro/StatusChart";
