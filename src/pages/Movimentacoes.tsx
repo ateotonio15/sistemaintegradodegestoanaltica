@@ -455,7 +455,7 @@ export default function Movimentacoes() {
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
                             {dataNota ? (
-                              <Badge className="rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20">
+                              <Badge className="rounded-md bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
                                 {formatDateBR(dataNota)}
                               </Badge>
                             ) : (
