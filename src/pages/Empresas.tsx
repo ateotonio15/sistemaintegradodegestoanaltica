@@ -21,6 +21,8 @@ import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import * as XLSX from "xlsx";
 
+import { cn } from "@/lib/utils";
+
 type Empresa = Tables<"empresas">;
 
 const GRUPO_CONTRATO_OPTIONS = [
