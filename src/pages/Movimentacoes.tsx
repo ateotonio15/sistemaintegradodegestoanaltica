@@ -429,13 +429,15 @@ export default function Movimentacoes() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
                       const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
+                      const notaKey = `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`;
+                      const dataNota = notasMap.get(notaKey) ?? null;
                       return (
                         <TableRow key={m.id} className={`transition-colors ${!m.empresas ? "bg-destructive/5" : status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : "hover:bg-accent/50"}`}>
                           <TableCell className="font-medium">
@@ -451,6 +453,15 @@ export default function Movimentacoes() {
                           <TableCell className="text-muted-foreground">{m.responsavel_movimentacao || "—"}</TableCell>
                           <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
+                          <TableCell>
+                            {dataNota ? (
+                              <Badge className="rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20">
+                                {formatDateBR(dataNota)}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
                           {canEditDates && (
                           <TableCell>
                             <div className="flex gap-1">
