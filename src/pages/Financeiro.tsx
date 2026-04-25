@@ -360,6 +360,102 @@ export default function Financeiro() {
     setCobOpen(true);
   };
 
+  const handleExport = async () => {
+    if (filteredRows.length === 0) {
+      toast.warning("Nenhum registro para exportar com os filtros atuais");
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const headers = [
+        "Empresa",
+        "Contrato",
+        "CNPJ",
+        "Responsável",
+        "Tipo",
+        "Status",
+        "Envio nota",
+        "Vencimento",
+        "Anexos",
+        "Cobrança registrada",
+      ];
+
+      const dataRows = filteredRows.map((r) => [
+        r.empresa_nome,
+        r.empresa_codigo || "",
+        r.empresa_cnpj || "",
+        r.responsavel || "",
+        r.tipo_cobranca || "",
+        r.status,
+        formatDateBR(r.data_envio_nota),
+        formatDateBR(r.data_vencimento),
+        r.anexos_count,
+        r.cobranca_registrada ? "Sim" : "Não",
+      ]);
+
+      const totals = {
+        enviadas: filteredRows.filter((r) => r.status === "Enviada").length,
+        aguardando: filteredRows.filter((r) => r.status === "Aguardando nota").length,
+        pendentes: filteredRows.filter((r) => r.status === "Pendente").length,
+        foraPrazo: filteredRows.filter((r) => r.status === "Fora do prazo").length,
+        anexos: filteredRows.reduce((s, r) => s + r.anexos_count, 0),
+        cobrancas: filteredRows.filter((r) => r.cobranca_registrada).length,
+      };
+
+      const totalRow = [
+        `TOTAL (${filteredRows.length} registros)`,
+        "",
+        "",
+        "",
+        "",
+        `Enviadas: ${totals.enviadas} | Aguardando: ${totals.aguardando} | Pendentes: ${totals.pendentes} | Fora do prazo: ${totals.foraPrazo}`,
+        "",
+        "",
+        totals.anexos,
+        totals.cobrancas,
+      ];
+
+      const aoa = [headers, ...dataRows, [], totalRow];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      ws["!cols"] = [
+        { wch: 38 }, // Empresa
+        { wch: 14 }, // Contrato
+        { wch: 20 }, // CNPJ
+        { wch: 22 }, // Responsável
+        { wch: 16 }, // Tipo
+        { wch: 18 }, // Status
+        { wch: 14 }, // Envio nota
+        { wch: 14 }, // Vencimento
+        { wch: 10 }, // Anexos
+        { wch: 20 }, // Cobrança
+      ];
+
+      // Negrito no cabeçalho e linha de total
+      const totalRowIdx = aoa.length; // 1-based no Excel
+      headers.forEach((_, c) => {
+        const headerAddr = XLSX.utils.encode_cell({ r: 0, c });
+        if (ws[headerAddr]) ws[headerAddr].s = { font: { bold: true } };
+        const totalAddr = XLSX.utils.encode_cell({ r: totalRowIdx - 1, c });
+        if (ws[totalAddr]) ws[totalAddr].s = { font: { bold: true } };
+      });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
+
+      const today = new Date();
+      const stamp = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
+      const filename = `financeiro_${mes}_${stamp}.xlsx`;
+
+      XLSX.writeFile(wb, filename);
+      toast.success(`Arquivo exportado: ${filteredRows.length} registro(s)`);
+    } catch (e: any) {
+      toast.error("Erro ao exportar: " + (e?.message || "falha desconhecida"));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const editingNome = editing ? empresasMap[editing.empresa_id]?.nome : undefined;
 
   return (
