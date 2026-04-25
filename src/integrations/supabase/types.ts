@@ -99,6 +99,53 @@ export type Database = {
           },
         ]
       }
+      empresa_suspensoes: {
+        Row: {
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          empresa_id: string
+          id: string
+          motivo: string
+          observacao: string | null
+          reativado_por: string | null
+          suspenso_por: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio: string
+          empresa_id: string
+          id?: string
+          motivo: string
+          observacao?: string | null
+          reativado_por?: string | null
+          suspenso_por?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          empresa_id?: string
+          id?: string
+          motivo?: string
+          observacao?: string | null
+          reativado_por?: string | null
+          suspenso_por?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_suspensoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa_usuarios: {
         Row: {
           created_at: string
@@ -140,11 +187,14 @@ export type Database = {
           cnpj: string | null
           codigo_contrato: string | null
           contato_empresa: string | null
+          contrato_faixa_etaria: boolean
+          contrato_suspenso: boolean
           created_at: string
           data_corte: number | null
           data_emissao_fatura: number | null
           data_implantacao: string | null
           data_rescisao: string | null
+          data_suspensao: string | null
           data_vencimento_fatura: number | null
           dia_movimentacao: number | null
           email_empresa: string | null
@@ -152,6 +202,7 @@ export type Database = {
           executiva_user_id: string | null
           grupo_contrato: string | null
           id: string
+          motivo_suspensao: string | null
           nome: string
           observacoes: string | null
           operadora_plano: string | null
@@ -168,11 +219,14 @@ export type Database = {
           cnpj?: string | null
           codigo_contrato?: string | null
           contato_empresa?: string | null
+          contrato_faixa_etaria?: boolean
+          contrato_suspenso?: boolean
           created_at?: string
           data_corte?: number | null
           data_emissao_fatura?: number | null
           data_implantacao?: string | null
           data_rescisao?: string | null
+          data_suspensao?: string | null
           data_vencimento_fatura?: number | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
@@ -180,6 +234,7 @@ export type Database = {
           executiva_user_id?: string | null
           grupo_contrato?: string | null
           id?: string
+          motivo_suspensao?: string | null
           nome: string
           observacoes?: string | null
           operadora_plano?: string | null
@@ -196,11 +251,14 @@ export type Database = {
           cnpj?: string | null
           codigo_contrato?: string | null
           contato_empresa?: string | null
+          contrato_faixa_etaria?: boolean
+          contrato_suspenso?: boolean
           created_at?: string
           data_corte?: number | null
           data_emissao_fatura?: number | null
           data_implantacao?: string | null
           data_rescisao?: string | null
+          data_suspensao?: string | null
           data_vencimento_fatura?: number | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
@@ -208,6 +266,7 @@ export type Database = {
           executiva_user_id?: string | null
           grupo_contrato?: string | null
           id?: string
+          motivo_suspensao?: string | null
           nome?: string
           observacoes?: string | null
           operadora_plano?: string | null
