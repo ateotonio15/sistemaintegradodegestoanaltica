@@ -235,6 +235,7 @@ export type Database = {
           cobranca_registrada: boolean
           created_at: string
           data_envio_nota: string | null
+          data_vencimento: string | null
           dentro_prazo: boolean
           empresa_id: string
           id: string
@@ -249,6 +250,7 @@ export type Database = {
           cobranca_registrada?: boolean
           created_at?: string
           data_envio_nota?: string | null
+          data_vencimento?: string | null
           dentro_prazo?: boolean
           empresa_id: string
           id?: string
@@ -263,6 +265,7 @@ export type Database = {
           cobranca_registrada?: boolean
           created_at?: string
           data_envio_nota?: string | null
+          data_vencimento?: string | null
           dentro_prazo?: boolean
           empresa_id?: string
           id?: string
