@@ -57,6 +57,7 @@ export default function Financeiro() {
   const [editing, setEditing] = useState<FinanceiroMovimentacao | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [cobOpen, setCobOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Movimentações financeiras do mês + dados de empresa via consulta separada
   const { data: financeiroRaw = [], isLoading } = useQuery({
