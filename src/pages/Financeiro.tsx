@@ -231,14 +231,31 @@ export default function Financeiro() {
     };
   }, [kpiRows]);
 
-  // Provisionar movimentações financeiras do mês a partir das empresas ativas
+  // Provisionar movimentações financeiras do mês:
+  // - Todas as empresas ATIVAS com período válido
+  // - + Empresas INATIVAS que tenham movimentação operacional registrada no mês
+  //   (para alinhar a contagem com a aba Dashboard / "Resumo Geral por Período")
   const provisionarMutation = useMutation({
     mutationFn: async () => {
       const { data: empresas, error: empErr } = await supabase
         .from("empresas")
-        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato")
-        .eq("status_empresa", "Ativa");
+        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato");
       if (empErr) throw empErr;
+
+      // Movimentações operacionais já existentes no mês (para incluir Inativas com histórico)
+      const { data: movsMes, error: movErr } = await supabase
+        .from("movimentacoes")
+        .select("empresa_id, periodo")
+        .eq("mes_referencia", mes);
+      if (movErr) throw movErr;
+
+      const operacionaisPorEmpresa = new Map<string, Set<string>>();
+      (movsMes || []).forEach((m) => {
+        if (!operacionaisPorEmpresa.has(m.empresa_id)) {
+          operacionaisPorEmpresa.set(m.empresa_id, new Set());
+        }
+        operacionaisPorEmpresa.get(m.empresa_id)!.add(m.periodo);
+      });
 
       const PERIODOS_VALIDOS = new Set(PERIODOS_FIN as readonly string[]);
       const linhas: Array<{
@@ -250,20 +267,38 @@ export default function Financeiro() {
       }> = [];
 
       for (const e of empresas || []) {
-        let periodo: string | null = null;
-        if (e.tipo_movimentacao === "Diária" && e.data_corte) {
-          periodo = periodoDaDataCorte(e.data_corte);
-        } else if (e.periodo_movimentacao) {
-          periodo = e.periodo_movimentacao;
-        }
-        if (!periodo || !PERIODOS_VALIDOS.has(periodo)) continue;
+        const ativa = e.status_empresa === "Ativa";
+        const periodosOperacionais = operacionaisPorEmpresa.get(e.id);
 
-        linhas.push({
-          empresa_id: e.id,
-          mes_referencia: mes,
-          periodo,
-          dentro_prazo: true,
-          responsavel: e.responsavel_contrato ?? null,
+        // Inativa sem movimentação no mês → ignorar
+        if (!ativa && !periodosOperacionais) continue;
+
+        const periodos = new Set<string>();
+
+        // Período-base configurado na empresa (somente se Ativa)
+        if (ativa) {
+          let base: string | null = null;
+          if (e.tipo_movimentacao === "Diária" && e.data_corte) {
+            base = periodoDaDataCorte(e.data_corte);
+          } else if (e.periodo_movimentacao) {
+            base = e.periodo_movimentacao;
+          }
+          if (base && PERIODOS_VALIDOS.has(base)) periodos.add(base);
+        }
+
+        // Períodos vindos de movimentações operacionais (ativas ou inativas com histórico)
+        periodosOperacionais?.forEach((p) => {
+          if (PERIODOS_VALIDOS.has(p)) periodos.add(p);
+        });
+
+        periodos.forEach((periodo) => {
+          linhas.push({
+            empresa_id: e.id,
+            mes_referencia: mes,
+            periodo,
+            dentro_prazo: true,
+            responsavel: e.responsavel_contrato ?? null,
+          });
         });
       }
 
