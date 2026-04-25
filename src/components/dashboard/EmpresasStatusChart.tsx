@@ -28,8 +28,9 @@ export function EmpresasStatusChart({ empresas, movimentacoes, notaEnviadaEmpres
         pendente += 1;
         return;
       }
-      const temAtraso = movs.some((m) => m.status === "Fora do prazo");
-      const todasConcluidas = movs.every((m) => m.status === "Enviado ao financeiro");
+      const statuses = movs.map((m) => calcularStatus(m));
+      const temAtraso = statuses.some((s) => s === "Fora do prazo");
+      const todasConcluidas = statuses.every((s) => s === "Enviado ao financeiro");
       if (temAtraso) pendente += 1;
       else if (todasConcluidas) emDia += 1;
       else pendente += 1;
