@@ -42,6 +42,7 @@ const STATUS_OPTIONS: StatusFinanceiro[] = ["Enviada", "Aguardando nota", "Pende
 
 export default function Financeiro() {
   const { user, loading, isAdmin } = useAuth();
+  const queryClient = useQueryClient();
 
   const [mes, setMes] = useState(getCurrentMesReferencia());
   const [busca, setBusca] = useState("");
