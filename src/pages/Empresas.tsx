@@ -565,42 +565,66 @@ export default function Empresas() {
                   ) : filtered.length === 0 ? (
                     <TableRow><TableCell colSpan={canEdit ? 13 : 12} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
                   ) : (
-                    filtered.map((e) => (
-                      <TableRow key={e.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setDetailEmpresa(e)}>
-                        <TableCell className="font-medium">{e.nome}</TableCell>
-                        <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
-                        <TableCell>{getResponsavelName(e)}</TableCell>
-                        <TableCell>{getExecutivaName(e)}</TableCell>
-                        <TableCell className="text-muted-foreground font-mono text-xs">{e.cnpj || "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="rounded-md">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {e.tipo_movimentacao === "Diária"
-                            ? `Corte: dia ${e.data_corte ?? "—"}`
-                            : e.periodo_movimentacao || "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{formatDateBR(e.data_implantacao)}</TableCell>
-                        <TableCell className="text-muted-foreground">{formatDay(e.data_vencimento_fatura)}</TableCell>
-                        <TableCell className="text-muted-foreground">{formatDay(e.data_emissao_fatura)}</TableCell>
-                        <TableCell>
-                          <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md">
-                            {e.status_empresa ?? "Ativa"}
-                          </Badge>
-                        </TableCell>
-                        {canEdit && (
+                    filtered.map((e) => {
+                      const suspenso = (e as any).contrato_suspenso;
+                      const faixa = (e as any).contrato_faixa_etaria;
+                      return (
+                        <TableRow
+                          key={e.id}
+                          className={cn(
+                            "cursor-pointer transition-colors",
+                            suspenso ? "bg-muted/50 hover:bg-muted/70" : "hover:bg-accent/50"
+                          )}
+                          onClick={() => setDetailEmpresa(e)}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0" />}
+                              <span>{e.nome}</span>
+                              {faixa && <Badge variant="outline" className="rounded-md text-[10px]">Faixa Etária</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
+                          <TableCell>{getResponsavelName(e)}</TableCell>
+                          <TableCell>{getExecutivaName(e)}</TableCell>
+                          <TableCell className="text-muted-foreground font-mono text-xs">{e.cnpj || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
                           <TableCell>
-                            <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
-                              <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
-                              {canFullEdit && (
-                                <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            <Badge variant="outline" className="rounded-md">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {e.tipo_movimentacao === "Diária"
+                              ? `Corte: dia ${e.data_corte ?? "—"}`
+                              : e.periodo_movimentacao || "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{formatDateBR(e.data_implantacao)}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDay(e.data_vencimento_fatura)}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDay(e.data_emissao_fatura)}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md w-fit">
+                                {e.status_empresa ?? "Ativa"}
+                              </Badge>
+                              {suspenso && (
+                                <Badge variant="outline" className="rounded-md w-fit border-muted-foreground/40 text-muted-foreground">
+                                  Suspenso
+                                </Badge>
                               )}
                             </div>
                           </TableCell>
-                        )}
-                      </TableRow>
-                    ))
+                          {canEdit && (
+                            <TableCell>
+                              <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
+                                <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
+                                {canFullEdit && (
+                                  <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
