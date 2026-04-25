@@ -184,11 +184,20 @@ export default function Financeiro() {
     return financeiroRaw.map((f) => {
       const emp = empresasMap[f.empresa_id];
       const envioOperacional = !!operacionaisMap[`${f.empresa_id}|${f.periodo}`];
+      // "Período / Corte" baseado na configuração da empresa
+      const periodoCorte = emp
+        ? emp.tipo_movimentacao === "Diária" && emp.data_corte
+          ? `Diária — corte dia ${String(emp.data_corte).padStart(2, "0")}`
+          : emp.periodo_movimentacao
+            ? `Fechada — ${emp.periodo_movimentacao}`
+            : "—"
+        : "—";
       return {
         ...f,
         empresa_nome: emp?.nome || "—",
         empresa_codigo: emp?.codigo ?? null,
         empresa_cnpj: emp?.cnpj ?? null,
+        periodo_corte: periodoCorte,
         status: calcularStatusFinanceiro(f, envioOperacional),
         anexos_count: anexosCount[f.id] || 0,
       };
