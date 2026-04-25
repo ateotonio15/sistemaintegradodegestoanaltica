@@ -477,6 +477,16 @@ export default function Financeiro() {
 
           <div className="flex items-center gap-2 flex-wrap">
             <Button
+              variant="default"
+              size="sm"
+              onClick={handleExport}
+              disabled={isExporting || isLoading}
+              className="gap-1.5"
+            >
+              <Download className={`h-3.5 w-3.5 ${isExporting ? "animate-pulse" : ""}`} />
+              {isExporting ? "Exportando..." : "Exportar Excel"}
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               onClick={() => provisionarMutation.mutate()}
