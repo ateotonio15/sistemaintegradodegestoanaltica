@@ -320,13 +320,21 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
+          <div className="flex items-center justify-between gap-2 pt-2">
+            <p className="text-[11px] text-muted-foreground">
+              {hasErrors ? "Corrija os campos destacados para salvar." : "Campos validados."}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending || hasErrors}
+              >
+                {saveMutation.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
