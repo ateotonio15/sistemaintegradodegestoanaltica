@@ -36,7 +36,7 @@ const allNavItems = [
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/executivas", label: "Executivas", icon: UserCheck },
   { to: "/saude", label: "Saúde nas Empresas", icon: CalendarClock },
-  { to: "/financeiro", label: "Financeiro", icon: Wallet, adminOnly: true },
+  { to: "/financeiro", label: "Financeiro", icon: Wallet, financeiroOrAdmin: true },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
@@ -65,7 +65,7 @@ function formatDateBR(dateStr: string | null | undefined): string {
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user, isAdmin, isExecutivo, isViewOnly, isEnfermeira, role } = useAuth();
+  const { signOut, user, isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -78,7 +78,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
+      // Perfil Financeiro: SOMENTE Dashboard, Empresas, Movimentações, Financeiro
+      if (isFinanceiro) {
+        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro"];
+        return allowed.includes(item.to);
+      }
       if (item.adminOnly && !isAdmin) return false;
+      if ((item as any).financeiroOrAdmin && !isAdmin) return false;
       // Saúde: only admin, executivo, enfermeira
       if (item.to === "/saude" && !isAdmin && !isExecutivo && !isEnfermeira) return false;
       // Enfermeira: restricted access
@@ -88,7 +94,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       }
       return true;
     });
-  }, [isAdmin, isExecutivo, isEnfermeira]);
+  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro]);
 
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],

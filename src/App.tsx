@@ -9,6 +9,7 @@ import Empresas from "./pages/Empresas";
 import Movimentacoes from "./pages/Movimentacoes";
 import Usuarios from "./pages/Usuarios";
 import Dashboard from "./pages/Dashboard";
+import DashboardFinanceiro from "./pages/DashboardFinanceiro";
 import Executivas from "./pages/Executivas";
 import SaudeEmpresas from "./pages/SaudeEmpresas";
 import Financeiro from "./pages/Financeiro";
@@ -17,18 +18,29 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+function ProtectedRoute({ children, allowFinanceiro = true }: { children: React.ReactNode; allowFinanceiro?: boolean }) {
+  const { user, loading, isFinanceiro } = useAuth();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
   if (!user) return <Navigate to="/auth" replace />;
+  if (isFinanceiro && !allowFinanceiro) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
 function AdminOrComumRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isExecutivo } = useAuth();
+  const { user, loading, isExecutivo, isFinanceiro } = useAuth();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
   if (!user) return <Navigate to="/auth" replace />;
   if (isExecutivo) return <Navigate to="/" replace />;
+  if (isFinanceiro) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function FinanceiroRoute({ children }: { children: React.ReactNode }) {
+  // Acessível para Admin e perfil Financeiro
+  const { user, loading, isAdmin, isFinanceiro } = useAuth();
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!isAdmin && !isFinanceiro) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -38,6 +50,15 @@ function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
   if (!user) return <Navigate to="/auth" replace />;
   if (!isAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
+}
+
+function HomeRoute() {
+  // Roteamento por perfil para a raiz
+  const { user, loading, isFinanceiro } = useAuth();
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (isFinanceiro) return <DashboardFinanceiro />;
+  return <Dashboard />;
 }
 
 function AuthRoute() {
@@ -50,14 +71,14 @@ function AuthRoute() {
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute />} />
-    <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+    <Route path="/" element={<HomeRoute />} />
+    <Route path="/dashboard" element={<HomeRoute />} />
     <Route path="/empresas" element={<ProtectedRoute><Empresas /></ProtectedRoute>} />
     <Route path="/movimentacoes" element={<ProtectedRoute><Movimentacoes /></ProtectedRoute>} />
-    <Route path="/executivas" element={<ProtectedRoute><Executivas /></ProtectedRoute>} />
-    <Route path="/saude" element={<ProtectedRoute><SaudeEmpresas /></ProtectedRoute>} />
-    <Route path="/financeiro" element={<AdminOnlyRoute><Financeiro /></AdminOnlyRoute>} />
-    <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
+    <Route path="/executivas" element={<ProtectedRoute allowFinanceiro={false}><Executivas /></ProtectedRoute>} />
+    <Route path="/saude" element={<ProtectedRoute allowFinanceiro={false}><SaudeEmpresas /></ProtectedRoute>} />
+    <Route path="/financeiro" element={<FinanceiroRoute><Financeiro /></FinanceiroRoute>} />
+    <Route path="/usuarios" element={<AdminOnlyRoute><Usuarios /></AdminOnlyRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
