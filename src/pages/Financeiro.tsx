@@ -85,12 +85,26 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte")
         .in("id", empresaIds);
       if (error) throw error;
-      const map: Record<string, { nome: string; codigo: string | null; cnpj: string | null }> = {};
+      const map: Record<string, {
+        nome: string;
+        codigo: string | null;
+        cnpj: string | null;
+        tipo_movimentacao: string | null;
+        periodo_movimentacao: string | null;
+        data_corte: number | null;
+      }> = {};
       data.forEach((e: any) => {
-        map[e.id] = { nome: e.nome, codigo: e.codigo_contrato, cnpj: e.cnpj };
+        map[e.id] = {
+          nome: e.nome,
+          codigo: e.codigo_contrato,
+          cnpj: e.cnpj,
+          tipo_movimentacao: e.tipo_movimentacao ?? null,
+          periodo_movimentacao: e.periodo_movimentacao ?? null,
+          data_corte: e.data_corte ?? null,
+        };
       });
       return map;
     },
@@ -170,11 +184,20 @@ export default function Financeiro() {
     return financeiroRaw.map((f) => {
       const emp = empresasMap[f.empresa_id];
       const envioOperacional = !!operacionaisMap[`${f.empresa_id}|${f.periodo}`];
+      // "Período / Corte" baseado na configuração da empresa
+      const periodoCorte = emp
+        ? emp.tipo_movimentacao === "Diária" && emp.data_corte
+          ? `Diária — corte dia ${String(emp.data_corte).padStart(2, "0")}`
+          : emp.periodo_movimentacao
+            ? `Fechada — ${emp.periodo_movimentacao}`
+            : "—"
+        : "—";
       return {
         ...f,
         empresa_nome: emp?.nome || "—",
         empresa_codigo: emp?.codigo ?? null,
         empresa_cnpj: emp?.cnpj ?? null,
+        periodo_corte: periodoCorte,
         status: calcularStatusFinanceiro(f, envioOperacional),
         anexos_count: anexosCount[f.id] || 0,
       };
@@ -371,6 +394,7 @@ export default function Financeiro() {
         "Empresa",
         "Contrato",
         "CNPJ",
+        "Período / Corte",
         "Responsável",
         "Tipo",
         "Status",
@@ -384,6 +408,7 @@ export default function Financeiro() {
         r.empresa_nome,
         r.empresa_codigo || "",
         r.empresa_cnpj || "",
+        r.periodo_corte,
         r.responsavel || "",
         r.tipo_cobranca || "",
         r.status,
@@ -408,6 +433,7 @@ export default function Financeiro() {
         "",
         "",
         "",
+        "",
         `Enviadas: ${totals.enviadas} | Aguardando: ${totals.aguardando} | Pendentes: ${totals.pendentes} | Fora do prazo: ${totals.foraPrazo}`,
         "",
         "",
@@ -422,6 +448,7 @@ export default function Financeiro() {
         { wch: 38 }, // Empresa
         { wch: 14 }, // Contrato
         { wch: 20 }, // CNPJ
+        { wch: 22 }, // Período / Corte
         { wch: 22 }, // Responsável
         { wch: 16 }, // Tipo
         { wch: 18 }, // Status

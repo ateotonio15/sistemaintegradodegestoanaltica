@@ -14,6 +14,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_nome: string;
   empresa_codigo: string | null;
   empresa_cnpj: string | null;
+  periodo_corte: string;
   status: StatusFinanceiro;
   anexos_count: number;
   data_vencimento?: string | null;
@@ -35,6 +36,7 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
             <TableHead className="font-semibold">Empresa</TableHead>
             <TableHead className="font-semibold">Contrato</TableHead>
             <TableHead className="font-semibold">CNPJ</TableHead>
+            <TableHead className="font-semibold">Período / Corte</TableHead>
             <TableHead className="font-semibold">Responsável</TableHead>
             <TableHead className="font-semibold">Tipo</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
@@ -47,13 +49,13 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={10} className="text-center text-muted-foreground py-12">
+              <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
                 Carregando...
               </TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={10} className="text-center text-muted-foreground py-12">
+              <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
                 Nenhuma movimentação encontrada para os filtros atuais.
               </TableCell>
             </TableRow>
@@ -83,6 +85,9 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {row.empresa_cnpj || "—"}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    {row.periodo_corte}
                   </TableCell>
                   <TableCell className="text-sm">{row.responsavel || "—"}</TableCell>
                   <TableCell className="text-sm">
