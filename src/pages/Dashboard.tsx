@@ -27,6 +27,7 @@ import {
   periodoDaDataCorte,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { EmpresasStatusChart } from "@/components/dashboard/EmpresasStatusChart";
 
 export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
