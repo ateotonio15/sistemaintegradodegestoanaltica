@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Paperclip, Download, Trash2, Upload, FileText } from "lucide-react";
+import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
 import {
   type FinanceiroMovimentacao,
   ACCEPTED_FILE_TYPES,
@@ -22,18 +22,24 @@ import {
   formatBytes,
 } from "@/lib/financeiro-utils";
 
+type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & { data_vencimento?: string | null };
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  movimentacao: FinanceiroMovimentacao | null;
+  movimentacao: FinanceiroMovimentacaoExt | null;
   empresaNome?: string;
 }
+
+const TIPO_MAX = 60;
+const TIPO_REGEX = /^[\p{L}\p{N}\s\-/.,()&]+$/u;
 
 export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, empresaNome }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [tipoCobranca, setTipoCobranca] = useState("");
   const [dataEnvioNota, setDataEnvioNota] = useState("");
+  const [dataVencimento, setDataVencimento] = useState("");
   const [dentroPrazo, setDentroPrazo] = useState(true);
   const [uploading, setUploading] = useState(false);
 
@@ -41,9 +47,22 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     if (movimentacao) {
       setTipoCobranca(movimentacao.tipo_cobranca || "");
       setDataEnvioNota(movimentacao.data_envio_nota || "");
+      setDataVencimento(movimentacao.data_vencimento || "");
       setDentroPrazo(movimentacao.dentro_prazo);
     }
   }, [movimentacao]);
+
+  // Validações campo-a-campo (avisos discretos, não bloqueiam edição manual)
+  const tipoTrimmed = tipoCobranca.trim();
+  const tipoInvalido = tipoTrimmed.length > 0 && !TIPO_REGEX.test(tipoTrimmed);
+  const tipoMuitoLongo = tipoTrimmed.length > TIPO_MAX;
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const envioNoFuturo = dataEnvioNota && dataEnvioNota > hoje;
+  const vencimentoAntesEnvio =
+    dataEnvioNota && dataVencimento && dataVencimento < dataEnvioNota;
+
+  const hasErrors = tipoInvalido || tipoMuitoLongo || envioNoFuturo || vencimentoAntesEnvio;
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["financeiro-anexos", movimentacao?.id],
@@ -66,10 +85,11 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       const { error } = await supabase
         .from("financeiro_movimentacoes")
         .update({
-          tipo_cobranca: tipoCobranca.trim() || null,
+          tipo_cobranca: tipoTrimmed || null,
           data_envio_nota: dataEnvioNota || null,
+          data_vencimento: dataVencimento || null,
           dentro_prazo: dentroPrazo,
-        })
+        } as any)
         .eq("id", movimentacao.id);
       if (error) throw error;
     },
