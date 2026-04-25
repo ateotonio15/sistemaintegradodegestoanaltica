@@ -433,6 +433,7 @@ export default function Financeiro() {
         "",
         "",
         "",
+        "",
         `Enviadas: ${totals.enviadas} | Aguardando: ${totals.aguardando} | Pendentes: ${totals.pendentes} | Fora do prazo: ${totals.foraPrazo}`,
         "",
         "",
@@ -447,6 +448,7 @@ export default function Financeiro() {
         { wch: 38 }, // Empresa
         { wch: 14 }, // Contrato
         { wch: 20 }, // CNPJ
+        { wch: 22 }, // Período / Corte
         { wch: 22 }, // Responsável
         { wch: 16 }, // Tipo
         { wch: 18 }, // Status
