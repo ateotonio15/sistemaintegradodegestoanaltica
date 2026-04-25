@@ -236,6 +236,8 @@ export default function Movimentacoes() {
     const rows = filtered.map((m) => {
       const status = calcularStatus(m);
       const tipo = (m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao) === "Diária" ? "Diário" : "Período";
+      const notaKey = `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`;
+      const dataNota = notasMap.get(notaKey) ?? "";
       return {
         "Contrato": m.empresas?.codigo_contrato ?? "",
         "CNPJ": m.empresas?.cnpj ?? "",
@@ -245,6 +247,7 @@ export default function Movimentacoes() {
         "Período": formatPeriodoEmpresa(m.empresas as any),
         "Envio Empresa": m.data_envio_empresa ?? "",
         "Financeiro": m.data_envio_financeiro ?? "",
+        "Nota Enviada": dataNota,
         "Status": status,
         "Implantação": m.empresas?.data_implantacao ?? "",
         "Corretora": m.empresas?.operadora_plano ?? "",
