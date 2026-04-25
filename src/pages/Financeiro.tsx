@@ -17,9 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Bell, Wallet, RefreshCw } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { formatDateBR } from "@/lib/date-utils";
 
 import { KpiCards } from "@/components/financeiro/KpiCards";
 import { StatusChart } from "@/components/financeiro/StatusChart";
