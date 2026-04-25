@@ -95,6 +95,29 @@ export default function Movimentacoes() {
     enabled: !!user,
   });
 
+  // Mapa de "Nota Enviada" do módulo financeiro: (empresa_id|mes|periodo) -> data_envio_nota
+  const { data: notasMap = new Map<string, string>() } = useQuery({
+    queryKey: ["financeiro-notas-map", filterMes],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("empresa_id, mes_referencia, periodo, data_envio_nota")
+        .eq("mes_referencia", filterMes)
+        .not("data_envio_nota", "is", null);
+      if (error) throw error;
+      const m = new Map<string, string>();
+      for (const r of data ?? []) {
+        const key = `${r.empresa_id}|${r.mes_referencia}|${r.periodo}`;
+        const prev = m.get(key);
+        if (!prev || (r.data_envio_nota && r.data_envio_nota > prev)) {
+          m.set(key, r.data_envio_nota as string);
+        }
+      }
+      return m;
+    },
+    enabled: !!user,
+  });
+
   const movimentacoesSemEmpresa = useMemo(() => {
     return movimentacoes.filter((m) => !m.empresa_id || !m.empresas);
   }, [movimentacoes]);
@@ -213,6 +236,8 @@ export default function Movimentacoes() {
     const rows = filtered.map((m) => {
       const status = calcularStatus(m);
       const tipo = (m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao) === "Diária" ? "Diário" : "Período";
+      const notaKey = `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`;
+      const dataNota = notasMap.get(notaKey) ?? "";
       return {
         "Contrato": m.empresas?.codigo_contrato ?? "",
         "CNPJ": m.empresas?.cnpj ?? "",
@@ -222,6 +247,7 @@ export default function Movimentacoes() {
         "Período": formatPeriodoEmpresa(m.empresas as any),
         "Envio Empresa": m.data_envio_empresa ?? "",
         "Financeiro": m.data_envio_financeiro ?? "",
+        "Nota Enviada": dataNota,
         "Status": status,
         "Implantação": m.empresas?.data_implantacao ?? "",
         "Corretora": m.empresas?.operadora_plano ?? "",
@@ -400,18 +426,21 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Resp. Mov.</TableHead>
                     <TableHead className="font-semibold">Envio Empresa</TableHead>
                     <TableHead className="font-semibold">Financeiro</TableHead>
+                    <TableHead className="font-semibold">Nota Enviada</TableHead>
                     {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
                       const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
+                      const notaKey = `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`;
+                      const dataNota = notasMap.get(notaKey) ?? null;
                       return (
                         <TableRow key={m.id} className={`transition-colors ${!m.empresas ? "bg-destructive/5" : status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : "hover:bg-accent/50"}`}>
                           <TableCell className="font-medium">
@@ -427,6 +456,15 @@ export default function Movimentacoes() {
                           <TableCell className="text-muted-foreground">{m.responsavel_movimentacao || "—"}</TableCell>
                           <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
+                          <TableCell>
+                            {dataNota ? (
+                              <Badge className="rounded-md bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
+                                {formatDateBR(dataNota)}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
                           {canEditDates && (
                           <TableCell>
                             <div className="flex gap-1">
