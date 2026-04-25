@@ -450,6 +450,18 @@ export default function Empresas() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Contrato por Faixa Etária</Label>
+                        <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                          <Switch
+                            checked={!!(form as any).contrato_faixa_etaria}
+                            onCheckedChange={(v) => setForm({ ...form, contrato_faixa_etaria: v } as any)}
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {(form as any).contrato_faixa_etaria ? "Sim" : "Não"}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Observações</Label>
