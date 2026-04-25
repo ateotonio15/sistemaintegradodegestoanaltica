@@ -36,6 +36,7 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
             <TableHead className="font-semibold">Empresa</TableHead>
             <TableHead className="font-semibold">Contrato</TableHead>
             <TableHead className="font-semibold">CNPJ</TableHead>
+            <TableHead className="font-semibold">Período / Corte</TableHead>
             <TableHead className="font-semibold">Responsável</TableHead>
             <TableHead className="font-semibold">Tipo</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
