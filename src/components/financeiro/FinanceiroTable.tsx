@@ -14,6 +14,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_nome: string;
   empresa_codigo: string | null;
   empresa_cnpj: string | null;
+  periodo_corte: string;
   status: StatusFinanceiro;
   anexos_count: number;
   data_vencimento?: string | null;
