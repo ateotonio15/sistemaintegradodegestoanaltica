@@ -14,10 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban } from "lucide-react";
 import { PERIODOS } from "@/lib/movimentacao-utils";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
+import { Switch } from "@/components/ui/switch";
+import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import * as XLSX from "xlsx";
+
+import { cn } from "@/lib/utils";
 
 type Empresa = Tables<"empresas">;
 
@@ -59,6 +63,7 @@ export default function Empresas() {
   const [dataImplantacao, setDataImplantacao] = useState("");
   const [dataVencimentoFatura, setDataVencimentoFatura] = useState<number | "">("");
   const [dataEmissaoFatura, setDataEmissaoFatura] = useState<number | "">("");
+  const [suspensaoEmpresa, setSuspensaoEmpresa] = useState<Empresa | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -245,6 +250,7 @@ export default function Empresas() {
       grupo_contrato: (e as any).grupo_contrato ?? "",
       telefone_empresa: (e as any).telefone_empresa ?? "",
       contato_empresa: (e as any).contato_empresa ?? "",
+      contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
     setDataVencimentoFatura((e as any).data_vencimento_fatura ?? "");
@@ -447,6 +453,18 @@ export default function Empresas() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Contrato por Faixa Etária</Label>
+                        <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                          <Switch
+                            checked={!!(form as any).contrato_faixa_etaria}
+                            onCheckedChange={(v) => setForm({ ...form, contrato_faixa_etaria: v } as any)}
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {(form as any).contrato_faixa_etaria ? "Sim" : "Não"}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Observações</Label>
@@ -549,42 +567,66 @@ export default function Empresas() {
                   ) : filtered.length === 0 ? (
                     <TableRow><TableCell colSpan={canEdit ? 13 : 12} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
                   ) : (
-                    filtered.map((e) => (
-                      <TableRow key={e.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setDetailEmpresa(e)}>
-                        <TableCell className="font-medium">{e.nome}</TableCell>
-                        <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
-                        <TableCell>{getResponsavelName(e)}</TableCell>
-                        <TableCell>{getExecutivaName(e)}</TableCell>
-                        <TableCell className="text-muted-foreground font-mono text-xs">{e.cnpj || "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="rounded-md">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {e.tipo_movimentacao === "Diária"
-                            ? `Corte: dia ${e.data_corte ?? "—"}`
-                            : e.periodo_movimentacao || "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{formatDateBR(e.data_implantacao)}</TableCell>
-                        <TableCell className="text-muted-foreground">{formatDay(e.data_vencimento_fatura)}</TableCell>
-                        <TableCell className="text-muted-foreground">{formatDay(e.data_emissao_fatura)}</TableCell>
-                        <TableCell>
-                          <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md">
-                            {e.status_empresa ?? "Ativa"}
-                          </Badge>
-                        </TableCell>
-                        {canEdit && (
+                    filtered.map((e) => {
+                      const suspenso = (e as any).contrato_suspenso;
+                      const faixa = (e as any).contrato_faixa_etaria;
+                      return (
+                        <TableRow
+                          key={e.id}
+                          className={cn(
+                            "cursor-pointer transition-colors",
+                            suspenso ? "bg-muted/50 hover:bg-muted/70" : "hover:bg-accent/50"
+                          )}
+                          onClick={() => setDetailEmpresa(e)}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0" />}
+                              <span>{e.nome}</span>
+                              {faixa && <Badge variant="outline" className="rounded-md text-[10px]">Faixa Etária</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
+                          <TableCell>{getResponsavelName(e)}</TableCell>
+                          <TableCell>{getExecutivaName(e)}</TableCell>
+                          <TableCell className="text-muted-foreground font-mono text-xs">{e.cnpj || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
                           <TableCell>
-                            <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
-                              <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
-                              {canFullEdit && (
-                                <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            <Badge variant="outline" className="rounded-md">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {e.tipo_movimentacao === "Diária"
+                              ? `Corte: dia ${e.data_corte ?? "—"}`
+                              : e.periodo_movimentacao || "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{formatDateBR(e.data_implantacao)}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDay(e.data_vencimento_fatura)}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDay(e.data_emissao_fatura)}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md w-fit">
+                                {e.status_empresa ?? "Ativa"}
+                              </Badge>
+                              {suspenso && (
+                                <Badge variant="outline" className="rounded-md w-fit border-muted-foreground/40 text-muted-foreground">
+                                  Suspenso
+                                </Badge>
                               )}
                             </div>
                           </TableCell>
-                        )}
-                      </TableRow>
-                    ))
+                          {canEdit && (
+                            <TableCell>
+                              <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
+                                <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
+                                {canFullEdit && (
+                                  <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -624,6 +666,31 @@ export default function Empresas() {
                       <Badge variant={detailEmpresa.status_empresa === "Ativa" ? "default" : "secondary"} className="mt-1 rounded-md">
                         {detailEmpresa.status_empresa ?? "Ativa"}
                       </Badge>
+                    </div>
+                    <div className="p-3 rounded-lg bg-accent/30">
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Contrato por Faixa Etária</p>
+                      <Badge variant={(detailEmpresa as any).contrato_faixa_etaria ? "default" : "outline"} className="mt-1 rounded-md">
+                        {(detailEmpresa as any).contrato_faixa_etaria ? "Sim" : "Não"}
+                      </Badge>
+                    </div>
+                    <div className={cn(
+                      "p-3 rounded-lg sm:col-span-2",
+                      (detailEmpresa as any).contrato_suspenso
+                        ? "bg-muted border border-muted-foreground/30"
+                        : "bg-accent/30"
+                    )}>
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Suspensão de Contrato</p>
+                      {(detailEmpresa as any).contrato_suspenso ? (
+                        <div className="mt-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Ban className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-semibold">⛔ Suspenso desde {formatDateBR((detailEmpresa as any).data_suspensao)}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">Motivo: {(detailEmpresa as any).motivo_suspensao || "—"}</p>
+                        </div>
+                      ) : (
+                        <p className="font-medium mt-0.5 text-muted-foreground">Em vigor</p>
+                      )}
                     </div>
                     {detailEmpresa.status_empresa === "Inativa" && (
                       <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Rescisão do Contrato</p><p className="font-medium mt-0.5">{formatDateBR((detailEmpresa as any).data_rescisao) || "—"}</p></div>
@@ -701,10 +768,26 @@ export default function Empresas() {
                   )}
                 </>
               )}
+              {isAdmin && detailEmpresa && (
+                <Button
+                  variant={(detailEmpresa as any).contrato_suspenso ? "default" : "secondary"}
+                  className="rounded-lg gap-2"
+                  onClick={() => setSuspensaoEmpresa(detailEmpresa)}
+                >
+                  <Ban className="h-4 w-4" />
+                  {(detailEmpresa as any).contrato_suspenso ? "Reativar / Histórico" : "Suspender Contrato"}
+                </Button>
+              )}
               <Button variant="outline" onClick={() => { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); }} className="rounded-lg">Fechar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <SuspensaoDialog
+          open={!!suspensaoEmpresa}
+          onOpenChange={(open) => { if (!open) setSuspensaoEmpresa(null); }}
+          empresa={suspensaoEmpresa as any}
+        />
       </div>
     </AppLayout>
   );

@@ -27,6 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { format, parseISO } from "date-fns";
+import { SuspensaoBanner } from "@/components/empresas/SuspensaoBanner";
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -486,7 +487,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 animate-fade-in">{children}</main>
+        <main className="flex-1 p-4 md:p-6 lg:p-8 animate-fade-in space-y-4">
+          <SuspensaoBanner />
+          {children}
+        </main>
       </div>
     </div>
   );
