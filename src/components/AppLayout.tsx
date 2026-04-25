@@ -84,7 +84,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         return allowed.includes(item.to);
       }
       if (item.adminOnly && !isAdmin) return false;
-      if ((item as any).financeiroOrAdmin && !isAdmin) return false;
+      if ((item as any).financeiroOrAdmin && !isAdmin && !isFinanceiro) return false;
       // Saúde: only admin, executivo, enfermeira
       if (item.to === "/saude" && !isAdmin && !isExecutivo && !isEnfermeira) return false;
       // Enfermeira: restricted access
