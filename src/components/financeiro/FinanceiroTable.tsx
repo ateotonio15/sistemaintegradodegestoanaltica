@@ -16,6 +16,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_cnpj: string | null;
   status: StatusFinanceiro;
   anexos_count: number;
+  data_vencimento?: string | null;
 };
 
 interface Props {
@@ -38,6 +39,7 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
             <TableHead className="font-semibold">Tipo</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">Envio nota</TableHead>
+            <TableHead className="font-semibold">Vencimento</TableHead>
             <TableHead className="font-semibold text-center">Anexos</TableHead>
             <TableHead className="font-semibold text-right">Ações</TableHead>
           </TableRow>
@@ -45,13 +47,13 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
+              <TableCell colSpan={10} className="text-center text-muted-foreground py-12">
                 Carregando...
               </TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
+              <TableCell colSpan={10} className="text-center text-muted-foreground py-12">
                 Nenhuma movimentação encontrada para os filtros atuais.
               </TableCell>
             </TableRow>
@@ -92,6 +94,7 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm">{formatDateBR(row.data_envio_nota)}</TableCell>
+                  <TableCell className="text-sm">{formatDateBR(row.data_vencimento)}</TableCell>
                   <TableCell className="text-center">
                     <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
                       <Paperclip className="h-3 w-3" />

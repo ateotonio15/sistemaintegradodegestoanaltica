@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Paperclip, Download, Trash2, Upload, FileText } from "lucide-react";
+import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
   ACCEPTED_FILE_TYPES,
@@ -22,18 +23,24 @@ import {
   formatBytes,
 } from "@/lib/financeiro-utils";
 
+type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & { data_vencimento?: string | null };
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  movimentacao: FinanceiroMovimentacao | null;
+  movimentacao: FinanceiroMovimentacaoExt | null;
   empresaNome?: string;
 }
+
+const TIPO_MAX = 60;
+const TIPO_REGEX = /^[\p{L}\p{N}\s\-/.,()&]+$/u;
 
 export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, empresaNome }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [tipoCobranca, setTipoCobranca] = useState("");
   const [dataEnvioNota, setDataEnvioNota] = useState("");
+  const [dataVencimento, setDataVencimento] = useState("");
   const [dentroPrazo, setDentroPrazo] = useState(true);
   const [uploading, setUploading] = useState(false);
 
@@ -41,9 +48,22 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     if (movimentacao) {
       setTipoCobranca(movimentacao.tipo_cobranca || "");
       setDataEnvioNota(movimentacao.data_envio_nota || "");
+      setDataVencimento(movimentacao.data_vencimento || "");
       setDentroPrazo(movimentacao.dentro_prazo);
     }
   }, [movimentacao]);
+
+  // Validações campo-a-campo (avisos discretos, não bloqueiam edição manual)
+  const tipoTrimmed = tipoCobranca.trim();
+  const tipoInvalido = tipoTrimmed.length > 0 && !TIPO_REGEX.test(tipoTrimmed);
+  const tipoMuitoLongo = tipoTrimmed.length > TIPO_MAX;
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const envioNoFuturo = dataEnvioNota && dataEnvioNota > hoje;
+  const vencimentoAntesEnvio =
+    dataEnvioNota && dataVencimento && dataVencimento < dataEnvioNota;
+
+  const hasErrors = tipoInvalido || tipoMuitoLongo || envioNoFuturo || vencimentoAntesEnvio;
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["financeiro-anexos", movimentacao?.id],
@@ -66,10 +86,11 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       const { error } = await supabase
         .from("financeiro_movimentacoes")
         .update({
-          tipo_cobranca: tipoCobranca.trim() || null,
+          tipo_cobranca: tipoTrimmed || null,
           data_envio_nota: dataEnvioNota || null,
+          data_vencimento: dataVencimento || null,
           dentro_prazo: dentroPrazo,
-        })
+        } as any)
         .eq("id", movimentacao.id);
       if (error) throw error;
     },
@@ -164,7 +185,24 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                 value={tipoCobranca}
                 onChange={(e) => setTipoCobranca(e.target.value)}
                 placeholder="Ex: Mensalidade, Coparticipação…"
+                maxLength={TIPO_MAX + 20}
+                aria-invalid={tipoInvalido || tipoMuitoLongo || undefined}
+                className={cn(
+                  (tipoInvalido || tipoMuitoLongo) && "border-warning focus-visible:ring-warning",
+                )}
               />
+              {tipoInvalido && (
+                <p className="text-[11px] text-warning flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Use apenas letras, números e pontuação simples.
+                </p>
+              )}
+              {tipoMuitoLongo && (
+                <p className="text-[11px] text-warning flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Texto muito longo (máx. {TIPO_MAX} caracteres).
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="data_nota">Data de envio da nota</Label>
@@ -172,17 +210,52 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                 id="data_nota"
                 type="date"
                 value={dataEnvioNota}
+                max={hoje}
                 onChange={(e) => setDataEnvioNota(e.target.value)}
+                aria-invalid={!!envioNoFuturo || undefined}
+                className={cn(envioNoFuturo && "border-warning focus-visible:ring-warning")}
               />
+              {envioNoFuturo ? (
+                <p className="text-[11px] text-warning flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Data de envio não pode ser futura.
+                </p>
+              ) : dataEnvioNota ? (
+                <p className="text-[11px] text-success flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Nota marcada como enviada.
+                </p>
+              ) : null}
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
-            <div>
-              <p className="text-sm font-medium">Dentro do prazo</p>
-              <p className="text-xs text-muted-foreground">Desmarque se a nota foi emitida fora do prazo.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="data_venc">Data de vencimento</Label>
+              <Input
+                id="data_venc"
+                type="date"
+                value={dataVencimento}
+                onChange={(e) => setDataVencimento(e.target.value)}
+                aria-invalid={!!vencimentoAntesEnvio || undefined}
+                className={cn(vencimentoAntesEnvio && "border-warning focus-visible:ring-warning")}
+              />
+              {vencimentoAntesEnvio && (
+                <p className="text-[11px] text-warning flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Vencimento é anterior ao envio da nota.
+                </p>
+              )}
             </div>
-            <Switch checked={dentroPrazo} onCheckedChange={setDentroPrazo} />
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Dentro do prazo</p>
+                <p className="text-xs text-muted-foreground">
+                  Desmarque se a nota foi emitida fora do prazo.
+                </p>
+              </div>
+              <Switch checked={dentroPrazo} onCheckedChange={setDentroPrazo} />
+            </div>
           </div>
 
           {/* Anexos */}
@@ -247,13 +320,21 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
+          <div className="flex items-center justify-between gap-2 pt-2">
+            <p className="text-[11px] text-muted-foreground">
+              {hasErrors ? "Corrija os campos destacados para salvar." : "Campos validados."}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending || hasErrors}
+              >
+                {saveMutation.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
