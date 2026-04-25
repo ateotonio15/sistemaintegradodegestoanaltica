@@ -265,7 +265,7 @@ export default function Dashboard() {
 
   const handleRevisarEmpresas = async () => {
     if (!user || loadingRevisao) return;
-    if (!confirm("Deseja revisar todas as empresas e movimentações? Isso corrigirá inconsistências automaticamente.")) return;
+    if (!confirm("Deseja revisar todas as empresas e movimentações? Isso corrige inconsistências e remove movimentações duplicadas (mesma empresa + mês + período).")) return;
     setLoadingRevisao(true);
     try {
       const { data: empresas, error } = await supabase.from("empresas").select("*");
@@ -301,13 +301,60 @@ export default function Dashboard() {
       // --- REVISÃO DE MOVIMENTAÇÕES ---
       const { data: allMovs, error: movError } = await supabase
         .from("movimentacoes")
-        .select("id, empresa_id, periodo, tipo_movimentacao, responsavel_movimentacao, mes_referencia");
+        .select("id, empresa_id, periodo, tipo_movimentacao, responsavel_movimentacao, mes_referencia, data_envio_empresa, data_retorno_empresa, data_envio_financeiro, observacoes, created_at")
+        .order("created_at", { ascending: true });
       if (movError) throw movError;
 
       let corrigidosMov = 0;
       let errosMov = 0;
+      let duplicadasRemovidas = 0;
 
+      // 1) Detectar duplicatas: mesma empresa + mes_referencia + periodo
+      const grupos = new Map<string, typeof allMovs>();
+      for (const m of allMovs) {
+        const k = `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`;
+        const arr = grupos.get(k) ?? [];
+        arr.push(m);
+        grupos.set(k, arr);
+      }
+
+      const idsParaApagar: string[] = [];
+      for (const [, arr] of grupos) {
+        if (arr.length < 2) continue;
+        // Pontuação: linha com mais campos preenchidos vence; em empate, a mais antiga (created_at)
+        const score = (m: any) =>
+          (m.data_envio_empresa ? 1 : 0) +
+          (m.data_retorno_empresa ? 1 : 0) +
+          (m.data_envio_financeiro ? 1 : 0) +
+          (m.observacoes ? 1 : 0) +
+          (m.responsavel_movimentacao ? 1 : 0);
+        arr.sort((a, b) => {
+          const d = score(b) - score(a);
+          if (d !== 0) return d;
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        });
+        // Mantém o primeiro; remove os demais
+        for (let i = 1; i < arr.length; i++) idsParaApagar.push(arr[i].id);
+      }
+
+      if (idsParaApagar.length > 0) {
+        // Apagar em lotes de 100
+        for (let i = 0; i < idsParaApagar.length; i += 100) {
+          const slice = idsParaApagar.slice(i, i + 100);
+          const { error: delErr } = await supabase.from("movimentacoes").delete().in("id", slice);
+          if (delErr) {
+            console.error("Erro ao remover duplicatas:", delErr);
+            errosMov += slice.length;
+          } else {
+            duplicadasRemovidas += slice.length;
+          }
+        }
+      }
+
+      // 2) Corrigir as movimentações restantes (ignorando IDs apagados)
+      const apagadosSet = new Set(idsParaApagar);
       for (const mov of allMovs) {
+        if (apagadosSet.has(mov.id)) continue;
         const emp = empresaMap.get(mov.empresa_id);
         if (!emp) continue;
 
@@ -345,11 +392,10 @@ export default function Dashboard() {
         }
       }
 
-      const totalCorrigidos = corrigidosEmp + corrigidosMov;
       const totalErros = errosEmp + errosMov;
       toast({
         title: "Revisão concluída!",
-        description: `Empresas: ${corrigidosEmp} corrigidas | Movimentações: ${corrigidosMov} corrigidas | ${totalErros} erros`,
+        description: `Empresas: ${corrigidosEmp} corrigidas | Movimentações: ${corrigidosMov} corrigidas, ${duplicadasRemovidas} duplicada(s) removida(s) | ${totalErros} erro(s)`,
       });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
