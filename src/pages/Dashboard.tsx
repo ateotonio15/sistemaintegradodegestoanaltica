@@ -27,6 +27,7 @@ import {
   periodoDaDataCorte,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { EmpresasStatusChart } from "@/components/dashboard/EmpresasStatusChart";
 
 export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
@@ -156,6 +157,20 @@ export default function Dashboard() {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
+    },
+    enabled: !!user,
+  });
+
+  const { data: notaEnviadaEmpresaIds = new Set<string>() } = useQuery({
+    queryKey: ["financeiro-nota-enviada-ids", filterMes],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("empresa_id")
+        .eq("mes_referencia", filterMes)
+        .not("data_envio_nota", "is", null);
+      if (error) throw error;
+      return new Set((data || []).map((r) => r.empresa_id));
     },
     enabled: !!user,
   });
@@ -659,6 +674,13 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Gráfico Empresas por Status */}
+        <EmpresasStatusChart
+          empresas={allEmpresas}
+          movimentacoes={movimentacoes}
+          notaEnviadaEmpresaIds={notaEnviadaEmpresaIds}
+        />
 
         {/* Lista de Empresas no Período */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
