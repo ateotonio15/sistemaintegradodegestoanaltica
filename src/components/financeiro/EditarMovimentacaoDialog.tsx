@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
   ACCEPTED_FILE_TYPES,
