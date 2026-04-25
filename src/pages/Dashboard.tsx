@@ -265,7 +265,7 @@ export default function Dashboard() {
 
   const handleRevisarEmpresas = async () => {
     if (!user || loadingRevisao) return;
-    if (!confirm("Deseja revisar todas as empresas e movimentações? Isso corrigirá inconsistências automaticamente.")) return;
+    if (!confirm("Deseja revisar todas as empresas e movimentações? Isso corrige inconsistências e remove movimentações duplicadas (mesma empresa + mês + período).")) return;
     setLoadingRevisao(true);
     try {
       const { data: empresas, error } = await supabase.from("empresas").select("*");
