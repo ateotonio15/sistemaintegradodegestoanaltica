@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { format, parseISO } from "date-fns";
 import { SuspensaoBanner } from "@/components/empresas/SuspensaoBanner";
+import { CobrancaBanner } from "@/components/financeiro/CobrancaBanner";
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
