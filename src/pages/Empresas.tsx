@@ -667,6 +667,31 @@ export default function Empresas() {
                         {detailEmpresa.status_empresa ?? "Ativa"}
                       </Badge>
                     </div>
+                    <div className="p-3 rounded-lg bg-accent/30">
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Contrato por Faixa Etária</p>
+                      <Badge variant={(detailEmpresa as any).contrato_faixa_etaria ? "default" : "outline"} className="mt-1 rounded-md">
+                        {(detailEmpresa as any).contrato_faixa_etaria ? "Sim" : "Não"}
+                      </Badge>
+                    </div>
+                    <div className={cn(
+                      "p-3 rounded-lg sm:col-span-2",
+                      (detailEmpresa as any).contrato_suspenso
+                        ? "bg-muted border border-muted-foreground/30"
+                        : "bg-accent/30"
+                    )}>
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Suspensão de Contrato</p>
+                      {(detailEmpresa as any).contrato_suspenso ? (
+                        <div className="mt-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Ban className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-semibold">⛔ Suspenso desde {formatDateBR((detailEmpresa as any).data_suspensao)}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">Motivo: {(detailEmpresa as any).motivo_suspensao || "—"}</p>
+                        </div>
+                      ) : (
+                        <p className="font-medium mt-0.5 text-muted-foreground">Em vigor</p>
+                      )}
+                    </div>
                     {detailEmpresa.status_empresa === "Inativa" && (
                       <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Rescisão do Contrato</p><p className="font-medium mt-0.5">{formatDateBR((detailEmpresa as any).data_rescisao) || "—"}</p></div>
                     )}
