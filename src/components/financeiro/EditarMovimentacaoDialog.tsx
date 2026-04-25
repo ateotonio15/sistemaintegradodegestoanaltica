@@ -184,7 +184,24 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                 value={tipoCobranca}
                 onChange={(e) => setTipoCobranca(e.target.value)}
                 placeholder="Ex: Mensalidade, Coparticipação…"
+                maxLength={TIPO_MAX + 20}
+                aria-invalid={tipoInvalido || tipoMuitoLongo || undefined}
+                className={cn(
+                  (tipoInvalido || tipoMuitoLongo) && "border-warning focus-visible:ring-warning",
+                )}
               />
+              {tipoInvalido && (
+                <p className="text-[11px] text-warning flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Use apenas letras, números e pontuação simples.
+                </p>
+              )}
+              {tipoMuitoLongo && (
+                <p className="text-[11px] text-warning flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Texto muito longo (máx. {TIPO_MAX} caracteres).
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="data_nota">Data de envio da nota</Label>
@@ -192,17 +209,52 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                 id="data_nota"
                 type="date"
                 value={dataEnvioNota}
+                max={hoje}
                 onChange={(e) => setDataEnvioNota(e.target.value)}
+                aria-invalid={!!envioNoFuturo || undefined}
+                className={cn(envioNoFuturo && "border-warning focus-visible:ring-warning")}
               />
+              {envioNoFuturo ? (
+                <p className="text-[11px] text-warning flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Data de envio não pode ser futura.
+                </p>
+              ) : dataEnvioNota ? (
+                <p className="text-[11px] text-success flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Nota marcada como enviada.
+                </p>
+              ) : null}
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
-            <div>
-              <p className="text-sm font-medium">Dentro do prazo</p>
-              <p className="text-xs text-muted-foreground">Desmarque se a nota foi emitida fora do prazo.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="data_venc">Data de vencimento</Label>
+              <Input
+                id="data_venc"
+                type="date"
+                value={dataVencimento}
+                onChange={(e) => setDataVencimento(e.target.value)}
+                aria-invalid={!!vencimentoAntesEnvio || undefined}
+                className={cn(vencimentoAntesEnvio && "border-warning focus-visible:ring-warning")}
+              />
+              {vencimentoAntesEnvio && (
+                <p className="text-[11px] text-warning flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Vencimento é anterior ao envio da nota.
+                </p>
+              )}
             </div>
-            <Switch checked={dentroPrazo} onCheckedChange={setDentroPrazo} />
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Dentro do prazo</p>
+                <p className="text-xs text-muted-foreground">
+                  Desmarque se a nota foi emitida fora do prazo.
+                </p>
+              </div>
+              <Switch checked={dentroPrazo} onCheckedChange={setDentroPrazo} />
+            </div>
           </div>
 
           {/* Anexos */}
