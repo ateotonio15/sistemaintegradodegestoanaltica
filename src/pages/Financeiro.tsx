@@ -346,7 +346,7 @@ export default function Financeiro() {
     );
   }
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!canManageFinanceiro) return <Navigate to="/" replace />;
 
   const handleEdit = (row: FinanceiroRow) => {
     setEditing(row);
