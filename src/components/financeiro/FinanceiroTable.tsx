@@ -86,6 +86,9 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
                   <TableCell className="text-sm text-muted-foreground">
                     {row.empresa_cnpj || "—"}
                   </TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    {row.periodo_corte}
+                  </TableCell>
                   <TableCell className="text-sm">{row.responsavel || "—"}</TableCell>
                   <TableCell className="text-sm">
                     {row.tipo_cobranca || <span className="text-muted-foreground">—</span>}
