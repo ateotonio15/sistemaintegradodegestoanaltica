@@ -27,6 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { format, parseISO } from "date-fns";
+import { SuspensaoBanner } from "@/components/empresas/SuspensaoBanner";
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
