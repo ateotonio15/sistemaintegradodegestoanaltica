@@ -11,6 +11,7 @@ import Usuarios from "./pages/Usuarios";
 import Dashboard from "./pages/Dashboard";
 import Executivas from "./pages/Executivas";
 import SaudeEmpresas from "./pages/SaudeEmpresas";
+import Financeiro from "./pages/Financeiro";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,14 @@ function AdminOrComumRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading, isAdmin } = useAuth();
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function AuthRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -47,6 +56,7 @@ const AppRoutes = () => (
     <Route path="/movimentacoes" element={<ProtectedRoute><Movimentacoes /></ProtectedRoute>} />
     <Route path="/executivas" element={<ProtectedRoute><Executivas /></ProtectedRoute>} />
     <Route path="/saude" element={<ProtectedRoute><SaudeEmpresas /></ProtectedRoute>} />
+    <Route path="/financeiro" element={<AdminOnlyRoute><Financeiro /></AdminOnlyRoute>} />
     <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
