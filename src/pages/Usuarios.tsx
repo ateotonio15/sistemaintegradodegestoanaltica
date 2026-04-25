@@ -12,10 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse } from "lucide-react";
+import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, Wallet } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
-type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "enfermeira";
+type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "enfermeira" | "financeiro";
 
 interface UserProfile {
   user_id: string;
@@ -31,6 +31,7 @@ const roleLabel: Record<AppRole, string> = {
   executivo: "Executivo",
   visualizacao: "Visualização",
   enfermeira: "Enfermeira",
+  financeiro: "Financeiro",
 };
 
 const roleIcon: Record<AppRole, typeof Shield> = {
@@ -39,6 +40,7 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   executivo: Eye,
   visualizacao: Eye,
   enfermeira: HeartPulse,
+  financeiro: Wallet,
 };
 
 function generatePassword(length = 10) {
@@ -300,6 +302,7 @@ export default function Usuarios() {
                       <SelectItem value="executivo">Executivo</SelectItem>
                       <SelectItem value="visualizacao">Visualização</SelectItem>
                       <SelectItem value="enfermeira">Enfermeira</SelectItem>
+                      <SelectItem value="financeiro">Financeiro</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -421,6 +424,7 @@ export default function Usuarios() {
                     <SelectItem value="executivo">Executivo</SelectItem>
                     <SelectItem value="visualizacao">Visualização</SelectItem>
                     <SelectItem value="enfermeira">Enfermeira</SelectItem>
+                    <SelectItem value="financeiro">Financeiro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
