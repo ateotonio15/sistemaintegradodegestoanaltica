@@ -16,6 +16,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_cnpj: string | null;
   status: StatusFinanceiro;
   anexos_count: number;
+  data_vencimento?: string | null;
 };
 
 interface Props {
@@ -38,6 +39,7 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
             <TableHead className="font-semibold">Tipo</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">Envio nota</TableHead>
+            <TableHead className="font-semibold">Vencimento</TableHead>
             <TableHead className="font-semibold text-center">Anexos</TableHead>
             <TableHead className="font-semibold text-right">Ações</TableHead>
           </TableRow>
