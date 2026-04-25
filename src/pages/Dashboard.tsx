@@ -161,6 +161,20 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  const { data: notaEnviadaEmpresaIds = new Set<string>() } = useQuery({
+    queryKey: ["financeiro-nota-enviada-ids", filterMes],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("empresa_id")
+        .eq("mes_referencia", filterMes)
+        .not("data_envio_nota", "is", null);
+      if (error) throw error;
+      return new Set((data || []).map((r) => r.empresa_id));
+    },
+    enabled: !!user,
+  });
+
   const updateMov = useMutation({
     mutationFn: async (values: { id: string; data_envio_empresa: string | null; data_envio_financeiro: string | null }) => {
       const { error } = await supabase.from("movimentacoes").update({
