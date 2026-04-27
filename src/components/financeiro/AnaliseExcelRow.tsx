@@ -49,55 +49,81 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados }: Props) {
                     </Alert>
                   )}
 
-                  <div className="rounded-lg border border-border bg-card overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-muted/50">
-                          <th className="text-left font-medium text-muted-foreground px-3 py-2">
-                            Categoria
-                          </th>
-                          <th className="text-right font-medium text-muted-foreground px-3 py-2">
-                            Beneficiários
-                          </th>
-                          <th className="text-right font-medium text-muted-foreground px-3 py-2">
-                            Mensalidade
-                          </th>
-                          <th className="text-right font-medium text-muted-foreground px-3 py-2">
-                            Total
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-t border-border">
-                          <td className="px-3 py-2 font-medium">Enfermaria</td>
-                          <td className="px-3 py-2 text-right">{r.enfermaria.beneficiarios}</td>
-                          <td className="px-3 py-2 text-right">
-                            {formatBRL(r.enfermaria.mensalidade)}
-                          </td>
-                          <td className="px-3 py-2 text-right font-semibold">
-                            {formatBRL(r.enfermaria.total)}
-                          </td>
-                        </tr>
-                        <tr className="border-t border-border">
-                          <td className="px-3 py-2 font-medium">Apartamento</td>
-                          <td className="px-3 py-2 text-right">{r.apartamento.beneficiarios}</td>
-                          <td className="px-3 py-2 text-right">
-                            {formatBRL(r.apartamento.mensalidade)}
-                          </td>
-                          <td className="px-3 py-2 text-right font-semibold">
-                            {formatBRL(r.apartamento.total)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">Inclusões:</span>{" "}
-                    {r.inclusoes.quantidade} ·{" "}
-                    <span className="font-medium text-foreground">Total:</span>{" "}
-                    {formatBRL(r.inclusoes.total)}
-                  </div>
+                  {(() => {
+                    const totalGeral =
+                      r.enfermaria.total + r.apartamento.total + r.inclusoes.total;
+                    return (
+                      <div className="rounded-lg border border-border bg-card overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-muted/50">
+                              <th className="text-left font-medium text-muted-foreground px-3 py-2">
+                                Categoria
+                              </th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">
+                                Beneficiários
+                              </th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">
+                                Mensalidade
+                              </th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">
+                                Total
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-t border-border">
+                              <td className="px-3 py-2 font-medium">Enfermaria</td>
+                              <td className="px-3 py-2 text-right">
+                                {r.enfermaria.beneficiarios}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                {formatBRL(r.enfermaria.mensalidade)}
+                              </td>
+                              <td className="px-3 py-2 text-right font-semibold">
+                                {formatBRL(r.enfermaria.total)}
+                              </td>
+                            </tr>
+                            <tr className="border-t border-border">
+                              <td className="px-3 py-2 font-medium">Apartamento</td>
+                              <td className="px-3 py-2 text-right">
+                                {r.apartamento.beneficiarios}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                {formatBRL(r.apartamento.mensalidade)}
+                              </td>
+                              <td className="px-3 py-2 text-right font-semibold">
+                                {formatBRL(r.apartamento.total)}
+                              </td>
+                            </tr>
+                            <tr className="border-t border-border">
+                              <td className="px-3 py-2 font-medium">Inclusões</td>
+                              <td className="px-3 py-2 text-right">
+                                {r.inclusoes.quantidade}
+                              </td>
+                              <td className="px-3 py-2 text-right text-muted-foreground">
+                                —
+                              </td>
+                              <td className="px-3 py-2 text-right font-semibold">
+                                {formatBRL(r.inclusoes.total)}
+                              </td>
+                            </tr>
+                            <tr className="border-t-2 border-border bg-muted/40">
+                              <td
+                                className="px-3 py-2 font-semibold text-foreground"
+                                colSpan={3}
+                              >
+                                Total Geral
+                              </td>
+                              <td className="px-3 py-2 text-right font-bold text-primary">
+                                {formatBRL(totalGeral)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
