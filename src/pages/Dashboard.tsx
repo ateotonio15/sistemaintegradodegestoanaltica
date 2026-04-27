@@ -177,6 +177,17 @@ export default function Dashboard() {
 
   const updateMov = useMutation({
     mutationFn: async (values: { id: string; data_envio_empresa: string | null; data_envio_financeiro: string | null }) => {
+      // Bloqueia salvar data_envio_financeiro sem anexo
+      if (values.data_envio_financeiro) {
+        const { count, error: cErr } = await supabase
+          .from("anexos_movimentacao")
+          .select("id", { count: "exact", head: true })
+          .eq("movimentacao_id", values.id);
+        if (cErr) throw cErr;
+        if (!count || count === 0) {
+          throw new Error("Para enviar ao financeiro é obrigatório anexar documentos. Edite a movimentação na aba Movimentações para anexar.");
+        }
+      }
       const { error } = await supabase.from("movimentacoes").update({
         data_envio_empresa: values.data_envio_empresa,
         data_envio_financeiro: values.data_envio_financeiro,
@@ -190,7 +201,7 @@ export default function Dashboard() {
       setEditingMov(null);
       toast({ title: "Movimentação atualizada!" });
     },
-    onError: () => toast({ title: "Erro ao salvar", variant: "destructive" }),
+    onError: (e: any) => toast({ title: e?.message || "Erro ao salvar", variant: "destructive" }),
   });
 
   const updateEmpresa = useMutation({
