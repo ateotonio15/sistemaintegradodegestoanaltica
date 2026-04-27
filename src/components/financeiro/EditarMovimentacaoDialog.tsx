@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +28,7 @@ import {
   ACCEPTED_FILE_TYPES,
   buildStoragePath,
   formatBytes,
+  TIPOS_FINANCEIRO,
 } from "@/lib/financeiro-utils";
 
 type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & { data_vencimento?: string | null };
@@ -31,9 +39,6 @@ interface Props {
   movimentacao: FinanceiroMovimentacaoExt | null;
   empresaNome?: string;
 }
-
-const TIPO_MAX = 60;
-const TIPO_REGEX = /^[\p{L}\p{N}\s\-/.,()&]+$/u;
 
 export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, empresaNome }: Props) {
   const queryClient = useQueryClient();
@@ -55,15 +60,13 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
 
   // Validações campo-a-campo (avisos discretos, não bloqueiam edição manual)
   const tipoTrimmed = tipoCobranca.trim();
-  const tipoInvalido = tipoTrimmed.length > 0 && !TIPO_REGEX.test(tipoTrimmed);
-  const tipoMuitoLongo = tipoTrimmed.length > TIPO_MAX;
 
   const hoje = new Date().toISOString().slice(0, 10);
   const envioNoFuturo = dataEnvioNota && dataEnvioNota > hoje;
   const vencimentoAntesEnvio =
     dataEnvioNota && dataVencimento && dataVencimento < dataEnvioNota;
 
-  const hasErrors = tipoInvalido || tipoMuitoLongo || envioNoFuturo || vencimentoAntesEnvio;
+  const hasErrors = envioNoFuturo || vencimentoAntesEnvio;
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["financeiro-anexos", movimentacao?.id],
@@ -190,29 +193,25 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="tipo">Tipo de cobrança</Label>
-              <Input
-                id="tipo"
-                value={tipoCobranca}
-                onChange={(e) => setTipoCobranca(e.target.value)}
-                placeholder="Ex: Mensalidade, Coparticipação…"
-                maxLength={TIPO_MAX + 20}
-                aria-invalid={tipoInvalido || tipoMuitoLongo || undefined}
-                className={cn(
-                  (tipoInvalido || tipoMuitoLongo) && "border-warning focus-visible:ring-warning",
-                )}
-              />
-              {tipoInvalido && (
-                <p className="text-[11px] text-warning flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Use apenas letras, números e pontuação simples.
-                </p>
-              )}
-              {tipoMuitoLongo && (
-                <p className="text-[11px] text-warning flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Texto muito longo (máx. {TIPO_MAX} caracteres).
-                </p>
-              )}
+              <Select
+                value={tipoCobranca || "__none__"}
+                onValueChange={(v) => setTipoCobranca(v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger id="tipo">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Não definido —</SelectItem>
+                  {TIPOS_FINANCEIRO.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Tipos exclusivos do setor Financeiro.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="data_nota">Data de envio da nota</Label>
