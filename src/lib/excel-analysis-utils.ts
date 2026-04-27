@@ -222,3 +222,131 @@ export function formatBRL(n: number): string {
   if (!isFinite(n)) return "R$ 0,00";
   return brl.format(n);
 }
+
+// =====================================================================
+// Comparação Excel × PDF (validação cruzada)
+// =====================================================================
+
+import type { AnalisePdfResultado } from "./pdf-analysis-utils";
+
+export interface CampoValidacao {
+  excel: number;
+  pdf: number | null;
+  ok: boolean;
+}
+
+export interface ComparacaoCategoria {
+  beneficiarios: CampoValidacao;
+  mensalidade: CampoValidacao;
+  total: CampoValidacao;
+}
+
+export interface ComparacaoResultado {
+  pagador: string;
+  arquivoPdf: string | null;
+  enfermaria: ComparacaoCategoria | null;
+  apartamento: ComparacaoCategoria | null;
+  inclusoes: { total: CampoValidacao } | null;
+  divergencias: string[];
+  avisosPdf: string[];
+}
+
+const eqMoney = (a: number, b: number) => Math.abs(a - b) < 0.01;
+const eqInt = (a: number, b: number) => Math.round(a) === Math.round(b);
+
+function campo(excel: number, pdf: number | null, kind: "money" | "int"): CampoValidacao {
+  if (pdf === null || pdf === undefined || isNaN(pdf as number)) {
+    return { excel, pdf: null, ok: false };
+  }
+  const ok = kind === "money" ? eqMoney(excel, pdf) : eqInt(excel, pdf);
+  return { excel, pdf, ok };
+}
+
+export function compararExcelComPdf(
+  excel: AnaliseResultado,
+  pdf: AnalisePdfResultado | null,
+): ComparacaoResultado {
+  const divergencias: string[] = [];
+  const tem = (c: { beneficiarios: number; total: number }) =>
+    c.beneficiarios > 0 || c.total > 0;
+
+  // Enfermaria
+  let enfermaria: ComparacaoCategoria | null = null;
+  if (tem(excel.enfermaria)) {
+    const e = excel.enfermaria;
+    const p = pdf?.enfermaria;
+    const pdfEnc = p && (p.beneficiarios !== null || p.total > 0);
+    enfermaria = {
+      beneficiarios: campo(e.beneficiarios, pdfEnc ? p!.beneficiarios : null, "int"),
+      mensalidade: campo(e.mensalidade, pdfEnc ? p!.mensalidade : null, "money"),
+      total: campo(e.total, pdfEnc ? p!.total : null, "money"),
+    };
+    if (pdf && !pdfEnc) divergencias.push("Categoria Enfermaria não encontrada no PDF.");
+    else if (pdfEnc) {
+      if (!enfermaria.beneficiarios.ok)
+        divergencias.push(
+          `Divergência nos beneficiários da enfermaria (Excel ${e.beneficiarios} × PDF ${p!.beneficiarios ?? "—"}).`,
+        );
+      if (!enfermaria.mensalidade.ok)
+        divergencias.push(
+          `Divergência na mensalidade da enfermaria (Excel ${formatBRL(e.mensalidade)} × PDF ${p!.mensalidade !== null ? formatBRL(p!.mensalidade) : "—"}).`,
+        );
+      if (!enfermaria.total.ok)
+        divergencias.push(
+          `Total da enfermaria não confere com o PDF (Excel ${formatBRL(e.total)} × PDF ${formatBRL(p!.total)}).`,
+        );
+    }
+  }
+
+  // Apartamento
+  let apartamento: ComparacaoCategoria | null = null;
+  if (tem(excel.apartamento)) {
+    const e = excel.apartamento;
+    const p = pdf?.apartamento;
+    const pdfEnc = p && (p.beneficiarios !== null || p.total > 0);
+    apartamento = {
+      beneficiarios: campo(e.beneficiarios, pdfEnc ? p!.beneficiarios : null, "int"),
+      mensalidade: campo(e.mensalidade, pdfEnc ? p!.mensalidade : null, "money"),
+      total: campo(e.total, pdfEnc ? p!.total : null, "money"),
+    };
+    if (pdf && !pdfEnc) divergencias.push("Categoria Apartamento não encontrada no PDF.");
+    else if (pdfEnc) {
+      if (!apartamento.beneficiarios.ok)
+        divergencias.push(
+          `Divergência nos beneficiários do apartamento (Excel ${e.beneficiarios} × PDF ${p!.beneficiarios ?? "—"}).`,
+        );
+      if (!apartamento.mensalidade.ok)
+        divergencias.push(
+          `Divergência na mensalidade do apartamento (Excel ${formatBRL(e.mensalidade)} × PDF ${p!.mensalidade !== null ? formatBRL(p!.mensalidade) : "—"}).`,
+        );
+      if (!apartamento.total.ok)
+        divergencias.push(
+          `Total do apartamento não confere com o PDF (Excel ${formatBRL(e.total)} × PDF ${formatBRL(p!.total)}).`,
+        );
+    }
+  }
+
+  // Inclusões — só compara o total
+  let inclusoes: { total: CampoValidacao } | null = null;
+  if (excel.inclusoes.quantidade > 0 || excel.inclusoes.total > 0) {
+    const pdfTotal = pdf ? pdf.inclusoes.total : null;
+    const c = campo(excel.inclusoes.total, pdfTotal && pdfTotal > 0 ? pdfTotal : null, "money");
+    inclusoes = { total: c };
+    if (pdf && (!pdfTotal || pdfTotal <= 0))
+      divergencias.push("Valor de inclusões não encontrado no PDF.");
+    else if (pdf && !c.ok)
+      divergencias.push(
+        `Valor de inclusões divergente (Excel ${formatBRL(excel.inclusoes.total)} × PDF ${formatBRL(pdfTotal!)}).`,
+      );
+  }
+
+  return {
+    pagador: excel.pagador,
+    arquivoPdf: pdf?.arquivo ?? null,
+    enfermaria,
+    apartamento,
+    inclusoes,
+    divergencias,
+    avisosPdf: pdf?.avisos ?? [],
+  };
+}
