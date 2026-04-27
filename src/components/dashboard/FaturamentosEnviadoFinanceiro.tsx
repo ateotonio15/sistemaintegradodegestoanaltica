@@ -53,7 +53,7 @@ export function FaturamentosEnviadoFinanceiro() {
             <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
               <BellRing className="h-4 w-4 text-warning" />
             </div>
-            Faturamentos Enviado
+            Notas a Enviar
             <Badge variant="outline" className="ml-1">{alertas.length}</Badge>
           </CardTitle>
           {alertas.length > 0 && (
