@@ -109,6 +109,9 @@ export function DashboardFinanceiro() {
 
   return (
     <div className="space-y-6">
+      {/* Painel de alertas "Faturamentos Enviado" do operacional */}
+      <FaturamentosEnviadoFinanceiro />
+
       {/* Alerta exclusivo: registrar cobrança nas empresas que sou responsável */}
       {cobrancasMinhas.length > 0 && (
         <Card className="rounded-xl border-warning/40 bg-warning/10 shadow-sm">
