@@ -60,6 +60,7 @@ export default function Movimentacoes() {
   const [filterPeriodo, setFilterPeriodo] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterResponsavel, setFilterResponsavel] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [somentePendentes, setSomentePendentes] = useState(false);
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const { toast } = useToast();
