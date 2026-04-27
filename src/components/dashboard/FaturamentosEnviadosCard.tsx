@@ -22,7 +22,6 @@ import { formatDateBR } from "@/lib/date-utils";
  */
 export function FaturamentosEnviadosCard() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   // Movimentações com data_envio_financeiro
