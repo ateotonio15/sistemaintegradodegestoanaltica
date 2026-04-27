@@ -362,8 +362,10 @@ export function FaturamentosEnviadosCard() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate text-foreground">{l.empresa.nome}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {l.empresa.codigo_contrato && <span className="mr-2">{l.empresa.codigo_contrato}</span>}
-                    {formatMesReferencia(l.mesReferencia)} · {l.periodo}
+                    <span className="mr-2">
+                      Contrato: <span className="font-medium text-foreground/80">{l.empresa.codigo_contrato ?? "—"}</span>
+                    </span>
+                    · {formatMesReferencia(l.mesReferencia)} · {l.periodo}
                     {l.status === "Pendente" && (
                       <span className="ml-2 text-warning">— Este contrato precisa ser movimentado.</span>
                     )}
@@ -380,6 +382,16 @@ export function FaturamentosEnviadosCard() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                  {/* Quantidade de anexos (Cadastro + Financeiro) */}
+                  <Badge
+                    variant="outline"
+                    className="gap-1"
+                    title="Total de anexos: Cadastro + Financeiro"
+                  >
+                    <Paperclip className="h-3 w-3" />
+                    {l.qtdAnexos}
+                  </Badge>
+
                   {/* Botão Alertar Vencimento — destacado, só após enviar ao financeiro e enquanto não houver vencimento */}
                   {precisaAcao && (
                     l.alertaVencimentoAberto ? (
