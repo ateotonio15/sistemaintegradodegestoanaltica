@@ -283,22 +283,47 @@ export function FaturamentosEnviadosCard() {
                     {l.status === "Finalizado" && l.dataNota && (
                       <span className="ml-2">— nota enviada em {formatDateBR(l.dataNota)}</span>
                     )}
+                    {l.dataVencimento && (
+                      <span className="ml-2 text-success">· venc. {formatDateBR(l.dataVencimento)}</span>
+                    )}
                   </p>
                 </div>
 
-                {l.status === "Pendente" ? (
-                  <Badge className="bg-warning text-warning-foreground shrink-0 gap-1">
-                    <Clock className="h-3 w-3" /> Pendente
-                  </Badge>
-                ) : l.status === "Enviado" ? (
-                  <Badge className="bg-info text-info-foreground shrink-0 gap-1">
-                    <Send className="h-3 w-3" /> Enviado
-                  </Badge>
-                ) : (
-                  <Badge className="bg-success text-success-foreground shrink-0 gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Finalizado
-                  </Badge>
-                )}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Botão Alertar Vencimento — só após enviar ao financeiro e enquanto não houver vencimento */}
+                  {l.status !== "Pendente" && !l.dataVencimento && l.movId && (
+                    l.alertaVencimentoAberto ? (
+                      <Badge variant="outline" className="gap-1 border-warning/50 text-warning">
+                        <CalendarClock className="h-3 w-3" /> Alerta enviado
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 border-warning/50 text-warning hover:bg-warning/10"
+                        disabled={enviandoAlertaMovId === l.movId}
+                        onClick={() => alertarVencimento(l)}
+                      >
+                        <CalendarClock className="h-3 w-3" />
+                        {enviandoAlertaMovId === l.movId ? "Enviando..." : "Alertar vencimento"}
+                      </Button>
+                    )
+                  )}
+
+                  {l.status === "Pendente" ? (
+                    <Badge className="bg-warning text-warning-foreground gap-1">
+                      <Clock className="h-3 w-3" /> Pendente
+                    </Badge>
+                  ) : l.status === "Enviado" ? (
+                    <Badge className="bg-info text-info-foreground gap-1">
+                      <Send className="h-3 w-3" /> Enviado
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-success text-success-foreground gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Finalizado
+                    </Badge>
+                  )}
+                </div>
               </div>
             ))}
           </div>
