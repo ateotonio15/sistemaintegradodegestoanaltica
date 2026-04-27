@@ -5,6 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { BellRing, Clock, CheckCircle2, AlertCircle, Send, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -193,12 +195,26 @@ export function FaturamentosEnviadosCard() {
       };
     })
     .sort((a, b) => {
-      const order = { Pendente: 0, Enviado: 1, Finalizado: 2 } as const;
-      return order[a.status] - order[b.status] || a.empresa.nome.localeCompare(b.empresa.nome);
+      // Prioridade: ações pendentes primeiro (Enviado/Finalizado sem vencimento), depois Pendente, depois resto
+      const prioridade = (l: Linha) => {
+        const precisaAcao = l.status !== "Pendente" && !l.dataVencimento;
+        if (precisaAcao) return 0;
+        if (l.status === "Pendente") return 1;
+        return 2;
+      };
+      return prioridade(a) - prioridade(b) || a.empresa.nome.localeCompare(b.empresa.nome);
     });
 
   const pendentes = linhas.filter((l) => l.status === "Pendente").length;
+  const aguardandoVencimento = linhas.filter(
+    (l) => l.status !== "Pendente" && !l.dataVencimento && l.movId,
+  ).length;
   const [enviandoAlertaMovId, setEnviandoAlertaMovId] = useState<string | null>(null);
+  const [apenasAcaoPendente, setApenasAcaoPendente] = useState(false);
+
+  const linhasFiltradas = apenasAcaoPendente
+    ? linhas.filter((l) => l.status !== "Pendente" && !l.dataVencimento && l.movId)
+    : linhas;
 
   async function alertarVencimento(l: Linha) {
     if (!l.movId || !user) return;
@@ -241,7 +257,7 @@ export function FaturamentosEnviadosCard() {
   return (
     <Card className="rounded-xl shadow-sm border-warning/30">
       <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
             <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
               <BellRing className="h-4 w-4 text-warning" />
@@ -254,20 +270,46 @@ export function FaturamentosEnviadosCard() {
                 {pendentes} pendente{pendentes > 1 ? "s" : ""}
               </Badge>
             )}
+            {aguardandoVencimento > 0 && (
+              <Badge className="bg-warning text-warning-foreground text-xs gap-1 animate-pulse">
+                <CalendarClock className="h-3 w-3" />
+                {aguardandoVencimento} aguardando vencimento
+              </Badge>
+            )}
           </CardTitle>
+          {aguardandoVencimento > 0 && (
+            <div className="flex items-center gap-2">
+              <Switch
+                id="apenas-acao-pendente"
+                checked={apenasAcaoPendente}
+                onCheckedChange={setApenasAcaoPendente}
+              />
+              <Label htmlFor="apenas-acao-pendente" className="text-xs cursor-pointer">
+                Apenas com ação pendente
+              </Label>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>
-        {linhas.length === 0 ? (
+        {linhasFiltradas.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
-            Nenhum contrato dentro do período atual.
+            {apenasAcaoPendente
+              ? "Nenhuma empresa aguardando alerta de vencimento."
+              : "Nenhum contrato dentro do período atual."}
           </div>
         ) : (
           <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
-            {linhas.map((l) => (
+            {linhasFiltradas.map((l) => {
+              const precisaAcao = l.status !== "Pendente" && !l.dataVencimento && l.movId;
+              return (
               <div
                 key={`${l.empresa.id}-${l.mesReferencia}-${l.periodo}`}
-                className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
+                className={`flex items-center justify-between gap-3 p-3 rounded-lg border transition-colors ${
+                  precisaAcao && !l.alertaVencimentoAberto
+                    ? "bg-warning/5 border-warning/40 hover:bg-warning/10"
+                    : "bg-card hover:bg-accent/40"
+                }`}
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate text-foreground">{l.empresa.nome}</p>
@@ -290,8 +332,8 @@ export function FaturamentosEnviadosCard() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {/* Botão Alertar Vencimento — só após enviar ao financeiro e enquanto não houver vencimento */}
-                  {l.status !== "Pendente" && !l.dataVencimento && l.movId && (
+                  {/* Botão Alertar Vencimento — destacado, só após enviar ao financeiro e enquanto não houver vencimento */}
+                  {precisaAcao && (
                     l.alertaVencimentoAberto ? (
                       <Badge variant="outline" className="gap-1 border-warning/50 text-warning">
                         <CalendarClock className="h-3 w-3" /> Alerta enviado
@@ -299,12 +341,11 @@ export function FaturamentosEnviadosCard() {
                     ) : (
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="gap-1 border-warning/50 text-warning hover:bg-warning/10"
+                        className="gap-1.5 bg-warning text-warning-foreground hover:bg-warning/90 font-semibold shadow-sm"
                         disabled={enviandoAlertaMovId === l.movId}
                         onClick={() => alertarVencimento(l)}
                       >
-                        <CalendarClock className="h-3 w-3" />
+                        <CalendarClock className="h-4 w-4" />
                         {enviandoAlertaMovId === l.movId ? "Enviando..." : "Alertar vencimento"}
                       </Button>
                     )
@@ -325,7 +366,8 @@ export function FaturamentosEnviadosCard() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
