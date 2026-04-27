@@ -67,6 +67,7 @@ export default function Financeiro() {
   const [isExporting, setIsExporting] = useState(false);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [analiseResultados, setAnaliseResultados] = useState<Record<string, import("@/lib/excel-analysis-utils").AnaliseResultado[]>>({});
+  const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
   const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
 
   // Movimentações financeiras do mês + dados de empresa via consulta separada
