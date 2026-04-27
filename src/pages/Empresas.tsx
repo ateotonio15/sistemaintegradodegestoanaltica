@@ -19,7 +19,7 @@ import { PERIODOS } from "@/lib/movimentacao-utils";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 import { cn } from "@/lib/utils";
 
@@ -198,11 +198,29 @@ export default function Empresas() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
-        const wb = XLSX.read(evt.target?.result, { type: "binary" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(ws);
+        const buffer = evt.target?.result as ArrayBuffer;
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.load(buffer);
+        const ws = wb.worksheets[0];
+        if (!ws) throw new Error("Planilha vazia");
+        // Read header row
+        const headerRow = ws.getRow(1);
+        const headers: string[] = [];
+        headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+          headers[colNumber] = String(cell.value ?? "").trim();
+        });
+        const jsonData: Record<string, any>[] = [];
+        ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+          if (rowNumber === 1) return;
+          const obj: Record<string, any> = {};
+          row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+            const key = headers[colNumber];
+            if (key) obj[key] = cell.value;
+          });
+          jsonData.push(obj);
+        });
         const rows: TablesInsert<"empresas">[] = jsonData.map((row) => ({
           nome: String(row["NOME_EMPRESA"] || row["nome"] || row["Nome"] || ""),
           codigo_contrato: String(row["CODIGO_CONTRATO"] || row["codigo_contrato"] || row["Código do Contrato"] || ""),
@@ -217,7 +235,7 @@ export default function Empresas() {
         toast({ title: "Erro ao ler arquivo", variant: "destructive" });
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
