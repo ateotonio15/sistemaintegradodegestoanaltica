@@ -116,11 +116,11 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                     beneficiarios: r.inclusoes.quantidade,
                     mensalidade: null,
                     total: r.inclusoes.total,
+                    // Inclusões: PDF não traz qtd nem unitário — só o total é validado
                     validacao: cmp?.inclusoes
                       ? {
-                          // Inclusões: só total é validado
-                          beneficiarios: { excel: r.inclusoes.quantidade, pdf: null, ok: true },
-                          mensalidade: { excel: 0, pdf: null, ok: true },
+                          beneficiarios: null,
+                          mensalidade: null,
                           total: cmp.inclusoes.total,
                         }
                       : null,
