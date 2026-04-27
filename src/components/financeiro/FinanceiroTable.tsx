@@ -47,6 +47,7 @@ export function FinanceiroTable({
   onToggleExpand,
   analiseResultados,
   analiseLoading,
+  analiseComparacoes,
 }: Props) {
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
