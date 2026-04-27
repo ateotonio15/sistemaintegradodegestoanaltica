@@ -394,7 +394,7 @@ export default function Executivas() {
             </CardHeader>
             <CardContent className="space-y-2">
               {comunUsersEmpresas.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum usuário comum encontrado</p>
+                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum usuário Cadastro encontrado</p>
               ) : (
                 comunUsersEmpresas
                   .sort((a, b) => Number(b.empresa_count) - Number(a.empresa_count))
