@@ -964,7 +964,13 @@ export default function Dashboard() {
                     <Input type="date" value={editForm.data_envio_financeiro} onChange={(e) => setEditForm({ ...editForm, data_envio_financeiro: e.target.value })} className="rounded-lg" />
                   </div>
                 </div>
-                <div className="flex justify-end gap-2">
+
+                <AnexosMovimentacao
+                  movimentacaoId={editingMov.id}
+                  empresaId={editingMov.empresa_id}
+                  required={!!editForm.data_envio_financeiro}
+                />
+
                   <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingMov(null); }} className="rounded-lg">Cancelar</Button>
                   <Button
                     className="rounded-lg"
