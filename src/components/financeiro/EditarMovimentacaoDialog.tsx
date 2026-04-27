@@ -193,29 +193,25 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="tipo">Tipo de cobrança</Label>
-              <Input
-                id="tipo"
-                value={tipoCobranca}
-                onChange={(e) => setTipoCobranca(e.target.value)}
-                placeholder="Ex: Mensalidade, Coparticipação…"
-                maxLength={TIPO_MAX + 20}
-                aria-invalid={tipoInvalido || tipoMuitoLongo || undefined}
-                className={cn(
-                  (tipoInvalido || tipoMuitoLongo) && "border-warning focus-visible:ring-warning",
-                )}
-              />
-              {tipoInvalido && (
-                <p className="text-[11px] text-warning flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Use apenas letras, números e pontuação simples.
-                </p>
-              )}
-              {tipoMuitoLongo && (
-                <p className="text-[11px] text-warning flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Texto muito longo (máx. {TIPO_MAX} caracteres).
-                </p>
-              )}
+              <Select
+                value={tipoCobranca || "__none__"}
+                onValueChange={(v) => setTipoCobranca(v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger id="tipo">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Não definido —</SelectItem>
+                  {TIPOS_FINANCEIRO.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Tipos exclusivos do setor Financeiro.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="data_nota">Data de envio da nota</Label>
