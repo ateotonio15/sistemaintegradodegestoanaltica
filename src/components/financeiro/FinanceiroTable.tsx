@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,9 +84,8 @@ export function FinanceiroTable({
               const isOverdue = !row.dentro_prazo && !row.data_envio_nota;
               const isExpanded = expandedRowId === row.id;
               return (
-                <>
+                <Fragment key={row.id}>
                   <TableRow
-                    key={row.id}
                     className={cn(
                       isOverdue && "bg-destructive/5 border-l-2 border-l-destructive",
                     )}
@@ -168,13 +168,12 @@ export function FinanceiroTable({
                   </TableRow>
                   {isExpanded && (
                     <AnaliseExcelRow
-                      key={`${row.id}-expand`}
                       colSpan={COL_COUNT}
                       isLoading={!!analiseLoading[row.id]}
                       resultados={analiseResultados[row.id] ?? null}
                     />
                   )}
-                </>
+                </Fragment>
               );
             })
           )}
