@@ -27,7 +27,8 @@ import {
   periodoDaDataCorte,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
-import { EmpresasStatusChart } from "@/components/dashboard/EmpresasStatusChart";
+import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
 
 export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
@@ -177,6 +178,17 @@ export default function Dashboard() {
 
   const updateMov = useMutation({
     mutationFn: async (values: { id: string; data_envio_empresa: string | null; data_envio_financeiro: string | null }) => {
+      // Bloqueia salvar data_envio_financeiro sem anexo
+      if (values.data_envio_financeiro) {
+        const { count, error: cErr } = await supabase
+          .from("anexos_movimentacao")
+          .select("id", { count: "exact", head: true })
+          .eq("movimentacao_id", values.id);
+        if (cErr) throw cErr;
+        if (!count || count === 0) {
+          throw new Error("Para enviar ao financeiro é obrigatório anexar documentos. Edite a movimentação na aba Movimentações para anexar.");
+        }
+      }
       const { error } = await supabase.from("movimentacoes").update({
         data_envio_empresa: values.data_envio_empresa,
         data_envio_financeiro: values.data_envio_financeiro,
@@ -190,7 +202,7 @@ export default function Dashboard() {
       setEditingMov(null);
       toast({ title: "Movimentação atualizada!" });
     },
-    onError: () => toast({ title: "Erro ao salvar", variant: "destructive" }),
+    onError: (e: any) => toast({ title: e?.message || "Erro ao salvar", variant: "destructive" }),
   });
 
   const updateEmpresa = useMutation({
@@ -721,12 +733,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Gráfico Empresas por Status */}
-        <EmpresasStatusChart
-          empresas={allEmpresas}
-          movimentacoes={movimentacoes}
-          notaEnviadaEmpresaIds={notaEnviadaEmpresaIds}
-        />
+        {/* Faturamentos Enviados (substitui o gráfico Empresas por Status) */}
+        <FaturamentosEnviadosCard />
 
         {/* Lista de Empresas no Período */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
@@ -953,6 +961,13 @@ export default function Dashboard() {
                     <Input type="date" value={editForm.data_envio_financeiro} onChange={(e) => setEditForm({ ...editForm, data_envio_financeiro: e.target.value })} className="rounded-lg" />
                   </div>
                 </div>
+
+                <AnexosMovimentacao
+                  movimentacaoId={editingMov.id}
+                  empresaId={editingMov.empresa_id}
+                  required={!!editForm.data_envio_financeiro}
+                />
+
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingMov(null); }} className="rounded-lg">Cancelar</Button>
                   <Button

@@ -28,6 +28,7 @@ import {
   formatPeriodoEmpresa,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import ExcelJS from "exceljs";
 
 type EmpresaOption = {
@@ -145,6 +146,20 @@ export default function Movimentacoes() {
 
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
+      // Validação obrigatória: ao preencher data_envio_financeiro, exigir ao menos 1 anexo
+      if (values.data_envio_financeiro && editingId) {
+        const { count, error: cErr } = await supabase
+          .from("anexos_movimentacao")
+          .select("id", { count: "exact", head: true })
+          .eq("movimentacao_id", editingId);
+        if (cErr) throw cErr;
+        if (!count || count === 0) {
+          throw new Error("Para enviar ao financeiro é obrigatório anexar documentos.");
+        }
+      } else if (values.data_envio_financeiro && !editingId) {
+        throw new Error("Salve a movimentação primeiro, anexe os documentos e depois informe a data de envio ao financeiro.");
+      }
+
       const payload: TablesInsert<"movimentacoes"> = {
         empresa_id: values.empresa_id,
         mes_referencia: values.mes_referencia,
@@ -172,7 +187,7 @@ export default function Movimentacoes() {
       resetForm();
       toast({ title: editingId ? "Movimentação atualizada!" : "Movimentação criada!" });
     },
-    onError: () => toast({ title: "Erro ao salvar", variant: "destructive" }),
+    onError: (e: any) => toast({ title: e?.message || "Erro ao salvar", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -351,6 +366,13 @@ export default function Movimentacoes() {
                     <Label className="text-sm font-medium">Observações</Label>
                     <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} disabled={!canEdit && !!editingId} className="rounded-lg" />
                   </div>
+
+                  <AnexosMovimentacao
+                    movimentacaoId={editingId}
+                    empresaId={form.empresa_id || null}
+                    required={!!form.data_envio_financeiro}
+                  />
+
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
                     <Button type="submit" disabled={upsert.isPending || !form.empresa_id} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
