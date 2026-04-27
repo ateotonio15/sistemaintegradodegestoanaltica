@@ -30,6 +30,7 @@ import {
   formatBytes,
   TIPOS_FINANCEIRO,
 } from "@/lib/financeiro-utils";
+import { todayLocalISO } from "@/lib/date-utils";
 
 type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & { data_vencimento?: string | null };
 
@@ -61,7 +62,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   // Validações campo-a-campo (avisos discretos, não bloqueiam edição manual)
   const tipoTrimmed = tipoCobranca.trim();
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = todayLocalISO();
   const envioNoFuturo = dataEnvioNota && dataEnvioNota > hoje;
   const vencimentoAntesEnvio =
     dataEnvioNota && dataVencimento && dataVencimento < dataEnvioNota;
