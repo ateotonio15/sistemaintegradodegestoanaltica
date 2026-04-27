@@ -50,8 +50,9 @@ const STATUS_OPTIONS: StatusFinanceiro[] = [
 ];
 
 export default function Financeiro() {
-  const { user, loading, isAdmin, isFinanceiro } = useAuth();
+  const { user, loading, isAdmin, isFinanceiro, isComum } = useAuth();
   const canManageFinanceiro = isAdmin || isFinanceiro;
+  const canViewFinanceiro = canManageFinanceiro || isComum;
   const queryClient = useQueryClient();
 
   const [mes, setMes] = useState(getCurrentMesReferencia());
@@ -82,7 +83,7 @@ export default function Financeiro() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user && canManageFinanceiro,
+    enabled: !!user && canViewFinanceiro,
   });
 
   const empresaIds = useMemo(
@@ -441,7 +442,7 @@ export default function Financeiro() {
     );
   }
   if (!user) return <Navigate to="/auth" replace />;
-  if (!canManageFinanceiro) return <Navigate to="/" replace />;
+  if (!canViewFinanceiro) return <Navigate to="/" replace />;
 
   const handleEdit = (row: FinanceiroRow) => {
     setEditing(row);
