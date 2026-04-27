@@ -971,6 +971,7 @@ export default function Dashboard() {
                   required={!!editForm.data_envio_financeiro}
                 />
 
+                <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingMov(null); }} className="rounded-lg">Cancelar</Button>
                   <Button
                     className="rounded-lg"
