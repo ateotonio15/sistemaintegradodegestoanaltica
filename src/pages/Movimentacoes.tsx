@@ -373,6 +373,7 @@ export default function Movimentacoes() {
                     required={!!form.data_envio_financeiro}
                   />
 
+                  <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
                     <Button type="submit" disabled={upsert.isPending || !form.empresa_id} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
                   </div>
