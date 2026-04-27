@@ -65,6 +65,9 @@ export default function Financeiro() {
   const [editOpen, setEditOpen] = useState(false);
   const [cobOpen, setCobOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [analiseResultados, setAnaliseResultados] = useState<Record<string, import("@/lib/excel-analysis-utils").AnaliseResultado[]>>({});
+  const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
 
   // Movimentações financeiras do mês + dados de empresa via consulta separada
   const { data: financeiroRaw = [], isLoading } = useQuery({
@@ -149,7 +152,7 @@ export default function Financeiro() {
       if (movIds.length === 0) return {};
       const { data, error } = await supabase
         .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, uploaded_by, created_at")
+        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, storage_path, uploaded_by, created_at")
         .in("financeiro_movimentacao_id", movIds)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -158,6 +161,7 @@ export default function Financeiro() {
         Array<{
           mime_type: string | null;
           nome_arquivo: string | null;
+          storage_path: string | null;
           uploaded_by: string | null;
           created_at: string;
         }>
@@ -167,6 +171,7 @@ export default function Financeiro() {
         map[a.financeiro_movimentacao_id].push({
           mime_type: a.mime_type ?? null,
           nome_arquivo: a.nome_arquivo ?? null,
+          storage_path: a.storage_path ?? null,
           uploaded_by: a.uploaded_by ?? null,
           created_at: a.created_at,
         });
@@ -446,6 +451,62 @@ export default function Financeiro() {
     setCobOpen(true);
   };
 
+  const handleToggleExpand = async (row: FinanceiroRow) => {
+    // Recolher se já está aberta
+    if (expandedRowId === row.id) {
+      setExpandedRowId(null);
+      return;
+    }
+    setExpandedRowId(row.id);
+
+    // Se já analisou antes, usa cache
+    if (analiseResultados[row.id]) return;
+
+    const anexos = (anexosMap[row.id] || []) as Array<{
+      mime_type: string | null;
+      nome_arquivo: string | null;
+      storage_path: string | null;
+    }>;
+    const { isXlsAnexo } = await import("@/lib/financeiro-utils");
+    const xlsAnexos = anexos.filter((a) => isXlsAnexo(a) && a.storage_path);
+
+    if (xlsAnexos.length === 0) {
+      setAnaliseResultados((prev) => ({ ...prev, [row.id]: [] }));
+      return;
+    }
+
+    setAnaliseLoading((prev) => ({ ...prev, [row.id]: true }));
+    try {
+      const { analisarExcelFinanceiro } = await import("@/lib/excel-analysis-utils");
+      const resultados = await Promise.all(
+        xlsAnexos.map(async (a) => {
+          try {
+            const { data, error } = await supabase.storage
+              .from("anexos-financeiro")
+              .download(a.storage_path!);
+            if (error) throw error;
+            const buf = await data.arrayBuffer();
+            const r = await analisarExcelFinanceiro(buf);
+            return { pagador: a.nome_arquivo || "Pagador", ...r };
+          } catch (err: any) {
+            toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
+            return {
+              pagador: a.nome_arquivo || "Pagador",
+              enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
+              apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
+              inclusoes: { quantidade: 0, total: 0 },
+              avisos: [`Falha ao ler arquivo: ${err.message || err}`],
+            };
+          }
+        }),
+      );
+      setAnaliseResultados((prev) => ({ ...prev, [row.id]: resultados }));
+    } finally {
+      setAnaliseLoading((prev) => ({ ...prev, [row.id]: false }));
+    }
+  };
+
+
   const handleExport = async () => {
     if (filteredRows.length === 0) {
       toast.warning("Nenhum registro para exportar com os filtros atuais");
@@ -708,6 +769,10 @@ export default function Financeiro() {
           onEdit={handleEdit}
           onCobranca={handleCobranca}
           isLoading={isLoading}
+          expandedRowId={expandedRowId}
+          onToggleExpand={handleToggleExpand}
+          analiseResultados={analiseResultados}
+          analiseLoading={analiseLoading}
         />
 
         {/* Diálogos */}
