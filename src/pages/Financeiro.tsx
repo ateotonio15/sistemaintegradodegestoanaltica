@@ -698,18 +698,20 @@ export default function Financeiro() {
               <Download className={`h-3.5 w-3.5 ${isExporting ? "animate-pulse" : ""}`} />
               {isExporting ? "Exportando..." : "Exportar Excel"}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => provisionarMutation.mutate()}
-              disabled={provisionarMutation.isPending}
-              className="gap-1.5"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${provisionarMutation.isPending ? "animate-spin" : ""}`}
-              />
-              {provisionarMutation.isPending ? "Gerando..." : "Gerar movimentações"}
-            </Button>
+            {canManageFinanceiro && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => provisionarMutation.mutate()}
+                disabled={provisionarMutation.isPending}
+                className="gap-1.5"
+              >
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${provisionarMutation.isPending ? "animate-spin" : ""}`}
+                />
+                {provisionarMutation.isPending ? "Gerando..." : "Gerar movimentações"}
+              </Button>
+            )}
             <Label htmlFor="mes-ref" className="text-xs text-muted-foreground">
               Mês
             </Label>
@@ -832,21 +834,26 @@ export default function Financeiro() {
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
+          readOnly={!canManageFinanceiro}
         />
 
-        {/* Diálogos */}
-        <EditarMovimentacaoDialog
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          movimentacao={editing}
-          empresaNome={editingNome}
-        />
-        <CobrancaDialog
-          open={cobOpen}
-          onOpenChange={setCobOpen}
-          movimentacao={editing}
-          empresaNome={editingNome}
-        />
+        {/* Diálogos (somente para perfis com permissão de edição) */}
+        {canManageFinanceiro && (
+          <>
+            <EditarMovimentacaoDialog
+              open={editOpen}
+              onOpenChange={setEditOpen}
+              movimentacao={editing}
+              empresaNome={editingNome}
+            />
+            <CobrancaDialog
+              open={cobOpen}
+              onOpenChange={setCobOpen}
+              movimentacao={editing}
+              empresaNome={editingNome}
+            />
+          </>
+        )}
       </div>
     </AppLayout>
   );
