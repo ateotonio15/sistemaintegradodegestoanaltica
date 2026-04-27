@@ -165,6 +165,37 @@ export default function Financeiro() {
     enabled: movIds.length > 0,
   });
 
+  // Mapa de usuários que enviaram a nota (para exibir nome na tabela)
+  const enviadoPorIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          financeiroRaw
+            .map((f: any) => f.enviado_por_user_id)
+            .filter((id: string | null): id is string => !!id),
+        ),
+      ),
+    [financeiroRaw],
+  );
+
+  const { data: enviadoPorMap = {} } = useQuery({
+    queryKey: ["financeiro-enviado-por", enviadoPorIds.sort().join(",")],
+    queryFn: async () => {
+      if (enviadoPorIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, username")
+        .in("user_id", enviadoPorIds);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      data.forEach((p: any) => {
+        map[p.user_id] = p.display_name || p.username || "—";
+      });
+      return map;
+    },
+    enabled: enviadoPorIds.length > 0,
+  });
+
   // Cobranças abertas do mês
   const { data: cobrancasAbertas = [] } = useQuery({
     queryKey: ["cobrancas-abertas", mes, movIds.sort().join(",")],

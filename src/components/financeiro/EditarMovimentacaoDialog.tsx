@@ -83,14 +83,24 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!movimentacao) return;
+      // Detecta se a data de envio acabou de ser preenchida (ou alterada) nesta edição
+      const envioAlterado =
+        !!dataEnvioNota && dataEnvioNota !== (movimentacao.data_envio_nota || "");
+      const payload: Record<string, unknown> = {
+        tipo_cobranca: tipoTrimmed || null,
+        data_envio_nota: dataEnvioNota || null,
+        data_vencimento: dataVencimento || null,
+        dentro_prazo: dentroPrazo,
+      };
+      if (envioAlterado && user?.id) {
+        payload.enviado_por_user_id = user.id;
+      } else if (!dataEnvioNota) {
+        // Se removeu a data de envio, limpa o autor
+        payload.enviado_por_user_id = null;
+      }
       const { error } = await supabase
         .from("financeiro_movimentacoes")
-        .update({
-          tipo_cobranca: tipoTrimmed || null,
-          data_envio_nota: dataEnvioNota || null,
-          data_vencimento: dataVencimento || null,
-          dentro_prazo: dentroPrazo,
-        } as any)
+        .update(payload as any)
         .eq("id", movimentacao.id);
       if (error) throw error;
     },
