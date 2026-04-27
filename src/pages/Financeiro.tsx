@@ -65,6 +65,9 @@ export default function Financeiro() {
   const [editOpen, setEditOpen] = useState(false);
   const [cobOpen, setCobOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [analiseResultados, setAnaliseResultados] = useState<Record<string, import("@/lib/excel-analysis-utils").AnaliseResultado[]>>({});
+  const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
 
   // Movimentações financeiras do mês + dados de empresa via consulta separada
   const { data: financeiroRaw = [], isLoading } = useQuery({
@@ -149,7 +152,7 @@ export default function Financeiro() {
       if (movIds.length === 0) return {};
       const { data, error } = await supabase
         .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, uploaded_by, created_at")
+        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, storage_path, uploaded_by, created_at")
         .in("financeiro_movimentacao_id", movIds)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -158,6 +161,7 @@ export default function Financeiro() {
         Array<{
           mime_type: string | null;
           nome_arquivo: string | null;
+          storage_path: string | null;
           uploaded_by: string | null;
           created_at: string;
         }>
@@ -167,6 +171,7 @@ export default function Financeiro() {
         map[a.financeiro_movimentacao_id].push({
           mime_type: a.mime_type ?? null,
           nome_arquivo: a.nome_arquivo ?? null,
+          storage_path: a.storage_path ?? null,
           uploaded_by: a.uploaded_by ?? null,
           created_at: a.created_at,
         });
