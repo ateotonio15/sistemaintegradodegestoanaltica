@@ -234,6 +234,7 @@ export default function Financeiro() {
             ? `Fechada — ${emp.periodo_movimentacao}`
             : "—"
         : "—";
+      const enviadoPorId = (f as any).enviado_por_user_id as string | null | undefined;
       return {
         ...f,
         empresa_nome: emp?.nome || "—",
@@ -242,9 +243,10 @@ export default function Financeiro() {
         periodo_corte: periodoCorte,
         status: calcularStatusFinanceiro(f, envioOperacional, anexosMap[f.id] || []),
         anexos_count: (anexosMap[f.id] || []).length,
+        enviado_por_nome: enviadoPorId ? enviadoPorMap[enviadoPorId] || null : null,
       };
     });
-  }, [financeiroRaw, empresasMap, operacionaisMap, anexosMap]);
+  }, [financeiroRaw, empresasMap, operacionaisMap, anexosMap, enviadoPorMap]);
 
   // Tipos únicos para o filtro
   const tiposUnicos = useMemo(() => {
