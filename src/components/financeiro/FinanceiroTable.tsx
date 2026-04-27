@@ -18,6 +18,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   status: StatusFinanceiro;
   anexos_count: number;
   data_vencimento?: string | null;
+  enviado_por_nome?: string | null;
 };
 
 interface Props {
@@ -40,6 +41,7 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
             <TableHead className="font-semibold">Responsável</TableHead>
             <TableHead className="font-semibold">Tipo</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
+            <TableHead className="font-semibold">Enviado por</TableHead>
             <TableHead className="font-semibold">Envio nota</TableHead>
             <TableHead className="font-semibold">Vencimento</TableHead>
             <TableHead className="font-semibold text-center">Anexos</TableHead>
@@ -49,13 +51,13 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
+              <TableCell colSpan={12} className="text-center text-muted-foreground py-12">
                 Carregando...
               </TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
+              <TableCell colSpan={12} className="text-center text-muted-foreground py-12">
                 Nenhuma movimentação encontrada para os filtros atuais.
               </TableCell>
             </TableRow>
@@ -97,6 +99,9 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
                     <Badge className={cn("text-xs", statusFinanceiroColor(row.status))}>
                       {row.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.enviado_por_nome || <span className="text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell className="text-sm">{formatDateBR(row.data_envio_nota)}</TableCell>
                   <TableCell className="text-sm">{formatDateBR(row.data_vencimento)}</TableCell>
