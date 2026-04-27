@@ -1,10 +1,12 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BellRing, Clock, CheckCircle2, AlertCircle, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BellRing, Clock, CheckCircle2, AlertCircle, Send, CalendarClock } from "lucide-react";
+import { toast } from "sonner";
 import {
   contratoDentroDoPeriodo,
   periodoVigente,
@@ -32,6 +34,7 @@ type MovItem = {
 };
 
 type FinKey = string; // `${empresa_id}|${mes}|${periodo}`
+type FinInfo = { data_envio_nota: string | null; data_vencimento: string | null };
 
 /**
  * Card "Faturamentos Enviado" — Dashboard Cadastro.
@@ -98,20 +101,37 @@ export function FaturamentosEnviadosCard() {
     },
   });
 
-  const { data: finMap = new Map<FinKey, string>() } = useQuery({
+  const { data: finMap = new Map<FinKey, FinInfo>() } = useQuery({
     queryKey: ["faturamentos-finmap-card"],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
-        .select("empresa_id, mes_referencia, periodo, data_envio_nota");
+        .select("empresa_id, mes_referencia, periodo, data_envio_nota, data_vencimento");
       if (error) throw error;
-      const m = new Map<FinKey, string>();
+      const m = new Map<FinKey, FinInfo>();
       for (const r of data ?? []) {
-        if (!r.data_envio_nota) continue;
-        m.set(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`, r.data_envio_nota as string);
+        m.set(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`, {
+          data_envio_nota: (r.data_envio_nota as string) ?? null,
+          data_vencimento: (r.data_vencimento as string) ?? null,
+        });
       }
       return m;
+    },
+  });
+
+  // Alertas de vencimento já abertos pelo Cadastro (para indicar visualmente "alerta enviado")
+  const { data: alertasVencimentoAbertos = new Set<string>() } = useQuery({
+    queryKey: ["alertas-vencimento-pendentes-mov-ids"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("alertas_financeiro")
+        .select("movimentacao_id")
+        .eq("tipo", "vencimento")
+        .eq("status", "Pendente");
+      if (error) throw error;
+      return new Set<string>((data ?? []).map((r: any) => r.movimentacao_id));
     },
   });
 
@@ -127,6 +147,9 @@ export function FaturamentosEnviadosCard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "empresas" }, () => {
         queryClient.invalidateQueries({ queryKey: ["faturamentos-empresas-vinculadas"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "alertas_financeiro" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["alertas-vencimento-pendentes-mov-ids"] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [queryClient]);
@@ -140,6 +163,8 @@ export function FaturamentosEnviadosCard() {
     status: "Pendente" | "Enviado" | "Finalizado";
     dataEnvio: string | null;
     dataNota: string | null;
+    dataVencimento: string | null;
+    alertaVencimentoAberto: boolean;
   };
 
   const linhas: Linha[] = empresas
@@ -152,9 +177,9 @@ export function FaturamentosEnviadosCard() {
           m.mes_referencia === ciclo.mes_referencia &&
           m.periodo === ciclo.periodo,
       );
-      const finalizadaEm = finMap.get(`${e.id}|${ciclo.mes_referencia}|${ciclo.periodo}`) ?? null;
+      const fin = finMap.get(`${e.id}|${ciclo.mes_referencia}|${ciclo.periodo}`) ?? null;
       const enviado = !!mov?.data_envio_financeiro;
-      const status: Linha["status"] = finalizadaEm ? "Finalizado" : enviado ? "Enviado" : "Pendente";
+      const status: Linha["status"] = fin?.data_envio_nota ? "Finalizado" : enviado ? "Enviado" : "Pendente";
       return {
         empresa: e,
         mesReferencia: ciclo.mes_referencia,
@@ -162,7 +187,9 @@ export function FaturamentosEnviadosCard() {
         movId: mov?.id ?? null,
         status,
         dataEnvio: mov?.data_envio_financeiro ?? null,
-        dataNota: finalizadaEm,
+        dataNota: fin?.data_envio_nota ?? null,
+        dataVencimento: fin?.data_vencimento ?? null,
+        alertaVencimentoAberto: mov?.id ? alertasVencimentoAbertos.has(mov.id) : false,
       };
     })
     .sort((a, b) => {
@@ -171,6 +198,45 @@ export function FaturamentosEnviadosCard() {
     });
 
   const pendentes = linhas.filter((l) => l.status === "Pendente").length;
+  const [enviandoAlertaMovId, setEnviandoAlertaMovId] = useState<string | null>(null);
+
+  async function alertarVencimento(l: Linha) {
+    if (!l.movId || !user) return;
+    setEnviandoAlertaMovId(l.movId);
+    try {
+      // Buscar nome do remetente
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const { error } = await supabase
+        .from("alertas_financeiro")
+        .upsert(
+          {
+            movimentacao_id: l.movId,
+            empresa_id: l.empresa.id,
+            empresa_nome: l.empresa.nome,
+            enviado_por_user_id: user.id,
+            enviado_por_nome: profile?.display_name ?? null,
+            data_envio: new Date().toISOString().slice(0, 10),
+            status: "Pendente",
+            tipo: "vencimento",
+            finalizado_em: null,
+          },
+          { onConflict: "movimentacao_id,tipo" },
+        );
+      if (error) throw error;
+      toast.success("Alerta de vencimento enviado ao Financeiro");
+      queryClient.invalidateQueries({ queryKey: ["alertas-vencimento-pendentes-mov-ids"] });
+    } catch (err: any) {
+      toast.error(err.message ?? "Falha ao enviar alerta");
+    } finally {
+      setEnviandoAlertaMovId(null);
+    }
+  }
+
 
   return (
     <Card className="rounded-xl shadow-sm border-warning/30">
@@ -217,22 +283,47 @@ export function FaturamentosEnviadosCard() {
                     {l.status === "Finalizado" && l.dataNota && (
                       <span className="ml-2">— nota enviada em {formatDateBR(l.dataNota)}</span>
                     )}
+                    {l.dataVencimento && (
+                      <span className="ml-2 text-success">· venc. {formatDateBR(l.dataVencimento)}</span>
+                    )}
                   </p>
                 </div>
 
-                {l.status === "Pendente" ? (
-                  <Badge className="bg-warning text-warning-foreground shrink-0 gap-1">
-                    <Clock className="h-3 w-3" /> Pendente
-                  </Badge>
-                ) : l.status === "Enviado" ? (
-                  <Badge className="bg-info text-info-foreground shrink-0 gap-1">
-                    <Send className="h-3 w-3" /> Enviado
-                  </Badge>
-                ) : (
-                  <Badge className="bg-success text-success-foreground shrink-0 gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Finalizado
-                  </Badge>
-                )}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Botão Alertar Vencimento — só após enviar ao financeiro e enquanto não houver vencimento */}
+                  {l.status !== "Pendente" && !l.dataVencimento && l.movId && (
+                    l.alertaVencimentoAberto ? (
+                      <Badge variant="outline" className="gap-1 border-warning/50 text-warning">
+                        <CalendarClock className="h-3 w-3" /> Alerta enviado
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 border-warning/50 text-warning hover:bg-warning/10"
+                        disabled={enviandoAlertaMovId === l.movId}
+                        onClick={() => alertarVencimento(l)}
+                      >
+                        <CalendarClock className="h-3 w-3" />
+                        {enviandoAlertaMovId === l.movId ? "Enviando..." : "Alertar vencimento"}
+                      </Button>
+                    )
+                  )}
+
+                  {l.status === "Pendente" ? (
+                    <Badge className="bg-warning text-warning-foreground gap-1">
+                      <Clock className="h-3 w-3" /> Pendente
+                    </Badge>
+                  ) : l.status === "Enviado" ? (
+                    <Badge className="bg-info text-info-foreground gap-1">
+                      <Send className="h-3 w-3" /> Enviado
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-success text-success-foreground gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Finalizado
+                    </Badge>
+                  )}
+                </div>
               </div>
             ))}
           </div>

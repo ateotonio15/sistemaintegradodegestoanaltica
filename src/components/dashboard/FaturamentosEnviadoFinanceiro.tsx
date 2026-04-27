@@ -19,12 +19,13 @@ export function FaturamentosEnviadoFinanceiro() {
   const navigate = useNavigate();
 
   const { data: alertas = [], isLoading } = useQuery({
-    queryKey: ["alertas-financeiro-pendentes"],
+    queryKey: ["alertas-financeiro-pendentes", "nota"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("alertas_financeiro")
         .select("*")
         .eq("status", "Pendente")
+        .or("tipo.eq.nota,tipo.is.null")
         .order("data_envio", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
