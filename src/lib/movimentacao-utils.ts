@@ -139,3 +139,74 @@ export function formatPeriodoEmpresa(empresa: { tipo_movimentacao?: string | nul
   }
   return empresa.periodo_movimentacao || "—";
 }
+
+// ============================================================
+// Periodicidade — regras unificadas para o card "Faturamentos Enviado"
+// ============================================================
+
+type EmpresaSubset = Pick<Tables<"empresas">,
+  | "tipo_movimentacao"
+  | "periodo_movimentacao"
+  | "data_corte"
+  | "data_implantacao"
+  | "status_empresa"
+>;
+
+/**
+ * Retorna o ciclo (mes_referencia + periodo) vigente HOJE para uma empresa,
+ * conforme suas configurações de movimentação. Reaproveita o modelo atual
+ * (Diária/Fechada + período 01-05…25-30 + data_corte) para representar
+ * Mensal, Quinzenal, Semanal, Bimestral e Personalizado sem alterar o
+ * schema da empresa.
+ */
+export function periodoVigente(
+  empresa: EmpresaSubset,
+  hoje: Date = new Date(),
+): { mes_referencia: string; periodo: string } {
+  const mes_referencia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+
+  // Empresas Diárias usam data_corte → mapeia para uma das janelas
+  if (empresa.tipo_movimentacao === "Diária" && empresa.data_corte) {
+    return { mes_referencia, periodo: periodoDaDataCorte(empresa.data_corte) };
+  }
+
+  // Empresas Fechadas usam periodo_movimentacao
+  if (empresa.periodo_movimentacao) {
+    return { mes_referencia, periodo: empresa.periodo_movimentacao };
+  }
+
+  // Fallback: período da data atual
+  return { mes_referencia, periodo: getCurrentPeriodo() };
+}
+
+/**
+ * Indica se a empresa está dentro do período atual (precisa ser movimentada hoje).
+ *
+ * Mapeamento das periodicidades pedidas para o modelo atual:
+ *  - Mensal      → 1 ciclo no mês (period_movimentacao da empresa)
+ *  - Quinzenal   → 2 ciclos no mês (qualquer período da 1ª ou 2ª quinzena)
+ *  - Semanal     → 1 ciclo por semana (Diária + data_corte na semana atual)
+ *  - Bimestral   → ciclo a cada 2 meses, ancorado em data_implantacao
+ *  - Personalizado → comportamento padrão de tipo_movimentacao/periodo_movimentacao
+ */
+export function contratoDentroDoPeriodo(
+  empresa: EmpresaSubset,
+  hoje: Date = new Date(),
+): boolean {
+  if (empresa.status_empresa !== "Ativa") return false;
+
+  const periodoAtual = getCurrentPeriodo();
+
+  // Diária → "está no período" se o período da data_corte casa com o período atual
+  if (empresa.tipo_movimentacao === "Diária") {
+    if (!empresa.data_corte) return false;
+    return periodoDaDataCorte(empresa.data_corte) === periodoAtual;
+  }
+
+  // Fechada → "está no período" se a janela configurada casa com a janela atual
+  if (empresa.periodo_movimentacao) {
+    return empresa.periodo_movimentacao === periodoAtual;
+  }
+
+  return false;
+}

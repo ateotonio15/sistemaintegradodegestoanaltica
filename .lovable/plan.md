@@ -1,58 +1,78 @@
-## Padronização do Botão de Alerta — Faturamentos Enviado
+## Objetivo
+Transformar o card "Faturamentos Enviado" do Dashboard Cadastro em uma **lista de trabalho ativa**: quando o contrato entra no período correto, ele aparece com o botão **Pendente**. Clicando, o Cadastro anexa documentos e confirma — o Financeiro recebe o alerta e o status muda para **Enviado**.
 
-### Situação atual
+## Como o sistema decide "está no período"
+Reaproveitando o que já existe (`tipo_movimentacao` Diária/Fechada + `periodo_movimentacao` 01-05…25-30 + `data_corte`), as periodicidades pedidas são interpretadas assim, sem mudar o schema da empresa:
 
-- **Dashboard Financeiro**: o card `FaturamentosEnviadoFinanceiro` já possui o visual padrão de alerta (borda `warning`, ícone `BellRing` em pílula amarela, badge contador, e um botão `ghost` "Ir ao Financeiro").
-- **Dashboard Usuário Comum**: o card `FaturamentosEnviadosCard` é apenas uma lista passiva (ícone `Send`), sem botão de ação. Para enviar faturamento ao financeiro, hoje o usuário precisa abrir a aba Movimentações e editar a data manualmente.
+- **Mensal** → 1 ciclo no mês, no `periodo_movimentacao` da empresa
+- **Quinzenal** → 2 ciclos no mês (ex.: 01-15 e 15-30) — derivado de `periodo_movimentacao`
+- **Semanal** → 1 ciclo por semana — usa `data_corte` em modo Diária
+- **Bimestral** → ciclo a cada 2 meses, ancorado em `data_implantacao`
+- **Personalizado** → cai no comportamento padrão de `tipo_movimentacao`/`periodo_movimentacao` já cadastrado
 
-### Objetivo
+A regra fica encapsulada em uma função utilitária `contratoDentroDoPeriodo(empresa, hoje)` para podermos evoluir depois sem refatorar o card.
 
-Espelhar a mesma identidade visual de alerta no card do usuário comum **e adicionar um botão ativo dentro dele** que dispare o fluxo "Enviar faturamento ao financeiro" (ou seja, leve o usuário direto para a ação que cria o alerta "Faturamentos Enviado" para o Financeiro).
-
-### O que muda
-
-#### 1. `FaturamentosEnviadosCard.tsx` (usuário comum) — alinhar visual ao do Financeiro
-
-- Header passa a usar a **mesma estrutura visual** do `FaturamentosEnviadoFinanceiro`:
-  - Pílula arredondada `bg-warning/15` com ícone `BellRing` em `text-warning` (mesmo tamanho 8x8).
-  - Título "Faturamentos Enviado" + badge contador no mesmo estilo (`variant="outline"`).
-  - Borda do card `border-warning/30` para reforçar identidade de alerta.
-- Adicionar **botão de ação** no canto superior direito do header (mesmo lugar do "Ir ao Financeiro" do Financeiro):
-  - Texto: **"Enviar Faturamento"**
-  - Estilo: `Button size="sm"` com ícone `Send` à esquerda e `ChevronRight` à direita (espelhando o padrão do Financeiro).
-  - Ação: navegar para `/movimentacoes` (a aba onde o usuário preenche `data_envio_financeiro` e anexa os documentos obrigatórios — fluxo que dispara o alerta no Financeiro via o trigger já existente `handle_envio_financeiro`).
-- Manter intactas: a lista de itens já enviados, contadores "Pendente/Finalizado", realtime e regras de RLS atuais.
-
-#### 2. Texto e nomenclatura
-
-- Padronizar o **título do card** para **"Faturamentos Enviado"** (singular, igual ao do Financeiro), seguindo a regra que o usuário definiu na etapa anterior.
-- Badge "X total" e "X pendente(s)" continuam visíveis abaixo, sem mudança.
-
-#### 3. Sem mudanças no fluxo de dados
-
-- Nenhuma migração SQL necessária — toda a lógica do alerta `Faturamentos Enviado` (criação ao preencher `data_envio_financeiro`, finalização ao financeiro registrar `data_envio_nota`) já está implementada via triggers.
-- Nenhuma mudança em RLS, em `AnexosMovimentacao`, ou no painel do Financeiro.
-
-### Resultado para o usuário
-
+## Fluxo (ASCII)
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ 🔔  Faturamentos Enviado  [3]      [ Enviar Faturamento → ]│  ← novo botão padrão
-├─────────────────────────────────────────────────────────────┤
-│  Empresa A  · 11/2026 · enviado em 27/04         🟡 Pendente│
-│  Empresa B  · 11/2026 · enviado em 25/04        🟢 Finalizado│
-│  ...                                                         │
-└─────────────────────────────────────────────────────────────┘
+empresa cadastrada
+    │ (cálculo dinâmico no carregamento do card)
+    ▼
+empresa "dentro do período"?
+    │ sim
+    ▼
+existe movimentacoes(empresa,mes,periodo) com data_envio_financeiro?
+    │ não → ITEM aparece na lista com botão [Pendente]
+    │ sim → ITEM mostra badge [Enviado / Finalizado]
+    ▼
+clique no botão Pendente
+    ▼
+mini-dialog: "Este contrato precisa ser movimentado."
+   • upload obrigatório (PDF/Excel/imagem, sem limite)
+   • botão "Confirmar envio"
+    ▼
+ao confirmar:
+   • cria/atualiza movimentacoes (data_envio_financeiro = hoje)
+   • salva anexos em anexos_movimentacao
+   • trigger handle_envio_financeiro dispara → alerta Financeiro
+    ▼
+status do item vira "Enviado" (e depois "Finalizado" quando o Financeiro envia a nota)
 ```
 
-Mesmo visual no Dashboard do Financeiro (já existente) e no Dashboard do Usuário Comum, com o botão cumprindo a função correta em cada perfil:
+## O que muda na UI
 
-- **Financeiro** → "Ir ao Financeiro" (já existia).
-- **Usuário Comum** → "Enviar Faturamento" (novo, vai para Movimentações).
+**Card "Faturamentos Enviado" (Dashboard Cadastro)**
+- Header já existente (BellRing warning + contador) é mantido
+- Conteúdo passa a listar **dois grupos**:
+  1. **Pendentes** (no topo): empresa, código, mês/período corrente, badge `Pendente` clicável (botão warning) com a mensagem `"Este contrato precisa ser movimentado."` em tooltip/subtexto
+  2. **Enviados/Finalizados** (mais abaixo): igual ao atual, com badge verde quando o Financeiro já enviou a nota
+- Mensagem vazia quando não há nenhum item
 
-### Detalhes técnicos
+**Mini-dialog "Movimentar contrato"**
+- Título: nome da empresa + código + período
+- Texto de alerta: *"Este contrato precisa ser movimentado."*
+- Bloco de upload (componente `AnexosMovimentacao` já existente, em modo "obrigatório ≥ 1")
+- Botão **Confirmar envio** desabilitado até ter pelo menos 1 anexo
+- Ao confirmar, faz upsert em `movimentacoes` setando `data_envio_financeiro = hoje`. O trigger `handle_envio_financeiro` cuida do resto (cria registro financeiro, espelha anexos, gera alerta Pendente para o Financeiro).
 
-- Arquivo único alterado: `src/components/dashboard/FaturamentosEnviadosCard.tsx`.
-- Adicionar `useNavigate` de `react-router-dom` e ícones `BellRing`, `ChevronRight` de `lucide-react`.
-- Reaproveitar tokens do design system (`warning`, `success`, `primary`) já usados no projeto.
-- Sem alterações em rotas, banco de dados ou edge functions.
+## Detalhes técnicos
+
+**Frontend**
+- `src/lib/movimentacao-utils.ts`: novas funções
+  - `contratoDentroDoPeriodo(empresa, hoje): boolean`
+  - `periodoVigente(empresa, hoje): { mes_referencia, periodo }` — calcula o ciclo atual conforme as 5 periodicidades acima
+- `src/components/dashboard/FaturamentosEnviadosCard.tsx`: reescrito para
+  - buscar todas empresas Ativas vinculadas ao usuário (via `empresa_usuarios` + `responsavel_user_id`)
+  - filtrar pelas que estão `dentro do período`
+  - cruzar com `movimentacoes` do mesmo mês/período para distinguir Pendente vs Enviado vs Finalizado (já cruzado com `financeiro_movimentacoes.data_envio_nota`)
+  - renderizar lista agrupada
+- `src/components/dashboard/MovimentarContratoDialog.tsx`: novo componente de mini-dialog (Dialog do shadcn) reaproveitando `AnexosMovimentacao` para upload obrigatório
+- Realtime continua nas tabelas `movimentacoes` e `financeiro_movimentacoes`
+
+**Backend**
+- Nenhuma migração necessária. Schema, triggers (`handle_envio_financeiro`, `handle_finalizar_alerta_financeiro`), bucket `anexos-movimentacoes` e tabela `anexos_movimentacao` já existem
+- RLS já permite ao Cadastro inserir/atualizar `movimentacoes` e anexar arquivos de empresas vinculadas
+
+## Não faz parte deste plano
+- Adicionar campo "periodicidade" novo ao cadastro de empresa (decisão: reusar o que já existe)
+- Mudar a aba `/movimentacoes` ou o Dashboard do Financeiro
+- Migração de dados existentes
