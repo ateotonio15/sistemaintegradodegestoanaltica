@@ -28,6 +28,7 @@ import {
   formatPeriodoEmpresa,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import ExcelJS from "exceljs";
 
 type EmpresaOption = {
@@ -145,6 +146,20 @@ export default function Movimentacoes() {
 
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
+      // Validação obrigatória: ao preencher data_envio_financeiro, exigir ao menos 1 anexo
+      if (values.data_envio_financeiro && editingId) {
+        const { count, error: cErr } = await supabase
+          .from("anexos_movimentacao")
+          .select("id", { count: "exact", head: true })
+          .eq("movimentacao_id", editingId);
+        if (cErr) throw cErr;
+        if (!count || count === 0) {
+          throw new Error("Para enviar ao financeiro é obrigatório anexar documentos.");
+        }
+      } else if (values.data_envio_financeiro && !editingId) {
+        throw new Error("Salve a movimentação primeiro, anexe os documentos e depois informe a data de envio ao financeiro.");
+      }
+
       const payload: TablesInsert<"movimentacoes"> = {
         empresa_id: values.empresa_id,
         mes_referencia: values.mes_referencia,
