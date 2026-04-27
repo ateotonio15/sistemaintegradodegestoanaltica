@@ -366,7 +366,8 @@ export function FaturamentosEnviadosCard() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
