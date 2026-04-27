@@ -93,8 +93,8 @@ export function FaturamentosEnviadosCard() {
   return (
     <Card className="rounded-xl shadow-sm border-warning/30">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
             <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
               <BellRing className="h-4 w-4 text-warning" />
             </div>
