@@ -50,8 +50,48 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados }: Props) {
                   )}
 
                   {(() => {
-                    const totalGeral =
-                      r.enfermaria.total + r.apartamento.total + r.inclusoes.total;
+                    const linhas: Array<{
+                      label: string;
+                      beneficiarios: number;
+                      mensalidade: number | null;
+                      total: number;
+                    }> = [];
+
+                    if (r.enfermaria.beneficiarios > 0 || r.enfermaria.total > 0) {
+                      linhas.push({
+                        label: "Enfermaria",
+                        beneficiarios: r.enfermaria.beneficiarios,
+                        mensalidade: r.enfermaria.mensalidade,
+                        total: r.enfermaria.total,
+                      });
+                    }
+                    if (r.apartamento.beneficiarios > 0 || r.apartamento.total > 0) {
+                      linhas.push({
+                        label: "Apartamento",
+                        beneficiarios: r.apartamento.beneficiarios,
+                        mensalidade: r.apartamento.mensalidade,
+                        total: r.apartamento.total,
+                      });
+                    }
+                    if (r.inclusoes.quantidade > 0 || r.inclusoes.total > 0) {
+                      linhas.push({
+                        label: "Inclusões",
+                        beneficiarios: r.inclusoes.quantidade,
+                        mensalidade: null,
+                        total: r.inclusoes.total,
+                      });
+                    }
+
+                    if (linhas.length === 0) {
+                      return (
+                        <div className="rounded-lg border border-border bg-card px-3 py-4 text-sm text-muted-foreground text-center">
+                          Nenhuma categoria identificada nesta planilha.
+                        </div>
+                      );
+                    }
+
+                    const totalGeral = linhas.reduce((s, l) => s + l.total, 0);
+
                     return (
                       <div className="rounded-lg border border-border bg-card overflow-hidden">
                         <table className="w-full text-sm">
@@ -72,42 +112,22 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados }: Props) {
                             </tr>
                           </thead>
                           <tbody>
-                            <tr className="border-t border-border">
-                              <td className="px-3 py-2 font-medium">Enfermaria</td>
-                              <td className="px-3 py-2 text-right">
-                                {r.enfermaria.beneficiarios}
-                              </td>
-                              <td className="px-3 py-2 text-right">
-                                {formatBRL(r.enfermaria.mensalidade)}
-                              </td>
-                              <td className="px-3 py-2 text-right font-semibold">
-                                {formatBRL(r.enfermaria.total)}
-                              </td>
-                            </tr>
-                            <tr className="border-t border-border">
-                              <td className="px-3 py-2 font-medium">Apartamento</td>
-                              <td className="px-3 py-2 text-right">
-                                {r.apartamento.beneficiarios}
-                              </td>
-                              <td className="px-3 py-2 text-right">
-                                {formatBRL(r.apartamento.mensalidade)}
-                              </td>
-                              <td className="px-3 py-2 text-right font-semibold">
-                                {formatBRL(r.apartamento.total)}
-                              </td>
-                            </tr>
-                            <tr className="border-t border-border">
-                              <td className="px-3 py-2 font-medium">Inclusões</td>
-                              <td className="px-3 py-2 text-right">
-                                {r.inclusoes.quantidade}
-                              </td>
-                              <td className="px-3 py-2 text-right text-muted-foreground">
-                                —
-                              </td>
-                              <td className="px-3 py-2 text-right font-semibold">
-                                {formatBRL(r.inclusoes.total)}
-                              </td>
-                            </tr>
+                            {linhas.map((l) => (
+                              <tr key={l.label} className="border-t border-border">
+                                <td className="px-3 py-2 font-medium">{l.label}</td>
+                                <td className="px-3 py-2 text-right">{l.beneficiarios}</td>
+                                <td className="px-3 py-2 text-right">
+                                  {l.mensalidade === null ? (
+                                    <span className="text-muted-foreground">—</span>
+                                  ) : (
+                                    formatBRL(l.mensalidade)
+                                  )}
+                                </td>
+                                <td className="px-3 py-2 text-right font-semibold">
+                                  {formatBRL(l.total)}
+                                </td>
+                              </tr>
+                            ))}
                             <tr className="border-t-2 border-border bg-muted/40">
                               <td
                                 className="px-3 py-2 font-semibold text-foreground"
