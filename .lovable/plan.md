@@ -1,78 +1,87 @@
 ## Objetivo
-Transformar o card "Faturamentos Enviado" do Dashboard Cadastro em uma **lista de trabalho ativa**: quando o contrato entra no período correto, ele aparece com o botão **Pendente**. Clicando, o Cadastro anexa documentos e confirma — o Financeiro recebe o alerta e o status muda para **Enviado**.
 
-## Como o sistema decide "está no período"
-Reaproveitando o que já existe (`tipo_movimentacao` Diária/Fechada + `periodo_movimentacao` 01-05…25-30 + `data_corte`), as periodicidades pedidas são interpretadas assim, sem mudar o schema da empresa:
+Garantir, no frontend e no backend, que o perfil **Cadastro** (`comum`) só executa cadastro/anexos/alertas, e o perfil **Financeiro** detém a operação de notas e cobranças.
 
-- **Mensal** → 1 ciclo no mês, no `periodo_movimentacao` da empresa
-- **Quinzenal** → 2 ciclos no mês (ex.: 01-15 e 15-30) — derivado de `periodo_movimentacao`
-- **Semanal** → 1 ciclo por semana — usa `data_corte` em modo Diária
-- **Bimestral** → ciclo a cada 2 meses, ancorado em `data_implantacao`
-- **Personalizado** → cai no comportamento padrão de `tipo_movimentacao`/`periodo_movimentacao` já cadastrado
+## Matriz de permissões
 
-A regra fica encapsulada em uma função utilitária `contratoDentroDoPeriodo(empresa, hoje)` para podermos evoluir depois sem refatorar o card.
+| Ação | Cadastro (`comum`) | Financeiro (`financeiro`) |
+|---|---|---|
+| Criar/editar empresas | Permitido | Bloqueado |
+| Anexar docs em movimentação | Permitido | Permitido |
+| Disparar alerta (Pendente → Enviado) | Permitido | — |
+| Ver status próprio | Permitido | Permitido |
+| Envio Nota (`data_envio_nota`) | Bloqueado | Permitido |
+| Tipo cobrança / vencimento / responsável / observações financeiras | Bloqueado | Permitido |
+| Aprovar / atualizar status financeiro | Bloqueado | Permitido |
+| Registrar cobranças | Bloqueado | Permitido |
 
-## Fluxo (ASCII)
-```text
-empresa cadastrada
-    │ (cálculo dinâmico no carregamento do card)
-    ▼
-empresa "dentro do período"?
-    │ sim
-    ▼
-existe movimentacoes(empresa,mes,periodo) com data_envio_financeiro?
-    │ não → ITEM aparece na lista com botão [Pendente]
-    │ sim → ITEM mostra badge [Enviado / Finalizado]
-    ▼
-clique no botão Pendente
-    ▼
-mini-dialog: "Este contrato precisa ser movimentado."
-   • upload obrigatório (PDF/Excel/imagem, sem limite)
-   • botão "Confirmar envio"
-    ▼
-ao confirmar:
-   • cria/atualiza movimentacoes (data_envio_financeiro = hoje)
-   • salva anexos em anexos_movimentacao
-   • trigger handle_envio_financeiro dispara → alerta Financeiro
-    ▼
-status do item vira "Enviado" (e depois "Finalizado" quando o Financeiro envia a nota)
-```
+## Ajustes Frontend
 
-## O que muda na UI
+1. **`src/pages/Movimentacoes.tsx`**
+   - Esconder coluna/badge "Nota Enviada" como editável para `comum`; manter apenas leitura.
+   - Garantir que ações que escrevem em `financeiro_movimentacoes` (ex.: marcar nota enviada, editar tipo cobrança) sejam ocultas se `role === "comum"`.
 
-**Card "Faturamentos Enviado" (Dashboard Cadastro)**
-- Header já existente (BellRing warning + contador) é mantido
-- Conteúdo passa a listar **dois grupos**:
-  1. **Pendentes** (no topo): empresa, código, mês/período corrente, badge `Pendente` clicável (botão warning) com a mensagem `"Este contrato precisa ser movimentado."` em tooltip/subtexto
-  2. **Enviados/Finalizados** (mais abaixo): igual ao atual, com badge verde quando o Financeiro já enviou a nota
-- Mensagem vazia quando não há nenhum item
+2. **`src/components/financeiro/*`** (`EditarMovimentacaoDialog`, `FinanceiroTable`, `CobrancaDialog`, `CobrancaBanner`)
+   - Bloquear abertura/submit do `EditarMovimentacaoDialog` quando `!canManageFinanceiro` (já existe a flag em `Financeiro.tsx`; aplicar a mesma flag também onde o dialog é instanciado para `comum`).
+   - `CobrancaBanner` para `comum`: somente leitura (sem ações de resolver/registrar).
 
-**Mini-dialog "Movimentar contrato"**
-- Título: nome da empresa + código + período
-- Texto de alerta: *"Este contrato precisa ser movimentado."*
-- Bloco de upload (componente `AnexosMovimentacao` já existente, em modo "obrigatório ≥ 1")
-- Botão **Confirmar envio** desabilitado até ter pelo menos 1 anexo
-- Ao confirmar, faz upsert em `movimentacoes` setando `data_envio_financeiro = hoje`. O trigger `handle_envio_financeiro` cuida do resto (cria registro financeiro, espelha anexos, gera alerta Pendente para o Financeiro).
+3. **`src/pages/Dashboard.tsx`**
+   - Já oculta colunas via `role === "comum"`; reforçar que botões de ação financeira (registrar nota, editar) não apareçam para `comum`.
 
-## Detalhes técnicos
+4. **`src/components/AppLayout.tsx`**
+   - Manter rota `/financeiro` indisponível para `comum` (já restrito a `financeiroOrAdmin`); confirmar redirect.
 
-**Frontend**
-- `src/lib/movimentacao-utils.ts`: novas funções
-  - `contratoDentroDoPeriodo(empresa, hoje): boolean`
-  - `periodoVigente(empresa, hoje): { mes_referencia, periodo }` — calcula o ciclo atual conforme as 5 periodicidades acima
-- `src/components/dashboard/FaturamentosEnviadosCard.tsx`: reescrito para
-  - buscar todas empresas Ativas vinculadas ao usuário (via `empresa_usuarios` + `responsavel_user_id`)
-  - filtrar pelas que estão `dentro do período`
-  - cruzar com `movimentacoes` do mesmo mês/período para distinguir Pendente vs Enviado vs Finalizado (já cruzado com `financeiro_movimentacoes.data_envio_nota`)
-  - renderizar lista agrupada
-- `src/components/dashboard/MovimentarContratoDialog.tsx`: novo componente de mini-dialog (Dialog do shadcn) reaproveitando `AnexosMovimentacao` para upload obrigatório
-- Realtime continua nas tabelas `movimentacoes` e `financeiro_movimentacoes`
+5. Centralizar flags em `useAuth`:
+   - Adicionar `isComum` derivada de `role === "comum"`.
+   - Adicionar helper `canEditFinanceiro = isAdmin || isFinanceiro` para uso unificado.
 
-**Backend**
-- Nenhuma migração necessária. Schema, triggers (`handle_envio_financeiro`, `handle_finalizar_alerta_financeiro`), bucket `anexos-movimentacoes` e tabela `anexos_movimentacao` já existem
-- RLS já permite ao Cadastro inserir/atualizar `movimentacoes` e anexar arquivos de empresas vinculadas
+## Ajustes Backend (Migrations)
 
-## Não faz parte deste plano
-- Adicionar campo "periodicidade" novo ao cadastro de empresa (decisão: reusar o que já existe)
-- Mudar a aba `/movimentacoes` ou o Dashboard do Financeiro
-- Migração de dados existentes
+Reforço de RLS para impedir que um cliente malicioso burle o frontend:
+
+1. **`financeiro_movimentacoes`**
+   - Hoje: `Authenticated read` (OK), apenas `admin`/`financeiro` podem manage. ✅ já correto. Sem mudanças.
+
+2. **`anexos_financeiro`**
+   - Hoje: `comum` não tem INSERT/UPDATE/DELETE direto (só admin/financeiro). ✅ já correto. Os anexos do `comum` são espelhados via trigger `handle_envio_financeiro` (SECURITY DEFINER). Sem mudanças.
+
+3. **`cobrancas`**
+   - Hoje: apenas admin/financeiro podem manage. ✅ já correto.
+
+4. **`alertas_financeiro`**
+   - Hoje: SELECT/manage só para admin/financeiro; criação ocorre via trigger SECURITY DEFINER quando `comum` atualiza `data_envio_financeiro`. ✅ correto.
+
+5. **`movimentacoes` (reforço)**
+   - Adicionar política/trigger para impedir que `comum` altere campos financeiros sensíveis. Hoje a policy "Comum user update movimentacoes" permite UPDATE em qualquer coluna. Criar trigger `BEFORE UPDATE` que, se `has_role(auth.uid(),'comum')`, bloqueia mudanças em colunas reservadas (`tipo_cobranca` não existe nesta tabela; o foco é manter `data_envio_financeiro` apenas indo de NULL → data, sem rollback, e impedir edição de `dentro_prazo`).
+   - Trigger:
+     ```sql
+     create or replace function public.guard_movimentacoes_comum()
+     returns trigger language plpgsql security definer set search_path=public as $$
+     begin
+       if has_role(auth.uid(),'comum') then
+         if old.data_envio_financeiro is not null
+            and new.data_envio_financeiro is distinct from old.data_envio_financeiro then
+           raise exception 'Cadastro não pode alterar envio ao financeiro já registrado';
+         end if;
+         new.dentro_prazo := old.dentro_prazo;
+       end if;
+       return new;
+     end$$;
+     create trigger trg_guard_mov_comum
+       before update on public.movimentacoes
+       for each row execute function public.guard_movimentacoes_comum();
+     ```
+
+## Arquivos a alterar
+
+- `src/hooks/useAuth.tsx` — adicionar `isComum` e `canEditFinanceiro`.
+- `src/pages/Movimentacoes.tsx` — gating de UI financeira.
+- `src/pages/Dashboard.tsx` — gating fino em ações.
+- `src/components/financeiro/EditarMovimentacaoDialog.tsx` — bloquear submit p/ `comum`.
+- `src/components/financeiro/CobrancaBanner.tsx` — modo leitura p/ `comum`.
+- Migration nova — função + trigger `guard_movimentacoes_comum`.
+
+## Resultado esperado
+
+- Cadastro vê apenas o que pode operar; tentativas de POST/UPDATE em campos financeiros falham no banco mesmo se a UI for contornada.
+- Financeiro mantém fluxo atual sem regressão.
