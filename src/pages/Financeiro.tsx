@@ -40,7 +40,14 @@ import {
   getMesesOptions,
 } from "@/lib/financeiro-utils";
 
-const STATUS_OPTIONS: StatusFinanceiro[] = ["Enviada", "Aguardando nota", "Pendente", "Fora do prazo"];
+const STATUS_OPTIONS: StatusFinanceiro[] = [
+  "Nota emitida",
+  "Faturado",
+  "Enviada",
+  "Aguardando nota",
+  "Pendente",
+  "Fora do prazo",
+];
 
 export default function Financeiro() {
   const { user, loading, isAdmin, isFinanceiro } = useAuth();
@@ -133,21 +140,25 @@ export default function Financeiro() {
     enabled: empresaIds.length > 0,
   });
 
-  // Contagem de anexos por movimentação
+  // Anexos por movimentação (com tipo para calcular status: PDF > XLS)
   const movIds = useMemo(() => financeiroRaw.map((f) => f.id), [financeiroRaw]);
 
-  const { data: anexosCount = {} } = useQuery({
-    queryKey: ["financeiro-anexos-counts", movIds.sort().join(",")],
+  const { data: anexosMap = {} } = useQuery({
+    queryKey: ["financeiro-anexos-list", movIds.sort().join(",")],
     queryFn: async () => {
       if (movIds.length === 0) return {};
       const { data, error } = await supabase
         .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id")
+        .select("financeiro_movimentacao_id, mime_type, nome_arquivo")
         .in("financeiro_movimentacao_id", movIds);
       if (error) throw error;
-      const map: Record<string, number> = {};
+      const map: Record<string, Array<{ mime_type: string | null; nome_arquivo: string | null }>> = {};
       data.forEach((a: any) => {
-        map[a.financeiro_movimentacao_id] = (map[a.financeiro_movimentacao_id] || 0) + 1;
+        if (!map[a.financeiro_movimentacao_id]) map[a.financeiro_movimentacao_id] = [];
+        map[a.financeiro_movimentacao_id].push({
+          mime_type: a.mime_type ?? null,
+          nome_arquivo: a.nome_arquivo ?? null,
+        });
       });
       return map;
     },
@@ -198,11 +209,11 @@ export default function Financeiro() {
         empresa_codigo: emp?.codigo ?? null,
         empresa_cnpj: emp?.cnpj ?? null,
         periodo_corte: periodoCorte,
-        status: calcularStatusFinanceiro(f, envioOperacional),
-        anexos_count: anexosCount[f.id] || 0,
+        status: calcularStatusFinanceiro(f, envioOperacional, anexosMap[f.id] || []),
+        anexos_count: (anexosMap[f.id] || []).length,
       };
     });
-  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCount]);
+  }, [financeiroRaw, empresasMap, operacionaisMap, anexosMap]);
 
   // Tipos únicos para o filtro
   const tiposUnicos = useMemo(() => {
@@ -250,7 +261,7 @@ export default function Financeiro() {
     const totalAnexos = kpiRows.reduce((s, r) => s + r.anexos_count, 0);
     return {
       totalEmpresas: empresasSet.size,
-      notasEnviadas: kpiRows.filter((r) => r.status === "Enviada").length,
+      notasEnviadas: kpiRows.filter((r) => r.status === "Enviada" || r.status === "Nota emitida").length,
       aguardandoNota: kpiRows.filter((r) => r.status === "Aguardando nota").length,
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
       foraDoPrazo: kpiRows.filter((r) => r.status === "Fora do prazo").length,

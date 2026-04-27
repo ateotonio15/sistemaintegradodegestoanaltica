@@ -6,19 +6,54 @@ export type AnexoFinanceiro = Tables<"anexos_financeiro">;
 
 export const PERIODOS_FIN = ["01-05", "05-10", "10-15", "15-20", "20-25", "25-30"] as const;
 
-export type StatusFinanceiro = "Enviada" | "Aguardando nota" | "Pendente" | "Fora do prazo";
+export type StatusFinanceiro =
+  | "Nota emitida"
+  | "Faturado"
+  | "Enviada"
+  | "Aguardando nota"
+  | "Pendente"
+  | "Fora do prazo";
+
+/** Detecta se um anexo é PDF (por mime_type ou extensão do nome). */
+export function isPdfAnexo(a: { mime_type?: string | null; nome_arquivo?: string | null }): boolean {
+  const mime = (a.mime_type || "").toLowerCase();
+  const nome = (a.nome_arquivo || "").toLowerCase();
+  return mime.includes("pdf") || nome.endsWith(".pdf");
+}
+
+/** Detecta se um anexo é XLS/XLSX/CSV (planilha). */
+export function isXlsAnexo(a: { mime_type?: string | null; nome_arquivo?: string | null }): boolean {
+  const mime = (a.mime_type || "").toLowerCase();
+  const nome = (a.nome_arquivo || "").toLowerCase();
+  return (
+    mime.includes("spreadsheet") ||
+    mime.includes("excel") ||
+    mime === "text/csv" ||
+    nome.endsWith(".xlsx") ||
+    nome.endsWith(".xls") ||
+    nome.endsWith(".csv")
+  );
+}
 
 /**
  * Calcula o status financeiro de uma movimentação (NÃO persistido no banco).
- * - Enviada: tem `data_envio_nota`
- * - Fora do prazo: `dentro_prazo === false` e sem nota
- * - Aguardando nota: existe envio operacional ao financeiro mas sem `data_envio_nota`
- * - Pendente: nenhum envio ainda
+ * Prioridade (do mais alto para o mais baixo):
+ * 1. **Nota emitida** — existe ao menos um anexo PDF (prioridade máxima, ignora XLS)
+ * 2. **Faturado** — existe ao menos um anexo XLS/planilha (e nenhum PDF)
+ * 3. **Enviada** — possui `data_envio_nota` registrada
+ * 4. **Fora do prazo** — `dentro_prazo === false` e sem anexo/nota
+ * 5. **Aguardando nota** — operacional já enviou ao financeiro mas ainda sem anexo/nota
+ * 6. **Pendente** — nada ainda
  */
 export function calcularStatusFinanceiro(
   mov: Pick<FinanceiroMovimentacao, "data_envio_nota" | "dentro_prazo">,
   envioOperacionalFeito: boolean,
+  anexos: Array<{ mime_type?: string | null; nome_arquivo?: string | null }> = [],
 ): StatusFinanceiro {
+  const temPdf = anexos.some(isPdfAnexo);
+  if (temPdf) return "Nota emitida";
+  const temXls = anexos.some(isXlsAnexo);
+  if (temXls) return "Faturado";
   if (mov.data_envio_nota) return "Enviada";
   if (mov.dentro_prazo === false) return "Fora do prazo";
   if (envioOperacionalFeito) return "Aguardando nota";
@@ -27,8 +62,12 @@ export function calcularStatusFinanceiro(
 
 export function statusFinanceiroColor(status: StatusFinanceiro): string {
   switch (status) {
-    case "Enviada":
+    case "Nota emitida":
       return "bg-success text-success-foreground";
+    case "Faturado":
+      return "bg-info text-info-foreground";
+    case "Enviada":
+      return "bg-success/80 text-success-foreground";
     case "Aguardando nota":
       return "bg-warning text-warning-foreground";
     case "Fora do prazo":
