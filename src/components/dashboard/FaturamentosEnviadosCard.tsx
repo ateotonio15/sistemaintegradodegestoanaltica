@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { BellRing, Clock, CheckCircle2, AlertCircle, Send, CalendarClock } from "lucide-react";
+import { BellRing, Clock, CheckCircle2, AlertCircle, Send, CalendarClock, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import {
   contratoDentroDoPeriodo,
@@ -36,7 +36,7 @@ type MovItem = {
 };
 
 type FinKey = string; // `${empresa_id}|${mes}|${periodo}`
-type FinInfo = { data_envio_nota: string | null; data_vencimento: string | null };
+type FinInfo = { id: string; data_envio_nota: string | null; data_vencimento: string | null };
 
 /**
  * Card "Faturamentos Enviado" — Dashboard Cadastro.
@@ -109,16 +109,54 @@ export function FaturamentosEnviadosCard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
-        .select("empresa_id, mes_referencia, periodo, data_envio_nota, data_vencimento");
+        .select("id, empresa_id, mes_referencia, periodo, data_envio_nota, data_vencimento");
       if (error) throw error;
       const m = new Map<FinKey, FinInfo>();
       for (const r of data ?? []) {
         m.set(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`, {
+          id: r.id as string,
           data_envio_nota: (r.data_envio_nota as string) ?? null,
           data_vencimento: (r.data_vencimento as string) ?? null,
         });
       }
       return m;
+    },
+  });
+
+  // Contagem de anexos por movimentação (Cadastro) e por financeiro_movimentacao (Financeiro)
+  const movIdsForAnexos = useMemo(() => movs.map((m) => m.id), [movs]);
+  const { data: anexosCadastroPorMov = new Map<string, number>() } = useQuery({
+    queryKey: ["faturamentos-anexos-cadastro", movIdsForAnexos.sort().join(",")],
+    enabled: !!user && movIdsForAnexos.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anexos_movimentacao")
+        .select("movimentacao_id")
+        .in("movimentacao_id", movIdsForAnexos);
+      if (error) throw error;
+      const map = new Map<string, number>();
+      for (const r of data ?? []) {
+        const k = (r as any).movimentacao_id as string;
+        map.set(k, (map.get(k) ?? 0) + 1);
+      }
+      return map;
+    },
+  });
+
+  const { data: anexosFinPorFinId = new Map<string, number>() } = useQuery({
+    queryKey: ["faturamentos-anexos-financeiro"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anexos_financeiro")
+        .select("financeiro_movimentacao_id");
+      if (error) throw error;
+      const map = new Map<string, number>();
+      for (const r of data ?? []) {
+        const k = (r as any).financeiro_movimentacao_id as string;
+        map.set(k, (map.get(k) ?? 0) + 1);
+      }
+      return map;
     },
   });
 
