@@ -734,12 +734,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Gráfico Empresas por Status */}
-        <EmpresasStatusChart
-          empresas={allEmpresas}
-          movimentacoes={movimentacoes}
-          notaEnviadaEmpresaIds={notaEnviadaEmpresaIds}
-        />
+        {/* Faturamentos Enviados (substitui o gráfico Empresas por Status) */}
+        <FaturamentosEnviadosCard />
 
         {/* Lista de Empresas no Período */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
