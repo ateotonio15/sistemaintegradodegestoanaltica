@@ -34,6 +34,7 @@ interface Props {
   analiseResultados: Record<string, AnaliseResultado[]>;
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
+  readOnly?: boolean;
 }
 
 const COL_COUNT = 12;
@@ -48,6 +49,7 @@ export function FinanceiroTable({
   analiseResultados,
   analiseLoading,
   analiseComparacoes,
+  readOnly = false,
 }: Props) {
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -134,15 +136,17 @@ export function FinanceiroTable({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => onEdit(row)}
-                          title="Editar"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        {!readOnly && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => onEdit(row)}
+                            title="Editar"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -156,15 +160,17 @@ export function FinanceiroTable({
                             <ChevronDown className="h-3.5 w-3.5" />
                           )}
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-warning hover:text-warning"
-                          onClick={() => onCobranca(row)}
-                          title="Registrar cobrança"
-                        >
-                          <Bell className="h-3.5 w-3.5" />
-                        </Button>
+                        {!readOnly && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-warning hover:text-warning"
+                            onClick={() => onCobranca(row)}
+                            title="Registrar cobrança"
+                          >
+                            <Bell className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
