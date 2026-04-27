@@ -173,6 +173,7 @@ export function FinanceiroTable({
                       colSpan={COL_COUNT}
                       isLoading={!!analiseLoading[row.id]}
                       resultados={analiseResultados[row.id] ?? null}
+                      comparacoes={analiseComparacoes?.[row.id] ?? null}
                     />
                   )}
                 </Fragment>
