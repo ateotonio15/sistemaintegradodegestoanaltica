@@ -645,6 +645,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      enviar_movimentacao_ao_financeiro: {
+        Args: { p_mov_id: string }
+        Returns: string
+      }
       get_comum_users_empresa_count: {
         Args: never
         Returns: {
