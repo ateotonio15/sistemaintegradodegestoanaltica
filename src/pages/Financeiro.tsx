@@ -144,7 +144,7 @@ export default function Financeiro() {
   const movIds = useMemo(() => financeiroRaw.map((f) => f.id), [financeiroRaw]);
 
   const { data: anexosMap = {} } = useQuery({
-    queryKey: ["financeiro-anexos", movIds.sort().join(",")],
+    queryKey: ["financeiro-anexos-list", movIds.sort().join(",")],
     queryFn: async () => {
       if (movIds.length === 0) return {};
       const { data, error } = await supabase
