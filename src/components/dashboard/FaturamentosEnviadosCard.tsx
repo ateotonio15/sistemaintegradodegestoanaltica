@@ -2,11 +2,9 @@ import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { BellRing, Clock, CheckCircle2, Send, ChevronRight } from "lucide-react";
+import { BellRing, Clock, CheckCircle2 } from "lucide-react";
 import { formatDateBR } from "@/lib/date-utils";
 
 /**
@@ -24,7 +22,6 @@ import { formatDateBR } from "@/lib/date-utils";
  */
 export function FaturamentosEnviadosCard() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   // Movimentações com data_envio_financeiro
@@ -93,7 +90,7 @@ export function FaturamentosEnviadosCard() {
   return (
     <Card className="rounded-xl shadow-sm border-warning/30">
       <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
             <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
               <BellRing className="h-4 w-4 text-warning" />
@@ -106,15 +103,6 @@ export function FaturamentosEnviadosCard() {
               </Badge>
             )}
           </CardTitle>
-          <Button
-            size="sm"
-            onClick={() => navigate("/movimentacoes")}
-            className="gap-1 shrink-0 bg-warning text-warning-foreground hover:bg-warning/90"
-          >
-            <Send className="h-4 w-4" />
-            Faturamentos Enviado
-            <ChevronRight className="h-4 w-4" />
-          </Button>
         </div>
       </CardHeader>
       <CardContent>
