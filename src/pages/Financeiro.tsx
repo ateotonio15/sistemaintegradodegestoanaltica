@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Search, Bell, Wallet, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
 
@@ -504,40 +504,43 @@ export default function Financeiro() {
         totals.cobrancas,
       ];
 
-      const aoa = [headers, ...dataRows, [], totalRow];
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Financeiro");
 
-      ws["!cols"] = [
-        { wch: 38 }, // Empresa
-        { wch: 14 }, // Contrato
-        { wch: 20 }, // CNPJ
-        { wch: 22 }, // Período / Corte
-        { wch: 22 }, // Responsável
-        { wch: 16 }, // Tipo
-        { wch: 18 }, // Status
-        { wch: 14 }, // Envio nota
-        { wch: 14 }, // Vencimento
-        { wch: 10 }, // Anexos
-        { wch: 20 }, // Cobrança
+      ws.columns = [
+        { width: 38 }, // Empresa
+        { width: 14 }, // Contrato
+        { width: 20 }, // CNPJ
+        { width: 22 }, // Período / Corte
+        { width: 22 }, // Responsável
+        { width: 16 }, // Tipo
+        { width: 18 }, // Status
+        { width: 14 }, // Envio nota
+        { width: 14 }, // Vencimento
+        { width: 10 }, // Anexos
+        { width: 20 }, // Cobrança
       ];
 
-      // Negrito no cabeçalho e linha de total
-      const totalRowIdx = aoa.length; // 1-based no Excel
-      headers.forEach((_, c) => {
-        const headerAddr = XLSX.utils.encode_cell({ r: 0, c });
-        if (ws[headerAddr]) ws[headerAddr].s = { font: { bold: true } };
-        const totalAddr = XLSX.utils.encode_cell({ r: totalRowIdx - 1, c });
-        if (ws[totalAddr]) ws[totalAddr].s = { font: { bold: true } };
-      });
+      const headerRow = ws.addRow(headers);
+      headerRow.font = { bold: true };
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
+      dataRows.forEach((r) => ws.addRow(r));
+      ws.addRow([]);
+      const totRow = ws.addRow(totalRow);
+      totRow.font = { bold: true };
 
       const today = new Date();
       const stamp = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
       const filename = `financeiro_${mes}_${stamp}.xlsx`;
 
-      XLSX.writeFile(wb, filename);
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
       toast.success(`Arquivo exportado: ${filteredRows.length} registro(s)`);
     } catch (e: any) {
       toast.error("Erro ao exportar: " + (e?.message || "falha desconhecida"));
