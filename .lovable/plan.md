@@ -1,87 +1,40 @@
-## Objetivo
+# Plano — Botão de Alerta de Vencimento por Empresa
 
-Garantir, no frontend e no backend, que o perfil **Cadastro** (`comum`) só executa cadastro/anexos/alertas, e o perfil **Financeiro** detém a operação de notas e cobranças.
+## Estado atual (já implementado)
 
-## Matriz de permissões
+O botão individual **"Alertar vencimento"** já existe no card **Dashboard Cadastro > Faturamentos Enviado**, com todas as regras pedidas:
 
-| Ação | Cadastro (`comum`) | Financeiro (`financeiro`) |
-|---|---|---|
-| Criar/editar empresas | Permitido | Bloqueado |
-| Anexar docs em movimentação | Permitido | Permitido |
-| Disparar alerta (Pendente → Enviado) | Permitido | — |
-| Ver status próprio | Permitido | Permitido |
-| Envio Nota (`data_envio_nota`) | Bloqueado | Permitido |
-| Tipo cobrança / vencimento / responsável / observações financeiras | Bloqueado | Permitido |
-| Aprovar / atualizar status financeiro | Bloqueado | Permitido |
-| Registrar cobranças | Bloqueado | Permitido |
+- Aparece em cada linha de empresa (um botão por item)
+- Ação manual: o Cadastro precisa clicar
+- Após envio, o botão troca para badge **"Alerta enviado"** (estado mudou)
+- Trigger no banco resolve o alerta e remove a marcação quando o Financeiro preenche `data_vencimento`
 
-## Ajustes Frontend
+## Por que você não está vendo
 
-1. **`src/pages/Movimentacoes.tsx`**
-   - Esconder coluna/badge "Nota Enviada" como editável para `comum`; manter apenas leitura.
-   - Garantir que ações que escrevem em `financeiro_movimentacoes` (ex.: marcar nota enviada, editar tipo cobrança) sejam ocultas se `role === "comum"`.
+O botão **só aparece em linhas com status "Enviado" ou "Finalizado"** (badge azul/verde). Linhas amarelas **"Pendente"** não exibem o botão — porque ainda não foram enviadas ao Financeiro, então não faz sentido alertar vencimento. Confirmamos no banco que existem linhas elegíveis (CENTRAO TELECOM, ETERNIT, IMPERIO, IPEM), mas elas podem não estar vinculadas ao seu usuário, ou estarem misturadas com muitas linhas Pendentes acima delas.
 
-2. **`src/components/financeiro/*`** (`EditarMovimentacaoDialog`, `FinanceiroTable`, `CobrancaDialog`, `CobrancaBanner`)
-   - Bloquear abertura/submit do `EditarMovimentacaoDialog` quando `!canManageFinanceiro` (já existe a flag em `Financeiro.tsx`; aplicar a mesma flag também onde o dialog é instanciado para `comum`).
-   - `CobrancaBanner` para `comum`: somente leitura (sem ações de resolver/registrar).
+## Ajustes propostos para resolver visibilidade
 
-3. **`src/pages/Dashboard.tsx`**
-   - Já oculta colunas via `role === "comum"`; reforçar que botões de ação financeira (registrar nota, editar) não apareçam para `comum`.
+### 1. Destaque visual do botão
+Trocar o estilo do botão de outline discreto para um botão sólido amarelo, com ícone maior e texto em negrito. Fica impossível de não notar ao lado do badge "Enviado".
 
-4. **`src/components/AppLayout.tsx`**
-   - Manter rota `/financeiro` indisponível para `comum` (já restrito a `financeiroOrAdmin`); confirmar redirect.
+### 2. Contador no cabeçalho
+Adicionar no título do card um badge: **"X aguardando vencimento"** quando houver linhas elegíveis. Assim o usuário sabe imediatamente que há ações disponíveis e quantas.
 
-5. Centralizar flags em `useAuth`:
-   - Adicionar `isComum` derivada de `role === "comum"`.
-   - Adicionar helper `canEditFinanceiro = isAdmin || isFinanceiro` para uso unificado.
+### 3. Reordenação inteligente
+Mudar a ordenação para colocar **primeiro** as linhas que precisam de ação (Enviado sem vencimento), depois Pendentes, depois Finalizadas. Hoje Pendentes aparecem primeiro e empurram os botões para baixo do scroll.
 
-## Ajustes Backend (Migrations)
+### 4. Filtro rápido (opcional)
+Adicionar um toggle "Apenas com ação pendente" no topo do card que oculta linhas Pendentes e Finalizadas com vencimento, mostrando só o que precisa de clique.
 
-Reforço de RLS para impedir que um cliente malicioso burle o frontend:
+## Detalhes técnicos
 
-1. **`financeiro_movimentacoes`**
-   - Hoje: `Authenticated read` (OK), apenas `admin`/`financeiro` podem manage. ✅ já correto. Sem mudanças.
-
-2. **`anexos_financeiro`**
-   - Hoje: `comum` não tem INSERT/UPDATE/DELETE direto (só admin/financeiro). ✅ já correto. Os anexos do `comum` são espelhados via trigger `handle_envio_financeiro` (SECURITY DEFINER). Sem mudanças.
-
-3. **`cobrancas`**
-   - Hoje: apenas admin/financeiro podem manage. ✅ já correto.
-
-4. **`alertas_financeiro`**
-   - Hoje: SELECT/manage só para admin/financeiro; criação ocorre via trigger SECURITY DEFINER quando `comum` atualiza `data_envio_financeiro`. ✅ correto.
-
-5. **`movimentacoes` (reforço)**
-   - Adicionar política/trigger para impedir que `comum` altere campos financeiros sensíveis. Hoje a policy "Comum user update movimentacoes" permite UPDATE em qualquer coluna. Criar trigger `BEFORE UPDATE` que, se `has_role(auth.uid(),'comum')`, bloqueia mudanças em colunas reservadas (`tipo_cobranca` não existe nesta tabela; o foco é manter `data_envio_financeiro` apenas indo de NULL → data, sem rollback, e impedir edição de `dentro_prazo`).
-   - Trigger:
-     ```sql
-     create or replace function public.guard_movimentacoes_comum()
-     returns trigger language plpgsql security definer set search_path=public as $$
-     begin
-       if has_role(auth.uid(),'comum') then
-         if old.data_envio_financeiro is not null
-            and new.data_envio_financeiro is distinct from old.data_envio_financeiro then
-           raise exception 'Cadastro não pode alterar envio ao financeiro já registrado';
-         end if;
-         new.dentro_prazo := old.dentro_prazo;
-       end if;
-       return new;
-     end$$;
-     create trigger trg_guard_mov_comum
-       before update on public.movimentacoes
-       for each row execute function public.guard_movimentacoes_comum();
-     ```
-
-## Arquivos a alterar
-
-- `src/hooks/useAuth.tsx` — adicionar `isComum` e `canEditFinanceiro`.
-- `src/pages/Movimentacoes.tsx` — gating de UI financeira.
-- `src/pages/Dashboard.tsx` — gating fino em ações.
-- `src/components/financeiro/EditarMovimentacaoDialog.tsx` — bloquear submit p/ `comum`.
-- `src/components/financeiro/CobrancaBanner.tsx` — modo leitura p/ `comum`.
-- Migration nova — função + trigger `guard_movimentacoes_comum`.
+- Arquivo único alterado: `src/components/dashboard/FaturamentosEnviadosCard.tsx`
+- Sem mudanças no banco — trigger `handle_finalizar_alerta_vencimento` e tabela `alertas_financeiro` já cobrem o backend
+- Sem mudanças nas RLS policies — perfis Cadastro e Financeiro já têm permissão correta
+- Reordenação da lista: `Enviado sem venc. > Finalizado sem venc. > Pendente > Enviado com venc. > Finalizado com venc.`
+- Estilo do botão: `bg-warning text-warning-foreground hover:bg-warning/90` em vez do outline atual
 
 ## Resultado esperado
 
-- Cadastro vê apenas o que pode operar; tentativas de POST/UPDATE em campos financeiros falham no banco mesmo se a UI for contornada.
-- Financeiro mantém fluxo atual sem regressão.
+Ao abrir o Dashboard, o usuário Cadastro verá no topo do card o contador "X aguardando vencimento", as empresas elegíveis aparecerão primeiro, e cada uma terá um botão amarelo sólido **Alertar vencimento** ao lado do nome. Após clicar, o botão vira **"Alerta enviado"** (cinza com ícone de relógio) e o Financeiro recebe o alerta no painel dele.
