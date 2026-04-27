@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      alertas_financeiro: {
+        Row: {
+          created_at: string
+          data_envio: string
+          empresa_id: string
+          empresa_nome: string
+          enviado_por_nome: string | null
+          enviado_por_user_id: string | null
+          finalizado_em: string | null
+          id: string
+          movimentacao_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_envio?: string
+          empresa_id: string
+          empresa_nome: string
+          enviado_por_nome?: string | null
+          enviado_por_user_id?: string | null
+          finalizado_em?: string | null
+          id?: string
+          movimentacao_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_envio?: string
+          empresa_id?: string
+          empresa_nome?: string
+          enviado_por_nome?: string | null
+          enviado_por_user_id?: string | null
+          finalizado_em?: string | null
+          id?: string
+          movimentacao_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anexos_financeiro: {
         Row: {
           created_at: string
@@ -54,6 +96,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      anexos_movimentacao: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          id: string
+          mime_type: string | null
+          movimentacao_id: string
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          id?: string
+          mime_type?: string | null
+          movimentacao_id: string
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          mime_type?: string | null
+          movimentacao_id?: string
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
       }
       cobrancas: {
         Row: {
