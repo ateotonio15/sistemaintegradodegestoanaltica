@@ -27,7 +27,6 @@ import {
   periodoDaDataCorte,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
-import { EmpresasStatusChart } from "@/components/dashboard/EmpresasStatusChart";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
 
