@@ -5,16 +5,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { BellRing, Clock, CheckCircle2, AlertCircle, Send, CalendarClock, Paperclip } from "lucide-react";
+import { BellRing, Send, CheckCircle2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import {
   contratoDentroDoPeriodo,
   periodoVigente,
   formatMesReferencia,
 } from "@/lib/movimentacao-utils";
-import { formatDateBR } from "@/lib/date-utils";
 
 type EmpresaItem = {
   id: string;
@@ -32,26 +29,23 @@ type MovItem = {
   empresa_id: string;
   mes_referencia: string;
   periodo: string;
-  data_envio_financeiro: string | null;
 };
-
-type FinKey = string; // `${empresa_id}|${mes}|${periodo}`
-type FinInfo = { id: string; data_envio_nota: string | null; data_vencimento: string | null };
 
 /**
  * Card "Faturamentos Enviado" — Dashboard Cadastro.
- * Lista contratos vinculados ao usuário que estão dentro do período atual.
+ * Lista contratos vinculados ao usuário no período atual.
  *
- * Estados por contrato (somente leitura — sem ações):
- *  - Pendente   → ainda não foi movimentado
- *  - Enviado    → data_envio_financeiro preenchida; aguarda Financeiro
- *  - Finalizado → Financeiro já enviou a nota (data_envio_nota preenchida)
+ * Cada linha tem UM botão manual "Enviar ao Financeiro":
+ *  - Sem alerta pendente → botão habilitado
+ *  - Alerta pendente já criado → botão "Enviado" desabilitado
+ * Nada é enviado ao Financeiro automaticamente — só via clique.
  */
 export function FaturamentosEnviadosCard() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [enviandoMovId, setEnviandoMovId] = useState<string | null>(null);
 
-  // Empresas vinculadas ao usuário (responsável direto OU via empresa_usuarios)
+  // Empresas vinculadas ao usuário
   const { data: empresas = [] } = useQuery<EmpresaItem[]>({
     queryKey: ["faturamentos-empresas-vinculadas", user?.id],
     enabled: !!user,
@@ -96,34 +90,14 @@ export function FaturamentosEnviadosCard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("id, empresa_id, mes_referencia, periodo, data_envio_financeiro")
+        .select("id, empresa_id, mes_referencia, periodo")
         .in("empresa_id", empresaIds);
       if (error) throw error;
       return (data ?? []) as MovItem[];
     },
   });
 
-  const { data: finMap = new Map<FinKey, FinInfo>() } = useQuery({
-    queryKey: ["faturamentos-finmap-card"],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select("id, empresa_id, mes_referencia, periodo, data_envio_nota, data_vencimento");
-      if (error) throw error;
-      const m = new Map<FinKey, FinInfo>();
-      for (const r of data ?? []) {
-        m.set(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`, {
-          id: r.id as string,
-          data_envio_nota: (r.data_envio_nota as string) ?? null,
-          data_vencimento: (r.data_vencimento as string) ?? null,
-        });
-      }
-      return m;
-    },
-  });
-
-  // Contagem de anexos por movimentação (Cadastro) e por financeiro_movimentacao (Financeiro)
+  // Anexos do Cadastro por movimentação
   const movIdsForAnexos = useMemo(() => movs.map((m) => m.id), [movs]);
   const { data: anexosCadastroPorMov = new Map<string, number>() } = useQuery({
     queryKey: ["faturamentos-anexos-cadastro", movIdsForAnexos.sort().join(",")],
@@ -143,26 +117,9 @@ export function FaturamentosEnviadosCard() {
     },
   });
 
-  const { data: anexosFinPorFinId = new Map<string, number>() } = useQuery({
-    queryKey: ["faturamentos-anexos-financeiro"],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id");
-      if (error) throw error;
-      const map = new Map<string, number>();
-      for (const r of data ?? []) {
-        const k = (r as any).financeiro_movimentacao_id as string;
-        map.set(k, (map.get(k) ?? 0) + 1);
-      }
-      return map;
-    },
-  });
-
-  // Alertas de vencimento já abertos pelo Cadastro (para indicar visualmente "alerta enviado")
-  const { data: alertasVencimentoAbertos = new Set<string>() } = useQuery({
-    queryKey: ["alertas-vencimento-pendentes-mov-ids"],
+  // IDs de movimentações com alerta de envio pendente (clicaram no botão)
+  const { data: movsComAlertaPendente = new Set<string>() } = useQuery({
+    queryKey: ["alertas-envio-pendentes-mov-ids"],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -181,20 +138,14 @@ export function FaturamentosEnviadosCard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "movimentacoes" }, () => {
         queryClient.invalidateQueries({ queryKey: ["faturamentos-movs-do-ciclo"] });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "financeiro_movimentacoes" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["faturamentos-finmap-card"] });
-      })
       .on("postgres_changes", { event: "*", schema: "public", table: "empresas" }, () => {
         queryClient.invalidateQueries({ queryKey: ["faturamentos-empresas-vinculadas"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "alertas_financeiro" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["alertas-vencimento-pendentes-mov-ids"] });
+        queryClient.invalidateQueries({ queryKey: ["alertas-envio-pendentes-mov-ids"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "anexos_movimentacao" }, () => {
         queryClient.invalidateQueries({ queryKey: ["faturamentos-anexos-cadastro"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "anexos_financeiro" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["faturamentos-anexos-financeiro"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -206,11 +157,7 @@ export function FaturamentosEnviadosCard() {
     mesReferencia: string;
     periodo: string;
     movId: string | null;
-    status: "Pendente" | "Enviado" | "Finalizado";
-    dataEnvio: string | null;
-    dataNota: string | null;
-    dataVencimento: string | null;
-    alertaVencimentoAberto: boolean;
+    enviado: boolean;
     qtdAnexos: number;
   };
 
@@ -224,208 +171,115 @@ export function FaturamentosEnviadosCard() {
           m.mes_referencia === ciclo.mes_referencia &&
           m.periodo === ciclo.periodo,
       );
-      const fin = finMap.get(`${e.id}|${ciclo.mes_referencia}|${ciclo.periodo}`) ?? null;
-      const enviado = !!mov?.data_envio_financeiro;
-      const status: Linha["status"] = fin?.data_envio_nota ? "Finalizado" : enviado ? "Enviado" : "Pendente";
       const qtdCadastro = mov?.id ? (anexosCadastroPorMov.get(mov.id) ?? 0) : 0;
-      const qtdFinanceiro = fin?.id ? (anexosFinPorFinId.get(fin.id) ?? 0) : 0;
       return {
         empresa: e,
         mesReferencia: ciclo.mes_referencia,
         periodo: ciclo.periodo,
         movId: mov?.id ?? null,
-        status,
-        dataEnvio: mov?.data_envio_financeiro ?? null,
-        dataNota: fin?.data_envio_nota ?? null,
-        dataVencimento: fin?.data_vencimento ?? null,
-        alertaVencimentoAberto: mov?.id ? alertasVencimentoAbertos.has(mov.id) : false,
-        qtdAnexos: qtdCadastro + qtdFinanceiro,
+        enviado: mov?.id ? movsComAlertaPendente.has(mov.id) : false,
+        qtdAnexos: qtdCadastro,
       };
     })
     .sort((a, b) => {
-      // Prioridade: ações pendentes primeiro (Enviado/Finalizado sem vencimento), depois Pendente, depois resto
-      const prioridade = (l: Linha) => {
-        const precisaAcao = l.status !== "Pendente" && !l.dataVencimento;
-        if (precisaAcao) return 0;
-        if (l.status === "Pendente") return 1;
-        return 2;
-      };
-      return prioridade(a) - prioridade(b) || a.empresa.nome.localeCompare(b.empresa.nome);
+      // Não enviados primeiro
+      if (a.enviado !== b.enviado) return a.enviado ? 1 : -1;
+      return a.empresa.nome.localeCompare(b.empresa.nome);
     });
 
-  const pendentes = linhas.filter((l) => l.status === "Pendente").length;
-  const aguardandoVencimento = linhas.filter(
-    (l) => l.status !== "Pendente" && !l.dataVencimento && l.movId,
-  ).length;
-  const [enviandoAlertaMovId, setEnviandoAlertaMovId] = useState<string | null>(null);
-  const [apenasAcaoPendente, setApenasAcaoPendente] = useState(false);
-
-  const linhasFiltradas = apenasAcaoPendente
-    ? linhas.filter((l) => l.status !== "Pendente" && !l.dataVencimento && l.movId)
-    : linhas;
-
-  async function alertarVencimento(l: Linha) {
+  async function enviarAoFinanceiro(l: Linha) {
     if (!l.movId || !user) return;
-    setEnviandoAlertaMovId(l.movId);
+    setEnviandoMovId(l.movId);
     try {
-      // Buscar nome do remetente
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const { error } = await supabase
-        .from("alertas_financeiro")
-        .upsert(
-          {
-            movimentacao_id: l.movId,
-            empresa_id: l.empresa.id,
-            empresa_nome: l.empresa.nome,
-            enviado_por_user_id: user.id,
-            enviado_por_nome: profile?.display_name ?? null,
-            data_envio: new Date().toISOString().slice(0, 10),
-            status: "Pendente",
-            tipo: "vencimento",
-            finalizado_em: null,
-          },
-          { onConflict: "movimentacao_id,tipo" },
-        );
+      const { error } = await supabase.rpc("enviar_movimentacao_ao_financeiro", {
+        p_mov_id: l.movId,
+      });
       if (error) throw error;
-      toast.success("Alerta de vencimento enviado ao Financeiro");
-      queryClient.invalidateQueries({ queryKey: ["alertas-vencimento-pendentes-mov-ids"] });
+      toast.success(`${l.empresa.nome} enviada ao Financeiro`);
+      queryClient.invalidateQueries({ queryKey: ["alertas-envio-pendentes-mov-ids"] });
     } catch (err: any) {
-      toast.error(err.message ?? "Falha ao enviar alerta");
+      toast.error(err.message ?? "Falha ao enviar ao Financeiro");
     } finally {
-      setEnviandoAlertaMovId(null);
+      setEnviandoMovId(null);
     }
   }
-
 
   return (
     <Card className="rounded-xl shadow-sm border-warning/30">
       <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
-            <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
-              <BellRing className="h-4 w-4 text-warning" />
-            </div>
-            Faturamentos Enviado
-            <Badge variant="outline" className="ml-1">{linhas.length}</Badge>
-            {pendentes > 0 && (
-              <Badge className="bg-warning text-warning-foreground text-xs gap-1">
-                <AlertCircle className="h-3 w-3" />
-                {pendentes} pendente{pendentes > 1 ? "s" : ""}
-              </Badge>
-            )}
-            {aguardandoVencimento > 0 && (
-              <Badge className="bg-warning text-warning-foreground text-xs gap-1 animate-pulse">
-                <CalendarClock className="h-3 w-3" />
-                {aguardandoVencimento} aguardando vencimento
-              </Badge>
-            )}
-          </CardTitle>
-          {aguardandoVencimento > 0 && (
-            <div className="flex items-center gap-2">
-              <Switch
-                id="apenas-acao-pendente"
-                checked={apenasAcaoPendente}
-                onCheckedChange={setApenasAcaoPendente}
-              />
-              <Label htmlFor="apenas-acao-pendente" className="text-xs cursor-pointer">
-                Apenas com ação pendente
-              </Label>
-            </div>
-          )}
-        </div>
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
+            <BellRing className="h-4 w-4 text-warning" />
+          </div>
+          Faturamentos Enviado
+          <Badge variant="outline" className="ml-1">{linhas.length}</Badge>
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        {linhasFiltradas.length === 0 ? (
+        {linhas.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
-            {apenasAcaoPendente
-              ? "Nenhuma empresa aguardando alerta de vencimento."
-              : "Nenhum contrato dentro do período atual."}
+            Nenhum contrato dentro do período atual.
           </div>
         ) : (
           <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
-            {linhasFiltradas.map((l) => {
-              const precisaAcao = l.status !== "Pendente" && !l.dataVencimento && l.movId;
+            {linhas.map((l) => {
+              const isLoading = enviandoMovId === l.movId;
+              const semMov = !l.movId;
               return (
-              <div
-                key={`${l.empresa.id}-${l.mesReferencia}-${l.periodo}`}
-                className={`flex items-center justify-between gap-3 p-3 rounded-lg border transition-colors ${
-                  precisaAcao && !l.alertaVencimentoAberto
-                    ? "bg-warning/5 border-warning/40 hover:bg-warning/10"
-                    : "bg-card hover:bg-accent/40"
-                }`}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate text-foreground">{l.empresa.nome}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    <span className="mr-2">
-                      Contrato: <span className="font-medium text-foreground/80">{l.empresa.codigo_contrato ?? "—"}</span>
-                    </span>
-                    · {formatMesReferencia(l.mesReferencia)} · {l.periodo}
-                    {l.status === "Pendente" && (
-                      <span className="ml-2 text-warning">— Este contrato precisa ser movimentado.</span>
-                    )}
-                    {l.status === "Enviado" && l.dataEnvio && (
-                      <span className="ml-2">— enviado em {formatDateBR(l.dataEnvio)}</span>
-                    )}
-                    {l.status === "Finalizado" && l.dataNota && (
-                      <span className="ml-2">— nota enviada em {formatDateBR(l.dataNota)}</span>
-                    )}
-                    {l.dataVencimento && (
-                      <span className="ml-2 text-success">· venc. {formatDateBR(l.dataVencimento)}</span>
-                    )}
-                  </p>
-                </div>
+                <div
+                  key={`${l.empresa.id}-${l.mesReferencia}-${l.periodo}`}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate text-foreground">{l.empresa.nome}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      Contrato:{" "}
+                      <span className="font-medium text-foreground/80">
+                        {l.empresa.codigo_contrato ?? "—"}
+                      </span>
+                      {" · "}
+                      {formatMesReferencia(l.mesReferencia)} · {l.periodo}
+                    </p>
+                  </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Quantidade de anexos (Cadastro + Financeiro) */}
-                  <Badge
-                    variant="outline"
-                    className="gap-1"
-                    title="Total de anexos: Cadastro + Financeiro"
-                  >
-                    <Paperclip className="h-3 w-3" />
-                    {l.qtdAnexos}
-                  </Badge>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className="gap-1"
+                      title="Anexos do Cadastro"
+                    >
+                      <Paperclip className="h-3 w-3" />
+                      {l.qtdAnexos}
+                    </Badge>
 
-                  {/* Botão Alertar Vencimento — destacado, só após enviar ao financeiro e enquanto não houver vencimento */}
-                  {precisaAcao && (
-                    l.alertaVencimentoAberto ? (
-                      <Badge variant="outline" className="gap-1 border-warning/50 text-warning">
-                        <CalendarClock className="h-3 w-3" /> Alerta enviado
-                      </Badge>
+                    {l.enviado ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled
+                        className="gap-1.5 border-success/40 text-success bg-success/5 cursor-not-allowed disabled:opacity-100"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Enviado
+                      </Button>
                     ) : (
                       <Button
                         size="sm"
-                        className="gap-1.5 bg-warning text-warning-foreground hover:bg-warning/90 font-semibold shadow-sm"
-                        disabled={enviandoAlertaMovId === l.movId}
-                        onClick={() => alertarVencimento(l)}
+                        className="gap-1.5 font-medium shadow-sm"
+                        disabled={isLoading || semMov}
+                        title={
+                          semMov
+                            ? "Movimente o contrato antes de enviar ao Financeiro"
+                            : "Enviar esta empresa ao Financeiro"
+                        }
+                        onClick={() => enviarAoFinanceiro(l)}
                       >
-                        <CalendarClock className="h-4 w-4" />
-                        {enviandoAlertaMovId === l.movId ? "Enviando..." : "Alertar vencimento"}
+                        <Send className="h-4 w-4" />
+                        {isLoading ? "Enviando..." : "Enviar ao Financeiro"}
                       </Button>
-                    )
-                  )}
-
-                  {l.status === "Pendente" ? (
-                    <Badge className="bg-warning text-warning-foreground gap-1">
-                      <Clock className="h-3 w-3" /> Pendente
-                    </Badge>
-                  ) : l.status === "Enviado" ? (
-                    <Badge className="bg-info text-info-foreground gap-1">
-                      <Send className="h-3 w-3" /> Enviado
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-success text-success-foreground gap-1">
-                      <CheckCircle2 className="h-3 w-3" /> Finalizado
-                    </Badge>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
               );
             })}
           </div>
