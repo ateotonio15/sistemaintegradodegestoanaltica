@@ -64,3 +64,19 @@ export function toISODate(date: string | Date | null): string | null {
     return null;
   }
 }
+
+/**
+ * Retorna a data de HOJE no fuso LOCAL no formato YYYY-MM-DD.
+ *
+ * NÃO usar `new Date().toISOString().slice(0,10)` para isso — `toISOString`
+ * converte para UTC e em fusos negativos (ex.: America/Manaus, UTC-4) à
+ * noite a data muda para o dia seguinte, fazendo o sistema "salvar amanhã"
+ * quando o usuário seleciona "hoje".
+ */
+export function todayLocalISO(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
