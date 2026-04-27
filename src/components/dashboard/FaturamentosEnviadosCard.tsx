@@ -2,11 +2,9 @@ import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { BellRing, Clock, CheckCircle2, Send, ChevronRight } from "lucide-react";
+import { BellRing, Clock, CheckCircle2 } from "lucide-react";
 import { formatDateBR } from "@/lib/date-utils";
 
 /**
