@@ -209,11 +209,11 @@ export default function Financeiro() {
         empresa_codigo: emp?.codigo ?? null,
         empresa_cnpj: emp?.cnpj ?? null,
         periodo_corte: periodoCorte,
-        status: calcularStatusFinanceiro(f, envioOperacional),
-        anexos_count: anexosCount[f.id] || 0,
+        status: calcularStatusFinanceiro(f, envioOperacional, anexosMap[f.id] || []),
+        anexos_count: (anexosMap[f.id] || []).length,
       };
     });
-  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCount]);
+  }, [financeiroRaw, empresasMap, operacionaisMap, anexosMap]);
 
   // Tipos únicos para o filtro
   const tiposUnicos = useMemo(() => {
