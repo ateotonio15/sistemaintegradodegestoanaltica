@@ -1,10 +1,12 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BellRing, Clock, CheckCircle2, AlertCircle, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BellRing, Clock, CheckCircle2, AlertCircle, Send, CalendarClock } from "lucide-react";
+import { toast } from "sonner";
 import {
   contratoDentroDoPeriodo,
   periodoVigente,
