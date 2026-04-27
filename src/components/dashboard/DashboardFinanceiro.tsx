@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle2, Building2, CalendarClock, AlertTriangle, FileText, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { FaturamentosEnviadoFinanceiro } from "./FaturamentosEnviadoFinanceiro";
 
 interface CobrancaRow {
   id: string;
