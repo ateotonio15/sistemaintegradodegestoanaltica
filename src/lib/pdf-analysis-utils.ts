@@ -28,70 +28,25 @@ function norm(s: string): string {
     .trim();
 }
 
-/** Converte "1.234,56" / "R$ 1.234,56" / "1234.56" em number. */
-function parseBRL(raw: string): number {
-  let s = raw.replace(/[R$\s]/g, "").trim();
+/** "200.99" / "200,99" / "1.234,56" / "1234.56" → number */
+function parseValor(raw: string): number {
+  const s = raw.trim();
   if (!s) return NaN;
+  // Caso BRL clássico: tem vírgula → ponto é separador de milhar
   if (s.includes(",")) {
-    s = s.replace(/\./g, "").replace(",", ".");
+    return parseFloat(s.replace(/\./g, "").replace(",", "."));
   }
-  const n = parseFloat(s);
-  return isNaN(n) ? NaN : n;
+  // Sem vírgula: o ponto pode ser decimal (ex.: "200.99") ou milhar (ex.: "1.234")
+  // Heurística: se tiver exatamente 2 dígitos após o último ponto, é decimal
+  const m = s.match(/^(\d+)\.(\d{1,2})$/);
+  if (m) return parseFloat(`${m[1]}.${m[2]}`);
+  return parseFloat(s.replace(/\./g, ""));
 }
 
-/** Extrai todos os tokens numéricos (BRL ou inteiro) de uma string. */
-function extrairNumeros(linha: string): number[] {
-  const matches = linha.match(/-?\d{1,3}(?:\.\d{3})*(?:,\d+)?|-?\d+(?:,\d+)?/g);
-  if (!matches) return [];
-  return matches.map((m) => parseBRL(m)).filter((n) => !isNaN(n));
-}
-
-function classificarCategoria(linha: string): "enfermaria" | "apartamento" | "inclusao" | null {
-  const p = norm(linha);
-  if (!p) return null;
-  if (p.includes("inclusao") || p.includes("inclusão")) return "inclusao";
-  // apartamento primeiro (executivo pode coexistir com master)
-  if (
-    p.includes("master executivo") ||
-    p.includes("coletivo executivo master") ||
-    p.includes("apartamento")
-  ) {
-    return "apartamento";
-  }
-  if (
-    p.includes("coletivo empresarial master") ||
-    p.includes("master empresarial") ||
-    p.includes("enfermaria")
-  ) {
-    return "enfermaria";
-  }
-  return null;
-}
-
-/**
- * Lê um PDF (boleto/fatura) e retorna os totais por categoria,
- * focando na seção "Serviço Prestado".
- */
-export async function analisarPdfFinanceiro(
-  buffer: ArrayBuffer,
-): Promise<Omit<AnalisePdfResultado, "arquivo">> {
-  const empty: PdfCategoria = { beneficiarios: null, mensalidade: null, total: 0 };
-  const avisos: string[] = [];
-
-  let pdf: any;
-  try {
-    pdf = await (pdfjsLib as any).getDocument({ data: buffer }).promise;
-  } catch (e: any) {
-    return {
-      enfermaria: { ...empty },
-      apartamento: { ...empty },
-      inclusoes: { total: 0 },
-      avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
-    };
-  }
-
-  // Extrai linhas, agrupando itens próximos no eixo Y de cada página
-  const linhas: string[] = [];
+/** Extrai todo o texto do PDF (em ordem de leitura) como uma única string. */
+async function extrairTextoPdf(buffer: ArrayBuffer): Promise<string> {
+  const pdf = await (pdfjsLib as any).getDocument({ data: buffer }).promise;
+  const partes: string[] = [];
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const content = await page.getTextContent();
@@ -103,7 +58,7 @@ export async function analisarPdfFinanceiro(
         y: i.transform?.[5] ?? 0,
       }));
 
-    // Agrupar por Y (tolerância 2px)
+    // Agrupar por Y (tolerância 2px) → linhas naturais
     const groups: Array<{ y: number; items: typeof items }> = [];
     items.forEach((it) => {
       const g = groups.find((gr) => Math.abs(gr.y - it.y) < 2);
@@ -113,59 +68,83 @@ export async function analisarPdfFinanceiro(
     groups.sort((a, b) => b.y - a.y);
     groups.forEach((g) => {
       g.items.sort((a, b) => a.x - b.x);
-      const linha = g.items.map((i) => i.str).join(" ").replace(/\s+/g, " ").trim();
-      if (linha) linhas.push(linha);
+      partes.push(g.items.map((i) => i.str).join(" "));
     });
   }
+  return partes.join("\n").replace(/\u00a0/g, " ");
+}
 
-  // Localizar bloco "Serviço Prestado"
-  const idxInicio = linhas.findIndex((l) => norm(l).includes("servico prestado"));
-  const linhasAnalisadas = idxInicio >= 0 ? linhas.slice(idxInicio) : linhas;
+/**
+ * Lê um PDF (NFS-e Samel) e extrai os totais de Enfermaria / Apartamento / Inclusões
+ * a partir do bloco "Descrição do Serviço".
+ *
+ * Padrão típico:
+ *   "Enfermaria: 97x200.99= 19.496,03/ Apartamento: 37x261.36= 9.670,32 Inclusão:450,29"
+ */
+export async function analisarPdfFinanceiro(
+  buffer: ArrayBuffer,
+): Promise<Omit<AnalisePdfResultado, "arquivo">> {
+  const empty: PdfCategoria = { beneficiarios: null, mensalidade: null, total: 0 };
+  const avisos: string[] = [];
 
-  if (idxInicio < 0) {
-    avisos.push("Seção 'Serviço Prestado' não localizada — analisando documento inteiro.");
+  let texto: string;
+  try {
+    texto = await extrairTextoPdf(buffer);
+  } catch (e: any) {
+    return {
+      enfermaria: { ...empty },
+      apartamento: { ...empty },
+      inclusoes: { total: 0 },
+      avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
+    };
   }
+
+  // Texto normalizado (sem acentos / minúsculo) para casamento de regex,
+  // mas preservando dígitos e separadores. Linha única para regex livres.
+  const t = norm(texto);
+
+  // Padrão "Enfermaria: 97x200.99= 19.496,03"
+  const NUM = String.raw`[\d.,]+`;
+  const reCat = (cat: string) =>
+    new RegExp(`${cat}\\s*:?\\s*(\\d+)\\s*[xX×]\\s*(${NUM})\\s*=\\s*(${NUM})`, "i");
+
+  const reInclusao = new RegExp(
+    `inclus(?:ao|oes|oes|ao|oes)\\s*:?\\s*(${NUM})`,
+    "i",
+  );
 
   let enfermaria: PdfCategoria | null = null;
   let apartamento: PdfCategoria | null = null;
   let inclusoesTotal = 0;
   let inclusoesEncontradas = false;
 
-  for (let i = 0; i < linhasAnalisadas.length; i++) {
-    const linha = linhasAnalisadas[i];
-    const cat = classificarCategoria(linha);
-    if (!cat) continue;
-
-    // Tenta números na própria linha; se não houver suficientes, pega na próxima
-    let nums = extrairNumeros(linha);
-    if (nums.length < 2 && i + 1 < linhasAnalisadas.length) {
-      nums = nums.concat(extrairNumeros(linhasAnalisadas[i + 1]));
+  const mEnf = t.match(reCat("enfermaria"));
+  if (mEnf) {
+    const ben = parseInt(mEnf[1], 10);
+    const men = parseValor(mEnf[2]);
+    const tot = parseValor(mEnf[3]);
+    if (!isNaN(ben) && !isNaN(men) && !isNaN(tot)) {
+      enfermaria = { beneficiarios: ben, mensalidade: men, total: tot };
     }
+  }
 
-    if (cat === "inclusao") {
-      // Inclusões: PDF só traz o valor total (último número significativo)
-      if (nums.length > 0) {
-        inclusoesTotal += nums[nums.length - 1];
-        inclusoesEncontradas = true;
-      }
-      continue;
+  const mApt = t.match(reCat("apartamento"));
+  if (mApt) {
+    const ben = parseInt(mApt[1], 10);
+    const men = parseValor(mApt[2]);
+    const tot = parseValor(mApt[3]);
+    if (!isNaN(ben) && !isNaN(men) && !isNaN(tot)) {
+      apartamento = { beneficiarios: ben, mensalidade: men, total: tot };
     }
+  }
 
-    if (nums.length < 3) {
-      avisos.push(
-        `Linha de ${cat === "enfermaria" ? "Enfermaria" : "Apartamento"} sem qtd/unitário/total identificáveis no PDF.`,
-      );
-      continue;
+  const mInc = t.match(reInclusao);
+  if (mInc) {
+    const v = parseValor(mInc[1]);
+    if (!isNaN(v) && v > 0) {
+      inclusoesTotal = v;
+      inclusoesEncontradas = true;
     }
-
-    // Padrão típico de fatura: [..., qtd, unitário, total] (3 últimos)
-    const total = nums[nums.length - 1];
-    const mensalidade = nums[nums.length - 2];
-    const beneficiarios = Math.round(nums[nums.length - 3]);
-
-    const dado: PdfCategoria = { beneficiarios, mensalidade, total };
-    if (cat === "enfermaria") enfermaria = dado;
-    else apartamento = dado;
   }
 
   if (!enfermaria) avisos.push("Categoria 'Enfermaria' não encontrada no PDF.");
