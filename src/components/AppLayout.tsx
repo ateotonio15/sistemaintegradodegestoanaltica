@@ -36,7 +36,7 @@ const allNavItems = [
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/executivas", label: "Executivas", icon: UserCheck },
   { to: "/saude", label: "Saúde nas Empresas", icon: CalendarClock },
-  { to: "/financeiro", label: "Financeiro", icon: Wallet, financeiroOrAdmin: true },
+  { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
@@ -84,7 +84,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         return allowed.includes(item.to);
       }
       if (item.adminOnly && !isAdmin) return false;
-      if ((item as any).financeiroOrAdmin && !isAdmin && !isFinanceiro) return false;
+      // Financeiro: admin, financeiro e cadastro (comum, somente leitura)
+      if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum") return false;
       // Saúde: only admin, executivo, enfermeira
       if (item.to === "/saude" && !isAdmin && !isExecutivo && !isEnfermeira) return false;
       // Enfermeira: restricted access
