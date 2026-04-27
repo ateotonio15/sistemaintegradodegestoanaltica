@@ -357,6 +357,18 @@ export default function Movimentacoes() {
         <Card className="rounded-xl shadow-sm">
           <CardContent className="pt-5 pb-5">
             <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-1.5 flex-1 min-w-[240px]">
+                <Label className="text-xs font-medium text-muted-foreground">Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    placeholder="Empresa, contrato ou CNPJ..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 rounded-lg h-9"
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
                 <Select value={filterMes} onValueChange={setFilterMes}>
