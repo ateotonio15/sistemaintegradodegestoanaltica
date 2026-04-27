@@ -553,7 +553,11 @@ export default function Financeiro() {
 
       Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
       setAnaliseResultados((prev) => ({ ...prev, [row.id]: resultados }));
-      setAnaliseComparacoes((prev) => ({ ...prev, [row.id]: comparacoes }));
+      // Sem PDFs anexados → não há validação cruzada (não mostrar ✘)
+      setAnaliseComparacoes((prev) => ({
+        ...prev,
+        [row.id]: pdfsValidos.length === 0 ? [] : comparacoes,
+      }));
     } finally {
       setAnaliseLoading((prev) => ({ ...prev, [row.id]: false }));
     }
