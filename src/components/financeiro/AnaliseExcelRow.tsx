@@ -185,19 +185,15 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                           </thead>
                           <tbody>
                             {linhas.map((l) => {
-                              const isInclusao = l.label === "Inclusões";
                               return (
                                 <tr key={l.label} className="border-t border-border">
                                   <td className="px-3 py-2 font-medium">{l.label}</td>
                                   <td className="px-3 py-2 text-right">
-                                    {isInclusao ? (
-                                      <span className="text-muted-foreground">—</span>
-                                    ) : (
-                                      <ValorComCheck
-                                        text={String(l.beneficiarios)}
-                                        validacao={l.validacao?.beneficiarios}
-                                      />
-                                    )}
+                                    <ValorComCheck
+                                      text={String(l.beneficiarios)}
+                                      validacao={l.validacao?.beneficiarios}
+                                    />
+                                  </td>
                                   </td>
                                   <td className="px-3 py-2 text-right">
                                     {l.mensalidade === null ? (
