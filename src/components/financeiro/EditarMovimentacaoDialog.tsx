@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +28,7 @@ import {
   ACCEPTED_FILE_TYPES,
   buildStoragePath,
   formatBytes,
+  TIPOS_FINANCEIRO,
 } from "@/lib/financeiro-utils";
 
 type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & { data_vencimento?: string | null };
@@ -31,9 +39,6 @@ interface Props {
   movimentacao: FinanceiroMovimentacaoExt | null;
   empresaNome?: string;
 }
-
-const TIPO_MAX = 60;
-const TIPO_REGEX = /^[\p{L}\p{N}\s\-/.,()&]+$/u;
 
 export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, empresaNome }: Props) {
   const queryClient = useQueryClient();
