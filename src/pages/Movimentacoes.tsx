@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   type Movimentacao,
@@ -60,6 +60,7 @@ export default function Movimentacoes() {
   const [filterPeriodo, setFilterPeriodo] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterResponsavel, setFilterResponsavel] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [somentePendentes, setSomentePendentes] = useState(false);
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const { toast } = useToast();
@@ -210,6 +211,7 @@ export default function Movimentacoes() {
   };
 
   const filtered = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
     return movimentacoes.filter((m) => {
       if ((m.empresas as any)?.status_empresa === "Inativa") return false;
       if (verSomenteSemEmpresa) return !m.empresas;
@@ -218,9 +220,15 @@ export default function Movimentacoes() {
       if (filterStatus !== "all" && status !== filterStatus) return false;
       if (filterResponsavel && !(m.responsavel_movimentacao ?? "").toLowerCase().includes(filterResponsavel.toLowerCase())) return false;
       if (somentePendentes && status === "Enviado ao financeiro") return false;
+      if (term) {
+        const nome = (m.empresas?.nome ?? "").toLowerCase();
+        const codigo = (m.empresas?.codigo_contrato ?? "").toLowerCase();
+        const cnpj = ((m.empresas as any)?.cnpj ?? "").toLowerCase();
+        if (!nome.includes(term) && !codigo.includes(term) && !cnpj.includes(term)) return false;
+      }
       return true;
     });
-  }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa]);
+  }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm]);
 
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
@@ -349,6 +357,18 @@ export default function Movimentacoes() {
         <Card className="rounded-xl shadow-sm">
           <CardContent className="pt-5 pb-5">
             <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-1.5 flex-1 min-w-[240px]">
+                <Label className="text-xs font-medium text-muted-foreground">Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    placeholder="Empresa, contrato ou CNPJ..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 rounded-lg h-9"
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
                 <Select value={filterMes} onValueChange={setFilterMes}>
