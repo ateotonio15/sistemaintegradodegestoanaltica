@@ -149,15 +149,26 @@ export default function Financeiro() {
       if (movIds.length === 0) return {};
       const { data, error } = await supabase
         .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id, mime_type, nome_arquivo")
-        .in("financeiro_movimentacao_id", movIds);
+        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, uploaded_by, created_at")
+        .in("financeiro_movimentacao_id", movIds)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      const map: Record<string, Array<{ mime_type: string | null; nome_arquivo: string | null }>> = {};
+      const map: Record<
+        string,
+        Array<{
+          mime_type: string | null;
+          nome_arquivo: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        }>
+      > = {};
       data.forEach((a: any) => {
         if (!map[a.financeiro_movimentacao_id]) map[a.financeiro_movimentacao_id] = [];
         map[a.financeiro_movimentacao_id].push({
           mime_type: a.mime_type ?? null,
           nome_arquivo: a.nome_arquivo ?? null,
+          uploaded_by: a.uploaded_by ?? null,
+          created_at: a.created_at,
         });
       });
       return map;
@@ -165,27 +176,35 @@ export default function Financeiro() {
     enabled: movIds.length > 0,
   });
 
-  // Mapa de usuários que enviaram a nota (para exibir nome na tabela)
-  const enviadoPorIds = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          financeiroRaw
-            .map((f: any) => f.enviado_por_user_id)
-            .filter((id: string | null): id is string => !!id),
-        ),
-      ),
-    [financeiroRaw],
+  // Mapa: para cada movimentação, o user_id de quem anexou o PDF mais recente
+  const pdfUploaderByMov = useMemo(() => {
+    const map: Record<string, string> = {};
+    Object.entries(anexosMap).forEach(([movId, list]) => {
+      // já vem ordenado por created_at desc
+      const pdf = (list as any[]).find(
+        (a) =>
+          a.uploaded_by &&
+          ((a.mime_type || "").toLowerCase().includes("pdf") ||
+            (a.nome_arquivo || "").toLowerCase().endsWith(".pdf")),
+      );
+      if (pdf) map[movId] = pdf.uploaded_by;
+    });
+    return map;
+  }, [anexosMap]);
+
+  const uploaderIds = useMemo(
+    () => Array.from(new Set(Object.values(pdfUploaderByMov))),
+    [pdfUploaderByMov],
   );
 
-  const { data: enviadoPorMap = {} } = useQuery({
-    queryKey: ["financeiro-enviado-por", enviadoPorIds.sort().join(",")],
+  const { data: uploaderMap = {} } = useQuery({
+    queryKey: ["financeiro-pdf-uploaders", uploaderIds.sort().join(",")],
     queryFn: async () => {
-      if (enviadoPorIds.length === 0) return {};
+      if (uploaderIds.length === 0) return {};
       const { data, error } = await supabase
         .from("profiles")
         .select("user_id, display_name, username")
-        .in("user_id", enviadoPorIds);
+        .in("user_id", uploaderIds);
       if (error) throw error;
       const map: Record<string, string> = {};
       data.forEach((p: any) => {
@@ -193,7 +212,7 @@ export default function Financeiro() {
       });
       return map;
     },
-    enabled: enviadoPorIds.length > 0,
+    enabled: uploaderIds.length > 0,
   });
 
   // Cobranças abertas do mês
