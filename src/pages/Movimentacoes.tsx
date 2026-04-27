@@ -211,6 +211,7 @@ export default function Movimentacoes() {
   };
 
   const filtered = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
     return movimentacoes.filter((m) => {
       if ((m.empresas as any)?.status_empresa === "Inativa") return false;
       if (verSomenteSemEmpresa) return !m.empresas;
@@ -219,9 +220,15 @@ export default function Movimentacoes() {
       if (filterStatus !== "all" && status !== filterStatus) return false;
       if (filterResponsavel && !(m.responsavel_movimentacao ?? "").toLowerCase().includes(filterResponsavel.toLowerCase())) return false;
       if (somentePendentes && status === "Enviado ao financeiro") return false;
+      if (term) {
+        const nome = (m.empresas?.nome ?? "").toLowerCase();
+        const codigo = (m.empresas?.codigo_contrato ?? "").toLowerCase();
+        const cnpj = ((m.empresas as any)?.cnpj ?? "").toLowerCase();
+        if (!nome.includes(term) && !codigo.includes(term) && !cnpj.includes(term)) return false;
+      }
       return true;
     });
-  }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa]);
+  }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm]);
 
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
