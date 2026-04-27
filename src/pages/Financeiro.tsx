@@ -451,6 +451,62 @@ export default function Financeiro() {
     setCobOpen(true);
   };
 
+  const handleToggleExpand = async (row: FinanceiroRow) => {
+    // Recolher se já está aberta
+    if (expandedRowId === row.id) {
+      setExpandedRowId(null);
+      return;
+    }
+    setExpandedRowId(row.id);
+
+    // Se já analisou antes, usa cache
+    if (analiseResultados[row.id]) return;
+
+    const anexos = (anexosMap[row.id] || []) as Array<{
+      mime_type: string | null;
+      nome_arquivo: string | null;
+      storage_path: string | null;
+    }>;
+    const { isXlsAnexo } = await import("@/lib/financeiro-utils");
+    const xlsAnexos = anexos.filter((a) => isXlsAnexo(a) && a.storage_path);
+
+    if (xlsAnexos.length === 0) {
+      setAnaliseResultados((prev) => ({ ...prev, [row.id]: [] }));
+      return;
+    }
+
+    setAnaliseLoading((prev) => ({ ...prev, [row.id]: true }));
+    try {
+      const { analisarExcelFinanceiro } = await import("@/lib/excel-analysis-utils");
+      const resultados = await Promise.all(
+        xlsAnexos.map(async (a) => {
+          try {
+            const { data, error } = await supabase.storage
+              .from("anexos-financeiro")
+              .download(a.storage_path!);
+            if (error) throw error;
+            const buf = await data.arrayBuffer();
+            const r = await analisarExcelFinanceiro(buf);
+            return { pagador: a.nome_arquivo || "Pagador", ...r };
+          } catch (err: any) {
+            toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
+            return {
+              pagador: a.nome_arquivo || "Pagador",
+              enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
+              apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
+              inclusoes: { quantidade: 0, total: 0 },
+              avisos: [`Falha ao ler arquivo: ${err.message || err}`],
+            };
+          }
+        }),
+      );
+      setAnaliseResultados((prev) => ({ ...prev, [row.id]: resultados }));
+    } finally {
+      setAnaliseLoading((prev) => ({ ...prev, [row.id]: false }));
+    }
+  };
+
+
   const handleExport = async () => {
     if (filteredRows.length === 0) {
       toast.warning("Nenhum registro para exportar com os filtros atuais");
@@ -713,6 +769,10 @@ export default function Financeiro() {
           onEdit={handleEdit}
           onCobranca={handleCobranca}
           isLoading={isLoading}
+          expandedRowId={expandedRowId}
+          onToggleExpand={handleToggleExpand}
+          analiseResultados={analiseResultados}
+          analiseLoading={analiseLoading}
         />
 
         {/* Diálogos */}
