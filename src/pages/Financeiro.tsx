@@ -261,7 +261,7 @@ export default function Financeiro() {
     const totalAnexos = kpiRows.reduce((s, r) => s + r.anexos_count, 0);
     return {
       totalEmpresas: empresasSet.size,
-      notasEnviadas: kpiRows.filter((r) => r.status === "Enviada").length,
+      notasEnviadas: kpiRows.filter((r) => r.status === "Enviada" || r.status === "Nota emitida").length,
       aguardandoNota: kpiRows.filter((r) => r.status === "Aguardando nota").length,
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
       foraDoPrazo: kpiRows.filter((r) => r.status === "Fora do prazo").length,
