@@ -459,20 +459,34 @@ export default function Financeiro() {
     }
     setExpandedRowId(row.id);
 
-    // Se já analisou antes, usa cache
-    if (analiseResultados[row.id]) return;
-
     const anexos = (anexosMap[row.id] || []) as Array<{
       mime_type: string | null;
       nome_arquivo: string | null;
       storage_path: string | null;
+      created_at: string;
     }>;
     const { isXlsAnexo } = await import("@/lib/financeiro-utils");
     const xlsAnexos = anexos.filter((a) => isXlsAnexo(a) && a.storage_path);
 
-    if (xlsAnexos.length === 0) {
-      setAnaliseResultados((prev) => ({ ...prev, [row.id]: [] }));
+    // Cache-key baseada nos storage_paths — invalida automaticamente quando anexos mudam
+    const cacheKey = xlsAnexos.map((a) => a.storage_path).sort().join("|");
+    const cached = analiseResultados[row.id];
+    if (cached && cached.length > 0 && (cached as any)._key === cacheKey) {
       return;
+    }
+
+    if (xlsAnexos.length === 0) {
+      // Refetch dos anexos pra garantir que não é só cache stale
+      await queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
+      const fresh = (queryClient.getQueryData(["financeiro-anexos-list", movIds.sort().join(",")]) as any) || {};
+      const freshAnexos = (fresh[row.id] || []) as typeof anexos;
+      const freshXls = freshAnexos.filter((a) => isXlsAnexo(a) && a.storage_path);
+      if (freshXls.length === 0) {
+        setAnaliseResultados((prev) => ({ ...prev, [row.id]: [] }));
+        return;
+      }
+      // Continua com os anexos atualizados
+      xlsAnexos.push(...freshXls);
     }
 
     setAnaliseLoading((prev) => ({ ...prev, [row.id]: true }));
@@ -500,6 +514,8 @@ export default function Financeiro() {
           }
         }),
       );
+      // Tag a key no array para invalidação futura
+      Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
       setAnaliseResultados((prev) => ({ ...prev, [row.id]: resultados }));
     } finally {
       setAnaliseLoading((prev) => ({ ...prev, [row.id]: false }));
