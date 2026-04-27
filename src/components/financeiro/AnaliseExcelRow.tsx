@@ -86,8 +86,8 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                   mensalidade: number | null;
                   total: number;
                   validacao?: {
-                    beneficiarios: CampoValidacao;
-                    mensalidade: CampoValidacao;
+                    beneficiarios: CampoValidacao | null;
+                    mensalidade: CampoValidacao | null;
                     total: CampoValidacao;
                   } | null;
                 }> = [];
