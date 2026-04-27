@@ -826,6 +826,7 @@ export default function Financeiro() {
           onToggleExpand={handleToggleExpand}
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
+          analiseComparacoes={analiseComparacoes}
         />
 
         {/* Diálogos */}
