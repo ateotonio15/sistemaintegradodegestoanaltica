@@ -41,7 +41,7 @@ export function FinanceiroTable({ rows, onEdit, onCobranca, isLoading }: Props) 
             <TableHead className="font-semibold">Responsável</TableHead>
             <TableHead className="font-semibold">Tipo</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
-            <TableHead className="font-semibold">Enviado por</TableHead>
+            <TableHead className="font-semibold">Usuário</TableHead>
             <TableHead className="font-semibold">Envio nota</TableHead>
             <TableHead className="font-semibold">Vencimento</TableHead>
             <TableHead className="font-semibold text-center">Anexos</TableHead>
