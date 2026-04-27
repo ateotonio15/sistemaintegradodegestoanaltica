@@ -1,55 +1,129 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BellRing, Clock, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BellRing, Clock, CheckCircle2, AlertCircle, Send } from "lucide-react";
+import {
+  contratoDentroDoPeriodo,
+  periodoVigente,
+  formatMesReferencia,
+} from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { MovimentarContratoDialog } from "@/components/dashboard/MovimentarContratoDialog";
+
+type EmpresaItem = {
+  id: string;
+  nome: string;
+  codigo_contrato: string | null;
+  tipo_movimentacao: string | null;
+  periodo_movimentacao: string | null;
+  data_corte: number | null;
+  data_implantacao: string | null;
+  status_empresa: string | null;
+};
+
+type MovItem = {
+  id: string;
+  empresa_id: string;
+  mes_referencia: string;
+  periodo: string;
+  data_envio_financeiro: string | null;
+};
+
+type FinKey = string; // `${empresa_id}|${mes}|${periodo}`
+
+interface DialogState {
+  empresaId: string;
+  empresaNome: string;
+  empresaCodigo: string | null;
+  mesReferencia: string;
+  periodo: string;
+  movimentacaoIdExistente: string | null;
+}
 
 /**
- * Card "Faturamentos Enviado" exibido no Dashboard do usuário comum.
- * Compartilha a MESMA identidade visual do alerta usado no Dashboard
- * Financeiro (FaturamentosEnviadoFinanceiro), garantindo consistência:
- *   - Borda warning, ícone BellRing em pílula
- *   - Badge contador no header
- *   - Botão de ação no canto superior direito
+ * Card "Faturamentos Enviado" — Dashboard Cadastro.
+ * Lista contratos vinculados ao usuário que estão dentro do período atual.
  *
- * A ação no perfil comum é "Enviar Faturamento", que leva o usuário
- * para a aba de Movimentações onde ele preenche `data_envio_financeiro`
- * e anexa os documentos obrigatórios — fluxo que dispara o alerta para
- * o Financeiro via o trigger handle_envio_financeiro.
+ * Estados por contrato:
+ *  - Pendente   → ainda não foi movimentado (botão para abrir o dialog)
+ *  - Enviado    → data_envio_financeiro preenchida; aguarda Financeiro
+ *  - Finalizado → Financeiro já enviou a nota (data_envio_nota preenchida)
  */
 export function FaturamentosEnviadosCard() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [dialog, setDialog] = useState<DialogState | null>(null);
 
-  // Movimentações com data_envio_financeiro
-  const { data: movs = [] } = useQuery({
-    queryKey: ["faturamentos-enviados-comum", user?.id],
+  // Empresas vinculadas ao usuário (responsável direto OU via empresa_usuarios)
+  const { data: empresas = [] } = useQuery<EmpresaItem[]>({
+    queryKey: ["faturamentos-empresas-vinculadas", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes")
-        .select("id, empresa_id, mes_referencia, periodo, data_envio_financeiro, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato)")
-        .not("data_envio_financeiro", "is", null)
-        .order("data_envio_financeiro", { ascending: false })
-        .limit(30);
-      if (error) throw error;
-      return data ?? [];
+      if (!user) return [];
+
+      // 1) empresas onde sou responsável direto
+      const { data: ownEmpresas, error: ownErr } = await supabase
+        .from("empresas")
+        .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao, status_empresa")
+        .eq("responsavel_user_id", user.id)
+        .eq("status_empresa", "Ativa");
+      if (ownErr) throw ownErr;
+
+      // 2) empresas vinculadas via empresa_usuarios
+      const { data: links, error: linksErr } = await supabase
+        .from("empresa_usuarios")
+        .select("empresa_id")
+        .eq("user_id", user.id);
+      if (linksErr) throw linksErr;
+
+      let extra: EmpresaItem[] = [];
+      const linkedIds = (links ?? []).map((l) => l.empresa_id);
+      if (linkedIds.length > 0) {
+        const { data: linked, error: linkedErr } = await supabase
+          .from("empresas")
+          .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao, status_empresa")
+          .in("id", linkedIds)
+          .eq("status_empresa", "Ativa");
+        if (linkedErr) throw linkedErr;
+        extra = (linked ?? []) as EmpresaItem[];
+      }
+
+      // dedupe
+      const map = new Map<string, EmpresaItem>();
+      for (const e of [...(ownEmpresas ?? []), ...extra]) map.set(e.id, e as EmpresaItem);
+      return Array.from(map.values());
     },
   });
 
-  // Mapa data_envio_nota por (empresa|mes|periodo) → identifica se já foi finalizada pelo financeiro
-  const { data: finMap = new Map<string, string>() } = useQuery({
-    queryKey: ["faturamentos-finmap", user?.id],
+  // Movimentações do mês atual para essas empresas
+  const empresaIds = useMemo(() => empresas.map((e) => e.id), [empresas]);
+  const { data: movs = [] } = useQuery<MovItem[]>({
+    queryKey: ["faturamentos-movs-do-ciclo", empresaIds.sort().join(",")],
+    enabled: !!user && empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("movimentacoes")
+        .select("id, empresa_id, mes_referencia, periodo, data_envio_financeiro")
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      return (data ?? []) as MovItem[];
+    },
+  });
+
+  // Mapa de finalização: chave = empresa|mes|periodo, valor = data_envio_nota
+  const { data: finMap = new Map<FinKey, string>() } = useQuery({
+    queryKey: ["faturamentos-finmap-card"],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
         .select("empresa_id, mes_referencia, periodo, data_envio_nota");
       if (error) throw error;
-      const m = new Map<string, string>();
+      const m = new Map<FinKey, string>();
       for (const r of data ?? []) {
         if (!r.data_envio_nota) continue;
         m.set(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`, r.data_envio_nota as string);
@@ -58,86 +132,165 @@ export function FaturamentosEnviadosCard() {
     },
   });
 
-  // Realtime
+  // Realtime: invalida ambos os caches quando alguma das tabelas muda
   useEffect(() => {
     const ch = supabase
       .channel("faturamentos-enviados-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "movimentacoes" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["faturamentos-enviados-comum"] });
+        queryClient.invalidateQueries({ queryKey: ["faturamentos-movs-do-ciclo"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "financeiro_movimentacoes" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["faturamentos-finmap"] });
+        queryClient.invalidateQueries({ queryKey: ["faturamentos-finmap-card"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "empresas" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["faturamentos-empresas-vinculadas"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [queryClient]);
 
-  const itens = movs.map((m: any) => {
-    const finalizada = finMap.has(`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`);
-    return {
-      id: m.id,
-      empresa: m.empresas?.nome ?? "—",
-      codigo: m.empresas?.codigo_contrato ?? "",
-      data: m.data_envio_financeiro as string,
-      mes: m.mes_referencia as string,
-      periodo: m.periodo as string,
-      status: finalizada ? "Finalizado" : "Pendente",
-    };
-  });
+  // Construção da lista
+  const hoje = new Date();
+  type Linha = {
+    empresa: EmpresaItem;
+    mesReferencia: string;
+    periodo: string;
+    movId: string | null;
+    status: "Pendente" | "Enviado" | "Finalizado";
+    dataEnvio: string | null;
+    dataNota: string | null;
+  };
 
-  const pendentes = itens.filter((i) => i.status === "Pendente").length;
+  const linhas: Linha[] = empresas
+    .filter((e) => contratoDentroDoPeriodo(e, hoje))
+    .map((e) => {
+      const ciclo = periodoVigente(e, hoje);
+      const mov = movs.find(
+        (m) =>
+          m.empresa_id === e.id &&
+          m.mes_referencia === ciclo.mes_referencia &&
+          m.periodo === ciclo.periodo,
+      );
+      const finalizadaEm = finMap.get(`${e.id}|${ciclo.mes_referencia}|${ciclo.periodo}`) ?? null;
+      const enviado = !!mov?.data_envio_financeiro;
+      const status: Linha["status"] = finalizadaEm ? "Finalizado" : enviado ? "Enviado" : "Pendente";
+      return {
+        empresa: e,
+        mesReferencia: ciclo.mes_referencia,
+        periodo: ciclo.periodo,
+        movId: mov?.id ?? null,
+        status,
+        dataEnvio: mov?.data_envio_financeiro ?? null,
+        dataNota: finalizadaEm,
+      };
+    })
+    // ordena: Pendentes primeiro, depois Enviado, depois Finalizado
+    .sort((a, b) => {
+      const order = { Pendente: 0, Enviado: 1, Finalizado: 2 } as const;
+      return order[a.status] - order[b.status] || a.empresa.nome.localeCompare(b.empresa.nome);
+    });
+
+  const pendentes = linhas.filter((l) => l.status === "Pendente").length;
 
   return (
-    <Card className="rounded-xl shadow-sm border-warning/30">
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
-            <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
-              <BellRing className="h-4 w-4 text-warning" />
-            </div>
-            Faturamentos Enviado
-            <Badge variant="outline" className="ml-1">{itens.length}</Badge>
-            {pendentes > 0 && (
-              <Badge className="bg-warning text-warning-foreground text-xs">
-                {pendentes} pendente{pendentes > 1 ? "s" : ""}
-              </Badge>
-            )}
-          </CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {itens.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">
-            Nenhum faturamento enviado ainda.
-          </div>
-        ) : (
-          <div className="max-h-[320px] overflow-y-auto space-y-2 pr-1">
-            {itens.map((it) => (
-              <div
-                key={it.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate text-foreground">{it.empresa}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {it.codigo && <span className="mr-2">{it.codigo}</span>}
-                    {it.mes} · {it.periodo} · enviado em {formatDateBR(it.data)}
-                  </p>
-                </div>
-                {it.status === "Pendente" ? (
-                  <Badge className="bg-warning text-warning-foreground shrink-0 gap-1">
-                    <Clock className="h-3 w-3" /> Pendente
-                  </Badge>
-                ) : (
-                  <Badge className="bg-success text-success-foreground shrink-0 gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Finalizado
-                  </Badge>
-                )}
+    <>
+      <Card className="rounded-xl shadow-sm border-warning/30">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
+              <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
+                <BellRing className="h-4 w-4 text-warning" />
               </div>
-            ))}
+              Faturamentos Enviado
+              <Badge variant="outline" className="ml-1">{linhas.length}</Badge>
+              {pendentes > 0 && (
+                <Badge className="bg-warning text-warning-foreground text-xs gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {pendentes} pendente{pendentes > 1 ? "s" : ""}
+                </Badge>
+              )}
+            </CardTitle>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent>
+          {linhas.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              Nenhum contrato dentro do período atual.
+            </div>
+          ) : (
+            <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
+              {linhas.map((l) => (
+                <div
+                  key={`${l.empresa.id}-${l.mesReferencia}-${l.periodo}`}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate text-foreground">{l.empresa.nome}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {l.empresa.codigo_contrato && <span className="mr-2">{l.empresa.codigo_contrato}</span>}
+                      {formatMesReferencia(l.mesReferencia)} · {l.periodo}
+                      {l.status === "Pendente" && (
+                        <span className="ml-2 text-warning">— Este contrato precisa ser movimentado.</span>
+                      )}
+                      {l.status === "Enviado" && l.dataEnvio && (
+                        <span className="ml-2">— enviado em {formatDateBR(l.dataEnvio)}</span>
+                      )}
+                      {l.status === "Finalizado" && l.dataNota && (
+                        <span className="ml-2">— nota enviada em {formatDateBR(l.dataNota)}</span>
+                      )}
+                    </p>
+                  </div>
+
+                  {l.status === "Pendente" ? (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        setDialog({
+                          empresaId: l.empresa.id,
+                          empresaNome: l.empresa.nome,
+                          empresaCodigo: l.empresa.codigo_contrato,
+                          mesReferencia: l.mesReferencia,
+                          periodo: l.periodo,
+                          movimentacaoIdExistente: l.movId,
+                        })
+                      }
+                      className="bg-warning text-warning-foreground hover:bg-warning/90 shrink-0 gap-1"
+                    >
+                      <Clock className="h-3.5 w-3.5" />
+                      Pendente
+                      <Send className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : l.status === "Enviado" ? (
+                    <Badge className="bg-info text-info-foreground shrink-0 gap-1">
+                      <Send className="h-3 w-3" /> Enviado
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-success text-success-foreground shrink-0 gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Finalizado
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {dialog && (
+        <MovimentarContratoDialog
+          open={!!dialog}
+          onOpenChange={(o) => !o && setDialog(null)}
+          empresaId={dialog.empresaId}
+          empresaNome={dialog.empresaNome}
+          empresaCodigo={dialog.empresaCodigo}
+          mesReferencia={dialog.mesReferencia}
+          periodo={dialog.periodo}
+          movimentacaoIdExistente={dialog.movimentacaoIdExistente}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["faturamentos-movs-do-ciclo"] });
+          }}
+        />
+      )}
+    </>
   );
 }
