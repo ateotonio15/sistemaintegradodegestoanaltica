@@ -53,8 +53,8 @@ export function toISODate(date: string | Date | null): string | null {
   if (!date) return null;
 
   try {
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return null;
+    const d = parseDateSafe(date);
+    if (!d) return null;
 
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, "0");
