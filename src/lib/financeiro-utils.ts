@@ -6,6 +6,15 @@ export type AnexoFinanceiro = Tables<"anexos_financeiro">;
 
 export const PERIODOS_FIN = ["01-05", "05-10", "10-15", "15-20", "20-25", "25-30"] as const;
 
+/** Tipos de cobrança usados exclusivamente no setor Financeiro */
+export const TIPOS_FINANCEIRO = [
+  "NÃO-PRORATA",
+  "INCLUSÃO",
+  "INCLUSÃO/EXCLUSÃO",
+  "TAXA ADESÃO",
+] as const;
+export type TipoFinanceiro = (typeof TIPOS_FINANCEIRO)[number];
+
 export type StatusFinanceiro =
   | "Nota emitida"
   | "Faturado"
