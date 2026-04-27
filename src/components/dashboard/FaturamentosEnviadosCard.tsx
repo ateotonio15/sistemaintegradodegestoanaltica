@@ -195,12 +195,26 @@ export function FaturamentosEnviadosCard() {
       };
     })
     .sort((a, b) => {
-      const order = { Pendente: 0, Enviado: 1, Finalizado: 2 } as const;
-      return order[a.status] - order[b.status] || a.empresa.nome.localeCompare(b.empresa.nome);
+      // Prioridade: ações pendentes primeiro (Enviado/Finalizado sem vencimento), depois Pendente, depois resto
+      const prioridade = (l: Linha) => {
+        const precisaAcao = l.status !== "Pendente" && !l.dataVencimento;
+        if (precisaAcao) return 0;
+        if (l.status === "Pendente") return 1;
+        return 2;
+      };
+      return prioridade(a) - prioridade(b) || a.empresa.nome.localeCompare(b.empresa.nome);
     });
 
   const pendentes = linhas.filter((l) => l.status === "Pendente").length;
+  const aguardandoVencimento = linhas.filter(
+    (l) => l.status !== "Pendente" && !l.dataVencimento && l.movId,
+  ).length;
   const [enviandoAlertaMovId, setEnviandoAlertaMovId] = useState<string | null>(null);
+  const [apenasAcaoPendente, setApenasAcaoPendente] = useState(false);
+
+  const linhasFiltradas = apenasAcaoPendente
+    ? linhas.filter((l) => l.status !== "Pendente" && !l.dataVencimento && l.movId)
+    : linhas;
 
   async function alertarVencimento(l: Linha) {
     if (!l.movId || !user) return;
