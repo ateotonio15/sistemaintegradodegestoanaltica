@@ -60,15 +60,13 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
 
   // Validações campo-a-campo (avisos discretos, não bloqueiam edição manual)
   const tipoTrimmed = tipoCobranca.trim();
-  const tipoInvalido = tipoTrimmed.length > 0 && !TIPO_REGEX.test(tipoTrimmed);
-  const tipoMuitoLongo = tipoTrimmed.length > TIPO_MAX;
 
   const hoje = new Date().toISOString().slice(0, 10);
   const envioNoFuturo = dataEnvioNota && dataEnvioNota > hoje;
   const vencimentoAntesEnvio =
     dataEnvioNota && dataVencimento && dataVencimento < dataEnvioNota;
 
-  const hasErrors = tipoInvalido || tipoMuitoLongo || envioNoFuturo || vencimentoAntesEnvio;
+  const hasErrors = envioNoFuturo || vencimentoAntesEnvio;
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["financeiro-anexos", movimentacao?.id],
