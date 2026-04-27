@@ -198,6 +198,45 @@ export function FaturamentosEnviadosCard() {
     });
 
   const pendentes = linhas.filter((l) => l.status === "Pendente").length;
+  const [enviandoAlertaMovId, setEnviandoAlertaMovId] = useState<string | null>(null);
+
+  async function alertarVencimento(l: Linha) {
+    if (!l.movId || !user) return;
+    setEnviandoAlertaMovId(l.movId);
+    try {
+      // Buscar nome do remetente
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const { error } = await supabase
+        .from("alertas_financeiro")
+        .upsert(
+          {
+            movimentacao_id: l.movId,
+            empresa_id: l.empresa.id,
+            empresa_nome: l.empresa.nome,
+            enviado_por_user_id: user.id,
+            enviado_por_nome: profile?.display_name ?? null,
+            data_envio: new Date().toISOString().slice(0, 10),
+            status: "Pendente",
+            tipo: "vencimento",
+            finalizado_em: null,
+          },
+          { onConflict: "movimentacao_id,tipo" },
+        );
+      if (error) throw error;
+      toast.success("Alerta de vencimento enviado ao Financeiro");
+      queryClient.invalidateQueries({ queryKey: ["alertas-vencimento-pendentes-mov-ids"] });
+    } catch (err: any) {
+      toast.error(err.message ?? "Falha ao enviar alerta");
+    } finally {
+      setEnviandoAlertaMovId(null);
+    }
+  }
+
 
   return (
     <Card className="rounded-xl shadow-sm border-warning/30">
