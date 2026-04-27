@@ -211,7 +211,7 @@ export function FaturamentosEnviadosCard() {
           <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
             <BellRing className="h-4 w-4 text-warning" />
           </div>
-          Faturamentos Enviado
+          Faturamentos Não Enviados
           <Badge variant="outline" className="ml-1">{linhas.length}</Badge>
         </CardTitle>
       </CardHeader>
@@ -275,7 +275,7 @@ export function FaturamentosEnviadosCard() {
                         onClick={() => enviarAoFinanceiro(l)}
                       >
                         <Send className="h-4 w-4" />
-                        {isLoading ? "Enviando..." : "Enviar ao Financeiro"}
+                        {isLoading ? "Enviando..." : "Confirma Envio"}
                       </Button>
                     )}
                   </div>
