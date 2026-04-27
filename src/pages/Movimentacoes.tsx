@@ -187,7 +187,7 @@ export default function Movimentacoes() {
       resetForm();
       toast({ title: editingId ? "Movimentação atualizada!" : "Movimentação criada!" });
     },
-    onError: () => toast({ title: "Erro ao salvar", variant: "destructive" }),
+    onError: (e: any) => toast({ title: e?.message || "Erro ao salvar", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
