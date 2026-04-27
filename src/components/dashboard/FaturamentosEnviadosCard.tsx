@@ -76,7 +76,6 @@ export function FaturamentosEnviadosCard() {
       const { data, error } = await supabase
         .from("alertas_financeiro")
         .select("movimentacao_id, empresa_id, empresa_nome, data_envio")
-        .eq("tipo", "vencimento")
         .eq("status", "Pendente")
         .in("empresa_id", empresaIdsVinculadas);
       if (error) throw error;
