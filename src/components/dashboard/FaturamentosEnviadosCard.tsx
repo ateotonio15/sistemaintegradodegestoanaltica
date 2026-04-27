@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { BellRing, Clock, CheckCircle2, AlertCircle, Send, CalendarClock } from "lucide-react";
+import { BellRing, Clock, CheckCircle2, AlertCircle, Send, CalendarClock, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import {
   contratoDentroDoPeriodo,
@@ -36,7 +36,7 @@ type MovItem = {
 };
 
 type FinKey = string; // `${empresa_id}|${mes}|${periodo}`
-type FinInfo = { data_envio_nota: string | null; data_vencimento: string | null };
+type FinInfo = { id: string; data_envio_nota: string | null; data_vencimento: string | null };
 
 /**
  * Card "Faturamentos Enviado" — Dashboard Cadastro.
@@ -109,16 +109,54 @@ export function FaturamentosEnviadosCard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
-        .select("empresa_id, mes_referencia, periodo, data_envio_nota, data_vencimento");
+        .select("id, empresa_id, mes_referencia, periodo, data_envio_nota, data_vencimento");
       if (error) throw error;
       const m = new Map<FinKey, FinInfo>();
       for (const r of data ?? []) {
         m.set(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`, {
+          id: r.id as string,
           data_envio_nota: (r.data_envio_nota as string) ?? null,
           data_vencimento: (r.data_vencimento as string) ?? null,
         });
       }
       return m;
+    },
+  });
+
+  // Contagem de anexos por movimentação (Cadastro) e por financeiro_movimentacao (Financeiro)
+  const movIdsForAnexos = useMemo(() => movs.map((m) => m.id), [movs]);
+  const { data: anexosCadastroPorMov = new Map<string, number>() } = useQuery({
+    queryKey: ["faturamentos-anexos-cadastro", movIdsForAnexos.sort().join(",")],
+    enabled: !!user && movIdsForAnexos.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anexos_movimentacao")
+        .select("movimentacao_id")
+        .in("movimentacao_id", movIdsForAnexos);
+      if (error) throw error;
+      const map = new Map<string, number>();
+      for (const r of data ?? []) {
+        const k = (r as any).movimentacao_id as string;
+        map.set(k, (map.get(k) ?? 0) + 1);
+      }
+      return map;
+    },
+  });
+
+  const { data: anexosFinPorFinId = new Map<string, number>() } = useQuery({
+    queryKey: ["faturamentos-anexos-financeiro"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anexos_financeiro")
+        .select("financeiro_movimentacao_id");
+      if (error) throw error;
+      const map = new Map<string, number>();
+      for (const r of data ?? []) {
+        const k = (r as any).financeiro_movimentacao_id as string;
+        map.set(k, (map.get(k) ?? 0) + 1);
+      }
+      return map;
     },
   });
 
@@ -152,6 +190,12 @@ export function FaturamentosEnviadosCard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "alertas_financeiro" }, () => {
         queryClient.invalidateQueries({ queryKey: ["alertas-vencimento-pendentes-mov-ids"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "anexos_movimentacao" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["faturamentos-anexos-cadastro"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "anexos_financeiro" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["faturamentos-anexos-financeiro"] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [queryClient]);
@@ -167,6 +211,7 @@ export function FaturamentosEnviadosCard() {
     dataNota: string | null;
     dataVencimento: string | null;
     alertaVencimentoAberto: boolean;
+    qtdAnexos: number;
   };
 
   const linhas: Linha[] = empresas
@@ -182,6 +227,8 @@ export function FaturamentosEnviadosCard() {
       const fin = finMap.get(`${e.id}|${ciclo.mes_referencia}|${ciclo.periodo}`) ?? null;
       const enviado = !!mov?.data_envio_financeiro;
       const status: Linha["status"] = fin?.data_envio_nota ? "Finalizado" : enviado ? "Enviado" : "Pendente";
+      const qtdCadastro = mov?.id ? (anexosCadastroPorMov.get(mov.id) ?? 0) : 0;
+      const qtdFinanceiro = fin?.id ? (anexosFinPorFinId.get(fin.id) ?? 0) : 0;
       return {
         empresa: e,
         mesReferencia: ciclo.mes_referencia,
@@ -192,6 +239,7 @@ export function FaturamentosEnviadosCard() {
         dataNota: fin?.data_envio_nota ?? null,
         dataVencimento: fin?.data_vencimento ?? null,
         alertaVencimentoAberto: mov?.id ? alertasVencimentoAbertos.has(mov.id) : false,
+        qtdAnexos: qtdCadastro + qtdFinanceiro,
       };
     })
     .sort((a, b) => {
@@ -314,8 +362,10 @@ export function FaturamentosEnviadosCard() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate text-foreground">{l.empresa.nome}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {l.empresa.codigo_contrato && <span className="mr-2">{l.empresa.codigo_contrato}</span>}
-                    {formatMesReferencia(l.mesReferencia)} · {l.periodo}
+                    <span className="mr-2">
+                      Contrato: <span className="font-medium text-foreground/80">{l.empresa.codigo_contrato ?? "—"}</span>
+                    </span>
+                    · {formatMesReferencia(l.mesReferencia)} · {l.periodo}
                     {l.status === "Pendente" && (
                       <span className="ml-2 text-warning">— Este contrato precisa ser movimentado.</span>
                     )}
@@ -332,6 +382,16 @@ export function FaturamentosEnviadosCard() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                  {/* Quantidade de anexos (Cadastro + Financeiro) */}
+                  <Badge
+                    variant="outline"
+                    className="gap-1"
+                    title="Total de anexos: Cadastro + Financeiro"
+                  >
+                    <Paperclip className="h-3 w-3" />
+                    {l.qtdAnexos}
+                  </Badge>
+
                   {/* Botão Alertar Vencimento — destacado, só após enviar ao financeiro e enquanto não houver vencimento */}
                   {precisaAcao && (
                     l.alertaVencimentoAberto ? (
