@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { FinanceiroMovimentacao } from "@/lib/financeiro-utils";
+import { todayLocalISO } from "@/lib/date-utils";
 
 interface Props {
   open: boolean;
@@ -27,13 +28,13 @@ export function CobrancaDialog({ open, onOpenChange, movimentacao, empresaNome }
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [motivo, setMotivo] = useState("");
-  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [data, setData] = useState(todayLocalISO());
   const [observacao, setObservacao] = useState("");
 
   useEffect(() => {
     if (open) {
       setMotivo("");
-      setData(new Date().toISOString().slice(0, 10));
+      setData(todayLocalISO());
       setObservacao("");
     }
   }, [open]);

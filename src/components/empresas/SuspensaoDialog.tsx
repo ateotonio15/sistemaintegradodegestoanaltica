@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
 import { Ban, RotateCcw, AlertCircle } from "lucide-react";
 
 interface Props {
@@ -36,13 +36,13 @@ export function SuspensaoDialog({ open, onOpenChange, empresa }: Props) {
   const { user } = useAuth();
   const [motivo, setMotivo] = useState("");
   const [observacao, setObservacao] = useState("");
-  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [data, setData] = useState(todayLocalISO());
 
   useEffect(() => {
     if (open) {
       setMotivo("");
       setObservacao("");
-      setData(new Date().toISOString().slice(0, 10));
+      setData(todayLocalISO());
     }
   }, [open]);
 
