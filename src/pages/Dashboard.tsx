@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, Search } from "lucide-react";
+import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, Search, BellRing } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -811,11 +811,12 @@ export default function Dashboard() {
                     <TableHead className="font-semibold">Envio Empresa</TableHead>
                     <TableHead className="font-semibold">Financeiro</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
+                    {role === "comum" && <TableHead className="font-semibold">Alerta</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {listaConcluidas.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={role === "comum" ? 9 : 8} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
                   ) : (
                     listaConcluidas.map((m) => (
                       <TableRow key={m.id} className="hover:bg-accent/50 transition-colors">
@@ -827,6 +828,14 @@ export default function Dashboard() {
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                         <TableCell><Badge className={`${statusColor(m.status)} rounded-md`}>{m.status}</Badge></TableCell>
+                        {role === "comum" && (
+                          <TableCell>
+                            <Badge className="bg-warning/15 text-warning border border-warning/40 rounded-md gap-1 hover:bg-warning/25 cursor-default">
+                              <BellRing className="h-3 w-3" />
+                              Faturamentos Enviado
+                            </Badge>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))
                   )}
