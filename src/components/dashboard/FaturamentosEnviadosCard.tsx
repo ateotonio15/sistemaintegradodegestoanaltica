@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { BellRing, Clock, CheckCircle2, AlertCircle, Send } from "lucide-react";
 import {
   contratoDentroDoPeriodo,
@@ -12,7 +11,6 @@ import {
   formatMesReferencia,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
-import { MovimentarContratoDialog } from "@/components/dashboard/MovimentarContratoDialog";
 
 type EmpresaItem = {
   id: string;
@@ -35,28 +33,18 @@ type MovItem = {
 
 type FinKey = string; // `${empresa_id}|${mes}|${periodo}`
 
-interface DialogState {
-  empresaId: string;
-  empresaNome: string;
-  empresaCodigo: string | null;
-  mesReferencia: string;
-  periodo: string;
-  movimentacaoIdExistente: string | null;
-}
-
 /**
  * Card "Faturamentos Enviado" — Dashboard Cadastro.
  * Lista contratos vinculados ao usuário que estão dentro do período atual.
  *
- * Estados por contrato:
- *  - Pendente   → ainda não foi movimentado (botão para abrir o dialog)
+ * Estados por contrato (somente leitura — sem ações):
+ *  - Pendente   → ainda não foi movimentado
  *  - Enviado    → data_envio_financeiro preenchida; aguarda Financeiro
  *  - Finalizado → Financeiro já enviou a nota (data_envio_nota preenchida)
  */
 export function FaturamentosEnviadosCard() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [dialog, setDialog] = useState<DialogState | null>(null);
 
   // Empresas vinculadas ao usuário (responsável direto OU via empresa_usuarios)
   const { data: empresas = [] } = useQuery<EmpresaItem[]>({
@@ -65,7 +53,6 @@ export function FaturamentosEnviadosCard() {
     queryFn: async () => {
       if (!user) return [];
 
-      // 1) empresas onde sou responsável direto
       const { data: ownEmpresas, error: ownErr } = await supabase
         .from("empresas")
         .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao, status_empresa")
@@ -73,7 +60,6 @@ export function FaturamentosEnviadosCard() {
         .eq("status_empresa", "Ativa");
       if (ownErr) throw ownErr;
 
-      // 2) empresas vinculadas via empresa_usuarios
       const { data: links, error: linksErr } = await supabase
         .from("empresa_usuarios")
         .select("empresa_id")
@@ -92,14 +78,12 @@ export function FaturamentosEnviadosCard() {
         extra = (linked ?? []) as EmpresaItem[];
       }
 
-      // dedupe
       const map = new Map<string, EmpresaItem>();
       for (const e of [...(ownEmpresas ?? []), ...extra]) map.set(e.id, e as EmpresaItem);
       return Array.from(map.values());
     },
   });
 
-  // Movimentações do mês atual para essas empresas
   const empresaIds = useMemo(() => empresas.map((e) => e.id), [empresas]);
   const { data: movs = [] } = useQuery<MovItem[]>({
     queryKey: ["faturamentos-movs-do-ciclo", empresaIds.sort().join(",")],
@@ -114,7 +98,6 @@ export function FaturamentosEnviadosCard() {
     },
   });
 
-  // Mapa de finalização: chave = empresa|mes|periodo, valor = data_envio_nota
   const { data: finMap = new Map<FinKey, string>() } = useQuery({
     queryKey: ["faturamentos-finmap-card"],
     enabled: !!user,
@@ -132,7 +115,6 @@ export function FaturamentosEnviadosCard() {
     },
   });
 
-  // Realtime: invalida ambos os caches quando alguma das tabelas muda
   useEffect(() => {
     const ch = supabase
       .channel("faturamentos-enviados-realtime")
@@ -149,7 +131,6 @@ export function FaturamentosEnviadosCard() {
     return () => { supabase.removeChannel(ch); };
   }, [queryClient]);
 
-  // Construção da lista
   const hoje = new Date();
   type Linha = {
     empresa: EmpresaItem;
@@ -184,7 +165,6 @@ export function FaturamentosEnviadosCard() {
         dataNota: finalizadaEm,
       };
     })
-    // ordena: Pendentes primeiro, depois Enviado, depois Finalizado
     .sort((a, b) => {
       const order = { Pendente: 0, Enviado: 1, Finalizado: 2 } as const;
       return order[a.status] - order[b.status] || a.empresa.nome.localeCompare(b.empresa.nome);
@@ -193,104 +173,71 @@ export function FaturamentosEnviadosCard() {
   const pendentes = linhas.filter((l) => l.status === "Pendente").length;
 
   return (
-    <>
-      <Card className="rounded-xl shadow-sm border-warning/30">
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
-              <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
-                <BellRing className="h-4 w-4 text-warning" />
-              </div>
-              Faturamentos Enviado
-              <Badge variant="outline" className="ml-1">{linhas.length}</Badge>
-              {pendentes > 0 && (
-                <Badge className="bg-warning text-warning-foreground text-xs gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {pendentes} pendente{pendentes > 1 ? "s" : ""}
-                </Badge>
-              )}
-            </CardTitle>
+    <Card className="rounded-xl shadow-sm border-warning/30">
+      <CardHeader className="pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
+            <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
+              <BellRing className="h-4 w-4 text-warning" />
+            </div>
+            Faturamentos Enviado
+            <Badge variant="outline" className="ml-1">{linhas.length}</Badge>
+            {pendentes > 0 && (
+              <Badge className="bg-warning text-warning-foreground text-xs gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {pendentes} pendente{pendentes > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {linhas.length === 0 ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">
+            Nenhum contrato dentro do período atual.
           </div>
-        </CardHeader>
-        <CardContent>
-          {linhas.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              Nenhum contrato dentro do período atual.
-            </div>
-          ) : (
-            <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
-              {linhas.map((l) => (
-                <div
-                  key={`${l.empresa.id}-${l.mesReferencia}-${l.periodo}`}
-                  className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate text-foreground">{l.empresa.nome}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {l.empresa.codigo_contrato && <span className="mr-2">{l.empresa.codigo_contrato}</span>}
-                      {formatMesReferencia(l.mesReferencia)} · {l.periodo}
-                      {l.status === "Pendente" && (
-                        <span className="ml-2 text-warning">— Este contrato precisa ser movimentado.</span>
-                      )}
-                      {l.status === "Enviado" && l.dataEnvio && (
-                        <span className="ml-2">— enviado em {formatDateBR(l.dataEnvio)}</span>
-                      )}
-                      {l.status === "Finalizado" && l.dataNota && (
-                        <span className="ml-2">— nota enviada em {formatDateBR(l.dataNota)}</span>
-                      )}
-                    </p>
-                  </div>
-
-                  {l.status === "Pendente" ? (
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        setDialog({
-                          empresaId: l.empresa.id,
-                          empresaNome: l.empresa.nome,
-                          empresaCodigo: l.empresa.codigo_contrato,
-                          mesReferencia: l.mesReferencia,
-                          periodo: l.periodo,
-                          movimentacaoIdExistente: l.movId,
-                        })
-                      }
-                      className="bg-warning text-warning-foreground hover:bg-warning/90 shrink-0 gap-1"
-                    >
-                      <Clock className="h-3.5 w-3.5" />
-                      Pendente
-                      <Send className="h-3.5 w-3.5" />
-                    </Button>
-                  ) : l.status === "Enviado" ? (
-                    <Badge className="bg-info text-info-foreground shrink-0 gap-1">
-                      <Send className="h-3 w-3" /> Enviado
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-success text-success-foreground shrink-0 gap-1">
-                      <CheckCircle2 className="h-3 w-3" /> Finalizado
-                    </Badge>
-                  )}
+        ) : (
+          <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
+            {linhas.map((l) => (
+              <div
+                key={`${l.empresa.id}-${l.mesReferencia}-${l.periodo}`}
+                className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate text-foreground">{l.empresa.nome}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {l.empresa.codigo_contrato && <span className="mr-2">{l.empresa.codigo_contrato}</span>}
+                    {formatMesReferencia(l.mesReferencia)} · {l.periodo}
+                    {l.status === "Pendente" && (
+                      <span className="ml-2 text-warning">— Este contrato precisa ser movimentado.</span>
+                    )}
+                    {l.status === "Enviado" && l.dataEnvio && (
+                      <span className="ml-2">— enviado em {formatDateBR(l.dataEnvio)}</span>
+                    )}
+                    {l.status === "Finalizado" && l.dataNota && (
+                      <span className="ml-2">— nota enviada em {formatDateBR(l.dataNota)}</span>
+                    )}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {dialog && (
-        <MovimentarContratoDialog
-          open={!!dialog}
-          onOpenChange={(o) => !o && setDialog(null)}
-          empresaId={dialog.empresaId}
-          empresaNome={dialog.empresaNome}
-          empresaCodigo={dialog.empresaCodigo}
-          mesReferencia={dialog.mesReferencia}
-          periodo={dialog.periodo}
-          movimentacaoIdExistente={dialog.movimentacaoIdExistente}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["faturamentos-movs-do-ciclo"] });
-          }}
-        />
-      )}
-    </>
+                {l.status === "Pendente" ? (
+                  <Badge className="bg-warning text-warning-foreground shrink-0 gap-1">
+                    <Clock className="h-3 w-3" /> Pendente
+                  </Badge>
+                ) : l.status === "Enviado" ? (
+                  <Badge className="bg-info text-info-foreground shrink-0 gap-1">
+                    <Send className="h-3 w-3" /> Enviado
+                  </Badge>
+                ) : (
+                  <Badge className="bg-success text-success-foreground shrink-0 gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Finalizado
+                  </Badge>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
