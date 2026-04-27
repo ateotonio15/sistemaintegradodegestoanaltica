@@ -109,10 +109,10 @@ export function FaturamentosEnviadosCard() {
           <Button
             size="sm"
             onClick={() => navigate("/movimentacoes")}
-            className="gap-1 shrink-0"
+            className="gap-1 shrink-0 bg-warning text-warning-foreground hover:bg-warning/90"
           >
             <Send className="h-4 w-4" />
-            Enviar Faturamento
+            Faturamentos Enviado
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
