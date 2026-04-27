@@ -4,8 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BellRing, Clock, Paperclip } from "lucide-react";
-import { formatMesReferencia } from "@/lib/movimentacao-utils";
+import { BellRing, Clock } from "lucide-react";
+import { formatMesReferencia, getCurrentMesReferencia } from "@/lib/movimentacao-utils";
+
+type FinMov = {
+  id: string;
+  empresa_id: string;
+  mes_referencia: string;
+  periodo: string;
+  data_envio_nota: string | null;
+};
 
 type EmpresaInfo = {
   id: string;
@@ -13,36 +21,16 @@ type EmpresaInfo = {
   codigo_contrato: string | null;
 };
 
-type AlertaPendente = {
-  movimentacao_id: string;
-  empresa_id: string;
-  empresa_nome: string;
-  data_envio: string;
-};
-
-type MovInfo = {
-  id: string;
-  empresa_id: string;
-  mes_referencia: string;
-  periodo: string;
-};
-
 /**
  * Card "Faturamentos Não Enviados" — Dashboard Cadastro.
- * Lista APENAS contratos que:
- *   1) Foram enviados ao Financeiro (alerta tipo='vencimento' Pendente existe)
- *   2) AINDA não tiveram a nota enviada (financeiro_movimentacoes.data_envio_nota IS NULL)
- *
- * O item sai da lista automaticamente quando o Financeiro preenche o
- * envio da nota (data_envio_nota), pois o trigger
- * handle_finalizar_alerta_financeiro finaliza o alerta.
- *
- * Esta visualização é informativa: mostra o que está em poder do Financeiro
- * aguardando emissão de nota. Não há botão de ação aqui.
+ * Lista TODAS as empresas vinculadas ao usuário cujo registro em
+ * financeiro_movimentacoes (do mês atual) ainda não tem `data_envio_nota`.
+ * Sai da lista automaticamente quando o Financeiro preenche a data.
  */
 export function FaturamentosEnviadosCard() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const mesAtual = getCurrentMesReferencia();
 
   // Empresas vinculadas ao usuário (Cadastro só vê as suas)
   const { data: empresaIdsVinculadas = [] } = useQuery<string[]>({
@@ -68,82 +56,42 @@ export function FaturamentosEnviadosCard() {
     },
   });
 
-  // Alertas Pendentes (tipo=vencimento) — significam "enviado ao financeiro"
-  const { data: alertasPendentes = [] } = useQuery<AlertaPendente[]>({
-    queryKey: ["faturamentos-alertas-pendentes", empresaIdsVinculadas.sort().join(",")],
+  // Todos os financeiro_movimentacoes do mês atual sem data_envio_nota
+  const { data: pendentes = [] } = useQuery<FinMov[]>({
+    queryKey: [
+      "faturamentos-fin-pendentes",
+      mesAtual,
+      empresaIdsVinculadas.sort().join(","),
+    ],
     enabled: !!user && empresaIdsVinculadas.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("alertas_financeiro")
-        .select("movimentacao_id, empresa_id, empresa_nome, data_envio")
-        .eq("status", "Pendente")
+        .from("financeiro_movimentacoes")
+        .select("id, empresa_id, mes_referencia, periodo, data_envio_nota")
+        .eq("mes_referencia", mesAtual)
+        .is("data_envio_nota", null)
         .in("empresa_id", empresaIdsVinculadas);
       if (error) throw error;
-      return (data ?? []) as AlertaPendente[];
+      return (data ?? []) as FinMov[];
     },
   });
 
-  const movIds = useMemo(
-    () => Array.from(new Set(alertasPendentes.map((a) => a.movimentacao_id))),
-    [alertasPendentes],
+  const empresaIds = useMemo(
+    () => Array.from(new Set(pendentes.map((p) => p.empresa_id))),
+    [pendentes],
   );
 
-  // Movimentações operacionais referenciadas pelos alertas
-  const { data: movs = [] } = useQuery<MovInfo[]>({
-    queryKey: ["faturamentos-movs-de-alertas", movIds.sort().join(",")],
-    enabled: movIds.length > 0,
+  // Info das empresas exibidas
+  const { data: empresasInfo = [] } = useQuery<EmpresaInfo[]>({
+    queryKey: ["faturamentos-empresas-info", empresaIds.sort().join(",")],
+    enabled: empresaIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("movimentacoes")
-        .select("id, empresa_id, mes_referencia, periodo")
-        .in("id", movIds);
+        .from("empresas")
+        .select("id, nome, codigo_contrato")
+        .in("id", empresaIds);
       if (error) throw error;
-      return (data ?? []) as MovInfo[];
-    },
-  });
-
-  // Financeiro_movimentacoes correspondentes — para detectar nota já enviada
-  const { data: notaEnviadaSet = new Set<string>() } = useQuery({
-    queryKey: ["faturamentos-fin-nota-enviada", movIds.sort().join(",")],
-    enabled: movs.length > 0,
-    queryFn: async () => {
-      const empresasMov = Array.from(new Set(movs.map((m) => m.empresa_id)));
-      const mesesMov = Array.from(new Set(movs.map((m) => m.mes_referencia)));
-      if (empresasMov.length === 0 || mesesMov.length === 0) return new Set<string>();
-
-      const { data, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select("empresa_id, mes_referencia, periodo, data_envio_nota")
-        .in("empresa_id", empresasMov)
-        .in("mes_referencia", mesesMov);
-      if (error) throw error;
-
-      const set = new Set<string>();
-      (data ?? []).forEach((f: any) => {
-        if (f.data_envio_nota) {
-          set.add(`${f.empresa_id}|${f.mes_referencia}|${f.periodo}`);
-        }
-      });
-      return set;
-    },
-  });
-
-  // Anexos por movimentação
-  const { data: anexosCadastroPorMov = new Map<string, number>() } = useQuery({
-    queryKey: ["faturamentos-anexos-cadastro-v2", movIds.sort().join(",")],
-    enabled: movIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("anexos_movimentacao")
-        .select("movimentacao_id")
-        .in("movimentacao_id", movIds);
-      if (error) throw error;
-      const map = new Map<string, number>();
-      for (const r of data ?? []) {
-        const k = (r as any).movimentacao_id as string;
-        map.set(k, (map.get(k) ?? 0) + 1);
-      }
-      return map;
+      return (data ?? []) as EmpresaInfo[];
     },
   });
 
@@ -151,16 +99,13 @@ export function FaturamentosEnviadosCard() {
   useEffect(() => {
     const ch = supabase
       .channel("faturamentos-nao-enviados-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "alertas_financeiro" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["faturamentos-alertas-pendentes"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "financeiro_movimentacoes" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["faturamentos-fin-nota-enviada"] });
-        queryClient.invalidateQueries({ queryKey: ["faturamentos-alertas-pendentes"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "anexos_movimentacao" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["faturamentos-anexos-cadastro-v2"] });
-      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "financeiro_movimentacoes" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["faturamentos-fin-pendentes"] });
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
@@ -169,69 +114,29 @@ export function FaturamentosEnviadosCard() {
 
   type Linha = {
     key: string;
-    movId: string;
     empresaNome: string;
     contrato: string | null;
     mesReferencia: string;
     periodo: string;
-    dataEnvio: string;
-    qtdAnexos: number;
   };
 
   const linhas: Linha[] = useMemo(() => {
-    const empresasInfo = new Map<string, EmpresaInfo>();
-    // Buscamos contrato/codigo via cache de movs/alertas (alertas já têm empresa_nome)
-
-    const movById = new Map<string, MovInfo>();
-    movs.forEach((m) => movById.set(m.id, m));
-
-    return alertasPendentes
-      .map((a): Linha | null => {
-        const mov = movById.get(a.movimentacao_id);
-        if (!mov) return null;
-        const chaveFin = `${mov.empresa_id}|${mov.mes_referencia}|${mov.periodo}`;
-        if (notaEnviadaSet.has(chaveFin)) return null; // já tem nota → sai da lista
+    const empMap = new Map(empresasInfo.map((e) => [e.id, e]));
+    return pendentes
+      .map((p): Linha | null => {
+        const emp = empMap.get(p.empresa_id);
+        if (!emp) return null;
         return {
-          key: a.movimentacao_id,
-          movId: a.movimentacao_id,
-          empresaNome: a.empresa_nome,
-          contrato: null,
-          mesReferencia: mov.mes_referencia,
-          periodo: mov.periodo,
-          dataEnvio: a.data_envio,
-          qtdAnexos: anexosCadastroPorMov.get(mov.id) ?? 0,
+          key: p.id,
+          empresaNome: emp.nome,
+          contrato: emp.codigo_contrato,
+          mesReferencia: p.mes_referencia,
+          periodo: p.periodo,
         };
       })
       .filter((l): l is Linha => l !== null)
       .sort((a, b) => a.empresaNome.localeCompare(b.empresaNome));
-  }, [alertasPendentes, movs, notaEnviadaSet, anexosCadastroPorMov]);
-
-  // Buscar códigos de contrato das empresas exibidas
-  const empresaIdsExibidas = useMemo(() => {
-    const ids = new Set<string>();
-    linhas.forEach((l) => {
-      const mov = movs.find((m) => m.id === l.movId);
-      if (mov) ids.add(mov.empresa_id);
-    });
-    return Array.from(ids);
-  }, [linhas, movs]);
-
-  const { data: contratoMap = {} } = useQuery({
-    queryKey: ["faturamentos-empresa-contratos", empresaIdsExibidas.sort().join(",")],
-    enabled: empresaIdsExibidas.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("empresas")
-        .select("id, codigo_contrato")
-        .in("id", empresaIdsExibidas);
-      if (error) throw error;
-      const map: Record<string, string | null> = {};
-      (data ?? []).forEach((e: any) => {
-        map[e.id] = e.codigo_contrato ?? null;
-      });
-      return map;
-    },
-  });
+  }, [pendentes, empresasInfo]);
 
   return (
     <Card className="rounded-xl shadow-sm border-warning/30">
@@ -246,7 +151,7 @@ export function FaturamentosEnviadosCard() {
           </Badge>
         </CardTitle>
         <p className="text-xs text-muted-foreground pl-10">
-          Enviados ao Financeiro · aguardando emissão de nota
+          Aguardando emissão da nota pelo Financeiro
         </p>
       </CardHeader>
       <CardContent>
@@ -256,40 +161,36 @@ export function FaturamentosEnviadosCard() {
           </div>
         ) : (
           <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
-            {linhas.map((l) => {
-              const mov = movs.find((m) => m.id === l.movId);
-              const contrato = mov ? contratoMap[mov.empresa_id] ?? null : null;
-              return (
-                <div
-                  key={l.key}
-                  className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate text-foreground">{l.empresaNome}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      Contrato:{" "}
-                      <span className="font-medium text-foreground/80">{contrato ?? "—"}</span>
-                      {" · "}
-                      {formatMesReferencia(l.mesReferencia)} · {l.periodo}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="outline" className="gap-1" title="Anexos do Cadastro">
-                      <Paperclip className="h-3 w-3" />
-                      {l.qtdAnexos}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className="gap-1 border-warning/40 text-warning bg-warning/5"
-                    >
-                      <Clock className="h-3 w-3" />
-                      Aguardando nota
-                    </Badge>
-                  </div>
+            {linhas.map((l) => (
+              <div
+                key={l.key}
+                className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate text-foreground">
+                    {l.empresaNome}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Contrato:{" "}
+                    <span className="font-medium text-foreground/80">
+                      {l.contrato ?? "—"}
+                    </span>
+                    {" · "}
+                    {formatMesReferencia(l.mesReferencia)} · {l.periodo}
+                  </p>
                 </div>
-              );
-            })}
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge
+                    variant="outline"
+                    className="gap-1 border-warning/40 text-warning bg-warning/5"
+                  >
+                    <Clock className="h-3 w-3" />
+                    Aguardando nota
+                  </Badge>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>
