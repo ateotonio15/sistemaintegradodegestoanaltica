@@ -33,6 +33,7 @@ interface Props {
   onToggleExpand: (row: FinanceiroRow) => void;
   analiseResultados: Record<string, AnaliseResultado[]>;
   analiseLoading: Record<string, boolean>;
+  analiseComparacoes?: Record<string, ComparacaoResultado[]>;
 }
 
 const COL_COUNT = 12;
