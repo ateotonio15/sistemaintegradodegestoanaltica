@@ -2,25 +2,32 @@ import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Send, Clock, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BellRing, Clock, CheckCircle2, Send, ChevronRight } from "lucide-react";
 import { formatDateBR } from "@/lib/date-utils";
 
 /**
- * Card que substitui o gráfico "Empresas por Status" no Dashboard do usuário comum.
- * Mostra apenas as movimentações que o próprio usuário enviou ao financeiro,
- * com o status atual do alerta correspondente (Pendente / Finalizado).
+ * Card "Faturamentos Enviado" exibido no Dashboard do usuário comum.
+ * Compartilha a MESMA identidade visual do alerta usado no Dashboard
+ * Financeiro (FaturamentosEnviadoFinanceiro), garantindo consistência:
+ *   - Borda warning, ícone BellRing em pílula
+ *   - Badge contador no header
+ *   - Botão de ação no canto superior direito
  *
- * Importante: usuários comuns NÃO acessam a tabela alertas_financeiro (RLS),
- * então usamos a própria tabela movimentacoes (filtrada pelas que ele enviou)
- * + cruzamento com financeiro_movimentacoes.data_envio_nota para inferir status.
+ * A ação no perfil comum é "Enviar Faturamento", que leva o usuário
+ * para a aba de Movimentações onde ele preenche `data_envio_financeiro`
+ * e anexa os documentos obrigatórios — fluxo que dispara o alerta para
+ * o Financeiro via o trigger handle_envio_financeiro.
  */
 export function FaturamentosEnviadosCard() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Movimentações com data_envio_financeiro vinculadas ao usuário (responsável ou empresa do usuário)
+  // Movimentações com data_envio_financeiro
   const { data: movs = [] } = useQuery({
     queryKey: ["faturamentos-enviados-comum", user?.id],
     enabled: !!user,
@@ -54,7 +61,7 @@ export function FaturamentosEnviadosCard() {
     },
   });
 
-  // Realtime: refresh quando alterar movimentacoes ou financeiro_movimentacoes
+  // Realtime
   useEffect(() => {
     const ch = supabase
       .channel("faturamentos-enviados-realtime")
@@ -84,23 +91,30 @@ export function FaturamentosEnviadosCard() {
   const pendentes = itens.filter((i) => i.status === "Pendente").length;
 
   return (
-    <Card className="rounded-xl shadow-sm">
+    <Card className="rounded-xl shadow-sm border-warning/30">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Send className="h-4 w-4 text-primary" />
-            Faturamentos Enviados
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              {itens.length} total
-            </Badge>
+            <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
+              <BellRing className="h-4 w-4 text-warning" />
+            </div>
+            Faturamentos Enviado
+            <Badge variant="outline" className="ml-1">{itens.length}</Badge>
             {pendentes > 0 && (
               <Badge className="bg-warning text-warning-foreground text-xs">
                 {pendentes} pendente{pendentes > 1 ? "s" : ""}
               </Badge>
             )}
-          </div>
+          </CardTitle>
+          <Button
+            size="sm"
+            onClick={() => navigate("/movimentacoes")}
+            className="gap-1 shrink-0"
+          >
+            <Send className="h-4 w-4" />
+            Enviar Faturamento
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
