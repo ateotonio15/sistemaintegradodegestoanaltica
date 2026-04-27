@@ -10,6 +10,7 @@ import { AlertCircle, CheckCircle2, Building2, CalendarClock, AlertTriangle, Fil
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/date-utils";
 import { FaturamentosEnviadoFinanceiro } from "./FaturamentosEnviadoFinanceiro";
+import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 
 interface CobrancaRow {
   id: string;
@@ -109,6 +110,9 @@ export function DashboardFinanceiro() {
 
   return (
     <div className="space-y-6">
+      {/* Alertas de vencimento abertos pelo Cadastro */}
+      <AlertasVencimentoFinanceiro />
+
       {/* Painel de alertas "Faturamentos Enviado" do operacional */}
       <FaturamentosEnviadoFinanceiro />
 
