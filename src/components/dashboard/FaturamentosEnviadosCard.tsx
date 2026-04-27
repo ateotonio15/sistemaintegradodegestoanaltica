@@ -34,6 +34,7 @@ type MovItem = {
 };
 
 type FinKey = string; // `${empresa_id}|${mes}|${periodo}`
+type FinInfo = { data_envio_nota: string | null; data_vencimento: string | null };
 
 /**
  * Card "Faturamentos Enviado" — Dashboard Cadastro.
@@ -100,20 +101,37 @@ export function FaturamentosEnviadosCard() {
     },
   });
 
-  const { data: finMap = new Map<FinKey, string>() } = useQuery({
+  const { data: finMap = new Map<FinKey, FinInfo>() } = useQuery({
     queryKey: ["faturamentos-finmap-card"],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
-        .select("empresa_id, mes_referencia, periodo, data_envio_nota");
+        .select("empresa_id, mes_referencia, periodo, data_envio_nota, data_vencimento");
       if (error) throw error;
-      const m = new Map<FinKey, string>();
+      const m = new Map<FinKey, FinInfo>();
       for (const r of data ?? []) {
-        if (!r.data_envio_nota) continue;
-        m.set(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`, r.data_envio_nota as string);
+        m.set(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`, {
+          data_envio_nota: (r.data_envio_nota as string) ?? null,
+          data_vencimento: (r.data_vencimento as string) ?? null,
+        });
       }
       return m;
+    },
+  });
+
+  // Alertas de vencimento já abertos pelo Cadastro (para indicar visualmente "alerta enviado")
+  const { data: alertasVencimentoAbertos = new Set<string>() } = useQuery({
+    queryKey: ["alertas-vencimento-pendentes-mov-ids"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("alertas_financeiro")
+        .select("movimentacao_id")
+        .eq("tipo", "vencimento")
+        .eq("status", "Pendente");
+      if (error) throw error;
+      return new Set<string>((data ?? []).map((r: any) => r.movimentacao_id));
     },
   });
 
