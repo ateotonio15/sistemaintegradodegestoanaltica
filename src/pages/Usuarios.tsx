@@ -27,7 +27,7 @@ interface UserProfile {
 
 const roleLabel: Record<AppRole, string> = {
   admin: "Administrador",
-  comum: "Usuário Comum",
+  comum: "Cadastro",
   executivo: "Executivo",
   visualizacao: "Visualização",
   enfermeira: "Enfermeira",
