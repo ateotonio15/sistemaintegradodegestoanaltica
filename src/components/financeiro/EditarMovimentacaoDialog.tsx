@@ -124,7 +124,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       if (insErr) throw insErr;
 
       queryClient.invalidateQueries({ queryKey: ["financeiro-anexos", movimentacao.id] });
-      queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
       toast.success("Arquivo enviado");
     } catch (err: any) {
       toast.error("Erro no upload: " + err.message);
