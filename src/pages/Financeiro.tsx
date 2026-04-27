@@ -67,6 +67,7 @@ export default function Financeiro() {
   const [isExporting, setIsExporting] = useState(false);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [analiseResultados, setAnaliseResultados] = useState<Record<string, import("@/lib/excel-analysis-utils").AnaliseResultado[]>>({});
+  const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
   const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
 
   // Movimentações financeiras do mês + dados de empresa via consulta separada
@@ -459,41 +460,70 @@ export default function Financeiro() {
     }
     setExpandedRowId(row.id);
 
-    const anexos = (anexosMap[row.id] || []) as Array<{
+    let anexos = (anexosMap[row.id] || []) as Array<{
       mime_type: string | null;
       nome_arquivo: string | null;
       storage_path: string | null;
       created_at: string;
     }>;
-    const { isXlsAnexo } = await import("@/lib/financeiro-utils");
-    const xlsAnexos = anexos.filter((a) => isXlsAnexo(a) && a.storage_path);
+    const { isXlsAnexo, isPdfAnexo } = await import("@/lib/financeiro-utils");
 
-    // Cache-key baseada nos storage_paths — invalida automaticamente quando anexos mudam
-    const cacheKey = xlsAnexos.map((a) => a.storage_path).sort().join("|");
+    // Refetch caso anexos não tenham carregado ainda
+    if (anexos.length === 0) {
+      await queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
+      const fresh = (queryClient.getQueryData(["financeiro-anexos-list", movIds.sort().join(",")]) as any) || {};
+      anexos = (fresh[row.id] || []) as typeof anexos;
+    }
+
+    const xlsAnexos = anexos.filter((a) => isXlsAnexo(a) && a.storage_path);
+    const pdfAnexos = anexos.filter((a) => isPdfAnexo(a) && a.storage_path);
+
+    // Cache-key combina XLS + PDF
+    const cacheKey = [...xlsAnexos, ...pdfAnexos]
+      .map((a) => a.storage_path)
+      .sort()
+      .join("|");
     const cached = analiseResultados[row.id];
-    if (cached && cached.length > 0 && (cached as any)._key === cacheKey) {
+    if (cached && (cached as any)._key === cacheKey) {
       return;
     }
 
     if (xlsAnexos.length === 0) {
-      // Refetch dos anexos pra garantir que não é só cache stale
-      await queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
-      const fresh = (queryClient.getQueryData(["financeiro-anexos-list", movIds.sort().join(",")]) as any) || {};
-      const freshAnexos = (fresh[row.id] || []) as typeof anexos;
-      const freshXls = freshAnexos.filter((a) => isXlsAnexo(a) && a.storage_path);
-      if (freshXls.length === 0) {
-        setAnaliseResultados((prev) => ({ ...prev, [row.id]: [] }));
-        return;
-      }
-      // Continua com os anexos atualizados
-      xlsAnexos.push(...freshXls);
+      setAnaliseResultados((prev) => ({ ...prev, [row.id]: [] }));
+      setAnaliseComparacoes((prev) => ({ ...prev, [row.id]: [] }));
+      return;
     }
 
     setAnaliseLoading((prev) => ({ ...prev, [row.id]: true }));
     try {
-      const { analisarExcelFinanceiro } = await import("@/lib/excel-analysis-utils");
+      const { analisarExcelFinanceiro, compararExcelComPdf } = await import(
+        "@/lib/excel-analysis-utils"
+      );
+      const { analisarPdfFinanceiro } = await import("@/lib/pdf-analysis-utils");
+
+      // Baixa e analisa todos os PDFs (geralmente 1 — usaremos o mais recente)
+      const pdfResultados = await Promise.all(
+        pdfAnexos.map(async (a) => {
+          try {
+            const { data, error } = await supabase.storage
+              .from("anexos-financeiro")
+              .download(a.storage_path!);
+            if (error) throw error;
+            const buf = await data.arrayBuffer();
+            const r = await analisarPdfFinanceiro(buf);
+            return { arquivo: a.nome_arquivo || "PDF", ...r };
+          } catch (err: any) {
+            toast.error(`Erro ao analisar PDF ${a.nome_arquivo}: ${err.message || err}`);
+            return null;
+          }
+        }),
+      );
+      const pdfsValidos = pdfResultados.filter((p) => p !== null) as Array<
+        import("@/lib/pdf-analysis-utils").AnalisePdfResultado
+      >;
+
       const resultados = await Promise.all(
-        xlsAnexos.map(async (a) => {
+        xlsAnexos.map(async (a, idx) => {
           try {
             const { data, error } = await supabase.storage
               .from("anexos-financeiro")
@@ -514,9 +544,16 @@ export default function Financeiro() {
           }
         }),
       );
-      // Tag a key no array para invalidação futura
+
+      // Pareamento Excel × PDF: por índice; fallback para o mais recente (índice 0)
+      const comparacoes = resultados.map((excel, idx) => {
+        const pdf = pdfsValidos[idx] ?? pdfsValidos[0] ?? null;
+        return compararExcelComPdf(excel, pdf);
+      });
+
       Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
       setAnaliseResultados((prev) => ({ ...prev, [row.id]: resultados }));
+      setAnaliseComparacoes((prev) => ({ ...prev, [row.id]: comparacoes }));
     } finally {
       setAnaliseLoading((prev) => ({ ...prev, [row.id]: false }));
     }
@@ -789,6 +826,7 @@ export default function Financeiro() {
           onToggleExpand={handleToggleExpand}
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
+          analiseComparacoes={analiseComparacoes}
         />
 
         {/* Diálogos */}

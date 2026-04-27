@@ -11,7 +11,7 @@ import {
 } from "@/lib/financeiro-utils";
 import { formatDateBR } from "@/lib/date-utils";
 import { AnaliseExcelRow } from "./AnaliseExcelRow";
-import type { AnaliseResultado } from "@/lib/excel-analysis-utils";
+import type { AnaliseResultado, ComparacaoResultado } from "@/lib/excel-analysis-utils";
 
 export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_nome: string;
@@ -33,6 +33,7 @@ interface Props {
   onToggleExpand: (row: FinanceiroRow) => void;
   analiseResultados: Record<string, AnaliseResultado[]>;
   analiseLoading: Record<string, boolean>;
+  analiseComparacoes?: Record<string, ComparacaoResultado[]>;
 }
 
 const COL_COUNT = 12;
@@ -46,6 +47,7 @@ export function FinanceiroTable({
   onToggleExpand,
   analiseResultados,
   analiseLoading,
+  analiseComparacoes,
 }: Props) {
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -171,6 +173,7 @@ export function FinanceiroTable({
                       colSpan={COL_COUNT}
                       isLoading={!!analiseLoading[row.id]}
                       resultados={analiseResultados[row.id] ?? null}
+                      comparacoes={analiseComparacoes?.[row.id] ?? null}
                     />
                   )}
                 </Fragment>

@@ -1,120 +1,169 @@
-## 🎯 Objetivo
+## Objetivo
+Estender a análise de Excel já existente (linha expandida acionada pela seta na coluna **Ações**) para também ler o(s) **PDF(s)** anexado(s) na movimentação, comparar com o Excel e mostrar **✔️/❌** ao lado de cada valor, listando as divergências encontradas.
 
-Adicionar um **ícone de seta** na coluna **Ações** de cada linha do Financeiro que, ao clicar, **lê todos os Excels anexados** àquela movimentação e exibe — em uma **linha expandida abaixo** (mesmo padrão visual da tabela) — uma análise consolidada por **pagador** (1 análise por XLS), classificando os planos em **Enfermaria** vs **Apartamento** e separando as **Inclusões**.
+A regra: **Excel = fonte de verdade**, PDF é validado contra ele.
 
 ---
 
-## 📋 Escopo
+## 1. Leitura de PDF — nova lib
 
-### 1. UI — Ícone de seta na linha (`FinanceiroTable.tsx`)
+Hoje o projeto só tem `exceljs`. Para extrair texto do PDF no client (sem servidor) vou adicionar:
 
-- Novo botão **ghost icon** na coluna **Ações** (entre `Pencil` e `Bell`), usando `ChevronDown` do `lucide-react` (gira para `ChevronUp` quando expandido).
-- Mesmo padrão visual já usado: `variant="ghost"`, `size="icon"`, `h-8 w-8`, `h-3.5 w-3.5` no ícone, `title="Analisar Excel"`.
-- Estado local no componente: `expandedRowId: string | null` (apenas 1 linha expandida por vez).
-- Ao clicar:
-  - Se a linha já estava expandida → recolhe.
-  - Senão → expande e dispara a análise dos anexos XLS daquela movimentação.
+- **`pdfjs-dist`** (Mozilla, padrão de mercado, ~zero deps, funciona no Vite/browser)
 
-### 2. Linha expandida (mesmo padrão visual)
+Uso: carregar o PDF como `ArrayBuffer` → `getDocument()` → percorrer páginas → `getTextContent()` → concatenar strings preservando ordem de leitura.
 
-- **NOVO componente**: `src/components/financeiro/AnaliseExcelRow.tsx`
-- Renderizada como uma **`<TableRow>` adicional** logo após a linha clicada, com `<TableCell colSpan={12}>` — ocupando ponta a ponta sem quebrar o grid.
-- Visual: `bg-muted/30 border-l-2 border-l-primary` (continuação natural, alinhado com o padrão `border-l-destructive` já usado para overdue).
-- Conteúdo:
-  - **Estado vazio**: se a movimentação não tem nenhum XLS/XLSX/CSV anexado → texto centralizado `"Nenhum Excel anexado para análise."` com ícone `FileX`.
-  - **Loading**: spinner `Loader2 animate-spin` + `"Analisando planilha(s)..."`.
-  - **Resultado**: para cada XLS anexado, renderiza um **bloco "Pagador: <nome do arquivo>"** contendo uma mini-tabela (mesmo `Table` do shadcn, sem bordas externas):
+---
 
-| Categoria | Beneficiários | Mensalidade | Total |
-|---|---|---|---|
-| Enfermaria | X | R$ X,XX | R$ X,XX |
-| Apartamento | X | R$ X,XX | R$ X,XX |
+## 2. Novo utilitário `src/lib/pdf-analysis-utils.ts`
 
-  - **Linha de Inclusões** abaixo da mini-tabela (mesmo padrão de "subtítulo + valores"):
-    - `Inclusões: <quantidade> · Total: R$ X,XX`
-  - **Avisos de leitura**: se a coluna "Plano" ou "Tipo Cobrança" não foi encontrada na planilha → `Alert` warning (`border-warning/50 bg-warning/10`) listando exatamente quais colunas faltaram, ex.: `"Não foi possível identificar a coluna 'Tipo Cobrança' em <arquivo.xlsx>"`.
+Responsável por extrair, do texto do PDF, a seção **"Serviço Prestado"** (boleto/fatura padrão Samel) e devolver:
 
-### 3. Lógica de leitura — `src/lib/excel-analysis-utils.ts` (NOVO)
-
-Reutiliza a biblioteca **`exceljs`** (já instalada — substitui o antigo `xlsx`).
-
-#### Função principal
 ```ts
-analisarExcelFinanceiro(buffer: ArrayBuffer): {
-  pagador: string;             // será preenchido pelo nome do arquivo no caller
-  enfermaria: { beneficiarios: number; mensalidade: number; total: number };
-  apartamento: { beneficiarios: number; mensalidade: number; total: number };
-  inclusoes: { quantidade: number; total: number };
-  avisos: string[];            // colunas não encontradas, etc.
+export interface PdfCategoria {
+  beneficiarios: number | null; // null = não encontrado (inclusões)
+  mensalidade: number | null;
+  total: number;
 }
+
+export interface AnalisePdfResultado {
+  arquivo: string;
+  enfermaria: PdfCategoria;
+  apartamento: PdfCategoria;
+  inclusoes: { total: number };  // PDF não tem qtd de inclusões — ignorar
+  avisos: string[];
+}
+
+export async function analisarPdfFinanceiro(buffer: ArrayBuffer): Promise<Omit<AnalisePdfResultado, "arquivo">>;
 ```
 
-#### Detecção de colunas (case/acento-insensitive)
-- Normalização: `.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim()`
-- Procura cabeçalho **"Plano"** → aceita variações: `plano`, `planos`, `tipo plano`, `tipo de plano`
-- Procura cabeçalho **"Tipo Cobrança"** → aceita: `tipo cobranca`, `tipo de cobranca`, `tipo cobrança`, `cobranca`
-- Procura cabeçalho **valor** (mensalidade) → aceita: `valor`, `mensalidade`, `valor mensalidade`, `vlr`, `preco`
-- Varre as **primeiras 10 linhas** para localizar a linha de cabeçalho (planilhas reais têm logos/títulos no topo).
-- Se **"Plano"** ou **"Tipo Cobrança"** não forem encontrados → adiciona aviso e retorna zeros para a categoria afetada (não trava o resto).
+### Estratégia de parsing (regex tolerantes)
+- Normalizar texto: minúsculas, sem acento, espaços compactados.
+- Localizar bloco entre "servico prestado" (ou "serviço prestado") e o próximo cabeçalho/total da fatura.
+- Para cada linha do bloco, identificar a categoria pelo mesmo classificador já usado no Excel (`coletivo empresarial master`/`master empresarial` → enfermaria, `master executivo`/`coletivo executivo master` → apartamento, contém `inclusao`/`inclusão` → inclusões).
+- Extrair, na mesma linha (ou linha imediatamente seguinte), os números nesta ordem comum em fatura: `qtd | valor unit | total`. Aceitar formato BRL (`1.234,56`).
+- Para **inclusões**, capturar apenas o valor total (qtd e unitário ficam `null`).
+- Tudo que não casar entra em `avisos` (ex.: "Não foi possível identificar a linha de Apartamento no PDF").
 
-#### Classificação de planos (similaridade simples)
-- Tabela de equivalências (normalizada):
-  - **Enfermaria**: contém `coletivo empresarial master` **OU** `master empresarial` **OU** `enfermaria`
-  - **Apartamento**: contém `master executivo` **OU** `coletivo executivo master` **OU** `apartamento`
-  - Outros → ignorados (não somam em nenhuma categoria).
-
-#### Identificação de Inclusões
-- Para cada linha de dados, verifica a coluna **"Tipo Cobrança"** normalizada:
-  - Se contém `inclusao` ou `inclusão` → conta na seção **Inclusões** (não soma em Enfermaria/Apartamento).
-  - Senão → soma na categoria do plano (regra acima).
-
-#### Cálculos
-- **Beneficiários**: contagem de linhas válidas por categoria.
-- **Mensalidade**: média dos valores da categoria (ou repete o valor único quando todas as linhas têm o mesmo valor — evita exibir números esquisitos quando há divergência por idade).
-- **Total**: soma direta dos valores da categoria (mais confiável que `beneficiarios × mensalidade` quando há faixas etárias).
-- **Inclusões.total**: soma dos valores das linhas marcadas como inclusão.
-- Linhas com valor inválido (NaN/negativo) → ignoradas, não geram erro.
-
-### 4. Integração — `Financeiro.tsx`
-
-- Já existe `anexosMap` carregado com `nome_arquivo`, `mime_type`, `storage_path` etc. **Adicionar `storage_path` ao select** (linha 152) — atualmente não está incluído.
-- Função `handleAnalisar(row)`:
-  - Filtra `anexosMap[row.id]` pelos que são XLS (`isXlsAnexo` já existe em `financeiro-utils.ts`).
-  - Para cada um: `supabase.storage.from("anexos-financeiro").download(storage_path)` → `arrayBuffer()` → `analisarExcelFinanceiro(buffer)` → set `pagador = nome_arquivo`.
-  - Resultado guardado em estado local `Record<string, AnaliseResultado[]>` por movimentação id (cache em memória durante a sessão).
-- Passa `expandedRowId`, `onToggleExpand`, `analiseResultados`, `analiseLoading` para `<FinanceiroTable>`.
-
-### 5. Permissão
-
-- Já protegido pelo guard da página: `canManageFinanceiro` (Admin + Financeiro).
-- Download de anexos via signed URL já funciona pelos RLS atuais do bucket `anexos-financeiro` (Admin + Financeiro — `ALL`).
-- Nenhuma mudança de RLS necessária.
-
-### 6. Formatação de moeda
-
-- Reutilizar `Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })`.
-- Helper local no novo arquivo: `formatBRL(n: number): string`.
-
-### 7. UX
-
-- **Loading**: spinner inline na linha expandida.
-- **Sem XLS**: `"Nenhum Excel anexado"` (texto cinza centralizado, sem `toast` — está dentro da própria linha).
-- **Erro de download/parse**: `toast.error("Erro ao analisar <arquivo>: <mensagem>")` + mostra o que conseguiu processar dos demais.
-- **Múltiplos pagadores**: cada XLS gera 1 bloco separado dentro da linha expandida (vertical, com separador `border-t`).
-- **Recolher**: clicar de novo no `ChevronUp` ou em outra linha (qualquer outra expansão fecha a anterior).
+> Caso o PDF não seja um boleto Samel (layout diferente), os avisos guiam o usuário e a comparação ainda funciona para o que conseguiu extrair.
 
 ---
 
-## 📂 Arquivos afetados
+## 3. Atualização de `src/lib/excel-analysis-utils.ts`
 
-- ✏️ **`src/components/financeiro/FinanceiroTable.tsx`** — adicionar botão `ChevronDown/Up`, suportar linha expandida via novas props, renderizar `<AnaliseExcelRow>`.
-- ✏️ **`src/pages/Financeiro.tsx`** — incluir `storage_path` no select de anexos, estado de expansão + cache de análises, função `handleAnalisar`.
-- ➕ **`src/lib/excel-analysis-utils.ts`** — função `analisarExcelFinanceiro` + helpers de detecção/classificação/formatação.
-- ➕ **`src/components/financeiro/AnaliseExcelRow.tsx`** — componente da linha expandida (estados: vazio/loading/resultado/aviso).
+Adicionar uma função de comparação pura (sem UI):
 
-## 🚫 Fora do escopo
+```ts
+export interface CampoValidacao<T = number> {
+  excel: T;
+  pdf: T | null;
+  ok: boolean;
+}
 
-- A "segunda etapa" da análise (mencionada como futura) — não implementar agora.
-- PDFs não são analisados (apenas XLS/XLSX/CSV).
-- Análise não é persistida no banco — recalculada sob demanda (cache só em memória).
-- Sem alterações de RLS, schema ou storage.
+export interface ComparacaoCategoria {
+  beneficiarios: CampoValidacao<number>;
+  mensalidade: CampoValidacao<number>;
+  total: CampoValidacao<number>;
+}
+
+export interface ComparacaoResultado {
+  pagador: string;
+  arquivoPdf: string | null;
+  enfermaria: ComparacaoCategoria;
+  apartamento: ComparacaoCategoria;
+  inclusoes: { total: CampoValidacao<number> }; // só total
+  divergencias: string[]; // mensagens prontas para exibição
+}
+
+export function compararExcelComPdf(
+  excel: AnaliseResultado,
+  pdf: AnalisePdfResultado | null,
+): ComparacaoResultado;
+```
+
+Regras:
+- Tolerância numérica: `Math.abs(a-b) < 0.01` para valores monetários; igualdade exata para inteiros (beneficiários).
+- Se PDF não tem o campo → `pdf: null`, `ok: false`, e divergência: *"Categoria X não encontrada no PDF"*.
+- Mensagens de divergência específicas: *"Divergência na mensalidade da enfermaria (Excel R$ 450,00 × PDF R$ 460,00)"*.
+
+---
+
+## 4. Pipeline em `src/pages/Financeiro.tsx` — `handleToggleExpand`
+
+Hoje a função baixa apenas XLS. Vou estender:
+
+1. Filtrar anexos em **dois grupos**: `xlsAnexos` (já existe) e `pdfAnexos` (novo, via `isPdfAnexo`).
+2. Cache-key passa a considerar storage_paths de **XLS + PDF** (qualquer mudança invalida).
+3. Para cada XLS:
+   - Baixar e analisar (já existe).
+   - Tentar parear com um PDF — heurística: pega o **PDF mais recente** disponível (a movimentação geralmente tem 1 PDF de fatura). Se houver vários PDFs e vários XLS, usar o índice (1º PDF ↔ 1º XLS); fallback para o mais recente.
+   - Baixar o PDF (se existir), analisar via `analisarPdfFinanceiro`, gerar `ComparacaoResultado` via `compararExcelComPdf`.
+4. Estado novo: `analiseComparacoes: Record<string, ComparacaoResultado[]>` (substitui ou complementa `analiseResultados`).
+
+Tratamento de erro idêntico ao XLS: erro vira `toast.error` + `aviso` no card.
+
+---
+
+## 5. UI — `src/components/financeiro/AnaliseExcelRow.tsx`
+
+Manter o mesmo padrão visual (linha expandida com `bg-muted/30 border-l-2 border-l-primary`, mesma tabela 4 colunas), agora exibindo **3 colunas de valor por categoria** com ícone ao lado:
+
+```
+| Categoria   | Beneficiários         | Mensalidade            | Total                  |
+| Enfermaria  | 12 ✔                  | R$ 450,00 ✔            | R$ 5.400,00 ✔          |
+| Apartamento | 8 ✘ (PDF: 7)          | R$ 720,00 ✔            | R$ 5.760,00 ✘          |
+| Inclusões   | —                     | —                      | R$ 320,00 ✔            |
+| Total Geral |                       |                        | R$ 11.480,00           |
+```
+
+- Componente `<ValorComCheck value={...} validacao={...}>` reutilizável:
+  - `CheckCircle2` (verde, `text-success`) quando `ok=true`
+  - `XCircle` (vermelho, `text-destructive`) quando `ok=false`
+  - tooltip no ✘ mostrando o valor do PDF
+  - se não há PDF anexado → **sem ícone**, comportamento igual ao atual (apenas mostra Excel)
+
+Continuar respeitando: **só renderiza categoria que existe** (regra já implementada — não mostrar zerados).
+
+### Bloco de divergências
+Logo abaixo da tabela, quando houver `divergencias.length > 0`:
+
+```
+<Alert variant="destructive" /* já existe no projeto */>
+  <AlertTriangle />
+  <AlertTitle>Divergências identificadas</AlertTitle>
+  <AlertDescription>
+    <ul className="list-disc ml-4 text-xs">
+      <li>Divergência na mensalidade da enfermaria...</li>
+      <li>Total do apartamento não confere com o PDF...</li>
+    </ul>
+  </AlertDescription>
+</Alert>
+```
+
+Se **não houver PDF anexado** → manter a UI atual (sem ícones, sem bloco de divergências, apenas o resumo do Excel).
+Se **só houver PDF** (sem Excel) → exibir aviso: *"Anexe o Excel da movimentação para validação cruzada."* (não tem fonte de verdade pra comparar).
+
+---
+
+## 6. Arquivos afetados
+
+| Arquivo | Mudança |
+|--------|---------|
+| `package.json` | + `pdfjs-dist` |
+| `src/lib/pdf-analysis-utils.ts` | **novo** — extrai dados do PDF |
+| `src/lib/excel-analysis-utils.ts` | + função `compararExcelComPdf` e tipos de validação |
+| `src/pages/Financeiro.tsx` | `handleToggleExpand` baixa também PDF, gera `ComparacaoResultado[]` |
+| `src/components/financeiro/AnaliseExcelRow.tsx` | renderiza ✔/✘ por campo + bloco de divergências |
+| `src/components/financeiro/FinanceiroTable.tsx` | passa o novo prop (`analiseComparacoes`) — mudança trivial de tipo |
+
+Nada de novo layout/cor/componente fora do padrão existente — apenas reaproveitamos `Alert`, `Tooltip`, `CheckCircle2`/`XCircle` da Lucide e os tokens de cor `text-success`/`text-destructive` já no design system.
+
+---
+
+## 7. Edge cases tratados
+
+- PDF sem seção "Serviço Prestado" → `aviso` específico, ✘ em todos os campos do PDF.
+- Múltiplos pagadores (vários XLS) com 1 só PDF → o mesmo PDF é comparado com cada XLS (boleto único costuma ter as duas categorias).
+- PDF contém categoria que o Excel não tem → divergência: *"Categoria Apartamento aparece no PDF mas não no Excel"*.
+- Valores em centavos no PDF (ex.: `R$ 5.760,00` vs `5760`) → normalização BRL idêntica à do Excel.
+- Tolerância de R$ 0,01 evita falso ✘ por arredondamento.
