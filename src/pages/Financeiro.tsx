@@ -140,21 +140,25 @@ export default function Financeiro() {
     enabled: empresaIds.length > 0,
   });
 
-  // Contagem de anexos por movimentação
+  // Anexos por movimentação (com tipo para calcular status: PDF > XLS)
   const movIds = useMemo(() => financeiroRaw.map((f) => f.id), [financeiroRaw]);
 
-  const { data: anexosCount = {} } = useQuery({
-    queryKey: ["financeiro-anexos-counts", movIds.sort().join(",")],
+  const { data: anexosMap = {} } = useQuery({
+    queryKey: ["financeiro-anexos", movIds.sort().join(",")],
     queryFn: async () => {
       if (movIds.length === 0) return {};
       const { data, error } = await supabase
         .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id")
+        .select("financeiro_movimentacao_id, mime_type, nome_arquivo")
         .in("financeiro_movimentacao_id", movIds);
       if (error) throw error;
-      const map: Record<string, number> = {};
+      const map: Record<string, Array<{ mime_type: string | null; nome_arquivo: string | null }>> = {};
       data.forEach((a: any) => {
-        map[a.financeiro_movimentacao_id] = (map[a.financeiro_movimentacao_id] || 0) + 1;
+        if (!map[a.financeiro_movimentacao_id]) map[a.financeiro_movimentacao_id] = [];
+        map[a.financeiro_movimentacao_id].push({
+          mime_type: a.mime_type ?? null,
+          nome_arquivo: a.nome_arquivo ?? null,
+        });
       });
       return map;
     },
