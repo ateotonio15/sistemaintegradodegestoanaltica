@@ -40,7 +40,14 @@ import {
   getMesesOptions,
 } from "@/lib/financeiro-utils";
 
-const STATUS_OPTIONS: StatusFinanceiro[] = ["Enviada", "Aguardando nota", "Pendente", "Fora do prazo"];
+const STATUS_OPTIONS: StatusFinanceiro[] = [
+  "Nota emitida",
+  "Faturado",
+  "Enviada",
+  "Aguardando nota",
+  "Pendente",
+  "Fora do prazo",
+];
 
 export default function Financeiro() {
   const { user, loading, isAdmin, isFinanceiro } = useAuth();
