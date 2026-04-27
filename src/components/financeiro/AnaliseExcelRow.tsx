@@ -194,7 +194,6 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                                       validacao={l.validacao?.beneficiarios}
                                     />
                                   </td>
-                                  </td>
                                   <td className="px-3 py-2 text-right">
                                     {l.mensalidade === null ? (
                                       <span className="text-muted-foreground">—</span>
