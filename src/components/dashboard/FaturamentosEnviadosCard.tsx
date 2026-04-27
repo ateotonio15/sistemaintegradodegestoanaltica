@@ -2,11 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { BellRing, Clock, CheckCircle2, AlertCircle, Send, CalendarClock, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -259,6 +265,7 @@ export function FaturamentosEnviadosCard() {
   ).length;
   const [enviandoAlertaMovId, setEnviandoAlertaMovId] = useState<string | null>(null);
   const [apenasAcaoPendente, setApenasAcaoPendente] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const linhasFiltradas = apenasAcaoPendente
     ? linhas.filter((l) => l.status !== "Pendente" && !l.dataVencimento && l.movId)
@@ -303,15 +310,18 @@ export function FaturamentosEnviadosCard() {
 
 
   return (
-    <Card className="rounded-xl shadow-sm border-warning/30">
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
-            <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-full h-auto justify-between gap-3 p-4 rounded-xl border-warning/30 hover:bg-warning/5"
+        >
+          <span className="flex items-center gap-2 flex-wrap">
+            <span className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
               <BellRing className="h-4 w-4 text-warning" />
-            </div>
-            Faturamentos Enviado
-            <Badge variant="outline" className="ml-1">{linhas.length}</Badge>
+            </span>
+            <span className="text-base font-semibold">Faturamentos Enviado</span>
+            <Badge variant="outline">{linhas.length}</Badge>
             {pendentes > 0 && (
               <Badge className="bg-warning text-warning-foreground text-xs gap-1">
                 <AlertCircle className="h-3 w-3" />
@@ -324,22 +334,32 @@ export function FaturamentosEnviadosCard() {
                 {aguardandoVencimento} aguardando vencimento
               </Badge>
             )}
-          </CardTitle>
-          {aguardandoVencimento > 0 && (
-            <div className="flex items-center gap-2">
-              <Switch
-                id="apenas-acao-pendente"
-                checked={apenasAcaoPendente}
-                onCheckedChange={setApenasAcaoPendente}
-              />
-              <Label htmlFor="apenas-acao-pendente" className="text-xs cursor-pointer">
-                Apenas com ação pendente
-              </Label>
-            </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
+          </span>
+          <span className="text-xs text-muted-foreground">Abrir lista</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 flex-wrap">
+            <span className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
+              <BellRing className="h-4 w-4 text-warning" />
+            </span>
+            Faturamentos Enviado
+            <Badge variant="outline">{linhas.length}</Badge>
+          </DialogTitle>
+        </DialogHeader>
+        {aguardandoVencimento > 0 && (
+          <div className="flex items-center gap-2 justify-end">
+            <Switch
+              id="apenas-acao-pendente"
+              checked={apenasAcaoPendente}
+              onCheckedChange={setApenasAcaoPendente}
+            />
+            <Label htmlFor="apenas-acao-pendente" className="text-xs cursor-pointer">
+              Apenas com ação pendente
+            </Label>
+          </div>
+        )}
         {linhasFiltradas.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
             {apenasAcaoPendente
@@ -430,7 +450,7 @@ export function FaturamentosEnviadosCard() {
             })}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }
