@@ -28,7 +28,7 @@ import {
   formatPeriodoEmpresa,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 type EmpresaOption = {
   id: string;
@@ -240,7 +240,7 @@ export default function Movimentacoes() {
     return options;
   }, []);
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const rows = filtered.map((m) => {
       const status = calcularStatus(m);
       const tipo = (m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao) === "Diária" ? "Diário" : "Período";
@@ -261,10 +261,19 @@ export default function Movimentacoes() {
         "Corretora": m.empresas?.operadora_plano ?? "",
       };
     });
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Movimentações");
-    XLSX.writeFile(wb, `movimentacoes_${filterMes}.xlsx`);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Movimentações");
+    const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+    ws.addRow(headers);
+    rows.forEach((r) => ws.addRow(headers.map((h) => (r as any)[h])));
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `movimentacoes_${filterMes}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const selectedEmpresa = empresas.find((e) => e.id === form.empresa_id);
