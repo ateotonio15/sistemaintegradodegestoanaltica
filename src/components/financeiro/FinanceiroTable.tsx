@@ -11,7 +11,7 @@ import {
 } from "@/lib/financeiro-utils";
 import { formatDateBR } from "@/lib/date-utils";
 import { AnaliseExcelRow } from "./AnaliseExcelRow";
-import type { AnaliseResultado } from "@/lib/excel-analysis-utils";
+import type { AnaliseResultado, ComparacaoResultado } from "@/lib/excel-analysis-utils";
 
 export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_nome: string;
