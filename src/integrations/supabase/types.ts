@@ -297,6 +297,7 @@ export type Database = {
           data_vencimento: string | null
           dentro_prazo: boolean
           empresa_id: string
+          enviado_por_user_id: string | null
           id: string
           mes_referencia: string
           observacoes: string | null
@@ -312,6 +313,7 @@ export type Database = {
           data_vencimento?: string | null
           dentro_prazo?: boolean
           empresa_id: string
+          enviado_por_user_id?: string | null
           id?: string
           mes_referencia: string
           observacoes?: string | null
@@ -327,6 +329,7 @@ export type Database = {
           data_vencimento?: string | null
           dentro_prazo?: boolean
           empresa_id?: string
+          enviado_por_user_id?: string | null
           id?: string
           mes_referencia?: string
           observacoes?: string | null
