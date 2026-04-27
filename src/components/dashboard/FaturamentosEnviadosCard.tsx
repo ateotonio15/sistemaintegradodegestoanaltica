@@ -190,6 +190,12 @@ export function FaturamentosEnviadosCard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "alertas_financeiro" }, () => {
         queryClient.invalidateQueries({ queryKey: ["alertas-vencimento-pendentes-mov-ids"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "anexos_movimentacao" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["faturamentos-anexos-cadastro"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "anexos_financeiro" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["faturamentos-anexos-financeiro"] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [queryClient]);
@@ -205,6 +211,7 @@ export function FaturamentosEnviadosCard() {
     dataNota: string | null;
     dataVencimento: string | null;
     alertaVencimentoAberto: boolean;
+    qtdAnexos: number;
   };
 
   const linhas: Linha[] = empresas
@@ -220,6 +227,8 @@ export function FaturamentosEnviadosCard() {
       const fin = finMap.get(`${e.id}|${ciclo.mes_referencia}|${ciclo.periodo}`) ?? null;
       const enviado = !!mov?.data_envio_financeiro;
       const status: Linha["status"] = fin?.data_envio_nota ? "Finalizado" : enviado ? "Enviado" : "Pendente";
+      const qtdCadastro = mov?.id ? (anexosCadastroPorMov.get(mov.id) ?? 0) : 0;
+      const qtdFinanceiro = fin?.id ? (anexosFinPorFinId.get(fin.id) ?? 0) : 0;
       return {
         empresa: e,
         mesReferencia: ciclo.mes_referencia,
@@ -230,6 +239,7 @@ export function FaturamentosEnviadosCard() {
         dataNota: fin?.data_envio_nota ?? null,
         dataVencimento: fin?.data_vencimento ?? null,
         alertaVencimentoAberto: mov?.id ? alertasVencimentoAbertos.has(mov.id) : false,
+        qtdAnexos: qtdCadastro + qtdFinanceiro,
       };
     })
     .sort((a, b) => {
