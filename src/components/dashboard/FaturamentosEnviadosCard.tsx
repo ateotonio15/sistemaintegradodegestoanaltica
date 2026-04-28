@@ -1,13 +1,14 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BellRing, Clock, CheckCircle2 } from "lucide-react";
+import { BellRing, Clock, CheckCircle2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { formatMesReferencia, getCurrentMesReferencia } from "@/lib/movimentacao-utils";
+import { AnexosViewerDialog } from "./AnexosViewerDialog";
 
 type FinMov = {
   id: string;
@@ -232,6 +233,13 @@ export function FaturamentosEnviadosCard() {
       .sort((a, b) => a.empresaNome.localeCompare(b.empresaNome));
   }, [pendentes, empresasInfo, alertaKeySet]);
 
+  const [anexosDialog, setAnexosDialog] = useState<{
+    empresaId: string;
+    empresaNome: string;
+    mesReferencia: string;
+    periodo: string;
+  } | null>(null);
+
   return (
     <Card className="rounded-xl shadow-sm border-warning/30">
       <CardHeader className="pb-3">
@@ -280,6 +288,23 @@ export function FaturamentosEnviadosCard() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() =>
+                        setAnexosDialog({
+                          empresaId: l.empresaId,
+                          empresaNome: l.empresaNome,
+                          mesReferencia: l.mesReferencia,
+                          periodo: l.periodo,
+                        })
+                      }
+                      title="Ver anexos do processo"
+                    >
+                      <Paperclip className="h-3 w-3" />
+                      Anexos
+                    </Button>
                     {podeAlertar && !l.temAlerta && (
                       <Button
                         size="sm"
@@ -321,6 +346,15 @@ export function FaturamentosEnviadosCard() {
           </div>
         )}
       </CardContent>
+
+      <AnexosViewerDialog
+        open={!!anexosDialog}
+        onOpenChange={(v) => !v && setAnexosDialog(null)}
+        empresaId={anexosDialog?.empresaId ?? null}
+        empresaNome={anexosDialog?.empresaNome ?? ""}
+        mesReferencia={anexosDialog?.mesReferencia ?? ""}
+        periodo={anexosDialog?.periodo ?? ""}
+      />
     </Card>
   );
 }
