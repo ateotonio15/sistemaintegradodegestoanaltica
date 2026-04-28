@@ -136,7 +136,7 @@ export function AnexosViewerDialog({
                       {a.nome_arquivo}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {formatDateTimeBR(a.created_at)}
+                      {formatDateTime(a.created_at)}
                       {a.uploader_nome ? ` · ${a.uploader_nome}` : ""}
                     </p>
                   </div>
