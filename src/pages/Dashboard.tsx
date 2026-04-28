@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, Search, BellRing } from "lucide-react";
+import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, Search, BellRing, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -967,7 +967,25 @@ export default function Dashboard() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Data Envio Financeiro</Label>
-                    <Input type="date" value={editForm.data_envio_financeiro} onChange={(e) => setEditForm({ ...editForm, data_envio_financeiro: e.target.value })} className="rounded-lg" />
+                    <div className="flex gap-2">
+                      <Input type="date" value={editForm.data_envio_financeiro} onChange={(e) => setEditForm({ ...editForm, data_envio_financeiro: e.target.value })} className="rounded-lg flex-1" />
+                      {editForm.data_envio_financeiro && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="rounded-lg shrink-0"
+                          title="Limpar data de envio ao Financeiro"
+                          onClick={() => {
+                            if (confirm("Isso removerá o alerta enviado ao Financeiro. Deseja continuar?")) {
+                              setEditForm({ ...editForm, data_envio_financeiro: "" });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
 

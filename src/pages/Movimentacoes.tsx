@@ -359,7 +359,25 @@ export default function Movimentacoes() {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Data Envio Financeiro</Label>
-                      <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} className="rounded-lg" />
+                      <div className="flex gap-2">
+                        <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} className="rounded-lg flex-1" />
+                        {form.data_envio_financeiro && editingId && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="rounded-lg shrink-0"
+                            title="Limpar data de envio ao Financeiro"
+                            onClick={() => {
+                              if (confirm("Isso removerá o alerta enviado ao Financeiro. Deseja continuar?")) {
+                                setForm({ ...form, data_envio_financeiro: null });
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
