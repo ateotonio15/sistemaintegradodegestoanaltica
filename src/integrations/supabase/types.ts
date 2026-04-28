@@ -645,6 +645,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      alertar_financeiro_nota: {
+        Args: {
+          p_empresa_id: string
+          p_mes_referencia: string
+          p_periodo: string
+        }
+        Returns: string
+      }
       enviar_movimentacao_ao_financeiro: {
         Args: { p_mov_id: string }
         Returns: string
