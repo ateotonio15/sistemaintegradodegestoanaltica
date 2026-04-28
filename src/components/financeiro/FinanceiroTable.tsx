@@ -1,5 +1,6 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp } from "lucide-react";
@@ -51,6 +52,13 @@ export function FinanceiroTable({
   analiseComparacoes,
   readOnly = false,
 }: Props) {
+  const [anexosDialog, setAnexosDialog] = useState<{
+    empresaId: string;
+    empresaNome: string;
+    mesReferencia: string;
+    periodo: string;
+  } | null>(null);
+
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       <Table>
@@ -129,10 +137,23 @@ export function FinanceiroTable({
                     <TableCell className="text-sm">{formatDateBR(row.data_envio_nota)}</TableCell>
                     <TableCell className="text-sm">{formatDateBR(row.data_vencimento)}</TableCell>
                     <TableCell className="text-center">
-                      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 gap-1 text-sm text-muted-foreground hover:text-foreground"
+                        onClick={() =>
+                          setAnexosDialog({
+                            empresaId: row.empresa_id,
+                            empresaNome: row.empresa_nome,
+                            mesReferencia: row.mes_referencia,
+                            periodo: row.periodo,
+                          })
+                        }
+                        title="Ver anexos"
+                      >
                         <Paperclip className="h-3 w-3" />
                         {row.anexos_count}
-                      </span>
+                      </Button>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -188,6 +209,15 @@ export function FinanceiroTable({
           )}
         </TableBody>
       </Table>
+
+      <AnexosViewerDialog
+        open={!!anexosDialog}
+        onOpenChange={(v) => !v && setAnexosDialog(null)}
+        empresaId={anexosDialog?.empresaId ?? null}
+        empresaNome={anexosDialog?.empresaNome ?? ""}
+        mesReferencia={anexosDialog?.mesReferencia ?? ""}
+        periodo={anexosDialog?.periodo ?? ""}
+      />
     </div>
   );
 }
