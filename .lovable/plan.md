@@ -1,43 +1,33 @@
 ## Objetivo
 
-Permitir que o perfil **Cadastro responsável pela empresa** (e Admin) altere a `data_envio_financeiro` de uma movimentação já enviada, refletindo a alteração também no alerta correspondente do Financeiro.
+Permitir que o **Cadastro responsável pela empresa** (e Admin) **exclua** a `data_envio_financeiro` de uma movimentação já enviada, removendo também o alerta correspondente do Financeiro.
 
-## Regras de negócio
+## Regras
 
-- **Quem pode editar**: Admin sempre; Cadastro apenas se for `responsavel_user_id` da empresa OU vinculado em `empresa_usuarios`.
-- **Validação da data**: obrigatória, não pode ser futura (`<= hoje`).
-- **Efeito colateral**: atualizar `alertas_financeiro.data_envio` do alerta `tipo='vencimento'` ligado à mesma `movimentacao_id`, mantendo status atual (não reabre nem finaliza).
-- Não altera anexos nem outros campos.
+- **Quem pode**: Admin sempre; Cadastro apenas se for `responsavel_user_id` da empresa OU vinculado em `empresa_usuarios`.
+- **Sem trava de segurança extra**: pode apagar mesmo que Financeiro já tenha registrado nota/vencimento (a UI pedirá confirmação).
+- **Efeito colateral**: o alerta de `tipo='vencimento'` ligado àquela movimentação é **excluído** (DELETE) — não fica nem como cancelado.
+- Não altera anexos, `dentro_prazo`, nem outros campos.
 
 ## Backend
 
-1. **Nova RPC** `public.atualizar_data_envio_financeiro(p_mov_id uuid, p_nova_data date)`:
-   - `SECURITY DEFINER`, valida `auth.uid()`.
-   - Checa autorização: admin OR (cadastro AND (responsável da empresa OR vinculado em `empresa_usuarios`)).
-   - Valida `p_nova_data <= CURRENT_DATE` e não nula.
-   - Exige que a movimentação já tenha `data_envio_financeiro` preenchida (só "trocar", não criar).
-   - `UPDATE movimentacoes SET data_envio_financeiro = p_nova_data, updated_at = now()`.
-   - `UPDATE alertas_financeiro SET data_envio = p_nova_data, updated_at = now() WHERE movimentacao_id = p_mov_id AND tipo = 'vencimento'`.
-2. **Ajuste no trigger `guard_movimentacoes_comum`**: continua bloqueando UPDATE direto pelo Cadastro; a alteração legítima passa pela RPC (que roda como SECURITY DEFINER e não dispara o bloqueio para o Cadastro).
+1. **Ajustar `guard_movimentacoes_comum`**:
+   - Permitir `NEW.data_envio_financeiro IS NULL` quando o Cadastro é responsável/vinculado (hoje bloqueia com "Data não pode ser removida").
+   - Manter as demais validações (autorização, data não futura quando definida).
+
+2. **Novo trigger `trg_remove_alerta_vencimento_on_unset`** (AFTER UPDATE OF `data_envio_financeiro`):
+   - Quando `OLD.data_envio_financeiro IS NOT NULL` e `NEW.data_envio_financeiro IS NULL`, executar `DELETE FROM alertas_financeiro WHERE movimentacao_id = NEW.id AND tipo = 'vencimento'`.
+   - O trigger existente `trg_sync_alerta_data_envio` continua cuidando da sincronização quando a data é apenas trocada.
 
 ## Frontend
 
-1. **Card "Faturamentos Enviados" (Dashboard Cadastro)** — `FaturamentosEnviadosCard.tsx`:
-   - Adicionar ícone "Editar data" (lápis/calendário) ao lado da data exibida em cada linha.
-   - Visível apenas para Admin ou Cadastro autorizado para aquela empresa.
-   - Abre um pequeno dialog com `<Input type="date" max={hoje}>` e botão Salvar.
-2. **Tela de Movimentações** — `EditarMovimentacaoDialog` (ou diálogo equivalente do Cadastro):
-   - Tornar o campo "Data de envio ao Financeiro" editável quando o usuário tem permissão.
-   - Mesmas validações; ao salvar, chamar a mesma RPC em vez do UPDATE direto.
-3. **Hook utilitário** `useCanEditDataEnvioFinanceiro(empresaId)` para decidir exibição do controle (consulta role + vínculo).
-4. **Invalidação React Query** após sucesso: `["movimentacoes"]`, `["faturamentos-enviados"]`, `["alertas_financeiro"]`, `["financeiro"]`.
+A UI atual (formulários em `Dashboard.tsx` e `pages/Movimentacoes.tsx`) já expõe o campo como `<Input type="date">`, então limpar o campo já dispara `data_envio_financeiro: null`. Acrescentar:
 
-## UX
-
-- Toast de sucesso "Data de envio atualizada".
-- Mensagem de erro clara se RPC retornar exceção (sem permissão / data futura).
-- Tooltip no ícone: "Alterar data de envio ao Financeiro".
+1. **Botão "Limpar" / ícone X** ao lado do input em ambos os formulários (apenas se valor preenchido e usuário autorizado).
+2. **Confirmação** (`AlertDialog`) ao limpar com texto: "Isso removerá o alerta enviado ao Financeiro. Deseja continuar?".
+3. **Toast de sucesso**: "Envio ao Financeiro removido".
+4. **Invalidação React Query**: `["movimentacoes"]`, `["faturamentos-fin-pendentes"]`, `["alertas_financeiro"]`, `["financeiro"]`.
 
 ## Memória
 
-Atualizar `mem://auth/profile-permissions-cadastro-financeiro` registrando que Cadastro responsável pode trocar `data_envio_financeiro` via RPC, e o alerta de vencimento é atualizado em conjunto.
+Atualizar `mem://auth/profile-permissions-cadastro-financeiro`: Cadastro responsável agora pode trocar **e excluir** `data_envio_financeiro`; ao excluir, o alerta de vencimento é removido pelo trigger `trg_remove_alerta_vencimento_on_unset`.
