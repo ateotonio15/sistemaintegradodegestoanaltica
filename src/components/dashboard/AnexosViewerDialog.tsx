@@ -10,7 +10,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Paperclip } from "lucide-react";
 import { toast } from "sonner";
-import { formatDateTimeBR } from "@/lib/date-utils";
+import { formatDateBR } from "@/lib/date-utils";
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  const data = formatDateBR(d);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${data} ${hh}:${mm}`;
+}
 
 interface Props {
   open: boolean;
