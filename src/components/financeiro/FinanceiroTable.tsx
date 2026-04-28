@@ -209,6 +209,15 @@ export function FinanceiroTable({
           )}
         </TableBody>
       </Table>
+
+      <AnexosViewerDialog
+        open={!!anexosDialog}
+        onOpenChange={(v) => !v && setAnexosDialog(null)}
+        empresaId={anexosDialog?.empresaId ?? null}
+        empresaNome={anexosDialog?.empresaNome ?? ""}
+        mesReferencia={anexosDialog?.mesReferencia ?? ""}
+        periodo={anexosDialog?.periodo ?? ""}
+      />
     </div>
   );
 }
