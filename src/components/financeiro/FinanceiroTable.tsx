@@ -1,5 +1,6 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp } from "lucide-react";
