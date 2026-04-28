@@ -52,6 +52,13 @@ export function FinanceiroTable({
   analiseComparacoes,
   readOnly = false,
 }: Props) {
+  const [anexosDialog, setAnexosDialog] = useState<{
+    empresaId: string;
+    empresaNome: string;
+    mesReferencia: string;
+    periodo: string;
+  } | null>(null);
+
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       <Table>
