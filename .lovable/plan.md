@@ -1,44 +1,43 @@
 ## Objetivo
 
-No card **Faturamentos Não Enviados** (dashboard do Cadastro/Admin), adicionar um botão por linha que dispara um alerta para o Financeiro. Esse alerta aparece automaticamente no card **Notas a Enviar** (`FaturamentosEnviadoFinanceiro`) do dashboard do Financeiro. O botão só aparece enquanto não houver alerta Pendente para aquela movimentação; quando o Financeiro preencher `data_envio_nota`, o alerta é finalizado pelo trigger existente e o botão volta a ficar disponível (mas a linha sai da lista, pois deixa de ser "não enviado").
+Permitir que o perfil **Cadastro responsável pela empresa** (e Admin) altere a `data_envio_financeiro` de uma movimentação já enviada, refletindo a alteração também no alerta correspondente do Financeiro.
 
-## Comportamento
+## Regras de negócio
 
-- Card Faturamentos Não Enviados (perfil **Cadastro** e **Admin**):
-  - Cada linha ganha à direita, antes do badge "Aguardando nota":
-    - Botão `Alertar Financeiro` (ícone sino) — quando ainda não há alerta Pendente.
-    - Badge `Alerta enviado` (estilo info, ícone check) — quando já existe alerta Pendente do tipo `nota` para aquela movimentação.
-  - Ao clicar:
-    1. Resolve a `movimentacao` operacional correspondente (mesma `empresa_id` + `mes_referencia` + `periodo`). Se não existir, cria uma mínima (insert em `movimentacoes`).
-    2. Faz `upsert` em `alertas_financeiro` com `tipo='nota'`, `status='Pendente'`, `data_envio = hoje`, `enviado_por_user_id = auth.uid()`, `enviado_por_nome = profile.display_name`, `empresa_id`, `empresa_nome`.
-    3. Toast de sucesso "Financeiro alertado".
-  - Realtime já existente em `alertas_financeiro` no card do Financeiro garante atualização imediata.
+- **Quem pode editar**: Admin sempre; Cadastro apenas se for `responsavel_user_id` da empresa OU vinculado em `empresa_usuarios`.
+- **Validação da data**: obrigatória, não pode ser futura (`<= hoje`).
+- **Efeito colateral**: atualizar `alertas_financeiro.data_envio` do alerta `tipo='vencimento'` ligado à mesma `movimentacao_id`, mantendo status atual (não reabre nem finaliza).
+- Não altera anexos nem outros campos.
 
-- Card Notas a Enviar (Financeiro): nenhuma alteração — já lê `alertas_financeiro` com `tipo='nota'` (ou null) e status Pendente.
+## Backend
 
-## Implementação técnica
+1. **Nova RPC** `public.atualizar_data_envio_financeiro(p_mov_id uuid, p_nova_data date)`:
+   - `SECURITY DEFINER`, valida `auth.uid()`.
+   - Checa autorização: admin OR (cadastro AND (responsável da empresa OR vinculado em `empresa_usuarios`)).
+   - Valida `p_nova_data <= CURRENT_DATE` e não nula.
+   - Exige que a movimentação já tenha `data_envio_financeiro` preenchida (só "trocar", não criar).
+   - `UPDATE movimentacoes SET data_envio_financeiro = p_nova_data, updated_at = now()`.
+   - `UPDATE alertas_financeiro SET data_envio = p_nova_data, updated_at = now() WHERE movimentacao_id = p_mov_id AND tipo = 'vencimento'`.
+2. **Ajuste no trigger `guard_movimentacoes_comum`**: continua bloqueando UPDATE direto pelo Cadastro; a alteração legítima passa pela RPC (que roda como SECURITY DEFINER e não dispara o bloqueio para o Cadastro).
 
-1. **DB (migration)** — função RPC `alertar_financeiro_nota(p_empresa_id uuid, p_mes_referencia text, p_periodo text)`:
-   - `SECURITY DEFINER`, `search_path=public`.
-   - Autoriza se `has_role(auth.uid(),'admin')` OU (`has_role(auth.uid(),'comum')` E usuário vinculado à empresa via `empresas.responsavel_user_id` ou `empresa_usuarios`).
-   - Garante registro em `movimentacoes` (cria se não existir) e devolve `mov_id`.
-   - `INSERT ... ON CONFLICT (movimentacao_id, tipo) DO UPDATE` em `alertas_financeiro` com `tipo='nota'`, `status='Pendente'`, `finalizado_em=NULL`, `data_envio=CURRENT_DATE`.
-   - Retorna o `id` do alerta.
-   - Garantir índice/constraint único `(movimentacao_id, tipo)` (já é exigido pelo `enviar_movimentacao_ao_financeiro`, manter compatível).
+## Frontend
 
-2. **Frontend — `FaturamentosEnviadosCard.tsx`**:
-   - Nova query `alertas-nota-pendentes-por-empresa-mes` que busca em `alertas_financeiro` os alertas Pendentes de `tipo='nota'` (ou null) cruzando com as `movimentacoes` (empresa+mes+periodo) para saber quais linhas já têm alerta. Usa um Map `${empresa_id}|${mes}|${periodo}` → boolean.
-   - Estende `Linha` com `temAlertaPendente: boolean`.
-   - Renderiza `Button` (variant outline, size sm, ícone `BellRing`) ou Badge `Alerta enviado` (variant outline verde) conforme estado.
-   - `useMutation` chamando `supabase.rpc('alertar_financeiro_nota', { p_empresa_id, p_mes_referencia, p_periodo })`, com toast e `invalidateQueries` do próprio card.
-   - Realtime adicional escutando `alertas_financeiro` para atualizar o estado do botão.
-   - Permitido apenas se `isComum || isAdmin` (vindo de `useAuth`).
+1. **Card "Faturamentos Enviados" (Dashboard Cadastro)** — `FaturamentosEnviadosCard.tsx`:
+   - Adicionar ícone "Editar data" (lápis/calendário) ao lado da data exibida em cada linha.
+   - Visível apenas para Admin ou Cadastro autorizado para aquela empresa.
+   - Abre um pequeno dialog com `<Input type="date" max={hoje}>` e botão Salvar.
+2. **Tela de Movimentações** — `EditarMovimentacaoDialog` (ou diálogo equivalente do Cadastro):
+   - Tornar o campo "Data de envio ao Financeiro" editável quando o usuário tem permissão.
+   - Mesmas validações; ao salvar, chamar a mesma RPC em vez do UPDATE direto.
+3. **Hook utilitário** `useCanEditDataEnvioFinanceiro(empresaId)` para decidir exibição do controle (consulta role + vínculo).
+4. **Invalidação React Query** após sucesso: `["movimentacoes"]`, `["faturamentos-enviados"]`, `["alertas_financeiro"]`, `["financeiro"]`.
 
-## Arquivos afetados
+## UX
 
-- `supabase/migrations/<novo>.sql` — função RPC `alertar_financeiro_nota`.
-- `src/components/dashboard/FaturamentosEnviadosCard.tsx` — UI do botão, query de alertas existentes, mutation e realtime.
+- Toast de sucesso "Data de envio atualizada".
+- Mensagem de erro clara se RPC retornar exceção (sem permissão / data futura).
+- Tooltip no ícone: "Alterar data de envio ao Financeiro".
 
-## Fora de escopo
+## Memória
 
-- Nenhuma alteração no card do Financeiro (`FaturamentosEnviadoFinanceiro.tsx`) nem no fluxo de alerta de vencimento.
+Atualizar `mem://auth/profile-permissions-cadastro-financeiro` registrando que Cadastro responsável pode trocar `data_envio_financeiro` via RPC, e o alerta de vencimento é atualizado em conjunto.
