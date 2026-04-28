@@ -130,10 +130,23 @@ export function FinanceiroTable({
                     <TableCell className="text-sm">{formatDateBR(row.data_envio_nota)}</TableCell>
                     <TableCell className="text-sm">{formatDateBR(row.data_vencimento)}</TableCell>
                     <TableCell className="text-center">
-                      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 gap-1 text-sm text-muted-foreground hover:text-foreground"
+                        onClick={() =>
+                          setAnexosDialog({
+                            empresaId: row.empresa_id,
+                            empresaNome: row.empresa_nome,
+                            mesReferencia: row.mes_referencia,
+                            periodo: row.periodo,
+                          })
+                        }
+                        title="Ver anexos"
+                      >
                         <Paperclip className="h-3 w-3" />
                         {row.anexos_count}
-                      </span>
+                      </Button>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
