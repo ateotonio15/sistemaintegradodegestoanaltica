@@ -967,7 +967,25 @@ export default function Dashboard() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Data Envio Financeiro</Label>
-                    <Input type="date" value={editForm.data_envio_financeiro} onChange={(e) => setEditForm({ ...editForm, data_envio_financeiro: e.target.value })} className="rounded-lg" />
+                    <div className="flex gap-2">
+                      <Input type="date" value={editForm.data_envio_financeiro} onChange={(e) => setEditForm({ ...editForm, data_envio_financeiro: e.target.value })} className="rounded-lg flex-1" />
+                      {editForm.data_envio_financeiro && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="rounded-lg shrink-0"
+                          title="Limpar data de envio ao Financeiro"
+                          onClick={() => {
+                            if (confirm("Isso removerá o alerta enviado ao Financeiro. Deseja continuar?")) {
+                              setEditForm({ ...editForm, data_envio_financeiro: "" });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
