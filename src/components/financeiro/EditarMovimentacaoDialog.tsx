@@ -126,6 +126,24 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     enabled: !!movimentacao && open,
   });
 
+  // Pagadores do mesmo contrato (para sincronização)
+  const { data: pagadores = [] } = useQuery({
+    queryKey: ["financeiro-pagadores", movimentacao?.empresa_id],
+    queryFn: async () => {
+      if (!movimentacao) return [] as Pagador[];
+      const { data: emp } = await supabase
+        .from("empresas")
+        .select("codigo_contrato")
+        .eq("id", movimentacao.empresa_id)
+        .maybeSingle();
+      return getPagadoresDoContrato(movimentacao.empresa_id, emp?.codigo_contrato);
+    },
+    enabled: !!movimentacao && open,
+  });
+
+  const irmaos = pagadores.filter((p) => p.id !== movimentacao?.empresa_id);
+  const temIrmaos = irmaos.length > 0;
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!movimentacao) return;
