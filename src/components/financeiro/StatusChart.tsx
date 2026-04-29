@@ -45,9 +45,15 @@ export function StatusChart({ data }: StatusChartProps) {
         counts[d.status] = (counts[d.status] || 0) + 1;
       });
     } else {
+      // Modo "prazo": usa cálculo do Financeiro (24h/48h, regra dia 01)
       data.forEach((d) => {
-        const key = d.dentro_prazo ? "Dentro do prazo" : "Fora do prazo";
-        counts[key] = (counts[key] || 0) + 1;
+        const r = calcularPrazoFinanceiro({
+          aguardando_nota_em: d.aguardando_nota_em,
+          data_envio_nota: d.data_envio_nota,
+          dia_emissao: d.dia_emissao,
+        });
+        if (r.categoria === "Sem base") return;
+        counts[r.categoria] = (counts[r.categoria] || 0) + 1;
       });
     }
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
