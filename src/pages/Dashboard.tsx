@@ -811,12 +811,11 @@ export default function Dashboard() {
                     <TableHead className="font-semibold">Envio Empresa</TableHead>
                     <TableHead className="font-semibold">Financeiro</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
-                    {role === "comum" && <TableHead className="font-semibold">Alerta</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {listaConcluidas.length === 0 ? (
-                    <TableRow><TableCell colSpan={role === "comum" ? 9 : 8} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
                   ) : (
                     listaConcluidas.map((m) => (
                       <TableRow key={m.id} className="hover:bg-accent/50 transition-colors">
@@ -828,14 +827,6 @@ export default function Dashboard() {
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                         <TableCell><Badge className={`${statusColor(m.status)} rounded-md`}>{m.status}</Badge></TableCell>
-                        {role === "comum" && (
-                          <TableCell>
-                            <Badge className="bg-warning/15 text-warning border border-warning/40 rounded-md gap-1 hover:bg-warning/25 cursor-default">
-                              <BellRing className="h-3 w-3" />
-                              Faturamentos Enviado
-                            </Badge>
-                          </TableCell>
-                        )}
                       </TableRow>
                     ))
                   )}
