@@ -17,7 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Bell, Wallet, RefreshCw, Download } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download, Trophy } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { exportarPremio } from "@/lib/premio-export";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
@@ -476,7 +479,7 @@ export default function Financeiro() {
   };
 
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
-  const ANALISE_PARSER_VERSION = "4";
+  const ANALISE_PARSER_VERSION = "5";
 
   const runAnalise = async (
     row: FinanceiroRow,
