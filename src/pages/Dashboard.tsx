@@ -535,23 +535,59 @@ export default function Dashboard() {
     return periodItems.filter((m) => m.status === "Enviado ao financeiro");
   }, [periodItems]);
 
-  const concluidasMovIds = useMemo(
-    () => listaConcluidas.map((m) => m.id),
+  const concluidasKeys = useMemo(
+    () =>
+      listaConcluidas.map((m) => ({
+        empresa_id: m.empresa_id,
+        mes_referencia: m.mes_referencia,
+        periodo: m.periodo,
+      })),
     [listaConcluidas],
   );
 
+  const empresaIdsConcluidas = useMemo(
+    () => Array.from(new Set(concluidasKeys.map((k) => k.empresa_id))),
+    [concluidasKeys],
+  );
+
   const { data: anexosCountMap = {} } = useQuery<Record<string, number>>({
-    queryKey: ["anexos-count-concluidas", concluidasMovIds.sort().join(",")],
-    enabled: concluidasMovIds.length > 0,
+    queryKey: [
+      "anexos-count-concluidas",
+      empresaIdsConcluidas.sort().join(","),
+      concluidasKeys.map((k) => `${k.mes_referencia}|${k.periodo}`).sort().join(","),
+    ],
+    enabled: concluidasKeys.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // 1) Busca TODAS as movimentações (mesma empresa+mes+periodo) para os processos concluídos
+      const { data: movs, error: errMov } = await supabase
+        .from("movimentacoes")
+        .select("id, empresa_id, mes_referencia, periodo")
+        .in("empresa_id", empresaIdsConcluidas);
+      if (errMov) throw errMov;
+      // mantém só as que batem com algum (empresa,mes,periodo) da lista
+      const keySet = new Set(
+        concluidasKeys.map((k) => `${k.empresa_id}|${k.mes_referencia}|${k.periodo}`),
+      );
+      const movsRel = (movs ?? []).filter((mv: any) =>
+        keySet.has(`${mv.empresa_id}|${mv.mes_referencia}|${mv.periodo}`),
+      );
+      const movIds = movsRel.map((m: any) => m.id);
+      if (movIds.length === 0) return {};
+      // 2) Conta anexos por movimentação
+      const { data: anx, error: errAnx } = await supabase
         .from("anexos_movimentacao")
         .select("movimentacao_id")
-        .in("movimentacao_id", concluidasMovIds);
-      if (error) throw error;
+        .in("movimentacao_id", movIds);
+      if (errAnx) throw errAnx;
+      const countByMov: Record<string, number> = {};
+      (anx ?? []).forEach((a: any) => {
+        countByMov[a.movimentacao_id] = (countByMov[a.movimentacao_id] ?? 0) + 1;
+      });
+      // 3) Agrega contagem por chave empresa|mes|periodo
       const map: Record<string, number> = {};
-      (data ?? []).forEach((a: any) => {
-        map[a.movimentacao_id] = (map[a.movimentacao_id] ?? 0) + 1;
+      movsRel.forEach((mv: any) => {
+        const k = `${mv.empresa_id}|${mv.mes_referencia}|${mv.periodo}`;
+        map[k] = (map[k] ?? 0) + (countByMov[mv.id] ?? 0);
       });
       return map;
     },
