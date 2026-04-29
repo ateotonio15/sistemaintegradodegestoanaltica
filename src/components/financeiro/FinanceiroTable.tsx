@@ -118,33 +118,33 @@ export function FinanceiroTable({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground text-center">
                       {row.empresa_codigo || "—"}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground text-center">
                       {row.empresa_cnpj || "—"}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap text-center">
                       {row.periodo_corte}
                     </TableCell>
-                    <TableCell className="text-sm">{row.responsavel || "—"}</TableCell>
+                    <TableCell className="text-sm text-center">{row.responsavel || "—"}</TableCell>
                     <TableCell className="text-sm text-center">
                       {row.tipo_cobranca || <span className="text-muted-foreground">—</span>}
                     </TableCell>
-                    <TableCell className="text-sm whitespace-nowrap">
+                    <TableCell className="text-sm whitespace-nowrap text-center">
                       {row.dia_emissao
                         ? `Emissão dia ${String(row.dia_emissao).padStart(2, "0")}`
                         : <span className="text-muted-foreground">—</span>}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge className={cn("text-xs", statusFinanceiroColor(row.status))}>
                         {row.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell className="text-sm text-center">
                       {row.enviado_por_nome || <span className="text-muted-foreground">—</span>}
                     </TableCell>
-                    <TableCell className="text-sm">{formatDateBR(row.data_envio_nota)}</TableCell>
+                    <TableCell className="text-sm text-center">{formatDateBR(row.data_envio_nota)}</TableCell>
                     <TableCell className="text-sm text-center" title={formatDateBR(row.data_vencimento)}>
                       {formatDay(row.data_vencimento)}
                     </TableCell>
