@@ -214,6 +214,34 @@ export function FinanceiroTable({
                         {row.anexos_count}
                       </Button>
                     </TableCell>
+                    <TableCell className="text-center">
+                      {(() => {
+                        const lista = pagadoresCadastrados[row.empresa_id] || [];
+                        const ativos = lista.filter((p) => p.ativo);
+                        const total = ativos.length;
+                        const tooltip =
+                          total > 0
+                            ? `Pagadores: ${ativos.map((p) => p.nome_pagador).join(", ")}`
+                            : `Sem pagadores cadastrados (assume "${row.empresa_nome}")`;
+                        return (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 gap-1 text-sm text-muted-foreground hover:text-foreground"
+                            onClick={() =>
+                              setPagadoresDialog({
+                                empresaId: row.empresa_id,
+                                empresaNome: row.empresa_nome,
+                              })
+                            }
+                            title={tooltip}
+                          >
+                            <UserCog className="h-3 w-3" />
+                            {total > 0 ? total : <span className="italic text-xs">padrão</span>}
+                          </Button>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-1">
                         {!readOnly && (
