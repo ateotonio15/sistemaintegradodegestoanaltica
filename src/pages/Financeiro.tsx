@@ -695,8 +695,14 @@ export default function Financeiro() {
       }
 
       Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
-      setAnaliseResultados((prev) => ({ ...prev, [row.id]: resultados }));
-      setAnaliseComparacoes((prev) => ({ ...prev, [row.id]: comparacoes }));
+      setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados }));
+      setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: comparacoes }));
+
+      // "A Receber" só roda na linha mãe (sem pagador) — evita duplicar
+      if (filtroPagador) {
+        return;
+      }
+
 
       // ===== Geração automática de "A Receber" (apenas se validado) =====
       try {
