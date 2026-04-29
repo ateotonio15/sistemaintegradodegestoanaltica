@@ -99,6 +99,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         tipo_cobranca: tipoTrimmed || null,
         data_envio_nota: dataEnvioNota || null,
         data_vencimento: dataVencimento || null,
+        dia_emissao: diaEmissao === "__none__" ? null : Number(diaEmissao),
         dentro_prazo: dentroPrazo,
       };
       if (envioAlterado && user?.id) {
