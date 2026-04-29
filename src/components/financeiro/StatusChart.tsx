@@ -65,7 +65,7 @@ export function StatusChart({ data }: StatusChartProps) {
     <Card className="rounded-xl shadow-sm h-full">
       <CardContent className="p-4 flex flex-col h-full">
         <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-          <h3 className="text-sm font-semibold text-foreground">Distribuição</h3>
+          <h3 className="text-sm font-semibold text-foreground">​</h3>
           <div className="flex gap-1 bg-muted rounded-lg p-1">
             {(["status", "tipo", "prazo"] as Mode[]).map((m) => (
               <Button
