@@ -246,6 +246,8 @@ export async function analisarPdfFinanceiro(
     inclusoes: { total: inclusoesTotal },
     valorLiquido,
     nfNumero,
+    tomadorCnpj,
+    tomadorNome,
     avisos,
   };
 }
