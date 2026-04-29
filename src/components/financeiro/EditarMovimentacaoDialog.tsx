@@ -342,6 +342,19 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         </DialogHeader>
 
         <div className="space-y-4">
+          {temIrmaos && (
+            <div className="flex items-start gap-2 rounded-lg border border-info/30 bg-info/5 px-3 py-2 text-xs">
+              <Users className="h-4 w-4 text-info shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-foreground">
+                  Contrato com {pagadores.length} pagadores
+                </p>
+                <p className="text-muted-foreground">
+                  Pagadores: {pagadores.map((p) => p.nome).join(", ")}. Ao salvar ou anexar, será perguntado se replica para todos.
+                </p>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="tipo">Tipo de cobrança</Label>
