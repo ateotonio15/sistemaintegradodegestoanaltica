@@ -113,13 +113,21 @@ export async function analisarPdfFinanceiro(
   // mas preservando dígitos e separadores. Linha única para regex livres.
   const t = norm(texto);
 
-  // Padrão "Enfermaria: 97x200.99= 19.496,03"
+  // Padrões aceitos:
+  //   "Enfermaria: 97x200.99= 19.496,03"
+  //   "Enfermaria CE-70x357,07: R$24.994,90"   (WINLOGIS)
+  //   "Enfermaria Master 70 x 357,07 = 24.994,90"
+  // Captura: (1)=qtd, (2)=mensalidade, (3)=total
   const NUM = String.raw`[\d.,]+`;
   const reCat = (cat: string) =>
-    new RegExp(`${cat}\\s*:?\\s*(\\d+)\\s*[xX×]\\s*(${NUM})\\s*=\\s*(${NUM})`, "i");
+    new RegExp(
+      // cat + qualquer rótulo curto (CE, Master, etc.) + sep + qtd x preço + sep + total
+      `${cat}[\\s\\-:a-z]{0,30}?(\\d+)\\s*[xX×]\\s*(${NUM})\\s*[=:]\\s*r?\\$?\\s*(${NUM})`,
+      "i",
+    );
 
   const reInclusao = new RegExp(
-    `inclus(?:ao|oes|oes|ao|oes)\\s*:?\\s*(${NUM})`,
+    `inclus(?:ao|oes|ões)?\\s*:?\\s*r?\\$?\\s*(${NUM})`,
     "i",
   );
 
