@@ -53,22 +53,39 @@ export function FaturamentosEnviadosCard() {
     enabled: !!user,
     queryFn: async () => {
       if (!user) return [];
-      // Admin: todas as empresas
-      if (isAdmin) {
-        const { data } = await supabase.from("empresas").select("id");
-        return (data ?? []).map((e) => e.id);
-      }
-      const ids = new Set<string>();
-      const { data: own } = await supabase
+      // Busca empresas com campos para validar "ativa"
+      const { data: empresasData } = await supabase
         .from("empresas")
-        .select("id")
-        .eq("responsavel_user_id", user.id);
-      (own ?? []).forEach((e) => ids.add(e.id));
+        .select("id, responsavel_user_id, status_empresa, data_rescisao, contrato_suspenso");
+      const todas = (empresasData ?? []) as Array<{
+        id: string;
+        responsavel_user_id: string | null;
+        status_empresa: string | null;
+        data_rescisao: string | null;
+        contrato_suspenso: boolean | null;
+      }>;
+      const ativas = todas.filter(
+        (e) =>
+          (e.status_empresa ?? "Ativa") === "Ativa" &&
+          !e.data_rescisao &&
+          !e.contrato_suspenso,
+      );
+      // Admin: todas as empresas ativas
+      if (isAdmin) {
+        return ativas.map((e) => e.id);
+      }
+      const ativasIds = new Set(ativas.map((e) => e.id));
+      const ids = new Set<string>();
+      todas
+        .filter((e) => e.responsavel_user_id === user.id && ativasIds.has(e.id))
+        .forEach((e) => ids.add(e.id));
       const { data: links } = await supabase
         .from("empresa_usuarios")
         .select("empresa_id")
         .eq("user_id", user.id);
-      (links ?? []).forEach((l) => ids.add(l.empresa_id));
+      (links ?? []).forEach((l) => {
+        if (ativasIds.has(l.empresa_id)) ids.add(l.empresa_id);
+      });
       return Array.from(ids);
     },
   });
