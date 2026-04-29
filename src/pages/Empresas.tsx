@@ -105,6 +105,27 @@ export default function Empresas() {
     enabled: !!user,
   });
 
+  // Mapa empresa_id -> dia_emissao mais recente vindo da aba Financeiro
+  const { data: diaEmissaoMap = {} } = useQuery({
+    queryKey: ["empresas-dia-emissao-financeiro"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("empresa_id, dia_emissao, mes_referencia")
+        .not("dia_emissao", "is", null)
+        .order("mes_referencia", { ascending: false });
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const row of (data ?? []) as Array<{ empresa_id: string; dia_emissao: number | null }>) {
+        if (row.empresa_id && row.dia_emissao != null && map[row.empresa_id] == null) {
+          map[row.empresa_id] = row.dia_emissao;
+        }
+      }
+      return map;
+    },
+    enabled: !!user,
+  });
+
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
       if (isExecutivo && editingId) {
@@ -619,7 +640,7 @@ export default function Empresas() {
                           </TableCell>
                           <TableCell className="text-muted-foreground">{formatDateBR(e.data_implantacao)}</TableCell>
                           <TableCell className="text-muted-foreground">{formatDay(e.data_vencimento_fatura)}</TableCell>
-                          <TableCell className="text-muted-foreground">{formatDay(e.data_emissao_fatura)}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDay(diaEmissaoMap[e.id] ?? e.data_emissao_fatura)}</TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
                               <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md w-fit">
@@ -673,7 +694,7 @@ export default function Empresas() {
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Implantação</p><p className="font-medium mt-0.5">{formatDateBR(detailEmpresa.data_implantacao) || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Corte</p><p className="font-medium mt-0.5">{detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Vencimento da Fatura</p><p className="font-medium mt-0.5">{formatDay(detailEmpresa.data_vencimento_fatura)}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Emissão da Fatura</p><p className="font-medium mt-0.5">{formatDay(detailEmpresa.data_emissao_fatura)}</p></div>
+                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Emissão da Fatura</p><p className="font-medium mt-0.5">{formatDay(diaEmissaoMap[detailEmpresa.id] ?? detailEmpresa.data_emissao_fatura)}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">E-mail da Empresa</p><p className="font-medium mt-0.5">{detailEmpresa.email_empresa || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Telefone da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).telefone_empresa || "—"}</p></div>
                     <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Contato da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).contato_empresa || "—"}</p></div>
