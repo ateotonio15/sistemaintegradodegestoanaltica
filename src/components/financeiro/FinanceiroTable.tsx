@@ -1,9 +1,10 @@
 import { Fragment, useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
+import { GerenciarPagadoresDialog } from "./GerenciarPagadoresDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, Users, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -27,6 +28,13 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   enviado_por_nome?: string | null;
 };
 
+export interface PagadorCadastrado {
+  id: string;
+  empresa_id: string;
+  nome_pagador: string;
+  ativo: boolean;
+}
+
 interface Props {
   rows: FinanceiroRow[];
   onEdit: (row: FinanceiroRow) => void;
@@ -39,9 +47,11 @@ interface Props {
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
   readOnly?: boolean;
+  /** Mapa empresa_id -> lista de pagadores cadastrados (financeiro_pagadores) */
+  pagadoresCadastrados?: Record<string, PagadorCadastrado[]>;
 }
 
-const COL_COUNT = 13;
+const COL_COUNT = 14;
 
 export function FinanceiroTable({
   rows,
