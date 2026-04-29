@@ -26,6 +26,10 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   dia_emissao?: number | null;
   aguardando_nota_em?: string | null;
   enviado_por_nome?: string | null;
+  /** Chave única por linha (id da movimentação + id do pagador, quando aplicável) */
+  rowKey?: string;
+  /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
+  pagador_id?: string | null;
 };
 
 export interface PagadorCadastrado {
@@ -47,8 +51,6 @@ interface Props {
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
   readOnly?: boolean;
-  /** Mapa empresa_id -> lista de pagadores cadastrados (financeiro_pagadores) */
-  pagadoresCadastrados?: Record<string, PagadorCadastrado[]>;
 }
 
 const COL_COUNT = 14;
