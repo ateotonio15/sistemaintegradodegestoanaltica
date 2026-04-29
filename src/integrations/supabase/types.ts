@@ -389,6 +389,7 @@ export type Database = {
           observacoes: string | null
           periodo: string
           responsavel: string | null
+          tipo_analise: string
           tipo_cobranca: string | null
           updated_at: string
         }
@@ -407,6 +408,7 @@ export type Database = {
           observacoes?: string | null
           periodo: string
           responsavel?: string | null
+          tipo_analise?: string
           tipo_cobranca?: string | null
           updated_at?: string
         }
@@ -425,6 +427,7 @@ export type Database = {
           observacoes?: string | null
           periodo?: string
           responsavel?: string | null
+          tipo_analise?: string
           tipo_cobranca?: string | null
           updated_at?: string
         }

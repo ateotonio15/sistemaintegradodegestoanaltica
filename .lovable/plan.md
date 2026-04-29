@@ -1,82 +1,135 @@
-## Objetivo
+## Escopo
 
-Adicionar três funcionalidades **isoladas na aba Financeiro** (`/financeiro`), sem afetar Cadastro/Operacional/Comercial:
-
-1. Coluna e campo **"Emissão"** (dia 01–31)
-2. Vencimento exibido **apenas como dia (DD)**
-3. **Controle de prazo** (24h / 48h / regra dia 01) ao status "Aguardando nota", com gráfico Dentro/Fora do prazo
+Tudo abaixo vive **somente na aba Financeiro**. Nenhum trigger, RPC ou tela do Cadastro/Operacional/Comercial é alterado.
 
 ---
 
-## 1. Coluna e Campo "Emissão"
+## 1. "Data de vencimento" → seletor de dia (01–31)
 
-### Banco
-- Nova coluna `dia_emissao` (smallint, nullable, 1–31) em `financeiro_movimentacoes`.
-- Trigger `BEFORE INSERT` que preenche automaticamente `dia_emissao = 1` quando `periodo IN ('20-25','25-30')` e o campo vier nulo.
-- Backfill: `UPDATE financeiro_movimentacoes SET dia_emissao = 1 WHERE dia_emissao IS NULL AND periodo IN ('20-25','25-30')`.
+**Onde:** `EditarMovimentacaoDialog.tsx` (campo `data_vencimento`).
 
-### Frontend (somente Financeiro)
-- **Tabela** (`FinanceiroTable.tsx`): nova coluna **"Emissão"** entre **Tipo** e **Status**, exibindo `Emissão dia XX` (ou `—`).
-- **Editar movimentação** (`EditarMovimentacaoDialog.tsx`): novo `<Select>` "Dia de emissão (01–31)" logo abaixo de "Data de envio da nota". Salva `dia_emissao`.
-
----
-
-## 2. Vencimento somente DD na aba Financeiro
-
-- Em `FinanceiroTable.tsx`, alterar a célula **Vencimento** para mostrar apenas `String(getDate()).padStart(2,'0')` (helper local `formatDay` já existe em `date-utils.ts`).
-- Banco intacto. Outras telas continuam exibindo data completa.
+- Substituir o `<Input type="date">` por um `<Select>` com opções `01`–`31` + "— Não definido —".
+- **Armazenamento (compatível):** continuar gravando em `financeiro_movimentacoes.data_vencimento` como `date`, montando `YYYY-MM-DD` a partir do `mes_referencia` da movimentação (ex.: `2026-04` + dia `15` → `2026-04-15`). Assim nada quebra no banco, exports e gráficos existentes.
+- Remover a validação "vencimento anterior ao envio" (perde sentido com dia puro) e ajustar o aviso correspondente.
+- Tabela (`FinanceiroTable.tsx`) já exibe só o dia via `formatDay` — mantido.
+- Export Excel: continuar usando `formatDateBR` (data completa) — não impacta usuário, é dado interno.
 
 ---
 
-## 3. Regras de Prazo (24h/48h + dia 01)
+## 2. Novo campo "Tipo de análise" (somente Financeiro)
 
-### Banco
-- Nova coluna `aguardando_nota_em` (timestamptz, nullable) em `financeiro_movimentacoes` — marca quando o registro entrou em "Aguardando nota".
-- Trigger `BEFORE UPDATE` em `financeiro_movimentacoes`:
-  - Quando o status calculado passa a ser "Aguardando nota" (heurística servidor: `data_envio_nota IS NULL` e detecção via flag aplicação) → como o status é calculado no front, **gravamos `aguardando_nota_em` via app** quando o usuário do Operacional clicar em "Pendente → enviar" (já existe `data_envio_financeiro` em `movimentacoes`). Estratégia mais simples e sem tocar em outros fluxos: marcar `aguardando_nota_em = now()` no momento em que existir registro em `movimentacoes` com `data_envio_financeiro` e a `financeiro_movimentacoes` correspondente ainda não tem nem `data_envio_nota` nem `aguardando_nota_em`. Implementação via **trigger AFTER UPDATE em `movimentacoes`** quando `data_envio_financeiro` passa de NULL para preenchida → faz `UPDATE financeiro_movimentacoes SET aguardando_nota_em = now() WHERE empresa_id=… AND mes_referencia=… AND periodo=… AND aguardando_nota_em IS NULL AND data_envio_nota IS NULL`. Fica **isolado ao Financeiro** (só popula coluna do Financeiro).
+**Coluna nova no banco** — migration:
 
-### Cálculo do prazo (frontend, em `lib/financeiro-utils.ts`)
-Função `calcularPrazoFinanceiro({ aguardando_nota_em, data_envio_nota, dia_emissao })`:
-1. Se `aguardando_nota_em` ausente → `"sem-base"` (ignorado nos KPIs de prazo).
-2. Definir `inicio`:
-   - Se `dia_emissao = 1` → `inicio = primeiro dia do MÊS SEGUINTE` ao `aguardando_nota_em` (00:00 local).
-   - Caso contrário → `inicio = aguardando_nota_em`.
-3. Janela:
-   - `inicio.getDate() <= 10` → 48h.
-   - `inicio.getDate() >= 11` → 24h.
-4. `limite = inicio + janela`.
-5. Comparar com `data_envio_nota` (ou `now()` se ainda pendente):
-   - Enviada `<= limite` → **Dentro do prazo**.
-   - Enviada `> limite` ou pendente após `limite` → **Fora do prazo**.
-   - Pendente antes de `inicio` ou dentro da janela → **Em andamento** (não conta no gráfico).
+```sql
+ALTER TABLE public.financeiro_movimentacoes
+  ADD COLUMN tipo_analise text NOT NULL DEFAULT 'normal';
+-- valores aceitos: 'normal' | 'faixa_etaria' | 'moto_honda'
+ALTER TABLE public.financeiro_movimentacoes
+  ADD CONSTRAINT chk_tipo_analise
+  CHECK (tipo_analise IN ('normal','faixa_etaria','moto_honda'));
+```
 
-### Gráfico (`StatusChart.tsx`)
-Modo **"Prazo"** passa a usar `calcularPrazoFinanceiro` (em vez de `dentro_prazo` boolean). Categorias:
-- 🟢 Dentro do prazo
-- 🔴 Fora do prazo
-- ⚪ Em andamento (cinza, opcional para diagnóstico)
+Default `'normal'` cobre todos os contratos existentes e novos automaticamente.
 
-### KPI
-Card "Fora do prazo" passa a contar pelo cálculo novo, em vez de `dentro_prazo === false && !data_envio_nota`.
+**UI no `EditarMovimentacaoDialog`:** novo `<Select>` "Tipo de análise" no espaço destacado em amarelo (ao lado de "Data de envio da nota"), com:
+- Análise normal *(padrão)*
+- Análise faixa etária
+- Análise Moto Honda
+
+Salvar junto com os demais campos no `update`.
+
+Mostrar também um badge discreto na linha expandida da tabela ("Análise: Moto Honda") para o Financeiro saber qual parser está rodando.
 
 ---
 
-## Detalhes técnicos
+## 3. Pipeline de análise condicional
 
-**Arquivos editados**
-- `supabase/migrations/<timestamp>_financeiro_emissao_e_prazo.sql` (nova)
-- `src/lib/financeiro-utils.ts` (helper `calcularPrazoFinanceiro`, tipo `PrazoCategoria`)
-- `src/components/financeiro/FinanceiroTable.tsx` (nova coluna + Vencimento DD; `COL_COUNT` 12 → 13)
-- `src/components/financeiro/EditarMovimentacaoDialog.tsx` (campo Dia de emissão)
-- `src/components/financeiro/StatusChart.tsx` (modo prazo recalculado)
-- `src/components/financeiro/KpiCards.tsx` + `src/pages/Financeiro.tsx` (cálculo prazo)
-- `src/pages/Financeiro.tsx` (incluir `dia_emissao`/`aguardando_nota_em` no select e em `FinanceiroRow`)
+**`src/pages/Financeiro.tsx` (função `runAnalise`)** passa a despachar pelo `row.tipo_analise`:
 
-**Isolamento garantido**
-- Todas as mudanças de schema são em `financeiro_movimentacoes` (tabela exclusiva do Financeiro).
-- Trigger em `movimentacoes` apenas LÊ a movimentação operacional e ESCREVE em `financeiro_movimentacoes`; não muda comportamento do Operacional/Cadastro.
-- `formatDay` apenas dentro de `FinanceiroTable.tsx`. Outras tabelas (`Movimentacoes.tsx`, Dashboard, etc.) continuam com `formatDateBR`.
+```text
+tipo_analise === 'normal'        → analisarExcelFinanceiro      (atual, sem mudança)
+tipo_analise === 'faixa_etaria'  → analisarExcelFinanceiro      (igual ao normal por enquanto)
+tipo_analise === 'moto_honda'    → analisarExcelMotoHonda       (NOVO, lê aba RESUMO)
+```
 
-**Memória**
-- Atualizar `mem://auth/profile-permissions-cadastro-financeiro` registrando os novos campos exclusivos do Financeiro.
-- Criar `mem://logic/financeiro-prazo-emissao` com a regra de cálculo (24h/48h, dia 01 → começa no mês seguinte).
+PDF roda igual para os 3 tipos (`analisarPdfFinanceiro`), mas com **fallback simplificado** quando for Moto Honda (item 4).
+
+---
+
+## 4. Parser Excel "Moto Honda" — aba RESUMO
+
+**Novo arquivo:** `src/lib/excel-analysis-moto-honda.ts`
+
+Lê **somente** a aba `RESUMO` do `.xlsx`. Mapeamento confirmado pelo arquivo enviado:
+
+| Linha RESUMO       | Sistema      | Campos extraídos                  |
+|--------------------|--------------|-----------------------------------|
+| `M.Empresarial`    | Enfermaria   | Qtd, Mensalidade, Valor           |
+| `M.Executivo`      | Apartamento  | Qtd, Mensalidade, Valor           |
+| `Proporcional / Inclusoes` | Inclusões | Valor (qtd não vem) |
+| `Proporcional / Exclusoes` | Exclusões (novo) | Valor (negativo) |
+
+Algoritmo:
+1. Procurar a worksheet com nome normalizado igual a `resumo` (sem acento, lowercase).
+2. Varrer todas as linhas, casar a primeira célula por contém `m.empresarial`, `m.executivo`, `inclus`, `exclus`.
+3. Coluna B = qtd (int), C = mensalidade (number), D = valor total (number; pode ser negativo).
+4. Retornar `AnaliseResultado` no mesmo shape atual (`enfermaria`, `apartamento`, `inclusoes`) + novo campo opcional `exclusoes: { quantidade, total }`.
+5. Se `RESUMO` não existir → aviso "Aba RESUMO não encontrada — não buscar dados em outras abas." e retornar zeros.
+
+**Ajuste no tipo `AnaliseResultado`:** adicionar `exclusoes?: { quantidade: number; total: number }` (opcional para não quebrar parser normal).
+
+**`AnaliseExcelRow.tsx`:** quando `exclusoes` vier preenchido, renderizar uma 4ª linha "Exclusões" com total negativo em cor `text-destructive`.
+
+---
+
+## 5. PDF Moto Honda — fallback simplificado
+
+**Em `src/lib/pdf-analysis-utils.ts`** adicionar uma análise alternativa:
+
+```ts
+export async function analisarPdfFinanceiroSimplificado(buffer): Promise<{
+  beneficiarios: number | null;
+  inclusoes: { quantidade: number | null; total: number };
+  exclusoes: { quantidade: number | null; total: number };
+}>
+```
+
+Regex aplicada sobre o texto extraído (reaproveitar `extrairTextoPdf`):
+- `total\s*de\s*beneficiarios?\s*[:\-]?\s*(\d+)` ou `(\d+)\s*beneficiarios?`
+- `inclus(?:ao|ões|oes)\s*[:\-]?\s*(?:(\d+)\s*[xX×])?\s*(R?\$?\s*[\d.,]+)` (qtd opcional + valor)
+- `exclus(?:ao|ões|oes)\s*[:\-]?\s*(?:(\d+)\s*[xX×])?\s*(R?\$?\s*[\d.,-]+)`
+
+**Decisão automática (em `runAnalise`, branch Moto Honda):**
+
+```text
+1. Roda analisarPdfFinanceiro (completo)
+2. SE pdf.enfermaria.total > 0 OU pdf.apartamento.total > 0 OU pdf.<algum>.mensalidade != null
+     → usa análise completa (compararExcelComPdf como hoje)
+   SENÃO
+     → roda analisarPdfFinanceiroSimplificado e usa um novo
+       compararExcelComPdfSimplificado(excel, pdfSimples) que valida apenas
+       beneficiários totais, inclusões (valor) e exclusões (valor).
+```
+
+Resultado simplificado renderizado pelo mesmo `AnaliseExcelRow` adicionando uma seção "Validação simplificada (Moto Honda)" abaixo das categorias quando aplicável.
+
+---
+
+## 6. Detalhes técnicos finais
+
+- **Migration:** uma só, contendo apenas o `ALTER TABLE` da coluna `tipo_analise`.
+- **Sem mudanças em RLS, triggers ou funções existentes.**
+- **`types.ts` (Supabase) é regenerado automaticamente** após a migration; o código TS lê `tipo_analise` via `Tables<"financeiro_movimentacoes">`.
+- **Cache de análise (`_key`)** em `Financeiro.tsx` passa a incluir `row.tipo_analise` para refazer a análise quando o usuário trocar o tipo.
+- **Nenhuma alteração** em: Cadastro, Movimentações, Dashboard operacional, alertas, Saúde, Painel Executivas.
+
+## Arquivos tocados
+
+- `supabase/migrations/<nova>.sql` — coluna `tipo_analise`.
+- `src/components/financeiro/EditarMovimentacaoDialog.tsx` — vencimento como dia + select tipo de análise.
+- `src/components/financeiro/FinanceiroTable.tsx` — badge do tipo de análise (linha expandida).
+- `src/components/financeiro/AnaliseExcelRow.tsx` — renderização de exclusões e bloco "validação simplificada".
+- `src/lib/excel-analysis-utils.ts` — campo `exclusoes?` no tipo + comparador simplificado.
+- `src/lib/excel-analysis-moto-honda.ts` — **novo**, parser da aba RESUMO.
+- `src/lib/pdf-analysis-utils.ts` — função `analisarPdfFinanceiroSimplificado`.
+- `src/pages/Financeiro.tsx` — despacho por `tipo_analise` + decisão completa/simplificada do PDF.
