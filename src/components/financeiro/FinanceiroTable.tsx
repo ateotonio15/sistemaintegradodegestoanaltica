@@ -122,6 +122,24 @@ export function FinanceiroTable({
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
+                        {(() => {
+                          const codigo = row.empresa_codigo?.trim();
+                          const irmaos = codigo ? pagadoresPorContrato[codigo] : null;
+                          const totalPag = irmaos?.length ?? 1;
+                          if (totalPag > 1) {
+                            return (
+                              <Badge
+                                variant="outline"
+                                className="text-info border-info/50 text-[10px] px-1.5 py-0 h-5"
+                                title={`Pagadores deste contrato: ${irmaos!.join(", ")}`}
+                              >
+                                <Users className="h-2.5 w-2.5 mr-1" />
+                                {totalPag} pagadores
+                              </Badge>
+                            );
+                          }
+                          return null;
+                        })()}
                         {row.cobranca_registrada && (
                           <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
                             <Bell className="h-2.5 w-2.5 mr-1" />
