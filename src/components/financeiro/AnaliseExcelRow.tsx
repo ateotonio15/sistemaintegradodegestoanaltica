@@ -14,14 +14,21 @@ import {
   formatBRL,
   type AnaliseResultado,
   type ComparacaoResultado,
+  type ComparacaoSimplificada,
   type CampoValidacao,
 } from "@/lib/excel-analysis-utils";
+
+type ComparacaoQualquer = ComparacaoResultado | ComparacaoSimplificada;
+
+function isSimplificada(c: ComparacaoQualquer | null | undefined): c is ComparacaoSimplificada {
+  return !!c && "beneficiarios" in c && !("enfermaria" in c);
+}
 
 interface Props {
   colSpan: number;
   isLoading: boolean;
   resultados: AnaliseResultado[] | null;
-  comparacoes?: ComparacaoResultado[] | null;
+  comparacoes?: ComparacaoQualquer[] | null;
 }
 
 function ValorComCheck({
