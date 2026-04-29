@@ -141,25 +141,38 @@ export function GerenciarPagadoresDialog({
         </DialogHeader>
 
         {!readOnly && (
-          <div className="flex gap-2">
-            <Input
-              placeholder="Nome do pagador"
-              value={novoNome}
-              onChange={(e) => setNovoNome(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAdd();
-                }
-              }}
-            />
-            <Button onClick={handleAdd} disabled={addMutation.isPending}>
+          <div className="space-y-2">
+            <div className="grid grid-cols-[1fr_180px] gap-2">
+              <Input
+                placeholder="Nome do pagador"
+                value={novoNome}
+                onChange={(e) => setNovoNome(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAdd();
+                  }
+                }}
+              />
+              <Input
+                placeholder="CNPJ (opcional)"
+                value={novoCnpj}
+                onChange={(e) => setNovoCnpj(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAdd();
+                  }
+                }}
+              />
+            </div>
+            <Button onClick={handleAdd} disabled={addMutation.isPending} className="w-full">
               {addMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 mr-2" />
               )}
-              Adicionar
+              Adicionar pagador
             </Button>
           </div>
         )}
