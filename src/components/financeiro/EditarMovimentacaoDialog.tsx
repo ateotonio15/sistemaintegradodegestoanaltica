@@ -35,6 +35,7 @@ import { todayLocalISO } from "@/lib/date-utils";
 type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & {
   data_vencimento?: string | null;
   dia_emissao?: number | null;
+  tipo_analise?: string | null;
 };
 
 interface Props {
@@ -44,13 +45,20 @@ interface Props {
   empresaNome?: string;
 }
 
+const TIPOS_ANALISE = [
+  { value: "normal", label: "Análise normal" },
+  { value: "faixa_etaria", label: "Análise faixa etária" },
+  { value: "moto_honda", label: "Análise Moto Honda" },
+] as const;
+
 export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, empresaNome }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [tipoCobranca, setTipoCobranca] = useState("");
   const [dataEnvioNota, setDataEnvioNota] = useState("");
-  const [dataVencimento, setDataVencimento] = useState("");
+  const [diaVencimento, setDiaVencimento] = useState<string>("__none__");
   const [diaEmissao, setDiaEmissao] = useState<string>("__none__");
+  const [tipoAnalise, setTipoAnalise] = useState<string>("normal");
   const [dentroPrazo, setDentroPrazo] = useState(true);
   const [uploading, setUploading] = useState(false);
 
@@ -58,8 +66,16 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     if (movimentacao) {
       setTipoCobranca(movimentacao.tipo_cobranca || "");
       setDataEnvioNota(movimentacao.data_envio_nota || "");
-      setDataVencimento(movimentacao.data_vencimento || "");
+      // extrai apenas o dia da data_vencimento (YYYY-MM-DD)
+      const v = movimentacao.data_vencimento;
+      if (v) {
+        const m = v.match(/^\d{4}-\d{2}-(\d{2})$/);
+        setDiaVencimento(m ? String(parseInt(m[1], 10)) : "__none__");
+      } else {
+        setDiaVencimento("__none__");
+      }
       setDiaEmissao(movimentacao.dia_emissao ? String(movimentacao.dia_emissao) : "__none__");
+      setTipoAnalise((movimentacao.tipo_analise as string) || "normal");
       setDentroPrazo(movimentacao.dentro_prazo);
     }
   }, [movimentacao]);
@@ -69,10 +85,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
 
   const hoje = todayLocalISO();
   const envioNoFuturo = dataEnvioNota && dataEnvioNota > hoje;
-  const vencimentoAntesEnvio =
-    dataEnvioNota && dataVencimento && dataVencimento < dataEnvioNota;
 
-  const hasErrors = envioNoFuturo || vencimentoAntesEnvio;
+  const hasErrors = !!envioNoFuturo;
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["financeiro-anexos", movimentacao?.id],
