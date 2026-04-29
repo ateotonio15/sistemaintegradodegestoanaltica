@@ -306,6 +306,14 @@ export function FinanceiroTable({
         mesReferencia={anexosDialog?.mesReferencia ?? ""}
         periodo={anexosDialog?.periodo ?? ""}
       />
+
+      <GerenciarPagadoresDialog
+        open={!!pagadoresDialog}
+        onOpenChange={(v) => !v && setPagadoresDialog(null)}
+        empresaId={pagadoresDialog?.empresaId ?? null}
+        empresaNome={pagadoresDialog?.empresaNome ?? ""}
+        readOnly={readOnly}
+      />
     </div>
   );
 }
