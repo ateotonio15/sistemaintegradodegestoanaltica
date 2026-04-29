@@ -790,7 +790,7 @@ export default function Financeiro() {
         console.error("[A Receber] erro inesperado:", err);
       }
     } finally {
-      setAnaliseLoading((prev) => ({ ...prev, [row.id]: false }));
+      setAnaliseLoading((prev) => ({ ...prev, [rowKey]: false }));
     }
   };
 
