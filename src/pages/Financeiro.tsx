@@ -573,16 +573,25 @@ export default function Financeiro() {
 
     const tipoAnalise = ((row as any).tipo_analise as string) || "normal";
 
-    // Identifica filtro: se é linha de pagador (pagador_id) → filtrar; senão (mãe) → agregado
+    // Identifica filtro:
+    // - Linha de pagador → filtra pelo CNPJ/nome do pagador
+    // - Linha mãe COM pagadores cadastrados → filtra pelo CNPJ/nome da própria empresa
+    // - Linha mãe SEM pagadores cadastrados → análise agregada (sem filtro)
+    const pagadoresAtivos = (pagadoresCadastradosMap[row.empresa_id] || []).filter((p) => p.ativo);
     const pagadorAtivo = row.pagador_id
-      ? (pagadoresCadastradosMap[row.empresa_id] || []).find((p) => p.id === row.pagador_id)
+      ? pagadoresAtivos.find((p) => p.id === row.pagador_id)
       : null;
     const filtroPagador = pagadorAtivo
       ? { cnpj: pagadorAtivo.cnpj, nome: pagadorAtivo.nome_pagador }
-      : null;
-    const filtroSuffix = filtroPagador
-      ? `::pag=${pagadorAtivo!.id}`
-      : `::all`;
+      : pagadoresAtivos.length > 0
+        ? { cnpj: row.empresa_cnpj, nome: row.empresa_nome }
+        : null;
+    const filtroSuffix = pagadorAtivo
+      ? `::pag=${pagadorAtivo.id}`
+      : filtroPagador
+        ? `::mae=${row.empresa_id}`
+        : `::all`;
+
 
     // Cache-key combina XLS + PDF + tipo + filtro de pagador + versão do parser
     const cacheKey =
@@ -698,8 +707,8 @@ export default function Financeiro() {
       setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados }));
       setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: comparacoes }));
 
-      // "A Receber" só roda na linha mãe (sem pagador) — evita duplicar
-      if (filtroPagador) {
+      // "A Receber" só roda na linha mãe (sem pagador_id) — evita duplicar
+      if (row.pagador_id) {
         return;
       }
 
