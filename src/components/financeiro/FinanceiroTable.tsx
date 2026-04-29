@@ -143,7 +143,9 @@ export function FinanceiroTable({
                       {row.enviado_por_nome || <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-sm">{formatDateBR(row.data_envio_nota)}</TableCell>
-                    <TableCell className="text-sm">{formatDateBR(row.data_vencimento)}</TableCell>
+                    <TableCell className="text-sm" title={formatDateBR(row.data_vencimento)}>
+                      {formatDay(row.data_vencimento)}
+                    </TableCell>
                     <TableCell className="text-center">
                       <Button
                         variant="ghost"
