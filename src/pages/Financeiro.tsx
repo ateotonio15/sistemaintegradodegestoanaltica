@@ -319,12 +319,20 @@ export default function Financeiro() {
   const kpis = useMemo(() => {
     const empresasSet = new Set(kpiRows.map((r) => r.empresa_id));
     const totalAnexos = kpiRows.reduce((s, r) => s + r.anexos_count, 0);
+    const foraDoPrazo = kpiRows.filter((r) => {
+      const p = calcularPrazoFinanceiro({
+        aguardando_nota_em: (r as any).aguardando_nota_em,
+        data_envio_nota: r.data_envio_nota,
+        dia_emissao: (r as any).dia_emissao,
+      });
+      return p.categoria === "Fora do prazo";
+    }).length;
     return {
       totalEmpresas: empresasSet.size,
       notasEnviadas: kpiRows.filter((r) => r.status === "Enviada" || r.status === "Nota emitida").length,
       aguardandoNota: kpiRows.filter((r) => r.status === "Aguardando nota").length,
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
-      foraDoPrazo: kpiRows.filter((r) => r.status === "Fora do prazo").length,
+      foraDoPrazo,
       totalAnexos,
     };
   }, [kpiRows]);
