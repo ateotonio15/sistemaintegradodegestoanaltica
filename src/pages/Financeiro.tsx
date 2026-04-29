@@ -165,10 +165,10 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("financeiro_pagadores")
-        .select("id, empresa_id, nome_pagador, ativo")
+        .select("id, empresa_id, nome_pagador, cnpj, ativo")
         .in("empresa_id", empresaIds);
       if (error) throw error;
-      const map: Record<string, Array<{ id: string; empresa_id: string; nome_pagador: string; ativo: boolean }>> = {};
+      const map: Record<string, Array<{ id: string; empresa_id: string; nome_pagador: string; cnpj: string | null; ativo: boolean }>> = {};
       (data || []).forEach((p: any) => {
         if (!map[p.empresa_id]) map[p.empresa_id] = [];
         map[p.empresa_id].push(p);
