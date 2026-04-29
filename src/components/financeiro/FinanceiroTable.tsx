@@ -63,6 +63,18 @@ export function FinanceiroTable({
     periodo: string;
   } | null>(null);
 
+  // Conta pagadores por código de contrato dentro das linhas filtradas atuais
+  const pagadoresPorContrato = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    rows.forEach((r) => {
+      const key = r.empresa_codigo?.trim();
+      if (!key) return;
+      if (!map[key]) map[key] = [];
+      if (!map[key].includes(r.empresa_nome)) map[key].push(r.empresa_nome);
+    });
+    return map;
+  }, [rows]);
+
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       <Table>
