@@ -156,9 +156,14 @@ export async function analisarPdfFinanceiro(
       inclusoes: { total: 0 },
       valorLiquido: null,
       nfNumero: null,
+      tomadorCnpj: null,
+      tomadorNome: null,
       avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
     };
   }
+
+  // Tomador (CNPJ + Nome) extraído ANTES da normalização para preservar pontuação
+  const { cnpj: tomadorCnpj, nome: tomadorNome } = extrairTomador(texto);
 
   // Texto normalizado (sem acentos / minúsculo) para casamento de regex,
   // mas preservando dígitos e separadores. Linha única para regex livres.
