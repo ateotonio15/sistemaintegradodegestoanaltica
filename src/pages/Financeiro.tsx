@@ -1111,6 +1111,10 @@ export default function Financeiro() {
               movimentacao={editing}
               empresaNome={editingNome}
             />
+            <ImportPagadoresDialog
+              open={importPagadoresOpen}
+              onOpenChange={setImportPagadoresOpen}
+            />
           </>
         )}
       </div>
