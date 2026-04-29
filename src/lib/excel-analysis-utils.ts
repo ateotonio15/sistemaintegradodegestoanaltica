@@ -198,16 +198,120 @@ export async function analisarExcelFinanceiro(
   if (idxTipo < 0) avisos.push("Coluna 'Tipo Cobrança' não encontrada.");
   if (idxValor < 0) avisos.push("Coluna 'Valor' / 'Mensalidade' não encontrada — totais serão 0.");
 
+/**
+ * Versão com filtro opcional por pagador (CNPJ prioritário, nome como fallback).
+ */
+export async function analisarExcelFinanceiroPorPagador(
+  buffer: ArrayBuffer,
+  filtro?: FiltroPagador,
+): Promise<Omit<AnaliseResultado, "pagador">> {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer);
+
+  const ws = wb.worksheets[0];
+  const avisos: string[] = [];
+
+  const empty: CategoriaResultado = { beneficiarios: 0, mensalidade: 0, total: 0 };
+
+  if (!ws) {
+    return {
+      enfermaria: { ...empty },
+      apartamento: { ...empty },
+      inclusoes: { quantidade: 0, total: 0 },
+      avisos: ["Planilha vazia ou ilegível."],
+    };
+  }
+
+  // Coletar todas as linhas brutas (até 2000 para evitar travas)
+  const allRows: unknown[][] = [];
+  ws.eachRow({ includeEmpty: false }, (row) => {
+    if (allRows.length >= 2000) return;
+    const values = (row.values as unknown[]).slice(1); // ExcelJS é 1-indexed
+    allRows.push(values);
+  });
+
+  // Procurar a linha de cabeçalho dentro das primeiras 10
+  let headerRow: unknown[] | null = null;
+  let headerIdx = -1;
+  let idxPlano = -1;
+  let idxTipo = -1;
+  let idxValor = -1;
+  let idxCnpj = -1;
+  let idxPagador = -1;
+
+  for (let i = 0; i < Math.min(10, allRows.length); i++) {
+    const r = allRows[i];
+    const p = findColumnIndex(r, COL_PLANO);
+    const t = findColumnIndex(r, COL_TIPO_COBRANCA);
+    const v = findColumnIndex(r, COL_VALOR);
+    if (p >= 0 || t >= 0) {
+      headerRow = r;
+      headerIdx = i;
+      idxPlano = p;
+      idxTipo = t;
+      idxValor = v;
+      idxCnpj = findColumnIndex(r, COL_CNPJ);
+      idxPagador = findColumnIndex(r, COL_PAGADOR);
+      break;
+    }
+  }
+
+  if (!headerRow) {
+    return {
+      enfermaria: { ...empty },
+      apartamento: { ...empty },
+      inclusoes: { quantidade: 0, total: 0 },
+      avisos: [
+        "Não foi possível identificar a linha de cabeçalho (esperado: 'Plano' e 'Tipo Cobrança').",
+      ],
+    };
+  }
+
+  if (idxPlano < 0) avisos.push("Coluna 'Plano' não encontrada.");
+  if (idxTipo < 0) avisos.push("Coluna 'Tipo Cobrança' não encontrada.");
+  if (idxValor < 0) avisos.push("Coluna 'Valor' / 'Mensalidade' não encontrada — totais serão 0.");
+
+  // Filtro por pagador
+  const temFiltro = !!(filtro && (filtro.cnpj || filtro.nome));
+  const filtroCnpj = filtro?.cnpj ? normalizarCnpj(filtro.cnpj) : "";
+  const filtroNome = filtro?.nome ? norm(filtro.nome) : "";
+
+  if (temFiltro && idxCnpj < 0 && idxPagador < 0) {
+    avisos.push(
+      "Não foi possível separar por pagador: planilha sem coluna 'CNPJ' ou 'Pagador'. Mostrando totais agregados.",
+    );
+  }
+
+  const podeFiltrar = temFiltro && (idxCnpj >= 0 || idxPagador >= 0);
+
   const enfValores: number[] = [];
   const aptValores: number[] = [];
   let incQtd = 0;
   let incTotal = 0;
   let excQtd = 0;
   let excTotal = 0;
+  let linhasCasadas = 0;
 
   for (let i = headerIdx + 1; i < allRows.length; i++) {
     const r = allRows[i];
     if (!r || r.length === 0) continue;
+
+    // Aplicar filtro por pagador (CNPJ primeiro, nome como fallback)
+    if (podeFiltrar) {
+      let casou = false;
+      if (idxCnpj >= 0 && filtroCnpj) {
+        const cnpjLinha = normalizarCnpj(r[idxCnpj]);
+        if (cnpjLinha && cnpjLinha === filtroCnpj) casou = true;
+      }
+      if (!casou && idxPagador >= 0 && filtroNome) {
+        const nomeLinha = norm(r[idxPagador]);
+        if (nomeLinha && (nomeLinha === filtroNome || nomeLinha.includes(filtroNome) || filtroNome.includes(nomeLinha))) {
+          casou = true;
+        }
+      }
+      if (!casou) continue;
+      linhasCasadas++;
+    }
 
     const planoCell = idxPlano >= 0 ? r[idxPlano] : "";
     const tipoCell = idxTipo >= 0 ? r[idxTipo] : "";
@@ -217,15 +321,12 @@ export async function analisarExcelFinanceiro(
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
 
-    // Exclusão — soma como negativo (representa saída do faturamento)
     if (idxTipo >= 0 && isExclusao(String(tipoCell))) {
       excQtd += 1;
-      // Se vier positivo, inverte sinal; se vier negativo, mantém
       excTotal += valorNum > 0 ? -valorNum : valorNum;
       continue;
     }
 
-    // Inclusão tem prioridade — não soma em enfermaria/apartamento
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
       incQtd += 1;
       if (valorValido) incTotal += valor;
@@ -244,10 +345,13 @@ export async function analisarExcelFinanceiro(
     }
   }
 
+  if (podeFiltrar && linhasCasadas === 0) {
+    avisos.push("Nenhuma linha encontrada para este pagador na planilha.");
+  }
+
   const buildCategoria = (vals: number[]): CategoriaResultado => {
     const total = vals.reduce((s, v) => s + v, 0);
     const beneficiarios = vals.length;
-    // Mensalidade "média" — se todos iguais, mostra o próprio valor
     const mensalidade = beneficiarios > 0 ? total / beneficiarios : 0;
     return { beneficiarios, mensalidade, total };
   };
@@ -262,6 +366,16 @@ export async function analisarExcelFinanceiro(
     result.exclusoes = { quantidade: excQtd, total: excTotal };
   }
   return result;
+}
+
+/**
+ * Lê um buffer .xlsx/.xls e devolve análise: Enfermaria, Apartamento e Inclusões.
+ * Wrapper sem filtro (compatibilidade) — chama analisarExcelFinanceiroPorPagador.
+ */
+export async function analisarExcelFinanceiro(
+  buffer: ArrayBuffer,
+): Promise<Omit<AnaliseResultado, "pagador">> {
+  return analisarExcelFinanceiroPorPagador(buffer);
 }
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
