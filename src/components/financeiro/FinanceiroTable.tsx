@@ -167,8 +167,8 @@ export function FinanceiroTable({
                         {row.anexos_count}
                       </Button>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-1">
                         {!readOnly && (
                           <Button
                             variant="ghost"
