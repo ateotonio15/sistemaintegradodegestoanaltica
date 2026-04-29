@@ -1,10 +1,9 @@
 import { Fragment, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
-import { GerenciarPagadoresDialog } from "./GerenciarPagadoresDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, UserCog } from "lucide-react";
+import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -75,11 +74,6 @@ export function FinanceiroTable({
     periodo: string;
   } | null>(null);
 
-  const [pagadoresDialog, setPagadoresDialog] = useState<{
-    empresaId: string;
-    empresaNome: string;
-  } | null>(null);
-
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -129,22 +123,6 @@ export function FinanceiroTable({
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
-                        {!readOnly && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-muted-foreground hover:text-foreground"
-                            onClick={() =>
-                              setPagadoresDialog({
-                                empresaId: row.empresa_id,
-                                empresaNome: row.empresa_nome,
-                              })
-                            }
-                            title="Gerenciar pagadores deste contrato"
-                          >
-                            <UserCog className="h-3 w-3" />
-                          </Button>
-                        )}
                         {row.cobranca_registrada && (
                           <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
                             <Bell className="h-2.5 w-2.5 mr-1" />
@@ -267,13 +245,6 @@ export function FinanceiroTable({
         periodo={anexosDialog?.periodo ?? ""}
       />
 
-      <GerenciarPagadoresDialog
-        open={!!pagadoresDialog}
-        onOpenChange={(v) => !v && setPagadoresDialog(null)}
-        empresaId={pagadoresDialog?.empresaId ?? null}
-        empresaNome={pagadoresDialog?.empresaNome ?? ""}
-        readOnly={readOnly}
-      />
     </div>
   );
 }
