@@ -85,7 +85,10 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
           ) : (
             <div className="space-y-4">
               {resultados.map((r, idx) => {
-                const cmp = comparacoes?.[idx] ?? null;
+                const cmpRaw = comparacoes?.[idx] ?? null;
+                const simplificada = isSimplificada(cmpRaw);
+                const cmp = !simplificada ? (cmpRaw as ComparacaoResultado | null) : null;
+                const cmpSimples = simplificada ? (cmpRaw as ComparacaoSimplificada) : null;
 
                 const linhas: Array<{
                   label: string;
@@ -97,6 +100,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                     mensalidade: CampoValidacao | null;
                     total: CampoValidacao;
                   } | null;
+                  destaqueNegativo?: boolean;
                 }> = [];
 
                 if (r.enfermaria.beneficiarios > 0 || r.enfermaria.total > 0) {
@@ -123,7 +127,6 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                     beneficiarios: r.inclusoes.quantidade,
                     mensalidade: null,
                     total: r.inclusoes.total,
-                    // Inclusões: PDF não traz qtd nem unitário — só o total é validado
                     validacao: cmp?.inclusoes
                       ? {
                           beneficiarios: null,
@@ -131,6 +134,15 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                           total: cmp.inclusoes.total,
                         }
                       : null,
+                  });
+                }
+                if (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)) {
+                  linhas.push({
+                    label: "Exclusões",
+                    beneficiarios: r.exclusoes.quantidade,
+                    mensalidade: null,
+                    total: r.exclusoes.total,
+                    destaqueNegativo: true,
                   });
                 }
 
