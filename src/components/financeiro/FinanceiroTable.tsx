@@ -129,6 +129,11 @@ export function FinanceiroTable({
                     <TableCell className="text-sm">
                       {row.tipo_cobranca || <span className="text-muted-foreground">—</span>}
                     </TableCell>
+                    <TableCell className="text-sm whitespace-nowrap">
+                      {row.dia_emissao
+                        ? `Emissão dia ${String(row.dia_emissao).padStart(2, "0")}`
+                        : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
                     <TableCell>
                       <Badge className={cn("text-xs", statusFinanceiroColor(row.status))}>
                         {row.status}
