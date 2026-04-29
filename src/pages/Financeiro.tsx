@@ -158,6 +158,26 @@ export default function Financeiro() {
     enabled: empresaIds.length > 0,
   });
 
+  // Pagadores cadastrados (financeiro_pagadores) por empresa
+  const { data: pagadoresCadastradosMap = {} } = useQuery({
+    queryKey: ["financeiro-pagadores-all", empresaIds.sort().join(",")],
+    queryFn: async () => {
+      if (empresaIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("financeiro_pagadores")
+        .select("id, empresa_id, nome_pagador, ativo")
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      const map: Record<string, Array<{ id: string; empresa_id: string; nome_pagador: string; ativo: boolean }>> = {};
+      (data || []).forEach((p: any) => {
+        if (!map[p.empresa_id]) map[p.empresa_id] = [];
+        map[p.empresa_id].push(p);
+      });
+      return map;
+    },
+    enabled: empresaIds.length > 0,
+  });
+
   // Anexos por movimentação (com tipo para calcular status: PDF > XLS)
   const movIds = useMemo(() => financeiroRaw.map((f) => f.id), [financeiroRaw]);
 
