@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
-import type { StatusFinanceiro } from "@/lib/financeiro-utils";
+import { calcularPrazoFinanceiro, type StatusFinanceiro } from "@/lib/financeiro-utils";
 
 type Mode = "tipo" | "status" | "prazo";
 
@@ -11,6 +11,9 @@ interface ChartItem {
   status: StatusFinanceiro;
   tipo_cobranca: string | null;
   dentro_prazo: boolean;
+  aguardando_nota_em?: string | null;
+  data_envio_nota?: string | null;
+  dia_emissao?: number | null;
 }
 
 interface StatusChartProps {
