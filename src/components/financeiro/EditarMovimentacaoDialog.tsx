@@ -32,7 +32,10 @@ import {
 } from "@/lib/financeiro-utils";
 import { todayLocalISO } from "@/lib/date-utils";
 
-type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & { data_vencimento?: string | null };
+type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & {
+  data_vencimento?: string | null;
+  dia_emissao?: number | null;
+};
 
 interface Props {
   open: boolean;
