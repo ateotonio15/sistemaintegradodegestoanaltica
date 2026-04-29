@@ -301,10 +301,25 @@ export async function analisarPdfFinanceiroSimplificado(
   if (incTotal === 0 && !mInc) avisos.push("Inclusões não encontradas no PDF.");
   if (excTotal === 0 && !mExc) avisos.push("Exclusões não encontradas no PDF.");
 
+  // Valor Líquido + NF (compartilhado com análise completa)
+  let valorLiquido: number | null = null;
+  const reVL = /valor\s*l[ií]?quido\s*da\s*nfs[\s\-]?e\s*r?\$?\s*([\d.,]+)/i;
+  const mVL = t.match(reVL);
+  if (mVL) {
+    const v = parseValor(mVL[1]);
+    if (!isNaN(v) && v > 0) valorLiquido = v;
+  }
+  let nfNumero: string | null = null;
+  const reNf = /\bn[º°o]?\s*[:.]?\s*(\d{3,8})\b/i;
+  const mNf = t.match(reNf);
+  if (mNf) nfNumero = mNf[1];
+
   return {
     beneficiarios,
     inclusoes: { quantidade: incQtd, total: incTotal },
     exclusoes: { quantidade: excQtd, total: excTotal },
+    valorLiquido,
+    nfNumero,
     avisos,
   };
 }
