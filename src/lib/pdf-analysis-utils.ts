@@ -220,6 +220,8 @@ export async function analisarPdfFinanceiroSimplificado(
       beneficiarios: null,
       inclusoes: { quantidade: null, total: 0 },
       exclusoes: { quantidade: null, total: 0 },
+      valorLiquido: null,
+      nfNumero: null,
       avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
     };
   }
