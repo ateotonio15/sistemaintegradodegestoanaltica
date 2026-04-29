@@ -128,7 +128,7 @@ export function FinanceiroTable({
                       {row.periodo_corte}
                     </TableCell>
                     <TableCell className="text-sm">{row.responsavel || "—"}</TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell className="text-sm text-center">
                       {row.tipo_cobranca || <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
@@ -145,7 +145,7 @@ export function FinanceiroTable({
                       {row.enviado_por_nome || <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-sm">{formatDateBR(row.data_envio_nota)}</TableCell>
-                    <TableCell className="text-sm" title={formatDateBR(row.data_vencimento)}>
+                    <TableCell className="text-sm text-center" title={formatDateBR(row.data_vencimento)}>
                       {formatDay(row.data_vencimento)}
                     </TableCell>
                     <TableCell className="text-center">
