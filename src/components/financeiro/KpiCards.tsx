@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Building2, FileCheck, Clock, AlertCircle, AlertTriangle, Paperclip } from "lucide-react";
+import { Building2, FileCheck, Clock, AlertCircle, AlertTriangle, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface KpiCardsProps {
@@ -8,16 +8,16 @@ interface KpiCardsProps {
   aguardandoNota: number;
   pendentes: number;
   foraDoPrazo: number;
-  totalAnexos: number;
+  totalPagadores: number;
 }
 
 const items = [
-  { key: "totalEmpresas", label: "Total empresas", icon: Building2, accent: "text-primary", bg: "bg-primary/10" },
+  { key: "totalEmpresas", label: "Total contratos", icon: Building2, accent: "text-primary", bg: "bg-primary/10" },
+  { key: "totalPagadores", label: "Total pagadores", icon: Users, accent: "text-info", bg: "bg-info/10" },
   { key: "notasEnviadas", label: "Notas enviadas", icon: FileCheck, accent: "text-success", bg: "bg-success/10" },
   { key: "aguardandoNota", label: "Aguardando nota", icon: Clock, accent: "text-warning", bg: "bg-warning/10" },
   { key: "pendentes", label: "Pendentes", icon: AlertCircle, accent: "text-muted-foreground", bg: "bg-muted" },
   { key: "foraDoPrazo", label: "Fora do prazo", icon: AlertTriangle, accent: "text-destructive", bg: "bg-destructive/10" },
-  { key: "totalAnexos", label: "Anexos", icon: Paperclip, accent: "text-info", bg: "bg-info/10" },
 ] as const;
 
 export function KpiCards(props: KpiCardsProps) {

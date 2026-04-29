@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -31,6 +31,22 @@ import {
   TIPOS_FINANCEIRO,
 } from "@/lib/financeiro-utils";
 import { todayLocalISO } from "@/lib/date-utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  getPagadoresDoContrato,
+  replicarFinanceiroParaPagadores,
+  replicarAnexosParaPagadores,
+  type Pagador,
+} from "@/lib/pagadores-utils";
 
 type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & {
   data_vencimento?: string | null;
@@ -61,6 +77,13 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [tipoAnalise, setTipoAnalise] = useState<string>("normal");
   const [dentroPrazo, setDentroPrazo] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [replicaConfirm, setReplicaConfirm] = useState<{
+    title: string;
+    description: string;
+    onTodos: () => void | Promise<void>;
+    onApenas: () => void | Promise<void>;
+    pagadores: Pagador[];
+  } | null>(null);
 
   useEffect(() => {
     if (movimentacao) {
@@ -103,45 +126,101 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     enabled: !!movimentacao && open,
   });
 
+  // Pagadores do mesmo contrato (para sincronização)
+  const { data: pagadores = [] } = useQuery({
+    queryKey: ["financeiro-pagadores", movimentacao?.empresa_id],
+    queryFn: async () => {
+      if (!movimentacao) return [] as Pagador[];
+      const { data: emp } = await supabase
+        .from("empresas")
+        .select("codigo_contrato")
+        .eq("id", movimentacao.empresa_id)
+        .maybeSingle();
+      return getPagadoresDoContrato(movimentacao.empresa_id, emp?.codigo_contrato);
+    },
+    enabled: !!movimentacao && open,
+  });
+
+  const irmaos = pagadores.filter((p) => p.id !== movimentacao?.empresa_id);
+  const temIrmaos = irmaos.length > 0;
+
+  const buildPayload = () => {
+    if (!movimentacao) return null;
+    const envioAlterado =
+      !!dataEnvioNota && dataEnvioNota !== (movimentacao.data_envio_nota || "");
+    let dataVencimentoIso: string | null = null;
+    if (diaVencimento !== "__none__") {
+      const dia = parseInt(diaVencimento, 10);
+      const mes = movimentacao.mes_referencia;
+      if (mes && /^\d{4}-\d{2}$/.test(mes) && dia >= 1 && dia <= 31) {
+        dataVencimentoIso = `${mes}-${String(dia).padStart(2, "0")}`;
+      }
+    }
+    const payload: Record<string, unknown> = {
+      tipo_cobranca: tipoTrimmed || null,
+      data_envio_nota: dataEnvioNota || null,
+      data_vencimento: dataVencimentoIso,
+      dia_emissao: diaEmissao === "__none__" ? null : Number(diaEmissao),
+      tipo_analise: tipoAnalise || "normal",
+      dentro_prazo: dentroPrazo,
+    };
+    if (envioAlterado && user?.id) {
+      payload.enviado_por_user_id = user.id;
+    } else if (!dataEnvioNota) {
+      payload.enviado_por_user_id = null;
+    }
+    return { payload, envioAlterado };
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!movimentacao) return;
-      // Detecta se a data de envio acabou de ser preenchida (ou alterada) nesta edição
-      const envioAlterado =
-        !!dataEnvioNota && dataEnvioNota !== (movimentacao.data_envio_nota || "");
-      // Reconstrói data_vencimento a partir do dia + mes_referencia (YYYY-MM)
-      let dataVencimentoIso: string | null = null;
-      if (diaVencimento !== "__none__") {
-        const dia = parseInt(diaVencimento, 10);
-        const mes = movimentacao.mes_referencia; // "YYYY-MM"
-        if (mes && /^\d{4}-\d{2}$/.test(mes) && dia >= 1 && dia <= 31) {
-          dataVencimentoIso = `${mes}-${String(dia).padStart(2, "0")}`;
-        }
-      }
-      const payload: Record<string, unknown> = {
-        tipo_cobranca: tipoTrimmed || null,
-        data_envio_nota: dataEnvioNota || null,
-        data_vencimento: dataVencimentoIso,
-        dia_emissao: diaEmissao === "__none__" ? null : Number(diaEmissao),
-        tipo_analise: tipoAnalise || "normal",
-        dentro_prazo: dentroPrazo,
-      };
-      if (envioAlterado && user?.id) {
-        payload.enviado_por_user_id = user.id;
-      } else if (!dataEnvioNota) {
-        // Se removeu a data de envio, limpa o autor
-        payload.enviado_por_user_id = null;
-      }
+      if (!movimentacao) return null;
+      const built = buildPayload();
+      if (!built) return null;
       const { error } = await supabase
         .from("financeiro_movimentacoes")
-        .update(payload as any)
+        .update(built.payload as any)
         .eq("id", movimentacao.id);
       if (error) throw error;
+      return built;
     },
-    onSuccess: () => {
+    onSuccess: (built) => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       toast.success("Movimentação atualizada");
-      onOpenChange(false);
+      // Se contrato tem múltiplos pagadores, pergunta se replica
+      if (built && temIrmaos && movimentacao) {
+        setReplicaConfirm({
+          title: "Aplicar a todos os pagadores?",
+          description: `O contrato tem ${pagadores.length} pagadores: ${pagadores.map((p) => p.nome).join(", ")}. Deseja aplicar esta alteração para todos os pagadores do contrato?`,
+          pagadores,
+          onTodos: async () => {
+            try {
+              const r = await replicarFinanceiroParaPagadores({
+                empresaIdOrigem: movimentacao.empresa_id,
+                codigoContrato: pagadores[0]?.codigo_contrato,
+                mesReferencia: movimentacao.mes_referencia,
+                periodo: movimentacao.periodo,
+                payload: built.payload,
+              });
+              toast.success(
+                `Replicado: ${r.atualizados} atualizado(s), ${r.criados} criado(s)`,
+              );
+              queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+            } catch (e: any) {
+              toast.error("Erro ao replicar: " + e.message);
+            } finally {
+              setReplicaConfirm(null);
+              onOpenChange(false);
+            }
+          },
+          onApenas: () => {
+            setReplicaConfirm(null);
+            onOpenChange(false);
+          },
+        });
+      } else {
+        onOpenChange(false);
+      }
     },
     onError: (e: any) => toast.error("Erro ao salvar: " + e.message),
   });
@@ -183,6 +262,33 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         toast.success(
           sucessos === 1 ? "Arquivo enviado" : `${sucessos} arquivos enviados`,
         );
+        // Pergunta se replica anexos para os outros pagadores do contrato
+        if (temIrmaos && movimentacao) {
+          setReplicaConfirm({
+            title: "Replicar anexos para todos os pagadores?",
+            description: `O contrato tem ${pagadores.length} pagadores. Deseja copiar os arquivos enviados para os outros pagadores do contrato?`,
+            pagadores,
+            onTodos: async () => {
+              try {
+                const n = await replicarAnexosParaPagadores({
+                  movimentacaoOrigemId: movimentacao.id,
+                  empresaIdOrigem: movimentacao.empresa_id,
+                  codigoContrato: pagadores[0]?.codigo_contrato,
+                  mesReferencia: movimentacao.mes_referencia,
+                  periodo: movimentacao.periodo,
+                });
+                toast.success(`${n} anexo(s) replicado(s)`);
+                queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
+                queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+              } catch (e: any) {
+                toast.error("Erro ao replicar anexos: " + e.message);
+              } finally {
+                setReplicaConfirm(null);
+              }
+            },
+            onApenas: () => setReplicaConfirm(null),
+          });
+        }
       }
       if (erros.length > 0) {
         toast.error(`Falha em ${erros.length} arquivo(s): ${erros.join(" | ")}`);
@@ -226,6 +332,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   if (!movimentacao) return null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -236,6 +343,19 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         </DialogHeader>
 
         <div className="space-y-4">
+          {temIrmaos && (
+            <div className="flex items-start gap-2 rounded-lg border border-info/30 bg-info/5 px-3 py-2 text-xs">
+              <Users className="h-4 w-4 text-info shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-foreground">
+                  Contrato com {pagadores.length} pagadores
+                </p>
+                <p className="text-muted-foreground">
+                  Pagadores: {pagadores.map((p) => p.nome).join(", ")}. Ao salvar ou anexar, será perguntado se replica para todos.
+                </p>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="tipo">Tipo de cobrança</Label>
@@ -436,6 +556,27 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           </div>
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      <AlertDialog open={!!replicaConfirm} onOpenChange={(v) => !v && setReplicaConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{replicaConfirm?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{replicaConfirm?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel onClick={() => setReplicaConfirm(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <Button variant="outline" onClick={() => replicaConfirm?.onApenas()}>
+              Apenas neste pagador
+            </Button>
+            <AlertDialogAction onClick={() => replicaConfirm?.onTodos()}>
+              Aplicar a todos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

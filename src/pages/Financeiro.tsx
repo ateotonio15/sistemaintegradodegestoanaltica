@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Bell, Wallet, RefreshCw, Download, Trophy } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download, Trophy, Upload } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { exportarPremio } from "@/lib/premio-export";
@@ -32,6 +32,7 @@ import { PeriodSummary } from "@/components/financeiro/PeriodSummary";
 import { FinanceiroTable, type FinanceiroRow } from "@/components/financeiro/FinanceiroTable";
 import { EditarMovimentacaoDialog } from "@/components/financeiro/EditarMovimentacaoDialog";
 import { CobrancaDialog } from "@/components/financeiro/CobrancaDialog";
+import { ImportPagadoresDialog } from "@/components/financeiro/ImportPagadoresDialog";
 
 import {
   type FinanceiroMovimentacao,
@@ -74,6 +75,7 @@ export default function Financeiro() {
   const [premioPeriodo, setPremioPeriodo] = useState<string>("geral");
   const [isExportingPremio, setIsExportingPremio] = useState(false);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [importPagadoresOpen, setImportPagadoresOpen] = useState(false);
   const [analiseResultados, setAnaliseResultados] = useState<Record<string, import("@/lib/excel-analysis-utils").AnaliseResultado[]>>({});
   const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
   const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
@@ -333,8 +335,11 @@ export default function Financeiro() {
 
   // KPIs
   const kpis = useMemo(() => {
-    const empresasSet = new Set(kpiRows.map((r) => r.empresa_id));
-    const totalAnexos = kpiRows.reduce((s, r) => s + r.anexos_count, 0);
+    const pagadoresSet = new Set(kpiRows.map((r) => r.empresa_id));
+    // Contratos = código de contrato distintos. Empresas sem código contam individualmente.
+    const contratosSet = new Set(
+      kpiRows.map((r) => r.empresa_codigo?.trim() || `__sem__${r.empresa_id}`),
+    );
     const foraDoPrazo = kpiRows.filter((r) => {
       const p = calcularPrazoFinanceiro({
         aguardando_nota_em: (r as any).aguardando_nota_em,
@@ -344,12 +349,12 @@ export default function Financeiro() {
       return p.categoria === "Fora do prazo";
     }).length;
     return {
-      totalEmpresas: empresasSet.size,
+      totalEmpresas: contratosSet.size,
+      totalPagadores: pagadoresSet.size,
       notasEnviadas: kpiRows.filter((r) => r.status === "Enviada" || r.status === "Nota emitida").length,
       aguardandoNota: kpiRows.filter((r) => r.status === "Aguardando nota").length,
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
       foraDoPrazo,
-      totalAnexos,
     };
   }, [kpiRows]);
 
@@ -940,6 +945,18 @@ export default function Financeiro() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setImportPagadoresOpen(true)}
+                className="gap-1.5"
+                title="Importar pagadores via Excel"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Importar pagadores
+              </Button>
+            )}
+            {canManageFinanceiro && (
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => provisionarMutation.mutate()}
                 disabled={provisionarMutation.isPending}
                 className="gap-1.5"
@@ -1093,6 +1110,10 @@ export default function Financeiro() {
               onOpenChange={setCobOpen}
               movimentacao={editing}
               empresaNome={editingNome}
+            />
+            <ImportPagadoresDialog
+              open={importPagadoresOpen}
+              onOpenChange={setImportPagadoresOpen}
             />
           </>
         )}
