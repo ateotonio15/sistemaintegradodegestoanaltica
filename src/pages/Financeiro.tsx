@@ -399,7 +399,7 @@ export default function Financeiro() {
     }).length;
     return {
       totalEmpresas: contratosSet.size,
-      totalPagadores: pagadoresSet.size,
+      totalPagadores,
       notasEnviadas: kpiRows.filter((r) => r.status === "Enviada" || r.status === "Nota emitida").length,
       aguardandoNota: kpiRows.filter((r) => r.status === "Aguardando nota").length,
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
