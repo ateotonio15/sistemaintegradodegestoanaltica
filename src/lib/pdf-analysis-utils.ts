@@ -16,6 +16,10 @@ export interface AnalisePdfResultado {
   enfermaria: PdfCategoria;
   apartamento: PdfCategoria;
   inclusoes: { total: number };
+  /** Valor Líquido da NFS-e (extraído do PDF), null se não encontrado. */
+  valorLiquido: number | null;
+  /** Número da NF (ex: "4601"), null se não encontrado. */
+  nfNumero: string | null;
   avisos: string[];
 }
 
