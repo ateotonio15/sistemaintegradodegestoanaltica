@@ -488,11 +488,13 @@ export default function Financeiro() {
     const xlsAnexos = anexos.filter((a) => isXlsAnexo(a) && a.storage_path);
     const pdfAnexos = anexos.filter((a) => isPdfAnexo(a) && a.storage_path);
 
-    // Cache-key combina XLS + PDF
+    const tipoAnalise = ((row as any).tipo_analise as string) || "normal";
+
+    // Cache-key combina XLS + PDF + tipo de análise
     const cacheKey = [...xlsAnexos, ...pdfAnexos]
       .map((a) => a.storage_path)
       .sort()
-      .join("|");
+      .join("|") + `::${tipoAnalise}`;
     const cached = analiseResultados[row.id];
     if (cached && (cached as any)._key === cacheKey) {
       return;
@@ -506,12 +508,17 @@ export default function Financeiro() {
 
     setAnaliseLoading((prev) => ({ ...prev, [row.id]: true }));
     try {
-      const { analisarExcelFinanceiro, compararExcelComPdf } = await import(
-        "@/lib/excel-analysis-utils"
+      const {
+        analisarExcelFinanceiro,
+        compararExcelComPdf,
+        compararExcelComPdfSimplificado,
+      } = await import("@/lib/excel-analysis-utils");
+      const { analisarExcelMotoHonda } = await import("@/lib/excel-analysis-moto-honda");
+      const { analisarPdfFinanceiro, analisarPdfFinanceiroSimplificado } = await import(
+        "@/lib/pdf-analysis-utils"
       );
-      const { analisarPdfFinanceiro } = await import("@/lib/pdf-analysis-utils");
 
-      // Baixa e analisa todos os PDFs (geralmente 1 — usaremos o mais recente)
+      // PDFs (análise completa)
       const pdfResultados = await Promise.all(
         pdfAnexos.map(async (a) => {
           try {
@@ -521,7 +528,7 @@ export default function Financeiro() {
             if (error) throw error;
             const buf = await data.arrayBuffer();
             const r = await analisarPdfFinanceiro(buf);
-            return { arquivo: a.nome_arquivo || "PDF", ...r };
+            return { arquivo: a.nome_arquivo || "PDF", buf, ...r };
           } catch (err: any) {
             toast.error(`Erro ao analisar PDF ${a.nome_arquivo}: ${err.message || err}`);
             return null;
@@ -529,18 +536,22 @@ export default function Financeiro() {
         }),
       );
       const pdfsValidos = pdfResultados.filter((p) => p !== null) as Array<
-        import("@/lib/pdf-analysis-utils").AnalisePdfResultado
+        import("@/lib/pdf-analysis-utils").AnalisePdfResultado & { buf: ArrayBuffer }
       >;
 
+      // Excel — escolhe parser conforme tipo_analise
       const resultados = await Promise.all(
-        xlsAnexos.map(async (a, idx) => {
+        xlsAnexos.map(async (a) => {
           try {
             const { data, error } = await supabase.storage
               .from("anexos-financeiro")
               .download(a.storage_path!);
             if (error) throw error;
             const buf = await data.arrayBuffer();
-            const r = await analisarExcelFinanceiro(buf);
+            const r =
+              tipoAnalise === "moto_honda"
+                ? await analisarExcelMotoHonda(buf)
+                : await analisarExcelFinanceiro(buf); // 'normal' e 'faixa_etaria' por enquanto
             return { pagador: a.nome_arquivo || "Pagador", ...r };
           } catch (err: any) {
             toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
@@ -555,19 +566,41 @@ export default function Financeiro() {
         }),
       );
 
-      // Pareamento Excel × PDF: por índice; fallback para o mais recente (índice 0)
-      const comparacoes = resultados.map((excel, idx) => {
-        const pdf = pdfsValidos[idx] ?? pdfsValidos[0] ?? null;
-        return compararExcelComPdf(excel, pdf);
-      });
+      // Decisão simplificado vs completo (apenas Moto Honda)
+      const useSimplificado =
+        tipoAnalise === "moto_honda" &&
+        pdfsValidos.length > 0 &&
+        pdfsValidos.every((p) => {
+          const semDetalhes =
+            (!p.enfermaria || (p.enfermaria.total === 0 && p.enfermaria.beneficiarios === null)) &&
+            (!p.apartamento || (p.apartamento.total === 0 && p.apartamento.beneficiarios === null));
+          return semDetalhes;
+        });
+
+      let comparacoes: any[] = [];
+      if (pdfsValidos.length === 0) {
+        comparacoes = [];
+      } else if (useSimplificado) {
+        const pdfsSimples = await Promise.all(
+          pdfsValidos.map(async (p) => {
+            const r = await analisarPdfFinanceiroSimplificado(p.buf);
+            return { arquivo: p.arquivo, ...r };
+          }),
+        );
+        comparacoes = resultados.map((excel, idx) => {
+          const pdf = pdfsSimples[idx] ?? pdfsSimples[0] ?? null;
+          return compararExcelComPdfSimplificado(excel, pdf);
+        });
+      } else {
+        comparacoes = resultados.map((excel, idx) => {
+          const pdf = pdfsValidos[idx] ?? pdfsValidos[0] ?? null;
+          return compararExcelComPdf(excel, pdf);
+        });
+      }
 
       Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
       setAnaliseResultados((prev) => ({ ...prev, [row.id]: resultados }));
-      // Sem PDFs anexados → não há validação cruzada (não mostrar ✘)
-      setAnaliseComparacoes((prev) => ({
-        ...prev,
-        [row.id]: pdfsValidos.length === 0 ? [] : comparacoes,
-      }));
+      setAnaliseComparacoes((prev) => ({ ...prev, [row.id]: comparacoes }));
     } finally {
       setAnaliseLoading((prev) => ({ ...prev, [row.id]: false }));
     }
