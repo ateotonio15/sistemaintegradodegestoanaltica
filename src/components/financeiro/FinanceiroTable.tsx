@@ -1,9 +1,10 @@
 import { Fragment, useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
+import { GerenciarPagadoresDialog } from "./GerenciarPagadoresDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, Users, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -27,6 +28,13 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   enviado_por_nome?: string | null;
 };
 
+export interface PagadorCadastrado {
+  id: string;
+  empresa_id: string;
+  nome_pagador: string;
+  ativo: boolean;
+}
+
 interface Props {
   rows: FinanceiroRow[];
   onEdit: (row: FinanceiroRow) => void;
@@ -39,9 +47,11 @@ interface Props {
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
   readOnly?: boolean;
+  /** Mapa empresa_id -> lista de pagadores cadastrados (financeiro_pagadores) */
+  pagadoresCadastrados?: Record<string, PagadorCadastrado[]>;
 }
 
-const COL_COUNT = 13;
+const COL_COUNT = 14;
 
 export function FinanceiroTable({
   rows,
@@ -55,12 +65,18 @@ export function FinanceiroTable({
   analiseLoading,
   analiseComparacoes,
   readOnly = false,
+  pagadoresCadastrados = {},
 }: Props) {
   const [anexosDialog, setAnexosDialog] = useState<{
     empresaId: string;
     empresaNome: string;
     mesReferencia: string;
     periodo: string;
+  } | null>(null);
+
+  const [pagadoresDialog, setPagadoresDialog] = useState<{
+    empresaId: string;
+    empresaNome: string;
   } | null>(null);
 
   // Conta pagadores por código de contrato dentro das linhas filtradas atuais
@@ -92,6 +108,7 @@ export function FinanceiroTable({
             <TableHead className="font-semibold text-center">Envio nota</TableHead>
             <TableHead className="font-semibold text-center">Vencimento</TableHead>
             <TableHead className="font-semibold text-center">Anexos</TableHead>
+            <TableHead className="font-semibold text-center">Pagadores</TableHead>
             <TableHead className="font-semibold text-center">Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -197,6 +214,34 @@ export function FinanceiroTable({
                         {row.anexos_count}
                       </Button>
                     </TableCell>
+                    <TableCell className="text-center">
+                      {(() => {
+                        const lista = pagadoresCadastrados[row.empresa_id] || [];
+                        const ativos = lista.filter((p) => p.ativo);
+                        const total = ativos.length;
+                        const tooltip =
+                          total > 0
+                            ? `Pagadores: ${ativos.map((p) => p.nome_pagador).join(", ")}`
+                            : `Sem pagadores cadastrados (assume "${row.empresa_nome}")`;
+                        return (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 gap-1 text-sm text-muted-foreground hover:text-foreground"
+                            onClick={() =>
+                              setPagadoresDialog({
+                                empresaId: row.empresa_id,
+                                empresaNome: row.empresa_nome,
+                              })
+                            }
+                            title={tooltip}
+                          >
+                            <UserCog className="h-3 w-3" />
+                            {total > 0 ? total : <span className="italic text-xs">padrão</span>}
+                          </Button>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-1">
                         {!readOnly && (
@@ -260,6 +305,14 @@ export function FinanceiroTable({
         empresaNome={anexosDialog?.empresaNome ?? ""}
         mesReferencia={anexosDialog?.mesReferencia ?? ""}
         periodo={anexosDialog?.periodo ?? ""}
+      />
+
+      <GerenciarPagadoresDialog
+        open={!!pagadoresDialog}
+        onOpenChange={(v) => !v && setPagadoresDialog(null)}
+        empresaId={pagadoresDialog?.empresaId ?? null}
+        empresaNome={pagadoresDialog?.empresaNome ?? ""}
+        readOnly={readOnly}
       />
     </div>
   );
