@@ -70,16 +70,22 @@ export function GerenciarPagadoresDialog({
   };
 
   const addMutation = useMutation({
-    mutationFn: async (nome: string) => {
+    mutationFn: async (payload: { nome: string; cnpj: string | null }) => {
       if (!empresaId) throw new Error("Empresa inválida");
       const { error } = await supabase
         .from("financeiro_pagadores")
-        .insert({ empresa_id: empresaId, nome_pagador: nome.trim(), ativo: true });
+        .insert({
+          empresa_id: empresaId,
+          nome_pagador: payload.nome.trim(),
+          cnpj: payload.cnpj,
+          ativo: true,
+        });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Pagador adicionado");
       setNovoNome("");
+      setNovoCnpj("");
       invalidate();
     },
     onError: (e: any) => {
