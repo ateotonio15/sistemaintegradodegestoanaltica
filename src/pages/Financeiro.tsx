@@ -711,6 +711,32 @@ export default function Financeiro() {
     }
   };
 
+  const handleExportPremio = async () => {
+    setIsExportingPremio(true);
+    try {
+      let q = supabase
+        .from("a_receber")
+        .select("*")
+        .eq("mes_referencia", mes);
+      const periodo = premioPeriodo === "geral" ? null : premioPeriodo;
+      if (periodo) q = q.eq("periodo", periodo);
+      const { data, error } = await q.order("empresa_nome", { ascending: true });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.warning(
+          `Nenhum registro de "A Receber" validado${periodo ? ` para o período ${periodo}` : ""}.`,
+        );
+        return;
+      }
+      await exportarPremio(data as any, { mes, periodo });
+      toast.success(`PRÊMIO exportado: ${data.length} registro(s)`);
+      setPremioOpen(false);
+    } catch (e: any) {
+      toast.error("Erro ao exportar PRÊMIO: " + (e?.message || "falha"));
+    } finally {
+      setIsExportingPremio(false);
+    }
+  };
 
   const handleExport = async () => {
     if (filteredRows.length === 0) {
