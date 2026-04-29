@@ -811,7 +811,6 @@ export default function Dashboard() {
                     <TableHead className="font-semibold">Envio Empresa</TableHead>
                     <TableHead className="font-semibold">Financeiro</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
-                    {role === "comum" && <TableHead className="font-semibold">Alerta</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
