@@ -527,11 +527,12 @@ export default function Financeiro() {
   };
 
   const handleToggleExpand = async (row: FinanceiroRow) => {
-    if (expandedRowId === row.id) {
+    const key = row.rowKey ?? row.id;
+    if (expandedRowId === key) {
       setExpandedRowId(null);
       return;
     }
-    setExpandedRowId(row.id);
+    setExpandedRowId(key);
     await runAnalise(row);
   };
 
