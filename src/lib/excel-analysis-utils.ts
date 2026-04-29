@@ -70,6 +70,18 @@ const COL_TIPO_COBRANCA = [
   "tipo movimento",
 ];
 const COL_VALOR = ["valor", "mensalidade", "valor mensalidade", "vlr", "preco", "valor total"];
+const COL_CNPJ = ["cnpj", "cnpj pagador", "cnpj do pagador", "cnpj empresa"];
+const COL_PAGADOR = ["pagador", "nome pagador", "nome do pagador", "razao social", "razão social", "empresa"];
+
+/** Remove tudo que não é dígito (para comparar CNPJs). */
+export function normalizarCnpj(s: unknown): string {
+  return String(s ?? "").replace(/\D/g, "");
+}
+
+export interface FiltroPagador {
+  cnpj?: string | null;
+  nome?: string | null;
+}
 
 function findColumnIndex(header: unknown[], aliases: string[]): number {
   for (let i = 0; i < header.length; i++) {
