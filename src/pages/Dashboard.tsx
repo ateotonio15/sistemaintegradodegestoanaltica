@@ -28,6 +28,7 @@ import {
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
 
 export default function Dashboard() {
