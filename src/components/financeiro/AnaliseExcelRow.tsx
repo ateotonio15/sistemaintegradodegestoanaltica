@@ -31,6 +31,7 @@ interface Props {
   isLoading: boolean;
   resultados: AnaliseResultado[] | null;
   comparacoes?: ComparacaoQualquer[] | null;
+  onReanalisar?: () => void;
 }
 
 function ValorComCheck({
