@@ -34,6 +34,7 @@ import {
   type FinanceiroMovimentacao,
   PERIODOS_FIN,
   calcularStatusFinanceiro,
+  calcularPrazoFinanceiro,
   type StatusFinanceiro,
   getCurrentMesReferencia,
   formatMesReferencia,
