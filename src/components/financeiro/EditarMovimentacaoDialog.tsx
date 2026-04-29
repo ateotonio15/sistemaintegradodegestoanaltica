@@ -187,6 +187,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     onSuccess: (built) => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dia-emissao-financeiro"] });
+      toast.success("Movimentação atualizada");
       // Se contrato tem múltiplos pagadores, pergunta se replica
       if (built && temIrmaos && movimentacao) {
         setReplicaConfirm({
