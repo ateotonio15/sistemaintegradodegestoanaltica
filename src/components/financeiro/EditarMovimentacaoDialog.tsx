@@ -555,6 +555,27 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           </div>
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      <AlertDialog open={!!replicaConfirm} onOpenChange={(v) => !v && setReplicaConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{replicaConfirm?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{replicaConfirm?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel onClick={() => setReplicaConfirm(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <Button variant="outline" onClick={() => replicaConfirm?.onApenas()}>
+              Apenas neste pagador
+            </Button>
+            <AlertDialogAction onClick={() => replicaConfirm?.onTodos()}>
+              Aplicar a todos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
