@@ -40,7 +40,7 @@ interface Props {
   readOnly?: boolean;
 }
 
-const COL_COUNT = 12;
+const COL_COUNT = 13;
 
 export function FinanceiroTable({
   rows,
