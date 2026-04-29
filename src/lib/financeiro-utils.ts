@@ -49,9 +49,9 @@ export function isXlsAnexo(a: { mime_type?: string | null; nome_arquivo?: string
 /**
  * Calcula o status financeiro de uma movimentação (NÃO persistido no banco).
  * Prioridade (do mais alto para o mais baixo):
- * 1. **Nota emitida** — existe ao menos um anexo PDF (prioridade máxima, ignora XLS)
- * 2. **Faturado** — existe ao menos um anexo XLS/planilha (e nenhum PDF)
- * 3. **Enviada** — possui `data_envio_nota` registrada
+ * 1. **Enviada** — `data_envio_nota` preenchida (estágio final do Financeiro)
+ * 2. **Nota emitida** — existe ao menos um anexo PDF
+ * 3. **Faturado** — existe ao menos um anexo XLS/planilha (e nenhum PDF)
  * 4. **Fora do prazo** — `dentro_prazo === false` e sem anexo/nota
  * 5. **Aguardando nota** — operacional já enviou ao financeiro mas ainda sem anexo/nota
  * 6. **Pendente** — nada ainda
@@ -61,11 +61,11 @@ export function calcularStatusFinanceiro(
   envioOperacionalFeito: boolean,
   anexos: Array<{ mime_type?: string | null; nome_arquivo?: string | null }> = [],
 ): StatusFinanceiro {
+  if (mov.data_envio_nota) return "Enviada";
   const temPdf = anexos.some(isPdfAnexo);
   if (temPdf) return "Nota emitida";
   const temXls = anexos.some(isXlsAnexo);
   if (temXls) return "Faturado";
-  if (mov.data_envio_nota) return "Enviada";
   if (mov.dentro_prazo === false) return "Fora do prazo";
   if (envioOperacionalFeito) return "Aguardando nota";
   return "Pendente";

@@ -109,6 +109,11 @@ function isInclusao(tipo: string): boolean {
   return t.includes("inclusao") || t.includes("inclusão");
 }
 
+function isExclusao(tipo: string): boolean {
+  const t = norm(tipo);
+  return t.includes("exclusao") || t.includes("exclusão") || t.includes("excluido");
+}
+
 /**
  * Lê um buffer .xlsx/.xls e devolve análise: Enfermaria, Apartamento e Inclusões.
  * As colunas obrigatórias são "Plano" e "Tipo Cobrança" (variações aceitas).
@@ -183,6 +188,8 @@ export async function analisarExcelFinanceiro(
   const aptValores: number[] = [];
   let incQtd = 0;
   let incTotal = 0;
+  let excQtd = 0;
+  let excTotal = 0;
 
   for (let i = headerIdx + 1; i < allRows.length; i++) {
     const r = allRows[i];
@@ -193,7 +200,16 @@ export async function analisarExcelFinanceiro(
     const valorCell = idxValor >= 0 ? r[idxValor] : 0;
 
     const valor = toNumber(valorCell);
+    const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
+
+    // Exclusão — soma como negativo (representa saída do faturamento)
+    if (idxTipo >= 0 && isExclusao(String(tipoCell))) {
+      excQtd += 1;
+      // Se vier positivo, inverte sinal; se vier negativo, mantém
+      excTotal += valorNum > 0 ? -valorNum : valorNum;
+      continue;
+    }
 
     // Inclusão tem prioridade — não soma em enfermaria/apartamento
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
@@ -222,12 +238,16 @@ export async function analisarExcelFinanceiro(
     return { beneficiarios, mensalidade, total };
   };
 
-  return {
+  const result: Omit<AnaliseResultado, "pagador"> = {
     enfermaria: buildCategoria(enfValores),
     apartamento: buildCategoria(aptValores),
     inclusoes: { quantidade: incQtd, total: incTotal },
     avisos,
   };
+  if (excQtd > 0 || excTotal !== 0) {
+    result.exclusoes = { quantidade: excQtd, total: excTotal };
+  }
+  return result;
 }
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });

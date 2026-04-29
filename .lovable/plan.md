@@ -1,105 +1,86 @@
+## Objetivo
 
-## Escopo
-Tudo é exclusivo da aba **Financeiro** (`/financeiro`). Nenhuma outra área é afetada.
+Dois ajustes pontuais e isolados na aba **Financeiro**, sem impacto em outras áreas:
 
-## 1. Modelo de dados — tabela `a_receber`
-Criar nova tabela para armazenar registros de "A Receber" gerados automaticamente após validação.
+1. Tornar **"Enviada"** o estágio final do Financeiro (passa a ter prioridade máxima sobre "Nota emitida" e "Faturado").
+2. Fazer o parser de Excel padrão (usado por WINLOGIS e demais contratos `normal`/`faixa_etaria`) **detectar e exibir Exclusões**, da mesma forma que já acontece com Inclusões.
 
-Colunas:
-- `id uuid pk`
-- `financeiro_movimentacao_id uuid` (vínculo com a movimentação financeira)
-- `empresa_id uuid`, `empresa_nome text`, `empresa_cnpj text`
-- `valor_total numeric` (Valor Líquido da NFS-e — extraído do PDF)
-- `valor_faturado numeric` (Faturado bruto — Excel)
-- `valor_inclusoes numeric`, `valor_exclusoes numeric`
-- `beneficiarios int`
-- `nf_numero text` (extraído do PDF quando disponível)
-- `dia_vencimento smallint` (1–31, somente o dia)
-- `data_vencimento date` (opcional, completa)
-- `periodo text` (ex: "01-05")
-- `mes_referencia text`
-- `status text default 'Pendente'`
-- `created_at`, `updated_at`
+---
 
-RLS: igual a `financeiro_movimentacoes` (Admin + Financeiro CRUD; demais autenticados leitura).
+## 1. Reordenar prioridade do Status Financeiro
 
-UNIQUE constraint em `financeiro_movimentacao_id` para evitar duplicatas.
+### Comportamento atual
+A função `calcularStatusFinanceiro` (em `src/lib/financeiro-utils.ts`) hoje devolve:
 
-## 2. Geração automática
-
-### Onde
-No fim de `runAnalise` em `src/pages/Financeiro.tsx`, após calcular `comparacoes`.
-
-### Critério de "validado" (sem divergência)
-Para cada movimentação:
-- `xlsAnexos.length > 0` **E** `pdfsValidos.length > 0`
-- Pelo menos uma `comparacao` retornada
-- **Toda** comparação tem `divergencias.length === 0`
-- Para análise normal: pelo menos uma categoria (enfermaria/apartamento) presente
-- Para Moto Honda simplificado: `beneficiarios.ok` quando aplicável
-
-### Ação
-Se válido → `upsert` em `a_receber` com:
-- `valor_total` = Valor Líquido da NFS-e do PDF (precisa ser extraído — ver §3)
-- `beneficiarios` = soma das categorias do Excel (ou total Moto Honda)
-- `dia_vencimento` = `empresas.data_vencimento_fatura` da empresa, ou dia extraído do PDF
-- `periodo` = `row.periodo`
-- `status` = "Pendente"
-
-Toast de sucesso discreto: "A Receber gerado para {empresa}".
-
-Se inválido (divergência ou dados incompletos) → não gera (e remove se já existir um registro órfão para essa movimentação? **decisão:** não remove, apenas não cria. Mantém histórico.)
-
-## 3. Extrair "Valor Líquido da NFS-e" do PDF
-Em `src/lib/pdf-analysis-utils.ts`:
-- Adicionar campo `valorLiquido: number | null` a `AnalisePdfResultado` e `AnalisePdfSimplificado`.
-- Adicionar campo `nfNumero: string | null` (regex em "NFS-e nº" / "Nº" próximo do topo).
-- Regex: `/valor\s*l[ií]quido\s*da\s*nfs[\-\s]?e\s*r?\$?\s*([\d.,]+)/i`
-- Bumpar `ANALISE_PARSER_VERSION` para `"5"` para invalidar cache.
-
-## 4. Botão "PRÊMIO" + exportação
-
-### UI (`src/pages/Financeiro.tsx`)
-Adicionar ao header, ao lado de "Exportar Excel":
-- Botão **"PRÊMIO"** (ícone Trophy)
-- Abre `Popover` ou `DropdownMenu` com:
-  - 6 opções de período como `RadioGroup`: `01-05`, `05-10`, `10-15`, `15-20`, `20-25`, `25-30`
-  - Opção "Geral (todos os períodos)" (default)
-  - Botão "Exportar PRÊMIO"
-
-### Filtro
-- Lê apenas registros válidos da tabela `a_receber` para o `mes_referencia` selecionado.
-- Se um período for escolhido, filtra `WHERE periodo = ...`.
-- Se nenhum, exporta todos.
-
-### Formato Excel (espelha o template enviado)
-Colunas exatas, na ordem do modelo `reportCFIN`:
 ```
-CNPJ | Pagador | Nf | Dt emissao | Dt vencimento | Dt Prorrog | Total vidas |
-Vidas proporcional | Vidas enfermaria | Vl Enfermaria | Total Enfermaria |
-Dt recebimento | Mensalidade | Inclusoes | Exclusoes | Comp mensalidade |
-Faturado | a receber | Recebido | Amaior | Juros | Cobertura mensalidade |
-Historico mensalidade
+1º Nota emitida  (existe PDF)
+2º Faturado      (existe XLS)
+3º Enviada       (data_envio_nota preenchida)
+4º Fora do prazo
+5º Aguardando nota
+6º Pendente
 ```
-- Preenche o que tem (`empresa_cnpj`, `empresa_nome`, `nf_numero`, `valor_inclusoes`, `valor_exclusoes`, `valor_faturado`, `valor_total` em "a receber", `dia_vencimento`).
-- Campos sem dado → vazio (não preenche, conforme pedido do usuário).
-- Cabeçalho em negrito, larguras adequadas.
-- Nome do arquivo: `premio_{mes}_{periodo|geral}_{YYYYMMDD}.xlsx`.
 
-### Permissão
-Botão visível apenas para `canManageFinanceiro` (Admin/Financeiro), igual ao Exportar.
+### Comportamento desejado
+"Enviada" representa a **confirmação final** do envio da nota e deve vencer qualquer outra detecção:
 
-## 5. Recarregar dados
-Após `runAnalise` gerar um "A Receber", invalidar `queryClient.invalidateQueries({ queryKey: ["a_receber"] })` para que a próxima exportação PRÊMIO já encontre o registro.
+```
+1º Enviada       (data_envio_nota preenchida)  ← novo topo
+2º Nota emitida  (existe PDF)
+3º Faturado      (existe XLS)
+4º Fora do prazo
+5º Aguardando nota
+6º Pendente
+```
+
+### Mudança técnica
+Em `src/lib/financeiro-utils.ts → calcularStatusFinanceiro`, mover o bloco
+`if (mov.data_envio_nota) return "Enviada";` para antes das checagens de PDF/XLS.
+Comentário JSDoc e a lista de prioridades acima da função devem ser atualizados para refletir a nova ordem. Nenhum outro arquivo precisa ser tocado — a cor da badge `Enviada` (verde sucesso) já está definida em `statusFinanceiroColor`.
+
+---
+
+## 2. Detectar Exclusões no parser Excel padrão
+
+### Diagnóstico
+O parser `analisarExcelFinanceiro` (em `src/lib/excel-analysis-utils.ts`), usado por contratos com `tipo_analise = "normal"` ou `"faixa_etaria"` (caso da WINLOGIS), **não trata exclusões**:
+
+- O `AnaliseResultado` permite o campo opcional `exclusoes`, mas só o parser **Moto Honda** preenche esse campo.
+- No parser padrão, qualquer linha com Tipo Cobrança = "Exclusão" cai no `classificarPlano()`, retorna `null` (porque o nome do plano não bate) e é simplesmente ignorada.
+- Resultado visível: na tela de análise da WINLOGIS aparece somente a linha "Enfermaria"; nenhuma linha "Exclusões" é exibida, mesmo quando o arquivo tem exclusões.
+
+### Solução
+Espelhar o tratamento já existente para Inclusões dentro de `analisarExcelFinanceiro`:
+
+1. Adicionar uma função auxiliar `isExclusao(tipo)` análoga a `isInclusao` (aceita variações: "exclusao", "exclusão", "excluido", "exclusao prorata", etc.).
+2. No loop principal de linhas, **antes** da chamada a `classificarPlano`, checar:
+   - se `isInclusao(tipoCell)` → soma em `inclusoes` (já existe).
+   - se `isExclusao(tipoCell)` → soma em uma nova variável local (`excQtd`, `excTotal`); o valor é tratado como **negativo** (se a planilha já trouxer negativo, mantém; se vier positivo, inverte o sinal para sinalizar saída).
+3. Devolver `exclusoes: { quantidade: excQtd, total: excTotal }` no objeto final, somente quando `excQtd > 0` ou `excTotal !== 0`. Quando não há exclusões, omitir o campo (mantém compatibilidade com o tipo opcional).
+
+### Reflexo na UI
+`AnaliseExcelRow.tsx` já possui um bloco que renderiza a linha "Exclusões" (`destaqueNegativo: true`) quando `r.exclusoes` está presente — não precisa de mudança. Assim que o parser passar a popular o campo, a linha aparece automaticamente na tabela de análise, e o "Total Geral" passa a considerar o valor negativo das exclusões (já é um simples `reduce`).
+
+### Impacto na comparação Excel × PDF
+Para `tipo_analise = "normal"` a comparação usa `compararExcelComPdf`, que hoje **não compara exclusões** (só enfermaria, apartamento e inclusões). Manter esse comportamento — não estamos pedindo validação cruzada de exclusões no fluxo padrão; apenas exibição da linha. A comparação simplificada do Moto Honda continua intacta.
+
+### Impacto em "A Receber" e exportação PRÊMIO
+Como `analisarExcelFinanceiro` agora pode devolver `exclusoes`, o cálculo do "A Receber" automático (que toma como base os totais da análise) passa a refletir corretamente o líquido (Enfermaria + Apartamento + Inclusões − |Exclusões|). Isso já é o comportamento correto/esperado pelo Financeiro; nenhuma mudança adicional é necessária em `premio-export.ts` ou no fluxo de geração de A Receber, que apenas consomem o `total` agregado.
+
+---
 
 ## Arquivos afetados
-- **migração SQL** (nova): tabela `a_receber` + RLS + UNIQUE.
-- `src/lib/pdf-analysis-utils.ts` — extrair valor líquido + nº NF.
-- `src/lib/excel-analysis-utils.ts` — helper `analiseEstaValidada(comparacao)` exportado.
-- `src/pages/Financeiro.tsx` — geração automática no `runAnalise`, botão PRÊMIO + dialog, query de `a_receber`.
-- `src/lib/premio-export.ts` (novo) — função `exportarPremio(rows, periodo?)` que monta o Excel no formato do template.
 
-## Notas técnicas
-- A geração só dispara **quando o usuário expande a linha** (`runAnalise`) — é o único momento em que temos Excel+PDF analisados. Não introduzimos job background.
-- O upsert usa `financeiro_movimentacao_id` como chave, então re-análises atualizam o mesmo registro em vez de duplicar.
-- Tudo client-side, sem edge function.
+- `src/lib/financeiro-utils.ts` — reordenar prioridade do status.
+- `src/lib/excel-analysis-utils.ts` — adicionar detecção/somatório de Exclusões em `analisarExcelFinanceiro`.
+
+Nenhuma migration, nenhum schema, nenhuma outra área do sistema é tocada.
+
+---
+
+## Validação após implementação
+
+1. Reanalisar uma movimentação WINLOGIS com exclusões: linha "Exclusões" deve aparecer com valor negativo e "Total Geral" deve refletir o líquido.
+2. Em uma movimentação com `data_envio_nota` preenchida E anexos PDF/XLS, o badge passa a mostrar **Enviada** (verde), não mais "Nota emitida"/"Faturado".
+3. Movimentações sem `data_envio_nota` continuam mostrando "Nota emitida" quando há PDF e "Faturado" quando há apenas XLS.
+4. Análise Moto Honda permanece idêntica (já tem seu próprio parser).
