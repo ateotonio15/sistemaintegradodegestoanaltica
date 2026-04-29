@@ -194,6 +194,8 @@ export interface AnalisePdfSimplificado {
   beneficiarios: number | null;
   inclusoes: { quantidade: number | null; total: number };
   exclusoes: { quantidade: number | null; total: number };
+  valorLiquido: number | null;
+  nfNumero: string | null;
   avisos: string[];
 }
 
