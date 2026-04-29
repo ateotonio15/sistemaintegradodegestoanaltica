@@ -337,21 +337,44 @@ export default function Financeiro() {
     return c;
   }, [allRows]);
 
-  // Tabela: aplica TODOS os filtros
+  // Tabela: aplica TODOS os filtros e expande 1 linha por pagador cadastrado
   const filteredRows = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return allRows.filter((r) => {
+    const base = allRows.filter((r) => {
       if (filtroPeriodo && r.periodo !== filtroPeriodo) return false;
       if (filtroStatus !== "all" && r.status !== filtroStatus) return false;
       if (filtroTipo !== "all" && (r.tipo_cobranca || "") !== filtroTipo) return false;
       if (somenteOverdue && (r.dentro_prazo || r.data_envio_nota)) return false;
-      if (q) {
-        const hay = `${r.empresa_nome} ${r.empresa_codigo || ""} ${r.empresa_cnpj || ""}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
       return true;
     });
-  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue]);
+
+    // Expande: cada pagador cadastrado vira uma linha (mesma movimentação).
+    // Sem pagadores cadastrados → mantém a linha original com nome/cnpj da empresa.
+    const expanded: FinanceiroRow[] = [];
+    base.forEach((r) => {
+      const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p) => p.ativo);
+      if (pagadores.length > 0) {
+        pagadores.forEach((p) => {
+          expanded.push({
+            ...r,
+            empresa_nome: p.nome_pagador,
+            empresa_cnpj: p.cnpj ?? r.empresa_cnpj,
+            rowKey: `${r.id}::${p.id}`,
+            pagador_id: p.id,
+          });
+        });
+      } else {
+        expanded.push({ ...r, rowKey: r.id, pagador_id: null });
+      }
+    });
+
+    // Filtro de busca aplicado SOBRE as linhas já expandidas (busca pelo pagador certo)
+    if (!q) return expanded;
+    return expanded.filter((r) => {
+      const hay = `${r.empresa_nome} ${r.empresa_codigo || ""} ${r.empresa_cnpj || ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap]);
 
   // KPIs
   const kpis = useMemo(() => {
