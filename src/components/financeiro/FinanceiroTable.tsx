@@ -34,6 +34,7 @@ interface Props {
   isLoading: boolean;
   expandedRowId: string | null;
   onToggleExpand: (row: FinanceiroRow) => void;
+  onReanalisar?: (row: FinanceiroRow) => void;
   analiseResultados: Record<string, AnaliseResultado[]>;
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
@@ -49,6 +50,7 @@ export function FinanceiroTable({
   isLoading,
   expandedRowId,
   onToggleExpand,
+  onReanalisar,
   analiseResultados,
   analiseLoading,
   analiseComparacoes,
@@ -211,6 +213,7 @@ export function FinanceiroTable({
                       isLoading={!!analiseLoading[row.id]}
                       resultados={analiseResultados[row.id] ?? null}
                       comparacoes={analiseComparacoes?.[row.id] ?? null}
+                      onReanalisar={onReanalisar ? () => onReanalisar(row) : undefined}
                     />
                   )}
                 </Fragment>

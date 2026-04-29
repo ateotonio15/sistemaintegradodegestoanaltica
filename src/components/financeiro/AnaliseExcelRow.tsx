@@ -1,5 +1,6 @@
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   FileX,
   Loader2,
@@ -8,6 +9,7 @@ import {
   CheckCircle2,
   XCircle,
   FileText,
+  RefreshCw,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -29,6 +31,7 @@ interface Props {
   isLoading: boolean;
   resultados: AnaliseResultado[] | null;
   comparacoes?: ComparacaoQualquer[] | null;
+  onReanalisar?: () => void;
 }
 
 function ValorComCheck({
@@ -67,11 +70,23 @@ function ValorComCheck({
   );
 }
 
-export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }: Props) {
+export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar }: Props) {
   return (
     <TableRow className="bg-muted/30 border-l-2 border-l-primary hover:bg-muted/30">
       <TableCell colSpan={colSpan} className="p-0">
-        <div className="px-6 py-4">
+        <div className="px-6 py-4 relative">
+          {onReanalisar && !isLoading && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onReanalisar}
+              className="absolute top-3 right-4 h-7 gap-1.5 text-xs"
+              title="Forçar nova análise dos anexos (ignora cache)"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Reanalisar
+            </Button>
+          )}
           {isLoading ? (
             <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
