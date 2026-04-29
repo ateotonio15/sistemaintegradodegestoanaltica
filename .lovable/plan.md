@@ -1,102 +1,54 @@
+
 ## Objetivo
 
-Evoluir a aba **Financeiro** para suportar contratos com múltiplos pagadores (ex: contrato 2451 com FE COMERCIO e EF COMERCIO), com sincronização automática controlada por confirmação do usuário.
+Quando uma empresa tiver pagadores cadastrados, a análise do Excel deve gerar **um resultado por pagador**, filtrando as linhas da planilha pelo **CNPJ** (prioridade) ou pelo **nome do Pagador** (fallback). Assim, cada linha expandida na tabela mostra os valores corretos daquele pagador específico — não o total agregado.
 
----
+## Comportamento esperado
 
-## 1. Modelo de dados (sem nova tabela)
+- **Empresa SEM pagadores cadastrados**: nada muda. Continua mostrando a análise do arquivo inteiro como hoje.
+- **Empresa COM pagadores cadastrados**:
+  - **Linha mãe** (empresa principal): continua exibindo o **total agregado** do Excel inteiro (todas as linhas).
+  - **Cada linha de pagador**: exibe **somente** as linhas do Excel cujo CNPJ casa com o CNPJ do pagador; se o Excel não tiver coluna CNPJ ou o CNPJ não bater, usa a coluna "Pagador" (nome) como fallback.
 
-Aproveitar `empresas.codigo_contrato` como chave de agrupamento. Pagadores irmãos = empresas que compartilham o mesmo `codigo_contrato`.
+## Mudanças no código
 
-- **Contrato** = grupo de empresas com o mesmo `codigo_contrato`.
-- **Pagador** = cada `empresa` individual (com seu próprio CNPJ).
-- Sem migração de dados existentes; apenas uma view/agregação no frontend.
+### 1. `src/lib/excel-analysis-utils.ts`
+- Adicionar reconhecimento das colunas **CNPJ** e **Pagador** ao lado das colunas atuais (Plano, Tipo Cobrança, Valor):
+  - `COL_CNPJ = ["cnpj", "cnpj pagador", "cnpj do pagador"]`
+  - `COL_PAGADOR = ["pagador", "nome pagador", "nome do pagador", "razao social", "razão social"]`
+- Adicionar utilitário `normalizarCnpj(s)` que remove tudo que não é dígito.
+- Criar nova função `analisarExcelFinanceiroPorPagador(buffer, filtro?)`:
+  - `filtro` opcional: `{ cnpj?: string; nome?: string }`.
+  - Se `filtro` ausente → comportamento atual (agregado).
+  - Se `filtro` presente → ao iterar as linhas, pula a linha quando:
+    - Houver coluna CNPJ E `filtro.cnpj` informado → comparar CNPJs normalizados; se não bater, pula.
+    - Senão, se houver coluna Pagador E `filtro.nome` → comparar por `norm()` (igualdade ou `includes`); se não bater, pula.
+    - Se o arquivo não tem nenhuma das duas colunas → retorna agregado igual ao atual e adiciona aviso "Não foi possível separar por pagador".
+- Manter `analisarExcelFinanceiro` como wrapper que chama a nova função sem filtro (compatibilidade).
+- Replicar o mesmo padrão de filtro em `src/lib/excel-analysis-moto-honda.ts` (parser RESUMO Moto Honda).
 
----
+### 2. `src/pages/Financeiro.tsx` (função `runAnalise`, linhas ~540-690)
+- Hoje a análise é cacheada por `row.id` (id da movimentação). Passar a cachear por `rowKey` para que cada pagador tenha seu próprio resultado.
+- Para cada `xlsAnexo`, gerar **N+1 análises**:
+  - 1 análise agregada (sem filtro) → resultado da linha mãe.
+  - 1 análise por pagador cadastrado ativo da empresa → cada uma com `{ cnpj, nome }` do pagador.
+- Armazenar em `analiseResultados[rowKey]` o array correspondente daquela linha (mãe = agregado; pagador = filtrado).
+- Mesma lógica para `analiseComparacoes[rowKey]` (a comparação com PDF continua usando o resultado já filtrado do Excel; PDF permanece inteiro, pois geralmente vem por pagador como arquivo separado — manter a associação por índice atual).
+- Bloco de geração automática de "A Receber" (linha ~688): continuar usando o **agregado** da empresa-mãe (não duplicar com pagadores). Garantir que só rode uma vez por movimentação (não uma vez por pagador).
 
-## 2. Importação de pagadores via Excel
+### 3. `src/components/financeiro/AnaliseExcelRow.tsx` e `FinanceiroTable.tsx`
+- `FinanceiroTable.tsx` já passa `analiseResultados[rowKey]` como fallback de `analiseResultados[row.id]` — ajustar para priorizar `rowKey`.
+- Sem mudanças visuais; o componente apenas recebe o resultado correto por linha.
 
-Nova tela / botão **"Importar pagadores"** na aba Financeiro (e/ou Empresas).
+## Casos de borda / avisos
 
-Formato do Excel (igual ao enviado):
+- Excel sem coluna CNPJ nem Pagador + empresa com pagadores → linhas de pagador mostram aviso "Não foi possível separar por pagador (planilha sem coluna CNPJ ou Pagador)". A linha mãe continua com o agregado.
+- CNPJ do pagador cadastrado vazio → cai no fallback por nome.
+- Pagador cadastrado sem nenhuma linha correspondente → mostra resultado zerado + aviso "Nenhuma linha encontrada para este pagador".
+- Reanálise (botão "Reanalisar") continua funcionando — invalida o cache pelo `rowKey`.
 
-| Empresa | Contrato | CNPJ |
-|---|---|---|
-| FE COMERCIO | 2451 | (vazio) |
-| EF COMERCIO | 2451 | 04.967.477/0001-00 |
+## Sem mudanças
 
-Comportamento:
-- Para cada linha, busca empresa pelo nome + `codigo_contrato`.
-- Se não existir, cria nova empresa com `nome`, `codigo_contrato`, `cnpj` e copia configuração (tipo_movimentacao, periodo, etc.) do primeiro pagador já existente do mesmo contrato.
-- Se existir, apenas atualiza CNPJ se estiver vazio.
-- Toast com resumo: X criados, Y atualizados, Z ignorados.
-
----
-
-## 3. Sincronização entre pagadores (com confirmação)
-
-Quando o usuário salvar, no diálogo "Editar movimentação" do Financeiro, qualquer um destes campos:
-- `data_envio_nota`
-- `data_vencimento` (dia)
-- `dia_emissao`
-- `tipo_analise`
-- `tipo_cobranca`
-- `dentro_prazo`
-- ou subir/excluir anexo
-
-**E** o contrato tiver mais de um pagador, o sistema abre um modal de confirmação:
-
-> "O contrato 2451 tem 2 pagadores (FE COMERCIO, EF COMERCIO). Deseja aplicar esta alteração para **todos os pagadores** do contrato?"
->
-> [Aplicar a todos] [Apenas neste pagador] [Cancelar]
-
-- "Aplicar a todos" → replica nos `financeiro_movimentacoes` dos demais pagadores (mesmo `mes_referencia` + `periodo`), criando o registro se não existir. Anexos são copiados via referência (mesmo `storage_path`).
-- "Apenas neste pagador" → comportamento atual.
-- A confirmação só aparece quando há ≥2 pagadores no contrato.
-
----
-
-## 4. KPIs no topo do Financeiro
-
-- **Remover** o card "Anexos" (Paperclip, valor 13 no print).
-- **Adicionar** card **"Total de Pagadores"** = contagem distinta de empresas que aparecem no período filtrado.
-- Manter "Total empresas" como está (o usuário pediu para manter — corresponde a contratos/linhas atuais; o nome pode permanecer).
-
----
-
-## 5. Visualização de pagadores no Financeiro
-
-Na tabela do Financeiro, contratos com múltiplos pagadores ganham:
-- Ícone "grupo" (Users) ao lado do nome do contrato.
-- Linha expansível (chevron) que mostra os pagadores irmãos (Nome + CNPJ).
-- Filtro adicional: "Filtrar por pagador" (multiselect com nomes).
-
-A linha principal continua representando o contrato; a expansão é informativa.
-
----
-
-## 6. Mudanças técnicas
-
-### Frontend
-- `src/components/financeiro/KpiCards.tsx`: remover entrada `totalAnexos`, adicionar `totalPagadores`.
-- `src/pages/Financeiro.tsx`: calcular `totalPagadores`, agrupar `kpiRows` por `codigo_contrato` para exibição expansível, remover `totalAnexos` do retorno do `useMemo`.
-- `src/components/financeiro/FinanceiroTable.tsx`: adicionar coluna/expansão de pagadores irmãos quando contrato tem >1 empresa.
-- `src/components/financeiro/EditarMovimentacaoDialog.tsx`: adicionar diálogo de confirmação de replicação ao salvar/anexar quando o contrato tiver múltiplos pagadores. Função utilitária `replicateToSiblings(contratoId, payload)`.
-- Novo componente `src/components/financeiro/ImportPagadoresDialog.tsx`: lê XLSX (lib `xlsx` já presente), faz upsert de empresas via Supabase.
-- Novo botão "Importar pagadores" no header da página Financeiro.
-
-### Backend / Banco
-- **Sem migração de schema**. Toda lógica de agrupamento e replicação fica no cliente (RLS atual já permite financeiro/admin fazer upsert em `financeiro_movimentacoes` e `anexos_financeiro`).
-- Função utilitária no front: `getPagadoresDoContrato(codigo_contrato)` → consulta `empresas` filtrando por `codigo_contrato`.
-
-### Compatibilidade
-- Contratos com 1 pagador continuam funcionando exatamente como hoje (nenhuma confirmação aparece).
-- Estrutura existente de `financeiro_movimentacoes` (uma por empresa+mes+periodo) é preservada — replicação cria registros equivalentes nos pagadores irmãos.
-
----
-
-## 7. Fora de escopo (futuro)
-
-- Inadimplência por pagador.
-- Histórico de quem replicou/alterou.
-- Bloqueio de exclusão de pagador com movimentações.
+- Estrutura do banco (`financeiro_pagadores` já tem `cnpj` e `nome_pagador`).
+- RLS, edge functions, expansão da tabela, KPIs.
+- Comportamento da aba Empresas, Dashboard, Movimentações.

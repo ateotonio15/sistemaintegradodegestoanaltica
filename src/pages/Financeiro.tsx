@@ -546,12 +546,13 @@ export default function Financeiro() {
   };
 
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
-  const ANALISE_PARSER_VERSION = "5";
+  const ANALISE_PARSER_VERSION = "6";
 
   const runAnalise = async (
     row: FinanceiroRow,
     opts: { force?: boolean } = {},
   ) => {
+    const rowKey = row.rowKey ?? row.id;
     let anexos = (anexosMap[row.id] || []) as Array<{
       mime_type: string | null;
       nome_arquivo: string | null;
@@ -572,27 +573,38 @@ export default function Financeiro() {
 
     const tipoAnalise = ((row as any).tipo_analise as string) || "normal";
 
-    // Cache-key combina XLS + PDF + tipo de análise + versão do parser
+    // Identifica filtro: se é linha de pagador (pagador_id) → filtrar; senão (mãe) → agregado
+    const pagadorAtivo = row.pagador_id
+      ? (pagadoresCadastradosMap[row.empresa_id] || []).find((p) => p.id === row.pagador_id)
+      : null;
+    const filtroPagador = pagadorAtivo
+      ? { cnpj: pagadorAtivo.cnpj, nome: pagadorAtivo.nome_pagador }
+      : null;
+    const filtroSuffix = filtroPagador
+      ? `::pag=${pagadorAtivo!.id}`
+      : `::all`;
+
+    // Cache-key combina XLS + PDF + tipo + filtro de pagador + versão do parser
     const cacheKey =
       [...xlsAnexos, ...pdfAnexos]
         .map((a) => a.storage_path)
         .sort()
-        .join("|") + `::${tipoAnalise}::v${ANALISE_PARSER_VERSION}`;
-    const cached = analiseResultados[row.id];
+        .join("|") + `::${tipoAnalise}${filtroSuffix}::v${ANALISE_PARSER_VERSION}`;
+    const cached = analiseResultados[rowKey];
     if (!opts.force && cached && (cached as any)._key === cacheKey) {
       return;
     }
 
     if (xlsAnexos.length === 0) {
-      setAnaliseResultados((prev) => ({ ...prev, [row.id]: [] }));
-      setAnaliseComparacoes((prev) => ({ ...prev, [row.id]: [] }));
+      setAnaliseResultados((prev) => ({ ...prev, [rowKey]: [] }));
+      setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: [] }));
       return;
     }
 
-    setAnaliseLoading((prev) => ({ ...prev, [row.id]: true }));
+    setAnaliseLoading((prev) => ({ ...prev, [rowKey]: true }));
     try {
       const {
-        analisarExcelFinanceiro,
+        analisarExcelFinanceiroPorPagador,
         compararExcelComPdf,
         compararExcelComPdfSimplificado,
       } = await import("@/lib/excel-analysis-utils");
@@ -623,6 +635,7 @@ export default function Financeiro() {
       >;
 
       // Excel — escolhe parser conforme tipo_analise
+      // Para Moto Honda (parser RESUMO), filtro por pagador não se aplica — usa agregado.
       const resultados = await Promise.all(
         xlsAnexos.map(async (a) => {
           try {
@@ -634,8 +647,8 @@ export default function Financeiro() {
             const r =
               tipoAnalise === "moto_honda"
                 ? await analisarExcelMotoHonda(buf)
-                : await analisarExcelFinanceiro(buf); // 'normal' e 'faixa_etaria' por enquanto
-            return { pagador: a.nome_arquivo || "Pagador", ...r };
+                : await analisarExcelFinanceiroPorPagador(buf, filtroPagador ?? undefined);
+            return { pagador: pagadorAtivo?.nome_pagador || a.nome_arquivo || "Pagador", ...r };
           } catch (err: any) {
             toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
             return {
@@ -682,8 +695,14 @@ export default function Financeiro() {
       }
 
       Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
-      setAnaliseResultados((prev) => ({ ...prev, [row.id]: resultados }));
-      setAnaliseComparacoes((prev) => ({ ...prev, [row.id]: comparacoes }));
+      setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados }));
+      setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: comparacoes }));
+
+      // "A Receber" só roda na linha mãe (sem pagador) — evita duplicar
+      if (filtroPagador) {
+        return;
+      }
+
 
       // ===== Geração automática de "A Receber" (apenas se validado) =====
       try {
@@ -771,7 +790,7 @@ export default function Financeiro() {
         console.error("[A Receber] erro inesperado:", err);
       }
     } finally {
-      setAnaliseLoading((prev) => ({ ...prev, [row.id]: false }));
+      setAnaliseLoading((prev) => ({ ...prev, [rowKey]: false }));
     }
   };
 
