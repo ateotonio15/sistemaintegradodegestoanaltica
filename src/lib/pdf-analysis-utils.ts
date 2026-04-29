@@ -196,29 +196,49 @@ export async function analisarPdfFinanceiroSimplificado(
   }
 
   const t = norm(texto);
-  const NUM = String.raw`-?[\d.,]+`;
+  // Aceita opcionalmente R$, parênteses (= negativo contábil) ao redor do número
+  const NUM = String.raw`\(?\s*r?\$?\s*-?[\d.,]+\s*\)?`;
 
-  // Beneficiários: tenta vários padrões
+  const parseValor = (raw: string): number => {
+    let s = raw.trim();
+    if (!s) return NaN;
+    // Parênteses contábeis = negativo
+    let negativo = false;
+    if (s.startsWith("(") && s.endsWith(")")) {
+      negativo = true;
+      s = s.slice(1, -1).trim();
+    }
+    // Remove R$ e espaços
+    s = s.replace(/r\$\s*/i, "").replace(/\s+/g, "");
+    if (s.startsWith("-")) {
+      negativo = !negativo;
+      s = s.slice(1);
+    }
+    let n: number;
+    if (s.includes(",")) {
+      n = parseFloat(s.replace(/\./g, "").replace(",", "."));
+    } else {
+      const m = s.match(/^(\d+)\.(\d{1,2})$/);
+      n = m ? parseFloat(`${m[1]}.${m[2]}`) : parseFloat(s.replace(/\./g, ""));
+    }
+    if (isNaN(n)) return NaN;
+    return negativo ? -n : n;
+  };
+
+  // Beneficiários: tenta vários padrões (incl. "(16353 beneficiarios)")
   let beneficiarios: number | null = null;
   const reBenef1 = /total\s*de?\s*beneficiarios?\s*[:\-=]?\s*(\d+)/i;
-  const reBenef2 = /(\d+)\s*beneficiarios?/i;
+  const reBenef2 = /\(?\s*(\d+)\s*\)?\s*beneficiarios?/i;
   const reBenef3 = /qtd\.?\s*(?:de\s*)?beneficiarios?\s*[:\-=]?\s*(\d+)/i;
-  const m1 = t.match(reBenef1) || t.match(reBenef3) || t.match(reBenef2);
+  const reBenef4 = /referente\s*a\s*\(?\s*(\d+)\s*beneficiarios?/i;
+  const m1 =
+    t.match(reBenef4) || t.match(reBenef1) || t.match(reBenef3) || t.match(reBenef2);
   if (m1) {
     const v = parseInt(m1[1], 10);
     if (!isNaN(v)) beneficiarios = v;
   }
 
-  const parseValor = (raw: string): number => {
-    const s = raw.trim();
-    if (!s) return NaN;
-    if (s.includes(",")) return parseFloat(s.replace(/\./g, "").replace(",", "."));
-    const m = s.match(/^(-?\d+)\.(\d{1,2})$/);
-    if (m) return parseFloat(`${m[1]}.${m[2]}`);
-    return parseFloat(s.replace(/\./g, ""));
-  };
-
-  // Inclusões: "inclusao(s) [qtd x] valor" ou "inclus... R$ valor"
+  // Inclusões: "inclusoes:34.463,50" ou "inclusao 12x R$ 100,00"
   let incQtd: number | null = null;
   let incTotal = 0;
   const reInc = new RegExp(
@@ -232,7 +252,7 @@ export async function analisarPdfFinanceiroSimplificado(
     if (!isNaN(v)) incTotal = v;
   }
 
-  // Exclusões
+  // Exclusões: "exclusoes: (6.976,73)" → negativo
   let excQtd: number | null = null;
   let excTotal = 0;
   const reExc = new RegExp(
