@@ -96,149 +96,78 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
     const erros: string[] = [];
 
     try {
-      // contratos únicos para buscar config base do primeiro pagador existente
+      // Buscar a empresa "âncora" de cada contrato (1ª encontrada com aquele codigo_contrato).
+      // Pagadores ficam vinculados a essa empresa em financeiro_pagadores.
       const contratos = Array.from(new Set(parsedRows.map((r) => r.contrato)));
-      const { data: existentesContrato } = await supabase
+      const { data: empresasContrato } = await supabase
         .from("empresas")
-        .select(
-          "id, nome, cnpj, codigo_contrato, tipo_movimentacao, periodo_movimentacao, data_corte, dia_movimentacao, tipo_financeiro, data_emissao_fatura, data_vencimento_fatura, responsavel_contrato, responsavel_user_id, executiva_user_id, status_empresa, prazo, operadora_plano",
-        )
+        .select("id, nome, codigo_contrato")
         .in("codigo_contrato", contratos);
 
-      const porContrato = new Map<string, any[]>();
-      (existentesContrato || []).forEach((e: any) => {
-        if (!porContrato.has(e.codigo_contrato)) porContrato.set(e.codigo_contrato, []);
-        porContrato.get(e.codigo_contrato)!.push(e);
+      const ancoraPorContrato = new Map<string, { id: string; nome: string }>();
+      (empresasContrato || []).forEach((e: any) => {
+        if (!ancoraPorContrato.has(e.codigo_contrato)) {
+          ancoraPorContrato.set(e.codigo_contrato, { id: e.id, nome: e.nome });
+        }
+      });
+
+      // Pagadores já cadastrados nessas empresas (para detectar duplicados)
+      const ancoraIds = Array.from(ancoraPorContrato.values()).map((a) => a.id);
+      const { data: pagsExist } = ancoraIds.length
+        ? await supabase
+            .from("financeiro_pagadores")
+            .select("id, empresa_id, nome_pagador, cnpj")
+            .in("empresa_id", ancoraIds)
+        : { data: [] as any[] };
+
+      const chaveExist = new Set<string>();
+      const cnpjPorChave = new Map<string, { id: string; cnpj: string | null }>();
+      (pagsExist || []).forEach((p: any) => {
+        const k = `${p.empresa_id}|${p.nome_pagador.trim().toLowerCase()}`;
+        chaveExist.add(k);
+        cnpjPorChave.set(k, { id: p.id, cnpj: p.cnpj });
       });
 
       for (const linha of parsedRows) {
         try {
-          const irmaos = porContrato.get(linha.contrato) || [];
-          const existente = irmaos.find(
-            (e) => e.nome.trim().toLowerCase() === linha.empresa.toLowerCase(),
-          );
-
-          if (existente) {
-            // atualiza CNPJ se vazio e veio na planilha
-            if (!existente.cnpj && linha.cnpj) {
+          const ancora = ancoraPorContrato.get(linha.contrato);
+          if (!ancora) {
+            erros.push(`${linha.empresa} (${linha.contrato}): contrato não encontrado em Empresas`);
+            continue;
+          }
+          const k = `${ancora.id}|${linha.empresa.trim().toLowerCase()}`;
+          if (chaveExist.has(k)) {
+            // já existe — atualiza CNPJ se vier preenchido e estiver vazio
+            const ex = cnpjPorChave.get(k)!;
+            if (linha.cnpj && !ex.cnpj) {
               const { error } = await supabase
-                .from("empresas")
+                .from("financeiro_pagadores")
                 .update({ cnpj: linha.cnpj })
-                .eq("id", existente.id);
+                .eq("id", ex.id);
               if (error) throw error;
               atualizados += 1;
             } else {
               ignorados += 1;
             }
           } else {
-            // copia config do primeiro irmão (se houver) para criar novo pagador
-            const base = irmaos[0];
-            const novo: any = {
-              nome: linha.empresa,
-              codigo_contrato: linha.contrato,
+            const { error } = await supabase.from("financeiro_pagadores").insert({
+              empresa_id: ancora.id,
+              nome_pagador: linha.empresa,
               cnpj: linha.cnpj,
-              status_empresa: "Ativa",
-            };
-            if (base) {
-              novo.tipo_movimentacao = base.tipo_movimentacao;
-              novo.periodo_movimentacao = base.periodo_movimentacao;
-              novo.data_corte = base.data_corte;
-              novo.dia_movimentacao = base.dia_movimentacao;
-              novo.tipo_financeiro = base.tipo_financeiro;
-              novo.data_emissao_fatura = base.data_emissao_fatura;
-              novo.data_vencimento_fatura = base.data_vencimento_fatura;
-              novo.responsavel_contrato = base.responsavel_contrato;
-              novo.responsavel_user_id = base.responsavel_user_id;
-              novo.executiva_user_id = base.executiva_user_id;
-              novo.prazo = base.prazo;
-              novo.operadora_plano = base.operadora_plano;
-            }
-            const { data, error } = await supabase
-              .from("empresas")
-              .insert(novo)
-              .select("id, codigo_contrato, nome, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, dia_movimentacao, tipo_financeiro, data_emissao_fatura, data_vencimento_fatura, responsavel_contrato, responsavel_user_id, executiva_user_id, status_empresa, prazo, operadora_plano")
-              .single();
+              ativo: true,
+            });
             if (error) throw error;
             criados += 1;
-            if (data) {
-              const list = porContrato.get(linha.contrato) || [];
-              list.push(data);
-              porContrato.set(linha.contrato, list);
-            }
+            chaveExist.add(k);
           }
         } catch (err: any) {
           erros.push(`${linha.empresa} (${linha.contrato}): ${err.message}`);
         }
       }
 
-      // Provisionar movimentações financeiras do mês atual para os novos pagadores,
-      // copiando os períodos que os irmãos do contrato já têm no mês.
-      try {
-        const mesAtual = (() => {
-          const d = new Date();
-          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        })();
-
-        // Para cada contrato envolvido, descobrir os períodos já existentes no mês
-        for (const [contrato, empresasContrato] of porContrato.entries()) {
-          const ids = empresasContrato.map((e: any) => e.id);
-          if (ids.length === 0) continue;
-
-          const { data: movsExist } = await supabase
-            .from("financeiro_movimentacoes")
-            .select("empresa_id, periodo")
-            .eq("mes_referencia", mesAtual)
-            .in("empresa_id", ids);
-
-          const periodosDoContrato = new Set<string>();
-          const chavesExist = new Set<string>();
-          (movsExist || []).forEach((m: any) => {
-            periodosDoContrato.add(m.periodo);
-            chavesExist.add(`${m.empresa_id}|${m.periodo}`);
-          });
-
-          if (periodosDoContrato.size === 0) continue;
-
-          const novasMovs: Array<{
-            empresa_id: string;
-            mes_referencia: string;
-            periodo: string;
-            dentro_prazo: boolean;
-            responsavel: string | null;
-          }> = [];
-
-          empresasContrato.forEach((emp: any) => {
-            periodosDoContrato.forEach((periodo) => {
-              if (!chavesExist.has(`${emp.id}|${periodo}`)) {
-                novasMovs.push({
-                  empresa_id: emp.id,
-                  mes_referencia: mesAtual,
-                  periodo,
-                  dentro_prazo: true,
-                  responsavel: emp.responsavel_contrato ?? null,
-                });
-              }
-            });
-          });
-
-          if (novasMovs.length > 0) {
-            const { error: insErr } = await supabase
-              .from("financeiro_movimentacoes")
-              .insert(novasMovs);
-            if (insErr) {
-              erros.push(`Contrato ${contrato} (movs): ${insErr.message}`);
-            }
-          }
-        }
-      } catch (err: any) {
-        erros.push(`Provisionamento de movimentações: ${err.message}`);
-      }
-
       setResumo({ criados, atualizados, ignorados, erros });
-      queryClient.invalidateQueries({ queryKey: ["empresas"] });
-      queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
-      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
-      queryClient.invalidateQueries({ queryKey: ["financeiro-operacionais"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-pagadores-all"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-pagadores"] });
 
       if (erros.length === 0) {
         toast.success(

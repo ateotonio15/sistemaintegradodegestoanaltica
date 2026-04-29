@@ -19,6 +19,7 @@ interface Pagador {
   id: string;
   empresa_id: string;
   nome_pagador: string;
+  cnpj: string | null;
   ativo: boolean;
 }
 
@@ -39,6 +40,7 @@ export function GerenciarPagadoresDialog({
 }: Props) {
   const queryClient = useQueryClient();
   const [novoNome, setNovoNome] = useState("");
+  const [novoCnpj, setNovoCnpj] = useState("");
 
   const { data: pagadores = [], isLoading } = useQuery({
     queryKey: ["financeiro-pagadores", empresaId],
@@ -56,7 +58,10 @@ export function GerenciarPagadoresDialog({
   });
 
   useEffect(() => {
-    if (!open) setNovoNome("");
+    if (!open) {
+      setNovoNome("");
+      setNovoCnpj("");
+    }
   }, [open]);
 
   const invalidate = () => {
@@ -65,16 +70,22 @@ export function GerenciarPagadoresDialog({
   };
 
   const addMutation = useMutation({
-    mutationFn: async (nome: string) => {
+    mutationFn: async (payload: { nome: string; cnpj: string | null }) => {
       if (!empresaId) throw new Error("Empresa inválida");
       const { error } = await supabase
         .from("financeiro_pagadores")
-        .insert({ empresa_id: empresaId, nome_pagador: nome.trim(), ativo: true });
+        .insert({
+          empresa_id: empresaId,
+          nome_pagador: payload.nome.trim(),
+          cnpj: payload.cnpj,
+          ativo: true,
+        });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Pagador adicionado");
       setNovoNome("");
+      setNovoCnpj("");
       invalidate();
     },
     onError: (e: any) => {
@@ -115,7 +126,7 @@ export function GerenciarPagadoresDialog({
       toast.error("Informe o nome do pagador");
       return;
     }
-    addMutation.mutate(nome);
+    addMutation.mutate({ nome, cnpj: novoCnpj.trim() || null });
   };
 
   return (
@@ -130,25 +141,38 @@ export function GerenciarPagadoresDialog({
         </DialogHeader>
 
         {!readOnly && (
-          <div className="flex gap-2">
-            <Input
-              placeholder="Nome do pagador"
-              value={novoNome}
-              onChange={(e) => setNovoNome(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAdd();
-                }
-              }}
-            />
-            <Button onClick={handleAdd} disabled={addMutation.isPending}>
+          <div className="space-y-2">
+            <div className="grid grid-cols-[1fr_180px] gap-2">
+              <Input
+                placeholder="Nome do pagador"
+                value={novoNome}
+                onChange={(e) => setNovoNome(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAdd();
+                  }
+                }}
+              />
+              <Input
+                placeholder="CNPJ (opcional)"
+                value={novoCnpj}
+                onChange={(e) => setNovoCnpj(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAdd();
+                  }
+                }}
+              />
+            </div>
+            <Button onClick={handleAdd} disabled={addMutation.isPending} className="w-full">
               {addMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 mr-2" />
               )}
-              Adicionar
+              Adicionar pagador
             </Button>
           </div>
         )}
@@ -169,6 +193,7 @@ export function GerenciarPagadoresDialog({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{p.nome_pagador}</p>
                   <p className="text-xs text-muted-foreground">
+                    {p.cnpj ? `CNPJ: ${p.cnpj} · ` : ""}
                     {p.ativo ? "Ativo" : "Inativo"}
                   </p>
                 </div>

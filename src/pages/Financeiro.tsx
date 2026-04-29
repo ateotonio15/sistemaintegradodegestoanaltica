@@ -165,10 +165,10 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("financeiro_pagadores")
-        .select("id, empresa_id, nome_pagador, ativo")
+        .select("id, empresa_id, nome_pagador, cnpj, ativo")
         .in("empresa_id", empresaIds);
       if (error) throw error;
-      const map: Record<string, Array<{ id: string; empresa_id: string; nome_pagador: string; ativo: boolean }>> = {};
+      const map: Record<string, Array<{ id: string; empresa_id: string; nome_pagador: string; cnpj: string | null; ativo: boolean }>> = {};
       (data || []).forEach((p: any) => {
         if (!map[p.empresa_id]) map[p.empresa_id] = [];
         map[p.empresa_id].push(p);
@@ -337,25 +337,54 @@ export default function Financeiro() {
     return c;
   }, [allRows]);
 
-  // Tabela: aplica TODOS os filtros
+  // Tabela: aplica TODOS os filtros e expande 1 linha por pagador cadastrado
   const filteredRows = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return allRows.filter((r) => {
+    const base = allRows.filter((r) => {
       if (filtroPeriodo && r.periodo !== filtroPeriodo) return false;
       if (filtroStatus !== "all" && r.status !== filtroStatus) return false;
       if (filtroTipo !== "all" && (r.tipo_cobranca || "") !== filtroTipo) return false;
       if (somenteOverdue && (r.dentro_prazo || r.data_envio_nota)) return false;
-      if (q) {
-        const hay = `${r.empresa_nome} ${r.empresa_codigo || ""} ${r.empresa_cnpj || ""}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
       return true;
     });
-  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue]);
+
+    // Expande: cada pagador cadastrado vira uma linha (mesma movimentação).
+    // Sem pagadores cadastrados → mantém a linha original com nome/cnpj da empresa.
+    const expanded: FinanceiroRow[] = [];
+    base.forEach((r) => {
+      const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p) => p.ativo);
+      if (pagadores.length > 0) {
+        pagadores.forEach((p) => {
+          expanded.push({
+            ...r,
+            empresa_nome: p.nome_pagador,
+            empresa_cnpj: p.cnpj ?? r.empresa_cnpj,
+            rowKey: `${r.id}::${p.id}`,
+            pagador_id: p.id,
+          });
+        });
+      } else {
+        expanded.push({ ...r, rowKey: r.id, pagador_id: null });
+      }
+    });
+
+    // Filtro de busca aplicado SOBRE as linhas já expandidas (busca pelo pagador certo)
+    if (!q) return expanded;
+    return expanded.filter((r) => {
+      const hay = `${r.empresa_nome} ${r.empresa_codigo || ""} ${r.empresa_cnpj || ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap]);
 
   // KPIs
   const kpis = useMemo(() => {
-    const pagadoresSet = new Set(kpiRows.map((r) => r.empresa_id));
+    // Pagadores: soma cada pagador cadastrado por empresa visível (mín. 1 = a própria empresa)
+    const empresasUnicas = new Set(kpiRows.map((r) => r.empresa_id));
+    let totalPagadores = 0;
+    empresasUnicas.forEach((empId) => {
+      const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
+      totalPagadores += lista.length > 0 ? lista.length : 1;
+    });
     // Contratos = código de contrato distintos. Empresas sem código contam individualmente.
     const contratosSet = new Set(
       kpiRows.map((r) => r.empresa_codigo?.trim() || `__sem__${r.empresa_id}`),
@@ -370,13 +399,13 @@ export default function Financeiro() {
     }).length;
     return {
       totalEmpresas: contratosSet.size,
-      totalPagadores: pagadoresSet.size,
+      totalPagadores,
       notasEnviadas: kpiRows.filter((r) => r.status === "Enviada" || r.status === "Nota emitida").length,
       aguardandoNota: kpiRows.filter((r) => r.status === "Aguardando nota").length,
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
       foraDoPrazo,
     };
-  }, [kpiRows]);
+  }, [kpiRows, pagadoresCadastradosMap]);
 
   // Provisionar movimentações financeiras do mês:
   // - Todas as empresas ATIVAS com período válido
@@ -504,11 +533,12 @@ export default function Financeiro() {
   };
 
   const handleToggleExpand = async (row: FinanceiroRow) => {
-    if (expandedRowId === row.id) {
+    const key = row.rowKey ?? row.id;
+    if (expandedRowId === key) {
       setExpandedRowId(null);
       return;
     }
-    setExpandedRowId(row.id);
+    setExpandedRowId(key);
     await runAnalise(row);
   };
 
@@ -1114,7 +1144,7 @@ export default function Financeiro() {
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
           readOnly={!canManageFinanceiro}
-          pagadoresCadastrados={pagadoresCadastradosMap}
+          
         />
 
         {/* Diálogos (somente para perfis com permissão de edição) */}

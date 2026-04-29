@@ -1,10 +1,10 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { GerenciarPagadoresDialog } from "./GerenciarPagadoresDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, Users, UserCog } from "lucide-react";
+import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -26,6 +26,10 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   dia_emissao?: number | null;
   aguardando_nota_em?: string | null;
   enviado_por_nome?: string | null;
+  /** Chave única por linha (id da movimentação + id do pagador, quando aplicável) */
+  rowKey?: string;
+  /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
+  pagador_id?: string | null;
 };
 
 export interface PagadorCadastrado {
@@ -47,11 +51,9 @@ interface Props {
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
   readOnly?: boolean;
-  /** Mapa empresa_id -> lista de pagadores cadastrados (financeiro_pagadores) */
-  pagadoresCadastrados?: Record<string, PagadorCadastrado[]>;
 }
 
-const COL_COUNT = 14;
+const COL_COUNT = 13;
 
 export function FinanceiroTable({
   rows,
@@ -65,7 +67,6 @@ export function FinanceiroTable({
   analiseLoading,
   analiseComparacoes,
   readOnly = false,
-  pagadoresCadastrados = {},
 }: Props) {
   const [anexosDialog, setAnexosDialog] = useState<{
     empresaId: string;
@@ -79,17 +80,6 @@ export function FinanceiroTable({
     empresaNome: string;
   } | null>(null);
 
-  // Conta pagadores por código de contrato dentro das linhas filtradas atuais
-  const pagadoresPorContrato = useMemo(() => {
-    const map: Record<string, string[]> = {};
-    rows.forEach((r) => {
-      const key = r.empresa_codigo?.trim();
-      if (!key) return;
-      if (!map[key]) map[key] = [];
-      if (!map[key].includes(r.empresa_nome)) map[key].push(r.empresa_nome);
-    });
-    return map;
-  }, [rows]);
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -108,7 +98,6 @@ export function FinanceiroTable({
             <TableHead className="font-semibold text-center">Envio nota</TableHead>
             <TableHead className="font-semibold text-center">Vencimento</TableHead>
             <TableHead className="font-semibold text-center">Anexos</TableHead>
-            <TableHead className="font-semibold text-center">Pagadores</TableHead>
             <TableHead className="font-semibold text-center">Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -128,9 +117,10 @@ export function FinanceiroTable({
           ) : (
             rows.map((row) => {
               const isOverdue = !row.dentro_prazo && !row.data_envio_nota;
-              const isExpanded = expandedRowId === row.id;
+              const rowKey = row.rowKey ?? row.id;
+              const isExpanded = expandedRowId === rowKey;
               return (
-                <Fragment key={row.id}>
+                <Fragment key={rowKey}>
                   <TableRow
                     className={cn(
                       isOverdue && "bg-destructive/5 border-l-2 border-l-destructive",
@@ -139,24 +129,22 @@ export function FinanceiroTable({
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
-                        {(() => {
-                          const codigo = row.empresa_codigo?.trim();
-                          const irmaos = codigo ? pagadoresPorContrato[codigo] : null;
-                          const totalPag = irmaos?.length ?? 1;
-                          if (totalPag > 1) {
-                            return (
-                              <Badge
-                                variant="outline"
-                                className="text-info border-info/50 text-[10px] px-1.5 py-0 h-5"
-                                title={`Pagadores deste contrato: ${irmaos!.join(", ")}`}
-                              >
-                                <Users className="h-2.5 w-2.5 mr-1" />
-                                {totalPag} pagadores
-                              </Badge>
-                            );
-                          }
-                          return null;
-                        })()}
+                        {!readOnly && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                            onClick={() =>
+                              setPagadoresDialog({
+                                empresaId: row.empresa_id,
+                                empresaNome: row.empresa_nome,
+                              })
+                            }
+                            title="Gerenciar pagadores deste contrato"
+                          >
+                            <UserCog className="h-3 w-3" />
+                          </Button>
+                        )}
                         {row.cobranca_registrada && (
                           <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
                             <Bell className="h-2.5 w-2.5 mr-1" />
@@ -214,34 +202,6 @@ export function FinanceiroTable({
                         {row.anexos_count}
                       </Button>
                     </TableCell>
-                    <TableCell className="text-center">
-                      {(() => {
-                        const lista = pagadoresCadastrados[row.empresa_id] || [];
-                        const ativos = lista.filter((p) => p.ativo);
-                        const total = ativos.length;
-                        const tooltip =
-                          total > 0
-                            ? `Pagadores: ${ativos.map((p) => p.nome_pagador).join(", ")}`
-                            : `Sem pagadores cadastrados (assume "${row.empresa_nome}")`;
-                        return (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 gap-1 text-sm text-muted-foreground hover:text-foreground"
-                            onClick={() =>
-                              setPagadoresDialog({
-                                empresaId: row.empresa_id,
-                                empresaNome: row.empresa_nome,
-                              })
-                            }
-                            title={tooltip}
-                          >
-                            <UserCog className="h-3 w-3" />
-                            {total > 0 ? total : <span className="italic text-xs">padrão</span>}
-                          </Button>
-                        );
-                      })()}
-                    </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-1">
                         {!readOnly && (
@@ -285,9 +245,9 @@ export function FinanceiroTable({
                   {isExpanded && (
                     <AnaliseExcelRow
                       colSpan={COL_COUNT}
-                      isLoading={!!analiseLoading[row.id]}
-                      resultados={analiseResultados[row.id] ?? null}
-                      comparacoes={analiseComparacoes?.[row.id] ?? null}
+                      isLoading={!!(analiseLoading[row.id] || analiseLoading[rowKey])}
+                      resultados={analiseResultados[row.id] ?? analiseResultados[rowKey] ?? null}
+                      comparacoes={analiseComparacoes?.[row.id] ?? analiseComparacoes?.[rowKey] ?? null}
                       onReanalisar={onReanalisar ? () => onReanalisar(row) : undefined}
                     />
                   )}
