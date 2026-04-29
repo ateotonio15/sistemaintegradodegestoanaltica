@@ -815,7 +815,7 @@ export default function Dashboard() {
                 </TableHeader>
                 <TableBody>
                   {listaConcluidas.length === 0 ? (
-                    <TableRow><TableCell colSpan={role === "comum" ? 9 : 8} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
                   ) : (
                     listaConcluidas.map((m) => (
                       <TableRow key={m.id} className="hover:bg-accent/50 transition-colors">
