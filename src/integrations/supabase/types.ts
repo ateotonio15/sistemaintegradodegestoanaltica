@@ -375,11 +375,13 @@ export type Database = {
       }
       financeiro_movimentacoes: {
         Row: {
+          aguardando_nota_em: string | null
           cobranca_registrada: boolean
           created_at: string
           data_envio_nota: string | null
           data_vencimento: string | null
           dentro_prazo: boolean
+          dia_emissao: number | null
           empresa_id: string
           enviado_por_user_id: string | null
           id: string
@@ -391,11 +393,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aguardando_nota_em?: string | null
           cobranca_registrada?: boolean
           created_at?: string
           data_envio_nota?: string | null
           data_vencimento?: string | null
           dentro_prazo?: boolean
+          dia_emissao?: number | null
           empresa_id: string
           enviado_por_user_id?: string | null
           id?: string
@@ -407,11 +411,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aguardando_nota_em?: string | null
           cobranca_registrada?: boolean
           created_at?: string
           data_envio_nota?: string | null
           data_vencimento?: string | null
           dentro_prazo?: boolean
+          dia_emissao?: number | null
           empresa_id?: string
           enviado_por_user_id?: string | null
           id?: string

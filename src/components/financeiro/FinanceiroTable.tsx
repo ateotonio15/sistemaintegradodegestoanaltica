@@ -10,7 +10,7 @@ import {
   type StatusFinanceiro,
   statusFinanceiroColor,
 } from "@/lib/financeiro-utils";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { AnaliseExcelRow } from "./AnaliseExcelRow";
 import type { AnaliseResultado, ComparacaoResultado } from "@/lib/excel-analysis-utils";
 
@@ -22,6 +22,8 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   status: StatusFinanceiro;
   anexos_count: number;
   data_vencimento?: string | null;
+  dia_emissao?: number | null;
+  aguardando_nota_em?: string | null;
   enviado_por_nome?: string | null;
 };
 
@@ -38,7 +40,7 @@ interface Props {
   readOnly?: boolean;
 }
 
-const COL_COUNT = 12;
+const COL_COUNT = 13;
 
 export function FinanceiroTable({
   rows,
@@ -70,6 +72,7 @@ export function FinanceiroTable({
             <TableHead className="font-semibold">Período / Corte</TableHead>
             <TableHead className="font-semibold">Responsável</TableHead>
             <TableHead className="font-semibold">Tipo</TableHead>
+            <TableHead className="font-semibold">Emissão</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">Usuário</TableHead>
             <TableHead className="font-semibold">Envio nota</TableHead>
@@ -126,6 +129,11 @@ export function FinanceiroTable({
                     <TableCell className="text-sm">
                       {row.tipo_cobranca || <span className="text-muted-foreground">—</span>}
                     </TableCell>
+                    <TableCell className="text-sm whitespace-nowrap">
+                      {row.dia_emissao
+                        ? `Emissão dia ${String(row.dia_emissao).padStart(2, "0")}`
+                        : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
                     <TableCell>
                       <Badge className={cn("text-xs", statusFinanceiroColor(row.status))}>
                         {row.status}
@@ -135,7 +143,9 @@ export function FinanceiroTable({
                       {row.enviado_por_nome || <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-sm">{formatDateBR(row.data_envio_nota)}</TableCell>
-                    <TableCell className="text-sm">{formatDateBR(row.data_vencimento)}</TableCell>
+                    <TableCell className="text-sm" title={formatDateBR(row.data_vencimento)}>
+                      {formatDay(row.data_vencimento)}
+                    </TableCell>
                     <TableCell className="text-center">
                       <Button
                         variant="ghost"

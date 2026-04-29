@@ -125,6 +125,82 @@ export function formatBytes(bytes: number | null | undefined): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/* ─────────────────────────────────────────────────────────────
+ * Controle de prazo do Financeiro (24h / 48h / regra dia 01)
+ * ────────────────────────────────────────────────────────── */
+
+export type PrazoCategoria = "Dentro do prazo" | "Fora do prazo" | "Em andamento" | "Sem base";
+
+export interface CalcPrazoInput {
+  aguardando_nota_em: string | null | undefined;
+  data_envio_nota: string | null | undefined;
+  dia_emissao: number | null | undefined;
+}
+
+export interface CalcPrazoResult {
+  categoria: PrazoCategoria;
+  inicio: Date | null;
+  limite: Date | null;
+  janelaHoras: 24 | 48 | null;
+}
+
+/**
+ * Calcula prazo do Financeiro para uma movimentação:
+ * - Início = aguardando_nota_em; se dia_emissao=1, início = 1º do mês seguinte (00:00 local).
+ * - Janela: 48h se início.getDate() <= 10; 24h se >= 11.
+ * - Compara com data_envio_nota (ou agora se ainda pendente).
+ */
+export function calcularPrazoFinanceiro(input: CalcPrazoInput): CalcPrazoResult {
+  if (!input.aguardando_nota_em) {
+    return { categoria: "Sem base", inicio: null, limite: null, janelaHoras: null };
+  }
+
+  const base = new Date(input.aguardando_nota_em);
+  if (isNaN(base.getTime())) {
+    return { categoria: "Sem base", inicio: null, limite: null, janelaHoras: null };
+  }
+
+  let inicio: Date;
+  if (input.dia_emissao === 1) {
+    // Primeiro dia do mês seguinte ao "aguardando", 00:00 local
+    inicio = new Date(base.getFullYear(), base.getMonth() + 1, 1, 0, 0, 0, 0);
+  } else {
+    inicio = base;
+  }
+
+  const janelaHoras: 24 | 48 = inicio.getDate() <= 10 ? 48 : 24;
+  const limite = new Date(inicio.getTime() + janelaHoras * 60 * 60 * 1000);
+
+  // Data de envio (parse local YYYY-MM-DD → fim do dia para ser justo)
+  let envio: Date | null = null;
+  if (input.data_envio_nota) {
+    const m = input.data_envio_nota.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      envio = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999);
+    } else {
+      const d = new Date(input.data_envio_nota);
+      envio = isNaN(d.getTime()) ? null : d;
+    }
+  }
+
+  const agora = new Date();
+
+  if (envio) {
+    return {
+      categoria: envio.getTime() <= limite.getTime() ? "Dentro do prazo" : "Fora do prazo",
+      inicio,
+      limite,
+      janelaHoras,
+    };
+  }
+
+  // Sem envio ainda
+  if (agora.getTime() > limite.getTime()) {
+    return { categoria: "Fora do prazo", inicio, limite, janelaHoras };
+  }
+  return { categoria: "Em andamento", inicio, limite, janelaHoras };
+}
+
 /** Lista os meses dos últimos 12 + próximos 1 para o filtro */
 export function getMesesOptions(): string[] {
   const now = new Date();

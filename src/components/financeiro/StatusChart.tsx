@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
-import type { StatusFinanceiro } from "@/lib/financeiro-utils";
+import { calcularPrazoFinanceiro, type StatusFinanceiro } from "@/lib/financeiro-utils";
 
 type Mode = "tipo" | "status" | "prazo";
 
@@ -11,6 +11,9 @@ interface ChartItem {
   status: StatusFinanceiro;
   tipo_cobranca: string | null;
   dentro_prazo: boolean;
+  aguardando_nota_em?: string | null;
+  data_envio_nota?: string | null;
+  dia_emissao?: number | null;
 }
 
 interface StatusChartProps {
@@ -42,9 +45,15 @@ export function StatusChart({ data }: StatusChartProps) {
         counts[d.status] = (counts[d.status] || 0) + 1;
       });
     } else {
+      // Modo "prazo": usa cálculo do Financeiro (24h/48h, regra dia 01)
       data.forEach((d) => {
-        const key = d.dentro_prazo ? "Dentro do prazo" : "Fora do prazo";
-        counts[key] = (counts[key] || 0) + 1;
+        const r = calcularPrazoFinanceiro({
+          aguardando_nota_em: d.aguardando_nota_em,
+          data_envio_nota: d.data_envio_nota,
+          dia_emissao: d.dia_emissao,
+        });
+        if (r.categoria === "Sem base") return;
+        counts[r.categoria] = (counts[r.categoria] || 0) + 1;
       });
     }
     return Object.entries(counts).map(([name, value]) => ({ name, value }));

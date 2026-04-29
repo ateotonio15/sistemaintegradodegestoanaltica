@@ -32,7 +32,10 @@ import {
 } from "@/lib/financeiro-utils";
 import { todayLocalISO } from "@/lib/date-utils";
 
-type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & { data_vencimento?: string | null };
+type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & {
+  data_vencimento?: string | null;
+  dia_emissao?: number | null;
+};
 
 interface Props {
   open: boolean;
@@ -47,6 +50,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [tipoCobranca, setTipoCobranca] = useState("");
   const [dataEnvioNota, setDataEnvioNota] = useState("");
   const [dataVencimento, setDataVencimento] = useState("");
+  const [diaEmissao, setDiaEmissao] = useState<string>("__none__");
   const [dentroPrazo, setDentroPrazo] = useState(true);
   const [uploading, setUploading] = useState(false);
 
@@ -55,6 +59,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       setTipoCobranca(movimentacao.tipo_cobranca || "");
       setDataEnvioNota(movimentacao.data_envio_nota || "");
       setDataVencimento(movimentacao.data_vencimento || "");
+      setDiaEmissao(movimentacao.dia_emissao ? String(movimentacao.dia_emissao) : "__none__");
       setDentroPrazo(movimentacao.dentro_prazo);
     }
   }, [movimentacao]);
@@ -94,6 +99,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         tipo_cobranca: tipoTrimmed || null,
         data_envio_nota: dataEnvioNota || null,
         data_vencimento: dataVencimento || null,
+        dia_emissao: diaEmissao === "__none__" ? null : Number(diaEmissao),
         dentro_prazo: dentroPrazo,
       };
       if (envioAlterado && user?.id) {
@@ -236,6 +242,28 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                   Nota marcada como enviada.
                 </p>
               ) : null}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="dia_emissao">Dia de emissão</Label>
+              <Select value={diaEmissao} onValueChange={setDiaEmissao}>
+                <SelectTrigger id="dia_emissao">
+                  <SelectValue placeholder="Selecione o dia (01–31)" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  <SelectItem value="__none__">— Não definido —</SelectItem>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      Emissão dia {String(d).padStart(2, "0")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Períodos 20-25 e 25-30 começam com "Emissão dia 01" automaticamente.
+              </p>
             </div>
           </div>
 
