@@ -262,6 +262,33 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         toast.success(
           sucessos === 1 ? "Arquivo enviado" : `${sucessos} arquivos enviados`,
         );
+        // Pergunta se replica anexos para os outros pagadores do contrato
+        if (temIrmaos && movimentacao) {
+          setReplicaConfirm({
+            title: "Replicar anexos para todos os pagadores?",
+            description: `O contrato tem ${pagadores.length} pagadores. Deseja copiar os arquivos enviados para os outros pagadores do contrato?`,
+            pagadores,
+            onTodos: async () => {
+              try {
+                const n = await replicarAnexosParaPagadores({
+                  movimentacaoOrigemId: movimentacao.id,
+                  empresaIdOrigem: movimentacao.empresa_id,
+                  codigoContrato: pagadores[0]?.codigo_contrato,
+                  mesReferencia: movimentacao.mes_referencia,
+                  periodo: movimentacao.periodo,
+                });
+                toast.success(`${n} anexo(s) replicado(s)`);
+                queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
+                queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+              } catch (e: any) {
+                toast.error("Erro ao replicar anexos: " + e.message);
+              } finally {
+                setReplicaConfirm(null);
+              }
+            },
+            onApenas: () => setReplicaConfirm(null),
+          });
+        }
       }
       if (erros.length > 0) {
         toast.error(`Falha em ${erros.length} arquivo(s): ${erros.join(" | ")}`);
