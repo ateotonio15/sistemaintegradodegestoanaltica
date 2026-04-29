@@ -462,6 +462,19 @@ export default function Financeiro() {
     setCobOpen(true);
   };
 
+  const handleToggleExpand = async (row: FinanceiroRow) => {
+    if (expandedRowId === row.id) {
+      setExpandedRowId(null);
+      return;
+    }
+    setExpandedRowId(row.id);
+    await runAnalise(row);
+  };
+
+  const handleReanalisar = async (row: FinanceiroRow) => {
+    await runAnalise(row, { force: true });
+  };
+
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
   const ANALISE_PARSER_VERSION = "3";
 
