@@ -98,7 +98,6 @@ export function FinanceiroTable({
             <TableHead className="font-semibold text-center">Envio nota</TableHead>
             <TableHead className="font-semibold text-center">Vencimento</TableHead>
             <TableHead className="font-semibold text-center">Anexos</TableHead>
-            <TableHead className="font-semibold text-center">Pagadores</TableHead>
             <TableHead className="font-semibold text-center">Ações</TableHead>
           </TableRow>
         </TableHeader>
