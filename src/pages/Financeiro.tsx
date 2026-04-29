@@ -348,24 +348,23 @@ export default function Financeiro() {
       return true;
     });
 
-    // Expande: cada pagador cadastrado vira uma linha (mesma movimentação).
-    // Sem pagadores cadastrados → mantém a linha original com nome/cnpj da empresa.
+    // Sempre mantém a linha da empresa-mãe + adiciona uma linha por pagador cadastrado.
     const expanded: FinanceiroRow[] = [];
     base.forEach((r) => {
+      // Linha da empresa principal (sempre presente)
+      expanded.push({ ...r, rowKey: r.id, pagador_id: null });
+
+      // Linhas adicionais para cada pagador cadastrado ativo
       const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p) => p.ativo);
-      if (pagadores.length > 0) {
-        pagadores.forEach((p) => {
-          expanded.push({
-            ...r,
-            empresa_nome: p.nome_pagador,
-            empresa_cnpj: p.cnpj ?? r.empresa_cnpj,
-            rowKey: `${r.id}::${p.id}`,
-            pagador_id: p.id,
-          });
+      pagadores.forEach((p) => {
+        expanded.push({
+          ...r,
+          empresa_nome: p.nome_pagador,
+          empresa_cnpj: p.cnpj ?? r.empresa_cnpj,
+          rowKey: `${r.id}::${p.id}`,
+          pagador_id: p.id,
         });
-      } else {
-        expanded.push({ ...r, rowKey: r.id, pagador_id: null });
-      }
+      });
     });
 
     // Filtro de busca aplicado SOBRE as linhas já expandidas (busca pelo pagador certo)
@@ -378,12 +377,12 @@ export default function Financeiro() {
 
   // KPIs
   const kpis = useMemo(() => {
-    // Pagadores: soma cada pagador cadastrado por empresa visível (mín. 1 = a própria empresa)
+    // Pagadores = empresa-mãe (1) + pagadores cadastrados ativos
     const empresasUnicas = new Set(kpiRows.map((r) => r.empresa_id));
     let totalPagadores = 0;
     empresasUnicas.forEach((empId) => {
       const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
-      totalPagadores += lista.length > 0 ? lista.length : 1;
+      totalPagadores += 1 + lista.length;
     });
     // Contratos = código de contrato distintos. Empresas sem código contam individualmente.
     const contratosSet = new Set(
