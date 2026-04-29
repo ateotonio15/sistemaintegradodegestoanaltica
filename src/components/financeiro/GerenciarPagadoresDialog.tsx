@@ -58,7 +58,10 @@ export function GerenciarPagadoresDialog({
   });
 
   useEffect(() => {
-    if (!open) setNovoNome("");
+    if (!open) {
+      setNovoNome("");
+      setNovoCnpj("");
+    }
   }, [open]);
 
   const invalidate = () => {
