@@ -77,7 +77,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [tipoAnalise, setTipoAnalise] = useState<string>("normal");
   const [dentroPrazo, setDentroPrazo] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [confirm, setConfirm] = useState<{
+  const [replicaConfirm, setReplicaConfirm] = useState<{
     title: string;
     description: string;
     onTodos: () => void | Promise<void>;
