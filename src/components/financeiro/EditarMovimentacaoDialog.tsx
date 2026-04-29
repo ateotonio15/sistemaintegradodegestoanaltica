@@ -50,6 +50,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [tipoCobranca, setTipoCobranca] = useState("");
   const [dataEnvioNota, setDataEnvioNota] = useState("");
   const [dataVencimento, setDataVencimento] = useState("");
+  const [diaEmissao, setDiaEmissao] = useState<string>("__none__");
   const [dentroPrazo, setDentroPrazo] = useState(true);
   const [uploading, setUploading] = useState(false);
 
@@ -58,6 +59,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       setTipoCobranca(movimentacao.tipo_cobranca || "");
       setDataEnvioNota(movimentacao.data_envio_nota || "");
       setDataVencimento(movimentacao.data_vencimento || "");
+      setDiaEmissao(movimentacao.dia_emissao ? String(movimentacao.dia_emissao) : "__none__");
       setDentroPrazo(movimentacao.dentro_prazo);
     }
   }, [movimentacao]);
