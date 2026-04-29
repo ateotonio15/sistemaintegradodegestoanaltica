@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, Search, BellRing, Trash2 } from "lucide-react";
+import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, Search, BellRing, Trash2, Paperclip } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
