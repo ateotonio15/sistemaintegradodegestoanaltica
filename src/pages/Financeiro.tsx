@@ -682,6 +682,25 @@ export default function Financeiro() {
           return semDetalhes;
         });
 
+      // Seleciona o PDF correto pelo CNPJ do TOMADOR DE SERVIÇO.
+      // Se houver filtro (pagador ou linha-mãe com pagadores), procura o PDF
+      // cujo tomadorCnpj bate com o CNPJ do filtro. Sem match, usa fallback por índice.
+      const onlyDigits = (s: string | null | undefined) =>
+        (s || "").replace(/\D/g, "");
+      const cnpjFiltroDigits = onlyDigits(filtroPagador?.cnpj);
+      const escolherPdfPorCnpj = <T extends { tomadorCnpj?: string | null }>(
+        lista: T[],
+        idxFallback: number,
+      ): T | null => {
+        if (cnpjFiltroDigits) {
+          const found = lista.find(
+            (p) => onlyDigits(p.tomadorCnpj) === cnpjFiltroDigits,
+          );
+          if (found) return found;
+        }
+        return lista[idxFallback] ?? lista[0] ?? null;
+      };
+
       let comparacoes: any[] = [];
       if (pdfsValidos.length === 0) {
         comparacoes = [];
@@ -689,16 +708,16 @@ export default function Financeiro() {
         const pdfsSimples = await Promise.all(
           pdfsValidos.map(async (p) => {
             const r = await analisarPdfFinanceiroSimplificado(p.buf);
-            return { arquivo: p.arquivo, ...r };
+            return { arquivo: p.arquivo, tomadorCnpj: p.tomadorCnpj, ...r };
           }),
         );
         comparacoes = resultados.map((excel, idx) => {
-          const pdf = pdfsSimples[idx] ?? pdfsSimples[0] ?? null;
+          const pdf = escolherPdfPorCnpj(pdfsSimples, idx);
           return compararExcelComPdfSimplificado(excel, pdf);
         });
       } else {
         comparacoes = resultados.map((excel, idx) => {
-          const pdf = pdfsValidos[idx] ?? pdfsValidos[0] ?? null;
+          const pdf = escolherPdfPorCnpj(pdfsValidos, idx);
           return compararExcelComPdf(excel, pdf);
         });
       }
