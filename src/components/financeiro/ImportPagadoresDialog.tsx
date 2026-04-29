@@ -171,10 +171,74 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
         }
       }
 
+      // Provisionar movimentações financeiras do mês atual para os novos pagadores,
+      // copiando os períodos que os irmãos do contrato já têm no mês.
+      try {
+        const mesAtual = (() => {
+          const d = new Date();
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        })();
+
+        // Para cada contrato envolvido, descobrir os períodos já existentes no mês
+        for (const [contrato, empresasContrato] of porContrato.entries()) {
+          const ids = empresasContrato.map((e: any) => e.id);
+          if (ids.length === 0) continue;
+
+          const { data: movsExist } = await supabase
+            .from("financeiro_movimentacoes")
+            .select("empresa_id, periodo")
+            .eq("mes_referencia", mesAtual)
+            .in("empresa_id", ids);
+
+          const periodosDoContrato = new Set<string>();
+          const chavesExist = new Set<string>();
+          (movsExist || []).forEach((m: any) => {
+            periodosDoContrato.add(m.periodo);
+            chavesExist.add(`${m.empresa_id}|${m.periodo}`);
+          });
+
+          if (periodosDoContrato.size === 0) continue;
+
+          const novasMovs: Array<{
+            empresa_id: string;
+            mes_referencia: string;
+            periodo: string;
+            dentro_prazo: boolean;
+            responsavel: string | null;
+          }> = [];
+
+          empresasContrato.forEach((emp: any) => {
+            periodosDoContrato.forEach((periodo) => {
+              if (!chavesExist.has(`${emp.id}|${periodo}`)) {
+                novasMovs.push({
+                  empresa_id: emp.id,
+                  mes_referencia: mesAtual,
+                  periodo,
+                  dentro_prazo: true,
+                  responsavel: emp.responsavel_contrato ?? null,
+                });
+              }
+            });
+          });
+
+          if (novasMovs.length > 0) {
+            const { error: insErr } = await supabase
+              .from("financeiro_movimentacoes")
+              .insert(novasMovs);
+            if (insErr) {
+              erros.push(`Contrato ${contrato} (movs): ${insErr.message}`);
+            }
+          }
+        }
+      } catch (err: any) {
+        erros.push(`Provisionamento de movimentações: ${err.message}`);
+      }
+
       setResumo({ criados, atualizados, ignorados, erros });
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
       queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-operacionais"] });
 
       if (erros.length === 0) {
         toast.success(
