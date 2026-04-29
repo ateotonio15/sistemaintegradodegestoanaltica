@@ -769,6 +769,9 @@ export default function Financeiro() {
               status: r.status,
               tipo_cobranca: r.tipo_cobranca,
               dentro_prazo: r.dentro_prazo,
+              aguardando_nota_em: (r as any).aguardando_nota_em ?? null,
+              data_envio_nota: r.data_envio_nota ?? null,
+              dia_emissao: (r as any).dia_emissao ?? null,
             }))}
           />
         </div>
