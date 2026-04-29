@@ -247,6 +247,28 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
+              <Label htmlFor="dia_emissao">Dia de emissão</Label>
+              <Select value={diaEmissao} onValueChange={setDiaEmissao}>
+                <SelectTrigger id="dia_emissao">
+                  <SelectValue placeholder="Selecione o dia (01–31)" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  <SelectItem value="__none__">— Não definido —</SelectItem>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      Emissão dia {String(d).padStart(2, "0")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Períodos 20-25 e 25-30 começam com "Emissão dia 01" automaticamente.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
               <Label htmlFor="data_venc">Data de vencimento</Label>
               <Input
                 id="data_venc"
