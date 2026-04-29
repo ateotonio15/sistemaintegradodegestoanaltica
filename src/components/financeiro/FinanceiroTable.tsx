@@ -68,17 +68,17 @@ export function FinanceiroTable({
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="font-semibold">Empresa</TableHead>
-            <TableHead className="font-semibold">Contrato</TableHead>
-            <TableHead className="font-semibold">CNPJ</TableHead>
-            <TableHead className="font-semibold">Período / Corte</TableHead>
-            <TableHead className="font-semibold">Responsável</TableHead>
-            <TableHead className="font-semibold">Tipo</TableHead>
-            <TableHead className="font-semibold">Emissão</TableHead>
-            <TableHead className="font-semibold">Status</TableHead>
-            <TableHead className="font-semibold">Usuário</TableHead>
-            <TableHead className="font-semibold">Envio nota</TableHead>
-            <TableHead className="font-semibold">Vencimento</TableHead>
+            <TableHead className="font-semibold text-center">Empresa</TableHead>
+            <TableHead className="font-semibold text-center">Contrato</TableHead>
+            <TableHead className="font-semibold text-center">CNPJ</TableHead>
+            <TableHead className="font-semibold text-center">Período / Corte</TableHead>
+            <TableHead className="font-semibold text-center">Responsável</TableHead>
+            <TableHead className="font-semibold text-center">Tipo</TableHead>
+            <TableHead className="font-semibold text-center">Emissão</TableHead>
+            <TableHead className="font-semibold text-center">Status</TableHead>
+            <TableHead className="font-semibold text-center">Usuário</TableHead>
+            <TableHead className="font-semibold text-center">Envio nota</TableHead>
+            <TableHead className="font-semibold text-center">Vencimento</TableHead>
             <TableHead className="font-semibold text-center">Anexos</TableHead>
             <TableHead className="font-semibold text-center">Ações</TableHead>
           </TableRow>
