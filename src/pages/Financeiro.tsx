@@ -17,7 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Bell, Wallet, RefreshCw, Download } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download, Trophy } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { exportarPremio } from "@/lib/premio-export";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
@@ -67,6 +70,9 @@ export default function Financeiro() {
   const [editOpen, setEditOpen] = useState(false);
   const [cobOpen, setCobOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [premioOpen, setPremioOpen] = useState(false);
+  const [premioPeriodo, setPremioPeriodo] = useState<string>("geral");
+  const [isExportingPremio, setIsExportingPremio] = useState(false);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [analiseResultados, setAnaliseResultados] = useState<Record<string, import("@/lib/excel-analysis-utils").AnaliseResultado[]>>({});
   const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
@@ -476,7 +482,7 @@ export default function Financeiro() {
   };
 
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
-  const ANALISE_PARSER_VERSION = "4";
+  const ANALISE_PARSER_VERSION = "5";
 
   const runAnalise = async (
     row: FinanceiroRow,
@@ -614,11 +620,123 @@ export default function Financeiro() {
       Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
       setAnaliseResultados((prev) => ({ ...prev, [row.id]: resultados }));
       setAnaliseComparacoes((prev) => ({ ...prev, [row.id]: comparacoes }));
+
+      // ===== Geração automática de "A Receber" (apenas se validado) =====
+      try {
+        const temXls = xlsAnexos.length > 0;
+        const temPdf = pdfsValidos.length > 0;
+        const temComp = comparacoes.length > 0;
+        const todasSemDivergencia =
+          temComp && comparacoes.every((c) => c && c.divergencias.length === 0);
+
+        if (temXls && temPdf && todasSemDivergencia) {
+          // Soma valores agregados do Excel (todos pagadores)
+          const totalBenef = resultados.reduce(
+            (s, r) =>
+              s +
+              (r.enfermaria?.beneficiarios || 0) +
+              (r.apartamento?.beneficiarios || 0),
+            0,
+          );
+          const totalFaturado = resultados.reduce(
+            (s, r) =>
+              s +
+              (r.enfermaria?.total || 0) +
+              (r.apartamento?.total || 0),
+            0,
+          );
+          const totalInclusoes = resultados.reduce(
+            (s, r) => s + (r.inclusoes?.total || 0),
+            0,
+          );
+          const totalExclusoes = resultados.reduce(
+            (s, r) => s + (r.exclusoes?.total || 0),
+            0,
+          );
+
+          // Valor Líquido NFS-e e nº NF — pega do primeiro PDF que tiver
+          const pdfComValor = pdfsValidos.find((p) => p.valorLiquido && p.valorLiquido > 0);
+          const valorLiquido = pdfComValor?.valorLiquido ?? null;
+          const nfNumero = pdfsValidos.find((p) => p.nfNumero)?.nfNumero ?? null;
+
+          // Dia de vencimento — preferir empresa.data_vencimento_fatura
+          const { data: empData } = await supabase
+            .from("empresas")
+            .select("data_vencimento_fatura, cnpj, nome")
+            .eq("id", row.empresa_id)
+            .maybeSingle();
+
+          const diaVenc =
+            empData?.data_vencimento_fatura ??
+            ((row as any).data_vencimento
+              ? new Date((row as any).data_vencimento).getDate()
+              : null);
+
+          const payload = {
+            financeiro_movimentacao_id: row.id,
+            empresa_id: row.empresa_id,
+            empresa_nome: empData?.nome || row.empresa_nome,
+            empresa_cnpj: empData?.cnpj || row.empresa_cnpj,
+            valor_total: valorLiquido,
+            valor_faturado: totalFaturado || null,
+            valor_inclusoes: totalInclusoes || null,
+            valor_exclusoes: totalExclusoes || null,
+            beneficiarios: totalBenef || null,
+            nf_numero: nfNumero,
+            dia_vencimento: diaVenc,
+            data_vencimento: (row as any).data_vencimento ?? null,
+            periodo: row.periodo,
+            mes_referencia: row.mes_referencia,
+            status: "Pendente",
+          };
+
+          const { error: upErr } = await supabase
+            .from("a_receber")
+            .upsert(payload, { onConflict: "financeiro_movimentacao_id" });
+
+          if (!upErr) {
+            queryClient.invalidateQueries({ queryKey: ["a_receber"] });
+            toast.success(`A Receber gerado para ${payload.empresa_nome}`, {
+              duration: 2500,
+            });
+          } else {
+            console.error("[A Receber] upsert falhou:", upErr);
+          }
+        }
+      } catch (err) {
+        console.error("[A Receber] erro inesperado:", err);
+      }
     } finally {
       setAnaliseLoading((prev) => ({ ...prev, [row.id]: false }));
     }
   };
 
+  const handleExportPremio = async () => {
+    setIsExportingPremio(true);
+    try {
+      let q = supabase
+        .from("a_receber")
+        .select("*")
+        .eq("mes_referencia", mes);
+      const periodo = premioPeriodo === "geral" ? null : premioPeriodo;
+      if (periodo) q = q.eq("periodo", periodo);
+      const { data, error } = await q.order("empresa_nome", { ascending: true });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.warning(
+          `Nenhum registro de "A Receber" validado${periodo ? ` para o período ${periodo}` : ""}.`,
+        );
+        return;
+      }
+      await exportarPremio(data as any, { mes, periodo });
+      toast.success(`PRÊMIO exportado: ${data.length} registro(s)`);
+      setPremioOpen(false);
+    } catch (e: any) {
+      toast.error("Erro ao exportar PRÊMIO: " + (e?.message || "falha"));
+    } finally {
+      setIsExportingPremio(false);
+    }
+  };
 
   const handleExport = async () => {
     if (filteredRows.length === 0) {
@@ -753,6 +871,61 @@ export default function Financeiro() {
               <Download className={`h-3.5 w-3.5 ${isExporting ? "animate-pulse" : ""}`} />
               {isExporting ? "Exportando..." : "Exportar Excel"}
             </Button>
+            {canManageFinanceiro && (
+              <Popover open={premioOpen} onOpenChange={setPremioOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="secondary" size="sm" className="gap-1.5">
+                    <Trophy className="h-3.5 w-3.5" />
+                    PRÊMIO
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72" align="end">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Exportar PRÊMIO</p>
+                      <p className="text-xs text-muted-foreground">
+                        Apenas registros validados (sem divergência).
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Período</Label>
+                      <RadioGroup
+                        value={premioPeriodo}
+                        onValueChange={setPremioPeriodo}
+                        className="grid grid-cols-2 gap-1.5"
+                      >
+                        {[
+                          { v: "geral", l: "Geral" },
+                          { v: "01-05", l: "01–05" },
+                          { v: "05-10", l: "05–10" },
+                          { v: "10-15", l: "10–15" },
+                          { v: "15-20", l: "15–20" },
+                          { v: "20-25", l: "20–25" },
+                          { v: "25-30", l: "25–30" },
+                        ].map((o) => (
+                          <label
+                            key={o.v}
+                            className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs cursor-pointer hover:bg-muted/50"
+                          >
+                            <RadioGroupItem value={o.v} />
+                            {o.l}
+                          </label>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <Button
+                      onClick={handleExportPremio}
+                      disabled={isExportingPremio}
+                      size="sm"
+                      className="w-full gap-1.5"
+                    >
+                      <Download className={`h-3.5 w-3.5 ${isExportingPremio ? "animate-pulse" : ""}`} />
+                      {isExportingPremio ? "Exportando..." : "Exportar PRÊMIO"}
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
             {canManageFinanceiro && (
               <Button
                 variant="outline"

@@ -16,6 +16,10 @@ export interface AnalisePdfResultado {
   enfermaria: PdfCategoria;
   apartamento: PdfCategoria;
   inclusoes: { total: number };
+  /** Valor Líquido da NFS-e (extraído do PDF), null se não encontrado. */
+  valorLiquido: number | null;
+  /** Número da NF (ex: "4601"), null se não encontrado. */
+  nfNumero: string | null;
   avisos: string[];
 }
 
@@ -99,6 +103,8 @@ export async function analisarPdfFinanceiro(
       enfermaria: { ...empty },
       apartamento: { ...empty },
       inclusoes: { total: 0 },
+      valorLiquido: null,
+      nfNumero: null,
       avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
     };
   }
@@ -155,10 +161,27 @@ export async function analisarPdfFinanceiro(
   if (!apartamento) avisos.push("Categoria 'Apartamento' não encontrada no PDF.");
   if (!inclusoesEncontradas) avisos.push("Categoria 'Inclusões' não encontrada no PDF.");
 
+  // Valor Líquido da NFS-e — aceita variações de espaçamento
+  let valorLiquido: number | null = null;
+  const reValorLiquido = /valor\s*l[ií]?quido\s*da\s*nfs[\s\-]?e\s*r?\$?\s*([\d.,]+)/i;
+  const mVL = t.match(reValorLiquido);
+  if (mVL) {
+    const v = parseValor(mVL[1]);
+    if (!isNaN(v) && v > 0) valorLiquido = v;
+  }
+
+  // Número da NF — procura "nº NNNN" ou "n NNNN" no texto
+  let nfNumero: string | null = null;
+  const reNf = /\bn[º°o]?\s*[:.]?\s*(\d{3,8})\b/i;
+  const mNf = t.match(reNf);
+  if (mNf) nfNumero = mNf[1];
+
   return {
     enfermaria: enfermaria ?? { ...empty },
     apartamento: apartamento ?? { ...empty },
     inclusoes: { total: inclusoesTotal },
+    valorLiquido,
+    nfNumero,
     avisos,
   };
 }
@@ -171,6 +194,8 @@ export interface AnalisePdfSimplificado {
   beneficiarios: number | null;
   inclusoes: { quantidade: number | null; total: number };
   exclusoes: { quantidade: number | null; total: number };
+  valorLiquido: number | null;
+  nfNumero: string | null;
   avisos: string[];
 }
 
@@ -195,6 +220,8 @@ export async function analisarPdfFinanceiroSimplificado(
       beneficiarios: null,
       inclusoes: { quantidade: null, total: 0 },
       exclusoes: { quantidade: null, total: 0 },
+      valorLiquido: null,
+      nfNumero: null,
       avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
     };
   }
@@ -274,10 +301,25 @@ export async function analisarPdfFinanceiroSimplificado(
   if (incTotal === 0 && !mInc) avisos.push("Inclusões não encontradas no PDF.");
   if (excTotal === 0 && !mExc) avisos.push("Exclusões não encontradas no PDF.");
 
+  // Valor Líquido + NF (compartilhado com análise completa)
+  let valorLiquido: number | null = null;
+  const reVL = /valor\s*l[ií]?quido\s*da\s*nfs[\s\-]?e\s*r?\$?\s*([\d.,]+)/i;
+  const mVL = t.match(reVL);
+  if (mVL) {
+    const v = parseValor(mVL[1]);
+    if (!isNaN(v) && v > 0) valorLiquido = v;
+  }
+  let nfNumero: string | null = null;
+  const reNf = /\bn[º°o]?\s*[:.]?\s*(\d{3,8})\b/i;
+  const mNf = t.match(reNf);
+  if (mNf) nfNumero = mNf[1];
+
   return {
     beneficiarios,
     inclusoes: { quantidade: incQtd, total: incTotal },
     exclusoes: { quantidade: excQtd, total: excTotal },
+    valorLiquido,
+    nfNumero,
     avisos,
   };
 }
