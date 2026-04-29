@@ -10,7 +10,7 @@ import {
   type StatusFinanceiro,
   statusFinanceiroColor,
 } from "@/lib/financeiro-utils";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { AnaliseExcelRow } from "./AnaliseExcelRow";
 import type { AnaliseResultado, ComparacaoResultado } from "@/lib/excel-analysis-utils";
 
@@ -22,6 +22,8 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   status: StatusFinanceiro;
   anexos_count: number;
   data_vencimento?: string | null;
+  dia_emissao?: number | null;
+  aguardando_nota_em?: string | null;
   enviado_por_nome?: string | null;
 };
 
