@@ -20,7 +20,58 @@ export interface AnalisePdfResultado {
   valorLiquido: number | null;
   /** Número da NF (ex: "4601"), null se não encontrado. */
   nfNumero: string | null;
+  /** CNPJ do TOMADOR do serviço (apenas dígitos), null se não encontrado. */
+  tomadorCnpj: string | null;
+  /** Nome do TOMADOR do serviço (normalizado), null se não encontrado. */
+  tomadorNome: string | null;
   avisos: string[];
+}
+
+/** Normaliza CNPJ → apenas dígitos (14 chars). */
+function soDigitosCnpj(s: string): string {
+  return (s || "").replace(/\D/g, "").slice(0, 14);
+}
+
+/**
+ * Extrai CNPJ + Nome do TOMADOR do serviço de uma NFS-e Samel.
+ * Estratégia: localizar o bloco "TOMADOR DO SERVIÇO" e pegar o primeiro CNPJ
+ * (14 dígitos no formato XX.XXX.XXX/XXXX-XX) e o "Nome / Nome Empresarial"
+ * que aparecem depois dele, antes do próximo bloco.
+ */
+export function extrairTomador(textoOriginal: string): {
+  cnpj: string | null;
+  nome: string | null;
+} {
+  const texto = textoOriginal.replace(/\u00a0/g, " ");
+  // Localiza início do bloco TOMADOR (case-insensitive, com/sem acento)
+  const reIni = /tomador\s*d[oa]?\s*servi[çc]o/i;
+  const mIni = texto.match(reIni);
+  if (!mIni) return { cnpj: null, nome: null };
+  const idx = (mIni.index ?? 0) + mIni[0].length;
+  // Limita o escaneamento até o próximo grande bloco
+  const reFim = /(intermedi[aá]rio|servi[çc]o\s*prestado|tributa[çc][aã]o)/i;
+  const restante = texto.slice(idx);
+  const mFim = restante.match(reFim);
+  const trecho = mFim ? restante.slice(0, mFim.index) : restante.slice(0, 1500);
+
+  // CNPJ formatado XX.XXX.XXX/XXXX-XX
+  const reCnpj = /(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/;
+  const mCnpj = trecho.match(reCnpj);
+  const cnpj = mCnpj ? soDigitosCnpj(mCnpj[1]) : null;
+
+  // Nome / Nome Empresarial — o valor pode vir na mesma linha ou logo abaixo
+  let nome: string | null = null;
+  const reNome = /nome\s*\/?\s*nome\s*empresarial\s*[:\-]?\s*([^\n\r]+)/i;
+  const mNome = trecho.match(reNome);
+  if (mNome) {
+    nome = mNome[1]
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s*(e-?mail|endere[çc]o|munic[ií]pio|cep|telefone|inscri[çc][aã]o).*$/i, "")
+      .trim();
+    if (!nome) nome = null;
+  }
+
+  return { cnpj, nome };
 }
 
 function norm(s: string): string {
