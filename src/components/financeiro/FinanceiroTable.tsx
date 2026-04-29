@@ -245,9 +245,9 @@ export function FinanceiroTable({
                   {isExpanded && (
                     <AnaliseExcelRow
                       colSpan={COL_COUNT}
-                      isLoading={!!analiseLoading[rowKey]}
-                      resultados={analiseResultados[rowKey] ?? null}
-                      comparacoes={analiseComparacoes?.[rowKey] ?? null}
+                      isLoading={!!(analiseLoading[row.id] || analiseLoading[rowKey])}
+                      resultados={analiseResultados[row.id] ?? analiseResultados[rowKey] ?? null}
+                      comparacoes={analiseComparacoes?.[row.id] ?? analiseComparacoes?.[rowKey] ?? null}
                       onReanalisar={onReanalisar ? () => onReanalisar(row) : undefined}
                     />
                   )}
