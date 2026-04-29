@@ -901,7 +901,7 @@ export default function Dashboard() {
                               variant="outline"
                               size="sm"
                               className="gap-1 h-8"
-                              disabled={qtd === 0}
+                              
                               onClick={() =>
                                 setAnexosDialog({
                                   empresaId: m.empresa_id,
