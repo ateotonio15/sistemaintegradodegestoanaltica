@@ -213,6 +213,7 @@ export function FinanceiroTable({
                       isLoading={!!analiseLoading[row.id]}
                       resultados={analiseResultados[row.id] ?? null}
                       comparacoes={analiseComparacoes?.[row.id] ?? null}
+                      onReanalisar={onReanalisar ? () => onReanalisar(row) : undefined}
                     />
                   )}
                 </Fragment>
