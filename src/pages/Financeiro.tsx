@@ -707,8 +707,8 @@ export default function Financeiro() {
       setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados }));
       setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: comparacoes }));
 
-      // "A Receber" só roda na linha mãe (sem pagador) — evita duplicar
-      if (filtroPagador) {
+      // "A Receber" só roda na linha mãe (sem pagador_id) — evita duplicar
+      if (row.pagador_id) {
         return;
       }
 
