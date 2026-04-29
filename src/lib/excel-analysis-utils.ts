@@ -16,7 +16,20 @@ export interface AnaliseResultado {
   enfermaria: CategoriaResultado;
   apartamento: CategoriaResultado;
   inclusoes: InclusaoResultado;
+  /** Apenas Análise Moto Honda — total geralmente negativo. */
+  exclusoes?: InclusaoResultado;
   avisos: string[];
+}
+
+/** Validação simplificada (Moto Honda PDF sem detalhamento por categoria). */
+export interface ComparacaoSimplificada {
+  pagador: string;
+  arquivoPdf: string | null;
+  beneficiarios: { excel: number; pdf: number | null; ok: boolean } | null;
+  inclusoes: { excel: number; pdf: number | null; ok: boolean } | null;
+  exclusoes: { excel: number; pdf: number | null; ok: boolean } | null;
+  divergencias: string[];
+  avisosPdf: string[];
 }
 
 /** Normaliza string: minúsculo, sem acentos, sem espaços nas pontas. */
