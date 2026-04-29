@@ -109,11 +109,21 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       // Detecta se a data de envio acabou de ser preenchida (ou alterada) nesta edição
       const envioAlterado =
         !!dataEnvioNota && dataEnvioNota !== (movimentacao.data_envio_nota || "");
+      // Reconstrói data_vencimento a partir do dia + mes_referencia (YYYY-MM)
+      let dataVencimentoIso: string | null = null;
+      if (diaVencimento !== "__none__") {
+        const dia = parseInt(diaVencimento, 10);
+        const mes = movimentacao.mes_referencia; // "YYYY-MM"
+        if (mes && /^\d{4}-\d{2}$/.test(mes) && dia >= 1 && dia <= 31) {
+          dataVencimentoIso = `${mes}-${String(dia).padStart(2, "0")}`;
+        }
+      }
       const payload: Record<string, unknown> = {
         tipo_cobranca: tipoTrimmed || null,
         data_envio_nota: dataEnvioNota || null,
-        data_vencimento: dataVencimento || null,
+        data_vencimento: dataVencimentoIso,
         dia_emissao: diaEmissao === "__none__" ? null : Number(diaEmissao),
+        tipo_analise: tipoAnalise || "normal",
         dentro_prazo: dentroPrazo,
       };
       if (envioAlterado && user?.id) {
@@ -279,25 +289,45 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                 Períodos 20-25 e 25-30 começam com "Emissão dia 01" automaticamente.
               </p>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="tipo_analise">Tipo de análise</Label>
+              <Select value={tipoAnalise} onValueChange={setTipoAnalise}>
+                <SelectTrigger id="tipo_analise">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPOS_ANALISE.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Controla o parser usado na análise dos anexos.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="data_venc">Data de vencimento</Label>
-              <Input
-                id="data_venc"
-                type="date"
-                value={dataVencimento}
-                onChange={(e) => setDataVencimento(e.target.value)}
-                aria-invalid={!!vencimentoAntesEnvio || undefined}
-                className={cn(vencimentoAntesEnvio && "border-warning focus-visible:ring-warning")}
-              />
-              {vencimentoAntesEnvio && (
-                <p className="text-[11px] text-warning flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Vencimento é anterior ao envio da nota.
-                </p>
-              )}
+              <Label htmlFor="dia_venc">Data de vencimento (dia)</Label>
+              <Select value={diaVencimento} onValueChange={setDiaVencimento}>
+                <SelectTrigger id="dia_venc">
+                  <SelectValue placeholder="Selecione o dia (01–31)" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  <SelectItem value="__none__">— Não definido —</SelectItem>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      Dia {String(d).padStart(2, "0")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Apenas o dia (01–31) do vencimento no Financeiro.
+              </p>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <div>
