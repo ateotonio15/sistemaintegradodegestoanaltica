@@ -103,6 +103,8 @@ export async function analisarPdfFinanceiro(
       enfermaria: { ...empty },
       apartamento: { ...empty },
       inclusoes: { total: 0 },
+      valorLiquido: null,
+      nfNumero: null,
       avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
     };
   }
