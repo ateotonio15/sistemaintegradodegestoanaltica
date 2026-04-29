@@ -126,7 +126,7 @@ export function GerenciarPagadoresDialog({
       toast.error("Informe o nome do pagador");
       return;
     }
-    addMutation.mutate(nome);
+    addMutation.mutate({ nome, cnpj: novoCnpj.trim() || null });
   };
 
   return (
