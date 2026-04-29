@@ -53,20 +53,6 @@ interface Props {
   readOnly?: boolean;
 }
 
-const COL_COUNT = 14;
-
-export function FinanceiroTable({
-  rows,
-  onEdit,
-  onCobranca,
-  isLoading,
-  expandedRowId,
-  onToggleExpand,
-  onReanalisar,
-  analiseResultados,
-  analiseLoading,
-  analiseComparacoes,
-  readOnly = false,
 const COL_COUNT = 13;
 
 export function FinanceiroTable({
