@@ -129,22 +129,6 @@ export function FinanceiroTable({
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
-                        {!readOnly && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-muted-foreground hover:text-foreground"
-                            onClick={() =>
-                              setPagadoresDialog({
-                                empresaId: row.empresa_id,
-                                empresaNome: row.empresa_nome,
-                              })
-                            }
-                            title="Gerenciar pagadores deste contrato"
-                          >
-                            <UserCog className="h-3 w-3" />
-                          </Button>
-                        )}
                         {row.cobranca_registrada && (
                           <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
                             <Bell className="h-2.5 w-2.5 mr-1" />
