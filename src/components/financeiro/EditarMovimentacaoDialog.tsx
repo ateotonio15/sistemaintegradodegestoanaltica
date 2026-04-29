@@ -147,31 +147,46 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   });
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !movimentacao) return;
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0 || !movimentacao) return;
     setUploading(true);
+    let sucessos = 0;
+    const erros: string[] = [];
     try {
-      const path = buildStoragePath(movimentacao.empresa_id, movimentacao.id, file.name);
-      const { error: upErr } = await supabase.storage
-        .from("anexos-financeiro")
-        .upload(path, file);
-      if (upErr) throw upErr;
+      for (const file of files) {
+        try {
+          const path = buildStoragePath(movimentacao.empresa_id, movimentacao.id, file.name);
+          const { error: upErr } = await supabase.storage
+            .from("anexos-financeiro")
+            .upload(path, file);
+          if (upErr) throw upErr;
 
-      const { error: insErr } = await supabase.from("anexos_financeiro").insert({
-        financeiro_movimentacao_id: movimentacao.id,
-        nome_arquivo: file.name,
-        storage_path: path,
-        mime_type: file.type,
-        tamanho_bytes: file.size,
-        uploaded_by: user?.id ?? null,
-      });
-      if (insErr) throw insErr;
+          const { error: insErr } = await supabase.from("anexos_financeiro").insert({
+            financeiro_movimentacao_id: movimentacao.id,
+            nome_arquivo: file.name,
+            storage_path: path,
+            mime_type: file.type,
+            tamanho_bytes: file.size,
+            uploaded_by: user?.id ?? null,
+          });
+          if (insErr) throw insErr;
+          sucessos += 1;
+        } catch (err: any) {
+          erros.push(`${file.name}: ${err.message}`);
+        }
+      }
 
       queryClient.invalidateQueries({ queryKey: ["financeiro-anexos", movimentacao.id] });
       queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
-      toast.success("Arquivo enviado");
-    } catch (err: any) {
-      toast.error("Erro no upload: " + err.message);
+
+      if (sucessos > 0) {
+        toast.success(
+          sucessos === 1 ? "Arquivo enviado" : `${sucessos} arquivos enviados`,
+        );
+      }
+      if (erros.length > 0) {
+        toast.error(`Falha em ${erros.length} arquivo(s): ${erros.join(" | ")}`);
+      }
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -350,6 +365,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               <label className="cursor-pointer">
                 <input
                   type="file"
+                  multiple
                   className="hidden"
                   accept={ACCEPTED_FILE_TYPES}
                   onChange={handleUpload}
