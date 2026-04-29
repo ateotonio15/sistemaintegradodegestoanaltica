@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Bell, Wallet, RefreshCw, Download, Trophy } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download, Trophy, Upload } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { exportarPremio } from "@/lib/premio-export";
@@ -32,6 +32,7 @@ import { PeriodSummary } from "@/components/financeiro/PeriodSummary";
 import { FinanceiroTable, type FinanceiroRow } from "@/components/financeiro/FinanceiroTable";
 import { EditarMovimentacaoDialog } from "@/components/financeiro/EditarMovimentacaoDialog";
 import { CobrancaDialog } from "@/components/financeiro/CobrancaDialog";
+import { ImportPagadoresDialog } from "@/components/financeiro/ImportPagadoresDialog";
 
 import {
   type FinanceiroMovimentacao,
