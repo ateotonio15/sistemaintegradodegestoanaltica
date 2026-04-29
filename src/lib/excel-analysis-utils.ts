@@ -97,7 +97,9 @@ function classificarPlano(plano: string): "enfermaria" | "apartamento" | null {
   if (
     p.includes("coletivo empresarial master") ||
     p.includes("master empresarial") ||
-    p.includes("enfermaria")
+    p.includes("enfermaria") ||
+    // Variações abreviadas: "Enf CE", "Enf. CE", "ENF-CE"
+    /\benf(\b|[\s.\-_])/i.test(p)
   ) {
     return "enfermaria";
   }
