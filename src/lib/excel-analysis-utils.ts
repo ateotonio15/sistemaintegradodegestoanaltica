@@ -16,7 +16,20 @@ export interface AnaliseResultado {
   enfermaria: CategoriaResultado;
   apartamento: CategoriaResultado;
   inclusoes: InclusaoResultado;
+  /** Apenas Análise Moto Honda — total geralmente negativo. */
+  exclusoes?: InclusaoResultado;
   avisos: string[];
+}
+
+/** Validação simplificada (Moto Honda PDF sem detalhamento por categoria). */
+export interface ComparacaoSimplificada {
+  pagador: string;
+  arquivoPdf: string | null;
+  beneficiarios: { excel: number; pdf: number | null; ok: boolean } | null;
+  inclusoes: { excel: number; pdf: number | null; ok: boolean } | null;
+  exclusoes: { excel: number; pdf: number | null; ok: boolean } | null;
+  divergencias: string[];
+  avisosPdf: string[];
 }
 
 /** Normaliza string: minúsculo, sem acentos, sem espaços nas pontas. */
@@ -346,6 +359,72 @@ export function compararExcelComPdf(
     enfermaria,
     apartamento,
     inclusoes,
+    divergencias,
+    avisosPdf: pdf?.avisos ?? [],
+  };
+}
+
+// =====================================================================
+// Comparação simplificada (Moto Honda) — PDF sem categorias detalhadas
+// =====================================================================
+
+import type { AnalisePdfSimplificado } from "./pdf-analysis-utils";
+
+export function compararExcelComPdfSimplificado(
+  excel: AnaliseResultado,
+  pdf: (AnalisePdfSimplificado & { arquivo: string }) | null,
+): ComparacaoSimplificada {
+  const divergencias: string[] = [];
+  const totalBenefExcel =
+    excel.enfermaria.beneficiarios + excel.apartamento.beneficiarios;
+
+  const mkCmp = (e: number, p: number | null, kind: "money" | "int") => {
+    if (p === null || p === undefined || isNaN(p)) {
+      return { excel: e, pdf: null, ok: false };
+    }
+    const ok =
+      kind === "money" ? Math.abs(e - p) < 0.01 : Math.round(e) === Math.round(p);
+    return { excel: e, pdf: p, ok };
+  };
+
+  const beneficiarios =
+    pdf && pdf.beneficiarios !== null
+      ? mkCmp(totalBenefExcel, pdf.beneficiarios, "int")
+      : pdf
+        ? { excel: totalBenefExcel, pdf: null, ok: false }
+        : null;
+
+  const inclusoes = pdf
+    ? mkCmp(excel.inclusoes.total, pdf.inclusoes.total > 0 ? pdf.inclusoes.total : null, "money")
+    : null;
+
+  const exclusoes =
+    pdf && excel.exclusoes
+      ? mkCmp(excel.exclusoes.total, pdf.exclusoes.total !== 0 ? pdf.exclusoes.total : null, "money")
+      : null;
+
+  if (beneficiarios && !beneficiarios.ok) {
+    divergencias.push(
+      `Total de beneficiários (Excel ${beneficiarios.excel} × PDF ${beneficiarios.pdf ?? "—"}).`,
+    );
+  }
+  if (inclusoes && !inclusoes.ok) {
+    divergencias.push(
+      `Valor de inclusões (Excel ${formatBRL(inclusoes.excel)} × PDF ${inclusoes.pdf !== null ? formatBRL(inclusoes.pdf) : "—"}).`,
+    );
+  }
+  if (exclusoes && !exclusoes.ok) {
+    divergencias.push(
+      `Valor de exclusões (Excel ${formatBRL(exclusoes.excel)} × PDF ${exclusoes.pdf !== null ? formatBRL(exclusoes.pdf) : "—"}).`,
+    );
+  }
+
+  return {
+    pagador: excel.pagador,
+    arquivoPdf: pdf?.arquivo ?? null,
+    beneficiarios,
+    inclusoes,
+    exclusoes,
     divergencias,
     avisosPdf: pdf?.avisos ?? [],
   };

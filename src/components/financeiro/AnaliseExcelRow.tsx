@@ -14,14 +14,21 @@ import {
   formatBRL,
   type AnaliseResultado,
   type ComparacaoResultado,
+  type ComparacaoSimplificada,
   type CampoValidacao,
 } from "@/lib/excel-analysis-utils";
+
+type ComparacaoQualquer = ComparacaoResultado | ComparacaoSimplificada;
+
+function isSimplificada(c: ComparacaoQualquer | null | undefined): c is ComparacaoSimplificada {
+  return !!c && "beneficiarios" in c && !("enfermaria" in c);
+}
 
 interface Props {
   colSpan: number;
   isLoading: boolean;
   resultados: AnaliseResultado[] | null;
-  comparacoes?: ComparacaoResultado[] | null;
+  comparacoes?: ComparacaoQualquer[] | null;
 }
 
 function ValorComCheck({
@@ -78,7 +85,10 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
           ) : (
             <div className="space-y-4">
               {resultados.map((r, idx) => {
-                const cmp = comparacoes?.[idx] ?? null;
+                const cmpRaw = comparacoes?.[idx] ?? null;
+                const simplificada = isSimplificada(cmpRaw);
+                const cmp = !simplificada ? (cmpRaw as ComparacaoResultado | null) : null;
+                const cmpSimples = simplificada ? (cmpRaw as ComparacaoSimplificada) : null;
 
                 const linhas: Array<{
                   label: string;
@@ -90,6 +100,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                     mensalidade: CampoValidacao | null;
                     total: CampoValidacao;
                   } | null;
+                  destaqueNegativo?: boolean;
                 }> = [];
 
                 if (r.enfermaria.beneficiarios > 0 || r.enfermaria.total > 0) {
@@ -116,7 +127,6 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                     beneficiarios: r.inclusoes.quantidade,
                     mensalidade: null,
                     total: r.inclusoes.total,
-                    // Inclusões: PDF não traz qtd nem unitário — só o total é validado
                     validacao: cmp?.inclusoes
                       ? {
                           beneficiarios: null,
@@ -124,6 +134,15 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                           total: cmp.inclusoes.total,
                         }
                       : null,
+                  });
+                }
+                if (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)) {
+                  linhas.push({
+                    label: "Exclusões",
+                    beneficiarios: r.exclusoes.quantidade,
+                    mensalidade: null,
+                    total: r.exclusoes.total,
+                    destaqueNegativo: true,
                   });
                 }
 
@@ -141,10 +160,15 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                           Pagador: <span className="font-normal">{r.pagador}</span>
                         </span>
                       </div>
-                      {cmp?.arquivoPdf && (
+                      {cmpRaw?.arquivoPdf && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <FileText className="h-3.5 w-3.5" />
-                          Validado contra: <span className="font-medium">{cmp.arquivoPdf}</span>
+                          Validado contra: <span className="font-medium">{cmpRaw.arquivoPdf}</span>
+                          {simplificada && (
+                            <span className="ml-2 px-1.5 py-0.5 rounded bg-warning/20 text-warning text-[10px] font-semibold">
+                              Validação simplificada (Moto Honda)
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -231,7 +255,40 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                       </div>
                     )}
 
-                    {cmp && cmp.divergencias.length > 0 && (
+                    {cmpSimples && (
+                      <div className="mt-3 rounded-lg border border-border bg-card overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-muted/50">
+                              <th className="text-left font-medium text-muted-foreground px-3 py-2">Validação simplificada</th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">Excel</th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">PDF</th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">OK</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { label: "Total beneficiários", c: cmpSimples.beneficiarios, money: false },
+                              { label: "Inclusões (valor)", c: cmpSimples.inclusoes, money: true },
+                              { label: "Exclusões (valor)", c: cmpSimples.exclusoes, money: true },
+                            ].filter((x) => x.c).map((x) => (
+                              <tr key={x.label} className="border-t border-border">
+                                <td className="px-3 py-2 font-medium">{x.label}</td>
+                                <td className="px-3 py-2 text-right">{x.money ? formatBRL(x.c!.excel) : x.c!.excel}</td>
+                                <td className="px-3 py-2 text-right">
+                                  {x.c!.pdf === null ? "—" : x.money ? formatBRL(x.c!.pdf) : x.c!.pdf}
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  {x.c!.ok ? <CheckCircle2 className="h-4 w-4 text-success inline" /> : <XCircle className="h-4 w-4 text-destructive inline" />}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {cmpRaw && cmpRaw.divergencias.length > 0 && (
                       <Alert className="mt-3 border-destructive/50 bg-destructive/10 py-2">
                         <XCircle className="h-3.5 w-3.5 text-destructive" />
                         <AlertTitle className="text-xs font-semibold text-destructive">
@@ -239,7 +296,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                         </AlertTitle>
                         <AlertDescription>
                           <ul className="list-disc ml-4 text-xs text-foreground/80 space-y-0.5 mt-1">
-                            {cmp.divergencias.map((d, i) => (
+                            {cmpRaw.divergencias.map((d, i) => (
                               <li key={i}>{d}</li>
                             ))}
                           </ul>
@@ -247,7 +304,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes }:
                       </Alert>
                     )}
 
-                    {cmp && cmp.divergencias.length === 0 && cmp.arquivoPdf && (
+                    {cmpRaw && cmpRaw.divergencias.length === 0 && cmpRaw.arquivoPdf && (
                       <div className="mt-3 flex items-center gap-2 text-xs text-success">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Todos os valores conferem com o PDF.
