@@ -19,6 +19,7 @@ interface Pagador {
   id: string;
   empresa_id: string;
   nome_pagador: string;
+  cnpj: string | null;
   ativo: boolean;
 }
 
