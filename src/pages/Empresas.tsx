@@ -640,7 +640,7 @@ export default function Empresas() {
                           </TableCell>
                           <TableCell className="text-muted-foreground">{formatDateBR(e.data_implantacao)}</TableCell>
                           <TableCell className="text-muted-foreground">{formatDay(e.data_vencimento_fatura)}</TableCell>
-                          <TableCell className="text-muted-foreground">{formatDay(e.data_emissao_fatura)}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDay(diaEmissaoMap[e.id] ?? e.data_emissao_fatura)}</TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
                               <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md w-fit">
