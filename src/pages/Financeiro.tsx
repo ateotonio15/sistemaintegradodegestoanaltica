@@ -617,6 +617,92 @@ export default function Financeiro() {
       Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
       setAnaliseResultados((prev) => ({ ...prev, [row.id]: resultados }));
       setAnaliseComparacoes((prev) => ({ ...prev, [row.id]: comparacoes }));
+
+      // ===== Geração automática de "A Receber" (apenas se validado) =====
+      try {
+        const temXls = xlsAnexos.length > 0;
+        const temPdf = pdfsValidos.length > 0;
+        const temComp = comparacoes.length > 0;
+        const todasSemDivergencia =
+          temComp && comparacoes.every((c) => c && c.divergencias.length === 0);
+
+        if (temXls && temPdf && todasSemDivergencia) {
+          // Soma valores agregados do Excel (todos pagadores)
+          const totalBenef = resultados.reduce(
+            (s, r) =>
+              s +
+              (r.enfermaria?.beneficiarios || 0) +
+              (r.apartamento?.beneficiarios || 0),
+            0,
+          );
+          const totalFaturado = resultados.reduce(
+            (s, r) =>
+              s +
+              (r.enfermaria?.total || 0) +
+              (r.apartamento?.total || 0),
+            0,
+          );
+          const totalInclusoes = resultados.reduce(
+            (s, r) => s + (r.inclusoes?.total || 0),
+            0,
+          );
+          const totalExclusoes = resultados.reduce(
+            (s, r) => s + (r.exclusoes?.total || 0),
+            0,
+          );
+
+          // Valor Líquido NFS-e e nº NF — pega do primeiro PDF que tiver
+          const pdfComValor = pdfsValidos.find((p) => p.valorLiquido && p.valorLiquido > 0);
+          const valorLiquido = pdfComValor?.valorLiquido ?? null;
+          const nfNumero = pdfsValidos.find((p) => p.nfNumero)?.nfNumero ?? null;
+
+          // Dia de vencimento — preferir empresa.data_vencimento_fatura
+          const { data: empData } = await supabase
+            .from("empresas")
+            .select("data_vencimento_fatura, cnpj, nome")
+            .eq("id", row.empresa_id)
+            .maybeSingle();
+
+          const diaVenc =
+            empData?.data_vencimento_fatura ??
+            ((row as any).data_vencimento
+              ? new Date((row as any).data_vencimento).getDate()
+              : null);
+
+          const payload = {
+            financeiro_movimentacao_id: row.id,
+            empresa_id: row.empresa_id,
+            empresa_nome: empData?.nome || row.empresa_nome,
+            empresa_cnpj: empData?.cnpj || row.empresa_cnpj,
+            valor_total: valorLiquido,
+            valor_faturado: totalFaturado || null,
+            valor_inclusoes: totalInclusoes || null,
+            valor_exclusoes: totalExclusoes || null,
+            beneficiarios: totalBenef || null,
+            nf_numero: nfNumero,
+            dia_vencimento: diaVenc,
+            data_vencimento: (row as any).data_vencimento ?? null,
+            periodo: row.periodo,
+            mes_referencia: row.mes_referencia,
+            status: "Pendente",
+          };
+
+          const { error: upErr } = await supabase
+            .from("a_receber")
+            .upsert(payload, { onConflict: "financeiro_movimentacao_id" });
+
+          if (!upErr) {
+            queryClient.invalidateQueries({ queryKey: ["a_receber"] });
+            toast.success(`A Receber gerado para ${payload.empresa_nome}`, {
+              duration: 2500,
+            });
+          } else {
+            console.error("[A Receber] upsert falhou:", upErr);
+          }
+        }
+      } catch (err) {
+        console.error("[A Receber] erro inesperado:", err);
+      }
     } finally {
       setAnaliseLoading((prev) => ({ ...prev, [row.id]: false }));
     }
