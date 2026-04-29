@@ -117,9 +117,10 @@ export function FinanceiroTable({
           ) : (
             rows.map((row) => {
               const isOverdue = !row.dentro_prazo && !row.data_envio_nota;
-              const isExpanded = expandedRowId === row.id;
+              const rowKey = row.rowKey ?? row.id;
+              const isExpanded = expandedRowId === rowKey;
               return (
-                <Fragment key={row.id}>
+                <Fragment key={rowKey}>
                   <TableRow
                     className={cn(
                       isOverdue && "bg-destructive/5 border-l-2 border-l-destructive",
@@ -128,24 +129,22 @@ export function FinanceiroTable({
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
-                        {(() => {
-                          const codigo = row.empresa_codigo?.trim();
-                          const irmaos = codigo ? pagadoresPorContrato[codigo] : null;
-                          const totalPag = irmaos?.length ?? 1;
-                          if (totalPag > 1) {
-                            return (
-                              <Badge
-                                variant="outline"
-                                className="text-info border-info/50 text-[10px] px-1.5 py-0 h-5"
-                                title={`Pagadores deste contrato: ${irmaos!.join(", ")}`}
-                              >
-                                <Users className="h-2.5 w-2.5 mr-1" />
-                                {totalPag} pagadores
-                              </Badge>
-                            );
-                          }
-                          return null;
-                        })()}
+                        {!readOnly && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                            onClick={() =>
+                              setPagadoresDialog({
+                                empresaId: row.empresa_id,
+                                empresaNome: row.empresa_nome,
+                              })
+                            }
+                            title="Gerenciar pagadores deste contrato"
+                          >
+                            <UserCog className="h-3 w-3" />
+                          </Button>
+                        )}
                         {row.cobranca_registrada && (
                           <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
                             <Bell className="h-2.5 w-2.5 mr-1" />
