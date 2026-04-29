@@ -1,0 +1,1 @@
+ALTER TABLE public.financeiro_pagadores ADD COLUMN IF NOT EXISTS cnpj text;

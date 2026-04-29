@@ -499,6 +499,7 @@ export type Database = {
       financeiro_pagadores: {
         Row: {
           ativo: boolean
+          cnpj: string | null
           created_at: string
           empresa_id: string
           id: string
@@ -507,6 +508,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cnpj?: string | null
           created_at?: string
           empresa_id: string
           id?: string
@@ -515,6 +517,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cnpj?: string | null
           created_at?: string
           empresa_id?: string
           id?: string
