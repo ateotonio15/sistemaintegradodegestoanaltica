@@ -305,23 +305,7 @@ export function FaturamentosEnviadosCard() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1"
-                      onClick={() =>
-                        setAnexosDialog({
-                          empresaId: l.empresaId,
-                          empresaNome: l.empresaNome,
-                          mesReferencia: l.mesReferencia,
-                          periodo: l.periodo,
-                        })
-                      }
-                      title="Ver anexos do processo"
-                    >
-                      <Paperclip className="h-3 w-3" />
-                      Anexos
-                    </Button>
+                    {/* botão Anexos removido */}
                     {podeAlertar && !l.temAlerta && (
                       <Button
                         size="sm"
