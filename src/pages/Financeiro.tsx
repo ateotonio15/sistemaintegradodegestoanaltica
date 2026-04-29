@@ -260,7 +260,13 @@ export default function Financeiro() {
 
   // Linhas enriquecidas
   const allRows: FinanceiroRow[] = useMemo(() => {
-    return financeiroRaw.map((f) => {
+    return financeiroRaw
+      .filter((f) => {
+        const emp = empresasMap[f.empresa_id];
+        // Oculta empresas desativadas (rescindidas/suspensas/inativas) pelo cadastro
+        return emp ? emp.ativa : true;
+      })
+      .map((f) => {
       const emp = empresasMap[f.empresa_id];
       const envioOperacional = !!operacionaisMap[`${f.empresa_id}|${f.periodo}`];
       // "Período / Corte" baseado na configuração da empresa
