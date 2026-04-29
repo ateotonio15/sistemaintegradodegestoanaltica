@@ -40,6 +40,7 @@ export function GerenciarPagadoresDialog({
 }: Props) {
   const queryClient = useQueryClient();
   const [novoNome, setNovoNome] = useState("");
+  const [novoCnpj, setNovoCnpj] = useState("");
 
   const { data: pagadores = [], isLoading } = useQuery({
     queryKey: ["financeiro-pagadores", empresaId],
