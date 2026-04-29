@@ -1137,7 +1137,7 @@ export default function Financeiro() {
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
           readOnly={!canManageFinanceiro}
-          pagadoresCadastrados={pagadoresCadastradosMap as any}
+          
         />
 
         {/* Diálogos (somente para perfis com permissão de edição) */}
