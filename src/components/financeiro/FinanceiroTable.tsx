@@ -65,12 +65,18 @@ export function FinanceiroTable({
   analiseLoading,
   analiseComparacoes,
   readOnly = false,
+  pagadoresCadastrados = {},
 }: Props) {
   const [anexosDialog, setAnexosDialog] = useState<{
     empresaId: string;
     empresaNome: string;
     mesReferencia: string;
     periodo: string;
+  } | null>(null);
+
+  const [pagadoresDialog, setPagadoresDialog] = useState<{
+    empresaId: string;
+    empresaNome: string;
   } | null>(null);
 
   // Conta pagadores por código de contrato dentro das linhas filtradas atuais
