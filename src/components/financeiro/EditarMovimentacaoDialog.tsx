@@ -144,45 +144,83 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const irmaos = pagadores.filter((p) => p.id !== movimentacao?.empresa_id);
   const temIrmaos = irmaos.length > 0;
 
+  const buildPayload = () => {
+    if (!movimentacao) return null;
+    const envioAlterado =
+      !!dataEnvioNota && dataEnvioNota !== (movimentacao.data_envio_nota || "");
+    let dataVencimentoIso: string | null = null;
+    if (diaVencimento !== "__none__") {
+      const dia = parseInt(diaVencimento, 10);
+      const mes = movimentacao.mes_referencia;
+      if (mes && /^\d{4}-\d{2}$/.test(mes) && dia >= 1 && dia <= 31) {
+        dataVencimentoIso = `${mes}-${String(dia).padStart(2, "0")}`;
+      }
+    }
+    const payload: Record<string, unknown> = {
+      tipo_cobranca: tipoTrimmed || null,
+      data_envio_nota: dataEnvioNota || null,
+      data_vencimento: dataVencimentoIso,
+      dia_emissao: diaEmissao === "__none__" ? null : Number(diaEmissao),
+      tipo_analise: tipoAnalise || "normal",
+      dentro_prazo: dentroPrazo,
+    };
+    if (envioAlterado && user?.id) {
+      payload.enviado_por_user_id = user.id;
+    } else if (!dataEnvioNota) {
+      payload.enviado_por_user_id = null;
+    }
+    return { payload, envioAlterado };
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!movimentacao) return;
-      // Detecta se a data de envio acabou de ser preenchida (ou alterada) nesta edição
-      const envioAlterado =
-        !!dataEnvioNota && dataEnvioNota !== (movimentacao.data_envio_nota || "");
-      // Reconstrói data_vencimento a partir do dia + mes_referencia (YYYY-MM)
-      let dataVencimentoIso: string | null = null;
-      if (diaVencimento !== "__none__") {
-        const dia = parseInt(diaVencimento, 10);
-        const mes = movimentacao.mes_referencia; // "YYYY-MM"
-        if (mes && /^\d{4}-\d{2}$/.test(mes) && dia >= 1 && dia <= 31) {
-          dataVencimentoIso = `${mes}-${String(dia).padStart(2, "0")}`;
-        }
-      }
-      const payload: Record<string, unknown> = {
-        tipo_cobranca: tipoTrimmed || null,
-        data_envio_nota: dataEnvioNota || null,
-        data_vencimento: dataVencimentoIso,
-        dia_emissao: diaEmissao === "__none__" ? null : Number(diaEmissao),
-        tipo_analise: tipoAnalise || "normal",
-        dentro_prazo: dentroPrazo,
-      };
-      if (envioAlterado && user?.id) {
-        payload.enviado_por_user_id = user.id;
-      } else if (!dataEnvioNota) {
-        // Se removeu a data de envio, limpa o autor
-        payload.enviado_por_user_id = null;
-      }
+      if (!movimentacao) return null;
+      const built = buildPayload();
+      if (!built) return null;
       const { error } = await supabase
         .from("financeiro_movimentacoes")
-        .update(payload as any)
+        .update(built.payload as any)
         .eq("id", movimentacao.id);
       if (error) throw error;
+      return built;
     },
-    onSuccess: () => {
+    onSuccess: (built) => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       toast.success("Movimentação atualizada");
-      onOpenChange(false);
+      // Se contrato tem múltiplos pagadores, pergunta se replica
+      if (built && temIrmaos && movimentacao) {
+        setReplicaConfirm({
+          title: "Aplicar a todos os pagadores?",
+          description: `O contrato tem ${pagadores.length} pagadores: ${pagadores.map((p) => p.nome).join(", ")}. Deseja aplicar esta alteração para todos os pagadores do contrato?`,
+          pagadores,
+          onTodos: async () => {
+            try {
+              const r = await replicarFinanceiroParaPagadores({
+                empresaIdOrigem: movimentacao.empresa_id,
+                codigoContrato: pagadores[0]?.codigo_contrato,
+                mesReferencia: movimentacao.mes_referencia,
+                periodo: movimentacao.periodo,
+                payload: built.payload,
+              });
+              toast.success(
+                `Replicado: ${r.atualizados} atualizado(s), ${r.criados} criado(s)`,
+              );
+              queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+            } catch (e: any) {
+              toast.error("Erro ao replicar: " + e.message);
+            } finally {
+              setReplicaConfirm(null);
+              onOpenChange(false);
+            }
+          },
+          onApenas: () => {
+            setReplicaConfirm(null);
+            onOpenChange(false);
+          },
+        });
+      } else {
+        onOpenChange(false);
+      }
     },
     onError: (e: any) => toast.error("Erro ao salvar: " + e.message),
   });
