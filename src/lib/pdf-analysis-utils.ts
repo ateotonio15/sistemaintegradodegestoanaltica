@@ -161,10 +161,27 @@ export async function analisarPdfFinanceiro(
   if (!apartamento) avisos.push("Categoria 'Apartamento' não encontrada no PDF.");
   if (!inclusoesEncontradas) avisos.push("Categoria 'Inclusões' não encontrada no PDF.");
 
+  // Valor Líquido da NFS-e — aceita variações de espaçamento
+  let valorLiquido: number | null = null;
+  const reValorLiquido = /valor\s*l[ií]?quido\s*da\s*nfs[\s\-]?e\s*r?\$?\s*([\d.,]+)/i;
+  const mVL = t.match(reValorLiquido);
+  if (mVL) {
+    const v = parseValor(mVL[1]);
+    if (!isNaN(v) && v > 0) valorLiquido = v;
+  }
+
+  // Número da NF — procura "nº NNNN" ou "n NNNN" no texto
+  let nfNumero: string | null = null;
+  const reNf = /\bn[º°o]?\s*[:.]?\s*(\d{3,8})\b/i;
+  const mNf = t.match(reNf);
+  if (mNf) nfNumero = mNf[1];
+
   return {
     enfermaria: enfermaria ?? { ...empty },
     apartamento: apartamento ?? { ...empty },
     inclusoes: { total: inclusoesTotal },
+    valorLiquido,
+    nfNumero,
     avisos,
   };
 }
