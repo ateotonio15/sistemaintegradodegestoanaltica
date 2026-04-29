@@ -945,6 +945,18 @@ export default function Financeiro() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setImportPagadoresOpen(true)}
+                className="gap-1.5"
+                title="Importar pagadores via Excel"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Importar pagadores
+              </Button>
+            )}
+            {canManageFinanceiro && (
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => provisionarMutation.mutate()}
                 disabled={provisionarMutation.isPending}
                 className="gap-1.5"
