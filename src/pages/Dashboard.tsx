@@ -841,30 +841,63 @@ export default function Dashboard() {
                     <TableHead className="font-semibold">Envio Empresa</TableHead>
                     <TableHead className="font-semibold">Financeiro</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Anexos</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {listaConcluidas.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
                   ) : (
-                    listaConcluidas.map((m) => (
-                      <TableRow key={m.id} className="hover:bg-accent/50 transition-colors">
-                        <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
-                        <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                        <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
-                        <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
-                        <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
-                        <TableCell><Badge className={`${statusColor(m.status)} rounded-md`}>{m.status}</Badge></TableCell>
-                      </TableRow>
-                    ))
+                    listaConcluidas.map((m) => {
+                      const qtd = anexosCountMap[m.id] ?? 0;
+                      return (
+                        <TableRow key={m.id} className="hover:bg-accent/50 transition-colors">
+                          <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
+                          <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                          <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
+                          <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
+                          <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
+                          <TableCell><Badge className={`${statusColor(m.status)} rounded-md`}>{m.status}</Badge></TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 h-8"
+                              disabled={qtd === 0}
+                              onClick={() =>
+                                setAnexosDialog({
+                                  empresaId: m.empresa_id,
+                                  empresaNome: m.empresas?.nome ?? "",
+                                  mesReferencia: m.mes_referencia,
+                                  periodo: m.periodo,
+                                })
+                              }
+                              title={qtd === 0 ? "Sem anexos" : "Ver anexos"}
+                            >
+                              <Paperclip className="h-3 w-3" />
+                              {qtd}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
             </div>
           </CardContent>
         </Card>
+
+        <AnexosViewerDialog
+          open={!!anexosDialog}
+          onOpenChange={(v) => !v && setAnexosDialog(null)}
+          empresaId={anexosDialog?.empresaId ?? null}
+          empresaNome={anexosDialog?.empresaNome ?? ""}
+          mesReferencia={anexosDialog?.mesReferencia ?? ""}
+          periodo={anexosDialog?.periodo ?? ""}
+        />
 
         {/* Empresas Ativas Modal */}
         <Dialog open={showEmpresasAtivasModal} onOpenChange={setShowEmpresasAtivasModal}>
