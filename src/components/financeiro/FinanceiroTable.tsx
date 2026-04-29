@@ -75,11 +75,6 @@ export function FinanceiroTable({
     periodo: string;
   } | null>(null);
 
-  const [pagadoresDialog, setPagadoresDialog] = useState<{
-    empresaId: string;
-    empresaNome: string;
-  } | null>(null);
-
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
