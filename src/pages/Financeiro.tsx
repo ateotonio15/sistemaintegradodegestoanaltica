@@ -75,6 +75,7 @@ export default function Financeiro() {
   const [premioPeriodo, setPremioPeriodo] = useState<string>("geral");
   const [isExportingPremio, setIsExportingPremio] = useState(false);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [importPagadoresOpen, setImportPagadoresOpen] = useState(false);
   const [analiseResultados, setAnaliseResultados] = useState<Record<string, import("@/lib/excel-analysis-utils").AnaliseResultado[]>>({});
   const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
   const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
