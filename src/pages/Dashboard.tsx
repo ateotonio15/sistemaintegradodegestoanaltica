@@ -885,7 +885,7 @@ export default function Dashboard() {
                     <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
                   ) : (
                     listaConcluidas.map((m) => {
-                      const qtd = anexosCountMap[m.id] ?? 0;
+                      const qtd = anexosCountMap[`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`] ?? 0;
                       return (
                         <TableRow key={m.id} className="hover:bg-accent/50 transition-colors">
                           <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
