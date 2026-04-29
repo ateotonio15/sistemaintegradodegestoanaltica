@@ -378,7 +378,13 @@ export default function Financeiro() {
 
   // KPIs
   const kpis = useMemo(() => {
-    const pagadoresSet = new Set(kpiRows.map((r) => r.empresa_id));
+    // Pagadores: soma cada pagador cadastrado por empresa visível (mín. 1 = a própria empresa)
+    const empresasUnicas = new Set(kpiRows.map((r) => r.empresa_id));
+    let totalPagadores = 0;
+    empresasUnicas.forEach((empId) => {
+      const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
+      totalPagadores += lista.length > 0 ? lista.length : 1;
+    });
     // Contratos = código de contrato distintos. Empresas sem código contam individualmente.
     const contratosSet = new Set(
       kpiRows.map((r) => r.empresa_codigo?.trim() || `__sem__${r.empresa_id}`),
