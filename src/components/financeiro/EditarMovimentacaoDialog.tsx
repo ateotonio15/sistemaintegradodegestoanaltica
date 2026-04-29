@@ -77,6 +77,13 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [tipoAnalise, setTipoAnalise] = useState<string>("normal");
   const [dentroPrazo, setDentroPrazo] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    description: string;
+    onTodos: () => void | Promise<void>;
+    onApenas: () => void | Promise<void>;
+    pagadores: Pagador[];
+  } | null>(null);
 
   useEffect(() => {
     if (movimentacao) {
