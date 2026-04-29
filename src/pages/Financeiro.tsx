@@ -462,14 +462,13 @@ export default function Financeiro() {
     setCobOpen(true);
   };
 
-  const handleToggleExpand = async (row: FinanceiroRow) => {
-    // Recolher se já está aberta
-    if (expandedRowId === row.id) {
-      setExpandedRowId(null);
-      return;
-    }
-    setExpandedRowId(row.id);
+  // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
+  const ANALISE_PARSER_VERSION = "3";
 
+  const runAnalise = async (
+    row: FinanceiroRow,
+    opts: { force?: boolean } = {},
+  ) => {
     let anexos = (anexosMap[row.id] || []) as Array<{
       mime_type: string | null;
       nome_arquivo: string | null;
@@ -490,13 +489,14 @@ export default function Financeiro() {
 
     const tipoAnalise = ((row as any).tipo_analise as string) || "normal";
 
-    // Cache-key combina XLS + PDF + tipo de análise
-    const cacheKey = [...xlsAnexos, ...pdfAnexos]
-      .map((a) => a.storage_path)
-      .sort()
-      .join("|") + `::${tipoAnalise}`;
+    // Cache-key combina XLS + PDF + tipo de análise + versão do parser
+    const cacheKey =
+      [...xlsAnexos, ...pdfAnexos]
+        .map((a) => a.storage_path)
+        .sort()
+        .join("|") + `::${tipoAnalise}::v${ANALISE_PARSER_VERSION}`;
     const cached = analiseResultados[row.id];
-    if (cached && (cached as any)._key === cacheKey) {
+    if (!opts.force && cached && (cached as any)._key === cacheKey) {
       return;
     }
 
