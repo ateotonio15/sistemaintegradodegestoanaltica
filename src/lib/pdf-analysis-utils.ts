@@ -158,3 +158,102 @@ export async function analisarPdfFinanceiro(
     avisos,
   };
 }
+
+// =====================================================================
+// Análise simplificada (Moto Honda) — quando a NF não traz Enfermaria/Apto
+// =====================================================================
+
+export interface AnalisePdfSimplificado {
+  beneficiarios: number | null;
+  inclusoes: { quantidade: number | null; total: number };
+  exclusoes: { quantidade: number | null; total: number };
+  avisos: string[];
+}
+
+/**
+ * Lê PDF e tenta extrair APENAS:
+ *  - Total de beneficiários
+ *  - Inclusões (qtd opcional + valor)
+ *  - Exclusões (qtd opcional + valor; pode ser negativo)
+ *
+ * Usado como fallback automático quando o PDF Moto Honda não trouxer
+ * categorias detalhadas (Enfermaria/Apartamento/Mensalidade).
+ */
+export async function analisarPdfFinanceiroSimplificado(
+  buffer: ArrayBuffer,
+): Promise<AnalisePdfSimplificado> {
+  const avisos: string[] = [];
+  let texto: string;
+  try {
+    texto = await extrairTextoPdf(buffer);
+  } catch (e: any) {
+    return {
+      beneficiarios: null,
+      inclusoes: { quantidade: null, total: 0 },
+      exclusoes: { quantidade: null, total: 0 },
+      avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
+    };
+  }
+
+  const t = norm(texto);
+  const NUM = String.raw`-?[\d.,]+`;
+
+  // Beneficiários: tenta vários padrões
+  let beneficiarios: number | null = null;
+  const reBenef1 = /total\s*de?\s*beneficiarios?\s*[:\-=]?\s*(\d+)/i;
+  const reBenef2 = /(\d+)\s*beneficiarios?/i;
+  const reBenef3 = /qtd\.?\s*(?:de\s*)?beneficiarios?\s*[:\-=]?\s*(\d+)/i;
+  const m1 = t.match(reBenef1) || t.match(reBenef3) || t.match(reBenef2);
+  if (m1) {
+    const v = parseInt(m1[1], 10);
+    if (!isNaN(v)) beneficiarios = v;
+  }
+
+  const parseValor = (raw: string): number => {
+    const s = raw.trim();
+    if (!s) return NaN;
+    if (s.includes(",")) return parseFloat(s.replace(/\./g, "").replace(",", "."));
+    const m = s.match(/^(-?\d+)\.(\d{1,2})$/);
+    if (m) return parseFloat(`${m[1]}.${m[2]}`);
+    return parseFloat(s.replace(/\./g, ""));
+  };
+
+  // Inclusões: "inclusao(s) [qtd x] valor" ou "inclus... R$ valor"
+  let incQtd: number | null = null;
+  let incTotal = 0;
+  const reInc = new RegExp(
+    `inclus(?:ao|oes|ões)?\\s*[:\\-=]?\\s*(?:(\\d+)\\s*[xX×]\\s*)?(${NUM})`,
+    "i",
+  );
+  const mInc = t.match(reInc);
+  if (mInc) {
+    if (mInc[1]) incQtd = parseInt(mInc[1], 10);
+    const v = parseValor(mInc[2]);
+    if (!isNaN(v)) incTotal = v;
+  }
+
+  // Exclusões
+  let excQtd: number | null = null;
+  let excTotal = 0;
+  const reExc = new RegExp(
+    `exclus(?:ao|oes|ões)?\\s*[:\\-=]?\\s*(?:(\\d+)\\s*[xX×]\\s*)?(${NUM})`,
+    "i",
+  );
+  const mExc = t.match(reExc);
+  if (mExc) {
+    if (mExc[1]) excQtd = parseInt(mExc[1], 10);
+    const v = parseValor(mExc[2]);
+    if (!isNaN(v)) excTotal = v;
+  }
+
+  if (beneficiarios === null) avisos.push("Total de beneficiários não encontrado no PDF.");
+  if (incTotal === 0 && !mInc) avisos.push("Inclusões não encontradas no PDF.");
+  if (excTotal === 0 && !mExc) avisos.push("Exclusões não encontradas no PDF.");
+
+  return {
+    beneficiarios,
+    inclusoes: { quantidade: incQtd, total: incTotal },
+    exclusoes: { quantidade: excQtd, total: excTotal },
+    avisos,
+  };
+}
