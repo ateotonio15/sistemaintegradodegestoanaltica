@@ -535,6 +535,35 @@ export default function Dashboard() {
     return periodItems.filter((m) => m.status === "Enviado ao financeiro");
   }, [periodItems]);
 
+  const concluidasMovIds = useMemo(
+    () => listaConcluidas.map((m) => m.id),
+    [listaConcluidas],
+  );
+
+  const { data: anexosCountMap = {} } = useQuery<Record<string, number>>({
+    queryKey: ["anexos-count-concluidas", concluidasMovIds.sort().join(",")],
+    enabled: concluidasMovIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anexos_movimentacao")
+        .select("movimentacao_id")
+        .in("movimentacao_id", concluidasMovIds);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data ?? []).forEach((a: any) => {
+        map[a.movimentacao_id] = (map[a.movimentacao_id] ?? 0) + 1;
+      });
+      return map;
+    },
+  });
+
+  const [anexosDialog, setAnexosDialog] = useState<{
+    empresaId: string;
+    empresaNome: string;
+    mesReferencia: string;
+    periodo: string;
+  } | null>(null);
+
   const GRUPO_CONTRATO_OPTIONS = [
     "Compulsória - Sem Dependentes",
     "Adesão - Titular / Dependente",
