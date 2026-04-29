@@ -827,14 +827,6 @@ export default function Dashboard() {
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                         <TableCell><Badge className={`${statusColor(m.status)} rounded-md`}>{m.status}</Badge></TableCell>
-                        {role === "comum" && (
-                          <TableCell>
-                            <Badge className="bg-warning/15 text-warning border border-warning/40 rounded-md gap-1 hover:bg-warning/25 cursor-default">
-                              <BellRing className="h-3 w-3" />
-                              Faturamentos Enviado
-                            </Badge>
-                          </TableCell>
-                        )}
                       </TableRow>
                     ))
                   )}
