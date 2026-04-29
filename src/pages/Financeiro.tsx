@@ -872,6 +872,61 @@ export default function Financeiro() {
               {isExporting ? "Exportando..." : "Exportar Excel"}
             </Button>
             {canManageFinanceiro && (
+              <Popover open={premioOpen} onOpenChange={setPremioOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="secondary" size="sm" className="gap-1.5">
+                    <Trophy className="h-3.5 w-3.5" />
+                    PRÊMIO
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72" align="end">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Exportar PRÊMIO</p>
+                      <p className="text-xs text-muted-foreground">
+                        Apenas registros validados (sem divergência).
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Período</Label>
+                      <RadioGroup
+                        value={premioPeriodo}
+                        onValueChange={setPremioPeriodo}
+                        className="grid grid-cols-2 gap-1.5"
+                      >
+                        {[
+                          { v: "geral", l: "Geral" },
+                          { v: "01-05", l: "01–05" },
+                          { v: "05-10", l: "05–10" },
+                          { v: "10-15", l: "10–15" },
+                          { v: "15-20", l: "15–20" },
+                          { v: "20-25", l: "20–25" },
+                          { v: "25-30", l: "25–30" },
+                        ].map((o) => (
+                          <label
+                            key={o.v}
+                            className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs cursor-pointer hover:bg-muted/50"
+                          >
+                            <RadioGroupItem value={o.v} />
+                            {o.l}
+                          </label>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <Button
+                      onClick={handleExportPremio}
+                      disabled={isExportingPremio}
+                      size="sm"
+                      className="w-full gap-1.5"
+                    >
+                      <Download className={`h-3.5 w-3.5 ${isExportingPremio ? "animate-pulse" : ""}`} />
+                      {isExportingPremio ? "Exportando..." : "Exportar PRÊMIO"}
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+            {canManageFinanceiro && (
               <Button
                 variant="outline"
                 size="sm"
