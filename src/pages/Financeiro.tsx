@@ -348,24 +348,23 @@ export default function Financeiro() {
       return true;
     });
 
-    // Expande: cada pagador cadastrado vira uma linha (mesma movimentação).
-    // Sem pagadores cadastrados → mantém a linha original com nome/cnpj da empresa.
+    // Sempre mantém a linha da empresa-mãe + adiciona uma linha por pagador cadastrado.
     const expanded: FinanceiroRow[] = [];
     base.forEach((r) => {
+      // Linha da empresa principal (sempre presente)
+      expanded.push({ ...r, rowKey: r.id, pagador_id: null });
+
+      // Linhas adicionais para cada pagador cadastrado ativo
       const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p) => p.ativo);
-      if (pagadores.length > 0) {
-        pagadores.forEach((p) => {
-          expanded.push({
-            ...r,
-            empresa_nome: p.nome_pagador,
-            empresa_cnpj: p.cnpj ?? r.empresa_cnpj,
-            rowKey: `${r.id}::${p.id}`,
-            pagador_id: p.id,
-          });
+      pagadores.forEach((p) => {
+        expanded.push({
+          ...r,
+          empresa_nome: p.nome_pagador,
+          empresa_cnpj: p.cnpj ?? r.empresa_cnpj,
+          rowKey: `${r.id}::${p.id}`,
+          pagador_id: p.id,
         });
-      } else {
-        expanded.push({ ...r, rowKey: r.id, pagador_id: null });
-      }
+      });
     });
 
     // Filtro de busca aplicado SOBRE as linhas já expandidas (busca pelo pagador certo)
