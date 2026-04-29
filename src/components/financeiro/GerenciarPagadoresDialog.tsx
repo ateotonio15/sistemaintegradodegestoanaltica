@@ -193,6 +193,7 @@ export function GerenciarPagadoresDialog({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{p.nome_pagador}</p>
                   <p className="text-xs text-muted-foreground">
+                    {p.cnpj ? `CNPJ: ${p.cnpj} · ` : ""}
                     {p.ativo ? "Ativo" : "Inativo"}
                   </p>
                 </div>
