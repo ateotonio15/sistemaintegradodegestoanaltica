@@ -889,6 +889,7 @@ export default function Financeiro() {
           isLoading={isLoading}
           expandedRowId={expandedRowId}
           onToggleExpand={handleToggleExpand}
+          onReanalisar={handleReanalisar}
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
