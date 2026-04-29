@@ -333,8 +333,11 @@ export default function Financeiro() {
 
   // KPIs
   const kpis = useMemo(() => {
-    const empresasSet = new Set(kpiRows.map((r) => r.empresa_id));
-    const totalAnexos = kpiRows.reduce((s, r) => s + r.anexos_count, 0);
+    const pagadoresSet = new Set(kpiRows.map((r) => r.empresa_id));
+    // Contratos = código de contrato distintos. Empresas sem código contam individualmente.
+    const contratosSet = new Set(
+      kpiRows.map((r) => r.empresa_codigo?.trim() || `__sem__${r.empresa_id}`),
+    );
     const foraDoPrazo = kpiRows.filter((r) => {
       const p = calcularPrazoFinanceiro({
         aguardando_nota_em: (r as any).aguardando_nota_em,
@@ -344,12 +347,12 @@ export default function Financeiro() {
       return p.categoria === "Fora do prazo";
     }).length;
     return {
-      totalEmpresas: empresasSet.size,
+      totalEmpresas: contratosSet.size,
+      totalPagadores: pagadoresSet.size,
       notasEnviadas: kpiRows.filter((r) => r.status === "Enviada" || r.status === "Nota emitida").length,
       aguardandoNota: kpiRows.filter((r) => r.status === "Aguardando nota").length,
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
       foraDoPrazo,
-      totalAnexos,
     };
   }, [kpiRows]);
 
