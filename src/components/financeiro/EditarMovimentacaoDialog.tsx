@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -31,6 +31,22 @@ import {
   TIPOS_FINANCEIRO,
 } from "@/lib/financeiro-utils";
 import { todayLocalISO } from "@/lib/date-utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  getPagadoresDoContrato,
+  replicarFinanceiroParaPagadores,
+  replicarAnexosParaPagadores,
+  type Pagador,
+} from "@/lib/pagadores-utils";
 
 type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & {
   data_vencimento?: string | null;
