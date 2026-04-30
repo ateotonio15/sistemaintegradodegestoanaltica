@@ -70,10 +70,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
-  const [collapsed, setCollapsed] = useState(() => isMobile);
+  const SIDEBAR_STORAGE_KEY = "sidebar-collapsed";
 
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    if (window.innerWidth < 768) return true;
+    return localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
+  });
+
+  // Só recolhe automaticamente ao ENTRAR em mobile; não sobrescreve preferência em desktop.
+  const wasMobileRef = useRef(isMobile);
   useEffect(() => {
-    setCollapsed(isMobile);
+    if (!wasMobileRef.current && isMobile) setCollapsed(true);
+    wasMobileRef.current = isMobile;
+  }, [isMobile]);
+
+  const toggleSidebar = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      if (!isMobile) {
+        try { localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next)); } catch {}
+      }
+      return next;
+    });
   }, [isMobile]);
 
   const navItems = useMemo(() => {
