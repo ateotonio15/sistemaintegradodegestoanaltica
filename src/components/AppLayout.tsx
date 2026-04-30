@@ -237,7 +237,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           )}
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={toggleSidebar}
             className={cn(
               "p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground",
               collapsed && "mx-auto"
