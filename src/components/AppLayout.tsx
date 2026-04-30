@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet } from "lucide-react";
 import logoImg from "@/assets/logo-cs-control.png";
@@ -70,10 +70,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
-  const [collapsed, setCollapsed] = useState(() => isMobile);
+  const SIDEBAR_STORAGE_KEY = "sidebar-collapsed";
 
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    if (window.innerWidth < 768) return true;
+    return localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
+  });
+
+  // Só recolhe automaticamente ao ENTRAR em mobile; não sobrescreve preferência em desktop.
+  const wasMobileRef = useRef(isMobile);
   useEffect(() => {
-    setCollapsed(isMobile);
+    if (!wasMobileRef.current && isMobile) setCollapsed(true);
+    wasMobileRef.current = isMobile;
+  }, [isMobile]);
+
+  const toggleSidebar = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      if (!isMobile) {
+        try { localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next)); } catch {}
+      }
+      return next;
+    });
   }, [isMobile]);
 
   const navItems = useMemo(() => {
@@ -218,7 +237,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           )}
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={toggleSidebar}
             className={cn(
               "p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground",
               collapsed && "mx-auto"
