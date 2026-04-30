@@ -1,77 +1,69 @@
-## Problema
+# Modernização da Página de Login
 
-Na sidebar do `AppLayout`, ao clicar em um item de navegação com a sidebar recolhida, ela está expandindo sozinha. A intenção é que apenas o botão de toggle (PanelLeft/PanelLeftClose) controle expandir/recolher.
+Refatorar `src/pages/Auth.tsx` para um visual **Clean & Professional**, mantendo a identidade verde da marca e o logo atual.
 
-## Causa
+## Lado Esquerdo — Hero com gradiente e padrão
 
-Em `src/components/AppLayout.tsx`:
+- Substituir o `<img>` de fundo sólido por uma seção com **gradiente diagonal suave** usando os tons de verde da marca (variações do `--primary` HSL `152 69% 40%`).
+  - Exemplo: `bg-gradient-to-br from-[hsl(152_69%_35%)] via-[hsl(152_60%_45%)] to-[hsl(160_55%_30%)]`.
+- Adicionar **padrão geométrico suave** sobreposto (baixa opacidade, ~8–12%) para preencher o espaço de forma profissional. Implementação via SVG inline em `background-image` com pequenos círculos/grade, ou pattern de losangos. Sem dependências novas.
+- Centralizar o **logo atual** (`@/assets/login-bg.png` será substituído por uma renderização centralizada do logo da marca; se preferir manter a imagem atual como logo, ela será exibida com tamanho contido — `max-w-xs`) com **respiro maior** (padding generoso, `p-16`).
+- Abaixo do logo, um pequeno bloco textual opcional com nome do produto em branco e subtítulo discreto (mantendo "CS Control — Cadastro Samel e Gestão Empresarial").
 
-1. O estado `collapsed` é inicializado a partir de `isMobile`:
-   ```ts
-   const [collapsed, setCollapsed] = useState(() => isMobile);
-   ```
-   Como `useIsMobile()` retorna `false` no primeiro render (estado inicial `undefined` → `!!undefined = false`), em desktop a sidebar começa **expandida**, ignorando qualquer preferência anterior do usuário.
+## Lado Direito — Card de Login
 
-2. Existe um `useEffect` que força ressincronização sempre que `isMobile` muda:
-   ```ts
-   useEffect(() => { setCollapsed(isMobile); }, [isMobile]);
-   ```
-   Isso sobrescreve a escolha manual do usuário em qualquer recálculo de `isMobile` (por exemplo, ao redimensionar ligeiramente, ao trocar de rota com remount, ou após navegação que dispare reflow). É essa lógica que faz a sidebar "voltar a expandir" — não os `<Link>` em si (eles não têm `onClick`).
+- Fundo da coluna em `bg-background` (cinza muito claro) para destacar o card.
+- **Card branco** centralizado:
+  - `bg-card`, `rounded-xl`, `shadow-lg`, `border border-border/50`.
+  - Padding interno generoso (`p-8` a `p-10`).
+  - Largura `max-w-md` com `w-full`.
+- Cabeçalho dentro do card: título "Bem-vindo de volta" e subtítulo "Faça login para acessar o sistema", tipografia Inter (já configurada), pesos 600/400.
 
-3. A preferência não é persistida, então qualquer remount do layout reseta `collapsed` para o default.
+## Inputs com Ícones
 
-## Solução
+- Usar wrapper `relative` com ícone `lucide-react` posicionado absolutamente à esquerda:
+  - Campo Usuário: ícone `User`.
+  - Campo Senha: ícone `Lock`.
+- Input estilizado:
+  - `pl-10` para dar espaço ao ícone.
+  - Bordas finas (`border` padrão) com cor `border-input`.
+  - Foco em verde principal: `focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary`.
+  - Altura confortável `h-11`, cantos `rounded-lg`.
+- Labels acima dos inputs com `text-sm font-medium text-foreground`.
 
-Tornar o estado `collapsed` controlado exclusivamente pelo botão de toggle, persistido entre navegações, e desacoplado de `isMobile` em desktop.
+## Botão "Entrar"
 
-### Mudanças em `src/components/AppLayout.tsx`
+- Largura total (`w-full`), altura `h-11`, `rounded-lg`, `font-semibold`.
+- Cor primária verde (já é o default do botão shadcn).
+- Hover atraente: leve elevação + escurecimento — `hover:bg-primary/90 hover:shadow-md transition-all duration-200`.
+- Mantém o ícone `LogIn` à esquerda e o estado `loading`.
 
-1. **Persistir a preferência em `localStorage`** (chave `sidebar-collapsed`):
-   - Inicializar `collapsed` lendo de `localStorage` em desktop.
-   - Em mobile, manter o comportamento de iniciar recolhida (overlay).
-   - No handler do botão de toggle, gravar o novo valor no `localStorage`.
+## Responsividade
 
-2. **Remover o `useEffect` que sobrescreve `collapsed` quando `isMobile` muda.**
-   - Substituir por uma lógica que só recolhe automaticamente ao **entrar** em mobile (transição desktop → mobile), sem mexer no estado quando voltar para desktop (o usuário recupera sua preferência salva).
+- Em telas `< lg`: o lado esquerdo (hero) é ocultado (`hidden lg:flex`), o card de login ocupa a tela toda mantendo o mesmo estilo elegante e centralizado.
 
-3. **Não adicionar nenhum `onClick` nos `<Link>` que altere `collapsed`.** Já não existe — apenas garantir que continue assim. Em mobile, manter o fechamento via clique no overlay (já implementado), o que é esperado.
+## Detalhes Técnicos
 
-### Pseudo-código
+- **Arquivo único alterado:** `src/pages/Auth.tsx`.
+- **Sem mudanças** em `index.css`, `tailwind.config.ts` ou tokens — o verde já está em `--primary` e a fonte Inter já é o `--font-sans`.
+- **Sem novas dependências** — `lucide-react` (`User`, `Lock`, `LogIn`) já está disponível.
+- O padrão geométrico será um SVG inline em `data:image/svg+xml` aplicado como `backgroundImage` no estilo da seção esquerda, garantindo zero requisições extras.
+- Toda a lógica de autenticação (`handleSubmit`, RPC `get_email_by_username`, `signInWithPassword`) permanece **inalterada** — apenas apresentação.
 
-```ts
-const STORAGE_KEY = "sidebar-collapsed";
+## Estrutura Resultante (esboço)
 
-const [collapsed, setCollapsed] = useState<boolean>(() => {
-  if (typeof window === "undefined") return false;
-  if (window.innerWidth < 768) return true; // mobile sempre inicia recolhido
-  const saved = localStorage.getItem(STORAGE_KEY);
-  return saved === "true";
-});
-
-// Só força recolher quando ENTRA em mobile, não toda vez que isMobile recalcula
-const wasMobileRef = useRef(isMobile);
-useEffect(() => {
-  if (!wasMobileRef.current && isMobile) setCollapsed(true);
-  wasMobileRef.current = isMobile;
-}, [isMobile]);
-
-const toggleSidebar = () => {
-  setCollapsed((prev) => {
-    const next = !prev;
-    if (!isMobile) localStorage.setItem(STORAGE_KEY, String(next));
-    return next;
-  });
-};
+```text
+┌─────────────────────────┬──────────────────────────┐
+│  Gradiente verde        │   bg-background          │
+│  + padrão geométrico    │                          │
+│                         │   ┌──────────────────┐   │
+│        [ LOGO ]         │   │  Card branco     │   │
+│                         │   │  rounded-xl      │   │
+│   CS Control            │   │  shadow-lg       │   │
+│   subtítulo discreto    │   │                  │   │
+│                         │   │  [User] input    │   │
+│                         │   │  [Lock] input    │   │
+│                         │   │  [  Entrar  ]    │   │
+│                         │   └──────────────────┘   │
+└─────────────────────────┴──────────────────────────┘
 ```
-
-E o botão passa a usar `onClick={toggleSidebar}` em vez do `setCollapsed(!collapsed)` inline.
-
-## Arquivos afetados
-
-- `src/components/AppLayout.tsx` (único arquivo)
-
-## Resultado esperado
-
-- Clicar em qualquer item da navegação **não** altera o estado de expansão da sidebar.
-- Apenas o botão de toggle (ou o overlay em mobile) muda `collapsed`.
-- A preferência do usuário em desktop persiste entre navegações e recargas.
