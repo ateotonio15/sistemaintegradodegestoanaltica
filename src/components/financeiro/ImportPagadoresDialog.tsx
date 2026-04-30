@@ -26,9 +26,13 @@ interface LinhaImport {
 
 function normalizeCnpj(v: unknown): string | null {
   if (v === null || v === undefined) return null;
-  const s = String(v).trim();
-  if (!s) return null;
-  return s;
+  // Mantém apenas dígitos (Excel pode entregar como número, perdendo zeros à esquerda)
+  const digits = String(v).replace(/\D/g, "");
+  if (!digits) return null;
+  // CNPJ tem 14 dígitos — preenche zeros à esquerda quando vier truncado
+  if (digits.length <= 14) return digits.padStart(14, "0");
+  // Se vier algo maior (improvável), retorna como está
+  return digits;
 }
 
 export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
