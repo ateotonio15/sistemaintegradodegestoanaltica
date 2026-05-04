@@ -431,6 +431,10 @@ export default function Empresas() {
                         <Input value={form.operadora_plano ?? ""} onChange={(e) => setForm({ ...form, operadora_plano: e.target.value })} className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
+                        <Label className="text-sm font-medium">Vidas</Label>
+                        <Input type="number" min={0} value={(form as any).vidas ?? 0} onChange={(e) => setForm({ ...form, vidas: e.target.value ? Number(e.target.value) : 0 } as any)} placeholder="0" className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
                         <Label className="text-sm font-medium">Tipo de Contrato *</Label>
                         <Select value={form.tipo_movimentacao ?? "Fechada"} onValueChange={(v) => setForm({ ...form, tipo_movimentacao: v })}>
                           <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
