@@ -127,6 +127,16 @@ export default function Empresas() {
     enabled: !!user,
   });
 
+  useEffect(() => {
+    const channel = supabase
+      .channel("empresas-vidas-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "empresas" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
       if (isExecutivo && editingId) {
