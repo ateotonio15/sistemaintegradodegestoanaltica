@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
@@ -49,6 +49,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   executiva_user_id: null,
   telefone_empresa: "",
   contato_empresa: "",
+  vidas: 0,
 };
 
 export default function Empresas() {
@@ -125,6 +126,16 @@ export default function Empresas() {
     },
     enabled: !!user,
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("empresas-vidas-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "empresas" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
@@ -290,6 +301,7 @@ export default function Empresas() {
       telefone_empresa: (e as any).telefone_empresa ?? "",
       contato_empresa: (e as any).contato_empresa ?? "",
       contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
+      vidas: (e as any).vidas ?? 0,
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
     setDataVencimentoFatura((e as any).data_vencimento_fatura ?? "");
@@ -427,6 +439,10 @@ export default function Empresas() {
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Corretora</Label>
                         <Input value={form.operadora_plano ?? ""} onChange={(e) => setForm({ ...form, operadora_plano: e.target.value })} className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Vidas</Label>
+                        <Input type="number" min={0} value={(form as any).vidas ?? 0} onChange={(e) => setForm({ ...form, vidas: e.target.value ? Number(e.target.value) : 0 } as any)} placeholder="0" className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Tipo de Contrato *</Label>
@@ -590,6 +606,7 @@ export default function Empresas() {
                     <TableHead className="font-semibold">Resp. Contrato</TableHead>
                     <TableHead className="font-semibold">Executiva</TableHead>
                     <TableHead className="font-semibold">CNPJ</TableHead>
+                    <TableHead className="font-semibold text-right">Vidas</TableHead>
                     <TableHead className="font-semibold">Corretora</TableHead>
                     <TableHead className="font-semibold">Tipo</TableHead>
                     <TableHead className="font-semibold">Período / Corte</TableHead>
@@ -602,9 +619,9 @@ export default function Empresas() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEdit ? 13 : 12} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEdit ? 14 : 13} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEdit ? 13 : 12} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={canEdit ? 14 : 13} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
                   ) : (
                     filtered.map((e) => {
                       const suspenso = (e as any).contrato_suspenso;
@@ -629,6 +646,7 @@ export default function Empresas() {
                           <TableCell>{getResponsavelName(e)}</TableCell>
                           <TableCell>{getExecutivaName(e)}</TableCell>
                           <TableCell className="text-muted-foreground font-mono text-xs">{e.cnpj || "—"}</TableCell>
+                          <TableCell className="text-right font-medium tabular-nums">{((e as any).vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
                           <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="rounded-md">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
