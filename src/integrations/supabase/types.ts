@@ -359,6 +359,7 @@ export type Database = {
           tipo_financeiro: string | null
           tipo_movimentacao: string | null
           updated_at: string
+          vidas: number
         }
         Insert: {
           cnpj?: string | null
@@ -392,6 +393,7 @@ export type Database = {
           tipo_financeiro?: string | null
           tipo_movimentacao?: string | null
           updated_at?: string
+          vidas?: number
         }
         Update: {
           cnpj?: string | null
@@ -425,6 +427,7 @@ export type Database = {
           tipo_financeiro?: string | null
           tipo_movimentacao?: string | null
           updated_at?: string
+          vidas?: number
         }
         Relationships: [
           {

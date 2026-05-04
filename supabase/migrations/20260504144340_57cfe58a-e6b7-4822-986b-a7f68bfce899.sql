@@ -1,0 +1,1 @@
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS vidas integer NOT NULL DEFAULT 0;
