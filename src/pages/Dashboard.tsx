@@ -828,9 +828,9 @@ export default function Dashboard() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                   ) : listaTrabalho.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-12">Nenhuma pendência neste período 🎉</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Nenhuma pendência neste período 🎉</TableCell></TableRow>
                   ) : (
                     listaTrabalho.map((m) => (
                       <TableRow key={m.id} className={`transition-colors ${m.status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : "hover:bg-accent/50"}`}>
@@ -885,7 +885,7 @@ export default function Dashboard() {
                 </TableHeader>
                 <TableBody>
                   {listaConcluidas.length === 0 ? (
-                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
                   ) : (
                     listaConcluidas.map((m) => {
                       const qtd = anexosCountMap[`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`] ?? 0;
