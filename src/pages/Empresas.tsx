@@ -49,6 +49,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   executiva_user_id: null,
   telefone_empresa: "",
   contato_empresa: "",
+  vidas: 0,
 };
 
 export default function Empresas() {
