@@ -291,6 +291,7 @@ export default function Empresas() {
       telefone_empresa: (e as any).telefone_empresa ?? "",
       contato_empresa: (e as any).contato_empresa ?? "",
       contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
+      vidas: (e as any).vidas ?? 0,
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
     setDataVencimentoFatura((e as any).data_vencimento_fatura ?? "");
