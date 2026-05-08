@@ -129,6 +129,7 @@ export type Database = {
           id: string
           mime_type: string | null
           nome_arquivo: string
+          origem: string
           storage_path: string
           tamanho_bytes: number | null
           uploaded_by: string | null
@@ -139,6 +140,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           nome_arquivo: string
+          origem?: string
           storage_path: string
           tamanho_bytes?: number | null
           uploaded_by?: string | null
@@ -149,6 +151,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           nome_arquivo?: string
+          origem?: string
           storage_path?: string
           tamanho_bytes?: number | null
           uploaded_by?: string | null
