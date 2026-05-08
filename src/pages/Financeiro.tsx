@@ -33,6 +33,7 @@ import { FinanceiroTable, type FinanceiroRow } from "@/components/financeiro/Fin
 import { EditarMovimentacaoDialog } from "@/components/financeiro/EditarMovimentacaoDialog";
 import { CobrancaDialog } from "@/components/financeiro/CobrancaDialog";
 import { ImportPagadoresDialog } from "@/components/financeiro/ImportPagadoresDialog";
+import { ReajusteCobrancaRetroativa } from "@/components/financeiro/ReajusteCobrancaRetroativa";
 
 import {
   type FinanceiroMovimentacao,
@@ -1117,6 +1118,9 @@ export default function Financeiro() {
             }))}
           />
         </div>
+
+        {/* Reajuste e Cobrança Retroativa */}
+        <ReajusteCobrancaRetroativa />
 
         {/* Filtros da tabela */}
         <Card className="rounded-xl shadow-sm">
