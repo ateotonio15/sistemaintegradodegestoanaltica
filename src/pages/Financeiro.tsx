@@ -303,15 +303,20 @@ export default function Financeiro() {
             : "—"
         : "—";
       const uploaderId = pdfUploaderByMov[f.id];
+      const anexosAll = anexosMap[f.id] || [];
+      // Anexos vindos de Reajuste/Cobrança Retroativa não alteram o status
+      const anexosParaStatus = anexosAll.filter((a: any) => a.origem !== "retroativo");
+      const temRetroativo = anexosAll.some((a: any) => a.origem === "retroativo");
       return {
         ...f,
         empresa_nome: emp?.nome || "—",
         empresa_codigo: emp?.codigo ?? null,
         empresa_cnpj: emp?.cnpj ?? null,
         periodo_corte: periodoCorte,
-        status: calcularStatusFinanceiro(f, envioOperacional, anexosMap[f.id] || []),
-        anexos_count: (anexosMap[f.id] || []).length,
+        status: calcularStatusFinanceiro(f, envioOperacional, anexosParaStatus),
+        anexos_count: anexosAll.length,
         enviado_por_nome: uploaderId ? uploaderMap[uploaderId] || null : null,
+        retroativo: temRetroativo,
       };
     });
   }, [financeiroRaw, empresasMap, operacionaisMap, anexosMap, pdfUploaderByMov, uploaderMap]);
