@@ -29,7 +29,8 @@ interface Props {
   periodo: string;
 }
 
-const STORAGE_BUCKET = "anexos-financeiro";
+const BUCKET_FINANCEIRO = "anexos-financeiro";
+const BUCKET_OPERACIONAL = "anexos-movimentacoes";
 
 type AnexoRow = {
   id: string;
@@ -38,6 +39,8 @@ type AnexoRow = {
   created_at: string;
   uploaded_by: string | null;
   uploader_nome?: string | null;
+  bucket: string;
+  origem_label: "Financeiro" | "Cadastro";
 };
 
 export function AnexosViewerDialog({
@@ -49,28 +52,64 @@ export function AnexosViewerDialog({
   periodo,
 }: Props) {
   const { data: anexos = [], isLoading } = useQuery<AnexoRow[]>({
-    queryKey: ["anexos-viewer-financeiro", empresaId, mesReferencia, periodo],
+    queryKey: ["anexos-viewer-merged", empresaId, mesReferencia, periodo],
     enabled: open && !!empresaId,
     queryFn: async () => {
-      // Busca movimentações financeiras do processo (empresa + mes + periodo)
-      const { data: movs } = await supabase
+      // 1) Movimentações financeiras do processo
+      const { data: movsFin } = await supabase
         .from("financeiro_movimentacoes")
         .select("id")
         .eq("empresa_id", empresaId!)
         .eq("mes_referencia", mesReferencia)
         .eq("periodo", periodo);
-      const movIds = (movs ?? []).map((m) => m.id);
-      if (movIds.length === 0) return [];
+      const movFinIds = (movsFin ?? []).map((m) => m.id);
 
-      const { data: anx, error } = await supabase
-        .from("anexos_financeiro")
-        .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
-        .in("financeiro_movimentacao_id", movIds)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+      // 2) Movimentações operacionais (cadastro) do processo
+      const { data: movsOp } = await supabase
+        .from("movimentacoes")
+        .select("id")
+        .eq("empresa_id", empresaId!)
+        .eq("mes_referencia", mesReferencia)
+        .eq("periodo", periodo);
+      const movOpIds = (movsOp ?? []).map((m) => m.id);
+
+      const [anxFinRes, anxOpRes] = await Promise.all([
+        movFinIds.length
+          ? supabase
+              .from("anexos_financeiro")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
+              .in("financeiro_movimentacao_id", movFinIds)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [] as any[], error: null }),
+        movOpIds.length
+          ? supabase
+              .from("anexos_movimentacao")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
+              .in("movimentacao_id", movOpIds)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [] as any[], error: null }),
+      ]);
+
+      if (anxFinRes.error) throw anxFinRes.error;
+      if (anxOpRes.error) throw anxOpRes.error;
+
+      const fin: AnexoRow[] = (anxFinRes.data ?? []).map((a: any) => ({
+        ...a,
+        bucket: BUCKET_FINANCEIRO,
+        origem_label: "Financeiro" as const,
+      }));
+      const op: AnexoRow[] = (anxOpRes.data ?? []).map((a: any) => ({
+        ...a,
+        bucket: BUCKET_OPERACIONAL,
+        origem_label: "Cadastro" as const,
+      }));
+
+      const merged = [...fin, ...op].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
 
       const userIds = Array.from(
-        new Set((anx ?? []).map((a) => a.uploaded_by).filter(Boolean) as string[]),
+        new Set(merged.map((a) => a.uploaded_by).filter(Boolean) as string[]),
       );
       let nomeMap = new Map<string, string>();
       if (userIds.length) {
@@ -80,17 +119,15 @@ export function AnexosViewerDialog({
           .in("user_id", userIds);
         nomeMap = new Map((profs ?? []).map((p) => [p.user_id, p.display_name ?? ""]));
       }
-      return (anx ?? []).map((a) => ({
+      return merged.map((a) => ({
         ...a,
         uploader_nome: a.uploaded_by ? nomeMap.get(a.uploaded_by) ?? null : null,
-      })) as AnexoRow[];
+      }));
     },
   });
 
-  const handleDownload = async (path: string, nome: string) => {
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .createSignedUrl(path, 60);
+  const handleDownload = async (bucket: string, path: string, nome: string) => {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60);
     if (error) {
       toast.error("Erro ao gerar link: " + error.message);
       return;
@@ -127,7 +164,7 @@ export function AnexosViewerDialog({
             <ul className="space-y-1.5">
               {anexos.map((a) => (
                 <li
-                  key={a.id}
+                  key={`${a.bucket}-${a.id}`}
                   className="flex items-center gap-3 text-sm bg-muted/50 rounded-md px-3 py-2"
                 >
                   <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -138,13 +175,14 @@ export function AnexosViewerDialog({
                     <p className="text-xs text-muted-foreground truncate">
                       {formatDateTime(a.created_at)}
                       {a.uploader_nome ? ` · ${a.uploader_nome}` : ""}
+                      {` · ${a.origem_label}`}
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 shrink-0"
-                    onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}
+                    onClick={() => handleDownload(a.bucket, a.storage_path, a.nome_arquivo)}
                     title="Download"
                   >
                     <Download className="h-4 w-4" />
