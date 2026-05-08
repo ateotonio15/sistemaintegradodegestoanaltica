@@ -243,6 +243,57 @@ export type Database = {
           },
         ]
       }
+      cobrancas_retroativas: {
+        Row: {
+          competencia: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          empresa_id: string
+          financeiro_movimentacao_id: string | null
+          id: string
+          updated_at: string
+          valor_centavos: number
+        }
+        Insert: {
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          empresa_id: string
+          financeiro_movimentacao_id?: string | null
+          id?: string
+          updated_at?: string
+          valor_centavos: number
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          financeiro_movimentacao_id?: string | null
+          id?: string
+          updated_at?: string
+          valor_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_retroativas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_retroativas_financeiro_movimentacao_id_fkey"
+            columns: ["financeiro_movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_movimentacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa_suspensoes: {
         Row: {
           created_at: string
@@ -673,6 +724,66 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      reajustes: {
+        Row: {
+          competencia: string
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          financeiro_movimentacao_id: string | null
+          id: string
+          parcelas: number
+          parcelas_aporte: number | null
+          possui_aporte: boolean
+          updated_at: string
+          valor_aporte_centavos: number | null
+          valor_centavos: number
+        }
+        Insert: {
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          financeiro_movimentacao_id?: string | null
+          id?: string
+          parcelas: number
+          parcelas_aporte?: number | null
+          possui_aporte?: boolean
+          updated_at?: string
+          valor_aporte_centavos?: number | null
+          valor_centavos: number
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          financeiro_movimentacao_id?: string | null
+          id?: string
+          parcelas?: number
+          parcelas_aporte?: number | null
+          possui_aporte?: boolean
+          updated_at?: string
+          valor_aporte_centavos?: number | null
+          valor_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reajustes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reajustes_financeiro_movimentacao_id_fkey"
+            columns: ["financeiro_movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_movimentacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       saude_agendamentos: {
         Row: {
