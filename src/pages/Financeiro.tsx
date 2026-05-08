@@ -175,8 +175,8 @@ export default function Financeiro() {
     },
     enabled: empresaIds.length > 0,
   });
-  const operacionaisMap = operacionaisData.envioMap;
-  const anexosCadastroCountMap = operacionaisData.anexosCountMap;
+  const operacionaisMap = operacionaisData?.envioMap ?? {};
+  const anexosCadastroCountMap = operacionaisData?.anexosCountMap ?? {};
 
   // Pagadores cadastrados (financeiro_pagadores) por empresa
   const { data: pagadoresCadastradosMap = {} } = useQuery({
