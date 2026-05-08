@@ -171,7 +171,8 @@ async function uploadPdfAnexo(file: File, empresaId: string, movimentacaoId: str
     mime_type: file.type || "application/pdf",
     tamanho_bytes: file.size,
     uploaded_by: userId ?? null,
-  });
+    origem: "retroativo",
+  } as any);
   if (insErr) throw insErr;
   return path;
 }

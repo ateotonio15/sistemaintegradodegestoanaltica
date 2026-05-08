@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp } from "lucide-react";
+import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -25,6 +25,8 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   dia_emissao?: number | null;
   aguardando_nota_em?: string | null;
   enviado_por_nome?: string | null;
+  /** Indica que existe ao menos um anexo originado de Reajuste/Cobrança Retroativa */
+  retroativo?: boolean;
   /** Chave única por linha (id da movimentação + id do pagador, quando aplicável) */
   rowKey?: string;
   /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
@@ -127,6 +129,12 @@ export function FinanceiroTable({
                           <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
                             <Bell className="h-2.5 w-2.5 mr-1" />
                             Cobrança
+                          </Badge>
+                        )}
+                        {row.retroativo && (
+                          <Badge variant="outline" className="text-info border-info/50 text-[10px] px-1.5 py-0 h-5">
+                            <History className="h-2.5 w-2.5 mr-1" />
+                            Retroativo
                           </Badge>
                         )}
                       </div>
