@@ -140,7 +140,7 @@ export default function Financeiro() {
   // Movimentações operacionais do mês para detectar "envio operacional feito"
   // e também para contar anexos do Cadastro (anexos_movimentacao) no badge "Anexos"
   const { data: operacionaisData = { envioMap: {}, anexosCountMap: {} } } = useQuery({
-    queryKey: ["financeiro-operacionais", mes, empresaIds.sort().join(",")],
+    queryKey: ["financeiro-operacionais-v2", mes, empresaIds.sort().join(",")],
     queryFn: async () => {
       if (empresaIds.length === 0) return { envioMap: {}, anexosCountMap: {} };
       const { data, error } = await supabase
