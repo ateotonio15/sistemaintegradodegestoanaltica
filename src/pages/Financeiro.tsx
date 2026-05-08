@@ -227,6 +227,7 @@ export default function Financeiro() {
       const pdf = (list as any[]).find(
         (a) =>
           a.uploaded_by &&
+          a.origem !== "retroativo" &&
           ((a.mime_type || "").toLowerCase().includes("pdf") ||
             (a.nome_arquivo || "").toLowerCase().endsWith(".pdf")),
       );
