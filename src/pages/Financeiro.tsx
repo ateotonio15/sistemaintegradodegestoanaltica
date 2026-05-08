@@ -1098,14 +1098,15 @@ export default function Financeiro() {
         {/* KPIs */}
         <KpiCards {...kpis} />
 
-        {/* Período + Gráfico */}
+        {/* Período + Reajuste/Cobrança + Gráfico */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-4">
             <PeriodSummary
               countByPeriodo={countByPeriodo}
               selected={filtroPeriodo}
               onSelect={setFiltroPeriodo}
             />
+            <ReajusteCobrancaRetroativa />
           </div>
           <StatusChart
             data={kpiRows.map((r) => ({
@@ -1118,9 +1119,6 @@ export default function Financeiro() {
             }))}
           />
         </div>
-
-        {/* Reajuste e Cobrança Retroativa */}
-        <ReajusteCobrancaRetroativa />
 
         {/* Filtros da tabela */}
         <Card className="rounded-xl shadow-sm">
