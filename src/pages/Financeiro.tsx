@@ -138,26 +138,45 @@ export default function Financeiro() {
   });
 
   // Movimentações operacionais do mês para detectar "envio operacional feito"
-  const { data: operacionaisMap = {} } = useQuery({
+  // e também para contar anexos do Cadastro (anexos_movimentacao) no badge "Anexos"
+  const { data: operacionaisData = { envioMap: {}, anexosCountMap: {} } } = useQuery({
     queryKey: ["financeiro-operacionais", mes, empresaIds.sort().join(",")],
     queryFn: async () => {
-      if (empresaIds.length === 0) return {};
+      if (empresaIds.length === 0) return { envioMap: {}, anexosCountMap: {} };
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("empresa_id, periodo, data_envio_financeiro")
+        .select("id, empresa_id, periodo, data_envio_financeiro")
         .eq("mes_referencia", mes)
         .in("empresa_id", empresaIds);
       if (error) throw error;
-      const map: Record<string, boolean> = {};
+      const envioMap: Record<string, boolean> = {};
+      const movKeyById: Record<string, string> = {};
+      const movIdsOp: string[] = [];
       data.forEach((m: any) => {
-        if (m.data_envio_financeiro) {
-          map[`${m.empresa_id}|${m.periodo}`] = true;
-        }
+        const key = `${m.empresa_id}|${m.periodo}`;
+        if (m.data_envio_financeiro) envioMap[key] = true;
+        movKeyById[m.id] = key;
+        movIdsOp.push(m.id);
       });
-      return map;
+
+      const anexosCountMap: Record<string, number> = {};
+      if (movIdsOp.length > 0) {
+        const { data: anx, error: anxErr } = await supabase
+          .from("anexos_movimentacao")
+          .select("movimentacao_id")
+          .in("movimentacao_id", movIdsOp);
+        if (anxErr) throw anxErr;
+        (anx || []).forEach((a: any) => {
+          const key = movKeyById[a.movimentacao_id];
+          if (key) anexosCountMap[key] = (anexosCountMap[key] || 0) + 1;
+        });
+      }
+      return { envioMap, anexosCountMap };
     },
     enabled: empresaIds.length > 0,
   });
+  const operacionaisMap = operacionaisData.envioMap;
+  const anexosCadastroCountMap = operacionaisData.anexosCountMap;
 
   // Pagadores cadastrados (financeiro_pagadores) por empresa
   const { data: pagadoresCadastradosMap = {} } = useQuery({
@@ -315,12 +334,12 @@ export default function Financeiro() {
         empresa_cnpj: emp?.cnpj ?? null,
         periodo_corte: periodoCorte,
         status: calcularStatusFinanceiro(f, envioOperacional, anexosParaStatus),
-        anexos_count: anexosAll.length,
+        anexos_count: anexosAll.length + (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0),
         enviado_por_nome: uploaderId ? uploaderMap[uploaderId] || null : null,
         retroativo: temRetroativo,
       };
     });
-  }, [financeiroRaw, empresasMap, operacionaisMap, anexosMap, pdfUploaderByMov, uploaderMap]);
+  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosMap, pdfUploaderByMov, uploaderMap]);
 
   // Tipos únicos para o filtro
   const tiposUnicos = useMemo(() => {
