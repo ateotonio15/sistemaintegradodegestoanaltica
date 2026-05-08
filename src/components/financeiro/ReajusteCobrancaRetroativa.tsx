@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -19,7 +27,17 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Upload, FileText, History, TrendingUp, Loader2, Trash2 } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  Upload,
+  FileText,
+  History,
+  TrendingUp,
+  Loader2,
+  Trash2,
+  Plus,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getMesesOptions, formatMesReferencia, getCurrentMesReferencia, PERIODOS_FIN } from "@/lib/financeiro-utils";
@@ -36,7 +54,6 @@ function formatBRL(centavos: number) {
 }
 
 function parseBRLInput(s: string): number {
-  // aceita "1.234,56" ou "1234.56" ou "1234,56"
   const cleaned = s.replace(/[^\d.,-]/g, "").replace(/\./g, "").replace(",", ".");
   const n = Number(cleaned);
   if (!Number.isFinite(n)) return 0;
@@ -114,9 +131,7 @@ function EmpresaCombobox({
   );
 }
 
-/** Garante a existência de uma movimentação financeira para vincular o anexo. */
 async function ensureFinanceiroMovimentacao(empresaId: string, mesReferencia: string): Promise<string> {
-  // tenta achar uma movimentação existente nesse mês
   const { data: existing } = await supabase
     .from("financeiro_movimentacoes")
     .select("id")
@@ -125,7 +140,6 @@ async function ensureFinanceiroMovimentacao(empresaId: string, mesReferencia: st
     .limit(1);
   if (existing && existing.length > 0) return existing[0].id;
 
-  // cria uma básica usando o primeiro período padrão
   const { data: created, error } = await supabase
     .from("financeiro_movimentacoes")
     .insert({
@@ -167,7 +181,10 @@ export function ReajusteCobrancaRetroativa() {
   const canManage = isAdmin || isFinanceiro;
   const queryClient = useQueryClient();
 
-  // ---------- empresas ----------
+  const [tab, setTab] = useState<"cobranca" | "reajuste">("cobranca");
+  const [openCobDialog, setOpenCobDialog] = useState(false);
+  const [openReaDialog, setOpenReaDialog] = useState(false);
+
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas-rcr"],
     queryFn: async () => {
@@ -193,7 +210,6 @@ export function ReajusteCobrancaRetroativa() {
     return m;
   }, [empresas]);
 
-  // ---------- listagens ----------
   const { data: cobrancas = [], isLoading: loadingCob } = useQuery({
     queryKey: ["cobrancas-retroativas"],
     queryFn: async () => {
@@ -260,6 +276,7 @@ export function ReajusteCobrancaRetroativa() {
       if (error) throw error;
       toast.success("Cobrança retroativa cadastrada e PDF anexado ao processo.");
       resetCob();
+      setOpenCobDialog(false);
       queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
@@ -328,6 +345,7 @@ export function ReajusteCobrancaRetroativa() {
       if (error) throw error;
       toast.success("Reajuste cadastrado e PDF anexado ao processo.");
       resetRea();
+      setOpenReaDialog(false);
       queryClient.invalidateQueries({ queryKey: ["reajustes"] });
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
@@ -363,371 +381,346 @@ export function ReajusteCobrancaRetroativa() {
   });
 
   const meses = getMesesOptions();
+  const isCob = tab === "cobranca";
+  const totalCount = isCob ? cobrancas.length : reajustes.length;
 
   return (
     <Card className="rounded-xl shadow-sm">
-      <CardContent className="p-4 md:p-5">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <TrendingUp className="h-4 w-4 text-primary" />
             </div>
-            <div>
-              <h3 className="text-base font-semibold text-foreground">Reajuste e Cobrança Retroativa</h3>
-              <p className="text-xs text-muted-foreground">
-                Registre cobranças retroativas e reajustes parcelados — anexos vão automaticamente ao processo.
-              </p>
-            </div>
+            <CardTitle className="text-sm font-semibold truncate">
+              Reajuste e Cobrança Retroativa
+              <Badge variant="outline" className="ml-2 text-[10px]">{totalCount}</Badge>
+            </CardTitle>
+          </div>
+          <div className="flex items-center gap-2">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+              <TabsList className="h-8">
+                <TabsTrigger value="cobranca" className="h-6 text-xs gap-1">
+                  <History className="h-3 w-3" />
+                  Cobrança
+                </TabsTrigger>
+                <TabsTrigger value="reajuste" className="h-6 text-xs gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  Reajuste
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {canManage && (
+              <Button
+                size="sm"
+                className="h-8 gap-1"
+                onClick={() => (isCob ? setOpenCobDialog(true) : setOpenReaDialog(true))}
+              >
+                <Plus className="h-3.5 w-3.5" /> Adicionar
+              </Button>
+            )}
           </div>
         </div>
-
-        <Tabs defaultValue="cobranca">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="cobranca" className="gap-1.5">
-              <History className="h-3.5 w-3.5" />
-              Cobrança Retroativa
-            </TabsTrigger>
-            <TabsTrigger value="reajuste" className="gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5" />
-              Reajuste
-            </TabsTrigger>
-          </TabsList>
-
-          {/* ============== COBRANÇA RETROATIVA ============== */}
-          <TabsContent value="cobranca" className="space-y-5 pt-4">
-            <fieldset disabled={!canManage} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs">Contrato *</Label>
-                  <EmpresaCombobox
-                    empresas={empresas}
-                    value={cobEmpresa}
-                    onChange={setCobEmpresa}
-                    disabled={!canManage}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Competência *</Label>
-                  <Select value={cobCompet} onValueChange={setCobCompet}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {meses.map((m) => (
-                        <SelectItem key={m} value={m}>
-                          {formatMesReferencia(m)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Valor retroativo (BRL) *</Label>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    value={cobValor}
-                    onChange={(e) => setCobValor(e.target.value)}
-                  />
-                  {cobValor && (
-                    <p className="text-[11px] text-muted-foreground">
-                      {formatBRL(parseBRLInput(cobValor))}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs">Descrição / Observação</Label>
-                  <Textarea
-                    rows={3}
-                    placeholder="Detalhes sobre a cobrança retroativa..."
-                    value={cobDescricao}
-                    onChange={(e) => setCobDescricao(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs">PDF (boleto, demonstrativo, memória de cálculo) *</Label>
-                  <div className="flex items-center gap-2">
-                    <label
-                      className={cn(
-                        "flex-1 flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2.5 cursor-pointer hover:bg-accent/40 transition-colors",
-                        !canManage && "opacity-60 cursor-not-allowed",
-                      )}
-                    >
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground truncate">
-                        {cobFile ? cobFile.name : "Selecionar PDF..."}
-                      </span>
-                      <input
-                        type="file"
-                        accept="application/pdf,.pdf"
-                        className="hidden"
-                        onChange={(e) => setCobFile(e.target.files?.[0] ?? null)}
-                        disabled={!canManage}
-                      />
-                    </label>
-                    {cobFile && (
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setCobFile(null)}>
-                        Remover
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2">
-                <Button type="button" variant="ghost" onClick={resetCob} disabled={cobSaving}>
-                  Limpar
-                </Button>
-                <Button type="button" onClick={submitCobranca} disabled={cobSaving} className="gap-1.5">
-                  {cobSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                  {cobSaving ? "Salvando..." : "Cadastrar cobrança"}
-                </Button>
-              </div>
-            </fieldset>
-
-            {/* Lista */}
-            <div>
-              <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                Últimas cobranças retroativas
-              </h4>
-              <div className="rounded-lg border border-border overflow-hidden">
-                {loadingCob ? (
-                  <div className="p-4 text-sm text-muted-foreground">Carregando...</div>
-                ) : cobrancas.length === 0 ? (
-                  <div className="p-4 text-sm text-muted-foreground">Nenhuma cobrança retroativa registrada.</div>
-                ) : (
-                  <ul className="divide-y divide-border">
-                    {cobrancas.map((c: any) => {
-                      const emp = empresasMap[c.empresa_id];
-                      return (
-                        <li key={c.id} className="px-3 py-2.5 flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {emp?.nome || "—"}{" "}
-                              {emp?.codigo_contrato && (
-                                <span className="text-xs text-muted-foreground">· {emp.codigo_contrato}</span>
-                              )}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Competência {formatMesReferencia(c.competencia)} · {c.descricao || "sem descrição"}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Badge variant="secondary">{formatBRL(c.valor_centavos)}</Badge>
-                            {canManage && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => deleteCob.mutate(c.id)}
-                                title="Remover"
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+      </CardHeader>
+      <CardContent className="pt-1">
+        {isCob ? (
+          <ListaContratos
+            loading={loadingCob}
+            items={cobrancas}
+            empresasMap={empresasMap}
+            emptyText="Nenhuma cobrança retroativa registrada."
+            renderMeta={(c: any) => (
+              <>
+                Competência {formatMesReferencia(c.competencia)}
+                {c.descricao ? ` · ${c.descricao}` : ""}
+              </>
+            )}
+            renderRight={(c: any) => (
+              <Badge variant="secondary" className="shrink-0">{formatBRL(c.valor_centavos)}</Badge>
+            )}
+            canManage={canManage}
+            onDelete={(id) => deleteCob.mutate(id)}
+          />
+        ) : (
+          <ListaContratos
+            loading={loadingRea}
+            items={reajustes}
+            empresasMap={empresasMap}
+            emptyText="Nenhum reajuste registrado."
+            renderMeta={(r: any) => (
+              <>
+                Competência {formatMesReferencia(r.competencia)} · {r.parcelas}×{" "}
+                {formatBRL(Math.floor(r.valor_centavos / r.parcelas))}
+                {r.possui_aporte && r.valor_aporte_centavos != null && (
+                  <>
+                    {" · Aporte "}
+                    {r.parcelas_aporte}× {formatBRL(Math.floor((r.valor_aporte_centavos || 0) / (r.parcelas_aporte || 1)))}
+                  </>
+                )}
+              </>
+            )}
+            renderRight={(r: any) => (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Badge variant="secondary">{formatBRL(r.valor_centavos)}</Badge>
+                {r.possui_aporte && (
+                  <Badge variant="outline" className="text-[10px]">+aporte</Badge>
                 )}
               </div>
-            </div>
-          </TabsContent>
+            )}
+            canManage={canManage}
+            onDelete={(id) => deleteRea.mutate(id)}
+          />
+        )}
+      </CardContent>
 
-          {/* ============== REAJUSTE ============== */}
-          <TabsContent value="reajuste" className="space-y-5 pt-4">
-            <fieldset disabled={!canManage} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs">Contrato *</Label>
-                  <EmpresaCombobox
-                    empresas={empresas}
-                    value={reaEmpresa}
-                    onChange={setReaEmpresa}
-                    disabled={!canManage}
-                  />
-                </div>
+      {/* ============ DIALOG: COBRANÇA RETROATIVA ============ */}
+      <Dialog open={openCobDialog} onOpenChange={(o) => { setOpenCobDialog(o); if (!o) resetCob(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              Nova Cobrança Retroativa
+            </DialogTitle>
+            <DialogDescription>O PDF será automaticamente anexado ao processo financeiro.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Contrato *</Label>
+              <EmpresaCombobox empresas={empresas} value={cobEmpresa} onChange={setCobEmpresa} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Competência *</Label>
+                <Select value={cobCompet} onValueChange={setCobCompet}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {meses.map((m) => (
+                      <SelectItem key={m} value={m}>{formatMesReferencia(m)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Valor (BRL) *</Label>
+                <Input
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={cobValor}
+                  onChange={(e) => setCobValor(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Descrição / Observação</Label>
+              <Textarea
+                rows={2}
+                placeholder="Detalhes sobre a cobrança retroativa..."
+                value={cobDescricao}
+                onChange={(e) => setCobDescricao(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">PDF *</Label>
+              <FileInput file={cobFile} onChange={setCobFile} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>Cancelar</Button>
+            <Button onClick={submitCobranca} disabled={cobSaving} className="gap-1.5">
+              {cobSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+              {cobSaving ? "Salvando..." : "Cadastrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============ DIALOG: REAJUSTE ============ */}
+      <Dialog open={openReaDialog} onOpenChange={(o) => { setOpenReaDialog(o); if (!o) resetRea(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Novo Reajuste
+            </DialogTitle>
+            <DialogDescription>O PDF será automaticamente anexado ao processo financeiro.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Contrato *</Label>
+              <EmpresaCombobox empresas={empresas} value={reaEmpresa} onChange={setReaEmpresa} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Competência *</Label>
+                <Select value={reaCompet} onValueChange={setReaCompet}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {meses.map((m) => (
+                      <SelectItem key={m} value={m}>{formatMesReferencia(m)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Valor (BRL) *</Label>
+                <Input
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={reaValor}
+                  onChange={(e) => setReaValor(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Parcelas *</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={reaParcelas}
+                  onChange={(e) => setReaParcelas(e.target.value)}
+                />
+              </div>
+              <div className="rounded-md bg-muted/50 px-3 py-2 flex flex-col justify-center">
+                <span className="text-[10px] text-muted-foreground">Por parcela</span>
+                <span className="text-sm font-semibold">
+                  {reaCents > 0 ? `${reaParcInt}× ${formatBRL(reaParcCents)}` : "—"}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+              <div>
+                <Label htmlFor="aporte" className="text-sm cursor-pointer">Possui aporte?</Label>
+                <p className="text-[11px] text-muted-foreground">Adiciona valor e parcelamento de aporte.</p>
+              </div>
+              <Switch id="aporte" checked={possuiAporte} onCheckedChange={setPossuiAporte} />
+            </div>
+            {possuiAporte && (
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Competência *</Label>
-                  <Select value={reaCompet} onValueChange={setReaCompet}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {meses.map((m) => (
-                        <SelectItem key={m} value={m}>
-                          {formatMesReferencia(m)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Valor do reajuste (BRL) *</Label>
+                  <Label className="text-xs">Valor aporte (BRL) *</Label>
                   <Input
                     inputMode="decimal"
                     placeholder="0,00"
-                    value={reaValor}
-                    onChange={(e) => setReaValor(e.target.value)}
+                    value={aporteValor}
+                    onChange={(e) => setAporteValor(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Quantidade de parcelas *</Label>
+                  <Label className="text-xs">Parcelas aporte *</Label>
                   <Input
                     type="number"
                     min={1}
-                    value={reaParcelas}
-                    onChange={(e) => setReaParcelas(e.target.value)}
+                    value={aporteParcelas}
+                    onChange={(e) => setAporteParcelas(e.target.value)}
                   />
                 </div>
-                <div className="rounded-lg bg-muted/50 px-3 py-2.5 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Valor por parcela</span>
+                <div className="col-span-2 rounded-md bg-muted/50 px-3 py-2 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Por parcela do aporte</span>
                   <span className="text-sm font-semibold">
-                    {reaCents > 0 ? `${reaParcInt}× ${formatBRL(reaParcCents)}` : "—"}
+                    {aporteCents > 0 ? `${aporteParcInt}× ${formatBRL(aporteParcCents)}` : "—"}
                   </span>
                 </div>
-
-                <div className="md:col-span-2 flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
-                  <div>
-                    <Label htmlFor="aporte" className="text-sm cursor-pointer">
-                      Possui aporte?
-                    </Label>
-                    <p className="text-xs text-muted-foreground">Adiciona valor e parcelamento de aporte.</p>
-                  </div>
-                  <Switch id="aporte" checked={possuiAporte} onCheckedChange={setPossuiAporte} />
-                </div>
-
-                {possuiAporte && (
-                  <>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Valor do aporte (BRL) *</Label>
-                      <Input
-                        inputMode="decimal"
-                        placeholder="0,00"
-                        value={aporteValor}
-                        onChange={(e) => setAporteValor(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Parcelas do aporte *</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={aporteParcelas}
-                        onChange={(e) => setAporteParcelas(e.target.value)}
-                      />
-                    </div>
-                    <div className="md:col-span-2 rounded-lg bg-muted/50 px-3 py-2.5 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Valor por parcela do aporte</span>
-                      <span className="text-sm font-semibold">
-                        {aporteCents > 0 ? `${aporteParcInt}× ${formatBRL(aporteParcCents)}` : "—"}
-                      </span>
-                    </div>
-                  </>
-                )}
-
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs">PDF do reajuste *</Label>
-                  <div className="flex items-center gap-2">
-                    <label
-                      className={cn(
-                        "flex-1 flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2.5 cursor-pointer hover:bg-accent/40 transition-colors",
-                        !canManage && "opacity-60 cursor-not-allowed",
-                      )}
-                    >
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground truncate">
-                        {reaFile ? reaFile.name : "Selecionar PDF..."}
-                      </span>
-                      <input
-                        type="file"
-                        accept="application/pdf,.pdf"
-                        className="hidden"
-                        onChange={(e) => setReaFile(e.target.files?.[0] ?? null)}
-                        disabled={!canManage}
-                      />
-                    </label>
-                    {reaFile && (
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setReaFile(null)}>
-                        Remover
-                      </Button>
-                    )}
-                  </div>
-                </div>
               </div>
-
-              <div className="flex items-center justify-end gap-2">
-                <Button type="button" variant="ghost" onClick={resetRea} disabled={reaSaving}>
-                  Limpar
-                </Button>
-                <Button type="button" onClick={submitReajuste} disabled={reaSaving} className="gap-1.5">
-                  {reaSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                  {reaSaving ? "Salvando..." : "Cadastrar reajuste"}
-                </Button>
-              </div>
-            </fieldset>
-
-            {/* Lista */}
-            <div>
-              <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                Últimos reajustes
-              </h4>
-              <div className="rounded-lg border border-border overflow-hidden">
-                {loadingRea ? (
-                  <div className="p-4 text-sm text-muted-foreground">Carregando...</div>
-                ) : reajustes.length === 0 ? (
-                  <div className="p-4 text-sm text-muted-foreground">Nenhum reajuste registrado.</div>
-                ) : (
-                  <ul className="divide-y divide-border">
-                    {reajustes.map((r: any) => {
-                      const emp = empresasMap[r.empresa_id];
-                      return (
-                        <li key={r.id} className="px-3 py-2.5 flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {emp?.nome || "—"}{" "}
-                              {emp?.codigo_contrato && (
-                                <span className="text-xs text-muted-foreground">· {emp.codigo_contrato}</span>
-                              )}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Competência {formatMesReferencia(r.competencia)} · {r.parcelas}x{" "}
-                              {formatBRL(Math.floor(r.valor_centavos / r.parcelas))}
-                              {r.possui_aporte && r.valor_aporte_centavos != null && (
-                                <>
-                                  {" · Aporte "}
-                                  {r.parcelas_aporte}x{" "}
-                                  {formatBRL(Math.floor((r.valor_aporte_centavos || 0) / (r.parcelas_aporte || 1)))}
-                                </>
-                              )}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Badge variant="secondary">{formatBRL(r.valor_centavos)}</Badge>
-                            {r.possui_aporte && (
-                              <Badge variant="outline">+ {formatBRL(r.valor_aporte_centavos || 0)} aporte</Badge>
-                            )}
-                            {canManage && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => deleteRea.mutate(r.id)}
-                                title="Remover"
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs">PDF *</Label>
+              <FileInput file={reaFile} onChange={setReaFile} />
             </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpenReaDialog(false)} disabled={reaSaving}>Cancelar</Button>
+            <Button onClick={submitReajuste} disabled={reaSaving} className="gap-1.5">
+              {reaSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+              {reaSaving ? "Salvando..." : "Cadastrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
+  );
+}
+
+function FileInput({ file, onChange }: { file: File | null; onChange: (f: File | null) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <label className="flex-1 flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 cursor-pointer hover:bg-accent/40 transition-colors">
+        <Upload className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground truncate">
+          {file ? file.name : "Selecionar PDF..."}
+        </span>
+        <input
+          type="file"
+          accept="application/pdf,.pdf"
+          className="hidden"
+          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+        />
+      </label>
+      {file && (
+        <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>
+          Remover
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function ListaContratos({
+  loading,
+  items,
+  empresasMap,
+  emptyText,
+  renderMeta,
+  renderRight,
+  canManage,
+  onDelete,
+}: {
+  loading: boolean;
+  items: any[];
+  empresasMap: Record<string, EmpresaOption>;
+  emptyText: string;
+  renderMeta: (item: any) => React.ReactNode;
+  renderRight: (item: any) => React.ReactNode;
+  canManage: boolean;
+  onDelete: (id: string) => void;
+}) {
+  if (loading) {
+    return <div className="py-6 text-center text-sm text-muted-foreground">Carregando...</div>;
+  }
+  if (items.length === 0) {
+    return <div className="py-8 text-center text-sm text-muted-foreground">{emptyText}</div>;
+  }
+  return (
+    <div className="max-h-[260px] overflow-y-auto space-y-2 pr-1">
+      {items.map((it) => {
+        const emp = empresasMap[it.empresa_id];
+        return (
+          <div
+            key={it.id}
+            className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium truncate text-foreground">
+                {emp?.nome || "—"}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {emp?.codigo_contrato ? `Contrato: ${emp.codigo_contrato} · ` : ""}
+                {renderMeta(it)}
+              </p>
+            </div>
+            {renderRight(it)}
+            {canManage && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 shrink-0"
+                onClick={() => onDelete(it.id)}
+                title="Remover"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+              </Button>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
