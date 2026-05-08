@@ -131,6 +131,12 @@ export function FinanceiroTable({
                             Cobrança
                           </Badge>
                         )}
+                        {row.retroativo && (
+                          <Badge variant="outline" className="text-info border-info/50 text-[10px] px-1.5 py-0 h-5">
+                            <History className="h-2.5 w-2.5 mr-1" />
+                            Retroativo
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground text-center">
