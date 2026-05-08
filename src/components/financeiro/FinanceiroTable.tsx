@@ -25,6 +25,8 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   dia_emissao?: number | null;
   aguardando_nota_em?: string | null;
   enviado_por_nome?: string | null;
+  /** Indica que existe ao menos um anexo originado de Reajuste/Cobrança Retroativa */
+  retroativo?: boolean;
   /** Chave única por linha (id da movimentação + id do pagador, quando aplicável) */
   rowKey?: string;
   /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
