@@ -188,7 +188,7 @@ export default function Financeiro() {
       if (movIds.length === 0) return {};
       const { data, error } = await supabase
         .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, storage_path, uploaded_by, created_at")
+        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, storage_path, uploaded_by, created_at, origem")
         .in("financeiro_movimentacao_id", movIds)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -200,6 +200,7 @@ export default function Financeiro() {
           storage_path: string | null;
           uploaded_by: string | null;
           created_at: string;
+          origem: string | null;
         }>
       > = {};
       data.forEach((a: any) => {
@@ -210,6 +211,7 @@ export default function Financeiro() {
           storage_path: a.storage_path ?? null,
           uploaded_by: a.uploaded_by ?? null,
           created_at: a.created_at,
+          origem: a.origem ?? null,
         });
       });
       return map;
