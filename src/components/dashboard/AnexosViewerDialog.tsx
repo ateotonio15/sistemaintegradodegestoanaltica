@@ -29,7 +29,7 @@ interface Props {
   periodo: string;
 }
 
-const STORAGE_BUCKET = "anexos-movimentacoes";
+const STORAGE_BUCKET = "anexos-financeiro";
 
 type AnexoRow = {
   id: string;
@@ -49,12 +49,12 @@ export function AnexosViewerDialog({
   periodo,
 }: Props) {
   const { data: anexos = [], isLoading } = useQuery<AnexoRow[]>({
-    queryKey: ["anexos-viewer", empresaId, mesReferencia, periodo],
+    queryKey: ["anexos-viewer-financeiro", empresaId, mesReferencia, periodo],
     enabled: open && !!empresaId,
     queryFn: async () => {
-      // Busca movimentações do processo (empresa + mes + periodo)
+      // Busca movimentações financeiras do processo (empresa + mes + periodo)
       const { data: movs } = await supabase
-        .from("movimentacoes")
+        .from("financeiro_movimentacoes")
         .select("id")
         .eq("empresa_id", empresaId!)
         .eq("mes_referencia", mesReferencia)
@@ -63,9 +63,9 @@ export function AnexosViewerDialog({
       if (movIds.length === 0) return [];
 
       const { data: anx, error } = await supabase
-        .from("anexos_movimentacao")
+        .from("anexos_financeiro")
         .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
-        .in("movimentacao_id", movIds)
+        .in("financeiro_movimentacao_id", movIds)
         .order("created_at", { ascending: false });
       if (error) throw error;
 
