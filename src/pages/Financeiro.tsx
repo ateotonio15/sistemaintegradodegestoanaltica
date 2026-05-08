@@ -334,12 +334,12 @@ export default function Financeiro() {
         empresa_cnpj: emp?.cnpj ?? null,
         periodo_corte: periodoCorte,
         status: calcularStatusFinanceiro(f, envioOperacional, anexosParaStatus),
-        anexos_count: anexosAll.length,
+        anexos_count: anexosAll.length + (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0),
         enviado_por_nome: uploaderId ? uploaderMap[uploaderId] || null : null,
         retroativo: temRetroativo,
       };
     });
-  }, [financeiroRaw, empresasMap, operacionaisMap, anexosMap, pdfUploaderByMov, uploaderMap]);
+  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosMap, pdfUploaderByMov, uploaderMap]);
 
   // Tipos únicos para o filtro
   const tiposUnicos = useMemo(() => {
