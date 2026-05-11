@@ -122,6 +122,48 @@ export type Database = {
         }
         Relationships: []
       }
+      alertas_reajuste: {
+        Row: {
+          created_at: string
+          criado_por_nome: string | null
+          criado_por_user_id: string | null
+          destinatario_user_id: string | null
+          empresa_id: string
+          empresa_nome: string
+          finalizado_em: string | null
+          id: string
+          reajuste_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por_nome?: string | null
+          criado_por_user_id?: string | null
+          destinatario_user_id?: string | null
+          empresa_id: string
+          empresa_nome: string
+          finalizado_em?: string | null
+          id?: string
+          reajuste_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por_nome?: string | null
+          criado_por_user_id?: string | null
+          destinatario_user_id?: string | null
+          empresa_id?: string
+          empresa_nome?: string
+          finalizado_em?: string | null
+          id?: string
+          reajuste_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anexos_financeiro: {
         Row: {
           created_at: string
@@ -791,13 +833,17 @@ export type Database = {
       reajustes_anuais: {
         Row: {
           ano: number
+          confirmado_por: string | null
+          confirmado_por_nome: string | null
           created_at: string
           data_aplicacao: string
+          data_confirmacao: string | null
           empresa_id: string
           id: string
           observacao: string | null
           percentual: number
           status: string
+          status_reajuste: string
           updated_at: string
           usuario_id: string | null
           usuario_nome: string | null
@@ -806,13 +852,17 @@ export type Database = {
         }
         Insert: {
           ano: number
+          confirmado_por?: string | null
+          confirmado_por_nome?: string | null
           created_at?: string
           data_aplicacao: string
+          data_confirmacao?: string | null
           empresa_id: string
           id?: string
           observacao?: string | null
           percentual: number
           status?: string
+          status_reajuste?: string
           updated_at?: string
           usuario_id?: string | null
           usuario_nome?: string | null
@@ -821,13 +871,17 @@ export type Database = {
         }
         Update: {
           ano?: number
+          confirmado_por?: string | null
+          confirmado_por_nome?: string | null
           created_at?: string
           data_aplicacao?: string
+          data_confirmacao?: string | null
           empresa_id?: string
           id?: string
           observacao?: string | null
           percentual?: number
           status?: string
+          status_reajuste?: string
           updated_at?: string
           usuario_id?: string | null
           usuario_nome?: string | null

@@ -1,67 +1,91 @@
-## Nova Aba "Reajuste" - Controle Anual de Reajustes Contratuais
+## Etapa 15 — Fluxo de Aprovação do Reajuste
 
-### Contexto importante
-Já existe uma tabela `reajustes` em uso pelo módulo Financeiro (com campos `valor_centavos`, `competencia`, `parcelas`, `aporte`...). Para não quebrar essa funcionalidade existente, criarei uma **nova tabela separada** `reajustes_anuais` dedicada ao controle anual contratual.
+Criar fluxo onde o perfil **Visualização** cria o reajuste e o perfil **Cadastro (comum)** confirma, com alerta automático e status visuais.
 
-### 1. Banco de Dados (migration)
+### 1. Banco de dados (migration)
 
-Nova tabela `public.reajustes_anuais`:
-- `id` uuid PK
-- `empresa_id` uuid NOT NULL (vínculo obrigatório com contrato)
-- `ano` integer NOT NULL
-- `valor_antigo_centavos` bigint NOT NULL
-- `percentual` numeric(6,2) NOT NULL
-- `valor_reajustado_centavos` bigint NOT NULL (calculado)
-- `data_aplicacao` date NOT NULL
-- `observacao` text
-- `status` text DEFAULT 'Reajustado' (Pendente / Reajustado / Atrasado)
-- `usuario_id` uuid (responsável)
-- `created_at`, `updated_at`
-- UNIQUE (empresa_id, ano) — evita duplicidade no mesmo ano
+Alterar tabela `reajustes_anuais`:
+- Adicionar `status_reajuste text NOT NULL DEFAULT 'pendente_confirmacao'` (valores: `pendente_confirmacao`, `reajustado`)
+- Adicionar `confirmado_por uuid` (user_id de quem confirmou)
+- Adicionar `confirmado_por_nome text`
+- Adicionar `data_confirmacao timestamptz`
+- Migrar dados existentes: `UPDATE reajustes_anuais SET status_reajuste = 'reajustado'` (registros antigos contam como já confirmados)
 
-RLS:
-- SELECT: todos autenticados
-- INSERT/UPDATE/DELETE: apenas `admin` e perfil `visualizacao` (conforme solicitação literal)
-- Trigger `updated_at`
+Atualizar policies RLS de `reajustes_anuais`:
+- **Admin / Visualização**: INSERT, UPDATE, DELETE (já existem)
+- **Comum (Cadastro)**: nova policy UPDATE somente para confirmar (vínculo via `responsavel_user_id` da empresa ou `empresa_usuarios`)
+- Trigger `guard_reajuste_comum`: quando o usuário tem role `comum`, só permite alterar `status_reajuste`, `confirmado_por`, `confirmado_por_nome`, `data_confirmacao` (bloqueia mudança de valores/percentual)
 
-### 2. Frontend
+Criar nova tabela `alertas_reajuste`:
+- `id`, `reajuste_id` (FK lógico), `empresa_id`, `empresa_nome`, `criado_por_user_id`, `criado_por_nome`, `destinatario_user_id` (responsável Cadastro), `status` (`Pendente`/`Finalizado`), `finalizado_em`, `created_at`, `updated_at`
+- RLS: leitura para autenticados; admin/visualização gerenciam; comum atualiza/lê os seus
+- Trigger `trg_criar_alerta_reajuste` AFTER INSERT em `reajustes_anuais` → cria alerta para o responsável da empresa
+- Trigger `trg_finalizar_alerta_reajuste` AFTER UPDATE em `reajustes_anuais` quando `status_reajuste` muda para `reajustado` → marca alerta como `Finalizado`
 
-**Nova rota** `/reajustes` + item no menu lateral (`AppLayout`).
+Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE reajustes_anuais, alertas_reajuste;`
 
-**Página `src/pages/Reajustes.tsx`:**
-- Filtros: ano (default = ano atual), busca por empresa, filtro de status
-- KPI cards: Total de contratos, Reajustados no ano, Pendentes, Atrasados
-- **Alerta visual** no topo: "X contratos pendentes de reajuste anual" (lista expansível)
-- **Tabela principal** (uma linha por empresa ativa):
-  - Empresa | Contrato | Último reajuste (ano) | Valor atual | % | Valor reajustado | Data | Status | Ações
-  - Status badge: Pendente (amarelo), Reajustado (verde), Atrasado (vermelho)
-- **Dialog "Novo/Editar Reajuste"**:
-  - Empresa (select), Ano, Valor atual (R$), Percentual (%), Valor reajustado (auto, readonly, atualiza onChange), Data aplicação, Observação
-  - Cálculo: `valor_atual + (valor_atual * percentual / 100)` em tempo real
-- **Histórico por empresa**: dialog mostrando todos os reajustes anteriores (ano, %, valor antigo→novo, usuário, data)
+### 2. Backend utils (`src/lib/reajuste-utils.ts`)
 
-**Permissões UI** (gates):
-- Botões "Novo", "Editar", "Excluir" só visíveis para `isAdmin || isViewOnly` (perfil Visualização)
-- Demais perfis veem tudo em modo leitura
+- Adicionar tipo `StatusReajusteFluxo = 'pendente_confirmacao' | 'reajustado'`
+- Função `labelStatusReajusteFluxo(s)` → "Reajuste enviado para o Cadastro" / "Reajustado"
+- Função `corStatusReajusteFluxo(s)` → amarelo / verde
 
-### 3. Alertas globais
+### 3. UI — Página Reajuste (`src/pages/Reajustes.tsx`)
 
-**Dashboard** (`src/pages/Dashboard.tsx`): card/banner "Reajustes pendentes — N contratos sem reajuste no ano atual" com link para `/reajustes`.
+Atualizar tabela com colunas:
+Empresa · Contrato · Percentual · Valor antigo · Valor reajustado · Data aplicação · **Status** (badge fluxo) · Responsável (Cadastro) · Ações
 
-**Lista de contratos** (`src/pages/Empresas.tsx`): badge amarela "Reajuste pendente" na linha quando empresa ativa não tem reajuste no ano corrente.
+Ações por linha:
+- **Comum** (responsável da empresa) e status = `pendente_confirmacao` → botão "Confirmar Reajuste"
+- **Admin / Visualização** → editar / excluir / histórico (mantém existente)
+- Demais perfis → somente histórico
 
-Lógica: empresa ativa sem registro em `reajustes_anuais` para `ano = ano atual` → pendente. Se data atual já passou da `data_implantacao + 1 ano` sem reajuste → atrasado.
+KPIs: ajustar contadores para usar `status_reajuste` em vez de só presença na tabela.
 
-### 4. Detalhes técnicos
-- Valores armazenados em centavos (bigint) para evitar float
-- Cálculo automático no formulário via `useEffect` ou onChange direto
-- React Query: keys `reajustes-anuais`, `reajustes-anuais-pendentes`
-- Util `src/lib/reajuste-utils.ts` com `calcularValorReajustado(valor, pct)` e `getStatusReajuste(empresa, reajustes, ano)`
+### 4. UI — Diálogo de criação (`ReajusteDialog.tsx`)
 
-### Arquivos a criar/editar
-- **migration**: nova tabela + RLS
-- **criar**: `src/pages/Reajustes.tsx`, `src/components/reajustes/ReajusteDialog.tsx`, `src/components/reajustes/ReajusteHistoricoDialog.tsx`, `src/components/reajustes/AlertaReajustesPendentes.tsx`, `src/lib/reajuste-utils.ts`
-- **editar**: `src/App.tsx` (rota), `src/components/AppLayout.tsx` (menu), `src/pages/Dashboard.tsx` (alerta), `src/pages/Empresas.tsx` (badge)
+Ao salvar (INSERT) o status já nasce `pendente_confirmacao` por default. Toast: "Reajuste criado. Cadastro foi notificado."
 
-### Confirmação necessária
-A spec diz **"Somente perfil Visualização pode criar/editar/excluir"**. Isso é incomum (Visualização normalmente é read-only). Vou implementar exatamente assim + permitir Admin também (que tem acesso total a tudo no sistema). Confirme se está correto antes de eu executar.
+### 5. UI — Confirmação pelo Cadastro
+
+Novo handler `confirmarReajuste(id)`:
+- UPDATE `reajustes_anuais` SET `status_reajuste='reajustado'`, `confirmado_por=auth.uid()`, `confirmado_por_nome=display_name`, `data_confirmacao=now()`
+- Trigger finaliza o alerta automaticamente
+- Invalida queries `reajustes-anuais`, `alertas-reajuste-count`, `reajustes-pendentes-count`
+
+### 6. Alertas visuais
+
+Novo componente `AlertaReajustesParaConfirmar.tsx`:
+- Conta `alertas_reajuste` com `status='Pendente'` e `destinatario_user_id=auth.uid()` (ou todos, para admin)
+- Banner laranja/amarelo com link para `/reajustes`
+- Exibido em `Dashboard.tsx` (já tem `AlertaReajustesPendentes` para anuais — manter ambos)
+
+Atualizar `AlertaReajustesPendentes.tsx`: continuar contando empresas sem reajuste no ano (independente).
+
+### 7. Histórico (`ReajusteHistoricoDialog.tsx`)
+
+Mostrar adicionalmente: criado por, data criação, confirmado por, data confirmação, status atual.
+
+### 8. Realtime
+
+Em `Reajustes.tsx` e nos componentes de alerta, subscrever channel em `reajustes_anuais` e `alertas_reajuste` para invalidar React Query automaticamente.
+
+### Permissões — resumo
+
+| Perfil | Criar | Editar valores | Confirmar | Excluir | Ver |
+|---|---|---|---|---|---|
+| Admin | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Visualização | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Comum (Cadastro, responsável) | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Financeiro / Executivo / Enfermeira | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+### Arquivos afetados
+
+- `supabase/migrations/<novo>.sql` (campos + tabela alertas + triggers + RLS + realtime)
+- `src/lib/reajuste-utils.ts`
+- `src/pages/Reajustes.tsx`
+- `src/components/reajustes/ReajusteDialog.tsx`
+- `src/components/reajustes/ReajusteHistoricoDialog.tsx`
+- `src/components/reajustes/AlertaReajustesParaConfirmar.tsx` (novo)
+- `src/pages/Dashboard.tsx` (incluir novo banner)
+- `src/integrations/supabase/types.ts` (auto)

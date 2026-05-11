@@ -43,14 +43,16 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                 <TableHead>Valor Antigo</TableHead>
                 <TableHead>Valor Reajustado</TableHead>
                 <TableHead>Data</TableHead>
-                <TableHead>Usuário</TableHead>
+                <TableHead>Criado por</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Confirmado por</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Carregando...</TableCell></TableRow>
               ) : data.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Nenhum reajuste registrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Nenhum reajuste registrado</TableCell></TableRow>
               ) : (
                 data.map((r) => (
                   <TableRow key={r.id}>
@@ -60,6 +62,23 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                     <TableCell className="font-semibold text-primary">{formatCentavosBRL(r.valor_reajustado_centavos)}</TableCell>
                     <TableCell>{formatDateBR(r.data_aplicacao)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{r.usuario_nome || "—"}</TableCell>
+                    <TableCell className="text-sm">
+                      {r.status_reajuste === "reajustado" ? (
+                        <span className="text-green-600 dark:text-green-400 font-medium">Reajustado</span>
+                      ) : (
+                        <span className="text-yellow-600 dark:text-yellow-400 font-medium">Aguardando Cadastro</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {r.confirmado_por_nome ? (
+                        <>
+                          {r.confirmado_por_nome}
+                          {r.data_confirmacao && (
+                            <div className="text-xs">{formatDateBR(String(r.data_confirmacao).slice(0, 10))}</div>
+                          )}
+                        </>
+                      ) : "—"}
+                    </TableCell>
                   </TableRow>
                 ))
               )}

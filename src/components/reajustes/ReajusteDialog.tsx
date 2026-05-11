@@ -87,7 +87,7 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
         usuario_nome = data?.display_name || null;
       }
 
-      const payload = {
+      const basePayload: any = {
         empresa_id: empresaId,
         ano: parseInt(ano, 10),
         valor_antigo_centavos: valorAntigoCent,
@@ -101,15 +101,22 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
       };
 
       if (editing) {
-        const { error } = await supabase.from("reajustes_anuais").update(payload).eq("id", editing.id);
+        const { error } = await supabase.from("reajustes_anuais").update(basePayload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("reajustes_anuais").insert(payload);
+        // Novo reajuste sempre nasce aguardando confirmação do Cadastro
+        const { error } = await supabase.from("reajustes_anuais").insert({
+          ...basePayload,
+          status_reajuste: "pendente_confirmacao",
+        });
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      toast({ title: editing ? "Reajuste atualizado" : "Reajuste registrado" });
+      toast({
+        title: editing ? "Reajuste atualizado" : "Reajuste criado",
+        description: editing ? undefined : "Cadastro foi notificado para confirmar.",
+      });
       qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
       qc.invalidateQueries({ queryKey: ["reajustes-pendentes-count"] });
       onOpenChange(false);
