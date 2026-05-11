@@ -381,11 +381,10 @@ export default function Reajustes() {
                             <Button
                               size="sm"
                               variant="outline"
-                              disabled={solicitandoId === empresa.id}
-                              onClick={() => solicitarMutation.mutate(empresa.id)}
+                              onClick={() => { setSolicitarEmpresa(empresa); setSolicitarOpen(true); }}
                             >
                               <Plus className="h-3 w-3 mr-1" />
-                              {solicitandoId === empresa.id ? "Enviando..." : "Solicitar Reajuste"}
+                              Solicitar Reajuste
                             </Button>
                           )}
                         </div>
