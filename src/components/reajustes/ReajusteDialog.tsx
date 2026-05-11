@@ -9,9 +9,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { calcularValorReajustadoCentavos, reaisToCentavos, centavosToReais, formatCentavosBRL } from "@/lib/reajuste-utils";
+import {
+  calcularValorReajustadoCentavos, reaisToCentavos, centavosToReais, formatCentavosBRL,
+  getMesReajuste, nomeMes, calcularMesesRetroativos, calcularRetroativoCentavos, calcularValorFinalCentavos,
+} from "@/lib/reajuste-utils";
 
-interface Empresa { id: string; nome: string; codigo_contrato: string | null }
+interface Empresa { id: string; nome: string; codigo_contrato: string | null; data_implantacao?: string | null }
 
 interface ReajusteRow {
   id: string;
@@ -71,6 +74,18 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
   const valorReajustadoCent = useMemo(
     () => calcularValorReajustadoCentavos(valorAntigoCent, pctNum),
     [valorAntigoCent, pctNum],
+  );
+
+  const empresaSel = useMemo(() => empresas.find((e) => e.id === empresaId), [empresas, empresaId]);
+  const mesReajuste = useMemo(() => getMesReajuste(empresaSel?.data_implantacao || null), [empresaSel]);
+  const mesesRetro = useMemo(() => calcularMesesRetroativos(mesReajuste, dataAplicacao), [mesReajuste, dataAplicacao]);
+  const retroativoCent = useMemo(
+    () => calcularRetroativoCentavos(valorAntigoCent, valorReajustadoCent, mesesRetro),
+    [valorAntigoCent, valorReajustadoCent, mesesRetro],
+  );
+  const valorFinalCent = useMemo(
+    () => calcularValorFinalCentavos(valorReajustadoCent, retroativoCent),
+    [valorReajustadoCent, retroativoCent],
   );
 
   const mutation = useMutation({
@@ -168,9 +183,29 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
             </div>
           </div>
 
-          <div className="rounded-lg border bg-muted/40 p-3">
-            <div className="text-xs text-muted-foreground">Valor Reajustado (calculado)</div>
-            <div className="text-2xl font-bold text-primary">{formatCentavosBRL(valorReajustadoCent)}</div>
+          <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground">Mês oficial de reajuste</div>
+                <div className="font-medium">{mesReajuste ? `${nomeMes(mesReajuste)} (mês ${String(mesReajuste).padStart(2, "0")})` : "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Meses retroativos</div>
+                <div className="font-medium">{mesesRetro}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Valor reajustado</div>
+                <div className="font-semibold text-primary">{formatCentavosBRL(valorReajustadoCent)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Valor retroativo</div>
+                <div className="font-semibold">{formatCentavosBRL(retroativoCent)}</div>
+              </div>
+            </div>
+            <div className="border-t pt-2">
+              <div className="text-xs text-muted-foreground">Valor final cobrança</div>
+              <div className="text-2xl font-bold text-primary">{formatCentavosBRL(valorFinalCent)}</div>
+            </div>
           </div>
 
           <div className="grid gap-2">

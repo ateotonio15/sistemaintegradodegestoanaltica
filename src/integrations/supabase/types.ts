@@ -833,13 +833,19 @@ export type Database = {
       reajustes_anuais: {
         Row: {
           ano: number
+          competencia: string | null
           confirmado_por: string | null
           confirmado_por_nome: string | null
           created_at: string
           data_aplicacao: string
           data_confirmacao: string | null
+          data_liberacao: string | null
           empresa_id: string
           id: string
+          liberado_por: string | null
+          liberado_por_nome: string | null
+          mes_reajuste: number | null
+          meses_retroativos: number
           observacao: string | null
           percentual: number
           status: string
@@ -848,17 +854,25 @@ export type Database = {
           usuario_id: string | null
           usuario_nome: string | null
           valor_antigo_centavos: number
+          valor_final_centavos: number
           valor_reajustado_centavos: number
+          valor_retroativo_centavos: number
         }
         Insert: {
           ano: number
+          competencia?: string | null
           confirmado_por?: string | null
           confirmado_por_nome?: string | null
           created_at?: string
           data_aplicacao: string
           data_confirmacao?: string | null
+          data_liberacao?: string | null
           empresa_id: string
           id?: string
+          liberado_por?: string | null
+          liberado_por_nome?: string | null
+          mes_reajuste?: number | null
+          meses_retroativos?: number
           observacao?: string | null
           percentual: number
           status?: string
@@ -867,17 +881,25 @@ export type Database = {
           usuario_id?: string | null
           usuario_nome?: string | null
           valor_antigo_centavos: number
+          valor_final_centavos?: number
           valor_reajustado_centavos: number
+          valor_retroativo_centavos?: number
         }
         Update: {
           ano?: number
+          competencia?: string | null
           confirmado_por?: string | null
           confirmado_por_nome?: string | null
           created_at?: string
           data_aplicacao?: string
           data_confirmacao?: string | null
+          data_liberacao?: string | null
           empresa_id?: string
           id?: string
+          liberado_por?: string | null
+          liberado_por_nome?: string | null
+          mes_reajuste?: number | null
+          meses_retroativos?: number
           observacao?: string | null
           percentual?: number
           status?: string
@@ -886,7 +908,9 @@ export type Database = {
           usuario_id?: string | null
           usuario_nome?: string | null
           valor_antigo_centavos?: number
+          valor_final_centavos?: number
           valor_reajustado_centavos?: number
+          valor_retroativo_centavos?: number
         }
         Relationships: []
       }
