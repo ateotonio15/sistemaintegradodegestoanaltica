@@ -48,47 +48,86 @@ export function FaturamentosEnviadosCard() {
   const podeAlertar = isAdmin || isComum;
   const mesAtual = getCurrentMesReferencia();
 
-  const { data: empresaIdsVinculadas = [] } = useQuery<string[]>({
-    queryKey: ["faturamentos-empresa-ids-vinculadas", user?.id, isAdmin],
+  type EmpresaConfig = {
+    id: string;
+    tipo_movimentacao: string | null;
+    periodo_movimentacao: string | null;
+    data_corte: number | null;
+    data_implantacao: string | null;
+    status_empresa: string | null;
+  };
+
+  const { data: empresasAtivas = [] } = useQuery<EmpresaConfig[]>({
+    queryKey: ["faturamentos-empresas-ativas-config", user?.id, isAdmin],
     enabled: !!user,
     queryFn: async () => {
       if (!user) return [];
-      // Busca empresas com campos para validar "ativa"
       const { data: empresasData } = await supabase
         .from("empresas")
-        .select("id, responsavel_user_id, status_empresa, data_rescisao, contrato_suspenso");
-      const todas = (empresasData ?? []) as Array<{
-        id: string;
-        responsavel_user_id: string | null;
-        status_empresa: string | null;
-        data_rescisao: string | null;
-        contrato_suspenso: boolean | null;
-      }>;
+        .select(
+          "id, responsavel_user_id, status_empresa, data_rescisao, contrato_suspenso, tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao",
+        );
+      const todas = (empresasData ?? []) as Array<
+        EmpresaConfig & {
+          responsavel_user_id: string | null;
+          data_rescisao: string | null;
+          contrato_suspenso: boolean | null;
+        }
+      >;
       const ativas = todas.filter(
         (e) =>
           (e.status_empresa ?? "Ativa") === "Ativa" &&
           !e.data_rescisao &&
           !e.contrato_suspenso,
       );
-      // Admin: todas as empresas ativas
       if (isAdmin) {
-        return ativas.map((e) => e.id);
+        return ativas.map((e) => ({
+          id: e.id,
+          tipo_movimentacao: e.tipo_movimentacao,
+          periodo_movimentacao: e.periodo_movimentacao,
+          data_corte: e.data_corte,
+          data_implantacao: e.data_implantacao,
+          status_empresa: e.status_empresa,
+        }));
       }
-      const ativasIds = new Set(ativas.map((e) => e.id));
+      const ativasMap = new Map(ativas.map((e) => [e.id, e]));
       const ids = new Set<string>();
       todas
-        .filter((e) => e.responsavel_user_id === user.id && ativasIds.has(e.id))
+        .filter((e) => e.responsavel_user_id === user.id && ativasMap.has(e.id))
         .forEach((e) => ids.add(e.id));
       const { data: links } = await supabase
         .from("empresa_usuarios")
         .select("empresa_id")
         .eq("user_id", user.id);
       (links ?? []).forEach((l) => {
-        if (ativasIds.has(l.empresa_id)) ids.add(l.empresa_id);
+        if (ativasMap.has(l.empresa_id)) ids.add(l.empresa_id);
       });
-      return Array.from(ids);
+      return Array.from(ids)
+        .map((id) => ativasMap.get(id))
+        .filter((e): e is NonNullable<typeof e> => !!e)
+        .map((e) => ({
+          id: e.id,
+          tipo_movimentacao: e.tipo_movimentacao,
+          periodo_movimentacao: e.periodo_movimentacao,
+          data_corte: e.data_corte,
+          data_implantacao: e.data_implantacao,
+          status_empresa: e.status_empresa,
+        }));
     },
   });
+
+  const empresaIdsVinculadas = useMemo(
+    () => empresasAtivas.map((e) => e.id),
+    [empresasAtivas],
+  );
+
+  const vigenteMap = useMemo(() => {
+    const m = new Map<string, { mes_referencia: string; periodo: string }>();
+    empresasAtivas.forEach((e) => {
+      m.set(e.id, periodoVigente(e));
+    });
+    return m;
+  }, [empresasAtivas]);
 
   const { data: pendentes = [] } = useQuery<FinMov[]>({
     queryKey: [
