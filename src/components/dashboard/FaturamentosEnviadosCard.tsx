@@ -16,6 +16,7 @@ type FinMov = {
   mes_referencia: string;
   periodo: string;
   data_envio_nota: string | null;
+  aguardando_nota_em: string | null;
 };
 
 type EmpresaInfo = {
