@@ -788,6 +788,54 @@ export type Database = {
           },
         ]
       }
+      reajustes_anuais: {
+        Row: {
+          ano: number
+          created_at: string
+          data_aplicacao: string
+          empresa_id: string
+          id: string
+          observacao: string | null
+          percentual: number
+          status: string
+          updated_at: string
+          usuario_id: string | null
+          usuario_nome: string | null
+          valor_antigo_centavos: number
+          valor_reajustado_centavos: number
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          data_aplicacao: string
+          empresa_id: string
+          id?: string
+          observacao?: string | null
+          percentual: number
+          status?: string
+          updated_at?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          valor_antigo_centavos: number
+          valor_reajustado_centavos: number
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          data_aplicacao?: string
+          empresa_id?: string
+          id?: string
+          observacao?: string | null
+          percentual?: number
+          status?: string
+          updated_at?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          valor_antigo_centavos?: number
+          valor_reajustado_centavos?: number
+        }
+        Relationships: []
+      }
       saude_agendamentos: {
         Row: {
           created_at: string
