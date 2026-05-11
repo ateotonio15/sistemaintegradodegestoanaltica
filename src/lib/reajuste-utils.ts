@@ -103,7 +103,7 @@ export function labelStatusReajusteFluxo(s: StatusReajusteFluxo | string | null 
   if (s === "reajustado") return "Reajustado";
   if (s === "liberado") return "Liberado";
   if (s === "retroativo_aplicado") return "Retroativo Aplicado";
-  return "Reajuste enviado para o Cadastro";
+  return "Enviado para Cadastro";
 }
 
 export function corStatusReajusteFluxo(s: StatusReajusteFluxo | string | null | undefined): string {

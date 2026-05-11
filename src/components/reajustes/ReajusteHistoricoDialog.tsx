@@ -40,7 +40,7 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
               <TableRow>
                 <TableHead>Ano</TableHead>
                 <TableHead>%</TableHead>
-                <TableHead>Antigo</TableHead>
+                <TableHead>Atual</TableHead>
                 <TableHead>Reajustado</TableHead>
                 <TableHead>Retro.</TableHead>
                 <TableHead>Final</TableHead>
