@@ -298,29 +298,44 @@ export default function Reajustes() {
                   <TableRow>
                     <TableHead>Empresa</TableHead>
                     <TableHead>Contrato</TableHead>
-                    <TableHead>Valor Atual</TableHead>
+                    <TableHead>Implantação</TableHead>
+                    <TableHead>Mês Reajuste</TableHead>
+                    <TableHead>Valor Antigo</TableHead>
                     <TableHead>%</TableHead>
                     <TableHead>Valor Reajustado</TableHead>
-                    <TableHead>Data</TableHead>
+                    <TableHead>Retroativo</TableHead>
+                    <TableHead>Valor Final</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Responsável</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
-                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhum contrato encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">Nenhum contrato encontrado</TableCell></TableRow>
                   ) : rows.map(({ empresa, reajuste, status }) => {
                     const statusFluxo = reajuste?.status_reajuste as string | undefined;
                     const isPendenteConfirm = reajuste && statusFluxo === "pendente_confirmacao";
+                    const isReajustado = reajuste && statusFluxo === "reajustado";
+                    const mesReaj = getMesReajuste(empresa.data_implantacao);
+                    const temRetro = (reajuste?.meses_retroativos || 0) > 0;
                     return (
                     <TableRow key={empresa.id}>
                       <TableCell className="font-medium">{empresa.nome}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{empresa.codigo_contrato || "—"}</TableCell>
+                      <TableCell className="text-sm">{empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : "—"}</TableCell>
+                      <TableCell className="text-sm">{nomeMes(mesReaj)}</TableCell>
                       <TableCell>{reajuste ? formatCentavosBRL(reajuste.valor_antigo_centavos) : "—"}</TableCell>
                       <TableCell>{reajuste ? `${Number(reajuste.percentual).toFixed(2).replace(".", ",")}%` : "—"}</TableCell>
                       <TableCell className="font-semibold">{reajuste ? formatCentavosBRL(reajuste.valor_reajustado_centavos) : "—"}</TableCell>
-                      <TableCell>{reajuste ? formatDateBR(reajuste.data_aplicacao) : "—"}</TableCell>
+                      <TableCell className="text-sm">
+                        {reajuste ? (
+                          <>
+                            <div>{formatCentavosBRL(reajuste.valor_retroativo_centavos)}</div>
+                            {temRetro && <div className="text-xs text-muted-foreground">{reajuste.meses_retroativos} {reajuste.meses_retroativos === 1 ? "mês" : "meses"}</div>}
+                          </>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className="font-bold text-primary">{reajuste ? formatCentavosBRL(reajuste.valor_final_centavos) : "—"}</TableCell>
                       <TableCell>
                         {reajuste ? (
                           <Badge variant="outline" className={corStatusReajusteFluxo(statusFluxo)}>
@@ -330,7 +345,6 @@ export default function Reajustes() {
                           <Badge variant="outline" className={statusReajusteColor(status)}>{status}</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{empresa.responsavel_contrato || "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           {isPendenteConfirm && podeConfirmar(empresa) && (
@@ -340,7 +354,17 @@ export default function Reajustes() {
                               onClick={() => setConfirmConfirmar({ id: reajuste.id, empresa: empresa.nome })}
                               className="bg-green-600 hover:bg-green-700"
                             >
-                              <Check className="h-3 w-3 mr-1" /> Confirmar Reajuste
+                              <Check className="h-3 w-3 mr-1" /> Confirmar
+                            </Button>
+                          )}
+                          {canEdit && isReajustado && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => setConfirmLiberar({ id: reajuste.id, empresa: empresa.nome, temRetro })}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              <Send className="h-3 w-3 mr-1" /> Liberar
                             </Button>
                           )}
                           <Button size="icon" variant="ghost" title="Histórico" onClick={() => { setHistoricoEmpresa({ id: empresa.id, nome: empresa.nome }); setHistoricoOpen(true); }}>
