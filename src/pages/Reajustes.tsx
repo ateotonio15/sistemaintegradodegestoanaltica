@@ -54,6 +54,17 @@ export default function Reajustes() {
     },
   });
 
+  const { data: minhasEmpresas = [] } = useQuery({
+    queryKey: ["minhas-empresas-comum", user?.id],
+    enabled: !!user?.id && isComum,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("empresa_usuarios").select("empresa_id").eq("user_id", user!.id);
+      return (data || []).map((r: any) => r.empresa_id as string);
+    },
+  });
+  const minhasEmpresasSet = useMemo(() => new Set(minhasEmpresas), [minhasEmpresas]);
+
   const { data: reajustes = [] } = useQuery({
     queryKey: ["reajustes-anuais"],
     queryFn: async () => {
