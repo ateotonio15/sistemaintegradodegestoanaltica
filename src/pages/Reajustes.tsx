@@ -43,6 +43,7 @@ export default function Reajustes() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
   const [solicitandoId, setSolicitandoId] = useState<string | null>(null);
+  const [detalhesReajuste, setDetalhesReajuste] = useState<{ r: any; nome: string } | null>(null);
 
   const solicitarMutation = useMutation({
     mutationFn: async (empresaId: string) => {
