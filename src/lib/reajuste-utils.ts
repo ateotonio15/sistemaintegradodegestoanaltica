@@ -31,7 +31,6 @@ export function getStatusReajusteEmpresa(
 ): StatusReajuste {
   const tem = reajustes.some((r) => r.ano === anoReferencia);
   if (tem) return "Reajustado";
-  // Se a empresa foi implantada antes do ano de referência, e ainda não foi reajustada -> Atrasado se já passou meio do ano
   const hoje = new Date();
   const mesAtual = hoje.getMonth() + 1;
   if (empresa.data_implantacao) {
@@ -50,4 +49,17 @@ export function statusReajusteColor(status: StatusReajuste): string {
     default:
       return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
   }
+}
+
+// === Fluxo de aprovação ===
+export type StatusReajusteFluxo = "pendente_confirmacao" | "reajustado";
+
+export function labelStatusReajusteFluxo(s: StatusReajusteFluxo | string | null | undefined): string {
+  if (s === "reajustado") return "Reajustado";
+  return "Reajuste enviado para o Cadastro";
+}
+
+export function corStatusReajusteFluxo(s: StatusReajusteFluxo | string | null | undefined): string {
+  if (s === "reajustado") return "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30";
+  return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
 }
