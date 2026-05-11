@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp } from "lucide-react";
 import logoImg from "@/assets/logo-cs-control.png";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,7 @@ const allNavItems = [
   { to: "/executivas", label: "Executivas", icon: UserCheck },
   { to: "/saude", label: "Saúde nas Empresas", icon: CalendarClock },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
+  { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
@@ -97,9 +98,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
-      // Perfil Financeiro: SOMENTE Dashboard, Empresas, Movimentações, Financeiro
+      // Perfil Financeiro: SOMENTE Dashboard, Empresas, Movimentações, Financeiro, Reajuste
       if (isFinanceiro) {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro"];
+        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/reajustes"];
         return allowed.includes(item.to);
       }
       if (item.adminOnly && !isAdmin) return false;
@@ -109,7 +110,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       if (item.to === "/saude" && !isAdmin && !isExecutivo && !isEnfermeira) return false;
       // Enfermeira: restricted access
       if (isEnfermeira) {
-        const allowed = ["/empresas", "/executivas", "/saude"];
+        const allowed = ["/empresas", "/executivas", "/saude", "/reajustes"];
         return allowed.includes(item.to);
       }
       return true;

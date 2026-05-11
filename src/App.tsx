@@ -13,6 +13,7 @@ import DashboardFinanceiro from "./pages/DashboardFinanceiro";
 import Executivas from "./pages/Executivas";
 import SaudeEmpresas from "./pages/SaudeEmpresas";
 import Financeiro from "./pages/Financeiro";
+import Reajustes from "./pages/Reajustes";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -78,6 +79,7 @@ const AppRoutes = () => (
     <Route path="/executivas" element={<ProtectedRoute allowFinanceiro={false}><Executivas /></ProtectedRoute>} />
     <Route path="/saude" element={<ProtectedRoute allowFinanceiro={false}><SaudeEmpresas /></ProtectedRoute>} />
     <Route path="/financeiro" element={<FinanceiroRoute><Financeiro /></FinanceiroRoute>} />
+    <Route path="/reajustes" element={<ProtectedRoute><Reajustes /></ProtectedRoute>} />
     <Route path="/usuarios" element={<AdminOnlyRoute><Usuarios /></AdminOnlyRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
