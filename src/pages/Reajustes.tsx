@@ -42,23 +42,8 @@ export default function Reajustes() {
   const [historicoEmpresa, setHistoricoEmpresa] = useState<{ id: string; nome: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
-  const [solicitandoId, setSolicitandoId] = useState<string | null>(null);
-
-  const solicitarMutation = useMutation({
-    mutationFn: async (empresaId: string) => {
-      const { error } = await supabase.rpc("solicitar_reajuste", { p_empresa_id: empresaId } as any);
-      if (error) throw error;
-    },
-    onMutate: (empresaId: string) => setSolicitandoId(empresaId),
-    onSettled: () => setSolicitandoId(null),
-    onSuccess: () => {
-      toast({ title: "Solicitação enviada", description: "O Cadastro responsável foi notificado." });
-      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
-      qc.invalidateQueries({ queryKey: ["reajustes-pendentes-list"] });
-      qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
-    },
-    onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao solicitar", variant: "destructive" }),
-  });
+  const [solicitarOpen, setSolicitarOpen] = useState(false);
+  const [solicitarEmpresa, setSolicitarEmpresa] = useState<any>(null);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["reajustes-empresas-ativas"],
