@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check, Send } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReajusteDialog } from "@/components/reajustes/ReajusteDialog";
@@ -291,7 +291,6 @@ export default function Reajustes() {
                   ) : rows.map(({ empresa, reajuste, status }) => {
                     const statusFluxo = reajuste?.status_reajuste as string | undefined;
                     const isPendenteConfirm = reajuste && statusFluxo === "pendente_confirmacao";
-                    const isReajustado = reajuste && statusFluxo === "reajustado";
                     const mesReaj = getMesReajuste(empresa.data_implantacao);
                     const temRetro = (reajuste?.meses_retroativos || 0) > 0;
                     return (
