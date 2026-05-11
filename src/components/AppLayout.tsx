@@ -98,9 +98,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
-      // Perfil Financeiro: SOMENTE Dashboard, Empresas, Movimentações, Financeiro
+      // Perfil Financeiro: SOMENTE Dashboard, Empresas, Movimentações, Financeiro, Reajuste
       if (isFinanceiro) {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro"];
+        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/reajustes"];
         return allowed.includes(item.to);
       }
       if (item.adminOnly && !isAdmin) return false;
@@ -110,7 +110,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       if (item.to === "/saude" && !isAdmin && !isExecutivo && !isEnfermeira) return false;
       // Enfermeira: restricted access
       if (isEnfermeira) {
-        const allowed = ["/empresas", "/executivas", "/saude"];
+        const allowed = ["/empresas", "/executivas", "/saude", "/reajustes"];
         return allowed.includes(item.to);
       }
       return true;
