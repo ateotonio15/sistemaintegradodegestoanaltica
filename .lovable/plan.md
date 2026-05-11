@@ -1,71 +1,70 @@
-## Diagnóstico
+## Etapa 19 — Reajuste Duplo (Enfermaria e Apartamento)
 
-A coluna **Retroativo** e **Valor Final** existem no frontend (`Reajustes.tsx` linhas 311–344) e estão sendo lidas com `select("*")`. O problema **não está no frontend** nem na query.
+Adicionar campos separados para Enfermaria e Apartamento na aba Reajuste, mantendo um único percentual aplicado a ambos. Preserva os campos legados (`valor_antigo_centavos`, `valor_reajustado_centavos`, etc.) para histórico/compatibilidade — eles passam a refletir o total (Enfermaria + Apartamento).
 
-A causa raiz está no **banco**: as funções `trg_reajuste_calc_campos`, `trg_criar_alerta_reajuste`, `trg_finalizar_alerta_reajuste` e `guard_reajuste_comum` existem como FUNCTIONS, mas **nenhum TRIGGER está anexado** à tabela `reajustes_anuais` (verificado em `information_schema.triggers` — retorno vazio).
+### 1. Banco — Migration
 
-Resultado: ao inserir/atualizar um reajuste, o cálculo de `valor_retroativo_centavos`, `valor_final_centavos` e `meses_retroativos` nunca roda. Confirmação na linha existente:
+Adicionar à tabela `reajustes_anuais`:
 
 ```
-valor_antigo:        28.657
-percentual:          6,06%
-valor_reajustado:    30.394   (calculado no ReajusteDialog antes do insert)
-valor_retroativo:    0        (deveria ser calculado pelo trigger)
-valor_final:         0        (deveria ser valor_reajustado + retroativo)
+valor_antigo_enfermaria_centavos      bigint
+valor_reajustado_enfermaria_centavos  bigint
+valor_retroativo_enfermaria_centavos  bigint  default 0
+valor_final_enfermaria_centavos       bigint  default 0
+
+valor_antigo_apartamento_centavos      bigint
+valor_reajustado_apartamento_centavos  bigint
+valor_retroativo_apartamento_centavos  bigint  default 0
+valor_final_apartamento_centavos       bigint  default 0
 ```
 
-Como `temValores` no frontend exige `valor_antigo_centavos > 0`, a célula renderiza `R$ 0,00` para Retroativo/Final em vez de aparecer vazio — mas o valor está incorreto.
+Atualizar a função `trg_reajuste_calc_campos` para também calcular automaticamente os pares Enfermaria/Apartamento usando o mesmo `percentual` e `meses_retroativos`. Os campos legados de total continuam sendo calculados como soma dos dois (ou mantidos quando só houver valor único, para retrocompatibilidade).
 
-## Correção (somente migração SQL)
+Atualizar `solicitar_reajuste` para inicializar os novos campos com 0.
 
-### 1. Anexar triggers faltantes em `reajustes_anuais`
+### 2. Utils (`src/lib/reajuste-utils.ts`)
 
-```sql
-DROP TRIGGER IF EXISTS trg_reajuste_calc_campos ON public.reajustes_anuais;
-CREATE TRIGGER trg_reajuste_calc_campos
-  BEFORE INSERT OR UPDATE ON public.reajustes_anuais
-  FOR EACH ROW EXECUTE FUNCTION public.trg_reajuste_calc_campos();
+- Reaproveitar `calcularValorReajustadoCentavos`, `calcularRetroativoCentavos`, `calcularValorFinalCentavos` para os dois blocos.
+- Sem nova lógica de cálculo: apenas chamadas duplicadas (Enfermaria/Apartamento) com o mesmo percentual.
 
-DROP TRIGGER IF EXISTS trg_guard_reajuste_comum ON public.reajustes_anuais;
-CREATE TRIGGER trg_guard_reajuste_comum
-  BEFORE UPDATE ON public.reajustes_anuais
-  FOR EACH ROW EXECUTE FUNCTION public.guard_reajuste_comum();
+### 3. ReajusteDialog
 
-DROP TRIGGER IF EXISTS trg_criar_alerta_reajuste ON public.reajustes_anuais;
-CREATE TRIGGER trg_criar_alerta_reajuste
-  AFTER INSERT ON public.reajustes_anuais
-  FOR EACH ROW EXECUTE FUNCTION public.trg_criar_alerta_reajuste();
+- Substituir o campo único "Valor Atual" por dois campos:
+  - **Valor Atual Enfermaria (R$)**
+  - **Valor Atual Apartamento (R$)**
+- Manter um único campo **Percentual (%)**.
+- Preview em **dois cards lado a lado** (Enfermaria e Apartamento), cada um mostrando: Valor Atual, %, Valor Reajustado, Retroativo (com nº meses), Valor Final destacado.
+- Mês oficial e meses retroativos exibidos uma única vez acima dos cards.
+- Payload de insert/update grava todos os 8 novos campos. Campos legados (`valor_antigo_centavos`, `valor_reajustado_centavos`) recebem a **soma** Enfermaria + Apartamento para não quebrar telas existentes (Dashboard, Financeiro, Histórico).
 
-DROP TRIGGER IF EXISTS trg_finalizar_alerta_reajuste ON public.reajustes_anuais;
-CREATE TRIGGER trg_finalizar_alerta_reajuste
-  AFTER UPDATE ON public.reajustes_anuais
-  FOR EACH ROW EXECUTE FUNCTION public.trg_finalizar_alerta_reajuste();
+### 4. Tabela em `Reajustes.tsx`
+
+Substituir as colunas "Valor Atual / % / Valor Reajustado / Retroativo / Valor Final" por colunas mais enxutas:
+
+```
+Empresa | Contrato | Implantação | Mês Reajuste | %
+| Enfermaria (Final) | Apartamento (Final) | Status | Ações
 ```
 
-### 2. Backfill dos registros existentes
+- Colunas Enfermaria/Apartamento exibem o **Valor Final** em destaque, com o valor reajustado em texto pequeno abaixo.
+- Botão **"Detalhes"** (ícone) abre um popover/dialog com o breakdown completo dos dois cards (Atual, %, Reajustado, Retroativo, Final).
+- Botões existentes (Liberar, Editar, Excluir, Solicitar) preservados.
 
-```sql
-UPDATE public.reajustes_anuais
-   SET valor_reajustado_centavos = CASE
-         WHEN valor_antigo_centavos IS NOT NULL AND percentual IS NOT NULL AND percentual > 0
-         THEN ROUND(valor_antigo_centavos + (valor_antigo_centavos * percentual / 100.0))::bigint
-         ELSE valor_reajustado_centavos END,
-       valor_retroativo_centavos = COALESCE(
-         ((COALESCE(valor_reajustado_centavos,0) - COALESCE(valor_antigo_centavos,0))
-          * COALESCE(meses_retroativos, 0))::bigint, 0),
-       valor_final_centavos = COALESCE(valor_reajustado_centavos,0)
-                            + COALESCE(((COALESCE(valor_reajustado_centavos,0) - COALESCE(valor_antigo_centavos,0))
-                                        * COALESCE(meses_retroativos, 0))::bigint, 0);
-```
+### 5. Detalhes — novo componente leve
 
-(Disparado via UPDATE direto após criar o trigger; o próprio `BEFORE UPDATE` recalcula tudo.)
+`ReajusteDetalhesDialog.tsx` exibindo os dois cards (Enfermaria/Apartamento) em layout idêntico ao preview do dialog de edição, somente leitura.
 
-## Sem mudanças no frontend
+### 6. Histórico
 
-Renderização, query (`select("*")`), tipos e formatação BRL já estão corretos. A coluna aparece com `R$ 0,00` mesmo quando zero (nunca vazia), exatamente como pedido — basta os valores ficarem corretos no banco.
+`ReajusteHistoricoDialog` passa a listar, por linha do histórico, os pares Enfermaria e Apartamento (Valor Antigo → Reajustado → Retroativo → Final), além do total para retrocompatibilidade.
 
-## Não será feito
+### 7. Formatação
 
-- Não alterar `Reajustes.tsx`, `ReajusteDialog.tsx`, `reajuste-utils.ts` ou tipos.
-- Não remover/renomear colunas.
-- Não tocar nas RLS policies.
+Todos os valores usam `formatCentavosBRL` (já em pt-BR, R$ X.XXX,XX). Valores nulos exibem "—".
+
+### O que NÃO será feito
+
+- Não alterar RLS de `reajustes_anuais`.
+- Não criar percentuais separados.
+- Não remover os campos legados (`valor_antigo_centavos`, `valor_reajustado_centavos`, `valor_retroativo_centavos`, `valor_final_centavos`) — eles continuam preenchidos como soma para não quebrar Dashboard/Alertas.
+- Não tocar em `AlertaReajustesPendentes`, `AlertaReajustesParaConfirmar`, fluxo de solicitação ou triggers de alerta — todo o fluxo de status permanece igual.
