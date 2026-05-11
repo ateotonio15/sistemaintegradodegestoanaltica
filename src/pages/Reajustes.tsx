@@ -137,33 +137,6 @@ export default function Reajustes() {
     onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao excluir", variant: "destructive" }),
   });
 
-  const confirmarMutation = useMutation({
-    mutationFn: async (id: string) => {
-      let nome: string | null = null;
-      if (user?.id) {
-        const { data } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
-        nome = data?.display_name || null;
-      }
-      const { error } = await supabase
-        .from("reajustes_anuais")
-        .update({
-          status_reajuste: "reajustado",
-          confirmado_por: user?.id || null,
-          confirmado_por_nome: nome,
-          data_confirmacao: new Date().toISOString(),
-        } as any)
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: "Reajuste confirmado", description: "Status atualizado para Reajustado." });
-      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
-      qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
-      setConfirmConfirmar(null);
-    },
-    onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao confirmar", variant: "destructive" }),
-  });
-
   const liberarMutation = useMutation({
     mutationFn: async ({ id, temRetro }: { id: string; temRetro: boolean }) => {
       let nome: string | null = null;
@@ -176,25 +149,29 @@ export default function Reajustes() {
       const { error } = await supabase
         .from("reajustes_anuais")
         .update({
-          status_reajuste: temRetro ? "retroativo_aplicado" : "liberado",
+          status_reajuste: temRetro ? "retroativo_aplicado" : "reajustado",
           data_liberacao: now.toISOString(),
           liberado_por: user?.id || null,
           liberado_por_nome: nome,
+          confirmado_por: user?.id || null,
+          confirmado_por_nome: nome,
+          data_confirmacao: now.toISOString(),
           competencia,
         } as any)
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Reajuste liberado", description: "Liberação registrada com competência atual." });
+      toast({ title: "Reajuste liberado", description: "Status atualizado para Reajustado." });
       qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
+      qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
       setConfirmLiberar(null);
     },
     onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao liberar", variant: "destructive" }),
   });
 
-  const podeConfirmar = (empresa: any) =>
-    isComum && empresa.responsavel_user_id === user?.id;
+  const podeLiberar = (empresa: any) =>
+    isAdmin || (isComum && empresa.responsavel_user_id === user?.id);
 
   const openNew = (empresaId?: string) => {
     setEditing(null);
