@@ -9,9 +9,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { calcularValorReajustadoCentavos, reaisToCentavos, centavosToReais, formatCentavosBRL } from "@/lib/reajuste-utils";
+import {
+  calcularValorReajustadoCentavos, reaisToCentavos, centavosToReais, formatCentavosBRL,
+  getMesReajuste, nomeMes, calcularMesesRetroativos, calcularRetroativoCentavos, calcularValorFinalCentavos,
+} from "@/lib/reajuste-utils";
 
-interface Empresa { id: string; nome: string; codigo_contrato: string | null }
+interface Empresa { id: string; nome: string; codigo_contrato: string | null; data_implantacao?: string | null }
 
 interface ReajusteRow {
   id: string;
