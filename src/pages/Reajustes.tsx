@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReajusteDialog } from "@/components/reajustes/ReajusteDialog";
 import { ReajusteHistoricoDialog } from "@/components/reajustes/ReajusteHistoricoDialog";
+import { SolicitarReajusteDialog } from "@/components/reajustes/SolicitarReajusteDialog";
 import {
   formatCentavosBRL, getStatusReajusteEmpresa, statusReajusteColor, type StatusReajuste,
   labelStatusReajusteFluxo, corStatusReajusteFluxo, getMesReajuste, nomeMes,
@@ -41,23 +42,8 @@ export default function Reajustes() {
   const [historicoEmpresa, setHistoricoEmpresa] = useState<{ id: string; nome: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
-  const [solicitandoId, setSolicitandoId] = useState<string | null>(null);
-
-  const solicitarMutation = useMutation({
-    mutationFn: async (empresaId: string) => {
-      const { error } = await supabase.rpc("solicitar_reajuste", { p_empresa_id: empresaId } as any);
-      if (error) throw error;
-    },
-    onMutate: (empresaId: string) => setSolicitandoId(empresaId),
-    onSettled: () => setSolicitandoId(null),
-    onSuccess: () => {
-      toast({ title: "Solicitação enviada", description: "O Cadastro responsável foi notificado." });
-      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
-      qc.invalidateQueries({ queryKey: ["reajustes-pendentes-list"] });
-      qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
-    },
-    onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao solicitar", variant: "destructive" }),
-  });
+  const [solicitarOpen, setSolicitarOpen] = useState(false);
+  const [solicitarEmpresa, setSolicitarEmpresa] = useState<any>(null);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["reajustes-empresas-ativas"],
@@ -395,11 +381,10 @@ export default function Reajustes() {
                             <Button
                               size="sm"
                               variant="outline"
-                              disabled={solicitandoId === empresa.id}
-                              onClick={() => solicitarMutation.mutate(empresa.id)}
+                              onClick={() => { setSolicitarEmpresa(empresa); setSolicitarOpen(true); }}
                             >
                               <Plus className="h-3 w-3 mr-1" />
-                              {solicitandoId === empresa.id ? "Enviando..." : "Solicitar Reajuste"}
+                              Solicitar Reajuste
                             </Button>
                           )}
                         </div>
@@ -426,6 +411,12 @@ export default function Reajustes() {
         onOpenChange={setHistoricoOpen}
         empresaId={historicoEmpresa?.id || null}
         empresaNome={historicoEmpresa?.nome}
+      />
+
+      <SolicitarReajusteDialog
+        open={solicitarOpen}
+        onOpenChange={setSolicitarOpen}
+        empresa={solicitarEmpresa}
       />
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
