@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCentavosBRL } from "@/lib/reajuste-utils";
+import { formatCentavosBRL, labelStatusReajusteFluxo } from "@/lib/reajuste-utils";
 import { formatDateBR } from "@/lib/date-utils";
 
 interface Props {
@@ -30,7 +30,7 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>Histórico de Reajustes {empresaNome ? `— ${empresaNome}` : ""}</DialogTitle>
         </DialogHeader>
@@ -40,19 +40,21 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
               <TableRow>
                 <TableHead>Ano</TableHead>
                 <TableHead>%</TableHead>
-                <TableHead>Valor Antigo</TableHead>
-                <TableHead>Valor Reajustado</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Criado por</TableHead>
+                <TableHead>Antigo</TableHead>
+                <TableHead>Reajustado</TableHead>
+                <TableHead>Retro.</TableHead>
+                <TableHead>Final</TableHead>
+                <TableHead>Aplicação</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Confirmado por</TableHead>
+                <TableHead>Liberado</TableHead>
+                <TableHead>Competência</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Carregando...</TableCell></TableRow>
               ) : data.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Nenhum reajuste registrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Nenhum reajuste registrado</TableCell></TableRow>
               ) : (
                 data.map((r) => (
                   <TableRow key={r.id}>
@@ -60,25 +62,22 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                     <TableCell>{Number(r.percentual).toFixed(2).replace(".", ",")}%</TableCell>
                     <TableCell>{formatCentavosBRL(r.valor_antigo_centavos)}</TableCell>
                     <TableCell className="font-semibold text-primary">{formatCentavosBRL(r.valor_reajustado_centavos)}</TableCell>
-                    <TableCell>{formatDateBR(r.data_aplicacao)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.usuario_nome || "—"}</TableCell>
                     <TableCell className="text-sm">
-                      {r.status_reajuste === "reajustado" ? (
-                        <span className="text-green-600 dark:text-green-400 font-medium">Reajustado</span>
-                      ) : (
-                        <span className="text-yellow-600 dark:text-yellow-400 font-medium">Aguardando Cadastro</span>
-                      )}
+                      {formatCentavosBRL(r.valor_retroativo_centavos)}
+                      {(r.meses_retroativos || 0) > 0 && <div className="text-xs text-muted-foreground">{r.meses_retroativos}m</div>}
                     </TableCell>
+                    <TableCell className="font-bold">{formatCentavosBRL(r.valor_final_centavos)}</TableCell>
+                    <TableCell>{formatDateBR(r.data_aplicacao)}</TableCell>
+                    <TableCell className="text-sm">{labelStatusReajusteFluxo(r.status_reajuste)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {r.confirmado_por_nome ? (
+                      {r.liberado_por_nome ? (
                         <>
-                          {r.confirmado_por_nome}
-                          {r.data_confirmacao && (
-                            <div className="text-xs">{formatDateBR(String(r.data_confirmacao).slice(0, 10))}</div>
-                          )}
+                          {r.liberado_por_nome}
+                          {r.data_liberacao && <div className="text-xs">{formatDateBR(String(r.data_liberacao).slice(0, 10))}</div>}
                         </>
                       ) : "—"}
                     </TableCell>
+                    <TableCell className="text-sm">{r.competencia || "—"}</TableCell>
                   </TableRow>
                 ))
               )}
