@@ -27,7 +27,7 @@ export default function Reajustes() {
   const { user, isAdmin, isViewOnly, isComum } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const canEdit = isAdmin || isViewOnly;
+  const canCriar = isAdmin || isViewOnly || isComum;
 
   const anoAtual = new Date().getFullYear();
   const [filterAno, setFilterAno] = useState<string>(String(anoAtual));
@@ -39,7 +39,6 @@ export default function Reajustes() {
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [historicoEmpresa, setHistoricoEmpresa] = useState<{ id: string; nome: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [confirmConfirmar, setConfirmConfirmar] = useState<{ id: string; empresa: string } | null>(null);
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
 
   const { data: empresas = [] } = useQuery({
