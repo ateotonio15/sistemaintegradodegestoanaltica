@@ -399,7 +399,7 @@ export default function Reajustes() {
       <ReajusteDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        empresas={empresas.map((e) => ({ id: e.id, nome: e.nome, codigo_contrato: e.codigo_contrato }))}
+        empresas={empresas.map((e) => ({ id: e.id, nome: e.nome, codigo_contrato: e.codigo_contrato, data_implantacao: e.data_implantacao }))}
         editing={editing}
         defaultEmpresaId={defaultEmpresaId}
       />
