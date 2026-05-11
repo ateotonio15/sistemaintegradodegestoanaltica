@@ -1,69 +1,154 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { getMesReajuste } from "@/lib/reajuste-utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatDateBR } from "@/lib/date-utils";
+import {
+  formatCentavosBRL, getMesReajuste, nomeMes, statusReajusteColor,
+} from "@/lib/reajuste-utils";
+
+type EmpresaRow = {
+  id: string;
+  nome: string;
+  codigo_contrato: string | null;
+  data_implantacao: string | null;
+};
+
+type ReajusteRow = {
+  empresa_id: string;
+  ano: number;
+  data_aplicacao: string;
+  percentual: number;
+  valor_antigo_centavos: number;
+  valor_reajustado_centavos: number;
+  meses_retroativos: number | null;
+  status_reajuste: string | null;
+};
 
 export function AlertaReajustesPendentes() {
   const ano = new Date().getFullYear();
   const mesAtual = new Date().getMonth() + 1;
+  const [expanded, setExpanded] = useState(false);
 
   const { data } = useQuery({
-    queryKey: ["reajustes-pendentes-count", ano, mesAtual],
+    queryKey: ["reajustes-pendentes-list", ano, mesAtual],
     queryFn: async () => {
-      const { data: empresas } = await supabase
-        .from("empresas")
-        .select("id,data_implantacao")
-        .eq("status_empresa", "Ativa");
-      const { data: reaj } = await supabase
-        .from("reajustes_anuais")
-        .select("empresa_id,meses_retroativos,status_reajuste")
-        .eq("ano", ano);
+      const [{ data: empresas }, { data: reaj }] = await Promise.all([
+        supabase
+          .from("empresas")
+          .select("id,nome,codigo_contrato,data_implantacao")
+          .eq("status_empresa", "Ativa"),
+        supabase
+          .from("reajustes_anuais")
+          .select("empresa_id,ano,data_aplicacao,percentual,valor_antigo_centavos,valor_reajustado_centavos,meses_retroativos,status_reajuste")
+          .order("ano", { ascending: false }),
+      ]);
 
-      const reajByEmp: Record<string, any> = {};
-      for (const r of reaj || []) reajByEmp[(r as any).empresa_id] = r;
-
-      let pendentes = 0;
-      let retroPendentes = 0;
-      for (const e of empresas || []) {
-        const mesReaj = getMesReajuste((e as any).data_implantacao);
-        const r = reajByEmp[(e as any).id];
-        if (!r) {
-          // Pendente apenas quando já passou (ou está no) mês oficial
-          if (mesReaj && mesAtual >= mesReaj) pendentes++;
-        } else if ((r.meses_retroativos || 0) > 0 && r.status_reajuste !== "retroativo_aplicado" && r.status_reajuste !== "liberado") {
-          retroPendentes++;
-        }
+      const reajPorEmp: Record<string, ReajusteRow[]> = {};
+      for (const r of (reaj || []) as ReajusteRow[]) {
+        (reajPorEmp[r.empresa_id] ||= []).push(r);
       }
-      return { pendentes, retroPendentes };
+
+      const pendentes: Array<{
+        empresa: EmpresaRow;
+        mesReaj: number;
+        ultimo?: ReajusteRow;
+        status: "Pendente" | "Atrasado";
+      }> = [];
+
+      for (const e of (empresas || []) as EmpresaRow[]) {
+        const mesReaj = getMesReajuste(e.data_implantacao);
+        if (!mesReaj) continue;
+        const lista = reajPorEmp[e.id] || [];
+        const temAno = lista.some((r) => r.ano === ano);
+        if (temAno) continue;
+        if (mesAtual < mesReaj) continue; // ainda não chegou o mês oficial
+        const ultimo = lista[0];
+        const status: "Pendente" | "Atrasado" = mesAtual > mesReaj ? "Atrasado" : "Pendente";
+        pendentes.push({ empresa: e, mesReaj, ultimo, status });
+      }
+
+      return pendentes.sort((a, b) => a.empresa.nome.localeCompare(b.empresa.nome));
     },
     refetchInterval: 60000,
   });
 
-  const pendentes = data?.pendentes || 0;
-  const retro = data?.retroPendentes || 0;
-  if (pendentes === 0 && retro === 0) return null;
+  const lista = data || [];
+  const total = lista.length;
+  const atrasados = useMemo(() => lista.filter((x) => x.status === "Atrasado").length, [lista]);
+
+  if (total === 0) return null;
 
   return (
-    <Link
-      to="/reajustes"
-      className="flex items-center gap-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 mb-4 hover:bg-yellow-500/15 transition-colors"
-    >
-      <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
-      <div className="flex-1 text-sm">
-        {pendentes > 0 && (
-          <span className="font-semibold text-yellow-700 dark:text-yellow-300">
-            {pendentes} {pendentes === 1 ? "contrato pendente" : "contratos pendentes"} de reajuste anual
-          </span>
+    <Card className="border-yellow-500/40 bg-yellow-500/10">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
+          <div className="flex-1 text-sm">
+            <span className="font-semibold text-yellow-700 dark:text-yellow-300">
+              {total} {total === 1 ? "contrato precisa" : "contratos precisam"} registrar reajuste
+            </span>
+            {atrasados > 0 && (
+              <span className="ml-2 text-orange-700 dark:text-orange-300">({atrasados} atrasado{atrasados === 1 ? "" : "s"})</span>
+            )}
+            <span className="text-muted-foreground ml-2">— ano {ano}</span>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => setExpanded((v) => !v)}>
+            {expanded ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
+            {expanded ? "Ocultar" : "Ver lista"}
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/reajustes">Abrir aba</Link>
+          </Button>
+        </div>
+
+        {expanded && (
+          <div className="rounded-md border bg-background overflow-auto max-h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Contrato</TableHead>
+                  <TableHead>Implantação</TableHead>
+                  <TableHead>Mês Reajuste</TableHead>
+                  <TableHead>Valor Atual</TableHead>
+                  <TableHead>Último Reajuste</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lista.map(({ empresa, mesReaj, ultimo, status }) => (
+                  <TableRow key={empresa.id}>
+                    <TableCell className="font-medium">{empresa.nome}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{empresa.codigo_contrato || "—"}</TableCell>
+                    <TableCell className="text-sm">{empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : "—"}</TableCell>
+                    <TableCell className="text-sm">{nomeMes(mesReaj)}</TableCell>
+                    <TableCell className="text-sm">
+                      {ultimo ? formatCentavosBRL(ultimo.valor_reajustado_centavos) : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {ultimo ? (
+                        <>
+                          {formatDateBR(ultimo.data_aplicacao)}
+                          <div className="text-xs">{Number(ultimo.percentual).toFixed(2).replace(".", ",")}% — {ultimo.ano}</div>
+                        </>
+                      ) : "Nunca reajustado"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={statusReajusteColor(status)}>{status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
-        {retro > 0 && (
-          <span className="ml-3 font-semibold text-orange-700 dark:text-orange-300">
-            {retro} retroativo{retro === 1 ? "" : "s"} pendente{retro === 1 ? "" : "s"} de liberação
-          </span>
-        )}
-        <span className="text-muted-foreground ml-2">— ano {ano}</span>
-      </div>
-      <span className="text-xs text-yellow-700 dark:text-yellow-300 font-medium">Ver detalhes →</span>
-    </Link>
+      </CardContent>
+    </Card>
   );
 }
