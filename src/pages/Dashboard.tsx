@@ -30,6 +30,7 @@ import { formatDateBR } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
+import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 
 export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
@@ -610,6 +611,7 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-8">
+        <AlertaReajustesPendentes />
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
