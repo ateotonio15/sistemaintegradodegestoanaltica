@@ -837,7 +837,7 @@ export type Database = {
           confirmado_por: string | null
           confirmado_por_nome: string | null
           created_at: string
-          data_aplicacao: string
+          data_aplicacao: string | null
           data_confirmacao: string | null
           data_liberacao: string | null
           empresa_id: string
@@ -847,15 +847,15 @@ export type Database = {
           mes_reajuste: number | null
           meses_retroativos: number
           observacao: string | null
-          percentual: number
+          percentual: number | null
           status: string
           status_reajuste: string
           updated_at: string
           usuario_id: string | null
           usuario_nome: string | null
-          valor_antigo_centavos: number
+          valor_antigo_centavos: number | null
           valor_final_centavos: number
-          valor_reajustado_centavos: number
+          valor_reajustado_centavos: number | null
           valor_retroativo_centavos: number
         }
         Insert: {
@@ -864,7 +864,7 @@ export type Database = {
           confirmado_por?: string | null
           confirmado_por_nome?: string | null
           created_at?: string
-          data_aplicacao: string
+          data_aplicacao?: string | null
           data_confirmacao?: string | null
           data_liberacao?: string | null
           empresa_id: string
@@ -874,15 +874,15 @@ export type Database = {
           mes_reajuste?: number | null
           meses_retroativos?: number
           observacao?: string | null
-          percentual: number
+          percentual?: number | null
           status?: string
           status_reajuste?: string
           updated_at?: string
           usuario_id?: string | null
           usuario_nome?: string | null
-          valor_antigo_centavos: number
+          valor_antigo_centavos?: number | null
           valor_final_centavos?: number
-          valor_reajustado_centavos: number
+          valor_reajustado_centavos?: number | null
           valor_retroativo_centavos?: number
         }
         Update: {
@@ -891,7 +891,7 @@ export type Database = {
           confirmado_por?: string | null
           confirmado_por_nome?: string | null
           created_at?: string
-          data_aplicacao?: string
+          data_aplicacao?: string | null
           data_confirmacao?: string | null
           data_liberacao?: string | null
           empresa_id?: string
@@ -901,15 +901,15 @@ export type Database = {
           mes_reajuste?: number | null
           meses_retroativos?: number
           observacao?: string | null
-          percentual?: number
+          percentual?: number | null
           status?: string
           status_reajuste?: string
           updated_at?: string
           usuario_id?: string | null
           usuario_nome?: string | null
-          valor_antigo_centavos?: number
+          valor_antigo_centavos?: number | null
           valor_final_centavos?: number
-          valor_reajustado_centavos?: number
+          valor_reajustado_centavos?: number | null
           valor_retroativo_centavos?: number
         }
         Relationships: []
@@ -1018,6 +1018,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      solicitar_reajuste: { Args: { p_empresa_id: string }; Returns: string }
       vincular_empresas_por_responsavel: { Args: never; Returns: undefined }
     }
     Enums: {
