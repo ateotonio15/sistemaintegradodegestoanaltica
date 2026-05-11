@@ -94,6 +94,7 @@ export function statusReajusteColor(status: StatusReajuste): string {
 
 // === Fluxo de aprovação / liberação ===
 export type StatusReajusteFluxo =
+  | "solicitado"
   | "pendente_confirmacao"
   | "reajustado"
   | "liberado"
@@ -103,6 +104,7 @@ export function labelStatusReajusteFluxo(s: StatusReajusteFluxo | string | null 
   if (s === "reajustado") return "Reajustado";
   if (s === "liberado") return "Liberado";
   if (s === "retroativo_aplicado") return "Retroativo Aplicado";
+  if (s === "solicitado") return "Solicitado";
   return "Enviado para Cadastro";
 }
 
@@ -110,5 +112,6 @@ export function corStatusReajusteFluxo(s: StatusReajusteFluxo | string | null | 
   if (s === "reajustado") return "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30";
   if (s === "liberado") return "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30";
   if (s === "retroativo_aplicado") return "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30";
+  if (s === "solicitado") return "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30";
   return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
 }
