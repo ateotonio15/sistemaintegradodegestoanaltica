@@ -275,6 +275,10 @@ export function FaturamentosEnviadosCard() {
       .map((p): Linha | null => {
         const emp = empMap.get(p.empresa_id);
         if (!emp) return null;
+        const vigente = vigenteMap.get(p.empresa_id);
+        if (!vigente) return null;
+        if (p.mes_referencia !== vigente.mes_referencia) return null;
+        if (p.periodo !== vigente.periodo) return null;
         return {
           key: p.id,
           empresaId: p.empresa_id,
@@ -287,7 +291,7 @@ export function FaturamentosEnviadosCard() {
       })
       .filter((l): l is Linha => l !== null)
       .sort((a, b) => a.empresaNome.localeCompare(b.empresaNome));
-  }, [pendentes, empresasInfo, alertaKeySet]);
+  }, [pendentes, empresasInfo, alertaKeySet, vigenteMap]);
 
   const [anexosDialog, setAnexosDialog] = useState<{
     empresaId: string;
