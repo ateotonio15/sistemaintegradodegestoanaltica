@@ -182,7 +182,7 @@ export default function Reajustes() {
   });
 
   const podeLiberar = (empresa: any) =>
-    isAdmin || (isComum && empresa.responsavel_user_id === user?.id);
+    isAdmin || (isComum && (empresa.responsavel_user_id === user?.id || minhasEmpresasSet.has(empresa.id)));
 
   const openNew = (empresaId?: string) => {
     setEditing(null);
