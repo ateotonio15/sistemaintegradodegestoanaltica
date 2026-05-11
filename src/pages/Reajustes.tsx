@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check, Eye, BedDouble, Building2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReajusteDialog } from "@/components/reajustes/ReajusteDialog";
 import { ReajusteHistoricoDialog } from "@/components/reajustes/ReajusteHistoricoDialog";
+import { ReajusteDetalhesDialog } from "@/components/reajustes/ReajusteDetalhesDialog";
 import {
   formatCentavosBRL, getStatusReajusteEmpresa, statusReajusteColor, type StatusReajuste,
   labelStatusReajusteFluxo, corStatusReajusteFluxo, getMesReajuste, nomeMes,
@@ -42,6 +43,7 @@ export default function Reajustes() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
   const [solicitandoId, setSolicitandoId] = useState<string | null>(null);
+  const [detalhesReajuste, setDetalhesReajuste] = useState<{ r: any; nome: string } | null>(null);
 
   const solicitarMutation = useMutation({
     mutationFn: async (empresaId: string) => {
@@ -305,23 +307,29 @@ export default function Reajustes() {
                     <TableHead>Contrato</TableHead>
                     <TableHead>Implantação</TableHead>
                     <TableHead>Mês Reajuste</TableHead>
-                    <TableHead>Valor Atual</TableHead>
                     <TableHead>%</TableHead>
-                    <TableHead>Valor Reajustado</TableHead>
-                    <TableHead>Retroativo</TableHead>
-                    <TableHead>Valor Final</TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1"><BedDouble className="h-3.5 w-3.5 text-blue-500" /> Enfermaria</span>
+                    </TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1"><Building2 className="h-3.5 w-3.5 text-purple-500" /> Apartamento</span>
+                    </TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
-                    <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">Nenhum contrato encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Nenhum contrato encontrado</TableCell></TableRow>
                   ) : rows.map(({ empresa, reajuste, status }) => {
                     const statusFluxo = reajuste?.status_reajuste as string | undefined;
                     const isPendenteConfirm = reajuste && statusFluxo === "pendente_confirmacao";
                     const isSolicitado = reajuste && statusFluxo === "solicitado";
-                    const temValores = reajuste && !isSolicitado && (reajuste.valor_antigo_centavos || 0) > 0;
+                    const enfFinal = reajuste?.valor_final_enfermaria_centavos || 0;
+                    const aptFinal = reajuste?.valor_final_apartamento_centavos || 0;
+                    const enfReaj = reajuste?.valor_reajustado_enfermaria_centavos || 0;
+                    const aptReaj = reajuste?.valor_reajustado_apartamento_centavos || 0;
+                    const temValores = reajuste && !isSolicitado && (enfFinal > 0 || aptFinal > 0 || (reajuste.valor_antigo_centavos || 0) > 0);
                     const mesReaj = getMesReajuste(empresa.data_implantacao);
                     const temRetro = (reajuste?.meses_retroativos || 0) > 0;
                     return (
@@ -330,18 +338,23 @@ export default function Reajustes() {
                       <TableCell className="text-sm text-muted-foreground">{empresa.codigo_contrato || "—"}</TableCell>
                       <TableCell className="text-sm">{empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : "—"}</TableCell>
                       <TableCell className="text-sm">{nomeMes(mesReaj)}</TableCell>
-                      <TableCell>{temValores ? formatCentavosBRL(reajuste.valor_antigo_centavos) : "—"}</TableCell>
-                      <TableCell>{temValores ? `${Number(reajuste.percentual).toFixed(2).replace(".", ",")}%` : "—"}</TableCell>
-                      <TableCell className="font-semibold">{temValores ? formatCentavosBRL(reajuste.valor_reajustado_centavos) : "—"}</TableCell>
-                      <TableCell className="text-sm">
-                        {temValores ? (
-                          <>
-                            <div>{formatCentavosBRL(reajuste.valor_retroativo_centavos)}</div>
-                            {temRetro && <div className="text-xs text-muted-foreground">{reajuste.meses_retroativos} {reajuste.meses_retroativos === 1 ? "mês" : "meses"}</div>}
-                          </>
-                        ) : "—"}
+                      <TableCell>{temValores && reajuste.percentual ? `${Number(reajuste.percentual).toFixed(2).replace(".", ",")}%` : "—"}</TableCell>
+                      <TableCell>
+                        {temValores && enfFinal > 0 ? (
+                          <div>
+                            <div className="font-bold text-blue-700 dark:text-blue-400">{formatCentavosBRL(enfFinal)}</div>
+                            <div className="text-xs text-muted-foreground">Reaj: {formatCentavosBRL(enfReaj)}</div>
+                          </div>
+                        ) : <span className="text-muted-foreground">—</span>}
                       </TableCell>
-                      <TableCell className="font-bold text-primary">{temValores ? formatCentavosBRL(reajuste.valor_final_centavos) : "—"}</TableCell>
+                      <TableCell>
+                        {temValores && aptFinal > 0 ? (
+                          <div>
+                            <div className="font-bold text-purple-700 dark:text-purple-400">{formatCentavosBRL(aptFinal)}</div>
+                            <div className="text-xs text-muted-foreground">Reaj: {formatCentavosBRL(aptReaj)}</div>
+                          </div>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
                       <TableCell>
                         {reajuste ? (
                           <Badge variant="outline" className={corStatusReajusteFluxo(statusFluxo)}>
@@ -353,6 +366,11 @@ export default function Reajustes() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {temValores && (
+                            <Button size="icon" variant="ghost" title="Ver detalhes" onClick={() => setDetalhesReajuste({ r: reajuste, nome: empresa.nome })}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
                           {(isPendenteConfirm || isSolicitado) && podeLiberar(empresa) && !isSolicitado && (
                             <Button
                               size="sm"
@@ -426,6 +444,13 @@ export default function Reajustes() {
         onOpenChange={setHistoricoOpen}
         empresaId={historicoEmpresa?.id || null}
         empresaNome={historicoEmpresa?.nome}
+      />
+
+      <ReajusteDetalhesDialog
+        open={!!detalhesReajuste}
+        onOpenChange={(o) => !o && setDetalhesReajuste(null)}
+        reajuste={detalhesReajuste?.r || null}
+        empresaNome={detalhesReajuste?.nome}
       />
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
