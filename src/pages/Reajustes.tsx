@@ -40,6 +40,7 @@ export default function Reajustes() {
   const [historicoEmpresa, setHistoricoEmpresa] = useState<{ id: string; nome: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmConfirmar, setConfirmConfirmar] = useState<{ id: string; empresa: string } | null>(null);
+  const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["reajustes-empresas-ativas"],
@@ -162,6 +163,35 @@ export default function Reajustes() {
       setConfirmConfirmar(null);
     },
     onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao confirmar", variant: "destructive" }),
+  });
+
+  const liberarMutation = useMutation({
+    mutationFn: async ({ id, temRetro }: { id: string; temRetro: boolean }) => {
+      let nome: string | null = null;
+      if (user?.id) {
+        const { data } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
+        nome = data?.display_name || null;
+      }
+      const now = new Date();
+      const competencia = `${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+      const { error } = await supabase
+        .from("reajustes_anuais")
+        .update({
+          status_reajuste: temRetro ? "retroativo_aplicado" : "liberado",
+          data_liberacao: now.toISOString(),
+          liberado_por: user?.id || null,
+          liberado_por_nome: nome,
+          competencia,
+        } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Reajuste liberado", description: "Liberação registrada com competência atual." });
+      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
+      setConfirmLiberar(null);
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao liberar", variant: "destructive" }),
   });
 
   const podeConfirmar = (empresa: any) =>
