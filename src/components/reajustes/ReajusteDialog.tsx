@@ -116,7 +116,12 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
       };
 
       if (editing) {
-        const { error } = await supabase.from("reajustes_anuais").update(basePayload).eq("id", editing.id);
+        const updatePayload: any = { ...basePayload };
+        // Se estava em 'solicitado' e agora tem valores, avança para 'pendente_confirmacao'
+        if ((editing as any).status_reajuste === "solicitado" && valorAntigoCent > 0 && pctNum > 0) {
+          updatePayload.status_reajuste = "pendente_confirmacao";
+        }
+        const { error } = await supabase.from("reajustes_anuais").update(updatePayload).eq("id", editing.id);
         if (error) throw error;
       } else {
         // Novo reajuste sempre nasce aguardando confirmação do Cadastro
