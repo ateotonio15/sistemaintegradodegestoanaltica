@@ -196,7 +196,7 @@ export default function Reajustes() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Controle anual de reajustes dos contratos</p>
           </div>
-          {canEdit && (
+          {canCriar && (
             <Button onClick={() => openNew()}>
               <Plus className="h-4 w-4 mr-2" /> Novo Reajuste
             </Button>
@@ -276,7 +276,7 @@ export default function Reajustes() {
                     <TableHead>Contrato</TableHead>
                     <TableHead>Implantação</TableHead>
                     <TableHead>Mês Reajuste</TableHead>
-                    <TableHead>Valor Antigo</TableHead>
+                    <TableHead>Valor Atual</TableHead>
                     <TableHead>%</TableHead>
                     <TableHead>Valor Reajustado</TableHead>
                     <TableHead>Retroativo</TableHead>
@@ -323,30 +323,20 @@ export default function Reajustes() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {isPendenteConfirm && podeConfirmar(empresa) && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => setConfirmConfirmar({ id: reajuste.id, empresa: empresa.nome })}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <Check className="h-3 w-3 mr-1" /> Confirmar
-                            </Button>
-                          )}
-                          {canEdit && isReajustado && (
+                          {isPendenteConfirm && podeLiberar(empresa) && (
                             <Button
                               size="sm"
                               variant="default"
                               onClick={() => setConfirmLiberar({ id: reajuste.id, empresa: empresa.nome, temRetro })}
-                              className="bg-blue-600 hover:bg-blue-700"
+                              className="bg-green-600 hover:bg-green-700"
                             >
-                              <Send className="h-3 w-3 mr-1" /> Liberar
+                              <Check className="h-3 w-3 mr-1" /> Liberar
                             </Button>
                           )}
                           <Button size="icon" variant="ghost" title="Histórico" onClick={() => { setHistoricoEmpresa({ id: empresa.id, nome: empresa.nome }); setHistoricoOpen(true); }}>
                             <History className="h-4 w-4" />
                           </Button>
-                          {canEdit && reajuste && (
+                          {canCriar && reajuste && (
                             <>
                               <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(reajuste)}>
                                 <Pencil className="h-4 w-4" />
@@ -356,7 +346,7 @@ export default function Reajustes() {
                               </Button>
                             </>
                           )}
-                          {canEdit && !reajuste && (
+                          {canCriar && !reajuste && (
                             <Button size="sm" variant="outline" onClick={() => openNew(empresa.id)}>
                               <Plus className="h-3 w-3 mr-1" /> Registrar
                             </Button>
@@ -400,25 +390,6 @@ export default function Reajustes() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!confirmConfirmar} onOpenChange={(o) => !o && setConfirmConfirmar(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar reajuste?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você está confirmando o reajuste de <strong>{confirmConfirmar?.empresa}</strong>. O status passará para "Reajustado" e o alerta será encerrado.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => confirmConfirmar && confirmarMutation.mutate(confirmConfirmar.id)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Confirmar Reajuste
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog open={!!confirmLiberar} onOpenChange={(o) => !o && setConfirmLiberar(null)}>
         <AlertDialogContent>
