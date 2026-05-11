@@ -853,18 +853,10 @@ export type Database = {
           updated_at: string
           usuario_id: string | null
           usuario_nome: string | null
-          valor_antigo_apartamento_centavos: number | null
           valor_antigo_centavos: number | null
-          valor_antigo_enfermaria_centavos: number | null
-          valor_final_apartamento_centavos: number
           valor_final_centavos: number
-          valor_final_enfermaria_centavos: number
-          valor_reajustado_apartamento_centavos: number | null
           valor_reajustado_centavos: number | null
-          valor_reajustado_enfermaria_centavos: number | null
-          valor_retroativo_apartamento_centavos: number
           valor_retroativo_centavos: number
-          valor_retroativo_enfermaria_centavos: number
         }
         Insert: {
           ano: number
@@ -888,18 +880,10 @@ export type Database = {
           updated_at?: string
           usuario_id?: string | null
           usuario_nome?: string | null
-          valor_antigo_apartamento_centavos?: number | null
           valor_antigo_centavos?: number | null
-          valor_antigo_enfermaria_centavos?: number | null
-          valor_final_apartamento_centavos?: number
           valor_final_centavos?: number
-          valor_final_enfermaria_centavos?: number
-          valor_reajustado_apartamento_centavos?: number | null
           valor_reajustado_centavos?: number | null
-          valor_reajustado_enfermaria_centavos?: number | null
-          valor_retroativo_apartamento_centavos?: number
           valor_retroativo_centavos?: number
-          valor_retroativo_enfermaria_centavos?: number
         }
         Update: {
           ano?: number
@@ -923,18 +907,10 @@ export type Database = {
           updated_at?: string
           usuario_id?: string | null
           usuario_nome?: string | null
-          valor_antigo_apartamento_centavos?: number | null
           valor_antigo_centavos?: number | null
-          valor_antigo_enfermaria_centavos?: number | null
-          valor_final_apartamento_centavos?: number
           valor_final_centavos?: number
-          valor_final_enfermaria_centavos?: number
-          valor_reajustado_apartamento_centavos?: number | null
           valor_reajustado_centavos?: number | null
-          valor_reajustado_enfermaria_centavos?: number | null
-          valor_retroativo_apartamento_centavos?: number
           valor_retroativo_centavos?: number
-          valor_retroativo_enfermaria_centavos?: number
         }
         Relationships: []
       }
