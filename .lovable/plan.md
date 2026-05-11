@@ -1,96 +1,71 @@
-## Etapa 18 — Solicitação de Reajuste + Correção de Valores
+## Diagnóstico
 
-Refatorar o fluxo para que o perfil **Visualização** apenas **solicite** o reajuste (sem preencher valores nem liberar), e que o **Cadastro** seja o único responsável por registrar valores e liberar. Corrigir também a exibição/cálculo das colunas Retroativo e Valor Final.
+A coluna **Retroativo** e **Valor Final** existem no frontend (`Reajustes.tsx` linhas 311–344) e estão sendo lidas com `select("*")`. O problema **não está no frontend** nem na query.
 
----
+A causa raiz está no **banco**: as funções `trg_reajuste_calc_campos`, `trg_criar_alerta_reajuste`, `trg_finalizar_alerta_reajuste` e `guard_reajuste_comum` existem como FUNCTIONS, mas **nenhum TRIGGER está anexado** à tabela `reajustes_anuais` (verificado em `information_schema.triggers` — retorno vazio).
 
-### 1. Banco (migration)
+Resultado: ao inserir/atualizar um reajuste, o cálculo de `valor_retroativo_centavos`, `valor_final_centavos` e `meses_retroativos` nunca roda. Confirmação na linha existente:
 
-**Tabela `reajustes_anuais`:**
-- Permitir solicitação sem valores: tornar `valor_antigo_centavos`, `percentual`, `valor_reajustado_centavos`, `data_aplicacao` nullable (com default 0 onde aplicável).
-- Adicionar status `'solicitado'` como valor permitido em `status_reajuste` (novo estado inicial quando a Visualização cria a solicitação).
-- Status válidos finais: `solicitado`, `pendente_confirmacao`, `reajustado`, `liberado`, `retroativo_aplicado`.
+```
+valor_antigo:        28.657
+percentual:          6,06%
+valor_reajustado:    30.394   (calculado no ReajusteDialog antes do insert)
+valor_retroativo:    0        (deveria ser calculado pelo trigger)
+valor_final:         0        (deveria ser valor_reajustado + retroativo)
+```
 
-**Trigger `trg_reajuste_calc_campos`:**
-- Tratar valores nulos: só calcular `valor_reajustado / retroativo / final` quando `valor_antigo` e `percentual` existirem; caso contrário manter zerado.
+Como `temValores` no frontend exige `valor_antigo_centavos > 0`, a célula renderiza `R$ 0,00` para Retroativo/Final em vez de aparecer vazio — mas o valor está incorreto.
 
-**Trigger `guard_reajuste_comum`:**
-- Bloquear que Visualização altere valores depois que o Cadastro registrou (já bloqueia status/liberação; ampliar para campos financeiros quando status ≠ `solicitado`).
+## Correção (somente migração SQL)
 
-**Função RPC `solicitar_reajuste(p_empresa_id uuid)`** (SECURITY DEFINER):
-- Apenas perfil `visualizacao` ou `admin`.
-- Cria registro em `reajustes_anuais` com `status_reajuste='solicitado'`, `ano = ano atual`, valores zerados, `usuario_id/nome = solicitante`.
-- Trigger `trg_criar_alerta_reajuste` será ajustada para também disparar quando status for `solicitado` (alerta para Cadastro responsável).
+### 1. Anexar triggers faltantes em `reajustes_anuais`
 
-**Trigger `trg_criar_alerta_reajuste`:**
-- Ampliar condição para criar alerta tanto em `solicitado` quanto `pendente_confirmacao`.
-- Mensagem do alerta passa a depender do status (frontend já lê `status_reajuste`).
+```sql
+DROP TRIGGER IF EXISTS trg_reajuste_calc_campos ON public.reajustes_anuais;
+CREATE TRIGGER trg_reajuste_calc_campos
+  BEFORE INSERT OR UPDATE ON public.reajustes_anuais
+  FOR EACH ROW EXECUTE FUNCTION public.trg_reajuste_calc_campos();
 
----
+DROP TRIGGER IF EXISTS trg_guard_reajuste_comum ON public.reajustes_anuais;
+CREATE TRIGGER trg_guard_reajuste_comum
+  BEFORE UPDATE ON public.reajustes_anuais
+  FOR EACH ROW EXECUTE FUNCTION public.guard_reajuste_comum();
 
-### 2. Frontend — Permissões
+DROP TRIGGER IF EXISTS trg_criar_alerta_reajuste ON public.reajustes_anuais;
+CREATE TRIGGER trg_criar_alerta_reajuste
+  AFTER INSERT ON public.reajustes_anuais
+  FOR EACH ROW EXECUTE FUNCTION public.trg_criar_alerta_reajuste();
 
-`src/pages/Reajustes.tsx`:
-- `canCriar` = apenas `isAdmin || isComum` (remover `isViewOnly`).
-- `isViewOnly` ganha um botão dedicado **"Solicitar Reajuste"** por linha (em vez de "Registrar"), que chama a RPC `solicitar_reajuste`.
-- `podeLiberar`: já está correto (admin ou Cadastro responsável). Garantir que Visualização nunca veja o botão "Liberar".
-- Financeiro: apenas leitura (esconder botões de ação).
+DROP TRIGGER IF EXISTS trg_finalizar_alerta_reajuste ON public.reajustes_anuais;
+CREATE TRIGGER trg_finalizar_alerta_reajuste
+  AFTER UPDATE ON public.reajustes_anuais
+  FOR EACH ROW EXECUTE FUNCTION public.trg_finalizar_alerta_reajuste();
+```
 
-`src/components/reajustes/ReajusteDialog.tsx`:
-- Bloquear abertura para Visualização. Só aparece para Admin/Cadastro.
+### 2. Backfill dos registros existentes
 
----
+```sql
+UPDATE public.reajustes_anuais
+   SET valor_reajustado_centavos = CASE
+         WHEN valor_antigo_centavos IS NOT NULL AND percentual IS NOT NULL AND percentual > 0
+         THEN ROUND(valor_antigo_centavos + (valor_antigo_centavos * percentual / 100.0))::bigint
+         ELSE valor_reajustado_centavos END,
+       valor_retroativo_centavos = COALESCE(
+         ((COALESCE(valor_reajustado_centavos,0) - COALESCE(valor_antigo_centavos,0))
+          * COALESCE(meses_retroativos, 0))::bigint, 0),
+       valor_final_centavos = COALESCE(valor_reajustado_centavos,0)
+                            + COALESCE(((COALESCE(valor_reajustado_centavos,0) - COALESCE(valor_antigo_centavos,0))
+                                        * COALESCE(meses_retroativos, 0))::bigint, 0);
+```
 
-### 3. Tabela — Colunas e Exibição
+(Disparado via UPDATE direto após criar o trigger; o próprio `BEFORE UPDATE` recalcula tudo.)
 
-Confirmar a ordem exata pedida (já está correta no JSX):
-`Empresa | Contrato | Implantação | Mês Reajuste | Valor Atual | % | Valor Reajustado | Retroativo | Valor Final | Status | Ações`
+## Sem mudanças no frontend
 
-Correção de exibição:
-- Quando o registro está em `solicitado` (valores zerados), mostrar "—" nas colunas financeiras em vez de `R$ 0,00`.
-- Manter `formatCentavosBRL` (BRL com milhar e 2 decimais) — já implementado.
-- Garantir que **Retroativo** e **Valor Final** sempre apareçam quando `status_reajuste` for `reajustado / liberado / retroativo_aplicado` (binding já existe; validar que o trigger persiste corretamente).
+Renderização, query (`select("*")`), tipos e formatação BRL já estão corretos. A coluna aparece com `R$ 0,00` mesmo quando zero (nunca vazia), exatamente como pedido — basta os valores ficarem corretos no banco.
 
-Status badges:
-- `solicitado` → "Solicitado pela Visualização" (laranja)
-- `pendente_confirmacao` → "Enviado para Cadastro" (amarelo)
-- `reajustado` → verde
-- `liberado` → azul
-- `retroativo_aplicado` → roxo
+## Não será feito
 
-Atualizar `labelStatusReajusteFluxo` e `corStatusReajusteFluxo` em `src/lib/reajuste-utils.ts`.
-
----
-
-### 4. Dashboard do Perfil Visualização
-
-`src/components/reajustes/AlertaReajustesPendentes.tsx`:
-- Já lista empresas que chegaram no mês de reajuste e não possuem reajuste no ano. Adicionar coluna **Ações** com botão **"Solicitar Reajuste"** (chama RPC e atualiza lista).
-- Empresa só sai da lista quando o Cadastro liberar (status = `reajustado`/`liberado`/`retroativo_aplicado`). Quando a Visualização solicitar, manter a empresa visível com badge "Solicitado".
-
----
-
-### 5. Alerta para Cadastro
-
-`src/components/reajustes/AlertaReajustesParaConfirmar.tsx`:
-- Mensagem condicional pelo `status_reajuste` do alerta:
-  - `solicitado` → "Solicitação de reajuste aguardando análise."
-  - `pendente_confirmacao` → "Novo reajuste registrado aguardando liberação."
-- Continua visível somente para Admin e Cadastro responsável.
-
----
-
-### Arquivos afetados
-
-- **Migration nova:** ajustar nullables, trigger de cálculo, trigger de alerta, criar RPC `solicitar_reajuste`.
-- `src/lib/reajuste-utils.ts` — labels/cores do novo status.
-- `src/pages/Reajustes.tsx` — permissões, botão "Solicitar", esconder valores zerados.
-- `src/components/reajustes/ReajusteDialog.tsx` — bloquear para Visualização.
-- `src/components/reajustes/AlertaReajustesPendentes.tsx` — botão "Solicitar Reajuste".
-- `src/components/reajustes/AlertaReajustesParaConfirmar.tsx` — mensagem condicional.
-
-### O que NÃO será alterado
-
-- Lógica de cálculo (`valor_reajustado / retroativo / valor_final`) já correta no trigger SQL.
-- RLS de Cadastro responsável (já permite criar/liberar).
-- Histórico, exclusão, edição pelo Cadastro.
+- Não alterar `Reajustes.tsx`, `ReajusteDialog.tsx`, `reajuste-utils.ts` ou tipos.
+- Não remover/renomear colunas.
+- Não tocar nas RLS policies.
