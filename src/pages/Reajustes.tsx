@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
@@ -8,12 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReajusteDialog } from "@/components/reajustes/ReajusteDialog";
 import { ReajusteHistoricoDialog } from "@/components/reajustes/ReajusteHistoricoDialog";
-import { formatCentavosBRL, getStatusReajusteEmpresa, statusReajusteColor, type StatusReajuste } from "@/lib/reajuste-utils";
+import {
+  formatCentavosBRL, getStatusReajusteEmpresa, statusReajusteColor, type StatusReajuste,
+  labelStatusReajusteFluxo, corStatusReajusteFluxo,
+} from "@/lib/reajuste-utils";
 import { formatDateBR } from "@/lib/date-utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -21,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Reajustes() {
-  const { isAdmin, isViewOnly } = useAuth();
+  const { user, isAdmin, isViewOnly, isComum } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const canEdit = isAdmin || isViewOnly;
@@ -36,13 +39,14 @@ export default function Reajustes() {
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [historicoEmpresa, setHistoricoEmpresa] = useState<{ id: string; nome: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmConfirmar, setConfirmConfirmar] = useState<{ id: string; empresa: string } | null>(null);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["reajustes-empresas-ativas"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id,nome,codigo_contrato,status_empresa,data_implantacao")
+        .select("id,nome,codigo_contrato,status_empresa,data_implantacao,responsavel_user_id,responsavel_contrato")
         .eq("status_empresa", "Ativa")
         .order("nome");
       if (error) throw error;
@@ -61,6 +65,22 @@ export default function Reajustes() {
       return data as any[];
     },
   });
+
+  // Realtime
+  useEffect(() => {
+    const ch = supabase
+      .channel("reajustes-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "reajustes_anuais" }, () => {
+        qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
+        qc.invalidateQueries({ queryKey: ["reajustes-pendentes-count"] });
+        qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "alertas_reajuste" }, () => {
+        qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
 
   const reajustesPorEmpresaAno = useMemo(() => {
     const map: Record<string, any> = {};
@@ -116,6 +136,36 @@ export default function Reajustes() {
     },
     onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao excluir", variant: "destructive" }),
   });
+
+  const confirmarMutation = useMutation({
+    mutationFn: async (id: string) => {
+      let nome: string | null = null;
+      if (user?.id) {
+        const { data } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
+        nome = data?.display_name || null;
+      }
+      const { error } = await supabase
+        .from("reajustes_anuais")
+        .update({
+          status_reajuste: "reajustado",
+          confirmado_por: user?.id || null,
+          confirmado_por_nome: nome,
+          data_confirmacao: new Date().toISOString(),
+        } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Reajuste confirmado", description: "Status atualizado para Reajustado." });
+      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
+      qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
+      setConfirmConfirmar(null);
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao confirmar", variant: "destructive" }),
+  });
+
+  const podeConfirmar = (empresa: any) =>
+    isComum && empresa.responsavel_user_id === user?.id;
 
   const openNew = (empresaId?: string) => {
     setEditing(null);
@@ -223,13 +273,17 @@ export default function Reajustes() {
                     <TableHead>Valor Reajustado</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Responsável</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum contrato encontrado</TableCell></TableRow>
-                  ) : rows.map(({ empresa, reajuste, status }) => (
+                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhum contrato encontrado</TableCell></TableRow>
+                  ) : rows.map(({ empresa, reajuste, status }) => {
+                    const statusFluxo = reajuste?.status_reajuste as string | undefined;
+                    const isPendenteConfirm = reajuste && statusFluxo === "pendente_confirmacao";
+                    return (
                     <TableRow key={empresa.id}>
                       <TableCell className="font-medium">{empresa.nome}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{empresa.codigo_contrato || "—"}</TableCell>
@@ -238,10 +292,27 @@ export default function Reajustes() {
                       <TableCell className="font-semibold">{reajuste ? formatCentavosBRL(reajuste.valor_reajustado_centavos) : "—"}</TableCell>
                       <TableCell>{reajuste ? formatDateBR(reajuste.data_aplicacao) : "—"}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={statusReajusteColor(status)}>{status}</Badge>
+                        {reajuste ? (
+                          <Badge variant="outline" className={corStatusReajusteFluxo(statusFluxo)}>
+                            {labelStatusReajusteFluxo(statusFluxo)}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className={statusReajusteColor(status)}>{status}</Badge>
+                        )}
                       </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{empresa.responsavel_contrato || "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {isPendenteConfirm && podeConfirmar(empresa) && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => setConfirmConfirmar({ id: reajuste.id, empresa: empresa.nome })}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <Check className="h-3 w-3 mr-1" /> Confirmar Reajuste
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" title="Histórico" onClick={() => { setHistoricoEmpresa({ id: empresa.id, nome: empresa.nome }); setHistoricoOpen(true); }}>
                             <History className="h-4 w-4" />
                           </Button>
@@ -263,7 +334,7 @@ export default function Reajustes() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  );})}
                 </TableBody>
               </Table>
             </div>
@@ -295,6 +366,26 @@ export default function Reajustes() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => confirmDelete && deleteMutation.mutate(confirmDelete)}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!confirmConfirmar} onOpenChange={(o) => !o && setConfirmConfirmar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar reajuste?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está confirmando o reajuste de <strong>{confirmConfirmar?.empresa}</strong>. O status passará para "Reajustado" e o alerta será encerrado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmConfirmar && confirmarMutation.mutate(confirmConfirmar.id)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Confirmar Reajuste
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
