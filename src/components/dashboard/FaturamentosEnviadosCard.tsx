@@ -140,9 +140,10 @@ export function FaturamentosEnviadosCard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
-        .select("id, empresa_id, mes_referencia, periodo, data_envio_nota")
+        .select("id, empresa_id, mes_referencia, periodo, data_envio_nota, aguardando_nota_em")
         .eq("mes_referencia", mesAtual)
         .is("data_envio_nota", null)
+        .not("aguardando_nota_em", "is", null)
         .in("empresa_id", empresaIdsVinculadas);
       if (error) throw error;
       return (data ?? []) as FinMov[];
