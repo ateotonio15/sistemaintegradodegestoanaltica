@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BellRing, Clock, CheckCircle2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
-import { formatMesReferencia, getCurrentMesReferencia } from "@/lib/movimentacao-utils";
+import { formatMesReferencia, getCurrentMesReferencia, periodoVigente } from "@/lib/movimentacao-utils";
 import { AnexosViewerDialog } from "./AnexosViewerDialog";
 
 type FinMov = {
