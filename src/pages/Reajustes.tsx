@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check, Send } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReajusteDialog } from "@/components/reajustes/ReajusteDialog";
@@ -27,7 +27,7 @@ export default function Reajustes() {
   const { user, isAdmin, isViewOnly, isComum } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const canEdit = isAdmin || isViewOnly;
+  const canCriar = isAdmin || isViewOnly || isComum;
 
   const anoAtual = new Date().getFullYear();
   const [filterAno, setFilterAno] = useState<string>(String(anoAtual));
@@ -39,7 +39,6 @@ export default function Reajustes() {
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [historicoEmpresa, setHistoricoEmpresa] = useState<{ id: string; nome: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [confirmConfirmar, setConfirmConfirmar] = useState<{ id: string; empresa: string } | null>(null);
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
 
   const { data: empresas = [] } = useQuery({
@@ -138,33 +137,6 @@ export default function Reajustes() {
     onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao excluir", variant: "destructive" }),
   });
 
-  const confirmarMutation = useMutation({
-    mutationFn: async (id: string) => {
-      let nome: string | null = null;
-      if (user?.id) {
-        const { data } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
-        nome = data?.display_name || null;
-      }
-      const { error } = await supabase
-        .from("reajustes_anuais")
-        .update({
-          status_reajuste: "reajustado",
-          confirmado_por: user?.id || null,
-          confirmado_por_nome: nome,
-          data_confirmacao: new Date().toISOString(),
-        } as any)
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: "Reajuste confirmado", description: "Status atualizado para Reajustado." });
-      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
-      qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
-      setConfirmConfirmar(null);
-    },
-    onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao confirmar", variant: "destructive" }),
-  });
-
   const liberarMutation = useMutation({
     mutationFn: async ({ id, temRetro }: { id: string; temRetro: boolean }) => {
       let nome: string | null = null;
@@ -177,25 +149,29 @@ export default function Reajustes() {
       const { error } = await supabase
         .from("reajustes_anuais")
         .update({
-          status_reajuste: temRetro ? "retroativo_aplicado" : "liberado",
+          status_reajuste: temRetro ? "retroativo_aplicado" : "reajustado",
           data_liberacao: now.toISOString(),
           liberado_por: user?.id || null,
           liberado_por_nome: nome,
+          confirmado_por: user?.id || null,
+          confirmado_por_nome: nome,
+          data_confirmacao: now.toISOString(),
           competencia,
         } as any)
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Reajuste liberado", description: "Liberação registrada com competência atual." });
+      toast({ title: "Reajuste liberado", description: "Status atualizado para Reajustado." });
       qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
+      qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
       setConfirmLiberar(null);
     },
     onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao liberar", variant: "destructive" }),
   });
 
-  const podeConfirmar = (empresa: any) =>
-    isComum && empresa.responsavel_user_id === user?.id;
+  const podeLiberar = (empresa: any) =>
+    isAdmin || (isComum && empresa.responsavel_user_id === user?.id);
 
   const openNew = (empresaId?: string) => {
     setEditing(null);
@@ -220,7 +196,7 @@ export default function Reajustes() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Controle anual de reajustes dos contratos</p>
           </div>
-          {canEdit && (
+          {canCriar && (
             <Button onClick={() => openNew()}>
               <Plus className="h-4 w-4 mr-2" /> Novo Reajuste
             </Button>
@@ -300,7 +276,7 @@ export default function Reajustes() {
                     <TableHead>Contrato</TableHead>
                     <TableHead>Implantação</TableHead>
                     <TableHead>Mês Reajuste</TableHead>
-                    <TableHead>Valor Antigo</TableHead>
+                    <TableHead>Valor Atual</TableHead>
                     <TableHead>%</TableHead>
                     <TableHead>Valor Reajustado</TableHead>
                     <TableHead>Retroativo</TableHead>
@@ -315,7 +291,6 @@ export default function Reajustes() {
                   ) : rows.map(({ empresa, reajuste, status }) => {
                     const statusFluxo = reajuste?.status_reajuste as string | undefined;
                     const isPendenteConfirm = reajuste && statusFluxo === "pendente_confirmacao";
-                    const isReajustado = reajuste && statusFluxo === "reajustado";
                     const mesReaj = getMesReajuste(empresa.data_implantacao);
                     const temRetro = (reajuste?.meses_retroativos || 0) > 0;
                     return (
@@ -347,30 +322,20 @@ export default function Reajustes() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {isPendenteConfirm && podeConfirmar(empresa) && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => setConfirmConfirmar({ id: reajuste.id, empresa: empresa.nome })}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <Check className="h-3 w-3 mr-1" /> Confirmar
-                            </Button>
-                          )}
-                          {canEdit && isReajustado && (
+                          {isPendenteConfirm && podeLiberar(empresa) && (
                             <Button
                               size="sm"
                               variant="default"
                               onClick={() => setConfirmLiberar({ id: reajuste.id, empresa: empresa.nome, temRetro })}
-                              className="bg-blue-600 hover:bg-blue-700"
+                              className="bg-green-600 hover:bg-green-700"
                             >
-                              <Send className="h-3 w-3 mr-1" /> Liberar
+                              <Check className="h-3 w-3 mr-1" /> Liberar
                             </Button>
                           )}
                           <Button size="icon" variant="ghost" title="Histórico" onClick={() => { setHistoricoEmpresa({ id: empresa.id, nome: empresa.nome }); setHistoricoOpen(true); }}>
                             <History className="h-4 w-4" />
                           </Button>
-                          {canEdit && reajuste && (
+                          {canCriar && reajuste && (
                             <>
                               <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(reajuste)}>
                                 <Pencil className="h-4 w-4" />
@@ -380,7 +345,7 @@ export default function Reajustes() {
                               </Button>
                             </>
                           )}
-                          {canEdit && !reajuste && (
+                          {canCriar && !reajuste && (
                             <Button size="sm" variant="outline" onClick={() => openNew(empresa.id)}>
                               <Plus className="h-3 w-3 mr-1" /> Registrar
                             </Button>
@@ -424,25 +389,6 @@ export default function Reajustes() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!confirmConfirmar} onOpenChange={(o) => !o && setConfirmConfirmar(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar reajuste?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você está confirmando o reajuste de <strong>{confirmConfirmar?.empresa}</strong>. O status passará para "Reajustado" e o alerta será encerrado.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => confirmConfirmar && confirmarMutation.mutate(confirmConfirmar.id)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Confirmar Reajuste
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog open={!!confirmLiberar} onOpenChange={(o) => !o && setConfirmLiberar(null)}>
         <AlertDialogContent>

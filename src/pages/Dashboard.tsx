@@ -613,7 +613,7 @@ export default function Dashboard() {
     <AppLayout>
       <div className="space-y-8">
         <AlertaReajustesParaConfirmar />
-        <AlertaReajustesPendentes />
+        {isViewOnly && <AlertaReajustesPendentes />}
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
