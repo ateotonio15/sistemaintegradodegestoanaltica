@@ -30,44 +30,51 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl">
+      <DialogContent className="max-w-6xl">
         <DialogHeader>
           <DialogTitle>Histórico de Reajustes {empresaNome ? `— ${empresaNome}` : ""}</DialogTitle>
         </DialogHeader>
-        <div className="rounded-md border max-h-[60vh] overflow-auto">
+        <div className="rounded-md border max-h-[65vh] overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Ano</TableHead>
-                <TableHead>%</TableHead>
-                <TableHead>Atual</TableHead>
-                <TableHead>Reajustado</TableHead>
-                <TableHead>Retro.</TableHead>
-                <TableHead>Final</TableHead>
-                <TableHead>Aplicação</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Liberado</TableHead>
-                <TableHead>Competência</TableHead>
+                <TableHead rowSpan={2} className="align-bottom">Ano</TableHead>
+                <TableHead rowSpan={2} className="align-bottom">%</TableHead>
+                <TableHead colSpan={3} className="text-center bg-blue-500/10 text-blue-700 dark:text-blue-400">Enfermaria</TableHead>
+                <TableHead colSpan={3} className="text-center bg-purple-500/10 text-purple-700 dark:text-purple-400">Apartamento</TableHead>
+                <TableHead rowSpan={2} className="align-bottom">Total Final</TableHead>
+                <TableHead rowSpan={2} className="align-bottom">Aplicação</TableHead>
+                <TableHead rowSpan={2} className="align-bottom">Status</TableHead>
+                <TableHead rowSpan={2} className="align-bottom">Liberado</TableHead>
+                <TableHead rowSpan={2} className="align-bottom">Compet.</TableHead>
+              </TableRow>
+              <TableRow>
+                <TableHead className="text-xs bg-blue-500/5">Antigo</TableHead>
+                <TableHead className="text-xs bg-blue-500/5">Reaj.</TableHead>
+                <TableHead className="text-xs bg-blue-500/5">Final</TableHead>
+                <TableHead className="text-xs bg-purple-500/5">Antigo</TableHead>
+                <TableHead className="text-xs bg-purple-500/5">Reaj.</TableHead>
+                <TableHead className="text-xs bg-purple-500/5">Final</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-6">Carregando...</TableCell></TableRow>
               ) : data.length === 0 ? (
-                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Nenhum reajuste registrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-6">Nenhum reajuste registrado</TableCell></TableRow>
               ) : (
                 data.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.ano}</TableCell>
-                    <TableCell>{Number(r.percentual).toFixed(2).replace(".", ",")}%</TableCell>
-                    <TableCell>{formatCentavosBRL(r.valor_antigo_centavos)}</TableCell>
-                    <TableCell className="font-semibold text-primary">{formatCentavosBRL(r.valor_reajustado_centavos)}</TableCell>
-                    <TableCell className="text-sm">
-                      {formatCentavosBRL(r.valor_retroativo_centavos)}
-                      {(r.meses_retroativos || 0) > 0 && <div className="text-xs text-muted-foreground">{r.meses_retroativos}m</div>}
-                    </TableCell>
-                    <TableCell className="font-bold">{formatCentavosBRL(r.valor_final_centavos)}</TableCell>
-                    <TableCell>{formatDateBR(r.data_aplicacao)}</TableCell>
+                    <TableCell>{Number(r.percentual || 0).toFixed(2).replace(".", ",")}%</TableCell>
+                    <TableCell className="text-sm">{formatCentavosBRL(r.valor_antigo_enfermaria_centavos)}</TableCell>
+                    <TableCell className="text-sm">{formatCentavosBRL(r.valor_reajustado_enfermaria_centavos)}</TableCell>
+                    <TableCell className="font-semibold text-blue-700 dark:text-blue-400">{formatCentavosBRL(r.valor_final_enfermaria_centavos)}</TableCell>
+                    <TableCell className="text-sm">{formatCentavosBRL(r.valor_antigo_apartamento_centavos)}</TableCell>
+                    <TableCell className="text-sm">{formatCentavosBRL(r.valor_reajustado_apartamento_centavos)}</TableCell>
+                    <TableCell className="font-semibold text-purple-700 dark:text-purple-400">{formatCentavosBRL(r.valor_final_apartamento_centavos)}</TableCell>
+                    <TableCell className="font-bold text-primary">{formatCentavosBRL((r.valor_final_enfermaria_centavos || 0) + (r.valor_final_apartamento_centavos || 0) || r.valor_final_centavos)}</TableCell>
+                    <TableCell className="text-sm">{r.data_aplicacao ? formatDateBR(r.data_aplicacao) : "—"}</TableCell>
                     <TableCell className="text-sm">{labelStatusReajusteFluxo(r.status_reajuste)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {r.liberado_por_nome ? (
