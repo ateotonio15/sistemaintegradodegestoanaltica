@@ -52,9 +52,9 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
     if (editing) {
       setEmpresaId(editing.empresa_id);
       setAno(String(editing.ano));
-      setValorAtual(String(centavosToReais(editing.valor_antigo_centavos).toFixed(2)).replace(".", ","));
-      setPercentual(String(editing.percentual).replace(".", ","));
-      setDataAplicacao(editing.data_aplicacao);
+      setValorAtual(editing.valor_antigo_centavos > 0 ? String(centavosToReais(editing.valor_antigo_centavos).toFixed(2)).replace(".", ",") : "");
+      setPercentual(editing.percentual > 0 ? String(editing.percentual).replace(".", ",") : "");
+      setDataAplicacao(editing.data_aplicacao || new Date().toISOString().slice(0, 10));
       setObservacao(editing.observacao || "");
     } else {
       setEmpresaId(defaultEmpresaId || "");
@@ -116,7 +116,12 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
       };
 
       if (editing) {
-        const { error } = await supabase.from("reajustes_anuais").update(basePayload).eq("id", editing.id);
+        const updatePayload: any = { ...basePayload };
+        // Se estava em 'solicitado' e agora tem valores, avança para 'pendente_confirmacao'
+        if ((editing as any).status_reajuste === "solicitado" && valorAntigoCent > 0 && pctNum > 0) {
+          updatePayload.status_reajuste = "pendente_confirmacao";
+        }
+        const { error } = await supabase.from("reajustes_anuais").update(updatePayload).eq("id", editing.id);
         if (error) throw error;
       } else {
         // Novo reajuste sempre nasce aguardando confirmação do Cadastro

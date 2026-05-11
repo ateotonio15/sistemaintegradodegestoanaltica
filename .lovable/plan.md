@@ -1,70 +1,96 @@
-## Objetivo
+## Etapa 18 — Solicitação de Reajuste + Correção de Valores
 
-1. Permitir que o perfil **Cadastro** consiga clicar em **Liberar** nos reajustes solicitados pela Visualização.
-2. Garantir que o alerta "X contratos precisam registrar reajuste" do Dashboard apareça **somente para Visualização** — removê-lo de Cadastro (e também de Admin, Executivo, Enfermeira, Financeiro).
+Refatorar o fluxo para que o perfil **Visualização** apenas **solicite** o reajuste (sem preencher valores nem liberar), e que o **Cadastro** seja o único responsável por registrar valores e liberar. Corrigir também a exibição/cálculo das colunas Retroativo e Valor Final.
 
-## Diagnóstico
+---
 
-**Problema da liberação (item 1)**
+### 1. Banco (migration)
 
-Hoje a função `podeLiberar` em `src/pages/Reajustes.tsx` é:
+**Tabela `reajustes_anuais`:**
+- Permitir solicitação sem valores: tornar `valor_antigo_centavos`, `percentual`, `valor_reajustado_centavos`, `data_aplicacao` nullable (com default 0 onde aplicável).
+- Adicionar status `'solicitado'` como valor permitido em `status_reajuste` (novo estado inicial quando a Visualização cria a solicitação).
+- Status válidos finais: `solicitado`, `pendente_confirmacao`, `reajustado`, `liberado`, `retroativo_aplicado`.
 
-```
-podeLiberar = isAdmin || (isComum && empresa.responsavel_user_id === user.id)
-```
+**Trigger `trg_reajuste_calc_campos`:**
+- Tratar valores nulos: só calcular `valor_reajustado / retroativo / final` quando `valor_antigo` e `percentual` existirem; caso contrário manter zerado.
 
-Ela só reconhece o Cadastro como "responsável" quando o campo `responsavel_user_id` da empresa aponta para o usuário. Porém, na prática, muitos cadastros estão vinculados às empresas via tabela `empresa_usuarios` (vínculo múltiplo), e não pelo campo `responsavel_user_id`. Resultado: o botão **Liberar** simplesmente não aparece para esses cadastros, ou, quando aparece, a RLS/trigger do banco bloqueia a atualização.
+**Trigger `guard_reajuste_comum`:**
+- Bloquear que Visualização altere valores depois que o Cadastro registrou (já bloqueia status/liberação; ampliar para campos financeiros quando status ≠ `solicitado`).
 
-A política RLS e o trigger `guard_reajuste_comum` (migração 17) já aceitam ambos os caminhos (`responsavel_user_id` **ou** `empresa_usuarios`). O bug está apenas no front-end.
+**Função RPC `solicitar_reajuste(p_empresa_id uuid)`** (SECURITY DEFINER):
+- Apenas perfil `visualizacao` ou `admin`.
+- Cria registro em `reajustes_anuais` com `status_reajuste='solicitado'`, `ano = ano atual`, valores zerados, `usuario_id/nome = solicitante`.
+- Trigger `trg_criar_alerta_reajuste` será ajustada para também disparar quando status for `solicitado` (alerta para Cadastro responsável).
 
-**Alerta no Dashboard (item 2)**
+**Trigger `trg_criar_alerta_reajuste`:**
+- Ampliar condição para criar alerta tanto em `solicitado` quanto `pendente_confirmacao`.
+- Mensagem do alerta passa a depender do status (frontend já lê `status_reajuste`).
 
-O componente `AlertaReajustesPendentes` já está gated por `isViewOnly` em `src/pages/Dashboard.tsx` (linha 616). Se ainda aparece para o Cadastro, é porque o usuário em questão pode estar com role mista ou cache antigo. A correção será reforçar o gate explicitamente (`role === "visualizacao"`) e revisar para confirmar que nenhuma outra tela renderiza esse alerta.
+---
 
-> Observação: o alerta amarelo "Novo reajuste registrado aguardando liberação" (`AlertaReajustesParaConfirmar`) **continua** aparecendo para Cadastro e Admin — é justamente o aviso que diz ao Cadastro que existe reajuste a liberar. Nada será alterado nele.
+### 2. Frontend — Permissões
 
-## Mudanças
+`src/pages/Reajustes.tsx`:
+- `canCriar` = apenas `isAdmin || isComum` (remover `isViewOnly`).
+- `isViewOnly` ganha um botão dedicado **"Solicitar Reajuste"** por linha (em vez de "Registrar"), que chama a RPC `solicitar_reajuste`.
+- `podeLiberar`: já está correto (admin ou Cadastro responsável). Garantir que Visualização nunca veja o botão "Liberar".
+- Financeiro: apenas leitura (esconder botões de ação).
 
-### 1. `src/pages/Reajustes.tsx`
+`src/components/reajustes/ReajusteDialog.tsx`:
+- Bloquear abertura para Visualização. Só aparece para Admin/Cadastro.
 
-- Adicionar uma nova query carregando, para o usuário Cadastro logado, todos os `empresa_id` que ele tem em `empresa_usuarios`:
-  ```ts
-  const { data: minhasEmpresas = [] } = useQuery({
-    queryKey: ["minhas-empresas-comum", user?.id],
-    enabled: !!user?.id && isComum,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("empresa_usuarios").select("empresa_id").eq("user_id", user!.id);
-      return (data || []).map(r => r.empresa_id);
-    },
-  });
-  const minhasEmpresasSet = useMemo(() => new Set(minhasEmpresas), [minhasEmpresas]);
-  ```
-- Atualizar:
-  ```ts
-  const podeLiberar = (empresa: any) =>
-    isAdmin ||
-    (isComum && (empresa.responsavel_user_id === user?.id || minhasEmpresasSet.has(empresa.id)));
-  ```
-- Nada mais muda no fluxo: o botão **Liberar** já chama `liberarMutation` que grava status, `data_liberacao`, `liberado_por`, `confirmado_por` etc.
+---
 
-### 2. `src/pages/Dashboard.tsx`
+### 3. Tabela — Colunas e Exibição
 
-- Trocar `{isViewOnly && <AlertaReajustesPendentes />}` por algo equivalente porém explícito, garantindo que NENHUM outro perfil veja:
-  ```tsx
-  {role === "visualizacao" && <AlertaReajustesPendentes />}
-  ```
-- Conferir (busca `AlertaReajustesPendentes` no projeto) que o componente não é renderizado em outro lugar acessível ao Cadastro.
+Confirmar a ordem exata pedida (já está correta no JSX):
+`Empresa | Contrato | Implantação | Mês Reajuste | Valor Atual | % | Valor Reajustado | Retroativo | Valor Final | Status | Ações`
 
-## Sem mudanças
+Correção de exibição:
+- Quando o registro está em `solicitado` (valores zerados), mostrar "—" nas colunas financeiras em vez de `R$ 0,00`.
+- Manter `formatCentavosBRL` (BRL com milhar e 2 decimais) — já implementado.
+- Garantir que **Retroativo** e **Valor Final** sempre apareçam quando `status_reajuste` for `reajustado / liberado / retroativo_aplicado` (binding já existe; validar que o trigger persiste corretamente).
 
-- Migrações de banco (RLS e trigger já cobrem o caso).
-- Lógica de cálculo de reajuste, retroativo ou histórico.
-- Alerta `AlertaReajustesParaConfirmar` (continua para Cadastro e Admin).
-- Permissões de criação de reajuste pela Visualização.
+Status badges:
+- `solicitado` → "Solicitado pela Visualização" (laranja)
+- `pendente_confirmacao` → "Enviado para Cadastro" (amarelo)
+- `reajustado` → verde
+- `liberado` → azul
+- `retroativo_aplicado` → roxo
 
-## Critérios de aceite
+Atualizar `labelStatusReajusteFluxo` e `corStatusReajusteFluxo` em `src/lib/reajuste-utils.ts`.
 
-- Logado como Cadastro responsável (via `responsavel_user_id` **ou** via `empresa_usuarios`), o botão **Liberar** aparece nos reajustes pendentes da empresa e a liberação grava status `Reajustado` / `Retroativo Aplicado`, com `liberado_por`, `data_liberacao` e `competência`.
-- O cartão "X contratos precisam registrar reajuste" aparece **apenas** no Dashboard do perfil Visualização.
-- Visualização continua sem o botão Liberar.
+---
+
+### 4. Dashboard do Perfil Visualização
+
+`src/components/reajustes/AlertaReajustesPendentes.tsx`:
+- Já lista empresas que chegaram no mês de reajuste e não possuem reajuste no ano. Adicionar coluna **Ações** com botão **"Solicitar Reajuste"** (chama RPC e atualiza lista).
+- Empresa só sai da lista quando o Cadastro liberar (status = `reajustado`/`liberado`/`retroativo_aplicado`). Quando a Visualização solicitar, manter a empresa visível com badge "Solicitado".
+
+---
+
+### 5. Alerta para Cadastro
+
+`src/components/reajustes/AlertaReajustesParaConfirmar.tsx`:
+- Mensagem condicional pelo `status_reajuste` do alerta:
+  - `solicitado` → "Solicitação de reajuste aguardando análise."
+  - `pendente_confirmacao` → "Novo reajuste registrado aguardando liberação."
+- Continua visível somente para Admin e Cadastro responsável.
+
+---
+
+### Arquivos afetados
+
+- **Migration nova:** ajustar nullables, trigger de cálculo, trigger de alerta, criar RPC `solicitar_reajuste`.
+- `src/lib/reajuste-utils.ts` — labels/cores do novo status.
+- `src/pages/Reajustes.tsx` — permissões, botão "Solicitar", esconder valores zerados.
+- `src/components/reajustes/ReajusteDialog.tsx` — bloquear para Visualização.
+- `src/components/reajustes/AlertaReajustesPendentes.tsx` — botão "Solicitar Reajuste".
+- `src/components/reajustes/AlertaReajustesParaConfirmar.tsx` — mensagem condicional.
+
+### O que NÃO será alterado
+
+- Lógica de cálculo (`valor_reajustado / retroativo / valor_final`) já correta no trigger SQL.
+- RLS de Cadastro responsável (já permite criar/liberar).
+- Histórico, exclusão, edição pelo Cadastro.

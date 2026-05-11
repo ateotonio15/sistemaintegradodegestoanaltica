@@ -27,7 +27,8 @@ export default function Reajustes() {
   const { user, isAdmin, isViewOnly, isComum } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const canCriar = isAdmin || isViewOnly || isComum;
+  const canCriar = isAdmin || isComum;
+  const podeSolicitar = isAdmin || isViewOnly;
 
   const anoAtual = new Date().getFullYear();
   const [filterAno, setFilterAno] = useState<string>(String(anoAtual));
@@ -40,6 +41,23 @@ export default function Reajustes() {
   const [historicoEmpresa, setHistoricoEmpresa] = useState<{ id: string; nome: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
+  const [solicitandoId, setSolicitandoId] = useState<string | null>(null);
+
+  const solicitarMutation = useMutation({
+    mutationFn: async (empresaId: string) => {
+      const { error } = await supabase.rpc("solicitar_reajuste", { p_empresa_id: empresaId } as any);
+      if (error) throw error;
+    },
+    onMutate: (empresaId: string) => setSolicitandoId(empresaId),
+    onSettled: () => setSolicitandoId(null),
+    onSuccess: () => {
+      toast({ title: "Solicitação enviada", description: "O Cadastro responsável foi notificado." });
+      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
+      qc.invalidateQueries({ queryKey: ["reajustes-pendentes-list"] });
+      qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao solicitar", variant: "destructive" }),
+  });
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["reajustes-empresas-ativas"],
@@ -302,6 +320,8 @@ export default function Reajustes() {
                   ) : rows.map(({ empresa, reajuste, status }) => {
                     const statusFluxo = reajuste?.status_reajuste as string | undefined;
                     const isPendenteConfirm = reajuste && statusFluxo === "pendente_confirmacao";
+                    const isSolicitado = reajuste && statusFluxo === "solicitado";
+                    const temValores = reajuste && !isSolicitado && (reajuste.valor_antigo_centavos || 0) > 0;
                     const mesReaj = getMesReajuste(empresa.data_implantacao);
                     const temRetro = (reajuste?.meses_retroativos || 0) > 0;
                     return (
@@ -310,18 +330,18 @@ export default function Reajustes() {
                       <TableCell className="text-sm text-muted-foreground">{empresa.codigo_contrato || "—"}</TableCell>
                       <TableCell className="text-sm">{empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : "—"}</TableCell>
                       <TableCell className="text-sm">{nomeMes(mesReaj)}</TableCell>
-                      <TableCell>{reajuste ? formatCentavosBRL(reajuste.valor_antigo_centavos) : "—"}</TableCell>
-                      <TableCell>{reajuste ? `${Number(reajuste.percentual).toFixed(2).replace(".", ",")}%` : "—"}</TableCell>
-                      <TableCell className="font-semibold">{reajuste ? formatCentavosBRL(reajuste.valor_reajustado_centavos) : "—"}</TableCell>
+                      <TableCell>{temValores ? formatCentavosBRL(reajuste.valor_antigo_centavos) : "—"}</TableCell>
+                      <TableCell>{temValores ? `${Number(reajuste.percentual).toFixed(2).replace(".", ",")}%` : "—"}</TableCell>
+                      <TableCell className="font-semibold">{temValores ? formatCentavosBRL(reajuste.valor_reajustado_centavos) : "—"}</TableCell>
                       <TableCell className="text-sm">
-                        {reajuste ? (
+                        {temValores ? (
                           <>
                             <div>{formatCentavosBRL(reajuste.valor_retroativo_centavos)}</div>
                             {temRetro && <div className="text-xs text-muted-foreground">{reajuste.meses_retroativos} {reajuste.meses_retroativos === 1 ? "mês" : "meses"}</div>}
                           </>
                         ) : "—"}
                       </TableCell>
-                      <TableCell className="font-bold text-primary">{reajuste ? formatCentavosBRL(reajuste.valor_final_centavos) : "—"}</TableCell>
+                      <TableCell className="font-bold text-primary">{temValores ? formatCentavosBRL(reajuste.valor_final_centavos) : "—"}</TableCell>
                       <TableCell>
                         {reajuste ? (
                           <Badge variant="outline" className={corStatusReajusteFluxo(statusFluxo)}>
@@ -333,7 +353,7 @@ export default function Reajustes() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {isPendenteConfirm && podeLiberar(empresa) && (
+                          {(isPendenteConfirm || isSolicitado) && podeLiberar(empresa) && !isSolicitado && (
                             <Button
                               size="sm"
                               variant="default"
@@ -343,10 +363,15 @@ export default function Reajustes() {
                               <Check className="h-3 w-3 mr-1" /> Liberar
                             </Button>
                           )}
+                          {isSolicitado && (isAdmin || isComum) && (
+                            <Button size="sm" variant="default" onClick={() => openEdit(reajuste)} className="bg-blue-600 hover:bg-blue-700">
+                              <Pencil className="h-3 w-3 mr-1" /> Registrar Valores
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" title="Histórico" onClick={() => { setHistoricoEmpresa({ id: empresa.id, nome: empresa.nome }); setHistoricoOpen(true); }}>
                             <History className="h-4 w-4" />
                           </Button>
-                          {canCriar && reajuste && (
+                          {canCriar && reajuste && !isSolicitado && (
                             <>
                               <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(reajuste)}>
                                 <Pencil className="h-4 w-4" />
@@ -356,9 +381,25 @@ export default function Reajustes() {
                               </Button>
                             </>
                           )}
+                          {isAdmin && isSolicitado && (
+                            <Button size="icon" variant="ghost" title="Excluir" onClick={() => setConfirmDelete(reajuste.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                           {canCriar && !reajuste && (
                             <Button size="sm" variant="outline" onClick={() => openNew(empresa.id)}>
                               <Plus className="h-3 w-3 mr-1" /> Registrar
+                            </Button>
+                          )}
+                          {podeSolicitar && !reajuste && !isAdmin && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={solicitandoId === empresa.id}
+                              onClick={() => solicitarMutation.mutate(empresa.id)}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              {solicitandoId === empresa.id ? "Enviando..." : "Solicitar Reajuste"}
                             </Button>
                           )}
                         </div>
