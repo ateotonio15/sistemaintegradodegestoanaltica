@@ -1,53 +1,40 @@
-## Etapa 20 — Solicitação obrigatória com Percentual + Valor Atual
+## Objetivo
 
-Hoje o botão "Solicitar Reajuste" do perfil Visualização chama direto o RPC `solicitar_reajuste`, criando o registro com valores zerados. Vamos transformar essa ação num modal obrigatório com cálculo em tempo real.
+No card "Faturamentos Não Enviados" (Dashboard do Cadastro/Admin), exibir apenas as empresas cujo ciclo vigente HOJE corresponde ao mês atual E ao período de movimentação configurado da empresa. Hoje o card já filtra por `mes_referencia = mês atual`, mas mostra qualquer `periodo` existente em `financeiro_movimentacoes` — independente da empresa estar de fato no período corrente.
+
+## Comportamento esperado
+
+Cada linha do card só aparece se:
+
+- `mes_referencia` da movimentação financeira = mês atual (já existe), e
+- `periodo` da movimentação financeira = período vigente da empresa, calculado por `periodoVigente(empresa)` (regra unificada já usada no projeto):
+  - Empresa Diária → período derivado de `data_corte`
+  - Empresa Fechada → `periodo_movimentacao`
+- Empresa precisa estar ativa (já filtrado em `empresaIdsVinculadas`).
+
+Ou seja: respeita o "filtro de movimentação" da empresa, mostrando somente o ciclo que está rodando agora.
 
 ## Mudanças
 
-### 1. Novo componente `src/components/reajustes/SolicitarReajusteDialog.tsx`
+Arquivo único: `src/components/dashboard/FaturamentosEnviadosCard.tsx`
 
-Modal dedicado para o perfil Visualização (e Admin via mesmo botão). Conteúdo:
+1. Estender o select de `empresas` na query `faturamentos-empresa-ids-vinculadas` para também trazer os campos necessários ao cálculo do período vigente: `tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao`. Manter o retorno como apenas `id[]` (para não impactar as outras queries) e armazenar separadamente um Map `empresaId -> { tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao, status_empresa }` via uma segunda query leve OU mudar essa query para retornar o array completo e derivar `empresaIdsVinculadas` via `useMemo`.
+   - Implementação preferida: trocar a query existente para retornar `EmpresaConfig[]` (com os campos necessários) e expor `empresaIdsVinculadas` via `useMemo` filtrando ativas.
 
-- Cabeçalho: nome da empresa + contrato + mês oficial de reajuste (read-only).
-- Campos obrigatórios:
-  - **Valor Atual (R$)** — máscara decimal BRL.
-  - **Percentual (%)** — decimal.
-- Campos opcionais:
-  - **Previsão de aplicação** (`data_aplicacao`, default = hoje).
-  - **Observação**.
-- Bloco de preview em tempo real (reaproveita `calcularValorReajustadoCentavos`, `calcularMesesRetroativos`, `calcularRetroativoCentavos`, `calcularValorFinalCentavos` de `reajuste-utils`):
-  - Valor Reajustado
-  - Meses retroativos
-  - Retroativo
-  - **Valor Final** (destaque)
-- Validação no botão "Enviar para Cadastro":
-  - desabilitado quando `valorAntigoCent <= 0` ou `pct <= 0`.
-  - ao clicar com vazio, toast: "Preencha o percentual de reajuste." / "Preencha o valor atual."
-- Submit:
-  1. `supabase.rpc("solicitar_reajuste", { p_empresa_id })` — cria a linha em `solicitado` (RLS já permite Visualização/Admin).
-  2. Em seguida `supabase.from("reajustes_anuais").update({ valor_antigo_centavos, percentual, data_aplicacao, observacao }).eq("id", novoId)` — o trigger `trg_reajuste_calc_campos` calcula `valor_reajustado/retroativo/final` automaticamente. Status permanece `solicitado` (Cadastro continua sendo quem confirma/libera, conforme item 7 do briefing).
-  3. Invalidate `reajustes-anuais`, `reajustes-pendentes-list`, `alertas-reajuste-count`.
-  4. Toast: "Solicitação enviada — Cadastro responsável foi notificado."
+2. Calcular, via `useMemo`, um `Map<empresaId, periodoVigente>` chamando `periodoVigente(emp)` de `@/lib/movimentacao-utils`.
 
-Observação técnica: o RPC atual já cria com 0/0/0; o `update` posterior dispara o trigger BEFORE UPDATE (já anexado na etapa anterior) recalculando todos os campos. RLS `Visualizacao manage reajustes_anuais` cobre o update.
+3. No `useMemo` de `linhas` (ou logo após receber `pendentes`), filtrar:
+   ```ts
+   const vigente = vigenteMap.get(p.empresa_id);
+   if (!vigente) return null;
+   if (p.periodo !== vigente.periodo) return null;
+   ```
+   (O filtro de `mes_referencia` já é feito na query.)
 
-### 2. `src/pages/Reajustes.tsx`
+4. Sem mudanças em RLS, banco, RPCs, realtime, alertas, ou no fluxo do botão "Alertar Financeiro".
 
-- Remover a `solicitarMutation` direta e o estado `solicitandoId`.
-- Adicionar estado `solicitarOpen` + `solicitarEmpresa`.
-- Botão "Solicitar Reajuste" (linhas 394–404) passa a abrir o novo modal:
-  ```tsx
-  onClick={() => { setSolicitarEmpresa(empresa); setSolicitarOpen(true); }}
-  ```
-- Renderizar `<SolicitarReajusteDialog open={solicitarOpen} onOpenChange={setSolicitarOpen} empresa={solicitarEmpresa} />` ao lado dos outros dialogs.
+## Não fazer
 
-### 3. Sem mudanças no banco
-
-Triggers e RPC `solicitar_reajuste` já existem e fazem o cálculo + alerta correto na sequência insert → update.
-
-## Não será feito
-
-- Não alterar `ReajusteDialog` (continua sendo o fluxo do Cadastro).
-- Não alterar status automaticamente: Cadastro continua liberando.
-- Não tocar em RLS, triggers ou tipos.
-- Não esconder colunas Retroativo/Valor Final.
+- Não alterar o card do Financeiro ("Notas a Enviar").
+- Não alterar regras de período/cálculo já existentes em `movimentacao-utils.ts`.
+- Não tocar no banco nem em policies.
