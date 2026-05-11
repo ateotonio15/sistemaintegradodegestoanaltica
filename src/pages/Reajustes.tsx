@@ -443,6 +443,27 @@ export default function Reajustes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!confirmLiberar} onOpenChange={(o) => !o && setConfirmLiberar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Liberar reajuste?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Liberar o reajuste de <strong>{confirmLiberar?.empresa}</strong>. Será gravada a data de liberação, o usuário responsável e a competência atual.
+              {confirmLiberar?.temRetro && <> O status será marcado como <strong>Retroativo Aplicado</strong>.</>}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmLiberar && liberarMutation.mutate({ id: confirmLiberar.id, temRetro: confirmLiberar.temRetro })}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Liberar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
