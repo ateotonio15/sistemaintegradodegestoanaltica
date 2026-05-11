@@ -1,91 +1,79 @@
-## Etapa 15 — Fluxo de Aprovação do Reajuste
+## Etapa 16 — Regra Oficial de Reajuste Contratual com Retroativo
 
-Criar fluxo onde o perfil **Visualização** cria o reajuste e o perfil **Cadastro (comum)** confirma, com alerta automático e status visuais.
+Estende a aba Reajuste para usar a **data de Implantação** como base oficial do mês de reajuste e calcular automaticamente **valor reajustado + retroativo + valor final**, mantendo histórico auditável.
 
-### 1. Banco de dados (migration)
+### 1. Banco (migration)
 
-Alterar tabela `reajustes_anuais`:
-- Adicionar `status_reajuste text NOT NULL DEFAULT 'pendente_confirmacao'` (valores: `pendente_confirmacao`, `reajustado`)
-- Adicionar `confirmado_por uuid` (user_id de quem confirmou)
-- Adicionar `confirmado_por_nome text`
-- Adicionar `data_confirmacao timestamptz`
-- Migrar dados existentes: `UPDATE reajustes_anuais SET status_reajuste = 'reajustado'` (registros antigos contam como já confirmados)
+Adicionar à tabela `reajustes_anuais`:
+- `mes_reajuste` (smallint 1–12) — derivado da `data_implantacao` (mês oficial do reajuste)
+- `meses_retroativos` (smallint default 0)
+- `valor_retroativo_centavos` (bigint default 0)
+- `valor_final_centavos` (bigint) — `valor_reajustado + valor_retroativo`
+- `competencia` (text, formato `MM/AAAA`) — competência aplicada
+- `data_liberacao` (timestamptz nullable)
+- `liberado_por` (uuid nullable) + `liberado_por_nome` (text)
+- Status estendido: `status_reajuste` aceita `pendente_confirmacao | reajustado | liberado | retroativo_aplicado` (constraint atualizada)
 
-Atualizar policies RLS de `reajustes_anuais`:
-- **Admin / Visualização**: INSERT, UPDATE, DELETE (já existem)
-- **Comum (Cadastro)**: nova policy UPDATE somente para confirmar (vínculo via `responsavel_user_id` da empresa ou `empresa_usuarios`)
-- Trigger `guard_reajuste_comum`: quando o usuário tem role `comum`, só permite alterar `status_reajuste`, `confirmado_por`, `confirmado_por_nome`, `data_confirmacao` (bloqueia mudança de valores/percentual)
+Atualizar `guard_reajuste_comum` para também bloquear edição dos novos campos por perfil Comum (Cadastro segue só confirmando).
 
-Criar nova tabela `alertas_reajuste`:
-- `id`, `reajuste_id` (FK lógico), `empresa_id`, `empresa_nome`, `criado_por_user_id`, `criado_por_nome`, `destinatario_user_id` (responsável Cadastro), `status` (`Pendente`/`Finalizado`), `finalizado_em`, `created_at`, `updated_at`
-- RLS: leitura para autenticados; admin/visualização gerenciam; comum atualiza/lê os seus
-- Trigger `trg_criar_alerta_reajuste` AFTER INSERT em `reajustes_anuais` → cria alerta para o responsável da empresa
-- Trigger `trg_finalizar_alerta_reajuste` AFTER UPDATE em `reajustes_anuais` quando `status_reajuste` muda para `reajustado` → marca alerta como `Finalizado`
+Criar trigger `trg_reajuste_calc_campos` (BEFORE INSERT/UPDATE) que recomputa em SQL:
+- `valor_reajustado_centavos = round(valor_antigo * (1 + percentual/100))`
+- `meses_retroativos`, `valor_retroativo_centavos`, `valor_final_centavos` a partir de `mes_reajuste` e `data_aplicacao` (timezone `America/Manaus`)
+- garante consistência mesmo se cliente enviar valores divergentes (regra "não permitir cálculo manual divergente")
 
-Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE reajustes_anuais, alertas_reajuste;`
+Índice único `(empresa_id, ano)` já existe — manter.
 
-### 2. Backend utils (`src/lib/reajuste-utils.ts`)
+### 2. Lógica (frontend `src/lib/reajuste-utils.ts`)
 
-- Adicionar tipo `StatusReajusteFluxo = 'pendente_confirmacao' | 'reajustado'`
-- Função `labelStatusReajusteFluxo(s)` → "Reajuste enviado para o Cadastro" / "Reajustado"
-- Função `corStatusReajusteFluxo(s)` → amarelo / verde
+Novas funções puras (timezone Manaus, sem UTC drift):
+- `getMesReajuste(dataImplantacao)` → 1–12
+- `calcularMesesRetroativos(mesReajuste, dataAplicacao)` → diferença em meses dentro do mesmo ano de aplicação (mínimo 0)
+- `calcularRetroativoCentavos(valorAntigo, valorReajustado, mesesAtrasados)`
+- `calcularValorFinalCentavos(valorReajustado, retroativo)`
+- `getStatusReajusteEmpresa()` atualizado: usa `mes_reajuste` da implantação (não mais "abril fixo") para definir Atrasado vs Pendente
+- Tipo `StatusReajusteFluxo` ampliado para `pendente_confirmacao | reajustado | liberado | retroativo_aplicado` com labels e cores (Amarelo / Verde / Azul / Roxo)
 
-### 3. UI — Página Reajuste (`src/pages/Reajustes.tsx`)
+### 3. UI
 
-Atualizar tabela com colunas:
-Empresa · Contrato · Percentual · Valor antigo · Valor reajustado · Data aplicação · **Status** (badge fluxo) · Responsável (Cadastro) · Ações
+**`ReajusteDialog.tsx`** — preview de cálculo expandido:
+- Mostrar (read-only): Mês de reajuste oficial (da implantação), Meses retroativos calculados, Valor retroativo, **Valor final cobrança**
+- Recalcula em tempo real conforme percentual/data muda
+- Validação: bloqueia salvar se já existe reajuste no ano (mensagem clara)
 
-Ações por linha:
-- **Comum** (responsável da empresa) e status = `pendente_confirmacao` → botão "Confirmar Reajuste"
-- **Admin / Visualização** → editar / excluir / histórico (mantém existente)
-- Demais perfis → somente histórico
+**`Reajustes.tsx`** — colunas conforme spec:
+Empresa | Contrato | Implantação | Mês Reajuste | Valor Antigo | % | Valor Reajustado | Retroativo | Valor Final | Status | Ações
 
-KPIs: ajustar contadores para usar `status_reajuste` em vez de só presença na tabela.
+Ações por perfil:
+- Admin/Visualização: criar / editar / excluir / **Liberar**
+- Cadastro (Comum): apenas Confirmar quando status `pendente_confirmacao`
+- Botão **Liberar** (Admin/Visualização) abre confirmação e grava `data_liberacao`, `liberado_por`, `competencia` (MM/AAAA), muda status para `liberado` (ou `retroativo_aplicado` se `meses_retroativos > 0`)
 
-### 4. UI — Diálogo de criação (`ReajusteDialog.tsx`)
+**`AlertaReajustesPendentes.tsx`** — atualizar:
+- Conta empresas onde `mes_atual >= mes_reajuste(data_implantacao)` e sem reajuste no ano
+- Mensagem: "Contrato pendente de reajuste anual"
+- Adicionar variante "Retroativo pendente" para reajustes com `meses_retroativos > 0` ainda não liberados
 
-Ao salvar (INSERT) o status já nasce `pendente_confirmacao` por default. Toast: "Reajuste criado. Cadastro foi notificado."
+**`ReajusteHistoricoDialog.tsx`** — exibir colunas adicionais (retroativo, valor final, liberado por, data liberação, competência).
 
-### 5. UI — Confirmação pelo Cadastro
+### 4. Detalhes técnicos
 
-Novo handler `confirmarReajuste(id)`:
-- UPDATE `reajustes_anuais` SET `status_reajuste='reajustado'`, `confirmado_por=auth.uid()`, `confirmado_por_nome=display_name`, `data_confirmacao=now()`
-- Trigger finaliza o alerta automaticamente
-- Invalida queries `reajustes-anuais`, `alertas-reajuste-count`, `reajustes-pendentes-count`
+- Timezone: usar utilitários existentes em `src/lib/date-utils.ts` (manter padrão America/Manaus já em uso no projeto). Toda construção manual `new Date(yyyy, mm-1, dd)`.
+- Realtime já configurado em `reajustes_anuais` — manter, novos campos chegam automaticamente.
+- `src/integrations/supabase/types.ts` é regenerado pela migration (não editar manual).
 
-### 6. Alertas visuais
+### 5. Arquivos afetados
 
-Novo componente `AlertaReajustesParaConfirmar.tsx`:
-- Conta `alertas_reajuste` com `status='Pendente'` e `destinatario_user_id=auth.uid()` (ou todos, para admin)
-- Banner laranja/amarelo com link para `/reajustes`
-- Exibido em `Dashboard.tsx` (já tem `AlertaReajustesPendentes` para anuais — manter ambos)
+```text
+supabase/migrations/<novo>.sql           (campos + trigger calc + guard atualizado)
+src/lib/reajuste-utils.ts                (funções de mês/retroativo/final + status estendidos)
+src/components/reajustes/ReajusteDialog.tsx        (preview com retroativo/final)
+src/components/reajustes/ReajusteHistoricoDialog.tsx (colunas extras)
+src/components/reajustes/AlertaReajustesPendentes.tsx (regra mes_reajuste + retroativo)
+src/pages/Reajustes.tsx                  (colunas novas + ação Liberar)
+```
 
-Atualizar `AlertaReajustesPendentes.tsx`: continuar contando empresas sem reajuste no ano (independente).
+### Não faz parte do escopo
 
-### 7. Histórico (`ReajusteHistoricoDialog.tsx`)
-
-Mostrar adicionalmente: criado por, data criação, confirmado por, data confirmação, status atual.
-
-### 8. Realtime
-
-Em `Reajustes.tsx` e nos componentes de alerta, subscrever channel em `reajustes_anuais` e `alertas_reajuste` para invalidar React Query automaticamente.
-
-### Permissões — resumo
-
-| Perfil | Criar | Editar valores | Confirmar | Excluir | Ver |
-|---|---|---|---|---|---|
-| Admin | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Visualização | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Comum (Cadastro, responsável) | ❌ | ❌ | ✅ | ❌ | ✅ |
-| Financeiro / Executivo / Enfermeira | ❌ | ❌ | ❌ | ❌ | ✅ |
-
-### Arquivos afetados
-
-- `supabase/migrations/<novo>.sql` (campos + tabela alertas + triggers + RLS + realtime)
-- `src/lib/reajuste-utils.ts`
-- `src/pages/Reajustes.tsx`
-- `src/components/reajustes/ReajusteDialog.tsx`
-- `src/components/reajustes/ReajusteHistoricoDialog.tsx`
-- `src/components/reajustes/AlertaReajustesParaConfirmar.tsx` (novo)
-- `src/pages/Dashboard.tsx` (incluir novo banner)
-- `src/integrations/supabase/types.ts` (auto)
+- Não recalcula reajustes históricos já salvos (apenas novos passam pelo trigger; existentes ficam como estão até serem editados).
+- Não duplica registro no mesmo ano (constraint mantida).
+- Não permite edição por perfis sem autorização (guard mantido).
