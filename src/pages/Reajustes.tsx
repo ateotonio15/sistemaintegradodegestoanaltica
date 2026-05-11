@@ -413,6 +413,12 @@ export default function Reajustes() {
         empresaNome={historicoEmpresa?.nome}
       />
 
+      <SolicitarReajusteDialog
+        open={solicitarOpen}
+        onOpenChange={setSolicitarOpen}
+        empresa={solicitarEmpresa}
+      />
+
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
