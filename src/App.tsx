@@ -77,7 +77,7 @@ const AppRoutes = () => (
     <Route path="/empresas" element={<ProtectedRoute><Empresas /></ProtectedRoute>} />
     <Route path="/movimentacoes" element={<ProtectedRoute><Movimentacoes /></ProtectedRoute>} />
     <Route path="/executivas" element={<ProtectedRoute allowFinanceiro={false}><Executivas /></ProtectedRoute>} />
-    <Route path="/saude" element={<ProtectedRoute allowFinanceiro={false}><SaudeEmpresas /></ProtectedRoute>} />
+    
     <Route path="/financeiro" element={<FinanceiroRoute><Financeiro /></FinanceiroRoute>} />
     <Route path="/reajustes" element={<ProtectedRoute><Reajustes /></ProtectedRoute>} />
     <Route path="/usuarios" element={<AdminOnlyRoute><Usuarios /></AdminOnlyRoute>} />
