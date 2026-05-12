@@ -34,6 +34,7 @@ export default function Reajustes() {
   const anoAtual = new Date().getFullYear();
   const [filterAno, setFilterAno] = useState<string>(String(anoAtual));
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterMes, setFilterMes] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
