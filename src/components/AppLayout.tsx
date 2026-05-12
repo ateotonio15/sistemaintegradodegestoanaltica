@@ -105,7 +105,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       }
       if (item.adminOnly && !isAdmin) return false;
       // Financeiro: admin, financeiro e cadastro (comum, somente leitura)
-      if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum") return false;
+      if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "visualizacao") return false;
       // Enfermeira: restricted access
       if (isEnfermeira) {
         const allowed = ["/empresas", "/executivas", "/reajustes"];
