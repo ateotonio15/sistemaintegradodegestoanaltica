@@ -299,7 +299,7 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? "Editar Reajuste" : "Novo Reajuste"}</DialogTitle>
         </DialogHeader>
