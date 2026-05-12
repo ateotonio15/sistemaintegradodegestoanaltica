@@ -407,34 +407,49 @@ export default function Reajustes() {
                         </div>
                       </TableCell>
                     </TableRow>
-                    {isExpanded && (
-                      <TableRow key={`${empresa.id}-exp`} className="bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={12} className="p-0">
-                          <div className="animate-accordion-down overflow-hidden">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-                              <DetalheCard
-                                titulo="Enfermaria"
-                                Icone={BedDouble}
-                                percentual={pct}
-                                valorAtual={reajuste?.valor_antigo_enfermaria_centavos}
-                                valorReajustado={reajuste?.valor_reajustado_enfermaria_centavos}
-                                retroativo={reajuste?.valor_retroativo_enfermaria_centavos}
-                                valorFinal={reajuste?.valor_final_enfermaria_centavos}
-                              />
-                              <DetalheCard
-                                titulo="Apartamento"
-                                Icone={Hotel}
-                                percentual={pct}
-                                valorAtual={reajuste?.valor_antigo_apartamento_centavos}
-                                valorReajustado={reajuste?.valor_reajustado_apartamento_centavos}
-                                retroativo={reajuste?.valor_retroativo_apartamento_centavos}
-                                valorFinal={reajuste?.valor_final_apartamento_centavos}
-                              />
+                    {isExpanded && (() => {
+                      const ladoA = {
+                        valorAtual: reajuste?.valor_antigo_enfermaria_centavos || 0,
+                        valorReajustado: reajuste?.valor_reajustado_enfermaria_centavos || 0,
+                        retroativo: reajuste?.valor_retroativo_enfermaria_centavos || 0,
+                        valorFinal: reajuste?.valor_final_enfermaria_centavos || 0,
+                      };
+                      const ladoB = {
+                        valorAtual: reajuste?.valor_antigo_apartamento_centavos || 0,
+                        valorReajustado: reajuste?.valor_reajustado_apartamento_centavos || 0,
+                        retroativo: reajuste?.valor_retroativo_apartamento_centavos || 0,
+                        valorFinal: reajuste?.valor_final_apartamento_centavos || 0,
+                      };
+                      const refA = ladoA.valorFinal || ladoA.valorAtual;
+                      const refB = ladoB.valorFinal || ladoB.valorAtual;
+                      const iguais = refA > 0 && refB > 0 && refA === refB;
+                      const enfermariaDados = refB > 0 && refB < refA ? ladoB : ladoA;
+                      const apartamentoDados = refB > 0 && refB < refA ? ladoA : ladoB;
+                      return (
+                        <TableRow key={`${empresa.id}-exp`} className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell colSpan={12} className="p-0">
+                            <div className="animate-accordion-down overflow-hidden">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                                <DetalheCard
+                                  titulo="Enfermaria"
+                                  Icone={BedDouble}
+                                  tipo={iguais ? "igual" : "menor"}
+                                  percentual={pct}
+                                  {...enfermariaDados}
+                                />
+                                <DetalheCard
+                                  titulo="Apartamento"
+                                  Icone={Hotel}
+                                  tipo={iguais ? "igual" : "maior"}
+                                  percentual={pct}
+                                  {...apartamentoDados}
+                                />
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })()}
                     </>
                   );})}
                 </TableBody>
@@ -507,22 +522,36 @@ type DetalheCardProps = {
   titulo: string;
   Icone: React.ComponentType<{ className?: string }>;
   percentual: number;
+  tipo: "menor" | "maior" | "igual";
   valorAtual?: number | null;
   valorReajustado?: number | null;
   retroativo?: number | null;
   valorFinal?: number | null;
 };
 
-function DetalheCard({ titulo, Icone, percentual, valorAtual, valorReajustado, retroativo, valorFinal }: DetalheCardProps) {
+function DetalheCard({ titulo, Icone, percentual, tipo, valorAtual, valorReajustado, retroativo, valorFinal }: DetalheCardProps) {
   const temDados = (valorAtual || 0) > 0 || (valorReajustado || 0) > 0 || (valorFinal || 0) > 0;
   const fmt = (v?: number | null) => formatCentavosBRL(v || 0);
+
+  const tipoStyle =
+    tipo === "menor"
+      ? { card: "border-emerald-500/40 bg-emerald-500/5", icon: "text-emerald-600", badge: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15", label: "Menor Valor", final: "text-emerald-600" }
+      : tipo === "maior"
+      ? { card: "border-blue-500/40 bg-blue-500/5", icon: "text-blue-600", badge: "bg-blue-500/15 text-blue-700 border-blue-500/30 hover:bg-blue-500/15", label: "Maior Valor", final: "text-blue-600" }
+      : { card: "border-border", icon: "text-muted-foreground", badge: "bg-muted text-muted-foreground border-border", label: "Valores iguais", final: "text-primary" };
+
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className={`shadow-sm ${tipoStyle.card}`}>
       <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
           <div className="flex items-center gap-2">
-            <Icone className="h-4 w-4 text-primary" />
+            <Icone className={`h-4 w-4 ${tipoStyle.icon}`} />
             <h4 className="font-semibold text-sm">{titulo}</h4>
+            {temDados && (
+              <Badge variant="outline" className={`text-[10px] font-medium ${tipoStyle.badge}`}>
+                {tipoStyle.label}
+              </Badge>
+            )}
           </div>
           {temDados && (
             <Badge variant="outline" className="text-xs">
@@ -533,7 +562,7 @@ function DetalheCard({ titulo, Icone, percentual, valorAtual, valorReajustado, r
         {!temDados ? (
           <div className="text-xs text-muted-foreground py-4 text-center">Sem valores registrados</div>
         ) : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
             <div>
               <div className="text-xs text-muted-foreground">Valor Atual</div>
               <div className="font-medium">{fmt(valorAtual)}</div>
@@ -548,7 +577,7 @@ function DetalheCard({ titulo, Icone, percentual, valorAtual, valorReajustado, r
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Valor Final</div>
-              <div className="font-bold text-primary">{fmt(valorFinal)}</div>
+              <div className={`font-bold text-base ${tipoStyle.final}`}>{fmt(valorFinal)}</div>
             </div>
           </div>
         )}
