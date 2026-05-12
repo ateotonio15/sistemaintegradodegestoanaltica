@@ -12,7 +12,6 @@ import {
   Building2,
   CalendarClock,
   AlertTriangle,
-  FileText,
   Wallet,
   Clock,
   X,
@@ -22,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/date-utils";
 import { FaturamentosEnviadoFinanceiro } from "./FaturamentosEnviadoFinanceiro";
 import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
+import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { calcularStatusFinanceiro, getCurrentMesReferencia, formatMesReferencia, PERIODOS_FIN } from "@/lib/financeiro-utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
@@ -394,18 +394,8 @@ export function DashboardFinanceiro() {
         </Card>
       </div>
 
-      {/* Próximos vencimentos */}
-      <Card className="rounded-xl shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            Próximos vencimentos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ProximosVencimentos movs={movs} empresas={empresas} />
-        </CardContent>
-      </Card>
+      {/* Previsão financeira */}
+      <PrevisaoFinanceira />
 
       {/* Confirmar remoção */}
       <AlertDialog open={!!removerAlvo} onOpenChange={(o) => !o && setRemoverAlvo(null)}>
@@ -449,36 +439,4 @@ function KpiCard({ label, value, icon: Icon, accent, bg }: { label: string; valu
   );
 }
 
-function ProximosVencimentos({ movs, empresas }: { movs: any[]; empresas: any[] }) {
-  const empMap = new Map(empresas.map((e: any) => [e.id, e.nome]));
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const futuros = movs
-    .filter((m) => m.data_vencimento)
-    .map((m) => ({ ...m, _d: new Date(m.data_vencimento + "T00:00:00") }))
-    .filter((m) => m._d >= hoje)
-    .sort((a, b) => a._d.getTime() - b._d.getTime())
-    .slice(0, 8);
 
-  if (futuros.length === 0) {
-    return <p className="text-sm text-muted-foreground py-4 text-center">Nenhum vencimento futuro</p>;
-  }
-
-  return (
-    <div className="space-y-2">
-      {futuros.map((m) => (
-        <div key={m.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium truncate">{empMap.get(m.empresa_id) ?? "—"}</p>
-            <p className="text-xs text-muted-foreground">
-              {m.mes_referencia} · {m.periodo}
-            </p>
-          </div>
-          <Badge variant="outline" className="shrink-0">
-            Vence {formatDateBR(m.data_vencimento)}
-          </Badge>
-        </div>
-      ))}
-    </div>
-  );
-}
