@@ -189,6 +189,13 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       dia_emissao: diaEmissao === "__none__" ? null : Number(diaEmissao),
       tipo_analise: tipoAnalise || "normal",
       dentro_prazo: dentroPrazo,
+      possui_prorrogacao: possuiProrrogacao,
+      data_prorrogacao: possuiProrrogacao ? dataProrrogacao || null : null,
+      motivo_prorrogacao: possuiProrrogacao ? motivoProrrogacao || null : null,
+      observacao_prorrogacao:
+        possuiProrrogacao && motivoProrrogacao === "Outros"
+          ? observacaoProrrogacao.trim() || null
+          : null,
     };
     if (envioAlterado && user?.id) {
       payload.enviado_por_user_id = user.id;
