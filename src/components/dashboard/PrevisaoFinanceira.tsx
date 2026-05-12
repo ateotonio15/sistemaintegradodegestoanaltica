@@ -236,18 +236,21 @@ export function PrevisaoFinanceira() {
         if (r.xlsPaths.length === 0) {
           setAnalises((prev) => ({
             ...prev,
-            [r.rowKey]: { loading: false, total: 0, beneficiarios: 0, mensalidade: 0, categorias: [], erro: "Sem planilha anexada" },
+            [r.rowKey]: { ...EMPTY_ANALISE, erro: "Sem planilha anexada" },
           }));
           continue;
         }
         setAnalises((prev) => ({
           ...prev,
-          [r.rowKey]: { loading: true, total: 0, beneficiarios: 0, mensalidade: 0, categorias: [] },
+          [r.rowKey]: { ...EMPTY_ANALISE, loading: true },
         }));
         try {
-          let totalGeral = 0;
-          let benefGeral = 0;
-          const cats = new Set<string>();
+          let enfBeneficiarios = 0;
+          let enfTotal = 0;
+          let aptBeneficiarios = 0;
+          let aptTotal = 0;
+          let inclusoesTotal = 0;
+          let exclusoesTotal = 0;
           const detalhes: any[] = [];
           for (const path of r.xlsPaths) {
             let buf = bufCache.get(path);
@@ -265,22 +268,27 @@ export function PrevisaoFinanceira() {
                 ? { cnpj: r.filtroPagador.cnpj ?? "", nome: r.filtroPagador.nome ?? "" }
                 : undefined,
             );
-            totalGeral += res.enfermaria.total + res.apartamento.total + (res.inclusoes?.total || 0);
-            benefGeral += res.enfermaria.beneficiarios + res.apartamento.beneficiarios;
-            if (res.enfermaria.beneficiarios > 0 || res.enfermaria.total > 0) cats.add("Enfermaria");
-            if (res.apartamento.beneficiarios > 0 || res.apartamento.total > 0) cats.add("Apartamento");
-            if (res.inclusoes && res.inclusoes.quantidade > 0) cats.add("Inclusões");
+            enfBeneficiarios += res.enfermaria.beneficiarios;
+            enfTotal += res.enfermaria.total;
+            aptBeneficiarios += res.apartamento.beneficiarios;
+            aptTotal += res.apartamento.total;
+            inclusoesTotal += res.inclusoes?.total || 0;
+            exclusoesTotal += res.exclusoes?.total || 0;
             detalhes.push(res);
           }
           if (cancelled) return;
+          const totalGeral = enfTotal + aptTotal + inclusoesTotal + exclusoesTotal;
           setAnalises((prev) => ({
             ...prev,
             [r.rowKey]: {
               loading: false,
-              total: totalGeral,
-              beneficiarios: benefGeral,
-              mensalidade: benefGeral > 0 ? totalGeral / benefGeral : 0,
-              categorias: Array.from(cats),
+              enfBeneficiarios,
+              enfTotal,
+              aptBeneficiarios,
+              aptTotal,
+              inclusoesTotal,
+              exclusoesTotal,
+              totalGeral,
               detalhe: detalhes,
             },
           }));
@@ -288,14 +296,7 @@ export function PrevisaoFinanceira() {
           if (cancelled) return;
           setAnalises((prev) => ({
             ...prev,
-            [r.rowKey]: {
-              loading: false,
-              total: 0,
-              beneficiarios: 0,
-              mensalidade: 0,
-              categorias: [],
-              erro: e?.message || "Falha ao analisar planilha",
-            },
+            [r.rowKey]: { ...EMPTY_ANALISE, erro: e?.message || "Falha ao analisar planilha" },
           }));
         }
       }
