@@ -152,7 +152,7 @@ export function PrevisaoFinanceira() {
     for (const m of movs as any[]) {
       const anex = anexosPorMov.get(m.id) ?? [];
       const status = calcularStatusFinanceiro(m, !!m.aguardando_nota_em, anex);
-      if (status !== "Nota emitida") continue;
+      if (status !== "Nota emitida" && status !== "Enviada") continue;
       const emp = empresaMap.get(m.empresa_id) as any;
       if (!emp) continue;
       const xlsPaths = anex
