@@ -53,9 +53,9 @@ const STATUS_OPTIONS: StatusFinanceiro[] = [
 ];
 
 export default function Financeiro() {
-  const { user, loading, isAdmin, isFinanceiro, isComum } = useAuth();
+  const { user, loading, isAdmin, isFinanceiro, isComum, isViewOnly } = useAuth();
   const canManageFinanceiro = isAdmin || isFinanceiro;
-  const canViewFinanceiro = canManageFinanceiro || isComum;
+  const canViewFinanceiro = canManageFinanceiro || isComum || isViewOnly;
   const queryClient = useQueryClient();
 
   const [mes, setMes] = useState(getCurrentMesReferencia());
