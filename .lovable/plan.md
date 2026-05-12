@@ -1,59 +1,115 @@
-## Etapa 30 — Separar valores por modalidade na Faixa Etária
+## Etapa 31 — Reorganizar a janela de Reajuste em abas
 
-Escopo: corrigir cálculo/exibição em `src/components/reajustes/ReajusteDialog.tsx`, `src/components/reajustes/ReajusteFaixaEtariaTable.tsx` e ajustar o trigger `trg_reajuste_calc_campos` para que, quando `usa_faixa_etaria_*` estiver ativo, o backend não sobrescreva os valores por modalidade calculados no front. Nada muda em outras telas.
+Reescrever apenas o layout do `ReajusteDialog` (e adicionar uma nova variante "card" da tabela de faixas). Toda a lógica de cálculo, payload, mutation, faixas, RLS e o trigger ficam exatamente como estão.
 
-### 1. Dialog — painel de resumo (sem somar Enf + Apt)
+### 1. Estrutura geral do modal
 
-Atualmente o bloco "Valor reajustado/retroativo/final cobrança" soma as duas modalidades. Substituir por dois cards lado a lado (`grid-cols-1 md:grid-cols-2`):
+- `DialogContent` passa para `max-w-[1280px] w-[95vw] p-0 max-h-[92vh] flex flex-col` (sem scroll na própria janela).
+- Estrutura em 3 áreas verticais:
+  - **Header fixo**: título + subtítulo (nome da empresa, ano, badge do status).
+  - **Conteúdo rolável** (`flex-1 overflow-y-auto px-6 py-5`): conteúdo da aba ativa.
+  - **Footer fixo** (`border-t bg-background px-6 py-3`): botões Cancelar / Salvar (rótulo já muda para "Atualizar" quando `editing`).
+- Substituir o scroll interno do modal pelo scroll desta área central.
+
+### 2. Tabs
+
+Usar `Tabs` do shadcn (`@/components/ui/tabs`) já disponível no projeto. 4 abas:
 
 ```text
-┌── Enfermaria (badge verde) ──┐ ┌── Apartamento (badge azul) ──┐
-│ Valor atual:     R$ ...      │ │ Valor atual:     R$ ...       │
-│ Reajustado:      R$ ...      │ │ Reajustado:      R$ ...       │
-│ Retroativo:      R$ ...      │ │ Retroativo:      R$ ...       │
-│ VALOR FINAL:     R$ ...      │ │ VALOR FINAL:     R$ ...       │
-└──────────────────────────────┘ └───────────────────────────────┘
+[ Informações Gerais ] [ Enfermaria ] [ Apartamento ] [ Resumo ]
 ```
 
-- Renderizar apenas o card da modalidade marcada (`possuiEnf` / `possuiApt`).
-- Manter o "Mês oficial de reajuste" e "Meses retroativos" no topo.
-- Remover variáveis `valorAntigoCent` / `valorReajustadoCent` / `retroativoCent` / `valorFinalCent` da exibição (continuar calculando só para popular os campos legados no payload — retrocompatibilidade da listagem).
+- Abas Enfermaria/Apartamento ficam desabilitadas quando a modalidade não está marcada (com tooltip "Marque a modalidade na aba Informações Gerais").
+- Conteúdo só renderiza quando a aba está ativa (`TabsContent` já faz isso) — atende ao item 14 (performance).
+- Badge ao lado do label da aba indicando "Faixa Etária" quando `usaFaixa*` está ativo, e um pequeno indicador `●` quando há valor preenchido.
 
-### 2. Dialog — layout das duas modalidades lado a lado
+### 3. Aba "Informações Gerais"
 
-O bloco que renderiza Enfermaria e Apartamento (linhas 337–399 atuais) passa a usar `grid grid-cols-1 lg:grid-cols-2 gap-3` quando ambas estiverem ativas. Cada tabela `ReajusteFaixaEtariaTable` ocupa uma coluna; quando só uma modalidade ativa, ocupa a largura total.
+Grid `md:grid-cols-2 gap-5`. Campos com `h-11` (inputs maiores) e labels com `text-sm font-medium`.
 
-Aumentar a largura do `DialogContent` para `max-w-5xl` para acomodar as duas tabelas.
+- Contrato (Select)
+- Ano do reajuste
+- Data de aplicação
+- Percentual padrão
+- Modalidades (`ModalidadesPicker` atual)
+- Observação (`Textarea`, ocupa 2 colunas)
 
-### 3. Tabela de faixas
+Bloco lateral/abaixo (`rounded-lg border bg-muted/30 p-4`) com 2 cards informativos pequenos: "Mês oficial de reajuste" e "Meses retroativos".
 
-Pequenos ajustes em `ReajusteFaixaEtariaTable.tsx`:
-- Reduzir colunas em telas estreitas: manter `Faixa | Atual | % | Final` em mobile, mostrar `Reajustado` e `Retroativo` apenas em `md:`.
-- Rodapé "Total" do bloco continua local da própria modalidade (não some com a outra).
+### 4. Abas Enfermaria e Apartamento
 
-### 4. Trigger no banco — preservar valores quando usar faixa etária
+Cada aba ocupa toda a largura (sem mais grid 2 colunas lado a lado).
 
-O trigger `trg_reajuste_calc_campos` recalcula `valor_reajustado_<mod>_centavos` usando `NEW.percentual` × `valor_antigo_<mod>`. Isso quebra cenários com percentuais por faixa (cada faixa pode ter % diferente). Ajuste:
+Cabeçalho da aba:
+- Título grande com ícone (`BedDouble` verde / `Hotel` azul).
+- Switch "Contrato com faixa etária".
+- Quando faixa etária ON e percentual único OFF: mostrar pequena linha-resumo com Atual / Reajustado / Retroativo / Final acumulados.
 
-- Se `NEW.usa_faixa_etaria_enfermaria = true`, não recalcular `valor_reajustado_enfermaria_centavos`, `valor_retroativo_enfermaria_centavos` nem `valor_final_enfermaria_centavos` — manter exatamente o que o dialog enviou (somatório das faixas).
-- Mesma regra para `usa_faixa_etaria_apartamento`.
-- Quando faixa etária está ativa nas duas, recalcular os campos legados (`valor_antigo_centavos`, `valor_reajustado_centavos`, `valor_retroativo_centavos`, `valor_final_centavos`) como soma das duas modalidades (apenas para retrocompatibilidade dos selects existentes).
+Conteúdo:
 
-Nada muda no comportamento atual quando `usa_faixa_etaria_*` é false.
+- **Sem faixa etária**: card único com input grande de Valor Atual e os 4 valores calculados em quadradinhos abaixo.
+- **Com faixa etária**: substituir a tabela atual pela nova `ReajusteFaixaEtariaCards` (ver §5). Sem scroll interno — todas as faixas são renderizadas verticalmente e o scroll usa o do modal.
 
-### 5. Listagem (página `Reajustes.tsx`)
+### 5. Novo componente `ReajusteFaixaEtariaCards`
 
-Sem mudanças funcionais. Já existe lógica que prioriza Enfermaria na coluna resumo e o painel expandido já exibe os dois blocos separados (linhas 468–490). Apenas confirmar visualmente que continua correto após as mudanças do dialog.
+Novo arquivo `src/components/reajustes/ReajusteFaixaEtariaCards.tsx`. Mesma API/props da `ReajusteFaixaEtariaTable` (mantém a tabela antiga por enquanto, ainda exportada para retrocompat).
 
-### O que NÃO muda
+Cada faixa vira um card:
 
-- Estrutura da tabela `reajuste_faixas` (já tem `modalidade`, `idade_inicial`, `idade_final` e valores próprios).
-- Colunas `valor_antigo_<mod>_centavos` / `valor_final_<mod>_centavos` da `reajustes_anuais` (já existem).
-- Fluxo de status, alertas de reajuste, RLS, retroativos, regras da aba Financeiro.
-- Reajustes já cadastrados (campos legados continuam preenchidos).
+```text
+┌──────────────────────────────────────────────────────────┐
+│ Faixa 0 - 18 anos                          [badge cor]   │
+├──────────────────────────────────────────────────────────┤
+│ Valor Atual    %       Reajustado   Retroativo   Final   │
+│ [input R$ ]   [%]      R$ ...        R$ ...      R$ ...  │
+└──────────────────────────────────────────────────────────┘
+```
 
-### Resumo das alterações
+- Grid interno `md:grid-cols-5 gap-3`, mobile empilha em 2 colunas.
+- Inputs `h-10` com `inputMode="decimal"` e máscara visual já existente (`reaisToCentavos`).
+- Quando "percentual único" está ativo, o campo `%` mostra desabilitado com o valor global.
+- Toggle "Usar percentual único" no topo do bloco da aba.
+- Ao final, card-resumo da modalidade (Atual / Reajustado / Retroativo / Final) com tipografia maior.
 
-- `src/components/reajustes/ReajusteDialog.tsx` — painel de resumo separado em dois cards; layout grid 2 colunas para as modalidades; `DialogContent` mais largo.
-- `src/components/reajustes/ReajusteFaixaEtariaTable.tsx` — pequenos ajustes responsivos (sem mudar lógica).
-- Migração SQL — versão atualizada de `trg_reajuste_calc_campos` que respeita `usa_faixa_etaria_*` e não sobrescreve valores por modalidade.
+### 6. Aba "Resumo"
+
+Cards premium um do lado do outro (`md:grid-cols-2`):
+
+- Card Enfermaria (verde): Valor Atual, Reajustado, Retroativo, Valor Final, total de faixas com valor (`faixasEnf.filter(...).length`).
+- Card Apartamento (azul): mesmo padrão.
+- Abaixo, faixa horizontal com 4 mini-cards informativos: Mês oficial, Meses retroativos, Percentual aplicado, Data de aplicação.
+- Bloco de observação (somente leitura) renderizado se preenchido.
+
+Importante: **não somar Enfermaria e Apartamento** em nenhum lugar (etapa anterior já estabeleceu isso).
+
+### 7. Footer fixo
+
+`DialogFooter` reposicionado para ficar dentro do flex-column como rodapé fixo:
+
+```text
+[ Cancelar ]  [ < Voltar ] [ Avançar > ]   [ Salvar ]
+```
+
+- "Voltar" / "Avançar" navegam entre abas (desabilitados nos extremos e pulam abas desabilitadas).
+- "Salvar" aciona a mesma `mutation.mutate()` atual.
+
+### 8. Pequenos detalhes visuais
+
+- Tipografia: títulos de seção em `text-base font-semibold` com pequeno `text-muted-foreground` de apoio.
+- Divisores suaves (`border-border/60`), `rounded-xl`, `bg-card/80`, sombras sutis (`shadow-sm`).
+- Badges modernos para faixas (`bg-emerald-500/15 text-emerald-700 border-emerald-500/30` e equivalente azul).
+- Animações leves: `animate-fade-in` nas trocas de aba.
+- Inputs: `focus-visible:ring-2 ring-primary/30 transition`.
+
+### 9. O que não muda
+
+- `mutation`, validações, payload, sincronização de `reajuste_faixas`, gravação dos campos legados.
+- `ReajusteFaixaEtariaTable` continua existindo (não é removido) — apenas deixa de ser usado pelo dialog.
+- Trigger do banco e RLS.
+- Página `Reajustes.tsx` (listagem).
+- `ModalidadesPicker` (reaproveitado).
+
+### 10. Resumo das mudanças de arquivos
+
+- `src/components/reajustes/ReajusteDialog.tsx` — reescrita do JSX (mantendo toda a lógica/hooks/`mutation`).
+- `src/components/reajustes/ReajusteFaixaEtariaCards.tsx` — novo arquivo, alternativa em cards à tabela.
