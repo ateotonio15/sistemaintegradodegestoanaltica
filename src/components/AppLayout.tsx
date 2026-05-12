@@ -113,7 +113,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       }
       return true;
     });
-  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro]);
+  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role]);
 
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
