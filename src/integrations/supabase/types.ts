@@ -625,6 +625,39 @@ export type Database = {
         }
         Relationships: []
       }
+      fora_prazo_exclusoes: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          id: string
+          mes_referencia: string
+          motivo: string | null
+          periodo: string
+          removido_por: string | null
+          removido_por_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          id?: string
+          mes_referencia: string
+          motivo?: string | null
+          periodo: string
+          removido_por?: string | null
+          removido_por_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          mes_referencia?: string
+          motivo?: string | null
+          periodo?: string
+          removido_por?: string | null
+          removido_por_nome?: string | null
+        }
+        Relationships: []
+      }
       movimentacoes: {
         Row: {
           created_at: string
