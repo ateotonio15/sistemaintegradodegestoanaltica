@@ -292,7 +292,7 @@ export function DashboardFinanceiro() {
         <KpiCard label="Notas enviadas" value={notasEnviadas} icon={CheckCircle2} accent="text-success" bg="bg-success/10" />
         <KpiCard label="Aguardando nota" value={aguardandoNota} icon={CalendarClock} accent="text-warning" bg="bg-warning/10" />
         <KpiCard label="Cobranças abertas" value={cobrancasAbertas.length} icon={AlertCircle} accent="text-destructive" bg="bg-destructive/10" />
-        <KpiCard label="Pagamentos recebidos" value={cobrancasPagas.length} icon={Wallet} accent="text-success" bg="bg-success/10" />
+        <KpiCard label="Empresas fora do prazo" value={foraPrazoFiltrado.length} icon={TimerOff} accent="text-destructive" bg="bg-destructive/10" />
       </div>
 
       {/* Cobranças + Fora do prazo */}
