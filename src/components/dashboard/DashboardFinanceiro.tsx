@@ -332,7 +332,7 @@ export function DashboardFinanceiro() {
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <TimerOff className="h-4 w-4 text-destructive" />
                 Empresas fora do prazo
-                <Badge variant="destructive" className="ml-1">{foraPrazoTudo.length}</Badge>
+                <Badge variant="destructive" className="ml-1">{foraPrazoFiltrado.length}</Badge>
               </CardTitle>
               <Select value={foraPrazoFiltro} onValueChange={setForaPrazoFiltro}>
                 <SelectTrigger className="h-8 w-[140px] text-xs">
