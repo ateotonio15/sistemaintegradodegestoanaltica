@@ -408,42 +408,48 @@ export default function Reajustes() {
                       </TableCell>
                     </TableRow>
                     {isExpanded && (() => {
-                      const ladoA = {
+                      const enfDados = {
                         valorAtual: reajuste?.valor_antigo_enfermaria_centavos || 0,
                         valorReajustado: reajuste?.valor_reajustado_enfermaria_centavos || 0,
                         retroativo: reajuste?.valor_retroativo_enfermaria_centavos || 0,
                         valorFinal: reajuste?.valor_final_enfermaria_centavos || 0,
                       };
-                      const ladoB = {
+                      const aptDados = {
                         valorAtual: reajuste?.valor_antigo_apartamento_centavos || 0,
                         valorReajustado: reajuste?.valor_reajustado_apartamento_centavos || 0,
                         retroativo: reajuste?.valor_retroativo_apartamento_centavos || 0,
                         valorFinal: reajuste?.valor_final_apartamento_centavos || 0,
                       };
-                      const refA = ladoA.valorFinal || ladoA.valorAtual;
-                      const refB = ladoB.valorFinal || ladoB.valorAtual;
-                      const iguais = refA > 0 && refB > 0 && refA === refB;
-                      const enfermariaDados = refB > 0 && refB < refA ? ladoB : ladoA;
-                      const apartamentoDados = refB > 0 && refB < refA ? ladoA : ladoB;
+                      // Modalidades selecionadas: usa flags se existirem; fallback = qualquer valor > 0; default = ambas
+                      const hasEnfFlag = typeof (reajuste as any)?.possui_enfermaria === "boolean";
+                      const hasAptFlag = typeof (reajuste as any)?.possui_apartamento === "boolean";
+                      let mostraEnf = hasEnfFlag ? !!(reajuste as any).possui_enfermaria : enfDados.valorAtual > 0 || enfDados.valorFinal > 0;
+                      let mostraApt = hasAptFlag ? !!(reajuste as any).possui_apartamento : aptDados.valorAtual > 0 || aptDados.valorFinal > 0;
+                      if (!mostraEnf && !mostraApt) { mostraEnf = true; mostraApt = true; }
+                      const colsClass = mostraEnf && mostraApt ? "md:grid-cols-2" : "md:grid-cols-1";
                       return (
                         <TableRow key={`${empresa.id}-exp`} className="bg-muted/30 hover:bg-muted/30">
                           <TableCell colSpan={12} className="p-0">
                             <div className="animate-accordion-down overflow-hidden">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-                                <DetalheCard
-                                  titulo="Enfermaria"
-                                  Icone={BedDouble}
-                                  tipo={iguais ? "igual" : "menor"}
-                                  percentual={pct}
-                                  {...enfermariaDados}
-                                />
-                                <DetalheCard
-                                  titulo="Apartamento"
-                                  Icone={Hotel}
-                                  tipo={iguais ? "igual" : "maior"}
-                                  percentual={pct}
-                                  {...apartamentoDados}
-                                />
+                              <div className={`grid grid-cols-1 ${colsClass} gap-4 p-4`}>
+                                {mostraEnf && (
+                                  <DetalheCard
+                                    titulo="Modalidade Enfermaria"
+                                    Icone={BedDouble}
+                                    tipo="enfermaria"
+                                    percentual={pct}
+                                    {...enfDados}
+                                  />
+                                )}
+                                {mostraApt && (
+                                  <DetalheCard
+                                    titulo="Modalidade Apartamento"
+                                    Icone={Hotel}
+                                    tipo="apartamento"
+                                    percentual={pct}
+                                    {...aptDados}
+                                  />
+                                )}
                               </div>
                             </div>
                           </TableCell>
