@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { BedDouble, Hotel } from "lucide-react";
+import { ModalidadesPicker } from "./ReajusteDialog";
 import {
   calcularValorReajustadoCentavos, reaisToCentavos, formatCentavosBRL,
   getMesReajuste, nomeMes, calcularMesesRetroativos, calcularRetroativoCentavos, calcularValorFinalCentavos,
@@ -24,20 +26,28 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const [valorAtual, setValorAtual] = useState("");
+  const [possuiEnf, setPossuiEnf] = useState(true);
+  const [possuiApt, setPossuiApt] = useState(true);
+  const [valorEnf, setValorEnf] = useState("");
+  const [valorApt, setValorApt] = useState("");
   const [percentual, setPercentual] = useState("");
   const [dataAplicacao, setDataAplicacao] = useState<string>(new Date().toISOString().slice(0, 10));
   const [observacao, setObservacao] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setValorAtual("");
+    setPossuiEnf(true);
+    setPossuiApt(true);
+    setValorEnf("");
+    setValorApt("");
     setPercentual("");
     setDataAplicacao(new Date().toISOString().slice(0, 10));
     setObservacao("");
   }, [open]);
 
-  const valorAntigoCent = useMemo(() => reaisToCentavos(valorAtual), [valorAtual]);
+  const enfCent = useMemo(() => (possuiEnf ? reaisToCentavos(valorEnf) : 0), [possuiEnf, valorEnf]);
+  const aptCent = useMemo(() => (possuiApt ? reaisToCentavos(valorApt) : 0), [possuiApt, valorApt]);
+  const valorAntigoCent = enfCent + aptCent;
   const pctNum = useMemo(() => {
     const n = parseFloat(String(percentual).replace(",", "."));
     return isNaN(n) ? 0 : n;
@@ -57,12 +67,18 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
     [valorReajustadoCent, retroativoCent],
   );
 
-  const podeEnviar = valorAntigoCent > 0 && pctNum > 0;
+  const podeEnviar =
+    (possuiEnf || possuiApt) &&
+    (!possuiEnf || enfCent > 0) &&
+    (!possuiApt || aptCent > 0) &&
+    pctNum > 0;
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!empresa) throw new Error("Empresa não selecionada");
-      if (valorAntigoCent <= 0) throw new Error("Preencha o valor atual.");
+      if (!possuiEnf && !possuiApt) throw new Error("Selecione ao menos uma modalidade");
+      if (possuiEnf && enfCent <= 0) throw new Error("Informe o Valor Atual da Enfermaria");
+      if (possuiApt && aptCent <= 0) throw new Error("Informe o Valor Atual do Apartamento");
       if (pctNum <= 0) throw new Error("Preencha o percentual de reajuste.");
 
       const { data: novoId, error: rpcErr } = await supabase.rpc("solicitar_reajuste", {
@@ -73,6 +89,10 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
       const { error: upErr } = await supabase
         .from("reajustes_anuais")
         .update({
+          possui_enfermaria: possuiEnf,
+          possui_apartamento: possuiApt,
+          valor_antigo_enfermaria_centavos: possuiEnf ? enfCent : 0,
+          valor_antigo_apartamento_centavos: possuiApt ? aptCent : 0,
           valor_antigo_centavos: valorAntigoCent,
           percentual: pctNum,
           data_aplicacao: dataAplicacao || null,
@@ -93,21 +113,9 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
       toast({ title: "Erro", description: e?.message || "Erro ao solicitar", variant: "destructive" }),
   });
 
-  const handleSubmit = () => {
-    if (valorAntigoCent <= 0) {
-      toast({ title: "Campo obrigatório", description: "Preencha o valor atual.", variant: "destructive" });
-      return;
-    }
-    if (pctNum <= 0) {
-      toast({ title: "Campo obrigatório", description: "Preencha o percentual de reajuste.", variant: "destructive" });
-      return;
-    }
-    mutation.mutate();
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Solicitar Reajuste</DialogTitle>
         </DialogHeader>
@@ -121,40 +129,46 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label>
-                Valor Atual (R$) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                inputMode="decimal"
-                placeholder="0,00"
-                value={valorAtual}
-                onChange={(e) => setValorAtual(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>
-                Percentual (%) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                inputMode="decimal"
-                placeholder="0,00"
-                value={percentual}
-                onChange={(e) => setPercentual(e.target.value)}
-              />
-            </div>
-          </div>
+          <ModalidadesPicker
+            possuiEnf={possuiEnf}
+            possuiApt={possuiApt}
+            onEnf={setPossuiEnf}
+            onApt={setPossuiApt}
+          />
 
-          <div className="grid gap-2">
-            <Label>Previsão de aplicação</Label>
-            <Input type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
+          <div className="grid gap-3">
+            {possuiEnf && (
+              <div className="grid gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 animate-fade-in">
+                <Label className="flex items-center gap-2 text-sm">
+                  <BedDouble className="h-4 w-4 text-emerald-600" />
+                  Valor Atual Enfermaria (R$) <span className="text-destructive">*</span>
+                </Label>
+                <Input inputMode="decimal" placeholder="0,00" value={valorEnf} onChange={(e) => setValorEnf(e.target.value)} />
+              </div>
+            )}
+            {possuiApt && (
+              <div className="grid gap-2 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 animate-fade-in">
+                <Label className="flex items-center gap-2 text-sm">
+                  <Hotel className="h-4 w-4 text-blue-600" />
+                  Valor Atual Apartamento (R$) <span className="text-destructive">*</span>
+                </Label>
+                <Input inputMode="decimal" placeholder="0,00" value={valorApt} onChange={(e) => setValorApt(e.target.value)} />
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label>Percentual (%) <span className="text-destructive">*</span></Label>
+              <Input inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Previsão de aplicação</Label>
+              <Input type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
+            </div>
           </div>
 
           <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <div className="text-xs text-muted-foreground">Valor Reajustado</div>
+                <div className="text-xs text-muted-foreground">Valor Reajustado (total)</div>
                 <div className="font-semibold text-primary">{formatCentavosBRL(valorReajustadoCent)}</div>
               </div>
               <div>
@@ -162,11 +176,11 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
                 <div className="font-medium">{mesesRetro}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Retroativo</div>
+                <div className="text-xs text-muted-foreground">Retroativo (total)</div>
                 <div className="font-semibold">{formatCentavosBRL(retroativoCent)}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Valor Final</div>
+                <div className="text-xs text-muted-foreground">Valor Final (total)</div>
                 <div className="text-lg font-bold text-primary">{formatCentavosBRL(valorFinalCent)}</div>
               </div>
             </div>
@@ -187,7 +201,7 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={!podeEnviar || mutation.isPending}>
+          <Button onClick={() => mutation.mutate()} disabled={!podeEnviar || mutation.isPending}>
             {mutation.isPending ? "Enviando..." : "Enviar para Cadastro"}
           </Button>
         </DialogFooter>
