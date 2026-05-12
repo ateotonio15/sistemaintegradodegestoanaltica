@@ -735,15 +735,18 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
 }
 
 export function ModalidadesPicker({
-  possuiEnf, possuiApt, onEnf, onApt,
-}: { possuiEnf: boolean; possuiApt: boolean; onEnf: (v: boolean) => void; onApt: (v: boolean) => void }) {
+  possuiEnf, possuiApt, onEnf, onApt, invalido, valido,
+}: { possuiEnf: boolean; possuiApt: boolean; onEnf: (v: boolean) => void; onApt: (v: boolean) => void; invalido?: boolean; valido?: boolean }) {
   return (
     <div className="grid gap-2">
-      <Label className="text-sm">Modalidades do Contrato <span className="text-destructive">*</span></Label>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <Label className="text-sm flex items-center gap-2">
+        Modalidades do Contrato <span className="text-destructive">*</span>
+        {valido && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 animate-fade-in" />}
+      </Label>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg transition-colors ${invalido ? "ring-1 ring-destructive/60 p-1" : ""}`}>
         <label
           className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all ${
-            possuiEnf ? "border-emerald-500/50 bg-emerald-500/5" : "border-border hover:bg-muted/40"
+            possuiEnf ? "border-emerald-500/50 bg-emerald-500/5" : invalido ? "border-destructive/60" : "border-border hover:bg-muted/40"
           }`}
         >
           <Checkbox checked={possuiEnf} onCheckedChange={(v) => onEnf(!!v)} />
@@ -756,7 +759,7 @@ export function ModalidadesPicker({
         </label>
         <label
           className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all ${
-            possuiApt ? "border-blue-500/50 bg-blue-500/5" : "border-border hover:bg-muted/40"
+            possuiApt ? "border-blue-500/50 bg-blue-500/5" : invalido ? "border-destructive/60" : "border-border hover:bg-muted/40"
           }`}
         >
           <Checkbox checked={possuiApt} onCheckedChange={(v) => onApt(!!v)} />
@@ -768,6 +771,11 @@ export function ModalidadesPicker({
           {possuiApt && <Badge variant="outline" className="bg-blue-500/15 text-blue-700 border-blue-500/30 text-[10px]">Selecionada</Badge>}
         </label>
       </div>
+      {invalido && (
+        <p className="text-xs text-destructive flex items-center gap-1 animate-fade-in">
+          <AlertCircle className="h-3 w-3" /> Selecione ao menos uma modalidade.
+        </p>
+      )}
     </div>
   );
 }
