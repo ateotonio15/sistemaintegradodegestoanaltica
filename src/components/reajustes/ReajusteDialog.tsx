@@ -401,24 +401,54 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
                   <Input className="h-11" type="number" value={ano} onChange={(e) => setAno(e.target.value)} disabled={!!editing} />
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-sm font-medium">Data de Aplicação</Label>
-                  <Input className="h-11" type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    Data de Aplicação <span className="text-destructive">*</span>
+                    {dataAplicacaoValida && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 animate-fade-in" />}
+                  </Label>
+                  <Input
+                    className={`h-11 transition-colors ${touched.data && !dataAplicacaoValida ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    type="date"
+                    value={dataAplicacao}
+                    onChange={(e) => { setDataAplicacao(e.target.value); setTouched((t) => ({ ...t, data: true })); }}
+                    onBlur={() => setTouched((t) => ({ ...t, data: true }))}
+                  />
+                  {touched.data && !dataAplicacaoValida && (
+                    <p className="text-xs text-destructive flex items-center gap-1 animate-fade-in">
+                      <AlertCircle className="h-3 w-3" /> Preencha a Data de Aplicação.
+                    </p>
+                  )}
                 </div>
                 <div className="grid gap-2 md:col-span-2">
-                  <Label className="text-sm font-medium">
+                  <Label className="text-sm font-medium flex items-center gap-2">
                     Percentual padrão (%) <span className="text-destructive">*</span>
+                    {percentualValido && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 animate-fade-in" />}
                   </Label>
-                  <Input className="h-11" inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
-                  <p className="text-[11px] text-muted-foreground">
-                    Aplicado às modalidades sem faixa etária e às faixas com "percentual único" ativado.
-                  </p>
+                  <Input
+                    className={`h-11 transition-colors ${touched.pct && !percentualValido ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={percentual}
+                    onChange={(e) => { setPercentual(e.target.value); setTouched((t) => ({ ...t, pct: true })); }}
+                    onBlur={() => setTouched((t) => ({ ...t, pct: true }))}
+                  />
+                  {touched.pct && !percentualValido ? (
+                    <p className="text-xs text-destructive flex items-center gap-1 animate-fade-in">
+                      <AlertCircle className="h-3 w-3" /> Informe o Percentual padrão (maior que 0).
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Aplicado às modalidades sem faixa etária e às faixas com "percentual único" ativado.
+                    </p>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <ModalidadesPicker
                     possuiEnf={possuiEnf}
                     possuiApt={possuiApt}
-                    onEnf={setPossuiEnf}
-                    onApt={setPossuiApt}
+                    onEnf={(v) => { setPossuiEnf(v); setTouched((t) => ({ ...t, mod: true })); }}
+                    onApt={(v) => { setPossuiApt(v); setTouched((t) => ({ ...t, mod: true })); }}
+                    invalido={touched.mod && !modalidadeValida}
+                    valido={modalidadeValida}
                   />
                 </div>
                 <div className="grid gap-2 md:col-span-2">
