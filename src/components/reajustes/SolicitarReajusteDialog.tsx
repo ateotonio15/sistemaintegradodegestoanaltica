@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { BedDouble, Hotel } from "lucide-react";
+import { BedDouble, Hotel, Sparkles, TrendingUp, Calendar } from "lucide-react";
 import { ModalidadesPicker } from "./ReajusteDialog";
 import {
   calcularValorReajustadoCentavos, reaisToCentavos, formatCentavosBRL,
@@ -27,7 +28,7 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
   const qc = useQueryClient();
 
   const [possuiEnf, setPossuiEnf] = useState(true);
-  const [possuiApt, setPossuiApt] = useState(true);
+  const [possuiApt, setPossuiApt] = useState(false);
   const [valorEnf, setValorEnf] = useState("");
   const [valorApt, setValorApt] = useState("");
   const [percentual, setPercentual] = useState("");
@@ -37,7 +38,7 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
   useEffect(() => {
     if (!open) return;
     setPossuiEnf(true);
-    setPossuiApt(true);
+    setPossuiApt(false);
     setValorEnf("");
     setValorApt("");
     setPercentual("");
@@ -52,20 +53,20 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
     const n = parseFloat(String(percentual).replace(",", "."));
     return isNaN(n) ? 0 : n;
   }, [percentual]);
-  const valorReajustadoCent = useMemo(
-    () => calcularValorReajustadoCentavos(valorAntigoCent, pctNum),
-    [valorAntigoCent, pctNum],
-  );
   const mesReajuste = useMemo(() => getMesReajuste(empresa?.data_implantacao || null), [empresa]);
   const mesesRetro = useMemo(() => calcularMesesRetroativos(mesReajuste, dataAplicacao), [mesReajuste, dataAplicacao]);
-  const retroativoCent = useMemo(
-    () => calcularRetroativoCentavos(valorAntigoCent, valorReajustadoCent, mesesRetro),
-    [valorAntigoCent, valorReajustadoCent, mesesRetro],
-  );
-  const valorFinalCent = useMemo(
-    () => calcularValorFinalCentavos(valorReajustadoCent, retroativoCent),
-    [valorReajustadoCent, retroativoCent],
-  );
+
+  const enfReaj = useMemo(() => calcularValorReajustadoCentavos(enfCent, pctNum), [enfCent, pctNum]);
+  const enfRetro = useMemo(() => calcularRetroativoCentavos(enfCent, enfReaj, mesesRetro), [enfCent, enfReaj, mesesRetro]);
+  const enfFinal = useMemo(() => calcularValorFinalCentavos(enfReaj, enfRetro), [enfReaj, enfRetro]);
+
+  const aptReaj = useMemo(() => calcularValorReajustadoCentavos(aptCent, pctNum), [aptCent, pctNum]);
+  const aptRetro = useMemo(() => calcularRetroativoCentavos(aptCent, aptReaj, mesesRetro), [aptCent, aptReaj, mesesRetro]);
+  const aptFinal = useMemo(() => calcularValorFinalCentavos(aptReaj, aptRetro), [aptReaj, aptRetro]);
+
+  const valorReajustadoCent = enfReaj + aptReaj;
+  const retroativoCent = enfRetro + aptRetro;
+  const valorFinalCent = enfFinal + aptFinal;
 
   const podeEnviar =
     (possuiEnf || possuiApt) &&
@@ -115,20 +116,29 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto backdrop-blur-xl bg-background/95 border-primary/20 shadow-2xl">
         <DialogHeader>
-          <DialogTitle>Solicitar Reajuste</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Solicitar Reajuste
+          </DialogTitle>
+          <DialogDescription>
+            Preencha os dados abaixo. O cálculo é feito em tempo real e o pedido será enviado ao Cadastro responsável.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
-          <div className="rounded-lg border bg-muted/30 p-3 text-sm">
-            <div className="font-semibold">{empresa?.nome || "—"}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              {empresa?.codigo_contrato || "Sem contrato"} · Mês oficial:{" "}
-              {mesReajuste ? `${nomeMes(mesReajuste)} (${String(mesReajuste).padStart(2, "0")})` : "—"}
+          {/* Empresa */}
+          <div className="rounded-xl border bg-gradient-to-br from-primary/5 to-transparent p-4">
+            <div className="font-semibold text-base">{empresa?.nome || "—"}</div>
+            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+              <span>{empresa?.codigo_contrato || "Sem contrato"}</span>
+              <span>·</span>
+              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Mês oficial: {mesReajuste ? `${nomeMes(mesReajuste)} (${String(mesReajuste).padStart(2, "0")})` : "—"}</span>
             </div>
           </div>
 
+          {/* Modalidades */}
           <ModalidadesPicker
             possuiEnf={possuiEnf}
             possuiApt={possuiApt}
@@ -136,7 +146,8 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
             onApt={setPossuiApt}
           />
 
-          <div className="grid gap-3">
+          {/* Inputs */}
+          <div className="grid gap-3 md:grid-cols-2">
             {possuiEnf && (
               <div className="grid gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 animate-fade-in">
                 <Label className="flex items-center gap-2 text-sm">
@@ -156,7 +167,7 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
               </div>
             )}
             <div className="grid gap-2">
-              <Label>Percentual (%) <span className="text-destructive">*</span></Label>
+              <Label className="flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5" /> Percentual (%) <span className="text-destructive">*</span></Label>
               <Input inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
             </div>
             <div className="grid gap-2">
@@ -165,26 +176,57 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
             </div>
           </div>
 
-          <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <div className="text-xs text-muted-foreground">Valor Reajustado (total)</div>
-                <div className="font-semibold text-primary">{formatCentavosBRL(valorReajustadoCent)}</div>
+          {/* Preview por modalidade */}
+          {(possuiEnf || possuiApt) && (
+            <div className="space-y-2 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Preview do cálculo</Label>
+                <Badge variant="outline" className="text-xs">{mesesRetro} {mesesRetro === 1 ? "mês retro" : "meses retro"}</Badge>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Meses retroativos</div>
-                <div className="font-medium">{mesesRetro}</div>
+              <div className={`grid gap-3 ${possuiEnf && possuiApt ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
+                {possuiEnf && (
+                  <PreviewCard
+                    titulo="Enfermaria"
+                    Icone={BedDouble}
+                    cor="emerald"
+                    percentual={pctNum}
+                    valorAtual={enfCent}
+                    valorReajustado={enfReaj}
+                    retroativo={enfRetro}
+                    valorFinal={enfFinal}
+                  />
+                )}
+                {possuiApt && (
+                  <PreviewCard
+                    titulo="Apartamento"
+                    Icone={Hotel}
+                    cor="blue"
+                    percentual={pctNum}
+                    valorAtual={aptCent}
+                    valorReajustado={aptReaj}
+                    retroativo={aptRetro}
+                    valorFinal={aptFinal}
+                  />
+                )}
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Retroativo (total)</div>
-                <div className="font-semibold">{formatCentavosBRL(retroativoCent)}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Valor Final (total)</div>
-                <div className="text-lg font-bold text-primary">{formatCentavosBRL(valorFinalCent)}</div>
-              </div>
+              {possuiEnf && possuiApt && (
+                <div className="rounded-lg border bg-muted/40 p-3 grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Reajustado total</div>
+                    <div className="font-semibold">{formatCentavosBRL(valorReajustadoCent)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Retroativo total</div>
+                    <div className="font-semibold">{formatCentavosBRL(retroativoCent)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Valor Final total</div>
+                    <div className="font-bold text-primary">{formatCentavosBRL(valorFinalCent)}</div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           <div className="grid gap-2">
             <Label>Observação</Label>
@@ -207,5 +249,51 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+type PreviewCardProps = {
+  titulo: string;
+  Icone: React.ComponentType<{ className?: string }>;
+  cor: "emerald" | "blue";
+  percentual: number;
+  valorAtual: number;
+  valorReajustado: number;
+  retroativo: number;
+  valorFinal: number;
+};
+
+function PreviewCard({ titulo, Icone, cor, percentual, valorAtual, valorReajustado, retroativo, valorFinal }: PreviewCardProps) {
+  const styles = cor === "emerald"
+    ? { card: "border-emerald-500/40 bg-emerald-500/5", icon: "text-emerald-600", final: "text-emerald-600" }
+    : { card: "border-blue-500/40 bg-blue-500/5", icon: "text-blue-600", final: "text-blue-600" };
+  return (
+    <div className={`rounded-lg border p-3 ${styles.card}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Icone className={`h-4 w-4 ${styles.icon}`} />
+          {titulo}
+        </div>
+        <Badge variant="outline" className="text-[10px]">{percentual.toFixed(2).replace(".", ",")}%</Badge>
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+        <div>
+          <div className="text-muted-foreground">Valor Atual</div>
+          <div className="font-medium text-sm">{formatCentavosBRL(valorAtual)}</div>
+        </div>
+        <div>
+          <div className="text-muted-foreground">Valor Reajustado</div>
+          <div className="font-medium text-sm">{formatCentavosBRL(valorReajustado)}</div>
+        </div>
+        <div>
+          <div className="text-muted-foreground">Retroativo</div>
+          <div className="font-medium text-sm">{formatCentavosBRL(retroativo)}</div>
+        </div>
+        <div>
+          <div className="text-muted-foreground">Valor Final</div>
+          <div className={`font-bold text-sm ${styles.final}`}>{formatCentavosBRL(valorFinal)}</div>
+        </div>
+      </div>
+    </div>
   );
 }
