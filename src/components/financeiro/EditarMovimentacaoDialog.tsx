@@ -88,6 +88,10 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [diaEmissao, setDiaEmissao] = useState<string>("__none__");
   const [tipoAnalise, setTipoAnalise] = useState<string>("normal");
   const [dentroPrazo, setDentroPrazo] = useState(true);
+  const [possuiProrrogacao, setPossuiProrrogacao] = useState(false);
+  const [dataProrrogacao, setDataProrrogacao] = useState("");
+  const [motivoProrrogacao, setMotivoProrrogacao] = useState<string>("");
+  const [observacaoProrrogacao, setObservacaoProrrogacao] = useState("");
   const [uploading, setUploading] = useState(false);
   const [replicaConfirm, setReplicaConfirm] = useState<{
     title: string;
