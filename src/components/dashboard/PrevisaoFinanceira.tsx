@@ -47,12 +47,26 @@ type AnaliseRow = {
 
 type AnaliseDado = {
   loading: boolean;
-  total: number;
-  beneficiarios: number;
-  mensalidade: number;
-  categorias: string[];
+  enfBeneficiarios: number;
+  enfTotal: number;
+  aptBeneficiarios: number;
+  aptTotal: number;
+  inclusoesTotal: number;
+  exclusoesTotal: number; // negativo quando há exclusões (Moto Honda)
+  totalGeral: number;
   detalhe?: any;
   erro?: string;
+};
+
+const EMPTY_ANALISE: AnaliseDado = {
+  loading: false,
+  enfBeneficiarios: 0,
+  enfTotal: 0,
+  aptBeneficiarios: 0,
+  aptTotal: 0,
+  inclusoesTotal: 0,
+  exclusoesTotal: 0,
+  totalGeral: 0,
 };
 
 const BRL = (n: number) =>
@@ -222,18 +236,21 @@ export function PrevisaoFinanceira() {
         if (r.xlsPaths.length === 0) {
           setAnalises((prev) => ({
             ...prev,
-            [r.rowKey]: { loading: false, total: 0, beneficiarios: 0, mensalidade: 0, categorias: [], erro: "Sem planilha anexada" },
+            [r.rowKey]: { ...EMPTY_ANALISE, erro: "Sem planilha anexada" },
           }));
           continue;
         }
         setAnalises((prev) => ({
           ...prev,
-          [r.rowKey]: { loading: true, total: 0, beneficiarios: 0, mensalidade: 0, categorias: [] },
+          [r.rowKey]: { ...EMPTY_ANALISE, loading: true },
         }));
         try {
-          let totalGeral = 0;
-          let benefGeral = 0;
-          const cats = new Set<string>();
+          let enfBeneficiarios = 0;
+          let enfTotal = 0;
+          let aptBeneficiarios = 0;
+          let aptTotal = 0;
+          let inclusoesTotal = 0;
+          let exclusoesTotal = 0;
           const detalhes: any[] = [];
           for (const path of r.xlsPaths) {
             let buf = bufCache.get(path);
@@ -251,22 +268,27 @@ export function PrevisaoFinanceira() {
                 ? { cnpj: r.filtroPagador.cnpj ?? "", nome: r.filtroPagador.nome ?? "" }
                 : undefined,
             );
-            totalGeral += res.enfermaria.total + res.apartamento.total + (res.inclusoes?.total || 0);
-            benefGeral += res.enfermaria.beneficiarios + res.apartamento.beneficiarios;
-            if (res.enfermaria.beneficiarios > 0 || res.enfermaria.total > 0) cats.add("Enfermaria");
-            if (res.apartamento.beneficiarios > 0 || res.apartamento.total > 0) cats.add("Apartamento");
-            if (res.inclusoes && res.inclusoes.quantidade > 0) cats.add("Inclusões");
+            enfBeneficiarios += res.enfermaria.beneficiarios;
+            enfTotal += res.enfermaria.total;
+            aptBeneficiarios += res.apartamento.beneficiarios;
+            aptTotal += res.apartamento.total;
+            inclusoesTotal += res.inclusoes?.total || 0;
+            exclusoesTotal += res.exclusoes?.total || 0;
             detalhes.push(res);
           }
           if (cancelled) return;
+          const totalGeral = enfTotal + aptTotal + inclusoesTotal + exclusoesTotal;
           setAnalises((prev) => ({
             ...prev,
             [r.rowKey]: {
               loading: false,
-              total: totalGeral,
-              beneficiarios: benefGeral,
-              mensalidade: benefGeral > 0 ? totalGeral / benefGeral : 0,
-              categorias: Array.from(cats),
+              enfBeneficiarios,
+              enfTotal,
+              aptBeneficiarios,
+              aptTotal,
+              inclusoesTotal,
+              exclusoesTotal,
+              totalGeral,
               detalhe: detalhes,
             },
           }));
@@ -274,14 +296,7 @@ export function PrevisaoFinanceira() {
           if (cancelled) return;
           setAnalises((prev) => ({
             ...prev,
-            [r.rowKey]: {
-              loading: false,
-              total: 0,
-              beneficiarios: 0,
-              mensalidade: 0,
-              categorias: [],
-              erro: e?.message || "Falha ao analisar planilha",
-            },
+            [r.rowKey]: { ...EMPTY_ANALISE, erro: e?.message || "Falha ao analisar planilha" },
           }));
         }
       }
@@ -324,8 +339,8 @@ export function PrevisaoFinanceira() {
     list.sort((a, b) => {
       if (ordenacao === "empresa") return a.empresa_nome.localeCompare(b.empresa_nome, "pt-BR");
       if (ordenacao === "valor") {
-        const va = analises[a.rowKey]?.total ?? 0;
-        const vb = analises[b.rowKey]?.total ?? 0;
+        const va = analises[a.rowKey]?.totalGeral ?? 0;
+        const vb = analises[b.rowKey]?.totalGeral ?? 0;
         return vb - va;
       }
       const da = parseLocalDate(a.data_vencimento)?.getTime() ?? Infinity;
@@ -342,7 +357,7 @@ export function PrevisaoFinanceira() {
     let vencidos = 0;
     let comProrrogacao = 0;
     for (const r of rows) {
-      totalPrevisto += analises[r.rowKey]?.total ?? 0;
+      totalPrevisto += analises[r.rowKey]?.totalGeral ?? 0;
       const venc = parseLocalDate(r.data_vencimento);
       if (venc) {
         const dias = diffDias(venc, hoje);
@@ -442,9 +457,12 @@ export function PrevisaoFinanceira() {
                   <th className="px-3 py-2 text-left font-medium">Empresa</th>
                   <th className="px-3 py-2 text-left font-medium">Pagador</th>
                   <th className="px-3 py-2 text-left font-medium">Competência</th>
-                  <th className="px-3 py-2 text-left font-medium">Categoria</th>
-                  <th className="px-3 py-2 text-right font-medium">Beneficiários</th>
-                  <th className="px-3 py-2 text-right font-medium">Mensalidade</th>
+                  <th className="px-3 py-2 text-right font-medium">Benef. Enf.</th>
+                  <th className="px-3 py-2 text-right font-medium">Mensalidade Enf.</th>
+                  <th className="px-3 py-2 text-right font-medium">Benef. Apto.</th>
+                  <th className="px-3 py-2 text-right font-medium">Mensalidade Apto.</th>
+                  <th className="px-3 py-2 text-right font-medium">Inclusões</th>
+                  <th className="px-3 py-2 text-right font-medium">Exclusões</th>
                   <th className="px-3 py-2 text-right font-medium">Total</th>
                   <th className="px-3 py-2 text-left font-medium">Vencimento original</th>
                   <th className="px-3 py-2 text-left font-medium">Prorrogação</th>
@@ -485,29 +503,33 @@ export function PrevisaoFinanceira() {
                           {r.pagador_nome ?? "—"}
                         </td>
                         <td className="px-3 py-2 align-top">{formatMesReferencia(r.competencia)}</td>
-                        <td className="px-3 py-2 align-top">
-                          {a?.loading ? (
-                            <span className="text-xs text-muted-foreground">Analisando…</span>
-                          ) : a?.categorias?.length ? (
-                            <div className="flex flex-wrap gap-1">
-                              {a.categorias.map((c) => (
-                                <Badge key={c} variant="outline" className="text-[10px] py-0 px-1.5">
-                                  {c}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
+                        <td className="px-3 py-2 align-top text-right tabular-nums">
+                          {a?.loading ? "…" : a && a.enfBeneficiarios > 0 ? a.enfBeneficiarios : "—"}
                         </td>
                         <td className="px-3 py-2 align-top text-right tabular-nums">
-                          {a?.loading ? "…" : a ? a.beneficiarios : "—"}
+                          {a?.loading ? "…" : a && a.enfTotal > 0 ? BRL(a.enfTotal) : "—"}
                         </td>
                         <td className="px-3 py-2 align-top text-right tabular-nums">
-                          {a?.loading ? "…" : a && a.beneficiarios > 0 ? BRL(a.mensalidade) : "—"}
+                          {a?.loading ? "…" : a && a.aptBeneficiarios > 0 ? a.aptBeneficiarios : "—"}
+                        </td>
+                        <td className="px-3 py-2 align-top text-right tabular-nums">
+                          {a?.loading ? "…" : a && a.aptTotal > 0 ? BRL(a.aptTotal) : "—"}
+                        </td>
+                        <td className="px-3 py-2 align-top text-right tabular-nums">
+                          {a?.loading ? "…" : a && a.inclusoesTotal > 0 ? BRL(a.inclusoesTotal) : "—"}
+                        </td>
+                        <td className={cn(
+                          "px-3 py-2 align-top text-right tabular-nums",
+                          a && a.exclusoesTotal !== 0 && "text-destructive font-medium",
+                        )}>
+                          {a?.loading
+                            ? "…"
+                            : a && a.exclusoesTotal !== 0
+                              ? `− ${BRL(Math.abs(a.exclusoesTotal))}`
+                              : "—"}
                         </td>
                         <td className="px-3 py-2 align-top text-right tabular-nums font-semibold text-success">
-                          {a?.loading ? "…" : a && a.total > 0 ? BRL(a.total) : "—"}
+                          {a?.loading ? "…" : a && a.totalGeral !== 0 ? BRL(a.totalGeral) : "—"}
                         </td>
                         <td className="px-3 py-2 align-top">
                           {r.data_vencimento ? formatDateBR(r.data_vencimento) : "—"}
@@ -533,7 +555,7 @@ export function PrevisaoFinanceira() {
                       {isOpen && (
                         <tr className="bg-muted/20 border-b">
                           <td></td>
-                          <td colSpan={10} className="px-4 py-3">
+                          <td colSpan={14} className="px-4 py-3">
                             <DetalheAnalise dado={a} />
                           </td>
                         </tr>
@@ -543,7 +565,7 @@ export function PrevisaoFinanceira() {
                 })}
                 {filteredRows.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={15} className="px-4 py-8 text-center text-sm text-muted-foreground">
                       Nenhum registro para os filtros selecionados.
                     </td>
                   </tr>
@@ -591,6 +613,19 @@ function DetalheAnalise({ dado }: { dado?: AnaliseDado }) {
             <Linha k="Apartamento — Total" v={BRL(r.apartamento.total)} />
             <Linha k="Inclusões — Qtd" v={r.inclusoes?.quantidade ?? 0} />
             <Linha k="Inclusões — Total" v={BRL(r.inclusoes?.total ?? 0)} />
+            {r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0) && (
+              <>
+                <Linha k="Exclusões — Qtd" v={r.exclusoes.quantidade ?? 0} />
+                <Linha
+                  k="Exclusões — Total"
+                  v={
+                    <span className="text-destructive">
+                      {r.exclusoes.total < 0 ? `− ${BRL(Math.abs(r.exclusoes.total))}` : BRL(r.exclusoes.total)}
+                    </span>
+                  }
+                />
+              </>
+            )}
           </div>
           {r.avisos?.length ? (
             <ul className="mt-2 list-disc list-inside text-[11px] text-warning">
