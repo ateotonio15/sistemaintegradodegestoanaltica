@@ -179,6 +179,11 @@ export function AlertaReajustesPendentes() {
           </div>
         )}
       </CardContent>
+      <SolicitarReajusteDialog
+        open={!!empresaSelecionada}
+        onOpenChange={(v) => { if (!v) setEmpresaSelecionada(null); }}
+        empresa={empresaSelecionada}
+      />
     </Card>
   );
 }
