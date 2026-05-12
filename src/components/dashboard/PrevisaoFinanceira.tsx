@@ -47,12 +47,26 @@ type AnaliseRow = {
 
 type AnaliseDado = {
   loading: boolean;
-  total: number;
-  beneficiarios: number;
-  mensalidade: number;
-  categorias: string[];
+  enfBeneficiarios: number;
+  enfTotal: number;
+  aptBeneficiarios: number;
+  aptTotal: number;
+  inclusoesTotal: number;
+  exclusoesTotal: number; // negativo quando há exclusões (Moto Honda)
+  totalGeral: number;
   detalhe?: any;
   erro?: string;
+};
+
+const EMPTY_ANALISE: AnaliseDado = {
+  loading: false,
+  enfBeneficiarios: 0,
+  enfTotal: 0,
+  aptBeneficiarios: 0,
+  aptTotal: 0,
+  inclusoesTotal: 0,
+  exclusoesTotal: 0,
+  totalGeral: 0,
 };
 
 const BRL = (n: number) =>
