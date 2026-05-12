@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, role, isAdmin: role === "admin", isExecutivo: role === "executivo", isViewOnly: role === "visualizacao", isEnfermeira: role === "enfermeira", isFinanceiro: role === "financeiro", isComum: role === "comum", canEditFinanceiro: role === "admin" || role === "financeiro", signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, role, isAdmin: role === "admin", isExecutivo: role === "executivo", isViewOnly: role === "visualizacao" || role === "diretora", isEnfermeira: role === "enfermeira", isFinanceiro: role === "financeiro", isComum: role === "comum", canEditFinanceiro: role === "admin" || role === "financeiro", signOut }}>
       {children}
     </AuthContext.Provider>
   );
