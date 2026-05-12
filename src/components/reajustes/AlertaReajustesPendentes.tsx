@@ -164,11 +164,10 @@ export function AlertaReajustesPendentes() {
                           <Button
                             size="sm"
                             variant="default"
-                            disabled={solicitandoId === empresa.id}
-                            onClick={() => solicitarMutation.mutate(empresa.id)}
+                            onClick={() => setEmpresaSelecionada(empresa)}
                           >
                             <Plus className="h-3 w-3 mr-1" />
-                            {solicitandoId === empresa.id ? "Enviando..." : "Solicitar Reajuste"}
+                            Solicitar Reajuste
                           </Button>
                         )}
                       </TableCell>
