@@ -4,15 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { BedDouble, Hotel, Sparkles, TrendingUp, Calendar } from "lucide-react";
+import { BedDouble, Hotel, Sparkles, TrendingUp, Calendar, Users } from "lucide-react";
 import { ModalidadesPicker } from "./ReajusteDialog";
+import { ReajusteFaixaEtariaTable } from "./ReajusteFaixaEtariaTable";
 import {
   calcularValorReajustadoCentavos, reaisToCentavos, formatCentavosBRL,
   getMesReajuste, nomeMes, calcularMesesRetroativos, calcularRetroativoCentavos, calcularValorFinalCentavos,
+  criarFaixasIniciais, somarFaixas, type FaixaEtariaItem,
 } from "@/lib/reajuste-utils";
 
 interface Empresa { id: string; nome: string; codigo_contrato?: string | null; data_implantacao?: string | null }
@@ -35,6 +38,13 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
   const [dataAplicacao, setDataAplicacao] = useState<string>(new Date().toISOString().slice(0, 10));
   const [observacao, setObservacao] = useState("");
 
+  const [usaFaixaEnf, setUsaFaixaEnf] = useState(false);
+  const [usaFaixaApt, setUsaFaixaApt] = useState(false);
+  const [pctUnicoEnf, setPctUnicoEnf] = useState(true);
+  const [pctUnicoApt, setPctUnicoApt] = useState(true);
+  const [faixasEnf, setFaixasEnf] = useState<FaixaEtariaItem[]>(() => criarFaixasIniciais());
+  const [faixasApt, setFaixasApt] = useState<FaixaEtariaItem[]>(() => criarFaixasIniciais());
+
   useEffect(() => {
     if (!open) return;
     setPossuiEnf(true);
@@ -44,11 +54,14 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
     setPercentual("");
     setDataAplicacao(new Date().toISOString().slice(0, 10));
     setObservacao("");
+    setUsaFaixaEnf(false);
+    setUsaFaixaApt(false);
+    setPctUnicoEnf(true);
+    setPctUnicoApt(true);
+    setFaixasEnf(criarFaixasIniciais());
+    setFaixasApt(criarFaixasIniciais());
   }, [open]);
 
-  const enfCent = useMemo(() => (possuiEnf ? reaisToCentavos(valorEnf) : 0), [possuiEnf, valorEnf]);
-  const aptCent = useMemo(() => (possuiApt ? reaisToCentavos(valorApt) : 0), [possuiApt, valorApt]);
-  const valorAntigoCent = enfCent + aptCent;
   const pctNum = useMemo(() => {
     const n = parseFloat(String(percentual).replace(",", "."));
     return isNaN(n) ? 0 : n;
@@ -56,51 +69,100 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
   const mesReajuste = useMemo(() => getMesReajuste(empresa?.data_implantacao || null), [empresa]);
   const mesesRetro = useMemo(() => calcularMesesRetroativos(mesReajuste, dataAplicacao), [mesReajuste, dataAplicacao]);
 
-  const enfReaj = useMemo(() => calcularValorReajustadoCentavos(enfCent, pctNum), [enfCent, pctNum]);
-  const enfRetro = useMemo(() => calcularRetroativoCentavos(enfCent, enfReaj, mesesRetro), [enfCent, enfReaj, mesesRetro]);
-  const enfFinal = useMemo(() => calcularValorFinalCentavos(enfReaj, enfRetro), [enfReaj, enfRetro]);
+  const enfTotais = useMemo(() => {
+    if (possuiEnf && usaFaixaEnf) return somarFaixas(faixasEnf);
+    const va = possuiEnf ? reaisToCentavos(valorEnf) : 0;
+    const vr = calcularValorReajustadoCentavos(va, pctNum);
+    const ret = calcularRetroativoCentavos(va, vr, mesesRetro);
+    return { valor_atual_centavos: va, valor_reajustado_centavos: vr, valor_retroativo_centavos: ret, valor_final_centavos: calcularValorFinalCentavos(vr, ret) };
+  }, [possuiEnf, usaFaixaEnf, faixasEnf, valorEnf, pctNum, mesesRetro]);
 
-  const aptReaj = useMemo(() => calcularValorReajustadoCentavos(aptCent, pctNum), [aptCent, pctNum]);
-  const aptRetro = useMemo(() => calcularRetroativoCentavos(aptCent, aptReaj, mesesRetro), [aptCent, aptReaj, mesesRetro]);
-  const aptFinal = useMemo(() => calcularValorFinalCentavos(aptReaj, aptRetro), [aptReaj, aptRetro]);
+  const aptTotais = useMemo(() => {
+    if (possuiApt && usaFaixaApt) return somarFaixas(faixasApt);
+    const va = possuiApt ? reaisToCentavos(valorApt) : 0;
+    const vr = calcularValorReajustadoCentavos(va, pctNum);
+    const ret = calcularRetroativoCentavos(va, vr, mesesRetro);
+    return { valor_atual_centavos: va, valor_reajustado_centavos: vr, valor_retroativo_centavos: ret, valor_final_centavos: calcularValorFinalCentavos(vr, ret) };
+  }, [possuiApt, usaFaixaApt, faixasApt, valorApt, pctNum, mesesRetro]);
 
-  const valorReajustadoCent = enfReaj + aptReaj;
-  const retroativoCent = enfRetro + aptRetro;
-  const valorFinalCent = enfFinal + aptFinal;
+  const valorAntigoCent = (possuiEnf ? enfTotais.valor_atual_centavos : 0) + (possuiApt ? aptTotais.valor_atual_centavos : 0);
+  const valorReajustadoCent = (possuiEnf ? enfTotais.valor_reajustado_centavos : 0) + (possuiApt ? aptTotais.valor_reajustado_centavos : 0);
+  const retroativoCent = (possuiEnf ? enfTotais.valor_retroativo_centavos : 0) + (possuiApt ? aptTotais.valor_retroativo_centavos : 0);
+  const valorFinalCent = (possuiEnf ? enfTotais.valor_final_centavos : 0) + (possuiApt ? aptTotais.valor_final_centavos : 0);
 
   const podeEnviar =
     (possuiEnf || possuiApt) &&
-    (!possuiEnf || enfCent > 0) &&
-    (!possuiApt || aptCent > 0) &&
+    (!possuiEnf || enfTotais.valor_atual_centavos > 0) &&
+    (!possuiApt || aptTotais.valor_atual_centavos > 0) &&
     pctNum > 0;
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!empresa) throw new Error("Empresa não selecionada");
       if (!possuiEnf && !possuiApt) throw new Error("Selecione ao menos uma modalidade");
-      if (possuiEnf && enfCent <= 0) throw new Error("Informe o Valor Atual da Enfermaria");
-      if (possuiApt && aptCent <= 0) throw new Error("Informe o Valor Atual do Apartamento");
+      if (possuiEnf && enfTotais.valor_atual_centavos <= 0) throw new Error("Informe o Valor Atual da Enfermaria");
+      if (possuiApt && aptTotais.valor_atual_centavos <= 0) throw new Error("Informe o Valor Atual do Apartamento");
       if (pctNum <= 0) throw new Error("Preencha o percentual de reajuste.");
 
       const { data: novoId, error: rpcErr } = await supabase.rpc("solicitar_reajuste", {
         p_empresa_id: empresa.id,
       } as any);
       if (rpcErr) throw rpcErr;
+      const reajusteId = novoId as unknown as string;
 
       const { error: upErr } = await supabase
         .from("reajustes_anuais")
         .update({
           possui_enfermaria: possuiEnf,
           possui_apartamento: possuiApt,
-          valor_antigo_enfermaria_centavos: possuiEnf ? enfCent : 0,
-          valor_antigo_apartamento_centavos: possuiApt ? aptCent : 0,
+          valor_antigo_enfermaria_centavos: possuiEnf ? enfTotais.valor_atual_centavos : 0,
+          valor_antigo_apartamento_centavos: possuiApt ? aptTotais.valor_atual_centavos : 0,
           valor_antigo_centavos: valorAntigoCent,
           percentual: pctNum,
           data_aplicacao: dataAplicacao || null,
           observacao: observacao || null,
+          usa_faixa_etaria_enfermaria: possuiEnf && usaFaixaEnf,
+          usa_faixa_etaria_apartamento: possuiApt && usaFaixaApt,
+          percentual_unico_enfermaria: pctUnicoEnf,
+          percentual_unico_apartamento: pctUnicoApt,
         } as any)
-        .eq("id", novoId as unknown as string);
+        .eq("id", reajusteId);
       if (upErr) throw upErr;
+
+      // Faixas
+      const rows: any[] = [];
+      if (possuiEnf && usaFaixaEnf) {
+        for (const f of faixasEnf) {
+          if (f.valor_atual_centavos <= 0) continue;
+          rows.push({
+            reajuste_id: reajusteId, modalidade: "enfermaria",
+            idade_inicial: f.idade_inicial, idade_final: f.idade_final,
+            valor_atual_centavos: f.valor_atual_centavos,
+            percentual: pctUnicoEnf ? pctNum : f.percentual,
+            valor_reajustado_centavos: f.valor_reajustado_centavos,
+            valor_retroativo_centavos: f.valor_retroativo_centavos,
+            valor_final_centavos: f.valor_final_centavos,
+          });
+        }
+      }
+      if (possuiApt && usaFaixaApt) {
+        for (const f of faixasApt) {
+          if (f.valor_atual_centavos <= 0) continue;
+          rows.push({
+            reajuste_id: reajusteId, modalidade: "apartamento",
+            idade_inicial: f.idade_inicial, idade_final: f.idade_final,
+            valor_atual_centavos: f.valor_atual_centavos,
+            percentual: pctUnicoApt ? pctNum : f.percentual,
+            valor_reajustado_centavos: f.valor_reajustado_centavos,
+            valor_retroativo_centavos: f.valor_retroativo_centavos,
+            valor_final_centavos: f.valor_final_centavos,
+          });
+        }
+      }
+      if (rows.length > 0) {
+        const { error: insErr } = await supabase.from("reajuste_faixas" as any).insert(rows);
+        if (insErr) throw insErr;
+      }
     },
     onSuccess: () => {
       toast({ title: "Solicitação enviada", description: "Cadastro responsável foi notificado." });
@@ -116,7 +178,7 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto backdrop-blur-xl bg-background/95 border-primary/20 shadow-2xl">
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto backdrop-blur-xl bg-background/95 border-primary/20 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -128,7 +190,6 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
-          {/* Empresa */}
           <div className="rounded-xl border bg-gradient-to-br from-primary/5 to-transparent p-4">
             <div className="font-semibold text-base">{empresa?.nome || "—"}</div>
             <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
@@ -138,7 +199,6 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
             </div>
           </div>
 
-          {/* Modalidades */}
           <ModalidadesPicker
             possuiEnf={possuiEnf}
             possuiApt={possuiApt}
@@ -146,85 +206,94 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
             onApt={setPossuiApt}
           />
 
-          {/* Inputs */}
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3">
             {possuiEnf && (
-              <div className="grid gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 animate-fade-in">
-                <Label className="flex items-center gap-2 text-sm">
-                  <BedDouble className="h-4 w-4 text-emerald-600" />
-                  Valor Atual Enfermaria (R$) <span className="text-destructive">*</span>
-                </Label>
-                <Input inputMode="decimal" placeholder="0,00" value={valorEnf} onChange={(e) => setValorEnf(e.target.value)} />
+              <div className="grid gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 animate-fade-in">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <BedDouble className="h-4 w-4 text-emerald-600" /> Enfermaria
+                  </Label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Switch checked={usaFaixaEnf} onCheckedChange={setUsaFaixaEnf} />
+                    <Users className="h-3.5 w-3.5" />
+                    <span>Contrato com Faixa Etária</span>
+                  </label>
+                </div>
+                {!usaFaixaEnf ? (
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Valor Atual (R$) <span className="text-destructive">*</span></Label>
+                    <Input inputMode="decimal" placeholder="0,00" value={valorEnf} onChange={(e) => setValorEnf(e.target.value)} />
+                  </div>
+                ) : (
+                  <ReajusteFaixaEtariaTable
+                    modalidade="enfermaria"
+                    faixas={faixasEnf}
+                    onChange={setFaixasEnf}
+                    percentualGlobal={pctNum}
+                    percentualUnico={pctUnicoEnf}
+                    onPercentualUnicoChange={setPctUnicoEnf}
+                    mesesRetro={mesesRetro}
+                  />
+                )}
               </div>
             )}
             {possuiApt && (
-              <div className="grid gap-2 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 animate-fade-in">
-                <Label className="flex items-center gap-2 text-sm">
-                  <Hotel className="h-4 w-4 text-blue-600" />
-                  Valor Atual Apartamento (R$) <span className="text-destructive">*</span>
-                </Label>
-                <Input inputMode="decimal" placeholder="0,00" value={valorApt} onChange={(e) => setValorApt(e.target.value)} />
+              <div className="grid gap-3 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 animate-fade-in">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Hotel className="h-4 w-4 text-blue-600" /> Apartamento
+                  </Label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Switch checked={usaFaixaApt} onCheckedChange={setUsaFaixaApt} />
+                    <Users className="h-3.5 w-3.5" />
+                    <span>Contrato com Faixa Etária</span>
+                  </label>
+                </div>
+                {!usaFaixaApt ? (
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Valor Atual (R$) <span className="text-destructive">*</span></Label>
+                    <Input inputMode="decimal" placeholder="0,00" value={valorApt} onChange={(e) => setValorApt(e.target.value)} />
+                  </div>
+                ) : (
+                  <ReajusteFaixaEtariaTable
+                    modalidade="apartamento"
+                    faixas={faixasApt}
+                    onChange={setFaixasApt}
+                    percentualGlobal={pctNum}
+                    percentualUnico={pctUnicoApt}
+                    onPercentualUnicoChange={setPctUnicoApt}
+                    mesesRetro={mesesRetro}
+                  />
+                )}
               </div>
             )}
-            <div className="grid gap-2">
-              <Label className="flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5" /> Percentual (%) <span className="text-destructive">*</span></Label>
-              <Input inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Previsão de aplicação</Label>
-              <Input type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label className="flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5" /> Percentual (%) <span className="text-destructive">*</span></Label>
+                <Input inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Previsão de aplicação</Label>
+                <Input type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
+              </div>
             </div>
           </div>
 
-          {/* Preview por modalidade */}
           {(possuiEnf || possuiApt) && (
-            <div className="space-y-2 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Preview do cálculo</Label>
-                <Badge variant="outline" className="text-xs">{mesesRetro} {mesesRetro === 1 ? "mês retro" : "meses retro"}</Badge>
+            <div className="rounded-lg border bg-muted/40 p-3 grid grid-cols-3 gap-3 text-sm animate-fade-in">
+              <div>
+                <div className="text-xs text-muted-foreground">Reajustado total</div>
+                <div className="font-semibold">{formatCentavosBRL(valorReajustadoCent)}</div>
               </div>
-              <div className={`grid gap-3 ${possuiEnf && possuiApt ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
-                {possuiEnf && (
-                  <PreviewCard
-                    titulo="Enfermaria"
-                    Icone={BedDouble}
-                    cor="emerald"
-                    percentual={pctNum}
-                    valorAtual={enfCent}
-                    valorReajustado={enfReaj}
-                    retroativo={enfRetro}
-                    valorFinal={enfFinal}
-                  />
-                )}
-                {possuiApt && (
-                  <PreviewCard
-                    titulo="Apartamento"
-                    Icone={Hotel}
-                    cor="blue"
-                    percentual={pctNum}
-                    valorAtual={aptCent}
-                    valorReajustado={aptReaj}
-                    retroativo={aptRetro}
-                    valorFinal={aptFinal}
-                  />
-                )}
+              <div>
+                <div className="text-xs text-muted-foreground">Retroativo total</div>
+                <div className="font-semibold">{formatCentavosBRL(retroativoCent)}</div>
+                <Badge variant="outline" className="text-[10px] mt-1">{mesesRetro} {mesesRetro === 1 ? "mês" : "meses"}</Badge>
               </div>
-              {possuiEnf && possuiApt && (
-                <div className="rounded-lg border bg-muted/40 p-3 grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <div className="text-xs text-muted-foreground">Reajustado total</div>
-                    <div className="font-semibold">{formatCentavosBRL(valorReajustadoCent)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Retroativo total</div>
-                    <div className="font-semibold">{formatCentavosBRL(retroativoCent)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Valor Final total</div>
-                    <div className="font-bold text-primary">{formatCentavosBRL(valorFinalCent)}</div>
-                  </div>
-                </div>
-              )}
+              <div>
+                <div className="text-xs text-muted-foreground">Valor Final total</div>
+                <div className="font-bold text-primary">{formatCentavosBRL(valorFinalCent)}</div>
+              </div>
             </div>
           )}
 
@@ -249,51 +318,5 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-type PreviewCardProps = {
-  titulo: string;
-  Icone: React.ComponentType<{ className?: string }>;
-  cor: "emerald" | "blue";
-  percentual: number;
-  valorAtual: number;
-  valorReajustado: number;
-  retroativo: number;
-  valorFinal: number;
-};
-
-function PreviewCard({ titulo, Icone, cor, percentual, valorAtual, valorReajustado, retroativo, valorFinal }: PreviewCardProps) {
-  const styles = cor === "emerald"
-    ? { card: "border-emerald-500/40 bg-emerald-500/5", icon: "text-emerald-600", final: "text-emerald-600" }
-    : { card: "border-blue-500/40 bg-blue-500/5", icon: "text-blue-600", final: "text-blue-600" };
-  return (
-    <div className={`rounded-lg border p-3 ${styles.card}`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <Icone className={`h-4 w-4 ${styles.icon}`} />
-          {titulo}
-        </div>
-        <Badge variant="outline" className="text-[10px]">{percentual.toFixed(2).replace(".", ",")}%</Badge>
-      </div>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-        <div>
-          <div className="text-muted-foreground">Valor Atual</div>
-          <div className="font-medium text-sm">{formatCentavosBRL(valorAtual)}</div>
-        </div>
-        <div>
-          <div className="text-muted-foreground">Valor Reajustado</div>
-          <div className="font-medium text-sm">{formatCentavosBRL(valorReajustado)}</div>
-        </div>
-        <div>
-          <div className="text-muted-foreground">Retroativo</div>
-          <div className="font-medium text-sm">{formatCentavosBRL(retroativo)}</div>
-        </div>
-        <div>
-          <div className="text-muted-foreground">Valor Final</div>
-          <div className={`font-bold text-sm ${styles.final}`}>{formatCentavosBRL(valorFinal)}</div>
-        </div>
-      </div>
-    </div>
   );
 }
