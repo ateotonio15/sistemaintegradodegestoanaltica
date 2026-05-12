@@ -129,7 +129,13 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const hoje = todayLocalISO();
   const envioNoFuturo = dataEnvioNota && dataEnvioNota > hoje;
 
-  const hasErrors = !!envioNoFuturo;
+  const prorrogacaoFaltaData = possuiProrrogacao && !dataProrrogacao;
+  const prorrogacaoFaltaMotivo = possuiProrrogacao && !motivoProrrogacao;
+  const prorrogacaoFaltaObs =
+    possuiProrrogacao && motivoProrrogacao === "Outros" && !observacaoProrrogacao.trim();
+
+  const hasErrors =
+    !!envioNoFuturo || prorrogacaoFaltaData || prorrogacaoFaltaMotivo || prorrogacaoFaltaObs;
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["financeiro-anexos", movimentacao?.id],
