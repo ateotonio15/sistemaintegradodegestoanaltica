@@ -60,6 +60,63 @@ export function calcularValorFinalCentavos(valorReajustadoCent: number, retroati
   return (valorReajustadoCent || 0) + (retroativoCent || 0);
 }
 
+// === Faixas etárias do reajuste (10 faixas fixas) ===
+export const FAIXAS_ETARIAS: Array<{ idade_inicial: number; idade_final: number }> = [
+  { idade_inicial: 0, idade_final: 18 },
+  { idade_inicial: 19, idade_final: 23 },
+  { idade_inicial: 24, idade_final: 28 },
+  { idade_inicial: 29, idade_final: 33 },
+  { idade_inicial: 34, idade_final: 38 },
+  { idade_inicial: 39, idade_final: 43 },
+  { idade_inicial: 44, idade_final: 48 },
+  { idade_inicial: 49, idade_final: 53 },
+  { idade_inicial: 54, idade_final: 58 },
+  { idade_inicial: 59, idade_final: 999 },
+];
+
+export function labelFaixa(ini: number, fim: number): string {
+  return fim >= 999 ? `${ini}+ anos` : `${ini} - ${fim} anos`;
+}
+
+export type FaixaEtariaItem = {
+  idade_inicial: number;
+  idade_final: number;
+  valor_atual_centavos: number;
+  percentual: number;
+  valor_reajustado_centavos: number;
+  valor_retroativo_centavos: number;
+  valor_final_centavos: number;
+};
+
+export function criarFaixasIniciais(): FaixaEtariaItem[] {
+  return FAIXAS_ETARIAS.map((f) => ({
+    idade_inicial: f.idade_inicial,
+    idade_final: f.idade_final,
+    valor_atual_centavos: 0,
+    percentual: 0,
+    valor_reajustado_centavos: 0,
+    valor_retroativo_centavos: 0,
+    valor_final_centavos: 0,
+  }));
+}
+
+export function somarFaixas(faixas: FaixaEtariaItem[]): {
+  valor_atual_centavos: number;
+  valor_reajustado_centavos: number;
+  valor_retroativo_centavos: number;
+  valor_final_centavos: number;
+} {
+  return faixas.reduce(
+    (acc, f) => ({
+      valor_atual_centavos: acc.valor_atual_centavos + (f.valor_atual_centavos || 0),
+      valor_reajustado_centavos: acc.valor_reajustado_centavos + (f.valor_reajustado_centavos || 0),
+      valor_retroativo_centavos: acc.valor_retroativo_centavos + (f.valor_retroativo_centavos || 0),
+      valor_final_centavos: acc.valor_final_centavos + (f.valor_final_centavos || 0),
+    }),
+    { valor_atual_centavos: 0, valor_reajustado_centavos: 0, valor_retroativo_centavos: 0, valor_final_centavos: 0 },
+  );
+}
+
 export type StatusReajuste = "Reajustado" | "Pendente" | "Atrasado";
 
 export function getStatusReajusteEmpresa(

@@ -1,35 +1,78 @@
-## Objetivo
+# Reajuste por Faixa Etária
 
-Trocar o envio direto (RPC) do botão **"Solicitar Reajuste"** no Dashboard por um **modal rápido** com prévia automática, reaproveitando o componente já existente `SolicitarReajusteDialog` usado na aba Reajustes.
+Adiciona um modo opcional de reajuste por faixa etária dentro dos diálogos de reajuste já existentes (`ReajusteDialog` e `SolicitarReajusteDialog`), preservando o fluxo padrão (valor único por modalidade) e os cálculos atuais.
 
-## Onde mexer
+## 1. Banco de dados
 
-Apenas em `src/components/reajustes/AlertaReajustesPendentes.tsx` (card amarelo "X contratos precisam de reajuste" no Dashboard do Visualização/Admin).
+Nova tabela `reajuste_faixas` para armazenar a grade de faixas por reajuste e modalidade.
 
-Nenhuma mudança em backend, RLS ou regras de fluxo — o dialog já chama o mesmo RPC `solicitar_reajuste` e cria o alerta para o Cadastro responsável.
+Campos:
+- `reajuste_id` (uuid, FK lógica para `reajustes_anuais.id`, on delete cascade)
+- `modalidade` (text: `enfermaria` | `apartamento`)
+- `idade_inicial` (smallint)
+- `idade_final` (smallint)
+- `valor_atual_centavos` (bigint)
+- `percentual` (numeric)
+- `valor_reajustado_centavos` (bigint)
+- `valor_retroativo_centavos` (bigint)
+- `valor_final_centavos` (bigint)
+- timestamps padrão
 
-## Mudanças
+Índice único: `(reajuste_id, modalidade, idade_inicial, idade_final)`.
 
-1. Remover a `solicitarMutation` que chamava `supabase.rpc("solicitar_reajuste")` direto pelo clique do botão.
-2. Importar `SolicitarReajusteDialog` de `@/components/reajustes/SolicitarReajusteDialog`.
-3. Adicionar estado local `empresaSelecionada` (objeto com `id`, `nome`, `codigo_contrato`, `data_implantacao`) e renderizar o `<SolicitarReajusteDialog open={!!empresaSelecionada} onOpenChange={...} empresa={empresaSelecionada} />`.
-4. Botão "Solicitar Reajuste" da tabela passa a apenas setar `empresaSelecionada` (abre o modal). Remover estado `solicitandoId` e o texto "Enviando...".
-5. Após o modal fechar com sucesso, ele já invalida as queries de reajustes — adicionar invalidate de `["reajustes-pendentes-list"]` no `onSuccess` do dialog se ainda não estiver presente (verificar; se faltar, adicionar para o card sumir/atualizar imediatamente).
+Em `reajustes_anuais`, adicionar:
+- `usa_faixa_etaria_enfermaria` boolean default false
+- `usa_faixa_etaria_apartamento` boolean default false
+- `percentual_unico_enfermaria` boolean default true
+- `percentual_unico_apartamento` boolean default true
 
-## Comportamento resultante
+RLS: replicar políticas de `reajustes_anuais` (admin manage, authenticated read, comum responsável manage, visualizacao manage).
 
-- Clique em "Solicitar Reajuste" abre o modal moderno (mesmo da aba Reajustes) com:
-  - Empresa, Contrato, Implantação e Mês de reajuste pré-preenchidos.
-  - Checkbox Enfermaria / Apartamento.
-  - Campos dinâmicos de valor atual por modalidade selecionada.
-  - Percentual obrigatório + preview automático (Valor Atual, %, Valor Reajustado, Retroativo, Valor Final) por modalidade.
-  - Botão "Enviar para Cadastro" valida campos, salva o reajuste, gera alerta para o Cadastro responsável e fecha o modal com toast de sucesso.
-- A empresa permanece no card do Dashboard até o Cadastro confirmar/liberar (regra atual preservada).
-- Permissões mantidas: visualização/admin abrem; Cadastro confirma na aba Reajustes.
+## 2. Faixas obrigatórias (constante no front)
 
-## Não fazer
+`[0–18, 19–23, 24–28, 29–33, 34–38, 39–43, 44–48, 49–53, 54–58, 59–999]`. Definida em `src/lib/reajuste-utils.ts` como `FAIXAS_ETARIAS`.
 
-- Não criar página nova.
-- Não alterar tabelas, RPCs ou RLS.
-- Não mexer no fluxo de confirmação do Cadastro.
-- Não remover a empresa do card antes da liberação.
+## 3. Componente novo
+
+`src/components/reajustes/ReajusteFaixaEtariaTable.tsx`:
+- Recebe modalidade, percentual global, mesesRetro, valores iniciais e onChange.
+- Renderiza accordion por modalidade contendo tabela com colunas: Faixa, Valor Atual, %, Valor Reajustado, Retroativo, Valor Final.
+- Toggle "Usar percentual único" — quando ligado, coluna % fica desabilitada e usa o percentual global; quando desligado, % é editável por linha.
+- Cálculos em tempo real reusando `calcularValorReajustadoCentavos`, `calcularRetroativoCentavos`, `calcularValorFinalCentavos`.
+- Linha "Total" no rodapé somando Valor Final.
+- Animação suave (`animate-fade-in`) e scroll interno em telas pequenas.
+
+## 4. Integração nos diálogos
+
+Em `ReajusteDialog` e `SolicitarReajusteDialog`:
+- Dentro de cada bloco de modalidade ativa (Enfermaria/Apartamento), adicionar toggle `"Contrato com Faixa Etária"`.
+- Quando ligado: oculta o campo único "Valor Atual" da modalidade e renderiza `ReajusteFaixaEtariaTable`. O cálculo total da modalidade passa a ser a soma dos `valor_final` das faixas (e idem retroativo/reajustado).
+- Quando desligado: comportamento atual.
+- Validação `podeEnviar`: se modo faixa ativo, exige pelo menos uma faixa com valor > 0 e percentual > 0 (global ou por linha).
+- Ao salvar: além do upsert em `reajustes_anuais` (com flags `usa_faixa_etaria_*` e `percentual_unico_*`), `delete + insert` das linhas em `reajuste_faixas` para cada modalidade marcada.
+- Ao editar: carregar faixas existentes via select por `reajuste_id`.
+
+## 5. Listagem (`Reajustes.tsx`)
+
+- Ao calcular `usarEnf`/`usarApt`, considerar também `usa_faixa_etaria_*` para preferir esse caminho de exibição.
+- Quando reajuste usa faixa: mostrar Badge "Faixa Etária" na coluna Status; campos resumidos (Valor Atual/Reajustado/Retroativo/Final) exibem os totais somados das faixas.
+- Linha expandida (sub div já existente) ganha bloco "Faixas Etárias — Enfermaria/Apartamento" com tabela compacta listando cada faixa.
+
+## 6. Regras
+
+- Faixa etária só aparece quando explicitamente ativada por modalidade. Não obrigatório.
+- Não mistura valores entre Enfermaria e Apartamento — cada uma tem sua própria grade.
+- Faixa 59+ sempre presente (idade_final = 999).
+- Reajuste padrão (sem faixa) continua intacto.
+
+## Detalhes técnicos
+
+- Reaproveita utilitários de `src/lib/reajuste-utils.ts`; novas funções: `somarFaixas(faixas)` e `FAIXAS_ETARIAS` constante.
+- Persistência das faixas dentro do mesmo `mutationFn` para manter atomicidade lógica (ordem: upsert reajuste → delete/insert faixas).
+- Sem alterações em RPCs existentes (`solicitar_reajuste` continua gerando o registro base; faixas são preenchidas no update subsequente).
+- Tipos do Supabase serão regenerados automaticamente após a migration.
+
+## Fora de escopo
+
+- Não alterar lógica do Financeiro nem importação Excel.
+- Não mexer em `reajustes` (tabela legada de cobrança), apenas `reajustes_anuais`.

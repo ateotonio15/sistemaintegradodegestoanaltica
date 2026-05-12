@@ -371,13 +371,20 @@ export default function Reajustes() {
                       </TableCell>
                       <TableCell className="font-bold text-primary">{temValores ? formatCentavosBRL(resumoFinal) : "—"}</TableCell>
                       <TableCell>
-                        {reajuste ? (
-                          <Badge variant="outline" className={corStatusReajusteFluxo(statusFluxo)}>
-                            {labelStatusReajusteFluxo(statusFluxo)}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className={statusReajusteColor(status)}>{status}</Badge>
-                        )}
+                        <div className="flex flex-col gap-1 items-start">
+                          {reajuste ? (
+                            <Badge variant="outline" className={corStatusReajusteFluxo(statusFluxo)}>
+                              {labelStatusReajusteFluxo(statusFluxo)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className={statusReajusteColor(status)}>{status}</Badge>
+                          )}
+                          {reajuste && ((reajuste as any).usa_faixa_etaria_enfermaria || (reajuste as any).usa_faixa_etaria_apartamento) && (
+                            <Badge variant="outline" className="text-[10px] bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30">
+                              Faixa Etária
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">

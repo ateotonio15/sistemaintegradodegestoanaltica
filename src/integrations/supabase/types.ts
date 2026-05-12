@@ -752,6 +752,59 @@ export type Database = {
         }
         Relationships: []
       }
+      reajuste_faixas: {
+        Row: {
+          created_at: string
+          id: string
+          idade_final: number
+          idade_inicial: number
+          modalidade: string
+          percentual: number
+          reajuste_id: string
+          updated_at: string
+          valor_atual_centavos: number
+          valor_final_centavos: number
+          valor_reajustado_centavos: number
+          valor_retroativo_centavos: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idade_final: number
+          idade_inicial: number
+          modalidade: string
+          percentual?: number
+          reajuste_id: string
+          updated_at?: string
+          valor_atual_centavos?: number
+          valor_final_centavos?: number
+          valor_reajustado_centavos?: number
+          valor_retroativo_centavos?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idade_final?: number
+          idade_inicial?: number
+          modalidade?: string
+          percentual?: number
+          reajuste_id?: string
+          updated_at?: string
+          valor_atual_centavos?: number
+          valor_final_centavos?: number
+          valor_reajustado_centavos?: number
+          valor_retroativo_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reajuste_faixas_reajuste_id_fkey"
+            columns: ["reajuste_id"]
+            isOneToOne: false
+            referencedRelation: "reajustes_anuais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reajustes: {
         Row: {
           competencia: string
@@ -830,11 +883,15 @@ export type Database = {
           meses_retroativos: number
           observacao: string | null
           percentual: number | null
+          percentual_unico_apartamento: boolean
+          percentual_unico_enfermaria: boolean
           possui_apartamento: boolean
           possui_enfermaria: boolean
           status: string
           status_reajuste: string
           updated_at: string
+          usa_faixa_etaria_apartamento: boolean
+          usa_faixa_etaria_enfermaria: boolean
           usuario_id: string | null
           usuario_nome: string | null
           valor_antigo_apartamento_centavos: number | null
@@ -867,11 +924,15 @@ export type Database = {
           meses_retroativos?: number
           observacao?: string | null
           percentual?: number | null
+          percentual_unico_apartamento?: boolean
+          percentual_unico_enfermaria?: boolean
           possui_apartamento?: boolean
           possui_enfermaria?: boolean
           status?: string
           status_reajuste?: string
           updated_at?: string
+          usa_faixa_etaria_apartamento?: boolean
+          usa_faixa_etaria_enfermaria?: boolean
           usuario_id?: string | null
           usuario_nome?: string | null
           valor_antigo_apartamento_centavos?: number | null
@@ -904,11 +965,15 @@ export type Database = {
           meses_retroativos?: number
           observacao?: string | null
           percentual?: number | null
+          percentual_unico_apartamento?: boolean
+          percentual_unico_enfermaria?: boolean
           possui_apartamento?: boolean
           possui_enfermaria?: boolean
           status?: string
           status_reajuste?: string
           updated_at?: string
+          usa_faixa_etaria_apartamento?: boolean
+          usa_faixa_etaria_enfermaria?: boolean
           usuario_id?: string | null
           usuario_nome?: string | null
           valor_antigo_apartamento_centavos?: number | null
