@@ -35,7 +35,6 @@ const allNavItems = [
   { to: "/empresas", label: "Empresas", icon: Building2 },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/executivas", label: "Executivas", icon: UserCheck },
-  { to: "/saude", label: "Saúde nas Empresas", icon: CalendarClock },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
@@ -106,11 +105,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       if (item.adminOnly && !isAdmin) return false;
       // Financeiro: admin, financeiro e cadastro (comum, somente leitura)
       if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum") return false;
-      // Saúde: only admin, executivo, enfermeira
-      if (item.to === "/saude" && !isAdmin && !isExecutivo && !isEnfermeira) return false;
       // Enfermeira: restricted access
       if (isEnfermeira) {
-        const allowed = ["/empresas", "/executivas", "/saude", "/reajustes"];
+        const allowed = ["/empresas", "/executivas", "/reajustes"];
         return allowed.includes(item.to);
       }
       return true;
