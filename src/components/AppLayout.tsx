@@ -36,6 +36,7 @@ const allNavItems = [
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/executivas", label: "Executivas", icon: UserCheck },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
+  { to: "/arquivos", label: "Arquivos", icon: FolderArchive },
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
