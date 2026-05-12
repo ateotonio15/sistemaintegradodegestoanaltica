@@ -1,78 +1,43 @@
-# Reajuste por Faixa Etária
+## Etapa 29 — Filtro por Responsável + Mês de Reajuste
 
-Adiciona um modo opcional de reajuste por faixa etária dentro dos diálogos de reajuste já existentes (`ReajusteDialog` e `SolicitarReajusteDialog`), preservando o fluxo padrão (valor único por modalidade) e os cálculos atuais.
+### Objetivo
+Na aba Reajuste e nos alertas do Dashboard, filtrar empresas por responsável (perfil Cadastro vê só as suas) e adicionar filtro por **Mês de Reajuste** (baseado no mês da implantação).
 
-## 1. Banco de dados
+### Premissas (importante confirmar)
+- **Cadastro (Comum)**: vê apenas empresas onde é `responsavel_user_id` ou está em `empresa_usuarios`. Vale para a aba Reajuste, alertas do Dashboard, KPIs, lista de pendentes e solicitações.
+- **Visualização e Admin**: continuam vendo **todas** as empresas ativas (Visualização é quem solicita reajustes; restringir por responsável quebraria o fluxo, já que Visualização não tem vínculo de responsabilidade no banco). Filtro de mês fica disponível para todos.
+- **Executivo / Financeiro / Enfermeira**: sem mudança (não usam a aba Reajuste).
 
-Nova tabela `reajuste_faixas` para armazenar a grade de faixas por reajuste e modalidade.
+> Se você quiser que Visualização também seja filtrada por algum vínculo (ex.: `executiva_user_id`), me avise antes que eu implemente — hoje não há campo equivalente para Visualização.
 
-Campos:
-- `reajuste_id` (uuid, FK lógica para `reajustes_anuais.id`, on delete cascade)
-- `modalidade` (text: `enfermaria` | `apartamento`)
-- `idade_inicial` (smallint)
-- `idade_final` (smallint)
-- `valor_atual_centavos` (bigint)
-- `percentual` (numeric)
-- `valor_reajustado_centavos` (bigint)
-- `valor_retroativo_centavos` (bigint)
-- `valor_final_centavos` (bigint)
-- timestamps padrão
+### Mudanças
 
-Índice único: `(reajuste_id, modalidade, idade_inicial, idade_final)`.
+#### 1. `src/pages/Reajustes.tsx`
+- Carregar `empresa_usuarios` do usuário logado quando `isComum` (já existe a query `minhasEmpresas`).
+- Filtrar `empresas` antes do `useMemo` de `rows` e de `kpis`:
+  - Se `isComum`: manter só empresas onde `responsavel_user_id === user.id` **ou** `id ∈ minhasEmpresasSet`.
+  - Caso contrário: manter todas.
+- Adicionar novo state `filterMes` (string: `"all"` ou `"1"`..`"12"`).
+- Adicionar `<Select>` "Mês de Reajuste" na barra de filtros (ao lado do filtro de Status), com opções "Todos" + Janeiro–Dezembro.
+- No `rows.filter`, descartar empresa cujo `getMesReajuste(empresa.data_implantacao)` não bate com `filterMes` (quando ≠ "all").
+- KPIs também devem refletir os filtros (responsável + mês) — recalcular sobre a lista filtrada de empresas.
+- Atualização sem reload (já é via React Query / `useMemo`).
 
-Em `reajustes_anuais`, adicionar:
-- `usa_faixa_etaria_enfermaria` boolean default false
-- `usa_faixa_etaria_apartamento` boolean default false
-- `percentual_unico_enfermaria` boolean default true
-- `percentual_unico_apartamento` boolean default true
+#### 2. `src/components/reajustes/AlertaReajustesPendentes.tsx`
+- Receber `useAuth` (`user`, `isComum`) e, quando `isComum`, buscar `empresa_usuarios` do user e filtrar as empresas retornadas pela query antes de montar `pendentes`. Considerar também `responsavel_user_id` (incluir esse campo no `select`).
+- Adicionar estado `filterMes` e um `<Select>` compacto no cabeçalho do card (ao lado do botão "Ocultar"/"Abrir aba"): "Todos" + 12 meses. Filtrar `lista` exibida.
+- Manter contagem (`total`, `atrasados`) baseada na lista filtrada por responsável (mas independente do filtro de mês — o filtro de mês é só visual; o badge mostra o total real de pendências do usuário).
 
-RLS: replicar políticas de `reajustes_anuais` (admin manage, authenticated read, comum responsável manage, visualizacao manage).
+#### 3. `src/components/reajustes/AlertaReajustesParaConfirmar.tsx`
+- Já filtra por `destinatario_user_id = user.id` quando Comum — sem mudança necessária.
 
-## 2. Faixas obrigatórias (constante no front)
+### Regras técnicas
+- Mês de reajuste vem de `getMesReajuste(empresa.data_implantacao)` (já existente em `reajuste-utils`).
+- Filtro de responsável usa o mesmo padrão já aplicado em outras telas (Dashboard/Movimentações): `responsavel_user_id` OR `empresa_usuarios`.
+- Sem alterações no banco: as RLS de `reajustes_anuais` / `empresas` já permitem leitura ampla; o filtro é client-side e consistente com o resto do app.
 
-`[0–18, 19–23, 24–28, 29–33, 34–38, 39–43, 44–48, 49–53, 54–58, 59–999]`. Definida em `src/lib/reajuste-utils.ts` como `FAIXAS_ETARIAS`.
-
-## 3. Componente novo
-
-`src/components/reajustes/ReajusteFaixaEtariaTable.tsx`:
-- Recebe modalidade, percentual global, mesesRetro, valores iniciais e onChange.
-- Renderiza accordion por modalidade contendo tabela com colunas: Faixa, Valor Atual, %, Valor Reajustado, Retroativo, Valor Final.
-- Toggle "Usar percentual único" — quando ligado, coluna % fica desabilitada e usa o percentual global; quando desligado, % é editável por linha.
-- Cálculos em tempo real reusando `calcularValorReajustadoCentavos`, `calcularRetroativoCentavos`, `calcularValorFinalCentavos`.
-- Linha "Total" no rodapé somando Valor Final.
-- Animação suave (`animate-fade-in`) e scroll interno em telas pequenas.
-
-## 4. Integração nos diálogos
-
-Em `ReajusteDialog` e `SolicitarReajusteDialog`:
-- Dentro de cada bloco de modalidade ativa (Enfermaria/Apartamento), adicionar toggle `"Contrato com Faixa Etária"`.
-- Quando ligado: oculta o campo único "Valor Atual" da modalidade e renderiza `ReajusteFaixaEtariaTable`. O cálculo total da modalidade passa a ser a soma dos `valor_final` das faixas (e idem retroativo/reajustado).
-- Quando desligado: comportamento atual.
-- Validação `podeEnviar`: se modo faixa ativo, exige pelo menos uma faixa com valor > 0 e percentual > 0 (global ou por linha).
-- Ao salvar: além do upsert em `reajustes_anuais` (com flags `usa_faixa_etaria_*` e `percentual_unico_*`), `delete + insert` das linhas em `reajuste_faixas` para cada modalidade marcada.
-- Ao editar: carregar faixas existentes via select por `reajuste_id`.
-
-## 5. Listagem (`Reajustes.tsx`)
-
-- Ao calcular `usarEnf`/`usarApt`, considerar também `usa_faixa_etaria_*` para preferir esse caminho de exibição.
-- Quando reajuste usa faixa: mostrar Badge "Faixa Etária" na coluna Status; campos resumidos (Valor Atual/Reajustado/Retroativo/Final) exibem os totais somados das faixas.
-- Linha expandida (sub div já existente) ganha bloco "Faixas Etárias — Enfermaria/Apartamento" com tabela compacta listando cada faixa.
-
-## 6. Regras
-
-- Faixa etária só aparece quando explicitamente ativada por modalidade. Não obrigatório.
-- Não mistura valores entre Enfermaria e Apartamento — cada uma tem sua própria grade.
-- Faixa 59+ sempre presente (idade_final = 999).
-- Reajuste padrão (sem faixa) continua intacto.
-
-## Detalhes técnicos
-
-- Reaproveita utilitários de `src/lib/reajuste-utils.ts`; novas funções: `somarFaixas(faixas)` e `FAIXAS_ETARIAS` constante.
-- Persistência das faixas dentro do mesmo `mutationFn` para manter atomicidade lógica (ordem: upsert reajuste → delete/insert faixas).
-- Sem alterações em RPCs existentes (`solicitar_reajuste` continua gerando o registro base; faixas são preenchidas no update subsequente).
-- Tipos do Supabase serão regenerados automaticamente após a migration.
-
-## Fora de escopo
-
-- Não alterar lógica do Financeiro nem importação Excel.
-- Não mexer em `reajustes` (tabela legada de cobrança), apenas `reajustes_anuais`.
+### Não fazer
+- Não alterar Executivo/Financeiro/Enfermeira.
+- Não mexer em RLS.
+- Não remover filtros existentes (Ano, Status, Busca).
+- Não esconder a barra de KPIs.
