@@ -116,6 +116,10 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       setDiaEmissao(movimentacao.dia_emissao ? String(movimentacao.dia_emissao) : "__none__");
       setTipoAnalise((movimentacao.tipo_analise as string) || "normal");
       setDentroPrazo(movimentacao.dentro_prazo);
+      setPossuiProrrogacao(!!movimentacao.possui_prorrogacao);
+      setDataProrrogacao(movimentacao.data_prorrogacao || "");
+      setMotivoProrrogacao(movimentacao.motivo_prorrogacao || "");
+      setObservacaoProrrogacao(movimentacao.observacao_prorrogacao || "");
     }
   }, [movimentacao]);
 
