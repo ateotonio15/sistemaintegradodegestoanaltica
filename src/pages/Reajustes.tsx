@@ -295,6 +295,7 @@ export default function Reajustes() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10" />
                     <TableHead>Empresa</TableHead>
                     <TableHead>Contrato</TableHead>
                     <TableHead>Implantação</TableHead>
@@ -310,7 +311,7 @@ export default function Reajustes() {
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
-                    <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">Nenhum contrato encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">Nenhum contrato encontrado</TableCell></TableRow>
                   ) : rows.map(({ empresa, reajuste, status }) => {
                     const statusFluxo = reajuste?.status_reajuste as string | undefined;
                     const isPendenteConfirm = reajuste && statusFluxo === "pendente_confirmacao";
