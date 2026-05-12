@@ -457,9 +457,12 @@ export function PrevisaoFinanceira() {
                   <th className="px-3 py-2 text-left font-medium">Empresa</th>
                   <th className="px-3 py-2 text-left font-medium">Pagador</th>
                   <th className="px-3 py-2 text-left font-medium">Competência</th>
-                  <th className="px-3 py-2 text-left font-medium">Categoria</th>
-                  <th className="px-3 py-2 text-right font-medium">Beneficiários</th>
-                  <th className="px-3 py-2 text-right font-medium">Mensalidade</th>
+                  <th className="px-3 py-2 text-right font-medium">Benef. Enf.</th>
+                  <th className="px-3 py-2 text-right font-medium">Mensalidade Enf.</th>
+                  <th className="px-3 py-2 text-right font-medium">Benef. Apto.</th>
+                  <th className="px-3 py-2 text-right font-medium">Mensalidade Apto.</th>
+                  <th className="px-3 py-2 text-right font-medium">Inclusões</th>
+                  <th className="px-3 py-2 text-right font-medium">Exclusões</th>
                   <th className="px-3 py-2 text-right font-medium">Total</th>
                   <th className="px-3 py-2 text-left font-medium">Vencimento original</th>
                   <th className="px-3 py-2 text-left font-medium">Prorrogação</th>
@@ -500,29 +503,33 @@ export function PrevisaoFinanceira() {
                           {r.pagador_nome ?? "—"}
                         </td>
                         <td className="px-3 py-2 align-top">{formatMesReferencia(r.competencia)}</td>
-                        <td className="px-3 py-2 align-top">
-                          {a?.loading ? (
-                            <span className="text-xs text-muted-foreground">Analisando…</span>
-                          ) : a?.categorias?.length ? (
-                            <div className="flex flex-wrap gap-1">
-                              {a.categorias.map((c) => (
-                                <Badge key={c} variant="outline" className="text-[10px] py-0 px-1.5">
-                                  {c}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
+                        <td className="px-3 py-2 align-top text-right tabular-nums">
+                          {a?.loading ? "…" : a && a.enfBeneficiarios > 0 ? a.enfBeneficiarios : "—"}
                         </td>
                         <td className="px-3 py-2 align-top text-right tabular-nums">
-                          {a?.loading ? "…" : a ? a.beneficiarios : "—"}
+                          {a?.loading ? "…" : a && a.enfTotal > 0 ? BRL(a.enfTotal) : "—"}
                         </td>
                         <td className="px-3 py-2 align-top text-right tabular-nums">
-                          {a?.loading ? "…" : a && a.beneficiarios > 0 ? BRL(a.mensalidade) : "—"}
+                          {a?.loading ? "…" : a && a.aptBeneficiarios > 0 ? a.aptBeneficiarios : "—"}
+                        </td>
+                        <td className="px-3 py-2 align-top text-right tabular-nums">
+                          {a?.loading ? "…" : a && a.aptTotal > 0 ? BRL(a.aptTotal) : "—"}
+                        </td>
+                        <td className="px-3 py-2 align-top text-right tabular-nums">
+                          {a?.loading ? "…" : a && a.inclusoesTotal > 0 ? BRL(a.inclusoesTotal) : "—"}
+                        </td>
+                        <td className={cn(
+                          "px-3 py-2 align-top text-right tabular-nums",
+                          a && a.exclusoesTotal !== 0 && "text-destructive font-medium",
+                        )}>
+                          {a?.loading
+                            ? "…"
+                            : a && a.exclusoesTotal !== 0
+                              ? `− ${BRL(Math.abs(a.exclusoesTotal))}`
+                              : "—"}
                         </td>
                         <td className="px-3 py-2 align-top text-right tabular-nums font-semibold text-success">
-                          {a?.loading ? "…" : a && a.total > 0 ? BRL(a.total) : "—"}
+                          {a?.loading ? "…" : a && a.totalGeral !== 0 ? BRL(a.totalGeral) : "—"}
                         </td>
                         <td className="px-3 py-2 align-top">
                           {r.data_vencimento ? formatDateBR(r.data_vencimento) : "—"}
