@@ -407,34 +407,49 @@ export default function Reajustes() {
                         </div>
                       </TableCell>
                     </TableRow>
-                    {isExpanded && (
-                      <TableRow key={`${empresa.id}-exp`} className="bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={12} className="p-0">
-                          <div className="animate-accordion-down overflow-hidden">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-                              <DetalheCard
-                                titulo="Enfermaria"
-                                Icone={BedDouble}
-                                percentual={pct}
-                                valorAtual={reajuste?.valor_antigo_enfermaria_centavos}
-                                valorReajustado={reajuste?.valor_reajustado_enfermaria_centavos}
-                                retroativo={reajuste?.valor_retroativo_enfermaria_centavos}
-                                valorFinal={reajuste?.valor_final_enfermaria_centavos}
-                              />
-                              <DetalheCard
-                                titulo="Apartamento"
-                                Icone={Hotel}
-                                percentual={pct}
-                                valorAtual={reajuste?.valor_antigo_apartamento_centavos}
-                                valorReajustado={reajuste?.valor_reajustado_apartamento_centavos}
-                                retroativo={reajuste?.valor_retroativo_apartamento_centavos}
-                                valorFinal={reajuste?.valor_final_apartamento_centavos}
-                              />
+                    {isExpanded && (() => {
+                      const ladoA = {
+                        valorAtual: reajuste?.valor_antigo_enfermaria_centavos || 0,
+                        valorReajustado: reajuste?.valor_reajustado_enfermaria_centavos || 0,
+                        retroativo: reajuste?.valor_retroativo_enfermaria_centavos || 0,
+                        valorFinal: reajuste?.valor_final_enfermaria_centavos || 0,
+                      };
+                      const ladoB = {
+                        valorAtual: reajuste?.valor_antigo_apartamento_centavos || 0,
+                        valorReajustado: reajuste?.valor_reajustado_apartamento_centavos || 0,
+                        retroativo: reajuste?.valor_retroativo_apartamento_centavos || 0,
+                        valorFinal: reajuste?.valor_final_apartamento_centavos || 0,
+                      };
+                      const refA = ladoA.valorFinal || ladoA.valorAtual;
+                      const refB = ladoB.valorFinal || ladoB.valorAtual;
+                      const iguais = refA > 0 && refB > 0 && refA === refB;
+                      const enfermariaDados = refB > 0 && refB < refA ? ladoB : ladoA;
+                      const apartamentoDados = refB > 0 && refB < refA ? ladoA : ladoB;
+                      return (
+                        <TableRow key={`${empresa.id}-exp`} className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell colSpan={12} className="p-0">
+                            <div className="animate-accordion-down overflow-hidden">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                                <DetalheCard
+                                  titulo="Enfermaria"
+                                  Icone={BedDouble}
+                                  tipo={iguais ? "igual" : "menor"}
+                                  percentual={pct}
+                                  {...enfermariaDados}
+                                />
+                                <DetalheCard
+                                  titulo="Apartamento"
+                                  Icone={Hotel}
+                                  tipo={iguais ? "igual" : "maior"}
+                                  percentual={pct}
+                                  {...apartamentoDados}
+                                />
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })()}
                     </>
                   );})}
                 </TableBody>
