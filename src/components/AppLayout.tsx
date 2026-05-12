@@ -100,7 +100,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return allNavItems.filter((item) => {
       // Perfil Financeiro: SOMENTE Dashboard, Empresas, Movimentações, Financeiro, Reajuste
       if (isFinanceiro) {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/reajustes"];
+        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes"];
         return allowed.includes(item.to);
       }
       if (item.adminOnly && !isAdmin) return false;
