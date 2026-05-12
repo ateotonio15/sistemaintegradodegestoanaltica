@@ -693,17 +693,40 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
             >
               ← Voltar
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!podeAvancar}
-              onClick={() => podeAvancar && setTab(tabsOrdenadas[idxAtual + 1])}
-            >
-              Avançar →
-            </Button>
-            <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-              {mutation.isPending ? "Salvando..." : editing ? "Atualizar" : "Salvar"}
-            </Button>
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={!podeAvancar || (tab === "geral" && !geralValido)}
+                      className={tab === "geral" && !geralValido ? "opacity-60 cursor-not-allowed" : ""}
+                      onClick={() => podeAvancar && geralValido && setTab(tabsOrdenadas[idxAtual + 1])}
+                    >
+                      Avançar →
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {tab === "geral" && !geralValido && (
+                  <TooltipContent>Preencha as informações obrigatórias para continuar.</TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0}>
+                    <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !geralValido}>
+                      {mutation.isPending ? "Salvando..." : editing ? "Atualizar" : "Salvar"}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!geralValido && (
+                  <TooltipContent>Preencha as informações obrigatórias para continuar.</TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </DialogFooter>
       </DialogContent>
