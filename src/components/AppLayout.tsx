@@ -35,7 +35,6 @@ const allNavItems = [
   { to: "/empresas", label: "Empresas", icon: Building2 },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/executivas", label: "Executivas", icon: UserCheck },
-  { to: "/saude", label: "Saúde nas Empresas", icon: CalendarClock },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
