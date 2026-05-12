@@ -127,18 +127,30 @@ export function AnexosViewerDialog({
   });
 
   const handleDownload = async (bucket: string, path: string, nome: string) => {
-    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60);
-    if (error) {
-      toast.error("Erro ao gerar link: " + error.message);
-      return;
+    try {
+      const { data, error } = await supabase.storage.from(bucket).download(path);
+      if (error || !data) throw error ?? new Error("Falha ao baixar arquivo");
+      const blobUrl = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = nome;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (e: any) {
+      // Fallback: tenta abrir signed URL em nova aba
+      const { data: signed, error: signErr } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, 60, { download: nome });
+      if (signErr || !signed?.signedUrl) {
+        toast.error("Erro ao baixar: " + (e?.message || signErr?.message || "desconhecido"));
+        return;
+      }
+      window.open(signed.signedUrl, "_blank", "noopener");
     }
-    const a = document.createElement("a");
-    a.href = data.signedUrl;
-    a.download = nome;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.click();
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
