@@ -319,8 +319,16 @@ export default function Reajustes() {
                     const temValores = reajuste && !isSolicitado && (reajuste.valor_antigo_centavos || 0) > 0;
                     const mesReaj = getMesReajuste(empresa.data_implantacao);
                     const temRetro = (reajuste?.meses_retroativos || 0) > 0;
+                    const isExpanded = expandedIds.has(empresa.id);
+                    const pct = temValores ? Number(reajuste.percentual) : 0;
                     return (
+                    <>
                     <TableRow key={empresa.id}>
+                      <TableCell className="w-10 p-2">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toggleExpand(empresa.id)} title={isExpanded ? "Recolher" : "Ver detalhes"}>
+                          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                      </TableCell>
                       <TableCell className="font-medium">{empresa.nome}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{empresa.codigo_contrato || "—"}</TableCell>
                       <TableCell className="text-sm">{empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : "—"}</TableCell>
