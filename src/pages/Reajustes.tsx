@@ -502,3 +502,58 @@ export default function Reajustes() {
     </AppLayout>
   );
 }
+
+type DetalheCardProps = {
+  titulo: string;
+  Icone: React.ComponentType<{ className?: string }>;
+  percentual: number;
+  valorAtual?: number | null;
+  valorReajustado?: number | null;
+  retroativo?: number | null;
+  valorFinal?: number | null;
+};
+
+function DetalheCard({ titulo, Icone, percentual, valorAtual, valorReajustado, retroativo, valorFinal }: DetalheCardProps) {
+  const temDados = (valorAtual || 0) > 0 || (valorReajustado || 0) > 0 || (valorFinal || 0) > 0;
+  const fmt = (v?: number | null) => formatCentavosBRL(v || 0);
+  return (
+    <Card className="border-border/60 shadow-sm">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Icone className="h-4 w-4 text-primary" />
+            <h4 className="font-semibold text-sm">{titulo}</h4>
+          </div>
+          {temDados && (
+            <Badge variant="outline" className="text-xs">
+              {percentual.toFixed(2).replace(".", ",")}%
+            </Badge>
+          )}
+        </div>
+        {!temDados ? (
+          <div className="text-xs text-muted-foreground py-4 text-center">Sem valores registrados</div>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div>
+              <div className="text-xs text-muted-foreground">Valor Atual</div>
+              <div className="font-medium">{fmt(valorAtual)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Valor Reajustado</div>
+              <div className="font-medium">{fmt(valorReajustado)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Retroativo</div>
+              <div className="font-medium">{fmt(retroativo)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Valor Final</div>
+              <div className="font-bold text-primary">{fmt(valorFinal)}</div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
