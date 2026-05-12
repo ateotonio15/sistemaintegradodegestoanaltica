@@ -162,6 +162,19 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
     return isNaN(n) ? 0 : n;
   }, [percentual]);
 
+  // ===== Validação obrigatória da aba Geral =====
+  const [touched, setTouched] = useState<{ data: boolean; pct: boolean; mod: boolean }>({ data: false, pct: false, mod: false });
+  useEffect(() => { if (open) setTouched({ data: false, pct: false, mod: false }); }, [open]);
+
+  const dataAplicacaoValida = useMemo(() => {
+    if (!dataAplicacao) return false;
+    const d = new Date(dataAplicacao);
+    return !isNaN(d.getTime());
+  }, [dataAplicacao]);
+  const percentualValido = pctNum > 0;
+  const modalidadeValida = possuiEnf || possuiApt;
+  const geralValido = dataAplicacaoValida && percentualValido && modalidadeValida;
+
   const empresaSel = useMemo(() => empresas.find((e) => e.id === empresaId), [empresas, empresaId]);
   const mesReajuste = useMemo(() => getMesReajuste(empresaSel?.data_implantacao || null), [empresaSel]);
   const mesesRetro = useMemo(() => calcularMesesRetroativos(mesReajuste, dataAplicacao), [mesReajuste, dataAplicacao]);
