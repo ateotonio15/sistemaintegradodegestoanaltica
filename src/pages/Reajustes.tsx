@@ -321,6 +321,24 @@ export default function Reajustes() {
                     const temRetro = (reajuste?.meses_retroativos || 0) > 0;
                     const isExpanded = expandedIds.has(empresa.id);
                     const pct = temValores ? Number(reajuste.percentual) : 0;
+                    // Resumo da tabela: prioriza ENFERMARIA. Se empresa só possui apartamento, usa apartamento. Fallback legado: totais.
+                    const enfAtual = reajuste?.valor_antigo_enfermaria_centavos || 0;
+                    const enfReaj = reajuste?.valor_reajustado_enfermaria_centavos || 0;
+                    const enfRetroV = reajuste?.valor_retroativo_enfermaria_centavos || 0;
+                    const enfFinalV = reajuste?.valor_final_enfermaria_centavos || 0;
+                    const aptAtual = reajuste?.valor_antigo_apartamento_centavos || 0;
+                    const aptReaj = reajuste?.valor_reajustado_apartamento_centavos || 0;
+                    const aptRetroV = reajuste?.valor_retroativo_apartamento_centavos || 0;
+                    const aptFinalV = reajuste?.valor_final_apartamento_centavos || 0;
+                    const possuiEnfFlag = (reajuste as any)?.possui_enfermaria;
+                    const possuiAptFlag = (reajuste as any)?.possui_apartamento;
+                    const usarEnf = enfAtual > 0 || enfFinalV > 0 || possuiEnfFlag === true;
+                    const usarApt = !usarEnf && (aptAtual > 0 || aptFinalV > 0 || possuiAptFlag === true);
+                    const resumoAtual = usarEnf ? enfAtual : usarApt ? aptAtual : (reajuste?.valor_antigo_centavos || 0);
+                    const resumoReaj = usarEnf ? enfReaj : usarApt ? aptReaj : (reajuste?.valor_reajustado_centavos || 0);
+                    const resumoRetro = usarEnf ? enfRetroV : usarApt ? aptRetroV : (reajuste?.valor_retroativo_centavos || 0);
+                    const resumoFinal = usarEnf ? enfFinalV : usarApt ? aptFinalV : (reajuste?.valor_final_centavos || 0);
+                    const resumoLabel = usarEnf ? "Enfermaria" : usarApt ? "Apartamento" : null;
                     return (
                     <>
                     <TableRow key={empresa.id}>
