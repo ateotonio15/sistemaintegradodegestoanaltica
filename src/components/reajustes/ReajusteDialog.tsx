@@ -19,6 +19,8 @@ import {
   criarFaixasIniciais, somarFaixas, type FaixaEtariaItem,
 } from "@/lib/reajuste-utils";
 import { ReajusteFaixaEtariaTable } from "./ReajusteFaixaEtariaTable";
+import { ReajusteFaixaEtariaCards } from "./ReajusteFaixaEtariaCards";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Empresa { id: string; nome: string; codigo_contrato: string | null; data_implantacao?: string | null }
 
