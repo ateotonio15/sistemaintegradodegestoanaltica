@@ -1,6 +1,6 @@
 import { AlertTriangle, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,12 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { formatDateBR } from "@/lib/date-utils";
 import {
-  formatCentavosBRL, getMesReajuste, nomeMes, statusReajusteColor,
+  getMesReajuste, nomeMes, statusReajusteColor,
   labelStatusReajusteFluxo, corStatusReajusteFluxo,
 } from "@/lib/reajuste-utils";
+import { SolicitarReajusteDialog } from "./SolicitarReajusteDialog";
 
 type EmpresaRow = {
   id: string;
@@ -40,27 +40,9 @@ export function AlertaReajustesPendentes() {
   const mesAtual = new Date().getMonth() + 1;
   const [expanded, setExpanded] = useState(true);
   const { isViewOnly, isAdmin } = useAuth();
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const [solicitandoId, setSolicitandoId] = useState<string | null>(null);
+  const [empresaSelecionada, setEmpresaSelecionada] = useState<EmpresaRow | null>(null);
 
   const podeSolicitar = isViewOnly || isAdmin;
-
-  const solicitarMutation = useMutation({
-    mutationFn: async (empresaId: string) => {
-      const { error } = await supabase.rpc("solicitar_reajuste", { p_empresa_id: empresaId } as any);
-      if (error) throw error;
-    },
-    onMutate: (empresaId: string) => setSolicitandoId(empresaId),
-    onSettled: () => setSolicitandoId(null),
-    onSuccess: () => {
-      toast({ title: "Solicitação enviada", description: "O Cadastro responsável foi notificado." });
-      qc.invalidateQueries({ queryKey: ["reajustes-pendentes-list"] });
-      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
-      qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
-    },
-    onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao solicitar", variant: "destructive" }),
-  });
 
   const { data } = useQuery({
     queryKey: ["reajustes-pendentes-list", ano, mesAtual],
@@ -182,11 +164,10 @@ export function AlertaReajustesPendentes() {
                           <Button
                             size="sm"
                             variant="default"
-                            disabled={solicitandoId === empresa.id}
-                            onClick={() => solicitarMutation.mutate(empresa.id)}
+                            onClick={() => setEmpresaSelecionada(empresa)}
                           >
                             <Plus className="h-3 w-3 mr-1" />
-                            {solicitandoId === empresa.id ? "Enviando..." : "Solicitar Reajuste"}
+                            Solicitar Reajuste
                           </Button>
                         )}
                       </TableCell>
@@ -198,6 +179,11 @@ export function AlertaReajustesPendentes() {
           </div>
         )}
       </CardContent>
+      <SolicitarReajusteDialog
+        open={!!empresaSelecionada}
+        onOpenChange={(v) => { if (!v) setEmpresaSelecionada(null); }}
+        empresa={empresaSelecionada}
+      />
     </Card>
   );
 }
