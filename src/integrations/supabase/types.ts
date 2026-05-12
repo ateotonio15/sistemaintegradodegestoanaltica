@@ -14,69 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      a_receber: {
-        Row: {
-          beneficiarios: number | null
-          created_at: string
-          data_vencimento: string | null
-          dia_vencimento: number | null
-          empresa_cnpj: string | null
-          empresa_id: string
-          empresa_nome: string
-          financeiro_movimentacao_id: string
-          id: string
-          mes_referencia: string
-          nf_numero: string | null
-          periodo: string
-          status: string
-          updated_at: string
-          valor_exclusoes: number | null
-          valor_faturado: number | null
-          valor_inclusoes: number | null
-          valor_total: number | null
-        }
-        Insert: {
-          beneficiarios?: number | null
-          created_at?: string
-          data_vencimento?: string | null
-          dia_vencimento?: number | null
-          empresa_cnpj?: string | null
-          empresa_id: string
-          empresa_nome: string
-          financeiro_movimentacao_id: string
-          id?: string
-          mes_referencia: string
-          nf_numero?: string | null
-          periodo: string
-          status?: string
-          updated_at?: string
-          valor_exclusoes?: number | null
-          valor_faturado?: number | null
-          valor_inclusoes?: number | null
-          valor_total?: number | null
-        }
-        Update: {
-          beneficiarios?: number | null
-          created_at?: string
-          data_vencimento?: string | null
-          dia_vencimento?: number | null
-          empresa_cnpj?: string | null
-          empresa_id?: string
-          empresa_nome?: string
-          financeiro_movimentacao_id?: string
-          id?: string
-          mes_referencia?: string
-          nf_numero?: string | null
-          periodo?: string
-          status?: string
-          updated_at?: string
-          valor_exclusoes?: number | null
-          valor_faturado?: number | null
-          valor_inclusoes?: number | null
-          valor_total?: number | null
-        }
-        Relationships: []
-      }
       alertas_financeiro: {
         Row: {
           created_at: string
