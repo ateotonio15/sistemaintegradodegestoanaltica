@@ -1,40 +1,60 @@
 ## Objetivo
 
-No card "Faturamentos Não Enviados" (Dashboard do Cadastro/Admin), exibir apenas as empresas cujo ciclo vigente HOJE corresponde ao mês atual E ao período de movimentação configurado da empresa. Hoje o card já filtra por `mes_referencia = mês atual`, mas mostra qualquer `periodo` existente em `financeiro_movimentacoes` — independente da empresa estar de fato no período corrente.
+Adicionar um toggle expansível em cada linha da tabela na página de Reajuste (`src/pages/Reajustes.tsx`) que, ao ser aberto, mostra dois cards lado a lado (Enfermaria e Apartamento) com os detalhes de valores. Nada da estrutura atual (colunas, filtros, KPIs, ações, status, cálculos) será alterado.
 
-## Comportamento esperado
+## Alterações
 
-Cada linha do card só aparece se:
+Arquivo único: `src/pages/Reajustes.tsx`
 
-- `mes_referencia` da movimentação financeira = mês atual (já existe), e
-- `periodo` da movimentação financeira = período vigente da empresa, calculado por `periodoVigente(empresa)` (regra unificada já usada no projeto):
-  - Empresa Diária → período derivado de `data_corte`
-  - Empresa Fechada → `periodo_movimentacao`
-- Empresa precisa estar ativa (já filtrado em `empresaIdsVinculadas`).
+1. **Estado de expansão**
+   - Adicionar `const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())` para rastrear quais empresas estão expandidas.
+   - Função `toggleExpand(empresaId)` que alterna o id no Set.
 
-Ou seja: respeita o "filtro de movimentação" da empresa, mostrando somente o ciclo que está rodando agora.
+2. **Coluna do toggle**
+   - Adicionar nova `<TableHead className="w-10" />` como primeira coluna do header (sem alterar as demais).
+   - Em cada `<TableRow>` da empresa, adicionar primeira `<TableCell>` com `<Button size="icon" variant="ghost">` exibindo `ChevronRight` (fechado) ou `ChevronDown` (aberto), com `transition-transform`.
+   - Atualizar `colSpan={11}` da linha "Nenhum contrato encontrado" para `colSpan={12}`.
 
-## Mudanças
+3. **Linha expansível (sub div)**
+   - Após cada `<TableRow>` da empresa, renderizar condicionalmente uma segunda `<TableRow>` quando `expandedIds.has(empresa.id)`:
+     ```tsx
+     <TableRow className="bg-muted/30 hover:bg-muted/30">
+       <TableCell colSpan={12} className="p-0">
+         <div className="animate-accordion-down overflow-hidden">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+             {/* Card Enfermaria */}
+             {/* Card Apartamento */}
+           </div>
+         </div>
+       </TableCell>
+     </TableRow>
+     ```
+   - Renderização condicional garante lazy render (só monta quando aberto).
 
-Arquivo único: `src/components/dashboard/FaturamentosEnviadosCard.tsx`
+4. **Cards Enfermaria e Apartamento**
+   - Componente inline reutilizável `<DetalheCard titulo="Enfermaria" icon={...} valorAtual valorReajustado retroativo valorFinal percentual />`.
+   - Cada card: `<Card>` com header (título + badge do percentual) e grid 2x2 / lista com labels e valores formatados via `formatCentavosBRL`.
+   - Itens: Valor Atual, %, Valor Reajustado, Retroativo, Valor Final (Valor Final em destaque com `text-primary font-bold`).
+   - Quando não há `reajuste` ou está em status `solicitado` sem valores, mostrar placeholder "Sem valores registrados".
 
-1. Estender o select de `empresas` na query `faturamentos-empresa-ids-vinculadas` para também trazer os campos necessários ao cálculo do período vigente: `tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao`. Manter o retorno como apenas `id[]` (para não impactar as outras queries) e armazenar separadamente um Map `empresaId -> { tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao, status_empresa }` via uma segunda query leve OU mudar essa query para retornar o array completo e derivar `empresaIdsVinculadas` via `useMemo`.
-   - Implementação preferida: trocar a query existente para retornar `EmpresaConfig[]` (com os campos necessários) e expor `empresaIdsVinculadas` via `useMemo` filtrando ativas.
+5. **Fonte de dados**
+   - Usar campos já existentes em `reajustes_anuais` (já carregados via `select("*")`):
+     - Enfermaria: `valor_antigo_enfermaria_centavos`, `valor_reajustado_enfermaria_centavos`, `valor_retroativo_enfermaria_centavos`, `valor_final_enfermaria_centavos`.
+     - Apartamento: `valor_antigo_apartamento_centavos`, `valor_reajustado_apartamento_centavos`, `valor_retroativo_apartamento_centavos`, `valor_final_apartamento_centavos`.
+   - Percentual único: `reajuste.percentual` (mesmo para os dois cards).
 
-2. Calcular, via `useMemo`, um `Map<empresaId, periodoVigente>` chamando `periodoVigente(emp)` de `@/lib/movimentacao-utils`.
+6. **Ícones**
+   - Importar `ChevronRight`, `ChevronDown`, `BedDouble` (Enfermaria) e `Hotel` (Apartamento) de `lucide-react`.
 
-3. No `useMemo` de `linhas` (ou logo após receber `pendentes`), filtrar:
-   ```ts
-   const vigente = vigenteMap.get(p.empresa_id);
-   if (!vigente) return null;
-   if (p.periodo !== vigente.periodo) return null;
-   ```
-   (O filtro de `mes_referencia` já é feito na query.)
+## Comportamento
 
-4. Sem mudanças em RLS, banco, RPCs, realtime, alertas, ou no fluxo do botão "Alertar Financeiro".
+- Fechado por padrão; tabela permanece idêntica visualmente.
+- Clique no chevron expande/colapsa inline com animação `accordion-down`.
+- Responsivo: cards lado a lado no desktop (`md:grid-cols-2`), empilhados no mobile (`grid-cols-1`).
+- Sem modal, sem alteração de filtros, status, ações, cálculos ou queries.
 
 ## Não fazer
 
-- Não alterar o card do Financeiro ("Notas a Enviar").
-- Não alterar regras de período/cálculo já existentes em `movimentacao-utils.ts`.
-- Não tocar no banco nem em policies.
+- Não alterar colunas existentes, filtros, KPIs, ordem, ações, status ou queries.
+- Não criar novas tabelas ou migrations.
+- Não tocar em `ReajusteDialog`, `SolicitarReajusteDialog` ou utilitários de cálculo.

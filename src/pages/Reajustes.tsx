@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check, ChevronRight, ChevronDown, BedDouble, Hotel } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReajusteDialog } from "@/components/reajustes/ReajusteDialog";
@@ -44,6 +44,14 @@ export default function Reajustes() {
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
   const [solicitarOpen, setSolicitarOpen] = useState(false);
   const [solicitarEmpresa, setSolicitarEmpresa] = useState<any>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["reajustes-empresas-ativas"],
@@ -287,6 +295,7 @@ export default function Reajustes() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10" />
                     <TableHead>Empresa</TableHead>
                     <TableHead>Contrato</TableHead>
                     <TableHead>Implantação</TableHead>
@@ -302,7 +311,7 @@ export default function Reajustes() {
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
-                    <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">Nenhum contrato encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">Nenhum contrato encontrado</TableCell></TableRow>
                   ) : rows.map(({ empresa, reajuste, status }) => {
                     const statusFluxo = reajuste?.status_reajuste as string | undefined;
                     const isPendenteConfirm = reajuste && statusFluxo === "pendente_confirmacao";
@@ -310,8 +319,16 @@ export default function Reajustes() {
                     const temValores = reajuste && !isSolicitado && (reajuste.valor_antigo_centavos || 0) > 0;
                     const mesReaj = getMesReajuste(empresa.data_implantacao);
                     const temRetro = (reajuste?.meses_retroativos || 0) > 0;
+                    const isExpanded = expandedIds.has(empresa.id);
+                    const pct = temValores ? Number(reajuste.percentual) : 0;
                     return (
+                    <>
                     <TableRow key={empresa.id}>
+                      <TableCell className="w-10 p-2">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toggleExpand(empresa.id)} title={isExpanded ? "Recolher" : "Ver detalhes"}>
+                          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                      </TableCell>
                       <TableCell className="font-medium">{empresa.nome}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{empresa.codigo_contrato || "—"}</TableCell>
                       <TableCell className="text-sm">{empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : "—"}</TableCell>
@@ -390,6 +407,35 @@ export default function Reajustes() {
                         </div>
                       </TableCell>
                     </TableRow>
+                    {isExpanded && (
+                      <TableRow key={`${empresa.id}-exp`} className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={12} className="p-0">
+                          <div className="animate-accordion-down overflow-hidden">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                              <DetalheCard
+                                titulo="Enfermaria"
+                                Icone={BedDouble}
+                                percentual={pct}
+                                valorAtual={reajuste?.valor_antigo_enfermaria_centavos}
+                                valorReajustado={reajuste?.valor_reajustado_enfermaria_centavos}
+                                retroativo={reajuste?.valor_retroativo_enfermaria_centavos}
+                                valorFinal={reajuste?.valor_final_enfermaria_centavos}
+                              />
+                              <DetalheCard
+                                titulo="Apartamento"
+                                Icone={Hotel}
+                                percentual={pct}
+                                valorAtual={reajuste?.valor_antigo_apartamento_centavos}
+                                valorReajustado={reajuste?.valor_reajustado_apartamento_centavos}
+                                retroativo={reajuste?.valor_retroativo_apartamento_centavos}
+                                valorFinal={reajuste?.valor_final_apartamento_centavos}
+                              />
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </>
                   );})}
                 </TableBody>
               </Table>
@@ -456,3 +502,58 @@ export default function Reajustes() {
     </AppLayout>
   );
 }
+
+type DetalheCardProps = {
+  titulo: string;
+  Icone: React.ComponentType<{ className?: string }>;
+  percentual: number;
+  valorAtual?: number | null;
+  valorReajustado?: number | null;
+  retroativo?: number | null;
+  valorFinal?: number | null;
+};
+
+function DetalheCard({ titulo, Icone, percentual, valorAtual, valorReajustado, retroativo, valorFinal }: DetalheCardProps) {
+  const temDados = (valorAtual || 0) > 0 || (valorReajustado || 0) > 0 || (valorFinal || 0) > 0;
+  const fmt = (v?: number | null) => formatCentavosBRL(v || 0);
+  return (
+    <Card className="border-border/60 shadow-sm">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Icone className="h-4 w-4 text-primary" />
+            <h4 className="font-semibold text-sm">{titulo}</h4>
+          </div>
+          {temDados && (
+            <Badge variant="outline" className="text-xs">
+              {percentual.toFixed(2).replace(".", ",")}%
+            </Badge>
+          )}
+        </div>
+        {!temDados ? (
+          <div className="text-xs text-muted-foreground py-4 text-center">Sem valores registrados</div>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div>
+              <div className="text-xs text-muted-foreground">Valor Atual</div>
+              <div className="font-medium">{fmt(valorAtual)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Valor Reajustado</div>
+              <div className="font-medium">{fmt(valorReajustado)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Retroativo</div>
+              <div className="font-medium">{fmt(retroativo)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Valor Final</div>
+              <div className="font-bold text-primary">{fmt(valorFinal)}</div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
