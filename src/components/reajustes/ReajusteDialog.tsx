@@ -335,6 +335,7 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
           />
 
           <div className="grid gap-3">
+            <div className={`grid gap-3 ${possuiEnf && possuiApt ? "lg:grid-cols-2" : "grid-cols-1"}`}>
             {possuiEnf && (
               <div className="grid gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 transition-all animate-fade-in">
                 <div className="flex items-center justify-between gap-2">
@@ -397,6 +398,7 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
                 )}
               </div>
             )}
+            </div>
             <div className="grid gap-2">
               <Label>Percentual (%) <span className="text-destructive">*</span></Label>
               <Input inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
@@ -404,7 +406,7 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
             </div>
           </div>
 
-          <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+          <div className="rounded-lg border bg-muted/40 p-3 space-y-3">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <div className="text-xs text-muted-foreground">Mês oficial de reajuste</div>
@@ -414,18 +416,48 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
                 <div className="text-xs text-muted-foreground">Meses retroativos</div>
                 <div className="font-medium">{mesesRetro}</div>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Valor reajustado (total)</div>
-                <div className="font-semibold text-primary">{formatCentavosBRL(valorReajustadoCent)}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Valor retroativo (total)</div>
-                <div className="font-semibold">{formatCentavosBRL(retroativoCent)}</div>
-              </div>
             </div>
-            <div className="border-t pt-2">
-              <div className="text-xs text-muted-foreground">Valor final cobrança (total)</div>
-              <div className="text-2xl font-bold text-primary">{formatCentavosBRL(valorFinalCent)}</div>
+            <div className={`grid gap-3 ${possuiEnf && possuiApt ? "md:grid-cols-2" : "grid-cols-1"}`}>
+              {possuiEnf && (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                    <BedDouble className="h-4 w-4" />
+                    Enfermaria
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                    <div className="text-muted-foreground">Valor atual</div>
+                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(enfTotais.valor_atual_centavos)}</div>
+                    <div className="text-muted-foreground">Reajustado</div>
+                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(enfTotais.valor_reajustado_centavos)}</div>
+                    <div className="text-muted-foreground">Retroativo</div>
+                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(enfTotais.valor_retroativo_centavos)}</div>
+                  </div>
+                  <div className="border-t border-emerald-500/30 pt-1.5 mt-1.5">
+                    <div className="text-[11px] text-muted-foreground">Valor final cobrança</div>
+                    <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{formatCentavosBRL(enfTotais.valor_final_centavos)}</div>
+                  </div>
+                </div>
+              )}
+              {possuiApt && (
+                <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-400">
+                    <Hotel className="h-4 w-4" />
+                    Apartamento
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                    <div className="text-muted-foreground">Valor atual</div>
+                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(aptTotais.valor_atual_centavos)}</div>
+                    <div className="text-muted-foreground">Reajustado</div>
+                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(aptTotais.valor_reajustado_centavos)}</div>
+                    <div className="text-muted-foreground">Retroativo</div>
+                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(aptTotais.valor_retroativo_centavos)}</div>
+                  </div>
+                  <div className="border-t border-blue-500/30 pt-1.5 mt-1.5">
+                    <div className="text-[11px] text-muted-foreground">Valor final cobrança</div>
+                    <div className="text-xl font-bold text-blue-700 dark:text-blue-400 tabular-nums">{formatCentavosBRL(aptTotais.valor_final_centavos)}</div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
