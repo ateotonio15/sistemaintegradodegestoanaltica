@@ -40,27 +40,9 @@ export function AlertaReajustesPendentes() {
   const mesAtual = new Date().getMonth() + 1;
   const [expanded, setExpanded] = useState(true);
   const { isViewOnly, isAdmin } = useAuth();
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const [solicitandoId, setSolicitandoId] = useState<string | null>(null);
+  const [empresaSelecionada, setEmpresaSelecionada] = useState<EmpresaRow | null>(null);
 
   const podeSolicitar = isViewOnly || isAdmin;
-
-  const solicitarMutation = useMutation({
-    mutationFn: async (empresaId: string) => {
-      const { error } = await supabase.rpc("solicitar_reajuste", { p_empresa_id: empresaId } as any);
-      if (error) throw error;
-    },
-    onMutate: (empresaId: string) => setSolicitandoId(empresaId),
-    onSettled: () => setSolicitandoId(null),
-    onSuccess: () => {
-      toast({ title: "Solicitação enviada", description: "O Cadastro responsável foi notificado." });
-      qc.invalidateQueries({ queryKey: ["reajustes-pendentes-list"] });
-      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
-      qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
-    },
-    onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao solicitar", variant: "destructive" }),
-  });
 
   const { data } = useQuery({
     queryKey: ["reajustes-pendentes-list", ano, mesAtual],
