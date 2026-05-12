@@ -528,7 +528,7 @@ type DetalheCardProps = {
   titulo: string;
   Icone: React.ComponentType<{ className?: string }>;
   percentual: number;
-  tipo: "menor" | "maior" | "igual";
+  tipo: "enfermaria" | "apartamento";
   valorAtual?: number | null;
   valorReajustado?: number | null;
   retroativo?: number | null;
@@ -540,11 +540,9 @@ function DetalheCard({ titulo, Icone, percentual, tipo, valorAtual, valorReajust
   const fmt = (v?: number | null) => formatCentavosBRL(v || 0);
 
   const tipoStyle =
-    tipo === "menor"
-      ? { card: "border-emerald-500/40 bg-emerald-500/5", icon: "text-emerald-600", badge: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15", label: "Menor Valor", final: "text-emerald-600" }
-      : tipo === "maior"
-      ? { card: "border-blue-500/40 bg-blue-500/5", icon: "text-blue-600", badge: "bg-blue-500/15 text-blue-700 border-blue-500/30 hover:bg-blue-500/15", label: "Maior Valor", final: "text-blue-600" }
-      : { card: "border-border", icon: "text-muted-foreground", badge: "bg-muted text-muted-foreground border-border", label: "Valores iguais", final: "text-primary" };
+    tipo === "enfermaria"
+      ? { card: "border-emerald-500/40 bg-emerald-500/5", icon: "text-emerald-600", badge: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15", label: "Enfermaria", final: "text-emerald-600" }
+      : { card: "border-blue-500/40 bg-blue-500/5", icon: "text-blue-600", badge: "bg-blue-500/15 text-blue-700 border-blue-500/30 hover:bg-blue-500/15", label: "Apartamento", final: "text-blue-600" };
 
   return (
     <Card className={`shadow-sm ${tipoStyle.card}`}>
