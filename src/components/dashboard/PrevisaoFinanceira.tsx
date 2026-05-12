@@ -339,8 +339,8 @@ export function PrevisaoFinanceira() {
     list.sort((a, b) => {
       if (ordenacao === "empresa") return a.empresa_nome.localeCompare(b.empresa_nome, "pt-BR");
       if (ordenacao === "valor") {
-        const va = analises[a.rowKey]?.total ?? 0;
-        const vb = analises[b.rowKey]?.total ?? 0;
+        const va = analises[a.rowKey]?.totalGeral ?? 0;
+        const vb = analises[b.rowKey]?.totalGeral ?? 0;
         return vb - va;
       }
       const da = parseLocalDate(a.data_vencimento)?.getTime() ?? Infinity;
