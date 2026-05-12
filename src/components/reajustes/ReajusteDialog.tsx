@@ -363,19 +363,19 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
               <TabsTrigger value="geral" className="data-[state=active]:bg-muted px-4 py-2 rounded-md">
                 Informações Gerais
               </TabsTrigger>
-              <TabsTrigger value="enfermaria" disabled={!possuiEnf} className="data-[state=active]:bg-muted px-4 py-2 rounded-md flex items-center gap-2">
+              <TabsTrigger value="enfermaria" disabled={!possuiEnf || !geralValido} className="data-[state=active]:bg-muted px-4 py-2 rounded-md flex items-center gap-2">
                 <BedDouble className="h-3.5 w-3.5 text-emerald-600" />
                 Enfermaria
                 {usaFaixaEnf && <Badge variant="outline" className="text-[9px] h-4 px-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30">Faixas</Badge>}
                 {enfTotais.valor_atual_centavos > 0 && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
               </TabsTrigger>
-              <TabsTrigger value="apartamento" disabled={!possuiApt} className="data-[state=active]:bg-muted px-4 py-2 rounded-md flex items-center gap-2">
+              <TabsTrigger value="apartamento" disabled={!possuiApt || !geralValido} className="data-[state=active]:bg-muted px-4 py-2 rounded-md flex items-center gap-2">
                 <Hotel className="h-3.5 w-3.5 text-blue-600" />
                 Apartamento
                 {usaFaixaApt && <Badge variant="outline" className="text-[9px] h-4 px-1 bg-blue-500/15 text-blue-700 border-blue-500/30">Faixas</Badge>}
                 {aptTotais.valor_atual_centavos > 0 && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
               </TabsTrigger>
-              <TabsTrigger value="resumo" className="data-[state=active]:bg-muted px-4 py-2 rounded-md">
+              <TabsTrigger value="resumo" disabled={!geralValido} className="data-[state=active]:bg-muted px-4 py-2 rounded-md">
                 Resumo
               </TabsTrigger>
             </TabsList>
