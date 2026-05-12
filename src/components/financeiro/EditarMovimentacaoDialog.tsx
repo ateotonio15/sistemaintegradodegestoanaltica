@@ -53,7 +53,18 @@ type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & {
   data_vencimento?: string | null;
   dia_emissao?: number | null;
   tipo_analise?: string | null;
+  possui_prorrogacao?: boolean | null;
+  data_prorrogacao?: string | null;
+  motivo_prorrogacao?: string | null;
+  observacao_prorrogacao?: string | null;
 };
+
+const MOTIVOS_PRORROGACAO = [
+  "Solicitado pela empresa",
+  "Atraso Financeiro",
+  "Atraso Cadastro",
+  "Outros",
+] as const;
 
 interface Props {
   open: boolean;
