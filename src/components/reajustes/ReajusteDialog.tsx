@@ -19,6 +19,8 @@ import {
   criarFaixasIniciais, somarFaixas, type FaixaEtariaItem,
 } from "@/lib/reajuste-utils";
 import { ReajusteFaixaEtariaTable } from "./ReajusteFaixaEtariaTable";
+import { ReajusteFaixaEtariaCards } from "./ReajusteFaixaEtariaCards";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Empresa { id: string; nome: string; codigo_contrato: string | null; data_implantacao?: string | null }
 
@@ -297,180 +299,366 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
     },
   });
 
+  const TABS = ["geral", "enfermaria", "apartamento", "resumo"] as const;
+  type TabId = (typeof TABS)[number];
+  const [tab, setTab] = useState<TabId>("geral");
+  useEffect(() => { if (open) setTab("geral"); }, [open]);
+
+  const tabDisponivel = (t: TabId) =>
+    !(t === "enfermaria" && !possuiEnf) && !(t === "apartamento" && !possuiApt);
+
+  const tabsOrdenadas = TABS.filter(tabDisponivel);
+  const idxAtual = tabsOrdenadas.indexOf(tab);
+  const podeVoltar = idxAtual > 0;
+  const podeAvancar = idxAtual >= 0 && idxAtual < tabsOrdenadas.length - 1;
+
+  // Quando a modalidade ativa é desmarcada, voltar para Geral
+  useEffect(() => {
+    if (tab === "enfermaria" && !possuiEnf) setTab("geral");
+    if (tab === "apartamento" && !possuiApt) setTab("geral");
+  }, [possuiEnf, possuiApt, tab]);
+
+  const empresaNomeSel = empresaSel?.nome || "";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Editar Reajuste" : "Novo Reajuste"}</DialogTitle>
+      <DialogContent className="max-w-[1280px] w-[95vw] p-0 max-h-[92vh] flex flex-col gap-0">
+        <DialogHeader className="px-6 pt-5 pb-3 border-b">
+          <DialogTitle className="text-lg">
+            {editing ? "Editar Reajuste" : "Novo Reajuste"}
+          </DialogTitle>
+          {(empresaNomeSel || ano) && (
+            <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+              {empresaNomeSel && <span className="font-medium text-foreground">{empresaNomeSel}</span>}
+              {empresaNomeSel && ano && <span>•</span>}
+              {ano && <span>Ano {ano}</span>}
+              {(usaFaixaEnf || usaFaixaApt) && (
+                <Badge variant="outline" className="ml-2 text-[10px] bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30">
+                  Faixa Etária
+                </Badge>
+              )}
+            </div>
+          )}
         </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-2">
-            <Label>Contrato</Label>
-            <Select value={empresaId} onValueChange={setEmpresaId} disabled={!!editing}>
-              <SelectTrigger><SelectValue placeholder="Selecione o contrato" /></SelectTrigger>
-              <SelectContent>
-                {empresas.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.nome}{e.codigo_contrato ? ` — ${e.codigo_contrato}` : ""}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+        <Tabs value={tab} onValueChange={(v) => setTab(v as TabId)} className="flex-1 flex flex-col min-h-0">
+          <div className="px-6 pt-4 border-b">
+            <TabsList className="bg-transparent p-0 h-auto gap-1">
+              <TabsTrigger value="geral" className="data-[state=active]:bg-muted px-4 py-2 rounded-md">
+                Informações Gerais
+              </TabsTrigger>
+              <TabsTrigger value="enfermaria" disabled={!possuiEnf} className="data-[state=active]:bg-muted px-4 py-2 rounded-md flex items-center gap-2">
+                <BedDouble className="h-3.5 w-3.5 text-emerald-600" />
+                Enfermaria
+                {usaFaixaEnf && <Badge variant="outline" className="text-[9px] h-4 px-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30">Faixas</Badge>}
+                {enfTotais.valor_atual_centavos > 0 && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+              </TabsTrigger>
+              <TabsTrigger value="apartamento" disabled={!possuiApt} className="data-[state=active]:bg-muted px-4 py-2 rounded-md flex items-center gap-2">
+                <Hotel className="h-3.5 w-3.5 text-blue-600" />
+                Apartamento
+                {usaFaixaApt && <Badge variant="outline" className="text-[9px] h-4 px-1 bg-blue-500/15 text-blue-700 border-blue-500/30">Faixas</Badge>}
+                {aptTotais.valor_atual_centavos > 0 && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
+              </TabsTrigger>
+              <TabsTrigger value="resumo" className="data-[state=active]:bg-muted px-4 py-2 rounded-md">
+                Resumo
+              </TabsTrigger>
+            </TabsList>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label>Ano do Reajuste</Label>
-              <Input type="number" value={ano} onChange={(e) => setAno(e.target.value)} disabled={!!editing} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Data de Aplicação</Label>
-              <Input type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
-            </div>
-          </div>
-
-          <ModalidadesPicker
-            possuiEnf={possuiEnf}
-            possuiApt={possuiApt}
-            onEnf={setPossuiEnf}
-            onApt={setPossuiApt}
-          />
-
-          <div className="grid gap-3">
-            <div className={`grid gap-3 ${possuiEnf && possuiApt ? "lg:grid-cols-2" : "grid-cols-1"}`}>
-            {possuiEnf && (
-              <div className="grid gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 transition-all animate-fade-in">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="flex items-center gap-2 text-sm">
-                    <BedDouble className="h-4 w-4 text-emerald-600" />
-                    Enfermaria
-                  </Label>
-                  <label className="flex items-center gap-2 text-xs cursor-pointer">
-                    <Switch checked={usaFaixaEnf} onCheckedChange={setUsaFaixaEnf} />
-                    <Users className="h-3.5 w-3.5" />
-                    <span>Contrato com Faixa Etária</span>
-                  </label>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {/* Aba: Informações Gerais */}
+            <TabsContent value="geral" className="m-0 animate-fade-in space-y-5">
+              <div className="grid md:grid-cols-2 gap-5">
+                <div className="grid gap-2 md:col-span-2">
+                  <Label className="text-sm font-medium">Contrato</Label>
+                  <Select value={empresaId} onValueChange={setEmpresaId} disabled={!!editing}>
+                    <SelectTrigger className="h-11"><SelectValue placeholder="Selecione o contrato" /></SelectTrigger>
+                    <SelectContent>
+                      {empresas.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>{e.nome}{e.codigo_contrato ? ` — ${e.codigo_contrato}` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                {!usaFaixaEnf ? (
-                  <div className="grid gap-1.5">
-                    <Label className="text-xs">Valor Atual (R$) <span className="text-destructive">*</span></Label>
-                    <Input inputMode="decimal" placeholder="0,00" value={valorEnf} onChange={(e) => setValorEnf(e.target.value)} />
-                  </div>
-                ) : (
-                  <ReajusteFaixaEtariaTable
-                    modalidade="enfermaria"
-                    faixas={faixasEnf}
-                    onChange={setFaixasEnf}
-                    percentualGlobal={pctNum}
-                    percentualUnico={pctUnicoEnf}
-                    onPercentualUnicoChange={setPctUnicoEnf}
-                    mesesRetro={mesesRetro}
+                <div className="grid gap-2">
+                  <Label className="text-sm font-medium">Ano do Reajuste</Label>
+                  <Input className="h-11" type="number" value={ano} onChange={(e) => setAno(e.target.value)} disabled={!!editing} />
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-sm font-medium">Data de Aplicação</Label>
+                  <Input className="h-11" type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
+                </div>
+                <div className="grid gap-2 md:col-span-2">
+                  <Label className="text-sm font-medium">
+                    Percentual padrão (%) <span className="text-destructive">*</span>
+                  </Label>
+                  <Input className="h-11" inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
+                  <p className="text-[11px] text-muted-foreground">
+                    Aplicado às modalidades sem faixa etária e às faixas com "percentual único" ativado.
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <ModalidadesPicker
+                    possuiEnf={possuiEnf}
+                    possuiApt={possuiApt}
+                    onEnf={setPossuiEnf}
+                    onApt={setPossuiApt}
                   />
+                </div>
+                <div className="grid gap-2 md:col-span-2">
+                  <Label className="text-sm font-medium">Observação</Label>
+                  <Textarea
+                    className="min-h-[88px]"
+                    value={observacao}
+                    onChange={(e) => setObservacao(e.target.value)}
+                    placeholder="Opcional"
+                  />
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3 rounded-xl border bg-muted/30 p-4">
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Mês oficial de reajuste</div>
+                  <div className="font-semibold mt-0.5">{mesReajuste ? `${nomeMes(mesReajuste)} (mês ${String(mesReajuste).padStart(2, "0")})` : "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Meses retroativos</div>
+                  <div className="font-semibold mt-0.5">{mesesRetro}</div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Aba: Enfermaria */}
+            <TabsContent value="enfermaria" className="m-0 animate-fade-in space-y-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <BedDouble className="h-5 w-5 text-emerald-600" />
+                  <h3 className="text-base font-semibold">Enfermaria</h3>
+                </div>
+                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                  <Switch checked={usaFaixaEnf} onCheckedChange={setUsaFaixaEnf} />
+                  <Users className="h-3.5 w-3.5" />
+                  <span>Contrato com Faixa Etária</span>
+                </label>
+              </div>
+
+              {!usaFaixaEnf ? (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-4">
+                  <div className="grid gap-2 max-w-md">
+                    <Label className="text-sm font-medium">Valor Atual (R$) <span className="text-destructive">*</span></Label>
+                    <Input
+                      className="h-11"
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      value={valorEnf}
+                      onChange={(e) => setValorEnf(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-emerald-500/20">
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Valor Atual</div>
+                      <div className="font-semibold tabular-nums">{formatCentavosBRL(enfTotais.valor_atual_centavos)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Reajustado</div>
+                      <div className="font-semibold tabular-nums">{formatCentavosBRL(enfTotais.valor_reajustado_centavos)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Retroativo</div>
+                      <div className="font-semibold tabular-nums">{formatCentavosBRL(enfTotais.valor_retroativo_centavos)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Valor Final</div>
+                      <div className="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{formatCentavosBRL(enfTotais.valor_final_centavos)}</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ReajusteFaixaEtariaCards
+                  modalidade="enfermaria"
+                  faixas={faixasEnf}
+                  onChange={setFaixasEnf}
+                  percentualGlobal={pctNum}
+                  percentualUnico={pctUnicoEnf}
+                  onPercentualUnicoChange={setPctUnicoEnf}
+                  mesesRetro={mesesRetro}
+                />
+              )}
+            </TabsContent>
+
+            {/* Aba: Apartamento */}
+            <TabsContent value="apartamento" className="m-0 animate-fade-in space-y-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Hotel className="h-5 w-5 text-blue-600" />
+                  <h3 className="text-base font-semibold">Apartamento</h3>
+                </div>
+                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                  <Switch checked={usaFaixaApt} onCheckedChange={setUsaFaixaApt} />
+                  <Users className="h-3.5 w-3.5" />
+                  <span>Contrato com Faixa Etária</span>
+                </label>
+              </div>
+
+              {!usaFaixaApt ? (
+                <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-5 space-y-4">
+                  <div className="grid gap-2 max-w-md">
+                    <Label className="text-sm font-medium">Valor Atual (R$) <span className="text-destructive">*</span></Label>
+                    <Input
+                      className="h-11"
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      value={valorApt}
+                      onChange={(e) => setValorApt(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-blue-500/20">
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Valor Atual</div>
+                      <div className="font-semibold tabular-nums">{formatCentavosBRL(aptTotais.valor_atual_centavos)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Reajustado</div>
+                      <div className="font-semibold tabular-nums">{formatCentavosBRL(aptTotais.valor_reajustado_centavos)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Retroativo</div>
+                      <div className="font-semibold tabular-nums">{formatCentavosBRL(aptTotais.valor_retroativo_centavos)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Valor Final</div>
+                      <div className="text-lg font-bold tabular-nums text-blue-700 dark:text-blue-400">{formatCentavosBRL(aptTotais.valor_final_centavos)}</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ReajusteFaixaEtariaCards
+                  modalidade="apartamento"
+                  faixas={faixasApt}
+                  onChange={setFaixasApt}
+                  percentualGlobal={pctNum}
+                  percentualUnico={pctUnicoApt}
+                  onPercentualUnicoChange={setPctUnicoApt}
+                  mesesRetro={mesesRetro}
+                />
+              )}
+            </TabsContent>
+
+            {/* Aba: Resumo */}
+            <TabsContent value="resumo" className="m-0 animate-fade-in space-y-5">
+              <div className={`grid gap-4 ${possuiEnf && possuiApt ? "md:grid-cols-2" : "grid-cols-1"}`}>
+                {possuiEnf && (
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-base font-semibold text-emerald-700 dark:text-emerald-400">
+                        <BedDouble className="h-5 w-5" />
+                        Enfermaria
+                      </div>
+                      {usaFaixaEnf && (
+                        <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px]">
+                          {faixasEnf.filter((f) => f.valor_atual_centavos > 0).length} faixas
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div className="text-muted-foreground">Valor atual</div>
+                      <div className="text-right font-medium tabular-nums">{formatCentavosBRL(enfTotais.valor_atual_centavos)}</div>
+                      <div className="text-muted-foreground">Reajustado</div>
+                      <div className="text-right font-medium tabular-nums">{formatCentavosBRL(enfTotais.valor_reajustado_centavos)}</div>
+                      <div className="text-muted-foreground">Retroativo</div>
+                      <div className="text-right font-medium tabular-nums">{formatCentavosBRL(enfTotais.valor_retroativo_centavos)}</div>
+                    </div>
+                    <div className="border-t border-emerald-500/30 pt-3">
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Valor final cobrança</div>
+                      <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums mt-0.5">
+                        {formatCentavosBRL(enfTotais.valor_final_centavos)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {possuiApt && (
+                  <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-5 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-base font-semibold text-blue-700 dark:text-blue-400">
+                        <Hotel className="h-5 w-5" />
+                        Apartamento
+                      </div>
+                      {usaFaixaApt && (
+                        <Badge variant="outline" className="bg-blue-500/15 text-blue-700 border-blue-500/30 text-[10px]">
+                          {faixasApt.filter((f) => f.valor_atual_centavos > 0).length} faixas
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div className="text-muted-foreground">Valor atual</div>
+                      <div className="text-right font-medium tabular-nums">{formatCentavosBRL(aptTotais.valor_atual_centavos)}</div>
+                      <div className="text-muted-foreground">Reajustado</div>
+                      <div className="text-right font-medium tabular-nums">{formatCentavosBRL(aptTotais.valor_reajustado_centavos)}</div>
+                      <div className="text-muted-foreground">Retroativo</div>
+                      <div className="text-right font-medium tabular-nums">{formatCentavosBRL(aptTotais.valor_retroativo_centavos)}</div>
+                    </div>
+                    <div className="border-t border-blue-500/30 pt-3">
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Valor final cobrança</div>
+                      <div className="text-2xl font-bold text-blue-700 dark:text-blue-400 tabular-nums mt-0.5">
+                        {formatCentavosBRL(aptTotais.valor_final_centavos)}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
-            )}
-            {possuiApt && (
-              <div className="grid gap-3 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 transition-all animate-fade-in">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="flex items-center gap-2 text-sm">
-                    <Hotel className="h-4 w-4 text-blue-600" />
-                    Apartamento
-                  </Label>
-                  <label className="flex items-center gap-2 text-xs cursor-pointer">
-                    <Switch checked={usaFaixaApt} onCheckedChange={setUsaFaixaApt} />
-                    <Users className="h-3.5 w-3.5" />
-                    <span>Contrato com Faixa Etária</span>
-                  </label>
-                </div>
-                {!usaFaixaApt ? (
-                  <div className="grid gap-1.5">
-                    <Label className="text-xs">Valor Atual (R$) <span className="text-destructive">*</span></Label>
-                    <Input inputMode="decimal" placeholder="0,00" value={valorApt} onChange={(e) => setValorApt(e.target.value)} />
-                  </div>
-                ) : (
-                  <ReajusteFaixaEtariaTable
-                    modalidade="apartamento"
-                    faixas={faixasApt}
-                    onChange={setFaixasApt}
-                    percentualGlobal={pctNum}
-                    percentualUnico={pctUnicoApt}
-                    onPercentualUnicoChange={setPctUnicoApt}
-                    mesesRetro={mesesRetro}
-                  />
-                )}
-              </div>
-            )}
-            </div>
-            <div className="grid gap-2">
-              <Label>Percentual (%) <span className="text-destructive">*</span></Label>
-              <Input inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
-              <p className="text-[11px] text-muted-foreground">Aplicado às modalidades sem faixa etária e às faixas com "percentual único" ativado.</p>
-            </div>
-          </div>
 
-          <div className="rounded-lg border bg-muted/40 p-3 space-y-3">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <div className="text-xs text-muted-foreground">Mês oficial de reajuste</div>
-                <div className="font-medium">{mesReajuste ? `${nomeMes(mesReajuste)} (mês ${String(mesReajuste).padStart(2, "0")})` : "—"}</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Mês oficial</div>
+                  <div className="font-semibold mt-0.5">{mesReajuste ? nomeMes(mesReajuste) : "—"}</div>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Meses retroativos</div>
+                  <div className="font-semibold mt-0.5">{mesesRetro}</div>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Percentual</div>
+                  <div className="font-semibold mt-0.5">{pctNum > 0 ? `${pctNum.toFixed(2).replace(".", ",")}%` : "—"}</div>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Data de aplicação</div>
+                  <div className="font-semibold mt-0.5">{dataAplicacao ? dataAplicacao.split("-").reverse().join("/") : "—"}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Meses retroativos</div>
-                <div className="font-medium">{mesesRetro}</div>
-              </div>
-            </div>
-            <div className={`grid gap-3 ${possuiEnf && possuiApt ? "md:grid-cols-2" : "grid-cols-1"}`}>
-              {possuiEnf && (
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-1.5">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                    <BedDouble className="h-4 w-4" />
-                    Enfermaria
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                    <div className="text-muted-foreground">Valor atual</div>
-                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(enfTotais.valor_atual_centavos)}</div>
-                    <div className="text-muted-foreground">Reajustado</div>
-                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(enfTotais.valor_reajustado_centavos)}</div>
-                    <div className="text-muted-foreground">Retroativo</div>
-                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(enfTotais.valor_retroativo_centavos)}</div>
-                  </div>
-                  <div className="border-t border-emerald-500/30 pt-1.5 mt-1.5">
-                    <div className="text-[11px] text-muted-foreground">Valor final cobrança</div>
-                    <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{formatCentavosBRL(enfTotais.valor_final_centavos)}</div>
-                  </div>
+
+              {observacao && (
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-1">Observação</div>
+                  <div className="text-sm whitespace-pre-wrap">{observacao}</div>
                 </div>
               )}
-              {possuiApt && (
-                <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 space-y-1.5">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-400">
-                    <Hotel className="h-4 w-4" />
-                    Apartamento
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                    <div className="text-muted-foreground">Valor atual</div>
-                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(aptTotais.valor_atual_centavos)}</div>
-                    <div className="text-muted-foreground">Reajustado</div>
-                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(aptTotais.valor_reajustado_centavos)}</div>
-                    <div className="text-muted-foreground">Retroativo</div>
-                    <div className="text-right font-medium tabular-nums">{formatCentavosBRL(aptTotais.valor_retroativo_centavos)}</div>
-                  </div>
-                  <div className="border-t border-blue-500/30 pt-1.5 mt-1.5">
-                    <div className="text-[11px] text-muted-foreground">Valor final cobrança</div>
-                    <div className="text-xl font-bold text-blue-700 dark:text-blue-400 tabular-nums">{formatCentavosBRL(aptTotais.valor_final_centavos)}</div>
-                  </div>
-                </div>
-              )}
-            </div>
+            </TabsContent>
           </div>
+        </Tabs>
 
-          <div className="grid gap-2">
-            <Label>Observação</Label>
-            <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Opcional" />
-          </div>
-        </div>
-        <DialogFooter>
+        <DialogFooter className="px-6 py-3 border-t bg-background flex-row sm:justify-between gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-            {mutation.isPending ? "Salvando..." : "Salvar"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!podeVoltar}
+              onClick={() => podeVoltar && setTab(tabsOrdenadas[idxAtual - 1])}
+            >
+              ← Voltar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!podeAvancar}
+              onClick={() => podeAvancar && setTab(tabsOrdenadas[idxAtual + 1])}
+            >
+              Avançar →
+            </Button>
+            <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+              {mutation.isPending ? "Salvando..." : editing ? "Atualizar" : "Salvar"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
