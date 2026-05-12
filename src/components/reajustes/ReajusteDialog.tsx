@@ -12,7 +12,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { BedDouble, Hotel, Users } from "lucide-react";
+import { BedDouble, Hotel, Users, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   calcularValorReajustadoCentavos, reaisToCentavos, centavosToReais, formatCentavosBRL,
   getMesReajuste, nomeMes, calcularMesesRetroativos, calcularRetroativoCentavos, calcularValorFinalCentavos,
@@ -161,6 +162,19 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
     return isNaN(n) ? 0 : n;
   }, [percentual]);
 
+  // ===== Validação obrigatória da aba Geral =====
+  const [touched, setTouched] = useState<{ data: boolean; pct: boolean; mod: boolean }>({ data: false, pct: false, mod: false });
+  useEffect(() => { if (open) setTouched({ data: false, pct: false, mod: false }); }, [open]);
+
+  const dataAplicacaoValida = useMemo(() => {
+    if (!dataAplicacao) return false;
+    const d = new Date(dataAplicacao);
+    return !isNaN(d.getTime());
+  }, [dataAplicacao]);
+  const percentualValido = pctNum > 0;
+  const modalidadeValida = possuiEnf || possuiApt;
+  const geralValido = dataAplicacaoValida && percentualValido && modalidadeValida;
+
   const empresaSel = useMemo(() => empresas.find((e) => e.id === empresaId), [empresas, empresaId]);
   const mesReajuste = useMemo(() => getMesReajuste(empresaSel?.data_implantacao || null), [empresaSel]);
   const mesesRetro = useMemo(() => calcularMesesRetroativos(mesReajuste, dataAplicacao), [mesReajuste, dataAplicacao]);
@@ -192,6 +206,8 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
       if (!empresaId) throw new Error("Selecione um contrato");
       if (!ano) throw new Error("Informe o ano");
       if (!possuiEnf && !possuiApt) throw new Error("Selecione ao menos uma modalidade (Enfermaria ou Apartamento)");
+      if (!dataAplicacao || !dataAplicacaoValida) throw new Error("Preencha a Data de Aplicação");
+      if (pctNum <= 0) throw new Error("Informe o Percentual padrão (maior que 0)");
       if (possuiEnf && !usaFaixaEnf && enfTotais.valor_atual_centavos <= 0) throw new Error("Informe o Valor Atual da Enfermaria");
       if (possuiApt && !usaFaixaApt && aptTotais.valor_atual_centavos <= 0) throw new Error("Informe o Valor Atual do Apartamento");
       if (possuiEnf && usaFaixaEnf && enfTotais.valor_atual_centavos <= 0) throw new Error("Informe ao menos uma faixa com valor para Enfermaria");
@@ -347,19 +363,19 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
               <TabsTrigger value="geral" className="data-[state=active]:bg-muted px-4 py-2 rounded-md">
                 Informações Gerais
               </TabsTrigger>
-              <TabsTrigger value="enfermaria" disabled={!possuiEnf} className="data-[state=active]:bg-muted px-4 py-2 rounded-md flex items-center gap-2">
+              <TabsTrigger value="enfermaria" disabled={!possuiEnf || !geralValido} className="data-[state=active]:bg-muted px-4 py-2 rounded-md flex items-center gap-2">
                 <BedDouble className="h-3.5 w-3.5 text-emerald-600" />
                 Enfermaria
                 {usaFaixaEnf && <Badge variant="outline" className="text-[9px] h-4 px-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30">Faixas</Badge>}
                 {enfTotais.valor_atual_centavos > 0 && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
               </TabsTrigger>
-              <TabsTrigger value="apartamento" disabled={!possuiApt} className="data-[state=active]:bg-muted px-4 py-2 rounded-md flex items-center gap-2">
+              <TabsTrigger value="apartamento" disabled={!possuiApt || !geralValido} className="data-[state=active]:bg-muted px-4 py-2 rounded-md flex items-center gap-2">
                 <Hotel className="h-3.5 w-3.5 text-blue-600" />
                 Apartamento
                 {usaFaixaApt && <Badge variant="outline" className="text-[9px] h-4 px-1 bg-blue-500/15 text-blue-700 border-blue-500/30">Faixas</Badge>}
                 {aptTotais.valor_atual_centavos > 0 && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
               </TabsTrigger>
-              <TabsTrigger value="resumo" className="data-[state=active]:bg-muted px-4 py-2 rounded-md">
+              <TabsTrigger value="resumo" disabled={!geralValido} className="data-[state=active]:bg-muted px-4 py-2 rounded-md">
                 Resumo
               </TabsTrigger>
             </TabsList>
@@ -385,24 +401,54 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
                   <Input className="h-11" type="number" value={ano} onChange={(e) => setAno(e.target.value)} disabled={!!editing} />
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-sm font-medium">Data de Aplicação</Label>
-                  <Input className="h-11" type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    Data de Aplicação <span className="text-destructive">*</span>
+                    {dataAplicacaoValida && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 animate-fade-in" />}
+                  </Label>
+                  <Input
+                    className={`h-11 transition-colors ${touched.data && !dataAplicacaoValida ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    type="date"
+                    value={dataAplicacao}
+                    onChange={(e) => { setDataAplicacao(e.target.value); setTouched((t) => ({ ...t, data: true })); }}
+                    onBlur={() => setTouched((t) => ({ ...t, data: true }))}
+                  />
+                  {touched.data && !dataAplicacaoValida && (
+                    <p className="text-xs text-destructive flex items-center gap-1 animate-fade-in">
+                      <AlertCircle className="h-3 w-3" /> Preencha a Data de Aplicação.
+                    </p>
+                  )}
                 </div>
                 <div className="grid gap-2 md:col-span-2">
-                  <Label className="text-sm font-medium">
+                  <Label className="text-sm font-medium flex items-center gap-2">
                     Percentual padrão (%) <span className="text-destructive">*</span>
+                    {percentualValido && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 animate-fade-in" />}
                   </Label>
-                  <Input className="h-11" inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
-                  <p className="text-[11px] text-muted-foreground">
-                    Aplicado às modalidades sem faixa etária e às faixas com "percentual único" ativado.
-                  </p>
+                  <Input
+                    className={`h-11 transition-colors ${touched.pct && !percentualValido ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={percentual}
+                    onChange={(e) => { setPercentual(e.target.value); setTouched((t) => ({ ...t, pct: true })); }}
+                    onBlur={() => setTouched((t) => ({ ...t, pct: true }))}
+                  />
+                  {touched.pct && !percentualValido ? (
+                    <p className="text-xs text-destructive flex items-center gap-1 animate-fade-in">
+                      <AlertCircle className="h-3 w-3" /> Informe o Percentual padrão (maior que 0).
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Aplicado às modalidades sem faixa etária e às faixas com "percentual único" ativado.
+                    </p>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <ModalidadesPicker
                     possuiEnf={possuiEnf}
                     possuiApt={possuiApt}
-                    onEnf={setPossuiEnf}
-                    onApt={setPossuiApt}
+                    onEnf={(v) => { setPossuiEnf(v); setTouched((t) => ({ ...t, mod: true })); }}
+                    onApt={(v) => { setPossuiApt(v); setTouched((t) => ({ ...t, mod: true })); }}
+                    invalido={touched.mod && !modalidadeValida}
+                    valido={modalidadeValida}
                   />
                 </div>
                 <div className="grid gap-2 md:col-span-2">
@@ -647,17 +693,40 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
             >
               ← Voltar
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!podeAvancar}
-              onClick={() => podeAvancar && setTab(tabsOrdenadas[idxAtual + 1])}
-            >
-              Avançar →
-            </Button>
-            <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-              {mutation.isPending ? "Salvando..." : editing ? "Atualizar" : "Salvar"}
-            </Button>
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={!podeAvancar || (tab === "geral" && !geralValido)}
+                      className={tab === "geral" && !geralValido ? "opacity-60 cursor-not-allowed" : ""}
+                      onClick={() => podeAvancar && geralValido && setTab(tabsOrdenadas[idxAtual + 1])}
+                    >
+                      Avançar →
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {tab === "geral" && !geralValido && (
+                  <TooltipContent>Preencha as informações obrigatórias para continuar.</TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0}>
+                    <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !geralValido}>
+                      {mutation.isPending ? "Salvando..." : editing ? "Atualizar" : "Salvar"}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!geralValido && (
+                  <TooltipContent>Preencha as informações obrigatórias para continuar.</TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </DialogFooter>
       </DialogContent>
@@ -666,15 +735,18 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
 }
 
 export function ModalidadesPicker({
-  possuiEnf, possuiApt, onEnf, onApt,
-}: { possuiEnf: boolean; possuiApt: boolean; onEnf: (v: boolean) => void; onApt: (v: boolean) => void }) {
+  possuiEnf, possuiApt, onEnf, onApt, invalido, valido,
+}: { possuiEnf: boolean; possuiApt: boolean; onEnf: (v: boolean) => void; onApt: (v: boolean) => void; invalido?: boolean; valido?: boolean }) {
   return (
     <div className="grid gap-2">
-      <Label className="text-sm">Modalidades do Contrato <span className="text-destructive">*</span></Label>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <Label className="text-sm flex items-center gap-2">
+        Modalidades do Contrato <span className="text-destructive">*</span>
+        {valido && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 animate-fade-in" />}
+      </Label>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg transition-colors ${invalido ? "ring-1 ring-destructive/60 p-1" : ""}`}>
         <label
           className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all ${
-            possuiEnf ? "border-emerald-500/50 bg-emerald-500/5" : "border-border hover:bg-muted/40"
+            possuiEnf ? "border-emerald-500/50 bg-emerald-500/5" : invalido ? "border-destructive/60" : "border-border hover:bg-muted/40"
           }`}
         >
           <Checkbox checked={possuiEnf} onCheckedChange={(v) => onEnf(!!v)} />
@@ -687,7 +759,7 @@ export function ModalidadesPicker({
         </label>
         <label
           className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all ${
-            possuiApt ? "border-blue-500/50 bg-blue-500/5" : "border-border hover:bg-muted/40"
+            possuiApt ? "border-blue-500/50 bg-blue-500/5" : invalido ? "border-destructive/60" : "border-border hover:bg-muted/40"
           }`}
         >
           <Checkbox checked={possuiApt} onCheckedChange={(v) => onApt(!!v)} />
@@ -699,6 +771,11 @@ export function ModalidadesPicker({
           {possuiApt && <Badge variant="outline" className="bg-blue-500/15 text-blue-700 border-blue-500/30 text-[10px]">Selecionada</Badge>}
         </label>
       </div>
+      {invalido && (
+        <p className="text-xs text-destructive flex items-center gap-1 animate-fade-in">
+          <AlertCircle className="h-3 w-3" /> Selecione ao menos uma modalidade.
+        </p>
+      )}
     </div>
   );
 }
