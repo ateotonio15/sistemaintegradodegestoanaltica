@@ -357,7 +357,7 @@ export function PrevisaoFinanceira() {
     let vencidos = 0;
     let comProrrogacao = 0;
     for (const r of rows) {
-      totalPrevisto += analises[r.rowKey]?.total ?? 0;
+      totalPrevisto += analises[r.rowKey]?.totalGeral ?? 0;
       const venc = parseLocalDate(r.data_vencimento);
       if (venc) {
         const dias = diffDias(venc, hoje);
