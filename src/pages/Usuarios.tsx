@@ -303,6 +303,7 @@ export default function Usuarios() {
                       <SelectItem value="comum">Cadastro</SelectItem>
                       <SelectItem value="executivo">Executivo</SelectItem>
                       <SelectItem value="visualizacao">Visualização</SelectItem>
+                      <SelectItem value="diretora">Diretora</SelectItem>
                       <SelectItem value="enfermeira">Enfermeira</SelectItem>
                       <SelectItem value="financeiro">Financeiro</SelectItem>
                     </SelectContent>
