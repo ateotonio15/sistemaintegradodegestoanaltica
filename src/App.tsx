@@ -38,11 +38,11 @@ function AdminOrComumRoute({ children }: { children: React.ReactNode }) {
 }
 
 function FinanceiroRoute({ children }: { children: React.ReactNode }) {
-  // Acessível para Admin, perfil Financeiro e Cadastro (comum, somente leitura)
-  const { user, loading, isAdmin, isFinanceiro, isComum } = useAuth();
+  // Acessível para Admin, Financeiro, Cadastro (comum) e Visualização (somente leitura)
+  const { user, loading, isAdmin, isFinanceiro, isComum, isViewOnly } = useAuth();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin && !isFinanceiro && !isComum) return <Navigate to="/" replace />;
+  if (!isAdmin && !isFinanceiro && !isComum && !isViewOnly) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
