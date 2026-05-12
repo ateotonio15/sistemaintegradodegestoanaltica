@@ -555,7 +555,7 @@ export function PrevisaoFinanceira() {
                       {isOpen && (
                         <tr className="bg-muted/20 border-b">
                           <td></td>
-                          <td colSpan={10} className="px-4 py-3">
+                          <td colSpan={14} className="px-4 py-3">
                             <DetalheAnalise dado={a} />
                           </td>
                         </tr>
@@ -565,7 +565,7 @@ export function PrevisaoFinanceira() {
                 })}
                 {filteredRows.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={15} className="px-4 py-8 text-center text-sm text-muted-foreground">
                       Nenhum registro para os filtros selecionados.
                     </td>
                   </tr>
