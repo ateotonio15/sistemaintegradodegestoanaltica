@@ -300,6 +300,17 @@ export default function Reajustes() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="w-48">
+              <Select value={filterMes} onValueChange={setFilterMes}>
+                <SelectTrigger><SelectValue placeholder="Mês de Reajuste" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os meses</SelectItem>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={String(m)}>{nomeMes(m)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
