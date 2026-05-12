@@ -206,6 +206,8 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
       if (!empresaId) throw new Error("Selecione um contrato");
       if (!ano) throw new Error("Informe o ano");
       if (!possuiEnf && !possuiApt) throw new Error("Selecione ao menos uma modalidade (Enfermaria ou Apartamento)");
+      if (!dataAplicacao || !dataAplicacaoValida) throw new Error("Preencha a Data de Aplicação");
+      if (pctNum <= 0) throw new Error("Informe o Percentual padrão (maior que 0)");
       if (possuiEnf && !usaFaixaEnf && enfTotais.valor_atual_centavos <= 0) throw new Error("Informe o Valor Atual da Enfermaria");
       if (possuiApt && !usaFaixaApt && aptTotais.valor_atual_centavos <= 0) throw new Error("Informe o Valor Atual do Apartamento");
       if (possuiEnf && usaFaixaEnf && enfTotais.valor_atual_centavos <= 0) throw new Error("Informe ao menos uma faixa com valor para Enfermaria");
