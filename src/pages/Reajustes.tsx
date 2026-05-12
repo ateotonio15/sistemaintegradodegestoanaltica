@@ -351,18 +351,25 @@ export default function Reajustes() {
                       <TableCell className="text-sm text-muted-foreground">{empresa.codigo_contrato || "—"}</TableCell>
                       <TableCell className="text-sm">{empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : "—"}</TableCell>
                       <TableCell className="text-sm">{nomeMes(mesReaj)}</TableCell>
-                      <TableCell>{temValores ? formatCentavosBRL(reajuste.valor_antigo_centavos) : "—"}</TableCell>
+                      <TableCell>
+                        {temValores ? (
+                          <div className="flex items-center gap-2">
+                            <span>{formatCentavosBRL(resumoAtual)}</span>
+                            {resumoLabel && <Badge variant="outline" className="text-[10px] px-1 py-0">{resumoLabel}</Badge>}
+                          </div>
+                        ) : "—"}
+                      </TableCell>
                       <TableCell>{temValores ? `${Number(reajuste.percentual).toFixed(2).replace(".", ",")}%` : "—"}</TableCell>
-                      <TableCell className="font-semibold">{temValores ? formatCentavosBRL(reajuste.valor_reajustado_centavos) : "—"}</TableCell>
+                      <TableCell className="font-semibold">{temValores ? formatCentavosBRL(resumoReaj) : "—"}</TableCell>
                       <TableCell className="text-sm">
                         {temValores ? (
                           <>
-                            <div>{formatCentavosBRL(reajuste.valor_retroativo_centavos)}</div>
+                            <div>{formatCentavosBRL(resumoRetro)}</div>
                             {temRetro && <div className="text-xs text-muted-foreground">{reajuste.meses_retroativos} {reajuste.meses_retroativos === 1 ? "mês" : "meses"}</div>}
                           </>
                         ) : "—"}
                       </TableCell>
-                      <TableCell className="font-bold text-primary">{temValores ? formatCentavosBRL(reajuste.valor_final_centavos) : "—"}</TableCell>
+                      <TableCell className="font-bold text-primary">{temValores ? formatCentavosBRL(resumoFinal) : "—"}</TableCell>
                       <TableCell>
                         {reajuste ? (
                           <Badge variant="outline" className={corStatusReajusteFluxo(statusFluxo)}>
