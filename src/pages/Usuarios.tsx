@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, Wallet } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
-type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "enfermeira" | "financeiro";
+type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro";
 
 interface UserProfile {
   user_id: string;
@@ -30,6 +30,7 @@ const roleLabel: Record<AppRole, string> = {
   comum: "Cadastro",
   executivo: "Executivo",
   visualizacao: "Visualização",
+  diretora: "Diretora",
   enfermeira: "Enfermeira",
   financeiro: "Financeiro",
 };
@@ -39,6 +40,7 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   comum: User,
   executivo: Eye,
   visualizacao: Eye,
+  diretora: Eye,
   enfermeira: HeartPulse,
   financeiro: Wallet,
 };
@@ -301,6 +303,7 @@ export default function Usuarios() {
                       <SelectItem value="comum">Cadastro</SelectItem>
                       <SelectItem value="executivo">Executivo</SelectItem>
                       <SelectItem value="visualizacao">Visualização</SelectItem>
+                      <SelectItem value="diretora">Diretora</SelectItem>
                       <SelectItem value="enfermeira">Enfermeira</SelectItem>
                       <SelectItem value="financeiro">Financeiro</SelectItem>
                     </SelectContent>
@@ -423,6 +426,7 @@ export default function Usuarios() {
                     <SelectItem value="comum">Cadastro</SelectItem>
                     <SelectItem value="executivo">Executivo</SelectItem>
                     <SelectItem value="visualizacao">Visualização</SelectItem>
+                    <SelectItem value="diretora">Diretora</SelectItem>
                     <SelectItem value="enfermeira">Enfermeira</SelectItem>
                     <SelectItem value="financeiro">Financeiro</SelectItem>
                   </SelectContent>
