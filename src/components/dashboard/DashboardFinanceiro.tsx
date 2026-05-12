@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/date-utils";
 import { FaturamentosEnviadoFinanceiro } from "./FaturamentosEnviadoFinanceiro";
 import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
+import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { calcularStatusFinanceiro, getCurrentMesReferencia, formatMesReferencia, PERIODOS_FIN } from "@/lib/financeiro-utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
@@ -394,18 +395,8 @@ export function DashboardFinanceiro() {
         </Card>
       </div>
 
-      {/* Próximos vencimentos */}
-      <Card className="rounded-xl shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            Próximos vencimentos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ProximosVencimentos movs={movs} empresas={empresas} />
-        </CardContent>
-      </Card>
+      {/* Previsão financeira */}
+      <PrevisaoFinanceira />
 
       {/* Confirmar remoção */}
       <AlertDialog open={!!removerAlvo} onOpenChange={(o) => !o && setRemoverAlvo(null)}>
