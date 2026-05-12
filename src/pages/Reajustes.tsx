@@ -407,6 +407,35 @@ export default function Reajustes() {
                         </div>
                       </TableCell>
                     </TableRow>
+                    {isExpanded && (
+                      <TableRow key={`${empresa.id}-exp`} className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={12} className="p-0">
+                          <div className="animate-accordion-down overflow-hidden">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                              <DetalheCard
+                                titulo="Enfermaria"
+                                Icone={BedDouble}
+                                percentual={pct}
+                                valorAtual={reajuste?.valor_antigo_enfermaria_centavos}
+                                valorReajustado={reajuste?.valor_reajustado_enfermaria_centavos}
+                                retroativo={reajuste?.valor_retroativo_enfermaria_centavos}
+                                valorFinal={reajuste?.valor_final_enfermaria_centavos}
+                              />
+                              <DetalheCard
+                                titulo="Apartamento"
+                                Icone={Hotel}
+                                percentual={pct}
+                                valorAtual={reajuste?.valor_antigo_apartamento_centavos}
+                                valorReajustado={reajuste?.valor_reajustado_apartamento_centavos}
+                                retroativo={reajuste?.valor_retroativo_apartamento_centavos}
+                                valorFinal={reajuste?.valor_final_apartamento_centavos}
+                              />
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </>
                   );})}
                 </TableBody>
               </Table>
