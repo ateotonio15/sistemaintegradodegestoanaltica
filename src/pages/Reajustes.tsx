@@ -112,9 +112,18 @@ export default function Reajustes() {
     return map;
   }, [reajustes]);
 
+  const empresasVisiveis = useMemo(() => {
+    if (!isComum) return empresas;
+    if (!user?.id) return [];
+    return empresas.filter(
+      (e) => e.responsavel_user_id === user.id || minhasEmpresasSet.has(e.id)
+    );
+  }, [empresas, isComum, user?.id, minhasEmpresasSet]);
+
   const rows = useMemo(() => {
     const ano = parseInt(filterAno, 10);
-    const list = empresas.map((e) => {
+    const mesFiltro = filterMes === "all" ? null : parseInt(filterMes, 10);
+    const list = empresasVisiveis.map((e) => {
       const r = reajustesPorEmpresaAno[`${e.id}|${ano}`];
       const reajustesEmpresa = reajustes.filter((x) => x.empresa_id === e.id);
       const status: StatusReajuste = r ? "Reajustado" : getStatusReajusteEmpresa(e, reajustesEmpresa, ano);
@@ -123,23 +132,28 @@ export default function Reajustes() {
     const q = search.trim().toLowerCase();
     return list.filter((row) => {
       if (filterStatus !== "all" && row.status !== filterStatus) return false;
+      if (mesFiltro !== null && getMesReajuste(row.empresa.data_implantacao) !== mesFiltro) return false;
       if (q && !`${row.empresa.nome} ${row.empresa.codigo_contrato || ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [empresas, reajustes, reajustesPorEmpresaAno, filterAno, filterStatus, search]);
+  }, [empresasVisiveis, reajustes, reajustesPorEmpresaAno, filterAno, filterStatus, filterMes, search]);
 
   const kpis = useMemo(() => {
     const ano = parseInt(filterAno, 10);
-    const total = empresas.length;
+    const mesFiltro = filterMes === "all" ? null : parseInt(filterMes, 10);
+    const base = mesFiltro === null
+      ? empresasVisiveis
+      : empresasVisiveis.filter((e) => getMesReajuste(e.data_implantacao) === mesFiltro);
+    const total = base.length;
     let reajustados = 0, pendentes = 0, atrasados = 0;
-    for (const e of empresas) {
+    for (const e of base) {
       const r = reajustesPorEmpresaAno[`${e.id}|${ano}`];
       if (r) { reajustados++; continue; }
       const status = getStatusReajusteEmpresa(e, reajustes.filter((x) => x.empresa_id === e.id), ano);
       if (status === "Atrasado") atrasados++; else pendentes++;
     }
     return { total, reajustados, pendentes, atrasados };
-  }, [empresas, reajustes, reajustesPorEmpresaAno, filterAno]);
+  }, [empresasVisiveis, reajustes, reajustesPorEmpresaAno, filterAno, filterMes]);
 
   const anosDisponiveis = useMemo(() => {
     const set = new Set<number>([anoAtual, anoAtual - 1, anoAtual + 1]);
