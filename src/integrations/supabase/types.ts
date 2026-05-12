@@ -848,6 +848,8 @@ export type Database = {
           meses_retroativos: number
           observacao: string | null
           percentual: number | null
+          possui_apartamento: boolean
+          possui_enfermaria: boolean
           status: string
           status_reajuste: string
           updated_at: string
@@ -883,6 +885,8 @@ export type Database = {
           meses_retroativos?: number
           observacao?: string | null
           percentual?: number | null
+          possui_apartamento?: boolean
+          possui_enfermaria?: boolean
           status?: string
           status_reajuste?: string
           updated_at?: string
@@ -918,6 +922,8 @@ export type Database = {
           meses_retroativos?: number
           observacao?: string | null
           percentual?: number | null
+          possui_apartamento?: boolean
+          possui_enfermaria?: boolean
           status?: string
           status_reajuste?: string
           updated_at?: string
