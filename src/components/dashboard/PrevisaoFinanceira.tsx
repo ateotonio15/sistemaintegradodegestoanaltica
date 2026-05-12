@@ -613,6 +613,19 @@ function DetalheAnalise({ dado }: { dado?: AnaliseDado }) {
             <Linha k="Apartamento — Total" v={BRL(r.apartamento.total)} />
             <Linha k="Inclusões — Qtd" v={r.inclusoes?.quantidade ?? 0} />
             <Linha k="Inclusões — Total" v={BRL(r.inclusoes?.total ?? 0)} />
+            {r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0) && (
+              <>
+                <Linha k="Exclusões — Qtd" v={r.exclusoes.quantidade ?? 0} />
+                <Linha
+                  k="Exclusões — Total"
+                  v={
+                    <span className="text-destructive">
+                      {r.exclusoes.total < 0 ? `− ${BRL(Math.abs(r.exclusoes.total))}` : BRL(r.exclusoes.total)}
+                    </span>
+                  }
+                />
+              </>
+            )}
           </div>
           {r.avisos?.length ? (
             <ul className="mt-2 list-disc list-inside text-[11px] text-warning">
