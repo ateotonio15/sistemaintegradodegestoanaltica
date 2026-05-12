@@ -1,6 +1,6 @@
 import { AlertTriangle, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,12 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { formatDateBR } from "@/lib/date-utils";
 import {
-  formatCentavosBRL, getMesReajuste, nomeMes, statusReajusteColor,
+  getMesReajuste, nomeMes, statusReajusteColor,
   labelStatusReajusteFluxo, corStatusReajusteFluxo,
 } from "@/lib/reajuste-utils";
+import { SolicitarReajusteDialog } from "./SolicitarReajusteDialog";
 
 type EmpresaRow = {
   id: string;
