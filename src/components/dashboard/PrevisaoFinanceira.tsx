@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+
 import {
   Select,
   SelectContent,
@@ -26,7 +26,6 @@ import { formatDateBR } from "@/lib/date-utils";
 import {
   calcularStatusFinanceiro,
   formatMesReferencia,
-  isPdfAnexo,
   isXlsAnexo,
 } from "@/lib/financeiro-utils";
 
