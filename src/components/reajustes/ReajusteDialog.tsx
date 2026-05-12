@@ -5,17 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { BedDouble, Hotel } from "lucide-react";
+import { BedDouble, Hotel, Users } from "lucide-react";
 import {
   calcularValorReajustadoCentavos, reaisToCentavos, centavosToReais, formatCentavosBRL,
   getMesReajuste, nomeMes, calcularMesesRetroativos, calcularRetroativoCentavos, calcularValorFinalCentavos,
+  criarFaixasIniciais, somarFaixas, type FaixaEtariaItem,
 } from "@/lib/reajuste-utils";
+import { ReajusteFaixaEtariaTable } from "./ReajusteFaixaEtariaTable";
 
 interface Empresa { id: string; nome: string; codigo_contrato: string | null; data_implantacao?: string | null }
 
@@ -31,6 +34,10 @@ interface ReajusteRow {
   valor_antigo_apartamento_centavos?: number | null;
   possui_enfermaria?: boolean | null;
   possui_apartamento?: boolean | null;
+  usa_faixa_etaria_enfermaria?: boolean | null;
+  usa_faixa_etaria_apartamento?: boolean | null;
+  percentual_unico_enfermaria?: boolean | null;
+  percentual_unico_apartamento?: boolean | null;
 }
 
 interface Props {
@@ -57,6 +64,27 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
   const [dataAplicacao, setDataAplicacao] = useState<string>(new Date().toISOString().slice(0, 10));
   const [observacao, setObservacao] = useState<string>("");
 
+  const [usaFaixaEnf, setUsaFaixaEnf] = useState(false);
+  const [usaFaixaApt, setUsaFaixaApt] = useState(false);
+  const [pctUnicoEnf, setPctUnicoEnf] = useState(true);
+  const [pctUnicoApt, setPctUnicoApt] = useState(true);
+  const [faixasEnf, setFaixasEnf] = useState<FaixaEtariaItem[]>(() => criarFaixasIniciais());
+  const [faixasApt, setFaixasApt] = useState<FaixaEtariaItem[]>(() => criarFaixasIniciais());
+
+  // Carrega faixas existentes ao editar
+  const { data: faixasDb } = useQuery({
+    queryKey: ["reajuste-faixas", editing?.id],
+    enabled: !!editing?.id && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reajuste_faixas" as any)
+        .select("*")
+        .eq("reajuste_id", editing!.id);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
     if (editing) {
@@ -73,6 +101,10 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
       setPercentual(editing.percentual > 0 ? String(editing.percentual).replace(".", ",") : "");
       setDataAplicacao(editing.data_aplicacao || new Date().toISOString().slice(0, 10));
       setObservacao(editing.observacao || "");
+      setUsaFaixaEnf(!!editing.usa_faixa_etaria_enfermaria);
+      setUsaFaixaApt(!!editing.usa_faixa_etaria_apartamento);
+      setPctUnicoEnf(editing.percentual_unico_enfermaria !== false);
+      setPctUnicoApt(editing.percentual_unico_apartamento !== false);
     } else {
       setEmpresaId(defaultEmpresaId || "");
       setAno(String(anoAtual));
@@ -83,40 +115,85 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
       setPercentual("");
       setDataAplicacao(new Date().toISOString().slice(0, 10));
       setObservacao("");
+      setUsaFaixaEnf(false);
+      setUsaFaixaApt(false);
+      setPctUnicoEnf(true);
+      setPctUnicoApt(true);
+      setFaixasEnf(criarFaixasIniciais());
+      setFaixasApt(criarFaixasIniciais());
     }
   }, [open, editing, defaultEmpresaId, anoAtual]);
 
-  const enfCent = useMemo(() => (possuiEnf ? reaisToCentavos(valorEnf) : 0), [possuiEnf, valorEnf]);
-  const aptCent = useMemo(() => (possuiApt ? reaisToCentavos(valorApt) : 0), [possuiApt, valorApt]);
-  const valorAntigoCent = enfCent + aptCent;
+  // Mescla faixas do DB quando chegam
+  useEffect(() => {
+    if (!faixasDb) return;
+    const base = criarFaixasIniciais();
+    const enf = base.map((f) => {
+      const d = faixasDb.find((x: any) => x.modalidade === "enfermaria" && x.idade_inicial === f.idade_inicial && x.idade_final === f.idade_final);
+      return d ? {
+        ...f,
+        valor_atual_centavos: d.valor_atual_centavos || 0,
+        percentual: Number(d.percentual) || 0,
+        valor_reajustado_centavos: d.valor_reajustado_centavos || 0,
+        valor_retroativo_centavos: d.valor_retroativo_centavos || 0,
+        valor_final_centavos: d.valor_final_centavos || 0,
+      } : f;
+    });
+    const apt = base.map((f) => {
+      const d = faixasDb.find((x: any) => x.modalidade === "apartamento" && x.idade_inicial === f.idade_inicial && x.idade_final === f.idade_final);
+      return d ? {
+        ...f,
+        valor_atual_centavos: d.valor_atual_centavos || 0,
+        percentual: Number(d.percentual) || 0,
+        valor_reajustado_centavos: d.valor_reajustado_centavos || 0,
+        valor_retroativo_centavos: d.valor_retroativo_centavos || 0,
+        valor_final_centavos: d.valor_final_centavos || 0,
+      } : f;
+    });
+    setFaixasEnf(enf);
+    setFaixasApt(apt);
+  }, [faixasDb]);
+
   const pctNum = useMemo(() => {
     const n = parseFloat(String(percentual).replace(",", "."));
     return isNaN(n) ? 0 : n;
   }, [percentual]);
-  const valorReajustadoCent = useMemo(
-    () => calcularValorReajustadoCentavos(valorAntigoCent, pctNum),
-    [valorAntigoCent, pctNum],
-  );
 
   const empresaSel = useMemo(() => empresas.find((e) => e.id === empresaId), [empresas, empresaId]);
   const mesReajuste = useMemo(() => getMesReajuste(empresaSel?.data_implantacao || null), [empresaSel]);
   const mesesRetro = useMemo(() => calcularMesesRetroativos(mesReajuste, dataAplicacao), [mesReajuste, dataAplicacao]);
-  const retroativoCent = useMemo(
-    () => calcularRetroativoCentavos(valorAntigoCent, valorReajustadoCent, mesesRetro),
-    [valorAntigoCent, valorReajustadoCent, mesesRetro],
-  );
-  const valorFinalCent = useMemo(
-    () => calcularValorFinalCentavos(valorReajustadoCent, retroativoCent),
-    [valorReajustadoCent, retroativoCent],
-  );
+
+  // Totais por modalidade (faixa OU valor único)
+  const enfTotais = useMemo(() => {
+    if (possuiEnf && usaFaixaEnf) return somarFaixas(faixasEnf);
+    const va = possuiEnf ? reaisToCentavos(valorEnf) : 0;
+    const vr = calcularValorReajustadoCentavos(va, pctNum);
+    const ret = calcularRetroativoCentavos(va, vr, mesesRetro);
+    return { valor_atual_centavos: va, valor_reajustado_centavos: vr, valor_retroativo_centavos: ret, valor_final_centavos: calcularValorFinalCentavos(vr, ret) };
+  }, [possuiEnf, usaFaixaEnf, faixasEnf, valorEnf, pctNum, mesesRetro]);
+
+  const aptTotais = useMemo(() => {
+    if (possuiApt && usaFaixaApt) return somarFaixas(faixasApt);
+    const va = possuiApt ? reaisToCentavos(valorApt) : 0;
+    const vr = calcularValorReajustadoCentavos(va, pctNum);
+    const ret = calcularRetroativoCentavos(va, vr, mesesRetro);
+    return { valor_atual_centavos: va, valor_reajustado_centavos: vr, valor_retroativo_centavos: ret, valor_final_centavos: calcularValorFinalCentavos(vr, ret) };
+  }, [possuiApt, usaFaixaApt, faixasApt, valorApt, pctNum, mesesRetro]);
+
+  const valorAntigoCent = (possuiEnf ? enfTotais.valor_atual_centavos : 0) + (possuiApt ? aptTotais.valor_atual_centavos : 0);
+  const valorReajustadoCent = (possuiEnf ? enfTotais.valor_reajustado_centavos : 0) + (possuiApt ? aptTotais.valor_reajustado_centavos : 0);
+  const retroativoCent = (possuiEnf ? enfTotais.valor_retroativo_centavos : 0) + (possuiApt ? aptTotais.valor_retroativo_centavos : 0);
+  const valorFinalCent = (possuiEnf ? enfTotais.valor_final_centavos : 0) + (possuiApt ? aptTotais.valor_final_centavos : 0);
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!empresaId) throw new Error("Selecione um contrato");
       if (!ano) throw new Error("Informe o ano");
       if (!possuiEnf && !possuiApt) throw new Error("Selecione ao menos uma modalidade (Enfermaria ou Apartamento)");
-      if (possuiEnf && enfCent <= 0) throw new Error("Informe o Valor Atual da Enfermaria");
-      if (possuiApt && aptCent <= 0) throw new Error("Informe o Valor Atual do Apartamento");
+      if (possuiEnf && !usaFaixaEnf && enfTotais.valor_atual_centavos <= 0) throw new Error("Informe o Valor Atual da Enfermaria");
+      if (possuiApt && !usaFaixaApt && aptTotais.valor_atual_centavos <= 0) throw new Error("Informe o Valor Atual do Apartamento");
+      if (possuiEnf && usaFaixaEnf && enfTotais.valor_atual_centavos <= 0) throw new Error("Informe ao menos uma faixa com valor para Enfermaria");
+      if (possuiApt && usaFaixaApt && aptTotais.valor_atual_centavos <= 0) throw new Error("Informe ao menos uma faixa com valor para Apartamento");
       if (!dataAplicacao) throw new Error("Informe a data de aplicação");
 
       let usuario_nome: string | null = null;
@@ -130,8 +207,8 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
         ano: parseInt(ano, 10),
         possui_enfermaria: possuiEnf,
         possui_apartamento: possuiApt,
-        valor_antigo_enfermaria_centavos: possuiEnf ? enfCent : 0,
-        valor_antigo_apartamento_centavos: possuiApt ? aptCent : 0,
+        valor_antigo_enfermaria_centavos: possuiEnf ? enfTotais.valor_atual_centavos : 0,
+        valor_antigo_apartamento_centavos: possuiApt ? aptTotais.valor_atual_centavos : 0,
         valor_antigo_centavos: valorAntigoCent,
         percentual: pctNum,
         valor_reajustado_centavos: valorReajustadoCent,
@@ -140,8 +217,13 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
         status: "Reajustado",
         usuario_id: user?.id || null,
         usuario_nome,
+        usa_faixa_etaria_enfermaria: possuiEnf && usaFaixaEnf,
+        usa_faixa_etaria_apartamento: possuiApt && usaFaixaApt,
+        percentual_unico_enfermaria: pctUnicoEnf,
+        percentual_unico_apartamento: pctUnicoApt,
       };
 
+      let reajusteId: string;
       if (editing) {
         const updatePayload: any = { ...basePayload };
         if ((editing as any).status_reajuste === "solicitado" && valorAntigoCent > 0 && pctNum > 0) {
@@ -149,12 +231,54 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
         }
         const { error } = await supabase.from("reajustes_anuais").update(updatePayload).eq("id", editing.id);
         if (error) throw error;
+        reajusteId = editing.id;
       } else {
-        const { error } = await supabase.from("reajustes_anuais").insert({
+        const { data, error } = await supabase.from("reajustes_anuais").insert({
           ...basePayload,
           status_reajuste: "pendente_confirmacao",
-        });
+        }).select("id").single();
         if (error) throw error;
+        reajusteId = data!.id as string;
+      }
+
+      // Sincroniza faixas
+      await supabase.from("reajuste_faixas" as any).delete().eq("reajuste_id", reajusteId);
+      const rows: any[] = [];
+      if (possuiEnf && usaFaixaEnf) {
+        for (const f of faixasEnf) {
+          if (f.valor_atual_centavos <= 0) continue;
+          rows.push({
+            reajuste_id: reajusteId,
+            modalidade: "enfermaria",
+            idade_inicial: f.idade_inicial,
+            idade_final: f.idade_final,
+            valor_atual_centavos: f.valor_atual_centavos,
+            percentual: pctUnicoEnf ? pctNum : f.percentual,
+            valor_reajustado_centavos: f.valor_reajustado_centavos,
+            valor_retroativo_centavos: f.valor_retroativo_centavos,
+            valor_final_centavos: f.valor_final_centavos,
+          });
+        }
+      }
+      if (possuiApt && usaFaixaApt) {
+        for (const f of faixasApt) {
+          if (f.valor_atual_centavos <= 0) continue;
+          rows.push({
+            reajuste_id: reajusteId,
+            modalidade: "apartamento",
+            idade_inicial: f.idade_inicial,
+            idade_final: f.idade_final,
+            valor_atual_centavos: f.valor_atual_centavos,
+            percentual: pctUnicoApt ? pctNum : f.percentual,
+            valor_reajustado_centavos: f.valor_reajustado_centavos,
+            valor_retroativo_centavos: f.valor_retroativo_centavos,
+            valor_final_centavos: f.valor_final_centavos,
+          });
+        }
+      }
+      if (rows.length > 0) {
+        const { error: insErr } = await supabase.from("reajuste_faixas" as any).insert(rows);
+        if (insErr) throw insErr;
       }
     },
     onSuccess: () => {
@@ -164,6 +288,7 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
       });
       qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
       qc.invalidateQueries({ queryKey: ["reajustes-pendentes-count"] });
+      qc.invalidateQueries({ queryKey: ["reajuste-faixas"] });
       onOpenChange(false);
     },
     onError: (e: any) => {
@@ -174,7 +299,7 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? "Editar Reajuste" : "Novo Reajuste"}</DialogTitle>
         </DialogHeader>
@@ -211,26 +336,71 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
 
           <div className="grid gap-3">
             {possuiEnf && (
-              <div className="grid gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 transition-all animate-fade-in">
-                <Label className="flex items-center gap-2 text-sm">
-                  <BedDouble className="h-4 w-4 text-emerald-600" />
-                  Valor Atual Enfermaria (R$) <span className="text-destructive">*</span>
-                </Label>
-                <Input inputMode="decimal" placeholder="0,00" value={valorEnf} onChange={(e) => setValorEnf(e.target.value)} />
+              <div className="grid gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 transition-all animate-fade-in">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <BedDouble className="h-4 w-4 text-emerald-600" />
+                    Enfermaria
+                  </Label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Switch checked={usaFaixaEnf} onCheckedChange={setUsaFaixaEnf} />
+                    <Users className="h-3.5 w-3.5" />
+                    <span>Contrato com Faixa Etária</span>
+                  </label>
+                </div>
+                {!usaFaixaEnf ? (
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Valor Atual (R$) <span className="text-destructive">*</span></Label>
+                    <Input inputMode="decimal" placeholder="0,00" value={valorEnf} onChange={(e) => setValorEnf(e.target.value)} />
+                  </div>
+                ) : (
+                  <ReajusteFaixaEtariaTable
+                    modalidade="enfermaria"
+                    faixas={faixasEnf}
+                    onChange={setFaixasEnf}
+                    percentualGlobal={pctNum}
+                    percentualUnico={pctUnicoEnf}
+                    onPercentualUnicoChange={setPctUnicoEnf}
+                    mesesRetro={mesesRetro}
+                  />
+                )}
               </div>
             )}
             {possuiApt && (
-              <div className="grid gap-2 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 transition-all animate-fade-in">
-                <Label className="flex items-center gap-2 text-sm">
-                  <Hotel className="h-4 w-4 text-blue-600" />
-                  Valor Atual Apartamento (R$) <span className="text-destructive">*</span>
-                </Label>
-                <Input inputMode="decimal" placeholder="0,00" value={valorApt} onChange={(e) => setValorApt(e.target.value)} />
+              <div className="grid gap-3 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 transition-all animate-fade-in">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Hotel className="h-4 w-4 text-blue-600" />
+                    Apartamento
+                  </Label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Switch checked={usaFaixaApt} onCheckedChange={setUsaFaixaApt} />
+                    <Users className="h-3.5 w-3.5" />
+                    <span>Contrato com Faixa Etária</span>
+                  </label>
+                </div>
+                {!usaFaixaApt ? (
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Valor Atual (R$) <span className="text-destructive">*</span></Label>
+                    <Input inputMode="decimal" placeholder="0,00" value={valorApt} onChange={(e) => setValorApt(e.target.value)} />
+                  </div>
+                ) : (
+                  <ReajusteFaixaEtariaTable
+                    modalidade="apartamento"
+                    faixas={faixasApt}
+                    onChange={setFaixasApt}
+                    percentualGlobal={pctNum}
+                    percentualUnico={pctUnicoApt}
+                    onPercentualUnicoChange={setPctUnicoApt}
+                    mesesRetro={mesesRetro}
+                  />
+                )}
               </div>
             )}
             <div className="grid gap-2">
               <Label>Percentual (%) <span className="text-destructive">*</span></Label>
               <Input inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
+              <p className="text-[11px] text-muted-foreground">Aplicado às modalidades sem faixa etária e às faixas com "percentual único" ativado.</p>
             </div>
           </div>
 
