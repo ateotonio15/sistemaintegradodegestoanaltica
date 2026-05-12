@@ -79,34 +79,37 @@
   }
 
   .dark {
-    --background: 140 14% 7%;
-    --foreground: 220 14% 96%;
+    /* Paleta inspirada no mockup Vendas Samel — verde mint suave sobre dark */
+    --background: 150 18% 5%;
+    --foreground: 150 15% 95%;
 
-    --card: 147 21% 12%;
-    --card-foreground: 220 14% 96%;
+    --card: 150 18% 9%;
+    --card-foreground: 150 15% 95%;
 
-    --popover: 147 21% 12%;
-    --popover-foreground: 220 14% 96%;
+    --popover: 150 18% 9%;
+    --popover-foreground: 150 15% 95%;
 
-    --primary: 142 71% 45%;
-    --primary-foreground: 145 30% 8%;
+    /* Mint suave (#A7E3C5) — destaques/abas ativas com texto escuro */
+    --primary: 146 51% 78%;
+    --primary-foreground: 150 30% 10%;
 
-    --secondary: 145 20% 9%;
-    --secondary-foreground: 220 14% 96%;
+    --secondary: 150 16% 11%;
+    --secondary-foreground: 150 15% 95%;
 
-    --muted: 145 20% 9%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 150 16% 11%;
+    --muted-foreground: 150 8% 65%;
 
-    --accent: 147 20% 15%;
-    --accent-foreground: 142 70% 75%;
+    --accent: 148 18% 14%;
+    --accent-foreground: 146 51% 82%;
 
     --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 150 24% 20%;
-    --input: 150 24% 20%;
-    --ring: 142 71% 45%;
+    --border: 150 14% 16%;
+    --input: 150 14% 16%;
+    --ring: 146 51% 78%;
 
+    /* Verde vivo (#22C55E) reservado para success/realces de valor */
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
     --warning: 38 88% 55%;
@@ -114,21 +117,21 @@
     --info: 160 60% 45%;
     --info-foreground: 0 0% 100%;
 
-    --chart-1: 142 71% 45%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 38 88% 55%;
-    --chart-4: 84 60% 50%;
-    --chart-5: 170 50% 40%;
+    --chart-1: 146 51% 78%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 160 50% 50%;
+    --chart-4: 38 88% 55%;
+    --chart-5: 170 40% 40%;
 
-    --sidebar: 147 21% 10%;
-    --sidebar-background: 147 21% 10%;
-    --sidebar-foreground: 220 14% 96%;
-    --sidebar-primary: 142 71% 45%;
-    --sidebar-primary-foreground: 145 30% 8%;
-    --sidebar-accent: 142 50% 18%;
-    --sidebar-accent-foreground: 142 70% 75%;
-    --sidebar-border: 150 24% 18%;
-    --sidebar-ring: 142 71% 45%;
+    --sidebar: 150 18% 7%;
+    --sidebar-background: 150 18% 7%;
+    --sidebar-foreground: 150 15% 95%;
+    --sidebar-primary: 146 51% 78%;
+    --sidebar-primary-foreground: 150 30% 10%;
+    --sidebar-accent: 148 22% 13%;
+    --sidebar-accent-foreground: 146 51% 82%;
+    --sidebar-border: 150 14% 14%;
+    --sidebar-ring: 146 51% 78%;
 
     --icon: 142 71% 45%;
 
