@@ -509,7 +509,86 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </div>
           </div>
 
-          {/* Anexos */}
+          {/* Prorrogação */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-info" />
+                <div>
+                  <p className="text-sm font-medium">Prorrogação</p>
+                  <p className="text-xs text-muted-foreground">
+                    Controle complementar — não altera o vencimento original.
+                  </p>
+                </div>
+              </div>
+              <Switch checked={possuiProrrogacao} onCheckedChange={setPossuiProrrogacao} />
+            </div>
+
+            {possuiProrrogacao && (
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="data_prorrog">Data da prorrogação</Label>
+                    <Input
+                      id="data_prorrog"
+                      type="date"
+                      value={dataProrrogacao}
+                      onChange={(e) => setDataProrrogacao(e.target.value)}
+                      aria-invalid={prorrogacaoFaltaData || undefined}
+                      className={cn(
+                        prorrogacaoFaltaData && "border-warning focus-visible:ring-warning",
+                      )}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Nova previsão operacional. O vencimento original permanece preservado.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="motivo_prorrog">Motivo da prorrogação</Label>
+                    <Select
+                      value={motivoProrrogacao || undefined}
+                      onValueChange={(v) => setMotivoProrrogacao(v)}
+                    >
+                      <SelectTrigger
+                        id="motivo_prorrog"
+                        aria-invalid={prorrogacaoFaltaMotivo || undefined}
+                        className={cn(
+                          prorrogacaoFaltaMotivo && "border-warning focus-visible:ring-warning",
+                        )}
+                      >
+                        <SelectValue placeholder="Selecione o motivo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MOTIVOS_PRORROGACAO.map((m) => (
+                          <SelectItem key={m} value={m}>
+                            {m}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {motivoProrrogacao === "Outros" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="obs_prorrog">Observação</Label>
+                    <Textarea
+                      id="obs_prorrog"
+                      value={observacaoProrrogacao}
+                      onChange={(e) => setObservacaoProrrogacao(e.target.value)}
+                      placeholder="Descreva o motivo da prorrogação"
+                      rows={3}
+                      aria-invalid={prorrogacaoFaltaObs || undefined}
+                      className={cn(
+                        prorrogacaoFaltaObs && "border-warning focus-visible:ring-warning",
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="rounded-lg border border-border p-3 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-medium">
