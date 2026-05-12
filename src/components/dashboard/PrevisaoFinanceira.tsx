@@ -465,8 +465,8 @@ export function PrevisaoFinanceira() {
                     dias === 0 && "bg-warning/5",
                   );
                   return (
-                    <>
-                      <tr key={r.rowKey} className={rowCls}>
+                    <Fragment key={r.rowKey}>
+                      <tr className={rowCls}>
                         <td className="px-2 py-2 align-top">
                           <button
                             onClick={() => setExpanded((p) => ({ ...p, [r.rowKey]: !p[r.rowKey] }))}
@@ -539,7 +539,7 @@ export function PrevisaoFinanceira() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
                 {filteredRows.length === 0 && (
