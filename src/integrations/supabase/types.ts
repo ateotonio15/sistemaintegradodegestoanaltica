@@ -541,6 +541,7 @@ export type Database = {
           cobranca_registrada: boolean
           created_at: string
           data_envio_nota: string | null
+          data_prorrogacao: string | null
           data_vencimento: string | null
           dentro_prazo: boolean
           dia_emissao: number | null
@@ -548,8 +549,11 @@ export type Database = {
           enviado_por_user_id: string | null
           id: string
           mes_referencia: string
+          motivo_prorrogacao: string | null
+          observacao_prorrogacao: string | null
           observacoes: string | null
           periodo: string
+          possui_prorrogacao: boolean
           responsavel: string | null
           tipo_analise: string
           tipo_cobranca: string | null
@@ -560,6 +564,7 @@ export type Database = {
           cobranca_registrada?: boolean
           created_at?: string
           data_envio_nota?: string | null
+          data_prorrogacao?: string | null
           data_vencimento?: string | null
           dentro_prazo?: boolean
           dia_emissao?: number | null
@@ -567,8 +572,11 @@ export type Database = {
           enviado_por_user_id?: string | null
           id?: string
           mes_referencia: string
+          motivo_prorrogacao?: string | null
+          observacao_prorrogacao?: string | null
           observacoes?: string | null
           periodo: string
+          possui_prorrogacao?: boolean
           responsavel?: string | null
           tipo_analise?: string
           tipo_cobranca?: string | null
@@ -579,6 +587,7 @@ export type Database = {
           cobranca_registrada?: boolean
           created_at?: string
           data_envio_nota?: string | null
+          data_prorrogacao?: string | null
           data_vencimento?: string | null
           dentro_prazo?: boolean
           dia_emissao?: number | null
@@ -586,8 +595,11 @@ export type Database = {
           enviado_por_user_id?: string | null
           id?: string
           mes_referencia?: string
+          motivo_prorrogacao?: string | null
+          observacao_prorrogacao?: string | null
           observacoes?: string | null
           periodo?: string
+          possui_prorrogacao?: boolean
           responsavel?: string | null
           tipo_analise?: string
           tipo_cobranca?: string | null

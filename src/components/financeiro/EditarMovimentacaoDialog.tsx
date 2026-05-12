@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -21,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users } from "lucide-react";
+import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -52,7 +53,18 @@ type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & {
   data_vencimento?: string | null;
   dia_emissao?: number | null;
   tipo_analise?: string | null;
+  possui_prorrogacao?: boolean | null;
+  data_prorrogacao?: string | null;
+  motivo_prorrogacao?: string | null;
+  observacao_prorrogacao?: string | null;
 };
+
+const MOTIVOS_PRORROGACAO = [
+  "Solicitado pela empresa",
+  "Atraso Financeiro",
+  "Atraso Cadastro",
+  "Outros",
+] as const;
 
 interface Props {
   open: boolean;
@@ -76,6 +88,10 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [diaEmissao, setDiaEmissao] = useState<string>("__none__");
   const [tipoAnalise, setTipoAnalise] = useState<string>("normal");
   const [dentroPrazo, setDentroPrazo] = useState(true);
+  const [possuiProrrogacao, setPossuiProrrogacao] = useState(false);
+  const [dataProrrogacao, setDataProrrogacao] = useState("");
+  const [motivoProrrogacao, setMotivoProrrogacao] = useState<string>("");
+  const [observacaoProrrogacao, setObservacaoProrrogacao] = useState("");
   const [uploading, setUploading] = useState(false);
   const [replicaConfirm, setReplicaConfirm] = useState<{
     title: string;
@@ -100,6 +116,10 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       setDiaEmissao(movimentacao.dia_emissao ? String(movimentacao.dia_emissao) : "__none__");
       setTipoAnalise((movimentacao.tipo_analise as string) || "normal");
       setDentroPrazo(movimentacao.dentro_prazo);
+      setPossuiProrrogacao(!!movimentacao.possui_prorrogacao);
+      setDataProrrogacao(movimentacao.data_prorrogacao || "");
+      setMotivoProrrogacao(movimentacao.motivo_prorrogacao || "");
+      setObservacaoProrrogacao(movimentacao.observacao_prorrogacao || "");
     }
   }, [movimentacao]);
 
@@ -109,7 +129,13 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const hoje = todayLocalISO();
   const envioNoFuturo = dataEnvioNota && dataEnvioNota > hoje;
 
-  const hasErrors = !!envioNoFuturo;
+  const prorrogacaoFaltaData = possuiProrrogacao && !dataProrrogacao;
+  const prorrogacaoFaltaMotivo = possuiProrrogacao && !motivoProrrogacao;
+  const prorrogacaoFaltaObs =
+    possuiProrrogacao && motivoProrrogacao === "Outros" && !observacaoProrrogacao.trim();
+
+  const hasErrors =
+    !!envioNoFuturo || prorrogacaoFaltaData || prorrogacaoFaltaMotivo || prorrogacaoFaltaObs;
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["financeiro-anexos", movimentacao?.id],
@@ -163,6 +189,13 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       dia_emissao: diaEmissao === "__none__" ? null : Number(diaEmissao),
       tipo_analise: tipoAnalise || "normal",
       dentro_prazo: dentroPrazo,
+      possui_prorrogacao: possuiProrrogacao,
+      data_prorrogacao: possuiProrrogacao ? dataProrrogacao || null : null,
+      motivo_prorrogacao: possuiProrrogacao ? motivoProrrogacao || null : null,
+      observacao_prorrogacao:
+        possuiProrrogacao && motivoProrrogacao === "Outros"
+          ? observacaoProrrogacao.trim() || null
+          : null,
     };
     if (envioAlterado && user?.id) {
       payload.enviado_por_user_id = user.id;
@@ -476,7 +509,86 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </div>
           </div>
 
-          {/* Anexos */}
+          {/* Prorrogação */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-info" />
+                <div>
+                  <p className="text-sm font-medium">Prorrogação</p>
+                  <p className="text-xs text-muted-foreground">
+                    Controle complementar — não altera o vencimento original.
+                  </p>
+                </div>
+              </div>
+              <Switch checked={possuiProrrogacao} onCheckedChange={setPossuiProrrogacao} />
+            </div>
+
+            {possuiProrrogacao && (
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="data_prorrog">Data da prorrogação</Label>
+                    <Input
+                      id="data_prorrog"
+                      type="date"
+                      value={dataProrrogacao}
+                      onChange={(e) => setDataProrrogacao(e.target.value)}
+                      aria-invalid={prorrogacaoFaltaData || undefined}
+                      className={cn(
+                        prorrogacaoFaltaData && "border-warning focus-visible:ring-warning",
+                      )}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Nova previsão operacional. O vencimento original permanece preservado.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="motivo_prorrog">Motivo da prorrogação</Label>
+                    <Select
+                      value={motivoProrrogacao || undefined}
+                      onValueChange={(v) => setMotivoProrrogacao(v)}
+                    >
+                      <SelectTrigger
+                        id="motivo_prorrog"
+                        aria-invalid={prorrogacaoFaltaMotivo || undefined}
+                        className={cn(
+                          prorrogacaoFaltaMotivo && "border-warning focus-visible:ring-warning",
+                        )}
+                      >
+                        <SelectValue placeholder="Selecione o motivo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MOTIVOS_PRORROGACAO.map((m) => (
+                          <SelectItem key={m} value={m}>
+                            {m}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {motivoProrrogacao === "Outros" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="obs_prorrog">Observação</Label>
+                    <Textarea
+                      id="obs_prorrog"
+                      value={observacaoProrrogacao}
+                      onChange={(e) => setObservacaoProrrogacao(e.target.value)}
+                      placeholder="Descreva o motivo da prorrogação"
+                      rows={3}
+                      aria-invalid={prorrogacaoFaltaObs || undefined}
+                      className={cn(
+                        prorrogacaoFaltaObs && "border-warning focus-visible:ring-warning",
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="rounded-lg border border-border p-3 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-medium">
