@@ -489,7 +489,30 @@ function Step3Contrato({ data, update, readOnly, isAdmin }: any) {
       </div>
       <Field label="Data Vigência *" type="date" v={data.data_vigencia} onChange={(v: string) => update({ data_vigencia: v })} readOnly={readOnly} />
       <Field label="Vencimento" type="date" v={data.data_vencimento} onChange={(v: string) => update({ data_vencimento: v })} readOnly={readOnly} />
-      <Field label="Ticket" v={data.ticket} onChange={(v: string) => update({ ticket: v })} readOnly={readOnly} />
+      <div>
+        <Label className="flex items-center gap-2">
+          Ticket
+          <Badge variant="secondary" className="text-[10px]">Auto = Valor Enfermaria</Badge>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => update({ ticket_auto_sync: !(data.ticket_auto_sync ?? true) })}
+              className="text-xs text-primary underline"
+            >
+              {data.ticket_auto_sync ?? true ? "Desbloquear" : "Sincronizar"}
+            </button>
+          )}
+        </Label>
+        <Input
+          value={data.ticket ?? ""}
+          onChange={(e) => update({ ticket: e.target.value })}
+          readOnly={readOnly || ticketLocked}
+          className={ticketLocked ? "bg-muted" : ""}
+        />
+        {ticketLocked && (
+          <p className="text-xs text-muted-foreground mt-1">Sincronizado com Valor Enfermaria. Apenas Admin pode editar.</p>
+        )}
+      </div>
       <div>
         <Label>Modalidade *</Label>
         <Select value={data.modalidade || ""} onValueChange={(v) => update({ modalidade: v })} disabled={readOnly}>
