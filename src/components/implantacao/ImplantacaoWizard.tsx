@@ -473,7 +473,8 @@ function Step2Extracao({ data, update, onExtrair, extracting, hasAnexo1, readOnl
 }
 
 // ============= STEP 3 =============
-function Step3Contrato({ data, update, readOnly }: any) {
+function Step3Contrato({ data, update, readOnly, isAdmin }: any) {
+  const ticketLocked = !isAdmin && (data.ticket_auto_sync ?? true);
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div>
