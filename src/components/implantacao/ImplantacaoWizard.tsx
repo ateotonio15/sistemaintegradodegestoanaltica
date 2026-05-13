@@ -481,7 +481,43 @@ function Step3Contrato({ data, update, readOnly }: any) {
       </div>
       <Field label="Corretora" v={data.corretora} onChange={(v: string) => update({ corretora: v })} readOnly={readOnly} />
       <Field label="Código do Contrato *" v={data.codigo_contrato} onChange={(v: string) => update({ codigo_contrato: v })} readOnly={readOnly} />
-    </div>
+      <div>
+        <Label>Período de Movimentação *</Label>
+        <Select
+          value={data.periodo_movimentacao || ""}
+          onValueChange={(v) => update({ periodo_movimentacao: v, data_corte: v === "Diário" ? data.data_corte : null })}
+          disabled={readOnly}
+        >
+          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Diário">Diário</SelectItem>
+            <SelectItem value="01-05">01-05</SelectItem>
+            <SelectItem value="05-10">05-10</SelectItem>
+            <SelectItem value="10-15">10-15</SelectItem>
+            <SelectItem value="15-20">15-20</SelectItem>
+            <SelectItem value="20-25">20-25</SelectItem>
+            <SelectItem value="25-30">25-30</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-1">Selecione como funciona a movimentação do contrato.</p>
+      </div>
+      {data.periodo_movimentacao === "Diário" && (
+        <div>
+          <Label>Data de Corte (dia) *</Label>
+          <Input
+            type="number"
+            min={1}
+            max={31}
+            value={data.data_corte ?? ""}
+            onChange={(e) => {
+              const n = parseInt(e.target.value);
+              update({ data_corte: isNaN(n) ? null : Math.min(31, Math.max(1, n)) });
+            }}
+            readOnly={readOnly}
+          />
+          <p className="text-xs text-muted-foreground mt-1">Informe o dia de corte mensal (1 a 31).</p>
+        </div>
+      )}
   );
 }
 
