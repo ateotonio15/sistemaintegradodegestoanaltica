@@ -8,13 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Upload, FileText, Sparkles, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle,
   Loader2, Trash2, Download, Building2, FileSignature, DollarSign, Users,
+  ShieldCheck, XCircle, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { validarRelatorioVidas, type ValidacaoResultado } from "@/lib/relatorio-vidas-validator";
 
 interface Props {
   id: string;
