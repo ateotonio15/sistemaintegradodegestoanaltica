@@ -205,7 +205,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const valid: Record<number, boolean> = {
     1: !!anexo1,
     2: !!data?.nome_empresa && !!data?.cnpj && isValidCNPJ(data.cnpj || ""),
-    3: !!data?.data_vigencia && !!data?.codigo_contrato && !!data?.modalidade && !!data?.acomodacao && !!data?.tipo_contrato,
+    3: !!data?.data_vigencia && !!data?.codigo_contrato && !!data?.modalidade && !!data?.acomodacao && !!data?.tipo_contrato && !!data?.periodo_movimentacao && (data?.periodo_movimentacao !== "Diário" || (!!data?.data_corte && data.data_corte >= 1 && data.data_corte <= 31)),
     4: data?.percentual_agenciamento != null && data?.percentual_vitalicio != null,
     5: !!data?.total_vidas && data.total_vidas > 0,
     6: true,
