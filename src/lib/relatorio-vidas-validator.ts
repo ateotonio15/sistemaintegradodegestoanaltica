@@ -43,6 +43,8 @@ export interface ValidacaoResultado {
   erros: number;
   alertas: number;
   valido: boolean;
+  linhas_ignoradas: number;
+  linhas_processadas: number;
 }
 
 function normalize(s: string) {
@@ -122,12 +124,13 @@ export async function validarRelatorioVidas(
   let titulares = 0;
   let dependentes = 0;
   let totalLinhas = 0;
+  let linhasIgnoradas = 0;
 
+  const tipoOpIdx = colIndex["TIPO OPERACAO"];
   const rowCount = ws.rowCount;
   for (let r = 2; r <= rowCount; r++) {
     const row = ws.getRow(r);
     if (!row.hasValues) continue;
-    totalLinhas++;
 
     if (onProgress && r % 200 === 0) onProgress(Math.min(99, (r / rowCount) * 100));
 
@@ -140,6 +143,14 @@ export async function validarRelatorioVidas(
       if (typeof v === "object" && "result" in (v as any)) return String((v as any).result ?? "");
       return String(v);
     };
+
+    // Regra principal: só validar linhas com TIPO OPERACAO preenchido
+    const tipoOp = tipoOpIdx !== undefined ? get("TIPO OPERACAO").trim() : "";
+    if (!tipoOp) {
+      linhasIgnoradas++;
+      continue;
+    }
+    totalLinhas++;
 
     // grau parentesco — contagem de vidas
     const grau = normalize(get("GRAU PARENTESCO"));
@@ -169,7 +180,6 @@ export async function validarRelatorioVidas(
       if (c === "CPF" && !isValidCPF(val)) { invalido = true; motivo = "CPF inválido"; }
       else if (c === "CEP" && !isValidCEP(val)) { invalido = true; motivo = "CEP inválido"; }
       else if ((c === "DATA NASC" || c === "DATA ADMISSAO" || c === "DT CASAMENTO") && !isValidDate(val)) {
-        // DT CASAMENTO só erro se ESTADO CIVIL = CASADO
         if (c === "DT CASAMENTO") {
           const ec = normalize(get("ESTADO CIVIL"));
           if (ec === "CASADO" || ec === "CASADA" || ec === "CASADO(A)") {
@@ -207,5 +217,8 @@ export async function validarRelatorioVidas(
     erros,
     alertas,
     valido: colunas_ausentes.length === 0 && erros === 0,
+    linhas_ignoradas: linhasIgnoradas,
+    linhas_processadas: totalLinhas,
   };
 }
+
