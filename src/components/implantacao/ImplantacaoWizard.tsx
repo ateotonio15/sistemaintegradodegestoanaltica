@@ -443,6 +443,16 @@ function Step2Extracao({ data, update, onExtrair, extracting, hasAnexo1, readOnl
 function Step3Contrato({ data, update, readOnly }: any) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <Label>Tipo de Contrato *</Label>
+        <Select value={data.tipo_contrato || ""} onValueChange={(v) => update({ tipo_contrato: v })} disabled={readOnly}>
+          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Período">Período</SelectItem>
+            <SelectItem value="Diário">Diário</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <Field label="Data Vigência *" type="date" v={data.data_vigencia} onChange={(v: string) => update({ data_vigencia: v })} readOnly={readOnly} />
       <Field label="Vencimento" type="date" v={data.data_vencimento} onChange={(v: string) => update({ data_vencimento: v })} readOnly={readOnly} />
       <Field label="Dia Movimentação" type="number" v={data.dia_movimentacao} onChange={(v: string) => update({ dia_movimentacao: parseInt(v) || null })} readOnly={readOnly} />
