@@ -205,7 +205,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const valid: Record<number, boolean> = {
     1: !!anexo1,
     2: !!data?.nome_empresa && !!data?.cnpj && isValidCNPJ(data.cnpj || ""),
-    3: !!data?.data_vigencia && !!data?.codigo_contrato && !!data?.modalidade && !!data?.acomodacao,
+    3: !!data?.data_vigencia && !!data?.codigo_contrato && !!data?.modalidade && !!data?.acomodacao && !!data?.tipo_contrato,
     4: data?.percentual_agenciamento != null && data?.percentual_vitalicio != null,
     5: !!data?.total_vidas && data.total_vidas > 0,
     6: true,
@@ -443,6 +443,16 @@ function Step2Extracao({ data, update, onExtrair, extracting, hasAnexo1, readOnl
 function Step3Contrato({ data, update, readOnly }: any) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <Label>Tipo de Contrato *</Label>
+        <Select value={data.tipo_contrato || ""} onValueChange={(v) => update({ tipo_contrato: v })} disabled={readOnly}>
+          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Período">Período</SelectItem>
+            <SelectItem value="Diário">Diário</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <Field label="Data Vigência *" type="date" v={data.data_vigencia} onChange={(v: string) => update({ data_vigencia: v })} readOnly={readOnly} />
       <Field label="Vencimento" type="date" v={data.data_vencimento} onChange={(v: string) => update({ data_vencimento: v })} readOnly={readOnly} />
       <Field label="Dia Movimentação" type="number" v={data.dia_movimentacao} onChange={(v: string) => update({ dia_movimentacao: parseInt(v) || null })} readOnly={readOnly} />
@@ -543,6 +553,7 @@ function Step6Revisao({ data, anexos }: any) {
       <Card><CardContent className="p-4">
         <h4 className="font-semibold mb-2 flex items-center gap-2"><FileSignature className="h-4 w-4" /> Contrato</h4>
         <Row k="Código" v={data.codigo_contrato} />
+        <Row k="Tipo de Contrato" v={data.tipo_contrato} />
         <Row k="Vigência" v={data.data_vigencia} />
         <Row k="Modalidade" v={data.modalidade} />
         <Row k="Acomodação" v={data.acomodacao} />
