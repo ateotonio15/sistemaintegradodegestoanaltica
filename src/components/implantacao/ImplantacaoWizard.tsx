@@ -612,6 +612,12 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
 
   const handleVerificar = async () => {
     if (!relAnexo) { toast.error("Anexe o Relatório de Vidas na Etapa 1."); return; }
+    const nome = (relAnexo.nome_arquivo || "").toLowerCase();
+    const ext = nome.split(".").pop() || "";
+    if (!["xlsx", "xlsm", "xls"].includes(ext)) {
+      toast.error(`Formato inválido (.${ext}). Envie o Relatório de Vidas em Excel (.xlsx). PDF/CSV não são suportados.`);
+      return;
+    }
     setVerificando(true);
     setProgresso(0);
     try {
@@ -621,6 +627,11 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
       if (!signed?.signedUrl) throw new Error("Falha ao baixar arquivo");
       const resp = await fetch(signed.signedUrl);
       const buffer = await resp.arrayBuffer();
+      // Verifica assinatura ZIP (xlsx é um zip: PK\x03\x04)
+      const sig = new Uint8Array(buffer.slice(0, 4));
+      if (!(sig[0] === 0x50 && sig[1] === 0x4b)) {
+        throw new Error("Arquivo não é um Excel válido (.xlsx). Reenvie o Relatório de Vidas em formato Excel.");
+      }
       const result = await validarRelatorioVidas(buffer, setProgresso);
       update({
         relatorio_validacao: result,
