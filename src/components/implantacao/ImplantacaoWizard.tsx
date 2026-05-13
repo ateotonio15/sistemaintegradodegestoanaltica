@@ -605,23 +605,150 @@ function Step4Comissao({ data, update, readOnly }: any) {
 }
 
 // ============= STEP 5 =============
-function Step5Vidas({ data, update, readOnly }: any) {
+function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
+  const [verificando, setVerificando] = useState(false);
+  const [progresso, setProgresso] = useState(0);
+  const validacao: ValidacaoResultado | null = data.relatorio_validacao || null;
+
+  const handleVerificar = async () => {
+    if (!relAnexo) { toast.error("Anexe o Relatório de Vidas na Etapa 1."); return; }
+    setVerificando(true);
+    setProgresso(0);
+    try {
+      const { data: signed } = await supabase.storage
+        .from("anexos-implantacao")
+        .createSignedUrl(relAnexo.storage_path, 60);
+      if (!signed?.signedUrl) throw new Error("Falha ao baixar arquivo");
+      const resp = await fetch(signed.signedUrl);
+      const buffer = await resp.arrayBuffer();
+      const result = await validarRelatorioVidas(buffer, setProgresso);
+      update({
+        relatorio_validacao: result,
+        total_vidas: result.total_vidas,
+        vidas_titulares: result.titulares,
+        vidas_dependentes: result.dependentes,
+      });
+      if (result.valido) toast.success(`Layout válido! ${result.total_vidas} vidas.`);
+      else toast.error(`${result.erros} erro(s) encontrado(s). Corrija antes de avançar.`);
+    } catch (e: any) {
+      toast.error("Erro na verificação: " + e.message);
+    } finally {
+      setVerificando(false);
+      setProgresso(0);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <Field label="Total de Vidas *" type="number" v={data.total_vidas} onChange={(v: string) => update({ total_vidas: parseInt(v) || 0 })} readOnly={readOnly} />
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-semibold flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Verificação de Layout</h4>
+              <p className="text-xs text-muted-foreground">
+                {relAnexo ? `Arquivo: ${relAnexo.nome_arquivo}` : "Anexe o Relatório de Vidas na Etapa 1."}
+              </p>
+            </div>
+            {!readOnly && (
+              <Button onClick={handleVerificar} disabled={!relAnexo || verificando} className="gap-2">
+                {verificando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                Verificar Layout
+              </Button>
+            )}
+          </div>
+          {verificando && (
+            <div className="space-y-1">
+              <Progress value={progresso} />
+              <p className="text-xs text-muted-foreground">Processando linhas... {progresso.toFixed(0)}%</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {validacao && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <KpiBox label="Total Vidas" value={validacao.total_vidas} color="text-primary" />
+            <KpiBox label="Titulares" value={validacao.titulares} color="text-blue-500" />
+            <KpiBox label="Dependentes" value={validacao.dependentes} color="text-purple-500" />
+            <KpiBox label="Erros" value={validacao.erros} color="text-destructive" />
+            <KpiBox label="Alertas" value={validacao.alertas} color="text-orange-500" />
+          </div>
+
+          {validacao.colunas_ausentes.length > 0 && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm">
+              <strong className="flex items-center gap-2"><XCircle className="h-4 w-4 text-destructive" /> Colunas obrigatórias ausentes:</strong>
+              <p className="mt-1">{validacao.colunas_ausentes.join(", ")}</p>
+            </div>
+          )}
+
+          <Card>
+            <CardContent className="p-4">
+              <h5 className="font-semibold mb-2 text-sm">Conferência por Coluna</h5>
+              <ScrollArea className="h-48">
+                <div className="space-y-1">
+                  {validacao.colunas.map((c) => (
+                    <div key={c.coluna} className="flex items-center justify-between text-xs py-1 border-b last:border-0">
+                      <span className="flex items-center gap-2">
+                        {c.severidade === "ok" && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                        {c.severidade === "alerta" && <AlertTriangle className="h-3 w-3 text-orange-500" />}
+                        {c.severidade === "erro" && <XCircle className="h-3 w-3 text-destructive" />}
+                        {c.coluna}
+                        {!c.presente && <Badge variant="destructive" className="text-[9px]">ausente</Badge>}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {c.presente ? `${c.preenchidas} ok / ${c.vazias} vazias / ${c.invalidas} inválidas` : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {validacao.pendencias.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <h5 className="font-semibold mb-2 text-sm">Pendências por Linha ({validacao.pendencias.length}{validacao.pendencias.length === 500 ? "+" : ""})</h5>
+                <ScrollArea className="h-48">
+                  <div className="space-y-1">
+                    {validacao.pendencias.map((p, i) => (
+                      <div key={i} className="text-xs flex items-center gap-2 py-0.5">
+                        {p.severidade === "erro" ? (
+                          <XCircle className="h-3 w-3 text-destructive flex-shrink-0" />
+                        ) : (
+                          <AlertTriangle className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                        )}
+                        <span>Linha {p.linha} — <strong>{p.coluna}</strong>: {p.motivo}</span>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
       <div>
-        <Label>Faixas etárias (texto livre / observações)</Label>
+        <Label>Faixas etárias (observações)</Label>
         <Textarea
           value={data.faixas_etarias?.observacao || ""}
           onChange={(e) => update({ faixas_etarias: { observacao: e.target.value } })}
           readOnly={readOnly}
           placeholder="Ex: 0-18: 5 vidas / 19-58: 20 vidas / 59+: 3 vidas"
-          rows={4}
+          rows={3}
         />
       </div>
-      <p className="text-xs text-muted-foreground">
-        Anexe o "Relatório de Vidas" na Etapa 1 para registro completo.
-      </p>
+    </div>
+  );
+}
+
+function KpiBox({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="bg-muted/50 rounded-lg p-3 text-center">
+      <div className={cn("text-2xl font-bold", color)}>{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   );
 }
