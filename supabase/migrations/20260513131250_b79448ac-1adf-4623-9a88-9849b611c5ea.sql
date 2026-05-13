@@ -1,0 +1,1 @@
+ALTER TABLE public.implantacoes_contratos ADD COLUMN IF NOT EXISTS tipo_contrato text;

@@ -702,6 +702,7 @@ export type Database = {
           status: Database["public"]["Enums"]["implantacao_status"]
           telefone: string | null
           ticket: string | null
+          tipo_contrato: string | null
           total_vidas: number | null
           updated_at: string
           valor_apartamento_centavos: number | null
@@ -735,6 +736,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["implantacao_status"]
           telefone?: string | null
           ticket?: string | null
+          tipo_contrato?: string | null
           total_vidas?: number | null
           updated_at?: string
           valor_apartamento_centavos?: number | null
@@ -768,6 +770,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["implantacao_status"]
           telefone?: string | null
           ticket?: string | null
+          tipo_contrato?: string | null
           total_vidas?: number | null
           updated_at?: string
           valor_apartamento_centavos?: number | null
