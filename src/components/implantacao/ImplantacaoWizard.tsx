@@ -591,6 +591,8 @@ function Step6Revisao({ data, anexos }: any) {
         <h4 className="font-semibold mb-2 flex items-center gap-2"><FileSignature className="h-4 w-4" /> Contrato</h4>
         <Row k="Código" v={data.codigo_contrato} />
         <Row k="Tipo de Contrato" v={data.tipo_contrato} />
+        <Row k="Período Movimentação" v={data.periodo_movimentacao} />
+        {data.periodo_movimentacao === "Diário" && <Row k="Data de Corte" v={data.data_corte} />}
         <Row k="Vigência" v={data.data_vigencia} />
         <Row k="Modalidade" v={data.modalidade} />
         <Row k="Acomodação" v={data.acomodacao} />
