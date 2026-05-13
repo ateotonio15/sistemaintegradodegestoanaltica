@@ -44,7 +44,13 @@ Deno.serve(async (req) => {
     if (dlErr || !file) throw new Error("Falha ao baixar: " + dlErr?.message);
 
     const buf = await file.arrayBuffer();
-    const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    const CHUNK = 8192;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
+    }
+    const b64 = btoa(binary);
     const mime = mime_type || "application/pdf";
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
