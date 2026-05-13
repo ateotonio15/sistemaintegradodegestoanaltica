@@ -686,6 +686,13 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
             <KpiBox label="Alertas" value={validacao.alertas} color="text-orange-500" />
           </div>
 
+          <div className="text-xs text-muted-foreground bg-muted/40 border rounded-md px-3 py-2">
+            Linhas processadas: <strong>{validacao.linhas_processadas ?? validacao.total_linhas}</strong>
+            {typeof validacao.linhas_ignoradas === "number" && validacao.linhas_ignoradas > 0 && (
+              <> • Linhas sem TIPO OPERACAO foram ignoradas automaticamente (<strong>{validacao.linhas_ignoradas}</strong>).</>
+            )}
+          </div>
+
           {validacao.colunas_ausentes.length > 0 && (
             <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm">
               <strong className="flex items-center gap-2"><XCircle className="h-4 w-4 text-destructive" /> Colunas obrigatórias ausentes:</strong>
