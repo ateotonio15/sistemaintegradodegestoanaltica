@@ -74,6 +74,7 @@ function brFromCents(c: number | null | undefined): string {
 
 export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const [data, setData] = useState<any>(null);
   const [step, setStep] = useState(1);
   const [extracting, setExtracting] = useState(false);
