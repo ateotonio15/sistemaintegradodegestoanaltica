@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature } from "lucide-react";
 import logoImg from "@/assets/logo-cs-control.png";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +36,7 @@ const allNavItems = [
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/executivas", label: "Executivas", icon: UserCheck },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
+  { to: "/implantacao", label: "Implantação", icon: FileSignature },
   { to: "/arquivos", label: "Arquivos", icon: FolderArchive },
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
@@ -98,15 +99,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
-      // Perfil Financeiro: SOMENTE Dashboard, Empresas, Movimentações, Financeiro, Reajuste
       if (isFinanceiro) {
         const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes"];
         return allowed.includes(item.to);
       }
       if (item.adminOnly && !isAdmin) return false;
-      // Financeiro: admin, financeiro e cadastro (comum, somente leitura)
       if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "visualizacao") return false;
-      // Enfermeira: restricted access
+      if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "visualizacao" && role !== "diretora") return false;
       if (isEnfermeira) {
         const allowed = ["/empresas", "/executivas", "/reajustes"];
         return allowed.includes(item.to);

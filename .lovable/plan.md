@@ -1,76 +1,87 @@
-# Validação obrigatória antes de "Registrar Valores"
+# Implantação de Contratos — Wizard Inteligente
 
-## Contexto
+Nova aba completa com wizard de 6 etapas, extração automática de dados do "Anexo 1" via IA, e estrutura dedicada no banco.
 
-Em `src/pages/Reajustes.tsx` o botão **"Registrar Valores"** (linha 429) abre o `ReajusteDialog` (`src/components/reajustes/ReajusteDialog.tsx`). Dentro do diálogo, na aba **Informações Gerais**, o usuário preenche os campos básicos e usa **"Avançar →"** para ir até as abas **Enfermaria / Apartamento / Resumo**, onde de fato registra os valores.
+## Banco de Dados
 
-Hoje a validação só ocorre no clique em **Salvar** (mutation), permitindo avançar abas e digitar valores mesmo sem informar Data, Percentual ou Modalidade. Vamos travar o fluxo logo na aba Geral.
+**Nova tabela `implantacoes_contratos`:**
+- `id`, `empresa_id` (opcional, vinculado quando implantado), `status` (em_implantacao | aguardando_documentos | em_validacao | implantado | pendente_ajuste)
+- Dados extraíveis: `nome_empresa`, `cnpj`, `telefone`, `inscricao_municipal`, `inscricao_estadual`, `endereco`, `cep`, `grupo_contrato`, `valor_enfermaria_centavos`, `valor_apartamento_centavos`, `inicio_atendimento`
+- Dados contratuais: `data_vigencia`, `data_vencimento`, `dia_movimentacao`, `ticket`, `modalidade`, `acomodacao`, `corretora`, `codigo_contrato`
+- Comissão: `percentual_agenciamento`, `percentual_vitalicio`
+- Vidas: `total_vidas`, `faixas_etarias` (jsonb)
+- Auditoria: `created_by`, `created_at`, `updated_at`, `etapa_atual` (1-6)
 
-## Escopo
+**Nova tabela `implantacao_anexos`:**
+- `id`, `implantacao_id`, `tipo` (anexo_1 | contrato | relatorio_vidas | complementar), `nome_arquivo`, `storage_path`, `mime_type`, `tamanho_bytes`, `uploaded_by`, `created_at`
 
-Apenas frontend, no diálogo `ReajusteDialog.tsx`. A validação no `mutation.mutationFn` (linhas 192–198) já existe para Modalidade e cobre o backend lógico — vamos reforçá-la também para Data e Percentual, mantendo a barreira dupla.
+**Novo bucket Storage:** `anexos-implantacao` (privado)
 
-## Regras de validação (aba Geral)
+**RLS:** Admin (full), Comum/Cadastro (full), Visualização/Diretora (read). Demais perfis sem acesso.
 
-Campo válido quando:
-- **Data de Aplicação** (`dataAplicacao`): string não vazia e parseável como data válida.
-- **Percentual padrão (%)** (`percentual`): número > 0 (parser já existente `parsePctInput`).
-- **Modalidades**: `possuiEnf || possuiApt` verdadeiro.
+**Logs:** Tabela `implantacao_logs` com `implantacao_id`, `acao`, `detalhes` (jsonb), `user_id`, `user_nome`, `created_at`.
 
-Derivar três flags + um booleano agregado `geralValido`.
+## Frontend
 
-## Comportamentos
+**Rotas e menu:**
+- Nova rota `/implantacao` em `App.tsx` (acesso: Admin, Comum)
+- Item de menu em `AppLayout.tsx` com ícone `FileSignature` (lucide)
 
-1. **Aba Geral**
-   - Cada campo obrigatório recebe:
-     - borda `border-destructive` quando inválido após interação (estado `touched` por campo);
-     - mensagem curta abaixo com ícone `AlertCircle` (lucide):
-       - "Preencha a Data de Aplicação."
-       - "Informe o Percentual padrão (maior que 0)."
-       - "Selecione ao menos uma modalidade."
-     - quando válido, mostrar ícone `CheckCircle2` verde discreto ao lado do label (feedback positivo).
-   - Agrupar os 3 campos numa seção "Informações Básicas do Reajuste" com `border` sutil e título, sem alterar layout dos demais campos (Contrato, Ano, Observação permanecem onde estão).
+**Página `src/pages/Implantacao.tsx`:**
+- Lista de implantações com filtros (status), botão "Nova Implantação"
+- Cards com: empresa, status (badge colorido), etapa atual, progresso
 
-2. **Botão "Avançar →"** (footer)
-   - `disabled` enquanto `!geralValido` E `tab === "geral"`.
-   - Wrappear num `Tooltip` (shadcn) com texto: *"Preencha as informações obrigatórias para continuar."* quando bloqueado.
-   - Classes adicionais quando bloqueado: `opacity-60 cursor-not-allowed`.
+**Wizard `src/components/implantacao/ImplantacaoWizard.tsx`:**
+- Header: progress bar horizontal (desktop) / vertical (mobile) com 6 steps numerados
+- Salvamento automático a cada mudança de etapa (upsert na tabela)
+- Botões "Voltar" / "Avançar" com `disabled` por validação Zod
 
-3. **Tabs Enfermaria / Apartamento / Resumo**
-   - `TabsTrigger` recebe `disabled={!geralValido}` (além das condições atuais de `possuiEnf/possuiApt`).
-   - Impede pular a aba Geral via clique direto.
+**Componentes por etapa em `src/components/implantacao/steps/`:**
+1. `Step1Upload.tsx` — Drag-and-drop com `react-dropzone` style nativo, separado por tipo (Anexo 1 destacado), preview em lista
+2. `Step2Extracao.tsx` — Botão "Extrair dados do Anexo 1" → chama edge function, exibe campos extraídos editáveis
+3. `Step3DadosContratuais.tsx` — Formulário com validações Zod (CNPJ, CEP, datas)
+4. `Step4Comissionamento.tsx` — Inputs % + cálculo automático e resumo
+5. `Step5RelatorioVidas.tsx` — Upload + parser básico Excel (contagem de linhas/faixas)
+6. `Step6Revisao.tsx` — Resumo completo read-only + botão "Concluir Implantação"
 
-4. **Botão Salvar/Atualizar**
-   - Também `disabled` quando `!geralValido`, evitando salvar registro inconsistente.
+## Edge Function: `extrair-anexo1`
 
-5. **Validação reativa em tempo real**
-   - Como já usamos `useState` controlado, basta derivar `geralValido` por `useMemo` a partir de `dataAplicacao`, `percentual`, `possuiEnf`, `possuiApt`. Sem necessidade de `react-hook-form`/`zod` — manteríamos consistência com o restante do componente.
-   - `touched` por campo: marca `true` no `onBlur` ou primeira mudança, evitando exibir erro vermelho ao abrir o diálogo.
+- Recebe `storage_path` do Anexo 1
+- Faz download via service role
+- Se PDF → extrai texto (pdf-parse via npm:) ou OCR via IA Gateway com modelo multimodal
+- Envia para Lovable AI (`google/gemini-3-flash-preview`) com `Output.object` (Zod schema) extraindo: nome_empresa, cnpj, telefone, inscrição municipal/estadual, endereço, cep, grupo_contrato, valor_enfermaria, valor_apartamento, inicio_atendimento
+- Retorna JSON estruturado
 
-6. **Reforço backend (defensivo)**
-   - Ampliar o bloco de validação dentro de `mutation.mutationFn` para também rejeitar `!dataAplicacao` e `pctNum <= 0` antes de qualquer chamada Supabase. Mensagens equivalentes às visuais.
+## Validações
 
-## Arquivos a alterar
+- CNPJ: validador algorítmico (14 dígitos + DV)
+- CEP: regex `^\d{5}-?\d{3}$`
+- Datas: válidas e coerentes (vigência ≤ vencimento futuro)
+- Duplicidade: bloquear `codigo_contrato` já existente em `empresas` ou outra implantação
 
-- `src/components/reajustes/ReajusteDialog.tsx`
-  - Adicionar `useMemo` para `dataAplicacaoValida`, `percentualValido`, `modalidadeValida`, `geralValido`.
-  - Estado `touched` (`{ data: boolean; pct: boolean; mod: boolean }`); resetar no `useEffect` de abertura (linha 305).
-  - Aplicar classes de erro/sucesso e mensagens nos inputs (linhas 387–407) e no `ModalidadesPicker`.
-  - Envolver botão "Avançar →" em `Tooltip` (importar `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider` de `@/components/ui/tooltip`); aplicar `disabled` combinado.
-  - `disabled` adicional nos `TabsTrigger` enfermaria/apartamento/resumo.
-  - `disabled` adicional no botão Salvar.
-  - Reforço de validação no `mutationFn` (linhas 192–198).
+## Dashboard
 
-Nenhuma alteração em `src/pages/Reajustes.tsx`, schema do banco ou outras telas.
+Adicionar 4 KPIs no `Dashboard.tsx` (somente Admin/Cadastro):
+- Contratos implantados (mês)
+- Em implantação (pendentes)
+- Documentos faltando
+- Validação pendente
 
-## UX / animação
+## Permissões
 
-- Transição `transition-colors` nas bordas para suavizar mudança de estado.
-- Ícone de check verde aparece com `animate-fade-in` (classe utilitária já usada no projeto).
-- Mensagens de erro com `text-xs text-destructive flex items-center gap-1`.
+- **Admin / Comum (Cadastro):** acesso total
+- **Visualização / Diretora:** somente leitura
+- **Demais:** sem acesso (rota redirect para `/`)
 
-## Não-objetivos
+## Status colors (badges)
 
-- Não introduzir `react-hook-form` nem `zod` apenas para este diálogo (manter padrão local com estados controlados).
-- Não mexer em outras telas/diálogos de reajuste.
-- Não alterar regras de status, permissões ou backend SQL.
+- `em_implantacao` → azul
+- `aguardando_documentos` → amarelo
+- `em_validacao` → laranja
+- `implantado` → verde
+- `pendente_ajuste` → vermelho
+
+## Fora de escopo (confirmar)
+
+- Integração automática que cria registro em `empresas` ao concluir: incluso (cria empresa com `status_empresa='Ativa'` se não existir, ou vincula `empresa_id` se já existir pelo CNPJ)
+- OCR de imagens scaneadas: usar Gemini multimodal (envia PDF como inline data)

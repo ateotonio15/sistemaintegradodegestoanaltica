@@ -607,6 +607,174 @@ export type Database = {
         }
         Relationships: []
       }
+      implantacao_anexos: {
+        Row: {
+          created_at: string
+          id: string
+          implantacao_id: string
+          mime_type: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number | null
+          tipo: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          implantacao_id: string
+          mime_type?: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          tipo?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          implantacao_id?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          tipo?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      implantacao_logs: {
+        Row: {
+          acao: string
+          created_at: string
+          detalhes: Json | null
+          id: string
+          implantacao_id: string
+          user_id: string | null
+          user_nome: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          implantacao_id: string
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          implantacao_id?: string
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Relationships: []
+      }
+      implantacoes_contratos: {
+        Row: {
+          acomodacao: string | null
+          cep: string | null
+          cnpj: string | null
+          codigo_contrato: string | null
+          corretora: string | null
+          created_at: string
+          created_by: string | null
+          created_by_nome: string | null
+          data_vencimento: string | null
+          data_vigencia: string | null
+          dia_movimentacao: number | null
+          empresa_id: string | null
+          endereco: string | null
+          etapa_atual: number
+          faixas_etarias: Json | null
+          grupo_contrato: string | null
+          id: string
+          inicio_atendimento: string | null
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          modalidade: string | null
+          nome_empresa: string | null
+          percentual_agenciamento: number | null
+          percentual_vitalicio: number | null
+          status: Database["public"]["Enums"]["implantacao_status"]
+          telefone: string | null
+          ticket: string | null
+          total_vidas: number | null
+          updated_at: string
+          valor_apartamento_centavos: number | null
+          valor_enfermaria_centavos: number | null
+        }
+        Insert: {
+          acomodacao?: string | null
+          cep?: string | null
+          cnpj?: string | null
+          codigo_contrato?: string | null
+          corretora?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data_vencimento?: string | null
+          data_vigencia?: string | null
+          dia_movimentacao?: number | null
+          empresa_id?: string | null
+          endereco?: string | null
+          etapa_atual?: number
+          faixas_etarias?: Json | null
+          grupo_contrato?: string | null
+          id?: string
+          inicio_atendimento?: string | null
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          modalidade?: string | null
+          nome_empresa?: string | null
+          percentual_agenciamento?: number | null
+          percentual_vitalicio?: number | null
+          status?: Database["public"]["Enums"]["implantacao_status"]
+          telefone?: string | null
+          ticket?: string | null
+          total_vidas?: number | null
+          updated_at?: string
+          valor_apartamento_centavos?: number | null
+          valor_enfermaria_centavos?: number | null
+        }
+        Update: {
+          acomodacao?: string | null
+          cep?: string | null
+          cnpj?: string | null
+          codigo_contrato?: string | null
+          corretora?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data_vencimento?: string | null
+          data_vigencia?: string | null
+          dia_movimentacao?: number | null
+          empresa_id?: string | null
+          endereco?: string | null
+          etapa_atual?: number
+          faixas_etarias?: Json | null
+          grupo_contrato?: string | null
+          id?: string
+          inicio_atendimento?: string | null
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          modalidade?: string | null
+          nome_empresa?: string | null
+          percentual_agenciamento?: number | null
+          percentual_vitalicio?: number | null
+          status?: Database["public"]["Enums"]["implantacao_status"]
+          telefone?: string | null
+          ticket?: string | null
+          total_vidas?: number | null
+          updated_at?: string
+          valor_apartamento_centavos?: number | null
+          valor_enfermaria_centavos?: number | null
+        }
+        Relationships: []
+      }
       movimentacoes: {
         Row: {
           created_at: string
@@ -1107,6 +1275,12 @@ export type Database = {
         | "enfermeira"
         | "financeiro"
         | "diretora"
+      implantacao_status:
+        | "em_implantacao"
+        | "aguardando_documentos"
+        | "em_validacao"
+        | "implantado"
+        | "pendente_ajuste"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1242,6 +1416,13 @@ export const Constants = {
         "enfermeira",
         "financeiro",
         "diretora",
+      ],
+      implantacao_status: [
+        "em_implantacao",
+        "aguardando_documentos",
+        "em_validacao",
+        "implantado",
+        "pendente_ajuste",
       ],
     },
   },

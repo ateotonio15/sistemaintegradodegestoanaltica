@@ -1,0 +1,581 @@
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Upload, FileText, Sparkles, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle,
+  Loader2, Trash2, Download, Building2, FileSignature, DollarSign, Users,
+} from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+interface Props {
+  id: string;
+  open: boolean;
+  onClose: () => void;
+  readOnly?: boolean;
+}
+
+const STEPS = [
+  { n: 1, label: "Upload", icon: Upload },
+  { n: 2, label: "Extração", icon: Sparkles },
+  { n: 3, label: "Contrato", icon: FileSignature },
+  { n: 4, label: "Comissão", icon: DollarSign },
+  { n: 5, label: "Vidas", icon: Users },
+  { n: 6, label: "Revisão", icon: CheckCircle2 },
+];
+
+const TIPO_LABEL: Record<string, string> = {
+  anexo_1: "Anexo 1",
+  contrato: "Contrato",
+  relatorio_vidas: "Relatório de Vidas",
+  complementar: "Complementar",
+};
+
+function isValidCNPJ(cnpj: string) {
+  const c = cnpj.replace(/\D/g, "");
+  if (c.length !== 14 || /^(\d)\1+$/.test(c)) return false;
+  const calc = (slice: number) => {
+    let s = 0, p = slice - 7;
+    for (let i = slice; i >= 1; i--) {
+      s += parseInt(c[slice - i]) * p--;
+      if (p < 2) p = 9;
+    }
+    const r = s % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return calc(12) === parseInt(c[12]) && calc(13) === parseInt(c[13]);
+}
+
+function centsFromBR(s: string): number | null {
+  if (!s) return null;
+  const cleaned = s.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(cleaned);
+  if (isNaN(n)) return null;
+  return Math.round(n * 100);
+}
+
+function brFromCents(c: number | null | undefined): string {
+  if (c == null) return "";
+  return (c / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
+  const qc = useQueryClient();
+  const [data, setData] = useState<any>(null);
+  const [step, setStep] = useState(1);
+  const [extracting, setExtracting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const { data: impl } = useQuery({
+    queryKey: ["impl", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("implantacoes_contratos" as any)
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
+  const { data: anexos = [] } = useQuery({
+    queryKey: ["impl-anexos", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("implantacao_anexos" as any)
+        .select("*")
+        .eq("implantacao_id", id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  useEffect(() => {
+    if (impl) {
+      setData(impl);
+      setStep(impl.etapa_atual || 1);
+    }
+  }, [impl]);
+
+  const update = (patch: any) => setData((d: any) => ({ ...d, ...patch }));
+
+  const save = async (extra: any = {}) => {
+    const payload = { ...data, ...extra, updated_at: new Date().toISOString() };
+    delete payload.id; delete payload.created_at; delete payload.created_by; delete payload.created_by_nome;
+    const { error } = await supabase
+      .from("implantacoes_contratos" as any)
+      .update(payload)
+      .eq("id", id);
+    if (error) {
+      toast.error("Erro ao salvar: " + error.message);
+      return false;
+    }
+    qc.invalidateQueries({ queryKey: ["impl", id] });
+    return true;
+  };
+
+  const handleUpload = async (file: File, tipo: string) => {
+    if (readOnly) return;
+    setUploading(true);
+    try {
+      const path = `${id}/${tipo}/${Date.now()}-${file.name}`;
+      const { error: upErr } = await supabase.storage
+        .from("anexos-implantacao")
+        .upload(path, file);
+      if (upErr) throw upErr;
+      const { data: u } = await supabase.auth.getUser();
+      const { error: insErr } = await supabase
+        .from("implantacao_anexos" as any)
+        .insert({
+          implantacao_id: id,
+          tipo,
+          nome_arquivo: file.name,
+          storage_path: path,
+          mime_type: file.type,
+          tamanho_bytes: file.size,
+          uploaded_by: u.user?.id,
+        } as any);
+      if (insErr) throw insErr;
+      qc.invalidateQueries({ queryKey: ["impl-anexos", id] });
+      toast.success("Arquivo enviado");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteAnexo = async (a: any) => {
+    if (readOnly) return;
+    await supabase.storage.from("anexos-implantacao").remove([a.storage_path]);
+    await supabase.from("implantacao_anexos" as any).delete().eq("id", a.id);
+    qc.invalidateQueries({ queryKey: ["impl-anexos", id] });
+  };
+
+  const handleDownload = async (a: any) => {
+    const { data: signed } = await supabase.storage
+      .from("anexos-implantacao")
+      .createSignedUrl(a.storage_path, 60);
+    if (signed?.signedUrl) window.open(signed.signedUrl, "_blank");
+  };
+
+  const anexo1 = useMemo(() => anexos.find((a) => a.tipo === "anexo_1"), [anexos]);
+
+  const handleExtrair = async () => {
+    if (!anexo1) { toast.error("Anexe o Anexo 1 primeiro"); return; }
+    setExtracting(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("extrair-anexo1", {
+        body: { storage_path: anexo1.storage_path, mime_type: anexo1.mime_type },
+      });
+      if (error) throw error;
+      const ext = (result as any)?.dados || {};
+      update({
+        nome_empresa: ext.nome_empresa || data.nome_empresa,
+        cnpj: ext.cnpj || data.cnpj,
+        telefone: ext.telefone || data.telefone,
+        inscricao_municipal: ext.inscricao_municipal || data.inscricao_municipal,
+        inscricao_estadual: ext.inscricao_estadual || data.inscricao_estadual,
+        endereco: ext.endereco || data.endereco,
+        cep: ext.cep || data.cep,
+        grupo_contrato: ext.grupo_contrato || data.grupo_contrato,
+        valor_enfermaria_centavos: ext.valor_enfermaria_centavos ?? data.valor_enfermaria_centavos,
+        valor_apartamento_centavos: ext.valor_apartamento_centavos ?? data.valor_apartamento_centavos,
+        inicio_atendimento: ext.inicio_atendimento || data.inicio_atendimento,
+      });
+      toast.success("Dados extraídos! Revise e edite se necessário.");
+    } catch (e: any) {
+      toast.error("Falha na extração: " + (e.message || "erro"));
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  // ----- validations per step -----
+  const valid: Record<number, boolean> = {
+    1: !!anexo1,
+    2: !!data?.nome_empresa && !!data?.cnpj && isValidCNPJ(data.cnpj || ""),
+    3: !!data?.data_vigencia && !!data?.codigo_contrato && !!data?.modalidade && !!data?.acomodacao,
+    4: data?.percentual_agenciamento != null && data?.percentual_vitalicio != null,
+    5: !!data?.total_vidas && data.total_vidas > 0,
+    6: true,
+  };
+
+  const goNext = async () => {
+    if (!valid[step]) { toast.error("Preencha os campos obrigatórios"); return; }
+    const next = Math.min(6, step + 1);
+    if (await save({ etapa_atual: next })) setStep(next);
+  };
+  const goBack = () => setStep((s) => Math.max(1, s - 1));
+
+  const handleConcluir = async () => {
+    const ok = await save({ status: "implantado", etapa_atual: 6 });
+    if (ok) {
+      toast.success("Implantação concluída!");
+      onClose();
+    }
+  };
+
+  if (!data) {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent><Loader2 className="h-6 w-6 animate-spin mx-auto" /></DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileSignature className="h-5 w-5" />
+            Implantação — {data.nome_empresa || "Nova"}
+            {readOnly && <Badge variant="outline">Somente leitura</Badge>}
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Progress bar */}
+        <div className="flex items-center justify-between gap-2 py-2 overflow-x-auto">
+          {STEPS.map((s, i) => {
+            const done = step > s.n;
+            const active = step === s.n;
+            return (
+              <div key={s.n} className="flex items-center gap-2 flex-1 min-w-0">
+                <div
+                  className={cn(
+                    "flex items-center gap-2 cursor-pointer flex-shrink-0",
+                    !active && !done && "opacity-50"
+                  )}
+                  onClick={() => done && setStep(s.n)}
+                >
+                  <div className={cn(
+                    "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2",
+                    active ? "bg-primary text-primary-foreground border-primary" :
+                    done ? "bg-green-500 text-white border-green-500" : "border-muted-foreground"
+                  )}>
+                    {done ? <CheckCircle2 className="h-4 w-4" /> : s.n}
+                  </div>
+                  <span className={cn("text-xs font-medium hidden md:inline", active && "text-primary")}>
+                    {s.label}
+                  </span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className={cn("h-0.5 flex-1", done ? "bg-green-500" : "bg-muted")} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="min-h-[400px] py-4">
+          {step === 1 && (
+            <Step1Upload
+              anexos={anexos}
+              onUpload={handleUpload}
+              onDelete={handleDeleteAnexo}
+              onDownload={handleDownload}
+              uploading={uploading}
+              readOnly={readOnly}
+            />
+          )}
+          {step === 2 && (
+            <Step2Extracao
+              data={data}
+              update={update}
+              onExtrair={handleExtrair}
+              extracting={extracting}
+              hasAnexo1={!!anexo1}
+              readOnly={readOnly}
+            />
+          )}
+          {step === 3 && <Step3Contrato data={data} update={update} readOnly={readOnly} />}
+          {step === 4 && <Step4Comissao data={data} update={update} readOnly={readOnly} />}
+          {step === 5 && <Step5Vidas data={data} update={update} readOnly={readOnly} />}
+          {step === 6 && <Step6Revisao data={data} anexos={anexos} />}
+        </div>
+
+        <div className="flex items-center justify-between border-t pt-4">
+          <Button variant="outline" onClick={goBack} disabled={step === 1} className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> Voltar
+          </Button>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {valid[step] ? (
+              <><CheckCircle2 className="h-3 w-3 text-green-500" /> Etapa válida</>
+            ) : (
+              <><AlertCircle className="h-3 w-3 text-orange-500" /> Preencha os obrigatórios</>
+            )}
+          </div>
+          {step < 6 ? (
+            <Button onClick={goNext} disabled={!valid[step] || readOnly} className="gap-2">
+              Avançar <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button onClick={handleConcluir} disabled={readOnly} className="gap-2">
+              <CheckCircle2 className="h-4 w-4" /> Concluir Implantação
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============= STEP 1 =============
+function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOnly }: any) {
+  const tipos = ["anexo_1", "contrato", "relatorio_vidas", "complementar"];
+  return (
+    <div className="space-y-4">
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm">
+        <strong>Importante:</strong> O <strong>Anexo 1</strong> é prioridade total para a extração automática.
+      </div>
+      {tipos.map((tipo) => {
+        const list = anexos.filter((a: any) => a.tipo === tipo);
+        const isAnexo1 = tipo === "anexo_1";
+        return (
+          <Card key={tipo} className={isAnexo1 ? "border-primary border-2" : ""}>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="font-semibold flex items-center gap-2">
+                  {TIPO_LABEL[tipo]}
+                  {isAnexo1 && <Badge variant="default">Prioritário</Badge>}
+                </Label>
+                {!readOnly && (
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0], tipo)}
+                      disabled={uploading}
+                    />
+                    <Button asChild size="sm" variant="outline">
+                      <span><Upload className="h-3 w-3 mr-1" /> Anexar</span>
+                    </Button>
+                  </label>
+                )}
+              </div>
+              {list.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhum arquivo</p>
+              ) : (
+                list.map((a: any) => (
+                  <div key={a.id} className="flex items-center justify-between bg-muted/50 rounded p-2 text-sm">
+                    <span className="flex items-center gap-2 truncate"><FileText className="h-4 w-4" /> {a.nome_arquivo}</span>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDownload(a)}>
+                        <Download className="h-3 w-3" />
+                      </Button>
+                      {!readOnly && (
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDelete(a)}>
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============= STEP 2 =============
+function Step2Extracao({ data, update, onExtrair, extracting, hasAnexo1, readOnly }: any) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Extraia automaticamente do Anexo 1 e revise.</p>
+        {!readOnly && (
+          <Button onClick={onExtrair} disabled={!hasAnexo1 || extracting} className="gap-2">
+            {extracting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Extrair do Anexo 1
+          </Button>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Field label="Nome da empresa *" v={data.nome_empresa} onChange={(v: string) => update({ nome_empresa: v })} readOnly={readOnly} />
+        <Field
+          label="CNPJ *"
+          v={data.cnpj}
+          onChange={(v: string) => update({ cnpj: v })}
+          readOnly={readOnly}
+          error={data.cnpj && !isValidCNPJ(data.cnpj) ? "CNPJ inválido" : undefined}
+        />
+        <Field label="Telefone" v={data.telefone} onChange={(v: string) => update({ telefone: v })} readOnly={readOnly} />
+        <Field label="Inscrição Municipal" v={data.inscricao_municipal} onChange={(v: string) => update({ inscricao_municipal: v })} readOnly={readOnly} />
+        <Field label="Inscrição Estadual" v={data.inscricao_estadual} onChange={(v: string) => update({ inscricao_estadual: v })} readOnly={readOnly} />
+        <Field label="CEP" v={data.cep} onChange={(v: string) => update({ cep: v })} readOnly={readOnly} />
+        <div className="md:col-span-2">
+          <Field label="Endereço" v={data.endereco} onChange={(v: string) => update({ endereco: v })} readOnly={readOnly} />
+        </div>
+        <Field label="Grupo do Contrato" v={data.grupo_contrato} onChange={(v: string) => update({ grupo_contrato: v })} readOnly={readOnly} />
+        <Field label="Início do atendimento" type="date" v={data.inicio_atendimento} onChange={(v: string) => update({ inicio_atendimento: v })} readOnly={readOnly} />
+        <Field
+          label="Valor Enfermaria (R$)"
+          v={brFromCents(data.valor_enfermaria_centavos)}
+          onChange={(v: string) => update({ valor_enfermaria_centavos: centsFromBR(v) })}
+          readOnly={readOnly}
+        />
+        <Field
+          label="Valor Apartamento (R$)"
+          v={brFromCents(data.valor_apartamento_centavos)}
+          onChange={(v: string) => update({ valor_apartamento_centavos: centsFromBR(v) })}
+          readOnly={readOnly}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ============= STEP 3 =============
+function Step3Contrato({ data, update, readOnly }: any) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <Field label="Data Vigência *" type="date" v={data.data_vigencia} onChange={(v: string) => update({ data_vigencia: v })} readOnly={readOnly} />
+      <Field label="Vencimento" type="date" v={data.data_vencimento} onChange={(v: string) => update({ data_vencimento: v })} readOnly={readOnly} />
+      <Field label="Dia Movimentação" type="number" v={data.dia_movimentacao} onChange={(v: string) => update({ dia_movimentacao: parseInt(v) || null })} readOnly={readOnly} />
+      <Field label="Ticket" v={data.ticket} onChange={(v: string) => update({ ticket: v })} readOnly={readOnly} />
+      <div>
+        <Label>Modalidade *</Label>
+        <Select value={data.modalidade || ""} onValueChange={(v) => update({ modalidade: v })} disabled={readOnly}>
+          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Coletivo Empresarial">Coletivo Empresarial</SelectItem>
+            <SelectItem value="Coletivo por Adesão">Coletivo por Adesão</SelectItem>
+            <SelectItem value="Individual">Individual</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label>Acomodação *</Label>
+        <Select value={data.acomodacao || ""} onValueChange={(v) => update({ acomodacao: v })} disabled={readOnly}>
+          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Enfermaria">Enfermaria</SelectItem>
+            <SelectItem value="Apartamento">Apartamento</SelectItem>
+            <SelectItem value="Ambos">Ambos</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Field label="Corretora" v={data.corretora} onChange={(v: string) => update({ corretora: v })} readOnly={readOnly} />
+      <Field label="Código do Contrato *" v={data.codigo_contrato} onChange={(v: string) => update({ codigo_contrato: v })} readOnly={readOnly} />
+    </div>
+  );
+}
+
+// ============= STEP 4 =============
+function Step4Comissao({ data, update, readOnly }: any) {
+  const base = ((data.valor_enfermaria_centavos || 0) + (data.valor_apartamento_centavos || 0)) / 100;
+  const agen = base * (parseFloat(data.percentual_agenciamento || 0) / 100);
+  const vit = base * (parseFloat(data.percentual_vitalicio || 0) / 100);
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Field label="% Agenciamento *" type="number" v={data.percentual_agenciamento} onChange={(v: string) => update({ percentual_agenciamento: parseFloat(v) || 0 })} readOnly={readOnly} />
+        <Field label="% Vitalício *" type="number" v={data.percentual_vitalicio} onChange={(v: string) => update({ percentual_vitalicio: parseFloat(v) || 0 })} readOnly={readOnly} />
+      </div>
+      <Card>
+        <CardContent className="p-4 space-y-2">
+          <h4 className="font-semibold flex items-center gap-2"><DollarSign className="h-4 w-4" /> Resumo Financeiro</h4>
+          <div className="text-sm space-y-1">
+            <p>Base mensal: <strong>R$ {base.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></p>
+            <p>Agenciamento ({data.percentual_agenciamento || 0}%): <strong>R$ {agen.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></p>
+            <p>Vitalício ({data.percentual_vitalicio || 0}%): <strong>R$ {vit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============= STEP 5 =============
+function Step5Vidas({ data, update, readOnly }: any) {
+  return (
+    <div className="space-y-4">
+      <Field label="Total de Vidas *" type="number" v={data.total_vidas} onChange={(v: string) => update({ total_vidas: parseInt(v) || 0 })} readOnly={readOnly} />
+      <div>
+        <Label>Faixas etárias (texto livre / observações)</Label>
+        <Textarea
+          value={data.faixas_etarias?.observacao || ""}
+          onChange={(e) => update({ faixas_etarias: { observacao: e.target.value } })}
+          readOnly={readOnly}
+          placeholder="Ex: 0-18: 5 vidas / 19-58: 20 vidas / 59+: 3 vidas"
+          rows={4}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Anexe o "Relatório de Vidas" na Etapa 1 para registro completo.
+      </p>
+    </div>
+  );
+}
+
+// ============= STEP 6 =============
+function Step6Revisao({ data, anexos }: any) {
+  const Row = ({ k, v }: { k: string; v: any }) => (
+    <div className="flex justify-between text-sm py-1 border-b last:border-0">
+      <span className="text-muted-foreground">{k}</span>
+      <span className="font-medium">{v || "—"}</span>
+    </div>
+  );
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Card><CardContent className="p-4">
+        <h4 className="font-semibold mb-2 flex items-center gap-2"><Building2 className="h-4 w-4" /> Empresa</h4>
+        <Row k="Nome" v={data.nome_empresa} />
+        <Row k="CNPJ" v={data.cnpj} />
+        <Row k="Telefone" v={data.telefone} />
+        <Row k="Endereço" v={data.endereco} />
+        <Row k="CEP" v={data.cep} />
+      </CardContent></Card>
+      <Card><CardContent className="p-4">
+        <h4 className="font-semibold mb-2 flex items-center gap-2"><FileSignature className="h-4 w-4" /> Contrato</h4>
+        <Row k="Código" v={data.codigo_contrato} />
+        <Row k="Vigência" v={data.data_vigencia} />
+        <Row k="Modalidade" v={data.modalidade} />
+        <Row k="Acomodação" v={data.acomodacao} />
+        <Row k="Corretora" v={data.corretora} />
+      </CardContent></Card>
+      <Card><CardContent className="p-4">
+        <h4 className="font-semibold mb-2 flex items-center gap-2"><DollarSign className="h-4 w-4" /> Valores & Comissão</h4>
+        <Row k="Enfermaria" v={`R$ ${brFromCents(data.valor_enfermaria_centavos)}`} />
+        <Row k="Apartamento" v={`R$ ${brFromCents(data.valor_apartamento_centavos)}`} />
+        <Row k="% Agenciamento" v={`${data.percentual_agenciamento || 0}%`} />
+        <Row k="% Vitalício" v={`${data.percentual_vitalicio || 0}%`} />
+      </CardContent></Card>
+      <Card><CardContent className="p-4">
+        <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Vidas & Documentos</h4>
+        <Row k="Total Vidas" v={data.total_vidas} />
+        <Row k="Documentos" v={`${anexos.length} anexo(s)`} />
+      </CardContent></Card>
+    </div>
+  );
+}
+
+function Field({ label, v, onChange, type = "text", readOnly, error }: any) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Input
+        type={type}
+        value={v ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        readOnly={readOnly}
+        className={error ? "border-destructive" : ""}
+      />
+      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
+    </div>
+  );
+}
