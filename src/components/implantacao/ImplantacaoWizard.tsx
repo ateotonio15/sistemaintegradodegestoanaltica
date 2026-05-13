@@ -205,7 +205,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const valid: Record<number, boolean> = {
     1: !!anexo1,
     2: !!data?.nome_empresa && !!data?.cnpj && isValidCNPJ(data.cnpj || ""),
-    3: !!data?.data_vigencia && !!data?.codigo_contrato && !!data?.modalidade && !!data?.acomodacao && !!data?.tipo_contrato,
+    3: !!data?.data_vigencia && !!data?.codigo_contrato && !!data?.modalidade && !!data?.acomodacao && !!data?.tipo_contrato && !!data?.periodo_movimentacao && (data?.periodo_movimentacao !== "Diário" || (!!data?.data_corte && data.data_corte >= 1 && data.data_corte <= 31)),
     4: data?.percentual_agenciamento != null && data?.percentual_vitalicio != null,
     5: !!data?.total_vidas && data.total_vidas > 0,
     6: true,
@@ -481,6 +481,43 @@ function Step3Contrato({ data, update, readOnly }: any) {
       </div>
       <Field label="Corretora" v={data.corretora} onChange={(v: string) => update({ corretora: v })} readOnly={readOnly} />
       <Field label="Código do Contrato *" v={data.codigo_contrato} onChange={(v: string) => update({ codigo_contrato: v })} readOnly={readOnly} />
+      <div>
+        <Label>Período de Movimentação *</Label>
+        <Select
+          value={data.periodo_movimentacao || ""}
+          onValueChange={(v) => update({ periodo_movimentacao: v, data_corte: v === "Diário" ? data.data_corte : null })}
+          disabled={readOnly}
+        >
+          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Diário">Diário</SelectItem>
+            <SelectItem value="01-05">01-05</SelectItem>
+            <SelectItem value="05-10">05-10</SelectItem>
+            <SelectItem value="10-15">10-15</SelectItem>
+            <SelectItem value="15-20">15-20</SelectItem>
+            <SelectItem value="20-25">20-25</SelectItem>
+            <SelectItem value="25-30">25-30</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-1">Selecione como funciona a movimentação do contrato.</p>
+      </div>
+      {data.periodo_movimentacao === "Diário" && (
+        <div>
+          <Label>Data de Corte (dia) *</Label>
+          <Input
+            type="number"
+            min={1}
+            max={31}
+            value={data.data_corte ?? ""}
+            onChange={(e) => {
+              const n = parseInt(e.target.value);
+              update({ data_corte: isNaN(n) ? null : Math.min(31, Math.max(1, n)) });
+            }}
+            readOnly={readOnly}
+          />
+          <p className="text-xs text-muted-foreground mt-1">Informe o dia de corte mensal (1 a 31).</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -554,6 +591,8 @@ function Step6Revisao({ data, anexos }: any) {
         <h4 className="font-semibold mb-2 flex items-center gap-2"><FileSignature className="h-4 w-4" /> Contrato</h4>
         <Row k="Código" v={data.codigo_contrato} />
         <Row k="Tipo de Contrato" v={data.tipo_contrato} />
+        <Row k="Período Movimentação" v={data.periodo_movimentacao} />
+        {data.periodo_movimentacao === "Diário" && <Row k="Data de Corte" v={data.data_corte} />}
         <Row k="Vigência" v={data.data_vigencia} />
         <Row k="Modalidade" v={data.modalidade} />
         <Row k="Acomodação" v={data.acomodacao} />

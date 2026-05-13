@@ -683,6 +683,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_nome: string | null
+          data_corte: number | null
           data_vencimento: string | null
           data_vigencia: string | null
           dia_movimentacao: number | null
@@ -699,6 +700,7 @@ export type Database = {
           nome_empresa: string | null
           percentual_agenciamento: number | null
           percentual_vitalicio: number | null
+          periodo_movimentacao: string | null
           status: Database["public"]["Enums"]["implantacao_status"]
           telefone: string | null
           ticket: string | null
@@ -717,6 +719,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_nome?: string | null
+          data_corte?: number | null
           data_vencimento?: string | null
           data_vigencia?: string | null
           dia_movimentacao?: number | null
@@ -733,6 +736,7 @@ export type Database = {
           nome_empresa?: string | null
           percentual_agenciamento?: number | null
           percentual_vitalicio?: number | null
+          periodo_movimentacao?: string | null
           status?: Database["public"]["Enums"]["implantacao_status"]
           telefone?: string | null
           ticket?: string | null
@@ -751,6 +755,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_nome?: string | null
+          data_corte?: number | null
           data_vencimento?: string | null
           data_vigencia?: string | null
           dia_movimentacao?: number | null
@@ -767,6 +772,7 @@ export type Database = {
           nome_empresa?: string | null
           percentual_agenciamento?: number | null
           percentual_vitalicio?: number | null
+          periodo_movimentacao?: string | null
           status?: Database["public"]["Enums"]["implantacao_status"]
           telefone?: string | null
           ticket?: string | null
