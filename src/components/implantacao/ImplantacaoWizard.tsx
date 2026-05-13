@@ -792,6 +792,9 @@ function Step6Revisao({ data, anexos }: any) {
       <Card><CardContent className="p-4">
         <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Vidas & Documentos</h4>
         <Row k="Total Vidas" v={data.total_vidas} />
+        <Row k="Titulares" v={data.vidas_titulares} />
+        <Row k="Dependentes" v={data.vidas_dependentes} />
+        <Row k="Layout Validado" v={data.relatorio_validacao?.valido ? "Sim" : "Não"} />
         <Row k="Documentos" v={`${anexos.length} anexo(s)`} />
       </CardContent></Card>
     </div>
