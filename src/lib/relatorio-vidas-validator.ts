@@ -43,6 +43,8 @@ export interface ValidacaoResultado {
   erros: number;
   alertas: number;
   valido: boolean;
+  linhas_ignoradas: number;
+  linhas_processadas: number;
 }
 
 function normalize(s: string) {
