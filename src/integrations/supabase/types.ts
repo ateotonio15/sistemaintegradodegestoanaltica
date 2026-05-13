@@ -701,14 +701,18 @@ export type Database = {
           percentual_agenciamento: number | null
           percentual_vitalicio: number | null
           periodo_movimentacao: string | null
+          relatorio_validacao: Json | null
           status: Database["public"]["Enums"]["implantacao_status"]
           telefone: string | null
           ticket: string | null
+          ticket_auto_sync: boolean
           tipo_contrato: string | null
           total_vidas: number | null
           updated_at: string
           valor_apartamento_centavos: number | null
           valor_enfermaria_centavos: number | null
+          vidas_dependentes: number | null
+          vidas_titulares: number | null
         }
         Insert: {
           acomodacao?: string | null
@@ -737,14 +741,18 @@ export type Database = {
           percentual_agenciamento?: number | null
           percentual_vitalicio?: number | null
           periodo_movimentacao?: string | null
+          relatorio_validacao?: Json | null
           status?: Database["public"]["Enums"]["implantacao_status"]
           telefone?: string | null
           ticket?: string | null
+          ticket_auto_sync?: boolean
           tipo_contrato?: string | null
           total_vidas?: number | null
           updated_at?: string
           valor_apartamento_centavos?: number | null
           valor_enfermaria_centavos?: number | null
+          vidas_dependentes?: number | null
+          vidas_titulares?: number | null
         }
         Update: {
           acomodacao?: string | null
@@ -773,14 +781,18 @@ export type Database = {
           percentual_agenciamento?: number | null
           percentual_vitalicio?: number | null
           periodo_movimentacao?: string | null
+          relatorio_validacao?: Json | null
           status?: Database["public"]["Enums"]["implantacao_status"]
           telefone?: string | null
           ticket?: string | null
+          ticket_auto_sync?: boolean
           tipo_contrato?: string | null
           total_vidas?: number | null
           updated_at?: string
           valor_apartamento_centavos?: number | null
           valor_enfermaria_centavos?: number | null
+          vidas_dependentes?: number | null
+          vidas_titulares?: number | null
         }
         Relationships: []
       }
