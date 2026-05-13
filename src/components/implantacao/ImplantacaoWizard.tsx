@@ -186,6 +186,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
       });
       if (error) throw error;
       const ext = (result as any)?.dados || {};
+      const novoEnf = ext.valor_enfermaria_centavos ?? data.valor_enfermaria_centavos;
       update({
         nome_empresa: ext.nome_empresa || data.nome_empresa,
         cnpj: ext.cnpj || data.cnpj,
@@ -195,9 +196,10 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
         endereco: ext.endereco || data.endereco,
         cep: ext.cep || data.cep,
         grupo_contrato: ext.grupo_contrato || data.grupo_contrato,
-        valor_enfermaria_centavos: ext.valor_enfermaria_centavos ?? data.valor_enfermaria_centavos,
+        valor_enfermaria_centavos: novoEnf,
         valor_apartamento_centavos: ext.valor_apartamento_centavos ?? data.valor_apartamento_centavos,
         inicio_atendimento: ext.inicio_atendimento || data.inicio_atendimento,
+        ticket: novoEnf != null && (data.ticket_auto_sync ?? true) ? brFromCents(novoEnf) : data.ticket,
       });
       toast.success("Dados extraídos! Revise e edite se necessário.");
     } catch (e: any) {
@@ -207,13 +209,31 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     }
   };
 
+  // Sincroniza ticket automaticamente quando valor_enfermaria mudar e auto_sync ativo
+  useEffect(() => {
+    if (!data) return;
+    if ((data.ticket_auto_sync ?? true) && data.valor_enfermaria_centavos != null) {
+      const expected = brFromCents(data.valor_enfermaria_centavos);
+      if (data.ticket !== expected) setData((d: any) => ({ ...d, ticket: expected }));
+    }
+  }, [data?.valor_enfermaria_centavos, data?.ticket_auto_sync]);
+
+  const ultimoRelVidas = useMemo(
+    () => anexos.filter((a: any) => a.tipo === "relatorio_vidas")[0],
+    [anexos],
+  );
+
   // ----- validations per step -----
+  const tiposObrigatorios = ["anexo_1", "contrato", "relatorio_vidas", "complementar"];
+  const todosAnexosOk = tiposObrigatorios.every((t) => anexos.some((a: any) => a.tipo === t));
+  const validacao: ValidacaoResultado | null = data?.relatorio_validacao || null;
+
   const valid: Record<number, boolean> = {
-    1: !!anexo1,
+    1: todosAnexosOk,
     2: !!data?.nome_empresa && !!data?.cnpj && isValidCNPJ(data.cnpj || ""),
     3: !!data?.data_vigencia && !!data?.codigo_contrato && !!data?.modalidade && !!data?.acomodacao && !!data?.tipo_contrato && !!data?.periodo_movimentacao && (data?.periodo_movimentacao !== "Diário" || (!!data?.data_corte && data.data_corte >= 1 && data.data_corte <= 31)),
     4: data?.percentual_agenciamento != null && data?.percentual_vitalicio != null,
-    5: !!data?.total_vidas && data.total_vidas > 0,
+    5: !!validacao && validacao.valido === true && (data?.total_vidas || 0) > 0,
     6: true,
   };
 
