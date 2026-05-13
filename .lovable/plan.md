@@ -1,87 +1,82 @@
-# Implantação de Contratos — Wizard Inteligente
+# Etapa 35 — Validação Avançada da Implantação
 
-Nova aba completa com wizard de 6 etapas, extração automática de dados do "Anexo 1" via IA, e estrutura dedicada no banco.
+Reforça a aba "Implantação de Contratos" com regras rígidas de anexos, Ticket automático e validação de layout do Relatório de Vidas.
 
-## Banco de Dados
+## 1. Anexos (Etapa 1)
 
-**Nova tabela `implantacoes_contratos`:**
-- `id`, `empresa_id` (opcional, vinculado quando implantado), `status` (em_implantacao | aguardando_documentos | em_validacao | implantado | pendente_ajuste)
-- Dados extraíveis: `nome_empresa`, `cnpj`, `telefone`, `inscricao_municipal`, `inscricao_estadual`, `endereco`, `cep`, `grupo_contrato`, `valor_enfermaria_centavos`, `valor_apartamento_centavos`, `inicio_atendimento`
-- Dados contratuais: `data_vigencia`, `data_vencimento`, `dia_movimentacao`, `ticket`, `modalidade`, `acomodacao`, `corretora`, `codigo_contrato`
-- Comissão: `percentual_agenciamento`, `percentual_vitalicio`
-- Vidas: `total_vidas`, `faixas_etarias` (jsonb)
-- Auditoria: `created_by`, `created_at`, `updated_at`, `etapa_atual` (1-6)
+- Tornar **todos os tipos** obrigatórios para avançar: `anexo_1`, `contrato`, `relatorio_vidas`, `complementar` (mín. 1 arquivo cada). Mantém `anexo_1` com destaque "Prioritário".
+- Sem limite de arquivos por categoria (já é o comportamento atual — manter).
+- Reorganizar a UI em seções colapsáveis por categoria com contadores e ícone de status (✓ verde quando ≥1 / ✕ vermelho quando 0):
+  - Anexo 1 (prioritário)
+  - Contrato
+  - Relatório de Vidas
+  - Complementares
+- Regras de dependência: ao subir "Contrato" mostrar aviso amarelo se faltar `relatorio_vidas` ou `complementar`. Validação `valid[1]` exige todos os 4 tipos com pelo menos 1 anexo.
 
-**Nova tabela `implantacao_anexos`:**
-- `id`, `implantacao_id`, `tipo` (anexo_1 | contrato | relatorio_vidas | complementar), `nome_arquivo`, `storage_path`, `mime_type`, `tamanho_bytes`, `uploaded_by`, `created_at`
+## 2. Ticket automático (Etapas 2 e 3)
 
-**Novo bucket Storage:** `anexos-implantacao` (privado)
+- Após extração do Anexo 1 (e sempre que `valor_enfermaria_centavos` mudar), preencher `ticket` automaticamente com o valor formatado em R$ de `valor_enfermaria_centavos`.
+- Campo `Ticket` na Etapa 3 fica **readOnly** para todos os perfis exceto `admin` (Admin pode sobrescrever).
+- Mostrar badge "Auto" ao lado do label e tooltip "Sincronizado com Valor Enfermaria".
 
-**RLS:** Admin (full), Comum/Cadastro (full), Visualização/Diretora (read). Demais perfis sem acesso.
+## 3. Etapa 5 — Relatório de Vidas com parsing real
 
-**Logs:** Tabela `implantacao_logs` com `implantacao_id`, `acao`, `detalhes` (jsonb), `user_id`, `user_nome`, `created_at`.
+Substituir o input manual por leitura do arquivo `relatorio_vidas` mais recente:
 
-## Frontend
+- Botão **"Verificar Layout"** (loading elegante) que:
+  1. Baixa o último arquivo `relatorio_vidas` do storage.
+  2. Faz parse via `xlsx` (já em deps via excel-utils existentes) ou `papaparse` para CSV.
+  3. Normaliza cabeçalhos (uppercase, sem acentos, trim).
+  4. Verifica colunas obrigatórias (lista abaixo).
+  5. Para cada linha, valida campos chave (CPF, CEP, datas, NOME, TITULAR, DATA NASC, GRAU PARENTESCO).
+  6. Conta vidas: total, titulares (`GRAU PARENTESCO = TITULAR` ou vazio + `TIPO OPERACAO = INCLUSAO`) e dependentes.
 
-**Rotas e menu:**
-- Nova rota `/implantacao` em `App.tsx` (acesso: Admin, Comum)
-- Item de menu em `AppLayout.tsx` com ícone `FileSignature` (lucide)
+**Colunas obrigatórias validadas:**
+TIPO OPERACAO, NOME, TITULAR, DATA NASC, ESTADO CIVIL, NACIONALIDADE, SEXO, NOME DA MAE, CPF, UF EMISSOR, ORGAO EMISSOR, PAIS EMISSOR, CEP, ENDERECO, NUMERO, BAIRRO, CIDADE, ESTADO, DATA ADMISSAO, GRAU PARENTESCO, NR CARTAO SUS, TIPO LOGRADOURO, DT CASAMENTO.
 
-**Página `src/pages/Implantacao.tsx`:**
-- Lista de implantações com filtros (status), botão "Nova Implantação"
-- Cards com: empresa, status (badge colorido), etapa atual, progresso
+**Validações por célula:**
+- CPF: 11 dígitos + DV.
+- CEP: 8 dígitos.
+- DATA NASC / DATA ADMISSAO / DT CASAMENTO: data válida.
+- Campos texto obrigatórios: não vazios (exceto DT CASAMENTO se ESTADO CIVIL ≠ "CASADO").
 
-**Wizard `src/components/implantacao/ImplantacaoWizard.tsx`:**
-- Header: progress bar horizontal (desktop) / vertical (mobile) com 6 steps numerados
-- Salvamento automático a cada mudança de etapa (upsert na tabela)
-- Botões "Voltar" / "Avançar" com `disabled` por validação Zod
+**Resultado visual** (modal/painel):
+- Resumo: Total vidas, Titulares, Dependentes, Erros, Alertas.
+- Checklist por coluna com ícone ✓ (ok) / ⚠ (alerta) / ✕ (erro).
+- Tabela de pendências por linha: `Linha 42 — CPF vazio`, `Linha 15 — DATA NASC inválida`.
+- Progress bar durante o parse.
 
-**Componentes por etapa em `src/components/implantacao/steps/`:**
-1. `Step1Upload.tsx` — Drag-and-drop com `react-dropzone` style nativo, separado por tipo (Anexo 1 destacado), preview em lista
-2. `Step2Extracao.tsx` — Botão "Extrair dados do Anexo 1" → chama edge function, exibe campos extraídos editáveis
-3. `Step3DadosContratuais.tsx` — Formulário com validações Zod (CNPJ, CEP, datas)
-4. `Step4Comissionamento.tsx` — Inputs % + cálculo automático e resumo
-5. `Step5RelatorioVidas.tsx` — Upload + parser básico Excel (contagem de linhas/faixas)
-6. `Step6Revisao.tsx` — Resumo completo read-only + botão "Concluir Implantação"
+## 4. Bloqueio de avanço
 
-## Edge Function: `extrair-anexo1`
+- `valid[5]` só fica `true` se a última verificação rodou com sucesso e **0 erros** de coluna ausente / campo obrigatório vazio. Alertas (não-críticos) permitem avançar.
+- Se layout inválido: avançar bloqueado + mensagem clara.
 
-- Recebe `storage_path` do Anexo 1
-- Faz download via service role
-- Se PDF → extrai texto (pdf-parse via npm:) ou OCR via IA Gateway com modelo multimodal
-- Envia para Lovable AI (`google/gemini-3-flash-preview`) com `Output.object` (Zod schema) extraindo: nome_empresa, cnpj, telefone, inscrição municipal/estadual, endereço, cep, grupo_contrato, valor_enfermaria, valor_apartamento, inicio_atendimento
-- Retorna JSON estruturado
+## 5. Persistência
 
-## Validações
+Adicionar colunas em `implantacoes_contratos`:
+- `ticket_auto_sync boolean default true`
+- `vidas_titulares integer`
+- `vidas_dependentes integer`
+- `relatorio_validacao jsonb` — `{ verificado_em, total_linhas, total_vidas, titulares, dependentes, erros: [...], alertas: [...], colunas_ausentes: [...] }`
 
-- CNPJ: validador algorítmico (14 dígitos + DV)
-- CEP: regex `^\d{5}-?\d{3}$`
-- Datas: válidas e coerentes (vigência ≤ vencimento futuro)
-- Duplicidade: bloquear `codigo_contrato` já existente em `empresas` ou outra implantação
+`total_vidas` continua existindo e é sobrescrito pelo resultado da validação.
 
-## Dashboard
+## 6. Performance
 
-Adicionar 4 KPIs no `Dashboard.tsx` (somente Admin/Cadastro):
-- Contratos implantados (mês)
-- Em implantação (pendentes)
-- Documentos faltando
-- Validação pendente
+- Parse executado em chunks (XLSX.read com `dense:true`); processar em `requestIdleCallback` por blocos de 500 linhas para não travar a UI.
+- Limite prático: 50k linhas — acima disso, mostrar aviso.
 
-## Permissões
+## Detalhes técnicos
 
-- **Admin / Comum (Cadastro):** acesso total
-- **Visualização / Diretora:** somente leitura
-- **Demais:** sem acesso (rota redirect para `/`)
+- **Arquivos a editar**: `src/components/implantacao/ImplantacaoWizard.tsx` (Steps 1, 2, 3, 5, validações).
+- **Novo arquivo**: `src/lib/relatorio-vidas-validator.ts` (parser + validator + cpf/cep/date helpers reutilizando `src/lib/excel-analysis-utils.ts` para leitura).
+- **Migração SQL**: nova migration adicionando as 4 colunas em `implantacoes_contratos`.
+- **Auth check para Ticket**: usar `useAuth()` + `has_role` já consumido no projeto (verificar como está em outras telas — `useUserRole`).
+- **UI de validação**: componente inline na Etapa 5 com `Progress`, `Badge`, `ScrollArea` e tabela shadcn.
 
-## Status colors (badges)
+## Não-fazer
 
-- `em_implantacao` → azul
-- `aguardando_documentos` → amarelo
-- `em_validacao` → laranja
-- `implantado` → verde
-- `pendente_ajuste` → vermelho
-
-## Fora de escopo (confirmar)
-
-- Integração automática que cria registro em `empresas` ao concluir: incluso (cria empresa com `status_empresa='Ativa'` se não existir, ou vincula `empresa_id` se já existir pelo CNPJ)
-- OCR de imagens scaneadas: usar Gemini multimodal (envia PDF como inline data)
+- Não alterar a lógica de extração do Anexo 1 (Etapa 2).
+- Não permitir avanço com layout inválido.
+- Não aceitar Ticket diferente de Valor Enfermaria (exceto override admin).
+- Não limitar quantidade de anexos.
