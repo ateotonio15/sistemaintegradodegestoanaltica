@@ -455,7 +455,6 @@ function Step3Contrato({ data, update, readOnly }: any) {
       </div>
       <Field label="Data Vigência *" type="date" v={data.data_vigencia} onChange={(v: string) => update({ data_vigencia: v })} readOnly={readOnly} />
       <Field label="Vencimento" type="date" v={data.data_vencimento} onChange={(v: string) => update({ data_vencimento: v })} readOnly={readOnly} />
-      <Field label="Dia Movimentação" type="number" v={data.dia_movimentacao} onChange={(v: string) => update({ dia_movimentacao: parseInt(v) || null })} readOnly={readOnly} />
       <Field label="Ticket" v={data.ticket} onChange={(v: string) => update({ ticket: v })} readOnly={readOnly} />
       <div>
         <Label>Modalidade *</Label>
