@@ -518,6 +518,7 @@ function Step3Contrato({ data, update, readOnly }: any) {
           <p className="text-xs text-muted-foreground mt-1">Informe o dia de corte mensal (1 a 31).</p>
         </div>
       )}
+    </div>
   );
 }
 
