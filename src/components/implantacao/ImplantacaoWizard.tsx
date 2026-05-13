@@ -369,12 +369,19 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
         const list = anexos.filter((a: any) => a.tipo === tipo);
         const isAnexo1 = tipo === "anexo_1";
         return (
-          <Card key={tipo} className={isAnexo1 ? "border-primary border-2" : ""}>
+          <Card key={tipo} className={cn(isAnexo1 && "border-primary border-2", list.length === 0 && "border-destructive/40")}>
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="font-semibold flex items-center gap-2">
+                  {list.length > 0 ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-destructive" />
+                  )}
                   {TIPO_LABEL[tipo]}
+                  <Badge variant="outline">{list.length}</Badge>
                   {isAnexo1 && <Badge variant="default">Prioritário</Badge>}
+                  <Badge variant={list.length > 0 ? "secondary" : "destructive"}>Obrigatório</Badge>
                 </Label>
                 {!readOnly && (
                   <label className="cursor-pointer">
@@ -391,7 +398,7 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                 )}
               </div>
               {list.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhum arquivo</p>
+                <p className="text-xs text-destructive">Nenhum arquivo — envie ao menos 1 arquivo desta categoria.</p>
               ) : (
                 list.map((a: any) => (
                   <div key={a.id} className="flex items-center justify-between bg-muted/50 rounded p-2 text-sm">
