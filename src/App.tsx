@@ -16,6 +16,7 @@ import Financeiro from "./pages/Financeiro";
 import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
 import Implantacao from "./pages/Implantacao";
+import VidasSamel from "./pages/VidasSamel";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
