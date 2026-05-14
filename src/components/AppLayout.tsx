@@ -40,6 +40,7 @@ const allNavItems = [
   { to: "/arquivos", label: "Arquivos", icon: FolderArchive },
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
+  { to: "/vidas-samel", label: "Vidas Samel", icon: HeartPulse },
 ];
 
 interface Notificacao {
