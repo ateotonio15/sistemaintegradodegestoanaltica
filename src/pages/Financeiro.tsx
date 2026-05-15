@@ -1041,6 +1041,16 @@ export default function Financeiro() {
                 {isExportingErros ? "Gerando..." : "Exportar erros"}
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setHistoricoOpen(true)}
+              className="gap-1.5"
+              title="Ver histórico de análises Excel × PDF salvas"
+            >
+              <History className="h-3.5 w-3.5" />
+              Histórico
+            </Button>
             {canManageFinanceiro && (
               <Button
                 variant="outline"
