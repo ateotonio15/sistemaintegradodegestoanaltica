@@ -647,6 +647,17 @@ export default function Arquivos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {previewArquivo && (
+        <PreviewArquivoDialog
+          open={!!previewArquivo}
+          onOpenChange={(v) => !v && setPreviewArquivo(null)}
+          bucket={previewArquivo.bucket || DEFAULT_BUCKET}
+          storagePath={previewArquivo.storage_path}
+          nomeArquivo={previewArquivo.nome_original}
+          mimeType={previewArquivo.mime_type}
+        />
+      )}
     </AppLayout>
   );
 }
