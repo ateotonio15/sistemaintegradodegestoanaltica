@@ -313,16 +313,8 @@ export default function Arquivos() {
     }
   }
 
-  async function handlePreview(a: ArquivoRow) {
-    try {
-      const { data, error } = await supabase.storage
-        .from(a.bucket || DEFAULT_BUCKET)
-        .createSignedUrl(a.storage_path, 60);
-      if (error || !data?.signedUrl) throw error ?? new Error("Falha ao gerar preview");
-      window.open(data.signedUrl, "_blank", "noopener");
-    } catch (e: any) {
-      toast.error("Erro ao abrir: " + (e?.message ?? "desconhecido"));
-    }
+  function handlePreview(a: ArquivoRow) {
+    setPreviewArquivo(a);
   }
 
   async function handleDelete(a: ArquivoRow) {
