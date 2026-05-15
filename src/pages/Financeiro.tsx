@@ -754,6 +754,89 @@ export default function Financeiro() {
   };
 
 
+  const [isExportingErros, setIsExportingErros] = useState(false);
+  const handleExportErros = async () => {
+    setIsExportingErros(true);
+    try {
+      const rowsByKey = new Map<string, FinanceiroRow>();
+      filteredRows.forEach((r) => rowsByKey.set(r.rowKey ?? r.id, r));
+
+      type Linha = {
+        empresa: string;
+        contrato: string;
+        cnpj: string;
+        pagador: string;
+        mes: string;
+        tipo: "Aviso (Excel)" | "Divergência (Excel x PDF)" | "Aviso (PDF)";
+        mensagem: string;
+      };
+      const linhas: Linha[] = [];
+
+      const pushFor = (key: string, tipo: Linha["tipo"], pagador: string, msgs: string[]) => {
+        const r = rowsByKey.get(key);
+        if (!r || !msgs?.length) return;
+        msgs.forEach((m) => {
+          linhas.push({
+            empresa: r.empresa_nome || "",
+            contrato: r.empresa_codigo || "",
+            cnpj: r.empresa_cnpj || "",
+            pagador: pagador || r.empresa_nome || "",
+            mes: formatMesReferencia(mes),
+            tipo,
+            mensagem: m,
+          });
+        });
+      };
+
+      Object.entries(analiseResultados).forEach(([key, lista]) => {
+        (lista || []).forEach((a: any) => {
+          pushFor(key, "Aviso (Excel)", a.pagador, a.avisos || []);
+        });
+      });
+      Object.entries(analiseComparacoes).forEach(([key, lista]) => {
+        (lista || []).forEach((c: any) => {
+          pushFor(key, "Divergência (Excel x PDF)", c.pagador, c.divergencias || []);
+          pushFor(key, "Aviso (PDF)", c.pagador, c.avisosPdf || []);
+        });
+      });
+
+      if (linhas.length === 0) {
+        toast.warning("Nenhum erro encontrado nas análises atuais.");
+        return;
+      }
+
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Erros de Análise");
+      ws.columns = [
+        { header: "Empresa", key: "empresa", width: 38 },
+        { header: "Contrato", key: "contrato", width: 14 },
+        { header: "CNPJ", key: "cnpj", width: 20 },
+        { header: "Pagador", key: "pagador", width: 38 },
+        { header: "Mês", key: "mes", width: 12 },
+        { header: "Tipo", key: "tipo", width: 26 },
+        { header: "Mensagem", key: "mensagem", width: 80 },
+      ];
+      ws.getRow(1).font = { bold: true };
+      linhas.forEach((l) => ws.addRow(l));
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `financeiro-erros-${mes}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${linhas.length} erro(s) exportado(s).`);
+    } catch (e: any) {
+      toast.error("Falha ao exportar erros: " + (e?.message || e));
+    } finally {
+      setIsExportingErros(false);
+    }
+  };
+
   const handleExport = async () => {
     if (filteredRows.length === 0) {
       toast.warning("Nenhum registro para exportar com os filtros atuais");
@@ -887,6 +970,19 @@ export default function Financeiro() {
               <Download className={`h-3.5 w-3.5 ${isExporting ? "animate-pulse" : ""}`} />
               {isExporting ? "Exportando..." : "Exportar Excel"}
             </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportErros}
+                disabled={isExportingErros}
+                className="gap-1.5"
+                title="Baixa um Excel com todas as análises que apresentaram erros ou divergências"
+              >
+                <Download className={`h-3.5 w-3.5 ${isExportingErros ? "animate-pulse" : ""}`} />
+                {isExportingErros ? "Gerando..." : "Exportar erros"}
+              </Button>
+            )}
             {canManageFinanceiro && (
               <Button
                 variant="outline"
