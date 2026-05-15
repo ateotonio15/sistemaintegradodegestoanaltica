@@ -63,6 +63,7 @@ import {
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
 import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
+import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 import {
   CATEGORIAS_ARQUIVO,
   compLabel,
@@ -134,6 +135,7 @@ export default function Arquivos() {
   const [usuarioFilter, setUsuarioFilter] = useState("todos");
   const [contratoFilter, setContratoFilter] = useState("todos");
   const [confirmDelete, setConfirmDelete] = useState<ArquivoRow | null>(null);
+  const [previewArquivo, setPreviewArquivo] = useState<ArquivoRow | null>(null);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["arquivos-empresas-list"],
@@ -311,16 +313,8 @@ export default function Arquivos() {
     }
   }
 
-  async function handlePreview(a: ArquivoRow) {
-    try {
-      const { data, error } = await supabase.storage
-        .from(a.bucket || DEFAULT_BUCKET)
-        .createSignedUrl(a.storage_path, 60);
-      if (error || !data?.signedUrl) throw error ?? new Error("Falha ao gerar preview");
-      window.open(data.signedUrl, "_blank", "noopener");
-    } catch (e: any) {
-      toast.error("Erro ao abrir: " + (e?.message ?? "desconhecido"));
-    }
+  function handlePreview(a: ArquivoRow) {
+    setPreviewArquivo(a);
   }
 
   async function handleDelete(a: ArquivoRow) {
@@ -653,6 +647,17 @@ export default function Arquivos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {previewArquivo && (
+        <PreviewArquivoDialog
+          open={!!previewArquivo}
+          onOpenChange={(v) => !v && setPreviewArquivo(null)}
+          bucket={previewArquivo.bucket || DEFAULT_BUCKET}
+          storagePath={previewArquivo.storage_path}
+          nomeArquivo={previewArquivo.nome_original}
+          mimeType={previewArquivo.mime_type}
+        />
+      )}
     </AppLayout>
   );
 }
