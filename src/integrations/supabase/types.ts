@@ -489,6 +489,7 @@ export type Database = {
           nome_arquivo_excel: string | null
           nome_arquivo_pdf: string | null
           pagador_cnpj: string | null
+          pagador_id: string | null
           pagador_nome: string | null
           periodo: string
           qtd_excel_apartamento: number | null
@@ -524,6 +525,7 @@ export type Database = {
           nome_arquivo_excel?: string | null
           nome_arquivo_pdf?: string | null
           pagador_cnpj?: string | null
+          pagador_id?: string | null
           pagador_nome?: string | null
           periodo: string
           qtd_excel_apartamento?: number | null
@@ -559,6 +561,7 @@ export type Database = {
           nome_arquivo_excel?: string | null
           nome_arquivo_pdf?: string | null
           pagador_cnpj?: string | null
+          pagador_id?: string | null
           pagador_nome?: string | null
           periodo?: string
           qtd_excel_apartamento?: number | null
