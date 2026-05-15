@@ -54,20 +54,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => fetchRole(session.user.id), 0);
+        setLoading(true);
+        setTimeout(() => {
+          fetchRole(session.user.id).finally(() => setLoading(false));
+        }, 0);
       } else {
         setRole(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id);
+        fetchRole(session.user.id).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
