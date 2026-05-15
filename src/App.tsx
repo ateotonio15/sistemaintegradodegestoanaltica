@@ -92,7 +92,7 @@ const AppRoutes = () => (
     
     <Route path="/financeiro" element={<FinanceiroRoute><Financeiro /></FinanceiroRoute>} />
     <Route path="/reajustes" element={<ProtectedRoute><Reajustes /></ProtectedRoute>} />
-    <Route path="/arquivos" element={<FinanceiroRoute><Arquivos /></FinanceiroRoute>} />
+    <Route path="/arquivos" element={<FinanceiroOnlyRoute><Arquivos /></FinanceiroOnlyRoute>} />
     <Route path="/implantacao" element={<ProtectedRoute allowFinanceiro={false}><Implantacao /></ProtectedRoute>} />
     <Route path="/vidas-samel" element={<ProtectedRoute><VidasSamel /></ProtectedRoute>} />
     <Route path="/usuarios" element={<AdminOnlyRoute><Usuarios /></AdminOnlyRoute>} />
