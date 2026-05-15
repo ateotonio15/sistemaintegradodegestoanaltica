@@ -412,6 +412,15 @@ export default function Arquivos() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={contratoFilter} onValueChange={setContratoFilter}>
+                <SelectTrigger><SelectValue placeholder="Contrato" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos contratos</SelectItem>
+                  {contratosDisponiveis.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={competenciaFilter} onValueChange={setCompetenciaFilter}>
                 <SelectTrigger><SelectValue placeholder="Competência" /></SelectTrigger>
                 <SelectContent>
