@@ -1229,6 +1229,14 @@ export default function Financeiro() {
             />
           </>
         )}
+
+        <HistoricoAnalisesDialog
+          open={historicoOpen}
+          onOpenChange={setHistoricoOpen}
+          mes={mes}
+          empresasMap={empresasMap as any}
+          canManage={!!canManageFinanceiro}
+        />
       </div>
     </AppLayout>
   );
