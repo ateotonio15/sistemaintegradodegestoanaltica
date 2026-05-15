@@ -61,7 +61,7 @@ import {
   tipoArquivo,
 } from "@/lib/arquivos-utils";
 
-const BUCKET = "arquivos-financeiro";
+const DEFAULT_BUCKET = "arquivos-financeiro";
 
 interface Empresa {
   id: string;
