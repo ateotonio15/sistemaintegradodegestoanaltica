@@ -761,6 +761,46 @@ export default function Financeiro() {
       setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados }));
       setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: comparacoes }));
 
+      // Persistência: salva 1 registro por pagador analisado
+      try {
+        const onlyDigitsLocal = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
+        for (let i = 0; i < resultados.length; i++) {
+          const r = resultados[i] as any;
+          const cmp = comparacoes[i] ?? null;
+          const cmpAny = cmp as any;
+          const pagNome =
+            pagadorAtivo?.nome_pagador ||
+            r?.pagador ||
+            (filtroPagador?.nome ?? null);
+          const pagCnpj =
+            pagadorAtivo?.cnpj ||
+            (filtroPagador?.cnpj ?? null) ||
+            (cmpAny?.tomadorCnpj ?? null);
+          const hashExcel = (r?._hash as string | null) ?? null;
+          const hashPdf =
+            (cmpAny && (cmpAny.arquivoPdfHash || null)) ||
+            (pdfsValidos[i]?.hash ?? pdfsValidos[0]?.hash ?? null);
+          await salvarAnalise({
+            empresa_id: row.empresa_id,
+            financeiro_movimentacao_id: row.id,
+            pagador_id: pagadorAtivo?.id ?? row.pagador_id ?? null,
+            pagador_nome: pagNome ?? null,
+            pagador_cnpj: pagCnpj ? onlyDigitsLocal(pagCnpj) : null,
+            mes_referencia: row.mes_referencia,
+            periodo: row.periodo,
+            tipo_analise: tipoAnalise,
+            hash_excel: hashExcel,
+            hash_pdf: hashPdf,
+            nome_arquivo_excel: r?._arquivo ?? null,
+            nome_arquivo_pdf: cmpAny?.arquivoPdf ?? null,
+            resultado: r,
+            comparacao: cmp,
+            resultadoCompletoExtra: { resultados, comparacoes },
+          });
+        }
+      } catch (persistErr) {
+        console.warn("[financeiro] persist analise falhou:", persistErr);
+      }
     } finally {
       setAnaliseLoading((prev) => ({ ...prev, [rowKey]: false }));
     }
