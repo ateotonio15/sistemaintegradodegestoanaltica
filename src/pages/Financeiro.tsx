@@ -22,11 +22,8 @@ import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import {
   sha256Hex,
-  buscarAnaliseSalvaPorChave,
   salvarAnalise,
-  listarAnalisesDoMes,
   listarAnalisesComErro,
-  type FinanceiroAnaliseRow,
 } from "@/lib/financeiro-analise-cache";
 import { HistoricoAnalisesDialog } from "@/components/financeiro/HistoricoAnalisesDialog";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
