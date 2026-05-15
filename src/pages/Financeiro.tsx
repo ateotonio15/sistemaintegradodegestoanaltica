@@ -654,7 +654,7 @@ export default function Financeiro() {
         "@/lib/pdf-analysis-utils"
       );
 
-      // PDFs (análise completa)
+      // PDFs (análise completa) — também coleta hash
       const pdfResultados = await Promise.all(
         pdfAnexos.map(async (a) => {
           try {
@@ -663,8 +663,9 @@ export default function Financeiro() {
               .download(a.storage_path!);
             if (error) throw error;
             const buf = await data.arrayBuffer();
+            const hash = await sha256Hex(buf);
             const r = await analisarPdfFinanceiro(buf);
-            return { arquivo: a.nome_arquivo || "PDF", buf, ...r };
+            return { arquivo: a.nome_arquivo || "PDF", buf, hash, ...r };
           } catch (err: any) {
             toast.error(`Erro ao analisar PDF ${a.nome_arquivo}: ${err.message || err}`);
             return null;
@@ -672,11 +673,10 @@ export default function Financeiro() {
         }),
       );
       const pdfsValidos = pdfResultados.filter((p) => p !== null) as Array<
-        import("@/lib/pdf-analysis-utils").AnalisePdfResultado & { buf: ArrayBuffer }
+        import("@/lib/pdf-analysis-utils").AnalisePdfResultado & { buf: ArrayBuffer; hash: string }
       >;
 
-      // Excel — escolhe parser conforme tipo_analise
-      // Para Moto Honda (parser RESUMO), filtro por pagador não se aplica — usa agregado.
+      // Excel — escolhe parser conforme tipo_analise + hash
       const resultados = await Promise.all(
         xlsAnexos.map(async (a) => {
           try {
@@ -685,15 +685,18 @@ export default function Financeiro() {
               .download(a.storage_path!);
             if (error) throw error;
             const buf = await data.arrayBuffer();
+            const hash = await sha256Hex(buf);
             const r =
               tipoAnalise === "moto_honda"
                 ? await analisarExcelMotoHonda(buf)
                 : await analisarExcelFinanceiroPorPagador(buf, filtroPagador ?? undefined);
-            return { pagador: pagadorAtivo?.nome_pagador || a.nome_arquivo || "Pagador", ...r };
+            return { pagador: pagadorAtivo?.nome_pagador || a.nome_arquivo || "Pagador", _hash: hash, _arquivo: a.nome_arquivo, ...r };
           } catch (err: any) {
             toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
             return {
               pagador: a.nome_arquivo || "Pagador",
+              _hash: null as string | null,
+              _arquivo: a.nome_arquivo,
               enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
               apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
               inclusoes: { quantidade: 0, total: 0 },
