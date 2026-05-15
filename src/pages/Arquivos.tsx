@@ -50,7 +50,16 @@ import {
   Files,
   HardDrive,
   Clock,
+  Building2,
+  FileSignature,
+  CalendarDays,
 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
 import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
