@@ -48,6 +48,15 @@ function FinanceiroRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function FinanceiroOnlyRoute({ children }: { children: React.ReactNode }) {
+  // Acessível apenas para Admin e Financeiro
+  const { user, loading, isAdmin, isFinanceiro } = useAuth();
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!isAdmin && !isFinanceiro) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isAdmin } = useAuth();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
