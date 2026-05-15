@@ -136,7 +136,7 @@ export function PreviewArquivoDialog({
         canvas.style.height = `${Math.floor(viewport.height)}px`;
 
         context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
-        renderTask = page.render({ canvasContext: context, viewport });
+        renderTask = page.render({ canvas, canvasContext: context, viewport });
         await renderTask.promise;
       } catch (err: any) {
         if (!cancelled && err?.name !== "RenderingCancelledException") {
@@ -180,6 +180,53 @@ export function PreviewArquivoDialog({
             {nomeArquivo}
           </DialogTitle>
           <div className="flex items-center gap-2 shrink-0">
+            {pdfDoc && (
+              <div className="flex items-center gap-1 rounded-md border bg-background px-1 py-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
+                  disabled={pageNumber <= 1 || renderingPage}
+                  title="Página anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="min-w-16 text-center text-xs text-muted-foreground">
+                  {pageNumber}/{pdfDoc.numPages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setPageNumber((p) => Math.min(pdfDoc.numPages, p + 1))}
+                  disabled={pageNumber >= pdfDoc.numPages || renderingPage}
+                  title="Próxima página"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setScale((s) => Math.max(0.6, Number((s - 0.2).toFixed(1))))}
+                  disabled={scale <= 0.6 || renderingPage}
+                  title="Diminuir zoom"
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setScale((s) => Math.min(2.4, Number((s + 0.2).toFixed(1))))}
+                  disabled={scale >= 2.4 || renderingPage}
+                  title="Aumentar zoom"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             {url && (
               <Button
                 variant="outline"
@@ -212,11 +259,19 @@ export function PreviewArquivoDialog({
           {!loading && !error && url && (
             <>
               {isPdf ? (
-                <iframe
-                  src={`${url}#toolbar=1&view=FitH`}
-                  title={nomeArquivo}
-                  className="w-full h-full border-0"
-                />
+                <div className="relative h-full overflow-auto p-4">
+                  {renderingPage && (
+                    <div className="absolute inset-x-0 top-3 z-10 flex justify-center pointer-events-none">
+                      <span className="inline-flex items-center rounded-md border bg-background px-3 py-1 text-xs text-muted-foreground shadow-sm">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                        Renderizando...
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex min-h-full justify-center">
+                    <canvas ref={canvasRef} className="h-fit max-w-none rounded-sm bg-background shadow-sm" />
+                  </div>
+                </div>
               ) : isImage ? (
                 <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
                   <img
