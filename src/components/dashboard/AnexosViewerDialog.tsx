@@ -8,8 +8,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Paperclip } from "lucide-react";
+import { Download, Eye, FileText, Paperclip } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
+import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 import { formatDateBR } from "@/lib/date-utils";
 
 function formatDateTime(iso: string): string {
