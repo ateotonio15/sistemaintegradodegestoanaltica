@@ -583,6 +583,72 @@ export type Database = {
         }
         Relationships: []
       }
+      financeiro_arquivos: {
+        Row: {
+          categoria: string
+          competencia: string
+          created_at: string
+          empresa_id: string
+          extensao: string | null
+          hash_arquivo: string | null
+          id: string
+          mime_type: string | null
+          nome_armazenado: string
+          nome_original: string
+          observacao: string | null
+          status: string
+          storage_path: string
+          tamanho_bytes: number | null
+          updated_at: string
+          uploaded_by: string | null
+          uploaded_by_nome: string | null
+          versao: number
+          versao_de: string | null
+        }
+        Insert: {
+          categoria: string
+          competencia: string
+          created_at?: string
+          empresa_id: string
+          extensao?: string | null
+          hash_arquivo?: string | null
+          id?: string
+          mime_type?: string | null
+          nome_armazenado: string
+          nome_original: string
+          observacao?: string | null
+          status?: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_nome?: string | null
+          versao?: number
+          versao_de?: string | null
+        }
+        Update: {
+          categoria?: string
+          competencia?: string
+          created_at?: string
+          empresa_id?: string
+          extensao?: string | null
+          hash_arquivo?: string | null
+          id?: string
+          mime_type?: string | null
+          nome_armazenado?: string
+          nome_original?: string
+          observacao?: string | null
+          status?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_nome?: string | null
+          versao?: number
+          versao_de?: string | null
+        }
+        Relationships: []
+      }
       financeiro_movimentacoes: {
         Row: {
           aguardando_nota_em: string | null

@@ -48,6 +48,15 @@ function FinanceiroRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function FinanceiroOnlyRoute({ children }: { children: React.ReactNode }) {
+  // Acessível apenas para Admin e Financeiro
+  const { user, loading, isAdmin, isFinanceiro } = useAuth();
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!isAdmin && !isFinanceiro) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isAdmin } = useAuth();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
@@ -83,7 +92,7 @@ const AppRoutes = () => (
     
     <Route path="/financeiro" element={<FinanceiroRoute><Financeiro /></FinanceiroRoute>} />
     <Route path="/reajustes" element={<ProtectedRoute><Reajustes /></ProtectedRoute>} />
-    <Route path="/arquivos" element={<ProtectedRoute><Arquivos /></ProtectedRoute>} />
+    <Route path="/arquivos" element={<FinanceiroOnlyRoute><Arquivos /></FinanceiroOnlyRoute>} />
     <Route path="/implantacao" element={<ProtectedRoute allowFinanceiro={false}><Implantacao /></ProtectedRoute>} />
     <Route path="/vidas-samel" element={<ProtectedRoute><VidasSamel /></ProtectedRoute>} />
     <Route path="/usuarios" element={<AdminOnlyRoute><Usuarios /></AdminOnlyRoute>} />

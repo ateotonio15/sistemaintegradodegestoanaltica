@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
@@ -13,53 +13,55 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   FolderArchive,
   Search,
   FileSpreadsheet,
   FileText,
-  Receipt,
-  FileBadge,
-  File,
+  File as FileIcon,
+  Image as ImageIcon,
   Download,
   Eye,
-  Building2,
-  CalendarDays,
+  Upload,
+  Trash2,
+  Files,
+  HardDrive,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
+import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
+import {
+  CATEGORIAS_ARQUIVO,
+  compLabel,
+  formatBytes,
+  tipoArquivo,
+} from "@/lib/arquivos-utils";
 
-type Categoria =
-  | "Excel faturamento"
-  | "Nota fiscal"
-  | "Boleto"
-  | "Recibos"
-  | "Movimentação"
-  | "Outros";
-
-const CATEGORIAS: Categoria[] = [
-  "Excel faturamento",
-  "Nota fiscal",
-  "Boleto",
-  "Recibos",
-  "Movimentação",
-  "Outros",
-];
-
-const BUCKET_FIN = "anexos-financeiro";
-const BUCKET_OP = "anexos-movimentacoes";
+const BUCKET = "arquivos-financeiro";
 
 interface Empresa {
   id: string;
@@ -68,89 +70,61 @@ interface Empresa {
   cnpj: string | null;
 }
 
-interface ArquivoItem {
+interface ArquivoRow {
   id: string;
   empresa_id: string;
-  competencia: string; // "MM/YYYY"
-  competencia_sort: string; // "YYYY-MM"
-  categoria: Categoria;
-  nome_arquivo: string;
-  storage_path: string;
-  bucket: string;
-  origem_label: "Movimentação" | "Financeiro";
-  origem_extra: string | null; // ex: "cobranca"
+  competencia: string;
+  categoria: string;
+  nome_original: string;
+  extensao: string | null;
   mime_type: string | null;
   tamanho_bytes: number | null;
-  created_at: string;
+  observacao: string | null;
   uploaded_by: string | null;
-  uploader_nome: string | null;
+  uploaded_by_nome: string | null;
+  storage_path: string;
+  status: string;
+  versao: number;
+  created_at: string;
 }
 
-function classify(
-  nome: string,
-  mime: string | null,
-  source: "movimentacao" | "financeiro",
-  origem: string | null,
-): Categoria {
-  if (source === "movimentacao") return "Movimentação";
-  const lower = nome.toLowerCase();
-  const m = (mime ?? "").toLowerCase();
-  const isPdf = m.includes("pdf") || lower.endsWith(".pdf");
-  const isExcel =
-    m.includes("spreadsheet") ||
-    m.includes("excel") ||
-    m.includes("csv") ||
-    /\.(xlsx|xls|csv)$/i.test(lower);
-
-  if (isExcel) return "Excel faturamento";
-  if (origem === "cobranca") return "Boleto";
-  if (isPdf && /(boleto)/i.test(lower)) return "Boleto";
-  if (isPdf && /(nfse|nfs|nota)/i.test(lower)) return "Nota fiscal";
-  if (isPdf && /(recibo)/i.test(lower)) return "Recibos";
-  return "Outros";
-}
-
-function compToLabel(mes: string | number, ano: string | number): string {
-  const mm = String(mes).padStart(2, "0");
-  return `${mm}/${ano}`;
-}
-function compToSort(mes: string | number, ano: string | number): string {
-  const mm = String(mes).padStart(2, "0");
-  return `${ano}-${mm}`;
-}
-
-function formatBytes(b: number | null): string {
-  if (!b && b !== 0) return "—";
-  if (b < 1024) return `${b} B`;
-  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
-  return `${(b / (1024 * 1024)).toFixed(2)} MB`;
-}
-
-function iconForCategoria(cat: Categoria) {
-  switch (cat) {
-    case "Excel faturamento":
+function iconForExt(ext: string | null) {
+  const t = tipoArquivo(ext);
+  switch (t) {
+    case "PDF":
+      return <FileText className="h-4 w-4 text-rose-500" />;
+    case "Excel":
       return <FileSpreadsheet className="h-4 w-4 text-emerald-500" />;
-    case "Nota fiscal":
-      return <FileBadge className="h-4 w-4 text-blue-500" />;
-    case "Boleto":
-      return <Receipt className="h-4 w-4 text-amber-500" />;
-    case "Recibos":
-      return <FileText className="h-4 w-4 text-violet-500" />;
-    case "Movimentação":
-      return <FileText className="h-4 w-4 text-slate-500" />;
+    case "Imagem":
+      return <ImageIcon className="h-4 w-4 text-blue-500" />;
+    case "Doc":
+      return <FileText className="h-4 w-4 text-indigo-500" />;
     default:
-      return <File className="h-4 w-4 text-muted-foreground" />;
+      return <FileIcon className="h-4 w-4 text-muted-foreground" />;
   }
 }
 
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  const data = formatDateBR(d);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${data} ${hh}:${mm}`;
+}
+
 export default function Arquivos() {
+  const queryClient = useQueryClient();
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [empresaFilter, setEmpresaFilter] = useState<string>("todas");
-  const [competenciaFilter, setCompetenciaFilter] = useState<string>("todas");
-  const [categoriaFilter, setCategoriaFilter] = useState<string>("todas");
+  const [empresaFilter, setEmpresaFilter] = useState("todas");
+  const [competenciaFilter, setCompetenciaFilter] = useState("todas");
+  const [categoriaFilter, setCategoriaFilter] = useState("todas");
+  const [tipoFilter, setTipoFilter] = useState("todos");
+  const [usuarioFilter, setUsuarioFilter] = useState("todos");
+  const [confirmDelete, setConfirmDelete] = useState<ArquivoRow | null>(null);
 
   const { data: empresas = [] } = useQuery({
-    queryKey: ["arquivos-empresas"],
+    queryKey: ["arquivos-empresas-list"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
@@ -162,190 +136,92 @@ export default function Arquivos() {
   });
 
   const { data: arquivos = [], isLoading } = useQuery({
-    queryKey: ["arquivos-todos"],
+    queryKey: ["financeiro-arquivos"],
     queryFn: async () => {
-      const [movsOpRes, movsFinRes, anxOpRes, anxFinRes] = await Promise.all([
-        supabase
-          .from("movimentacoes")
-          .select("id, empresa_id, mes_referencia, periodo"),
-        supabase
-          .from("financeiro_movimentacoes")
-          .select("id, empresa_id, mes_referencia, periodo"),
-        supabase
-          .from("anexos_movimentacao")
-          .select(
-            "id, movimentacao_id, empresa_id, nome_arquivo, storage_path, mime_type, tamanho_bytes, created_at, uploaded_by",
-          ),
-        supabase
-          .from("anexos_financeiro")
-          .select(
-            "id, financeiro_movimentacao_id, nome_arquivo, storage_path, mime_type, tamanho_bytes, created_at, uploaded_by, origem",
-          ),
-      ]);
-
-      if (movsOpRes.error) throw movsOpRes.error;
-      if (movsFinRes.error) throw movsFinRes.error;
-      if (anxOpRes.error) throw anxOpRes.error;
-      if (anxFinRes.error) throw anxFinRes.error;
-
-      const movOpMap = new Map(
-        (movsOpRes.data ?? []).map((m: any) => [m.id, m]),
-      );
-      const movFinMap = new Map(
-        (movsFinRes.data ?? []).map((m: any) => [m.id, m]),
-      );
-
-      const items: ArquivoItem[] = [];
-
-      for (const a of anxOpRes.data ?? []) {
-        const mov: any = movOpMap.get((a as any).movimentacao_id);
-        if (!mov) continue;
-        // mes_referencia armazenado como "MM/YYYY" ou similar; tentar parse
-        const { mes, ano } = parseMesRef(mov.mes_referencia);
-        items.push({
-          id: (a as any).id,
-          empresa_id: (a as any).empresa_id,
-          competencia: compToLabel(mes, ano),
-          competencia_sort: compToSort(mes, ano),
-          categoria: classify(
-            (a as any).nome_arquivo,
-            (a as any).mime_type,
-            "movimentacao",
-            null,
-          ),
-          nome_arquivo: (a as any).nome_arquivo,
-          storage_path: (a as any).storage_path,
-          bucket: BUCKET_OP,
-          origem_label: "Movimentação",
-          origem_extra: null,
-          mime_type: (a as any).mime_type,
-          tamanho_bytes: (a as any).tamanho_bytes,
-          created_at: (a as any).created_at,
-          uploaded_by: (a as any).uploaded_by,
-          uploader_nome: null,
-        });
-      }
-
-      for (const a of anxFinRes.data ?? []) {
-        const mov: any = movFinMap.get((a as any).financeiro_movimentacao_id);
-        if (!mov) continue;
-        const { mes, ano } = parseMesRef(mov.mes_referencia);
-        items.push({
-          id: (a as any).id,
-          empresa_id: mov.empresa_id,
-          competencia: compToLabel(mes, ano),
-          competencia_sort: compToSort(mes, ano),
-          categoria: classify(
-            (a as any).nome_arquivo,
-            (a as any).mime_type,
-            "financeiro",
-            (a as any).origem ?? null,
-          ),
-          nome_arquivo: (a as any).nome_arquivo,
-          storage_path: (a as any).storage_path,
-          bucket: BUCKET_FIN,
-          origem_label: "Financeiro",
-          origem_extra: (a as any).origem ?? null,
-          mime_type: (a as any).mime_type,
-          tamanho_bytes: (a as any).tamanho_bytes,
-          created_at: (a as any).created_at,
-          uploaded_by: (a as any).uploaded_by,
-          uploader_nome: null,
-        });
-      }
-
-      // Buscar nomes dos uploaders
-      const userIds = Array.from(
-        new Set(items.map((i) => i.uploaded_by).filter(Boolean) as string[]),
-      );
-      if (userIds.length) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, display_name")
-          .in("user_id", userIds);
-        const map = new Map(
-          (profs ?? []).map((p: any) => [p.user_id, p.display_name ?? ""]),
-        );
-        for (const it of items) {
-          if (it.uploaded_by) it.uploader_nome = map.get(it.uploaded_by) ?? null;
-        }
-      }
-
-      return items;
+      const { data, error } = await supabase
+        .from("financeiro_arquivos")
+        .select("*")
+        .eq("status", "ativo")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ArquivoRow[];
     },
   });
 
+  const empresasMap = useMemo(() => {
+    const m = new Map<string, Empresa>();
+    for (const e of empresas) m.set(e.id, e);
+    return m;
+  }, [empresas]);
+
   const competenciasDisponiveis = useMemo(() => {
-    const set = new Set<string>();
-    arquivos.forEach((a) => set.add(a.competencia_sort));
-    return Array.from(set).sort().reverse();
+    const s = new Set<string>();
+    arquivos.forEach((a) => s.add(a.competencia));
+    return Array.from(s).sort().reverse();
+  }, [arquivos]);
+
+  const usuariosDisponiveis = useMemo(() => {
+    const m = new Map<string, string>();
+    arquivos.forEach((a) => {
+      if (a.uploaded_by) m.set(a.uploaded_by, a.uploaded_by_nome ?? a.uploaded_by);
+    });
+    return Array.from(m.entries()).map(([id, nome]) => ({ id, nome }));
   }, [arquivos]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return arquivos.filter((a) => {
       if (empresaFilter !== "todas" && a.empresa_id !== empresaFilter) return false;
-      if (competenciaFilter !== "todas" && a.competencia_sort !== competenciaFilter)
-        return false;
+      if (competenciaFilter !== "todas" && a.competencia !== competenciaFilter) return false;
       if (categoriaFilter !== "todas" && a.categoria !== categoriaFilter) return false;
+      if (tipoFilter !== "todos" && tipoArquivo(a.extensao) !== tipoFilter) return false;
+      if (usuarioFilter !== "todos" && a.uploaded_by !== usuarioFilter) return false;
       if (!q) return true;
-      const emp = empresas.find((e) => e.id === a.empresa_id);
+      const emp = empresasMap.get(a.empresa_id);
       const hay = [
-        a.nome_arquivo,
+        a.nome_original,
         a.competencia,
+        compLabel(a.competencia),
+        a.categoria,
         emp?.nome,
         emp?.codigo_contrato,
         emp?.cnpj,
+        a.uploaded_by_nome,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [arquivos, empresas, search, empresaFilter, competenciaFilter, categoriaFilter]);
+  }, [
+    arquivos,
+    search,
+    empresaFilter,
+    competenciaFilter,
+    categoriaFilter,
+    tipoFilter,
+    usuarioFilter,
+    empresasMap,
+  ]);
 
-  // Agrupar empresa -> competencia -> categoria
-  const grouped = useMemo(() => {
-    const map = new Map<
-      string,
-      { empresa: Empresa | null; total: number; competencias: Map<string, ArquivoItem[]> }
-    >();
-    for (const it of filtered) {
-      let g = map.get(it.empresa_id);
-      if (!g) {
-        const empresa = empresas.find((e) => e.id === it.empresa_id) ?? null;
-        g = { empresa, total: 0, competencias: new Map() };
-        map.set(it.empresa_id, g);
-      }
-      g.total += 1;
-      const compKey = it.competencia_sort;
-      if (!g.competencias.has(compKey)) g.competencias.set(compKey, []);
-      g.competencias.get(compKey)!.push(it);
-    }
-    return Array.from(map.entries())
-      .map(([id, g]) => ({
-        id,
-        empresa: g.empresa,
-        total: g.total,
-        competencias: Array.from(g.competencias.entries())
-          .sort((a, b) => b[0].localeCompare(a[0]))
-          .map(([k, v]) => ({ key: k, label: v[0]?.competencia ?? k, items: v })),
-      }))
-      .sort((a, b) =>
-        (a.empresa?.nome ?? "").localeCompare(b.empresa?.nome ?? "", "pt-BR"),
-      );
-  }, [filtered, empresas]);
+  const kpis = useMemo(() => {
+    const total = arquivos.length;
+    const pdfs = arquivos.filter((a) => tipoArquivo(a.extensao) === "PDF").length;
+    const excels = arquivos.filter((a) => tipoArquivo(a.extensao) === "Excel").length;
+    const seteDias = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const recentes = arquivos.filter((a) => new Date(a.created_at).getTime() >= seteDias).length;
+    const espaco = arquivos.reduce((acc, a) => acc + (a.tamanho_bytes ?? 0), 0);
+    return { total, pdfs, excels, recentes, espaco };
+  }, [arquivos]);
 
-  async function handleDownload(item: ArquivoItem) {
+  async function handleDownload(a: ArquivoRow) {
     try {
-      const { data, error } = await supabase.storage
-        .from(item.bucket)
-        .download(item.storage_path);
+      const { data, error } = await supabase.storage.from(BUCKET).download(a.storage_path);
       if (error || !data) throw error ?? new Error("Falha ao baixar");
       const url = URL.createObjectURL(data);
       const link = document.createElement("a");
       link.href = url;
-      link.download = item.nome_arquivo;
+      link.download = a.nome_original;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -355,15 +231,33 @@ export default function Arquivos() {
     }
   }
 
-  async function handlePreview(item: ArquivoItem) {
+  async function handlePreview(a: ArquivoRow) {
     try {
       const { data, error } = await supabase.storage
-        .from(item.bucket)
-        .createSignedUrl(item.storage_path, 60);
+        .from(BUCKET)
+        .createSignedUrl(a.storage_path, 60);
       if (error || !data?.signedUrl) throw error ?? new Error("Falha ao gerar preview");
       window.open(data.signedUrl, "_blank", "noopener");
     } catch (e: any) {
-      toast.error("Erro ao abrir preview: " + (e?.message ?? "desconhecido"));
+      toast.error("Erro ao abrir: " + (e?.message ?? "desconhecido"));
+    }
+  }
+
+  async function handleDelete(a: ArquivoRow) {
+    try {
+      const { error } = await supabase
+        .from("financeiro_arquivos")
+        .update({ status: "removido" })
+        .eq("id", a.id);
+      if (error) throw error;
+      // Best-effort: remove o objeto do storage também
+      await supabase.storage.from(BUCKET).remove([a.storage_path]).catch(() => null);
+      toast.success("Arquivo removido");
+      queryClient.invalidateQueries({ queryKey: ["financeiro-arquivos"] });
+    } catch (e: any) {
+      toast.error("Erro ao remover: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setConfirmDelete(null);
     }
   }
 
@@ -376,74 +270,100 @@ export default function Arquivos() {
               <FolderArchive className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Arquivos</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Repositório Financeiro</h1>
               <p className="text-sm text-muted-foreground">
-                Central de anexos por empresa e competência
+                Gestão documental dos arquivos enviados manualmente pelo Financeiro
               </p>
             </div>
           </div>
-          <Badge variant="secondary" className="text-sm">
-            {filtered.length} arquivo{filtered.length === 1 ? "" : "s"}
-          </Badge>
+          <Button onClick={() => setUploadOpen(true)} className="gap-2">
+            <Upload className="h-4 w-4" />
+            Enviar arquivos
+          </Button>
         </header>
 
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <KpiCard icon={<Files className="h-4 w-4" />} label="Total" value={kpis.total.toString()} />
+          <KpiCard
+            icon={<FileText className="h-4 w-4 text-rose-500" />}
+            label="PDFs"
+            value={kpis.pdfs.toString()}
+          />
+          <KpiCard
+            icon={<FileSpreadsheet className="h-4 w-4 text-emerald-500" />}
+            label="Excels"
+            value={kpis.excels.toString()}
+          />
+          <KpiCard
+            icon={<Clock className="h-4 w-4 text-blue-500" />}
+            label="Últimos 7 dias"
+            value={kpis.recentes.toString()}
+          />
+          <KpiCard
+            icon={<HardDrive className="h-4 w-4 text-amber-500" />}
+            label="Espaço"
+            value={formatBytes(kpis.espaco)}
+          />
+        </div>
+
+        {/* Filtros */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Filtros</CardTitle>
-            <CardDescription>
-              Refine por empresa, competência, categoria ou busque pelo nome do arquivo
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="relative md:col-span-1">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="relative md:col-span-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nome, empresa, contrato, CNPJ..."
+                  placeholder="Buscar arquivo, empresa, contrato, competência..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
                 />
               </div>
               <Select value={empresaFilter} onValueChange={setEmpresaFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Empresa" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Empresa" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas as empresas</SelectItem>
                   {empresas.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.nome}
-                    </SelectItem>
+                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={competenciaFilter} onValueChange={setCompetenciaFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Competência" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Competência" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todas">Todas as competências</SelectItem>
-                  {competenciasDisponiveis.map((c) => {
-                    const [y, m] = c.split("-");
-                    return (
-                      <SelectItem key={c} value={c}>
-                        {m}/{y}
-                      </SelectItem>
-                    );
-                  })}
+                  <SelectItem value="todas">Todas competências</SelectItem>
+                  {competenciasDisponiveis.map((c) => (
+                    <SelectItem key={c} value={c}>{compLabel(c)}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Categoria" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todas">Todas as categorias</SelectItem>
-                  {CATEGORIAS.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
+                  <SelectItem value="todas">Todas categorias</SelectItem>
+                  {CATEGORIAS_ARQUIVO.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={tipoFilter} onValueChange={setTipoFilter}>
+                <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos tipos</SelectItem>
+                  <SelectItem value="PDF">PDF</SelectItem>
+                  <SelectItem value="Excel">Excel</SelectItem>
+                  <SelectItem value="Imagem">Imagem</SelectItem>
+                  <SelectItem value="Doc">Doc</SelectItem>
+                  <SelectItem value="Outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={usuarioFilter} onValueChange={setUsuarioFilter}>
+                <SelectTrigger><SelectValue placeholder="Usuário" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos usuários</SelectItem>
+                  {usuariosDisponiveis.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -451,159 +371,151 @@ export default function Arquivos() {
           </CardContent>
         </Card>
 
-        {isLoading ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              Carregando arquivos...
-            </CardContent>
-          </Card>
-        ) : grouped.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              Nenhum arquivo encontrado com os filtros atuais.
-            </CardContent>
-          </Card>
-        ) : (
-          <Accordion type="multiple" className="space-y-3">
-            {grouped.map((g) => (
-              <Card key={g.id} className="overflow-hidden">
-                <AccordionItem value={g.id} className="border-0">
-                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Building2 className="h-5 w-5 text-primary shrink-0" />
-                      <div className="text-left min-w-0">
-                        <p className="font-semibold truncate">
-                          {g.empresa?.nome ?? "Empresa"}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {g.empresa?.codigo_contrato ?? "—"}
-                          {g.empresa?.cnpj ? ` · CNPJ ${g.empresa.cnpj}` : ""}
-                        </p>
-                      </div>
-                      <Badge variant="secondary" className="ml-auto mr-3 shrink-0">
-                        {g.total} arquivo{g.total === 1 ? "" : "s"}
-                      </Badge>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-5 pb-5">
-                    <Accordion type="multiple" className="space-y-2">
-                      {g.competencias.map((comp) => {
-                        const porCategoria = new Map<Categoria, ArquivoItem[]>();
-                        for (const it of comp.items) {
-                          if (!porCategoria.has(it.categoria))
-                            porCategoria.set(it.categoria, []);
-                          porCategoria.get(it.categoria)!.push(it);
-                        }
-                        return (
-                          <AccordionItem
-                            key={comp.key}
-                            value={`${g.id}-${comp.key}`}
-                            className="border rounded-lg bg-muted/20"
-                          >
-                            <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                              <div className="flex items-center gap-2">
-                                <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{comp.label}</span>
-                                <Badge variant="outline" className="ml-2">
-                                  {comp.items.length}
-                                </Badge>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="px-4 pb-4">
-                              <div className="space-y-4">
-                                {CATEGORIAS.filter((c) => porCategoria.has(c)).map(
-                                  (cat) => (
-                                    <div key={cat}>
-                                      <div className="flex items-center gap-2 mb-2">
-                                        {iconForCategoria(cat)}
-                                        <h4 className="text-sm font-semibold">{cat}</h4>
-                                        <Badge variant="secondary" className="text-xs">
-                                          {porCategoria.get(cat)!.length}
-                                        </Badge>
-                                      </div>
-                                      <ul className="space-y-1.5">
-                                        {porCategoria.get(cat)!.map((it) => (
-                                          <li
-                                            key={`${it.bucket}-${it.id}`}
-                                            className="flex items-center gap-3 text-sm bg-background border rounded-md px-3 py-2"
-                                          >
-                                            {iconForCategoria(it.categoria)}
-                                            <div className="flex-1 min-w-0">
-                                              <p
-                                                className="truncate font-medium"
-                                                title={it.nome_arquivo}
-                                              >
-                                                {it.nome_arquivo}
-                                              </p>
-                                              <p className="text-xs text-muted-foreground truncate">
-                                                {formatDateBR(new Date(it.created_at))}
-                                                {it.uploader_nome
-                                                  ? ` · ${it.uploader_nome}`
-                                                  : ""}
-                                                {` · ${formatBytes(it.tamanho_bytes)}`}
-                                                {` · `}
-                                                <span className="inline-flex items-center gap-1">
-                                                  <Badge
-                                                    variant="outline"
-                                                    className="text-[10px] py-0 px-1.5"
-                                                  >
-                                                    {it.origem_label}
-                                                  </Badge>
-                                                </span>
-                                              </p>
-                                            </div>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-8 w-8 shrink-0"
-                                              onClick={() => handlePreview(it)}
-                                              title="Visualizar"
-                                            >
-                                              <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-8 w-8 shrink-0"
-                                              onClick={() => handleDownload(it)}
-                                              title="Download"
-                                            >
-                                              <Download className="h-4 w-4" />
-                                            </Button>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  ),
-                                )}
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        );
-                      })}
-                    </Accordion>
-                  </AccordionContent>
-                </AccordionItem>
-              </Card>
-            ))}
-          </Accordion>
-        )}
+        {/* Tabela */}
+        <Card>
+          <CardHeader className="pb-3 flex-row items-center justify-between">
+            <CardTitle className="text-base">
+              Arquivos <span className="text-muted-foreground font-normal">({filtered.length})</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            {isLoading ? (
+              <p className="text-center text-muted-foreground py-12">Carregando...</p>
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center text-muted-foreground space-y-2">
+                <FolderArchive className="h-10 w-10 mx-auto opacity-50" />
+                <p>Nenhum arquivo encontrado.</p>
+                <Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}>
+                  Enviar primeiro arquivo
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8"></TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>Contrato</TableHead>
+                    <TableHead>Competência</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Upload</TableHead>
+                    <TableHead className="text-right">Tamanho</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((a) => {
+                    const emp = empresasMap.get(a.empresa_id);
+                    return (
+                      <TableRow key={a.id}>
+                        <TableCell>{iconForExt(a.extensao)}</TableCell>
+                        <TableCell className="max-w-[260px]">
+                          <div className="truncate font-medium" title={a.nome_original}>
+                            {a.nome_original}
+                          </div>
+                          {a.observacao && (
+                            <div className="text-xs text-muted-foreground truncate" title={a.observacao}>
+                              {a.observacao}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-[180px] truncate" title={emp?.nome ?? ""}>
+                          {emp?.nome ?? "—"}
+                        </TableCell>
+                        <TableCell>{emp?.codigo_contrato ?? "—"}</TableCell>
+                        <TableCell>{compLabel(a.competencia)}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{a.categoria}</Badge>
+                        </TableCell>
+                        <TableCell>{tipoArquivo(a.extensao)}</TableCell>
+                        <TableCell className="max-w-[140px] truncate" title={a.uploaded_by_nome ?? ""}>
+                          {a.uploaded_by_nome ?? "—"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {formatDateTime(a.created_at)}
+                        </TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          {formatBytes(a.tamanho_bytes)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handlePreview(a)}
+                              title="Visualizar"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleDownload(a)}
+                              title="Baixar"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => setConfirmDelete(a)}
+                              title="Excluir"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      <UploadArquivoDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover arquivo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete?.nome_original} será removido permanentemente do repositório.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => confirmDelete && handleDelete(confirmDelete)}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
 
-// Parse "MM/YYYY", "YYYY-MM" ou "YYYY-MM-DD"
-function parseMesRef(value: string | null | undefined): { mes: string; ano: string } {
-  if (!value) return { mes: "00", ano: "0000" };
-  const v = value.trim();
-  if (/^\d{2}\/\d{4}$/.test(v)) {
-    const [m, y] = v.split("/");
-    return { mes: m, ano: y };
-  }
-  if (/^\d{4}-\d{2}/.test(v)) {
-    const [y, m] = v.split("-");
-    return { mes: m, ano: y };
-  }
-  return { mes: "00", ano: v };
+function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <Card>
+      <CardContent className="pt-5 pb-4">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {icon}
+          <span>{label}</span>
+        </div>
+        <p className="text-2xl font-bold mt-1">{value}</p>
+      </CardContent>
+    </Card>
+  );
 }
