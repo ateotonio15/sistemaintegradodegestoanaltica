@@ -463,17 +463,20 @@ export default function Arquivos() {
           </CardContent>
         </Card>
 
-        {/* Tabela */}
+        {/* Lista agrupada: Empresa → Contrato → Competência */}
         <Card>
           <CardHeader className="pb-3 flex-row items-center justify-between">
             <CardTitle className="text-base">
-              Arquivos <span className="text-muted-foreground font-normal">({filtered.length})</span>
+              Repositório por contrato{" "}
+              <span className="text-muted-foreground font-normal">
+                ({grouped.length} empresa{grouped.length === 1 ? "" : "s"} • {filtered.length} arquivo{filtered.length === 1 ? "" : "s"})
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent>
             {isLoading ? (
               <p className="text-center text-muted-foreground py-12">Carregando...</p>
-            ) : filtered.length === 0 ? (
+            ) : grouped.length === 0 ? (
               <div className="py-16 text-center text-muted-foreground space-y-2">
                 <FolderArchive className="h-10 w-10 mx-auto opacity-50" />
                 <p>Nenhum arquivo encontrado.</p>
@@ -482,92 +485,148 @@ export default function Arquivos() {
                 </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8"></TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>Contrato</TableHead>
-                    <TableHead>Competência</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead>Upload</TableHead>
-                    <TableHead className="text-right">Tamanho</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((a) => {
-                    const emp = empresasMap.get(a.empresa_id);
-                    return (
-                      <TableRow key={a.id}>
-                        <TableCell>{iconForExt(a.extensao)}</TableCell>
-                        <TableCell className="max-w-[260px]">
-                          <div className="truncate font-medium" title={a.nome_original}>
-                            {a.nome_original}
+              <Accordion type="multiple" className="space-y-3">
+                {grouped.map((emp) => (
+                  <AccordionItem
+                    key={emp.empresaId}
+                    value={emp.empresaId}
+                    className="border rounded-lg px-3 bg-card"
+                  >
+                    <AccordionTrigger className="hover:no-underline py-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Building2 className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="text-left min-w-0">
+                          <div className="font-semibold truncate">{emp.nome}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {emp.contratos.size} contrato{emp.contratos.size === 1 ? "" : "s"} • {emp.total} arquivo{emp.total === 1 ? "" : "s"}
+                            {emp.ultimoUpload > 0 && (
+                              <> • Último: {formatDateTime(new Date(emp.ultimoUpload).toISOString())}</>
+                            )}
                           </div>
-                          {a.observacao && (
-                            <div className="text-xs text-muted-foreground truncate" title={a.observacao}>
-                              {a.observacao}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="max-w-[180px] truncate" title={emp?.nome ?? ""}>
-                          {emp?.nome ?? "—"}
-                        </TableCell>
-                        <TableCell>{emp?.codigo_contrato ?? "—"}</TableCell>
-                        <TableCell>{compLabel(a.competencia)}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{a.categoria}</Badge>
-                        </TableCell>
-                        <TableCell>{tipoArquivo(a.extensao)}</TableCell>
-                        <TableCell className="max-w-[140px] truncate" title={a.uploaded_by_nome ?? ""}>
-                          {a.uploaded_by_nome ?? "—"}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-xs">
-                          {formatDateTime(a.created_at)}
-                        </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
-                          {formatBytes(a.tamanho_bytes)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handlePreview(a)}
-                              title="Visualizar"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleDownload(a)}
-                              title="Baixar"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => setConfirmDelete(a)}
-                              title="Excluir"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-3">
+                      <Accordion type="multiple" className="space-y-2 pl-2">
+                        {Array.from(emp.contratos.values())
+                          .sort((a, b) => a.contrato.localeCompare(b.contrato))
+                          .map((c) => {
+                            const compsOrdenadas = Array.from(c.competencias.values()).sort(
+                              (a, b) => b.competencia.localeCompare(a.competencia),
+                            );
+                            return (
+                              <AccordionItem
+                                key={c.contrato}
+                                value={`${emp.empresaId}-${c.contrato}`}
+                                className="border rounded-md px-3 bg-muted/30"
+                              >
+                                <AccordionTrigger className="hover:no-underline py-2">
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <FileSignature className="h-4 w-4 text-primary shrink-0" />
+                                    <div className="text-left min-w-0">
+                                      <div className="font-medium truncate">Contrato {c.contrato}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {compsOrdenadas.length} competência{compsOrdenadas.length === 1 ? "" : "s"} • {c.arquivos.length} arquivo{c.arquivos.length === 1 ? "" : "s"}
+                                        {c.ultimoUpload > 0 && (
+                                          <> • Último: {formatDateTime(new Date(c.ultimoUpload).toISOString())}</>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-3">
+                                  <div className="space-y-3 pl-2">
+                                    {compsOrdenadas.map((comp) => (
+                                      <div key={comp.competencia} className="border rounded-md bg-background">
+                                        <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 rounded-t-md">
+                                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                          <span className="text-sm font-medium">{compLabel(comp.competencia)}</span>
+                                          <Badge variant="outline" className="ml-auto">
+                                            {comp.arquivos.length} arquivo{comp.arquivos.length === 1 ? "" : "s"}
+                                          </Badge>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead className="w-8"></TableHead>
+                                                <TableHead>Nome</TableHead>
+                                                <TableHead>Categoria</TableHead>
+                                                <TableHead>Tipo</TableHead>
+                                                <TableHead>Origem</TableHead>
+                                                <TableHead>Usuário</TableHead>
+                                                <TableHead>Upload</TableHead>
+                                                <TableHead className="text-right">Tamanho</TableHead>
+                                                <TableHead className="text-right">Ações</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {comp.arquivos
+                                                .slice()
+                                                .sort((a, b) => b.created_at.localeCompare(a.created_at))
+                                                .map((a) => (
+                                                  <TableRow key={a.id}>
+                                                    <TableCell>{iconForExt(a.extensao)}</TableCell>
+                                                    <TableCell className="max-w-[280px]">
+                                                      <div className="truncate font-medium" title={a.nome_original}>
+                                                        {a.nome_original}
+                                                      </div>
+                                                      {a.observacao && (
+                                                        <div className="text-xs text-muted-foreground truncate" title={a.observacao}>
+                                                          {a.observacao}
+                                                        </div>
+                                                      )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                      <Badge variant="secondary">{a.categoria}</Badge>
+                                                    </TableCell>
+                                                    <TableCell>{tipoArquivo(a.extensao)}</TableCell>
+                                                    <TableCell>
+                                                      <Badge variant={a.origem === "financeiro" ? "default" : "outline"}>
+                                                        {a.origem === "financeiro" ? "Financeiro" : "Arquivos"}
+                                                      </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="max-w-[140px] truncate" title={a.uploaded_by_nome ?? ""}>
+                                                      {a.uploaded_by_nome ?? "—"}
+                                                    </TableCell>
+                                                    <TableCell className="whitespace-nowrap text-xs">
+                                                      {formatDateTime(a.created_at)}
+                                                    </TableCell>
+                                                    <TableCell className="text-right whitespace-nowrap">
+                                                      {formatBytes(a.tamanho_bytes)}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                      <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePreview(a)} title="Visualizar">
+                                                          <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(a)} title="Baixar">
+                                                          <Download className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(a)} title="Excluir">
+                                                          <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                      </div>
+                                                    </TableCell>
+                                                  </TableRow>
+                                                ))}
+                                            </TableBody>
+                                          </Table>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            );
+                          })}
+                      </Accordion>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             )}
           </CardContent>
         </Card>
