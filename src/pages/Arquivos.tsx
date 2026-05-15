@@ -63,6 +63,7 @@ import {
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
 import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
+import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 import {
   CATEGORIAS_ARQUIVO,
   compLabel,
