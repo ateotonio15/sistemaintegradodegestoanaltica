@@ -1,82 +1,87 @@
-# Etapa 35 — Validação Avançada da Implantação
+# Persistência das Análises Excel × PDF (Financeiro)
 
-Reforça a aba "Implantação de Contratos" com regras rígidas de anexos, Ticket automático e validação de layout do Relatório de Vidas.
+## Objetivo
+Salvar no banco o resultado das análises Excel × PDF feitas na aba Financeiro para que sobrevivam a reload, navegação e logout, evitando reprocessamento. Adicionar histórico, "Reanalisar" e fazer "Exportar Erros" usar somente análises persistidas.
 
-## 1. Anexos (Etapa 1)
+## 1. Banco — nova tabela `financeiro_analises`
 
-- Tornar **todos os tipos** obrigatórios para avançar: `anexo_1`, `contrato`, `relatorio_vidas`, `complementar` (mín. 1 arquivo cada). Mantém `anexo_1` com destaque "Prioritário".
-- Sem limite de arquivos por categoria (já é o comportamento atual — manter).
-- Reorganizar a UI em seções colapsáveis por categoria com contadores e ícone de status (✓ verde quando ≥1 / ✕ vermelho quando 0):
-  - Anexo 1 (prioritário)
-  - Contrato
-  - Relatório de Vidas
-  - Complementares
-- Regras de dependência: ao subir "Contrato" mostrar aviso amarelo se faltar `relatorio_vidas` ou `complementar`. Validação `valid[1]` exige todos os 4 tipos com pelo menos 1 anexo.
+Migration cria:
 
-## 2. Ticket automático (Etapas 2 e 3)
+- `id uuid pk`
+- `empresa_id uuid not null` (sem FK para manter padrão do projeto)
+- `financeiro_movimentacao_id uuid` (link opcional para a linha do Financeiro)
+- `mes_referencia text not null` (ex.: "2026-05") — equivale a "competência"
+- `periodo text not null` (ex.: "01-31", "20-25", etc.)
+- `pagador_nome text` / `pagador_cnpj text` (análise é por pagador; uma linha do Financeiro pode ter N pagadores → N análises)
+- `tipo_analise text` — espelha `financeiro_movimentacoes.tipo_analise`
+- `status_analise text not null check in ('OK','ERRO','PENDENTE')`
+- `nome_arquivo_excel text`, `nome_arquivo_pdf text`
+- `hash_excel text`, `hash_pdf text` (sha-256 hex)
+- Valores consolidados (numeric):
+  `valor_excel_apartamento`, `valor_pdf_apartamento`,
+  `valor_excel_enfermaria`, `valor_pdf_enfermaria`,
+  `valor_excel_inclusoes`, `valor_pdf_inclusoes`,
+  `valor_excel_exclusoes`, `valor_pdf_exclusoes`,
+  `qtd_excel_apartamento int`, `qtd_pdf_apartamento int`,
+  `qtd_excel_enfermaria int`, `qtd_pdf_enfermaria int`
+- `divergencias jsonb` — array estruturado `[{campo, valor_excel, valor_pdf, diferenca, mensagem}]`
+- `resultado_completo jsonb` — payload completo de `ComparacaoResultado`/`ComparacaoSimplificada` + `AnaliseResultado` para "Ver detalhes" sem reprocessar
+- `mensagem_final text`
+- `analisado_por uuid`, `analisado_por_nome text`
+- `data_analise timestamptz default now()`
+- `created_at`, `updated_at` + trigger `update_updated_at_column`
 
-- Após extração do Anexo 1 (e sempre que `valor_enfermaria_centavos` mudar), preencher `ticket` automaticamente com o valor formatado em R$ de `valor_enfermaria_centavos`.
-- Campo `Ticket` na Etapa 3 fica **readOnly** para todos os perfis exceto `admin` (Admin pode sobrescrever).
-- Mostrar badge "Auto" ao lado do label e tooltip "Sincronizado com Valor Enfermaria".
+Índices:
+- `(empresa_id, mes_referencia, periodo, pagador_cnpj)` — lookup rápido
+- `(empresa_id, mes_referencia, periodo, hash_excel, hash_pdf)` — verificação de cache
 
-## 3. Etapa 5 — Relatório de Vidas com parsing real
+RLS:
+- Admin: ALL
+- Financeiro: ALL
+- Authenticated: SELECT
 
-Substituir o input manual por leitura do arquivo `relatorio_vidas` mais recente:
+## 2. Lógica de cache (frontend)
 
-- Botão **"Verificar Layout"** (loading elegante) que:
-  1. Baixa o último arquivo `relatorio_vidas` do storage.
-  2. Faz parse via `xlsx` (já em deps via excel-utils existentes) ou `papaparse` para CSV.
-  3. Normaliza cabeçalhos (uppercase, sem acentos, trim).
-  4. Verifica colunas obrigatórias (lista abaixo).
-  5. Para cada linha, valida campos chave (CPF, CEP, datas, NOME, TITULAR, DATA NASC, GRAU PARENTESCO).
-  6. Conta vidas: total, titulares (`GRAU PARENTESCO = TITULAR` ou vazio + `TIPO OPERACAO = INCLUSAO`) e dependentes.
+`src/lib/financeiro-analise-cache.ts` (novo):
+- `sha256Hex(buffer)` usando `crypto.subtle.digest`.
+- `buscarAnaliseSalva({ empresa_id, mes_referencia, periodo, pagador_cnpj, hash_excel, hash_pdf })` → linha ou null.
+- `salvarAnalise(payload)` — upsert por `(empresa_id, mes_referencia, periodo, pagador_cnpj)` (substitui registro anterior, mantém histórico via campo `data_analise` atualizado e `created_at` original).
+- Helpers para extrair valores consolidados a partir de `ComparacaoResultado` e `ComparacaoSimplificada` e calcular `status_analise` (OK quando `divergencias.length === 0` e há PDF; ERRO caso contrário; PENDENTE quando faltam arquivos).
 
-**Colunas obrigatórias validadas:**
-TIPO OPERACAO, NOME, TITULAR, DATA NASC, ESTADO CIVIL, NACIONALIDADE, SEXO, NOME DA MAE, CPF, UF EMISSOR, ORGAO EMISSOR, PAIS EMISSOR, CEP, ENDERECO, NUMERO, BAIRRO, CIDADE, ESTADO, DATA ADMISSAO, GRAU PARENTESCO, NR CARTAO SUS, TIPO LOGRADOURO, DT CASAMENTO.
+## 3. Integração no fluxo de análise atual
 
-**Validações por célula:**
-- CPF: 11 dígitos + DV.
-- CEP: 8 dígitos.
-- DATA NASC / DATA ADMISSAO / DT CASAMENTO: data válida.
-- Campos texto obrigatórios: não vazios (exceto DT CASAMENTO se ESTADO CIVIL ≠ "CASADO").
+`AnaliseExcelRow.tsx` (e ponto onde a análise é disparada em `Financeiro.tsx`):
+- Antes de processar Excel/PDF: gerar hashes e consultar `financeiro_analises`. Se houver match exato → carregar `resultado_completo` no estado, exibir toast "Análise carregada do histórico".
+- Após análise nova: persistir no banco com `salvarAnalise`.
+- Botão **Reanalisar** ao lado do "Verificar PDF": limpa cache local + força reprocessamento + atualiza linha no banco.
+- Ao montar `Financeiro.tsx`, prefetch das análises salvas do mês corrente para popular `analiseResultados` / `analiseComparacoes` sem clique do usuário.
 
-**Resultado visual** (modal/painel):
-- Resumo: Total vidas, Titulares, Dependentes, Erros, Alertas.
-- Checklist por coluna com ícone ✓ (ok) / ⚠ (alerta) / ✕ (erro).
-- Tabela de pendências por linha: `Linha 42 — CPF vazio`, `Linha 15 — DATA NASC inválida`.
-- Progress bar durante o parse.
+## 4. Exportar Erros
 
-## 4. Bloqueio de avanço
+Reescrever `handleExportErros` em `src/pages/Financeiro.tsx` para:
+- `SELECT * FROM financeiro_analises WHERE mes_referencia = $mes AND status_analise = 'ERRO'`.
+- Iterar `divergencias` jsonb e gerar planilha com colunas:
+  Empresa, Contrato, CNPJ, Pagador, Competência, Status, Tipo, Campo, Valor Excel, Valor PDF, Diferença, Mensagem, Data da Análise, Usuário.
+- Não tocar nos arquivos originais.
 
-- `valid[5]` só fica `true` se a última verificação rodou com sucesso e **0 erros** de coluna ausente / campo obrigatório vazio. Alertas (não-críticos) permitem avançar.
-- Se layout inválido: avançar bloqueado + mensagem clara.
+## 5. Histórico de Análises (UI)
 
-## 5. Persistência
+Novo componente `src/components/financeiro/HistoricoAnalisesDialog.tsx`:
+- Aberto por botão "Histórico de análises" no header da página, ao lado de "Exportar erros".
+- Lista paginada/filtrável por mês, empresa, status.
+- Colunas: Empresa, Contrato, Competência, Pagador, Status (badge verde/vermelho), Data, Usuário, Arquivos.
+- Ações por linha: "Ver detalhes" (sub-dialog mostrando `resultado_completo` formatado com a mesma UI já usada no inline) e "Reanalisar" (apaga registro e dispara nova análise).
 
-Adicionar colunas em `implantacoes_contratos`:
-- `ticket_auto_sync boolean default true`
-- `vidas_titulares integer`
-- `vidas_dependentes integer`
-- `relatorio_validacao jsonb` — `{ verificado_em, total_linhas, total_vidas, titulares, dependentes, erros: [...], alertas: [...], colunas_ausentes: [...] }`
+## 6. Não escopo / cuidados
 
-`total_vidas` continua existindo e é sobrescrito pelo resultado da validação.
+- Não salvar bytes dos arquivos — só metadados, hashes e resultado consolidado.
+- Manter compatibilidade com análises antigas (se faltar registro, fluxo atual continua valendo).
+- Não alterar parsers de Excel/PDF.
+- Status final do banco é a verdade — `Exportar Erros` nunca recalcula divergências.
 
-## 6. Performance
-
-- Parse executado em chunks (XLSX.read com `dense:true`); processar em `requestIdleCallback` por blocos de 500 linhas para não travar a UI.
-- Limite prático: 50k linhas — acima disso, mostrar aviso.
-
-## Detalhes técnicos
-
-- **Arquivos a editar**: `src/components/implantacao/ImplantacaoWizard.tsx` (Steps 1, 2, 3, 5, validações).
-- **Novo arquivo**: `src/lib/relatorio-vidas-validator.ts` (parser + validator + cpf/cep/date helpers reutilizando `src/lib/excel-analysis-utils.ts` para leitura).
-- **Migração SQL**: nova migration adicionando as 4 colunas em `implantacoes_contratos`.
-- **Auth check para Ticket**: usar `useAuth()` + `has_role` já consumido no projeto (verificar como está em outras telas — `useUserRole`).
-- **UI de validação**: componente inline na Etapa 5 com `Progress`, `Badge`, `ScrollArea` e tabela shadcn.
-
-## Não-fazer
-
-- Não alterar a lógica de extração do Anexo 1 (Etapa 2).
-- Não permitir avanço com layout inválido.
-- Não aceitar Ticket diferente de Valor Enfermaria (exceto override admin).
-- Não limitar quantidade de anexos.
+## Arquivos
+- novo: `supabase/migrations/<ts>_financeiro_analises.sql`
+- novo: `src/lib/financeiro-analise-cache.ts`
+- novo: `src/components/financeiro/HistoricoAnalisesDialog.tsx`
+- editado: `src/pages/Financeiro.tsx` (prefetch, handleExportErros, botão histórico)
+- editado: `src/components/financeiro/AnaliseExcelRow.tsx` (cache + Reanalisar)
