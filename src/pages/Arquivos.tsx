@@ -180,16 +180,26 @@ export default function Arquivos() {
     return Array.from(m.entries()).map(([id, nome]) => ({ id, nome }));
   }, [arquivos]);
 
+  const contratosDisponiveis = useMemo(() => {
+    const s = new Set<string>();
+    arquivos.forEach((a) => {
+      const cc = empresasMap.get(a.empresa_id)?.codigo_contrato;
+      if (cc) s.add(cc);
+    });
+    return Array.from(s).sort();
+  }, [arquivos, empresasMap]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return arquivos.filter((a) => {
+      const emp = empresasMap.get(a.empresa_id);
       if (empresaFilter !== "todas" && a.empresa_id !== empresaFilter) return false;
+      if (contratoFilter !== "todos" && (emp?.codigo_contrato ?? "") !== contratoFilter) return false;
       if (competenciaFilter !== "todas" && a.competencia !== competenciaFilter) return false;
       if (categoriaFilter !== "todas" && a.categoria !== categoriaFilter) return false;
       if (tipoFilter !== "todos" && tipoArquivo(a.extensao) !== tipoFilter) return false;
       if (usuarioFilter !== "todos" && a.uploaded_by !== usuarioFilter) return false;
       if (!q) return true;
-      const emp = empresasMap.get(a.empresa_id);
       const hay = [
         a.nome_original,
         a.competencia,
@@ -209,12 +219,70 @@ export default function Arquivos() {
     arquivos,
     search,
     empresaFilter,
+    contratoFilter,
     competenciaFilter,
     categoriaFilter,
     tipoFilter,
     usuarioFilter,
     empresasMap,
   ]);
+
+  // Agrupamento: Empresa -> Contrato -> Competência -> arquivos[]
+  const grouped = useMemo(() => {
+    type Comp = { competencia: string; arquivos: ArquivoRow[] };
+    type Contr = {
+      contrato: string;
+      empresaIds: Set<string>;
+      arquivos: ArquivoRow[];
+      competencias: Map<string, Comp>;
+      ultimoUpload: number;
+    };
+    type Emp = {
+      empresaId: string;
+      nome: string;
+      contratos: Map<string, Contr>;
+      total: number;
+      ultimoUpload: number;
+    };
+    const empMap = new Map<string, Emp>();
+    for (const a of filtered) {
+      const e = empresasMap.get(a.empresa_id);
+      const empKey = a.empresa_id;
+      const empNome = e?.nome ?? "Empresa desconhecida";
+      const contrato = e?.codigo_contrato ?? "Sem contrato";
+      const ts = new Date(a.created_at).getTime();
+      if (!empMap.has(empKey)) {
+        empMap.set(empKey, {
+          empresaId: empKey,
+          nome: empNome,
+          contratos: new Map(),
+          total: 0,
+          ultimoUpload: 0,
+        });
+      }
+      const emp = empMap.get(empKey)!;
+      emp.total += 1;
+      emp.ultimoUpload = Math.max(emp.ultimoUpload, ts);
+      if (!emp.contratos.has(contrato)) {
+        emp.contratos.set(contrato, {
+          contrato,
+          empresaIds: new Set(),
+          arquivos: [],
+          competencias: new Map(),
+          ultimoUpload: 0,
+        });
+      }
+      const c = emp.contratos.get(contrato)!;
+      c.empresaIds.add(empKey);
+      c.arquivos.push(a);
+      c.ultimoUpload = Math.max(c.ultimoUpload, ts);
+      if (!c.competencias.has(a.competencia)) {
+        c.competencias.set(a.competencia, { competencia: a.competencia, arquivos: [] });
+      }
+      c.competencias.get(a.competencia)!.arquivos.push(a);
+    }
+    return Array.from(empMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [filtered, empresasMap]);
 
   const kpis = useMemo(() => {
     const total = arquivos.length;
