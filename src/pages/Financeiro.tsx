@@ -811,15 +811,19 @@ export default function Financeiro() {
   const handleExportErros = async () => {
     setIsExportingErros(true);
     try {
-      const rowsByKey = new Map<string, FinanceiroRow>();
-      filteredRows.forEach((r) => rowsByKey.set(r.rowKey ?? r.id, r));
-
       const fmtMoney = (n: number | null | undefined) =>
         n === null || n === undefined || isNaN(n as number)
           ? "—"
           : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n as number);
       const fmtNum = (n: number | null | undefined) =>
         n === null || n === undefined || isNaN(n as number) ? "—" : String(n);
+
+      // Carrega análises com erro persistidas no banco para o mês atual
+      const analises = await listarAnalisesComErro(mes);
+      if (analises.length === 0) {
+        toast.success("Nenhuma divergência encontrada — todas as análises estão OK.");
+        return;
+      }
 
       type Linha = {
         empresa: string;
@@ -834,81 +838,23 @@ export default function Financeiro() {
       };
       const linhas: Linha[] = [];
 
-      const pushDiverg = (
-        key: string,
-        pagador: string,
-        campo: string,
-        excel: number | null | undefined,
-        pdf: number | null | undefined,
-        money: boolean,
-        mensagem: string,
-      ) => {
-        const r = rowsByKey.get(key);
-        if (!r) return;
-        linhas.push({
-          empresa: r.empresa_nome || "",
-          contrato: r.empresa_codigo || "",
-          cnpj: r.empresa_cnpj || "",
-          pagador: pagador || r.empresa_nome || "",
-          mes: formatMesReferencia(mes),
-          campo,
-          valor_excel: money ? fmtMoney(excel) : fmtNum(excel),
-          valor_pdf: money ? fmtMoney(pdf) : fmtNum(pdf),
-          mensagem,
-        });
-      };
-
-      // Considerar APENAS divergências reais entre Excel e PDF.
-      // Avisos do parser (Excel/PDF) e categorias inexistentes no contrato são ignorados.
-      Object.entries(analiseComparacoes).forEach(([key, lista]) => {
-        (lista || []).forEach((c: any) => {
-          if (!c || !c.arquivoPdf) return; // sem PDF, não há comparação real
-          const pagador = c.pagador || "";
-
-          // Comparação detalhada (enfermaria/apartamento/inclusões com Excel × PDF)
-          const checkCampo = (
-            label: string,
-            cmp: { excel: number; pdf: number | null; ok: boolean } | null | undefined,
-            money: boolean,
-          ) => {
-            // Só é erro real quando o PDF retornou valor e ele difere do Excel.
-            if (!cmp || cmp.pdf === null || cmp.pdf === undefined) return;
-            if (cmp.ok) return;
-            pushDiverg(
-              key,
-              pagador,
-              label,
-              cmp.excel,
-              cmp.pdf,
-              money,
-              `Valor divergente entre Excel e PDF em ${label}.`,
-            );
-          };
-
-          if (c.enfermaria) {
-            checkCampo("Enfermaria — beneficiários", c.enfermaria.beneficiarios, false);
-            checkCampo("Enfermaria — mensalidade", c.enfermaria.mensalidade, true);
-            checkCampo("Enfermaria — total", c.enfermaria.total, true);
-          }
-          if (c.apartamento) {
-            checkCampo("Apartamento — beneficiários", c.apartamento.beneficiarios, false);
-            checkCampo("Apartamento — mensalidade", c.apartamento.mensalidade, true);
-            checkCampo("Apartamento — total", c.apartamento.total, true);
-          }
-          if (c.inclusoes) {
-            // ComparacaoResultado: { total }; ComparacaoSimplificada: { excel, pdf, ok }
-            const incCmp =
-              "total" in c.inclusoes ? (c.inclusoes as any).total : (c.inclusoes as any);
-            checkCampo("Inclusões — total", incCmp, true);
-          }
-          if (c.beneficiarios) {
-            checkCampo("Total de beneficiários", c.beneficiarios, false);
-          }
-          if (c.exclusoes) {
-            checkCampo("Exclusões — total", c.exclusoes, true);
-          }
-        });
-      });
+      for (const a of analises) {
+        const emp = empresasMap[a.empresa_id];
+        for (const d of a.divergencias || []) {
+          const isMoney = !/benefici/i.test(d.campo);
+          linhas.push({
+            empresa: emp?.nome || "",
+            contrato: emp?.codigo || "",
+            cnpj: emp?.cnpj || "",
+            pagador: a.pagador_nome || emp?.nome || "",
+            mes: formatMesReferencia(a.mes_referencia),
+            campo: d.campo,
+            valor_excel: isMoney ? fmtMoney(d.valor_excel) : fmtNum(d.valor_excel),
+            valor_pdf: isMoney ? fmtMoney(d.valor_pdf) : fmtNum(d.valor_pdf),
+            mensagem: d.mensagem,
+          });
+        }
+      }
 
       if (linhas.length === 0) {
         toast.success("Nenhuma divergência encontrada — todas as análises estão OK.");
