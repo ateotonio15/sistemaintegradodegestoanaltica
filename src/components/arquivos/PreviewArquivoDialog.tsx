@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
   Dialog,
   DialogContent,
@@ -6,9 +8,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  Loader2,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface Props {
   open: boolean;
@@ -28,8 +42,13 @@ export function PreviewArquivoDialog({
   mimeType,
 }: Props) {
   const [url, setUrl] = useState<string | null>(null);
+  const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [scale, setScale] = useState(1.2);
+  const [renderingPage, setRenderingPage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase();
   const isPdf = ext === "pdf" || (mimeType ?? "").includes("pdf");
@@ -43,18 +62,26 @@ export function PreviewArquivoDialog({
         if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
         return null;
       });
+      setPdfDoc((prev) => {
+        prev?.destroy();
+        return null;
+      });
+      setPageNumber(1);
       setError(null);
       return;
     }
     let cancelled = false;
     let createdBlobUrl: string | null = null;
+    let loadedPdf: PDFDocumentProxy | null = null;
     (async () => {
       setLoading(true);
       setError(null);
+      setPdfDoc((prev) => {
+        prev?.destroy();
+        return null;
+      });
+      setPageNumber(1);
       try {
-        // Baixa o arquivo e cria um blob URL local — evita bloqueios de
-        // iframe cross-origin (ex.: Microsoft Edge bloqueia PDFs de domínios
-        // diferentes em iframe por padrão).
         const { data, error: e } = await supabase.storage
           .from(bucket)
           .download(storagePath);
@@ -64,7 +91,14 @@ export function PreviewArquivoDialog({
           (isPdf ? "application/pdf" : data.type || "application/octet-stream");
         const blob = data.type ? data : new Blob([data], { type: mime });
         createdBlobUrl = URL.createObjectURL(blob);
-        if (!cancelled) setUrl(createdBlobUrl);
+        if (isPdf) {
+          const buffer = await blob.arrayBuffer();
+          loadedPdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+        }
+        if (!cancelled) {
+          setUrl(createdBlobUrl);
+          if (loadedPdf) setPdfDoc(loadedPdf);
+        }
       } catch (err: any) {
         if (!cancelled) setError(err?.message ?? "Erro ao carregar arquivo");
       } finally {
@@ -73,9 +107,51 @@ export function PreviewArquivoDialog({
     })();
     return () => {
       cancelled = true;
+      loadedPdf?.destroy();
       if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     };
   }, [open, bucket, storagePath, mimeType, isPdf]);
+
+  useEffect(() => {
+    if (!pdfDoc || !canvasRef.current) return;
+
+    let cancelled = false;
+    let renderTask: RenderTask | null = null;
+
+    (async () => {
+      setRenderingPage(true);
+      try {
+        const page = await pdfDoc.getPage(pageNumber);
+        if (cancelled || !canvasRef.current) return;
+
+        const viewport = page.getViewport({ scale });
+        const canvas = canvasRef.current;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Canvas indisponível");
+
+        const outputScale = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+        context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
+        renderTask = page.render({ canvasContext: context, viewport });
+        await renderTask.promise;
+      } catch (err: any) {
+        if (!cancelled && err?.name !== "RenderingCancelledException") {
+          setError(err?.message ?? "Erro ao renderizar PDF");
+        }
+      } finally {
+        if (!cancelled) setRenderingPage(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      renderTask?.cancel();
+    };
+  }, [pdfDoc, pageNumber, scale]);
 
   async function handleDownload() {
     try {
