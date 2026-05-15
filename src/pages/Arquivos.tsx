@@ -61,7 +61,7 @@ import {
   tipoArquivo,
 } from "@/lib/arquivos-utils";
 
-const BUCKET = "arquivos-financeiro";
+const DEFAULT_BUCKET = "arquivos-financeiro";
 
 interface Empresa {
   id: string;
@@ -86,6 +86,8 @@ interface ArquivoRow {
   status: string;
   versao: number;
   created_at: string;
+  bucket?: string | null;
+  origem?: string | null;
 }
 
 function iconForExt(ext: string | null) {
@@ -216,7 +218,7 @@ export default function Arquivos() {
 
   async function handleDownload(a: ArquivoRow) {
     try {
-      const { data, error } = await supabase.storage.from(BUCKET).download(a.storage_path);
+      const { data, error } = await supabase.storage.from(a.bucket || DEFAULT_BUCKET).download(a.storage_path);
       if (error || !data) throw error ?? new Error("Falha ao baixar");
       const url = URL.createObjectURL(data);
       const link = document.createElement("a");
@@ -234,7 +236,7 @@ export default function Arquivos() {
   async function handlePreview(a: ArquivoRow) {
     try {
       const { data, error } = await supabase.storage
-        .from(BUCKET)
+        .from(a.bucket || DEFAULT_BUCKET)
         .createSignedUrl(a.storage_path, 60);
       if (error || !data?.signedUrl) throw error ?? new Error("Falha ao gerar preview");
       window.open(data.signedUrl, "_blank", "noopener");
@@ -250,8 +252,11 @@ export default function Arquivos() {
         .update({ status: "removido" })
         .eq("id", a.id);
       if (error) throw error;
-      // Best-effort: remove o objeto do storage também
-      await supabase.storage.from(BUCKET).remove([a.storage_path]).catch(() => null);
+      // Só remove o objeto do storage se for um upload nativo da aba Arquivos.
+      // Arquivos espelhados do Financeiro pertencem àquela aba e não devem ser apagados aqui.
+      if (a.origem !== "financeiro") {
+        await supabase.storage.from(a.bucket || DEFAULT_BUCKET).remove([a.storage_path]).catch(() => null);
+      }
       toast.success("Arquivo removido");
       queryClient.invalidateQueries({ queryKey: ["financeiro-arquivos"] });
     } catch (e: any) {
