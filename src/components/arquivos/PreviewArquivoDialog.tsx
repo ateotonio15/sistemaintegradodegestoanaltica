@@ -39,20 +39,32 @@ export function PreviewArquivoDialog({
 
   useEffect(() => {
     if (!open) {
-      setUrl(null);
+      setUrl((prev) => {
+        if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
       setError(null);
       return;
     }
     let cancelled = false;
+    let createdBlobUrl: string | null = null;
     (async () => {
       setLoading(true);
       setError(null);
       try {
+        // Baixa o arquivo e cria um blob URL local — evita bloqueios de
+        // iframe cross-origin (ex.: Microsoft Edge bloqueia PDFs de domínios
+        // diferentes em iframe por padrão).
         const { data, error: e } = await supabase.storage
           .from(bucket)
-          .createSignedUrl(storagePath, 300);
-        if (e || !data?.signedUrl) throw e ?? new Error("Falha ao gerar URL");
-        if (!cancelled) setUrl(data.signedUrl);
+          .download(storagePath);
+        if (e || !data) throw e ?? new Error("Falha ao baixar arquivo");
+        const mime =
+          mimeType ||
+          (isPdf ? "application/pdf" : data.type || "application/octet-stream");
+        const blob = data.type ? data : new Blob([data], { type: mime });
+        createdBlobUrl = URL.createObjectURL(blob);
+        if (!cancelled) setUrl(createdBlobUrl);
       } catch (err: any) {
         if (!cancelled) setError(err?.message ?? "Erro ao carregar arquivo");
       } finally {
@@ -61,8 +73,9 @@ export function PreviewArquivoDialog({
     })();
     return () => {
       cancelled = true;
+      if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     };
-  }, [open, bucket, storagePath]);
+  }, [open, bucket, storagePath, mimeType, isPdf]);
 
   async function handleDownload() {
     try {
