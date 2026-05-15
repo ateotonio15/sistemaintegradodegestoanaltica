@@ -50,7 +50,16 @@ import {
   Files,
   HardDrive,
   Clock,
+  Building2,
+  FileSignature,
+  CalendarDays,
 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
 import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
@@ -123,6 +132,7 @@ export default function Arquivos() {
   const [categoriaFilter, setCategoriaFilter] = useState("todas");
   const [tipoFilter, setTipoFilter] = useState("todos");
   const [usuarioFilter, setUsuarioFilter] = useState("todos");
+  const [contratoFilter, setContratoFilter] = useState("todos");
   const [confirmDelete, setConfirmDelete] = useState<ArquivoRow | null>(null);
 
   const { data: empresas = [] } = useQuery({
@@ -170,16 +180,26 @@ export default function Arquivos() {
     return Array.from(m.entries()).map(([id, nome]) => ({ id, nome }));
   }, [arquivos]);
 
+  const contratosDisponiveis = useMemo(() => {
+    const s = new Set<string>();
+    arquivos.forEach((a) => {
+      const cc = empresasMap.get(a.empresa_id)?.codigo_contrato;
+      if (cc) s.add(cc);
+    });
+    return Array.from(s).sort();
+  }, [arquivos, empresasMap]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return arquivos.filter((a) => {
+      const emp = empresasMap.get(a.empresa_id);
       if (empresaFilter !== "todas" && a.empresa_id !== empresaFilter) return false;
+      if (contratoFilter !== "todos" && (emp?.codigo_contrato ?? "") !== contratoFilter) return false;
       if (competenciaFilter !== "todas" && a.competencia !== competenciaFilter) return false;
       if (categoriaFilter !== "todas" && a.categoria !== categoriaFilter) return false;
       if (tipoFilter !== "todos" && tipoArquivo(a.extensao) !== tipoFilter) return false;
       if (usuarioFilter !== "todos" && a.uploaded_by !== usuarioFilter) return false;
       if (!q) return true;
-      const emp = empresasMap.get(a.empresa_id);
       const hay = [
         a.nome_original,
         a.competencia,
@@ -199,12 +219,70 @@ export default function Arquivos() {
     arquivos,
     search,
     empresaFilter,
+    contratoFilter,
     competenciaFilter,
     categoriaFilter,
     tipoFilter,
     usuarioFilter,
     empresasMap,
   ]);
+
+  // Agrupamento: Empresa -> Contrato -> Competência -> arquivos[]
+  const grouped = useMemo(() => {
+    type Comp = { competencia: string; arquivos: ArquivoRow[] };
+    type Contr = {
+      contrato: string;
+      empresaIds: Set<string>;
+      arquivos: ArquivoRow[];
+      competencias: Map<string, Comp>;
+      ultimoUpload: number;
+    };
+    type Emp = {
+      empresaId: string;
+      nome: string;
+      contratos: Map<string, Contr>;
+      total: number;
+      ultimoUpload: number;
+    };
+    const empMap = new Map<string, Emp>();
+    for (const a of filtered) {
+      const e = empresasMap.get(a.empresa_id);
+      const empKey = a.empresa_id;
+      const empNome = e?.nome ?? "Empresa desconhecida";
+      const contrato = e?.codigo_contrato ?? "Sem contrato";
+      const ts = new Date(a.created_at).getTime();
+      if (!empMap.has(empKey)) {
+        empMap.set(empKey, {
+          empresaId: empKey,
+          nome: empNome,
+          contratos: new Map(),
+          total: 0,
+          ultimoUpload: 0,
+        });
+      }
+      const emp = empMap.get(empKey)!;
+      emp.total += 1;
+      emp.ultimoUpload = Math.max(emp.ultimoUpload, ts);
+      if (!emp.contratos.has(contrato)) {
+        emp.contratos.set(contrato, {
+          contrato,
+          empresaIds: new Set(),
+          arquivos: [],
+          competencias: new Map(),
+          ultimoUpload: 0,
+        });
+      }
+      const c = emp.contratos.get(contrato)!;
+      c.empresaIds.add(empKey);
+      c.arquivos.push(a);
+      c.ultimoUpload = Math.max(c.ultimoUpload, ts);
+      if (!c.competencias.has(a.competencia)) {
+        c.competencias.set(a.competencia, { competencia: a.competencia, arquivos: [] });
+      }
+      c.competencias.get(a.competencia)!.arquivos.push(a);
+    }
+    return Array.from(empMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [filtered, empresasMap]);
 
   const kpis = useMemo(() => {
     const total = arquivos.length;
@@ -334,6 +412,15 @@ export default function Arquivos() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={contratoFilter} onValueChange={setContratoFilter}>
+                <SelectTrigger><SelectValue placeholder="Contrato" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos contratos</SelectItem>
+                  {contratosDisponiveis.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={competenciaFilter} onValueChange={setCompetenciaFilter}>
                 <SelectTrigger><SelectValue placeholder="Competência" /></SelectTrigger>
                 <SelectContent>
@@ -376,17 +463,20 @@ export default function Arquivos() {
           </CardContent>
         </Card>
 
-        {/* Tabela */}
+        {/* Lista agrupada: Empresa → Contrato → Competência */}
         <Card>
           <CardHeader className="pb-3 flex-row items-center justify-between">
             <CardTitle className="text-base">
-              Arquivos <span className="text-muted-foreground font-normal">({filtered.length})</span>
+              Repositório por contrato{" "}
+              <span className="text-muted-foreground font-normal">
+                ({grouped.length} empresa{grouped.length === 1 ? "" : "s"} • {filtered.length} arquivo{filtered.length === 1 ? "" : "s"})
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent>
             {isLoading ? (
               <p className="text-center text-muted-foreground py-12">Carregando...</p>
-            ) : filtered.length === 0 ? (
+            ) : grouped.length === 0 ? (
               <div className="py-16 text-center text-muted-foreground space-y-2">
                 <FolderArchive className="h-10 w-10 mx-auto opacity-50" />
                 <p>Nenhum arquivo encontrado.</p>
@@ -395,92 +485,148 @@ export default function Arquivos() {
                 </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8"></TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>Contrato</TableHead>
-                    <TableHead>Competência</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead>Upload</TableHead>
-                    <TableHead className="text-right">Tamanho</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((a) => {
-                    const emp = empresasMap.get(a.empresa_id);
-                    return (
-                      <TableRow key={a.id}>
-                        <TableCell>{iconForExt(a.extensao)}</TableCell>
-                        <TableCell className="max-w-[260px]">
-                          <div className="truncate font-medium" title={a.nome_original}>
-                            {a.nome_original}
+              <Accordion type="multiple" className="space-y-3">
+                {grouped.map((emp) => (
+                  <AccordionItem
+                    key={emp.empresaId}
+                    value={emp.empresaId}
+                    className="border rounded-lg px-3 bg-card"
+                  >
+                    <AccordionTrigger className="hover:no-underline py-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Building2 className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="text-left min-w-0">
+                          <div className="font-semibold truncate">{emp.nome}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {emp.contratos.size} contrato{emp.contratos.size === 1 ? "" : "s"} • {emp.total} arquivo{emp.total === 1 ? "" : "s"}
+                            {emp.ultimoUpload > 0 && (
+                              <> • Último: {formatDateTime(new Date(emp.ultimoUpload).toISOString())}</>
+                            )}
                           </div>
-                          {a.observacao && (
-                            <div className="text-xs text-muted-foreground truncate" title={a.observacao}>
-                              {a.observacao}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="max-w-[180px] truncate" title={emp?.nome ?? ""}>
-                          {emp?.nome ?? "—"}
-                        </TableCell>
-                        <TableCell>{emp?.codigo_contrato ?? "—"}</TableCell>
-                        <TableCell>{compLabel(a.competencia)}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{a.categoria}</Badge>
-                        </TableCell>
-                        <TableCell>{tipoArquivo(a.extensao)}</TableCell>
-                        <TableCell className="max-w-[140px] truncate" title={a.uploaded_by_nome ?? ""}>
-                          {a.uploaded_by_nome ?? "—"}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-xs">
-                          {formatDateTime(a.created_at)}
-                        </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
-                          {formatBytes(a.tamanho_bytes)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handlePreview(a)}
-                              title="Visualizar"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleDownload(a)}
-                              title="Baixar"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => setConfirmDelete(a)}
-                              title="Excluir"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-3">
+                      <Accordion type="multiple" className="space-y-2 pl-2">
+                        {Array.from(emp.contratos.values())
+                          .sort((a, b) => a.contrato.localeCompare(b.contrato))
+                          .map((c) => {
+                            const compsOrdenadas = Array.from(c.competencias.values()).sort(
+                              (a, b) => b.competencia.localeCompare(a.competencia),
+                            );
+                            return (
+                              <AccordionItem
+                                key={c.contrato}
+                                value={`${emp.empresaId}-${c.contrato}`}
+                                className="border rounded-md px-3 bg-muted/30"
+                              >
+                                <AccordionTrigger className="hover:no-underline py-2">
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <FileSignature className="h-4 w-4 text-primary shrink-0" />
+                                    <div className="text-left min-w-0">
+                                      <div className="font-medium truncate">Contrato {c.contrato}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {compsOrdenadas.length} competência{compsOrdenadas.length === 1 ? "" : "s"} • {c.arquivos.length} arquivo{c.arquivos.length === 1 ? "" : "s"}
+                                        {c.ultimoUpload > 0 && (
+                                          <> • Último: {formatDateTime(new Date(c.ultimoUpload).toISOString())}</>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-3">
+                                  <div className="space-y-3 pl-2">
+                                    {compsOrdenadas.map((comp) => (
+                                      <div key={comp.competencia} className="border rounded-md bg-background">
+                                        <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 rounded-t-md">
+                                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                          <span className="text-sm font-medium">{compLabel(comp.competencia)}</span>
+                                          <Badge variant="outline" className="ml-auto">
+                                            {comp.arquivos.length} arquivo{comp.arquivos.length === 1 ? "" : "s"}
+                                          </Badge>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead className="w-8"></TableHead>
+                                                <TableHead>Nome</TableHead>
+                                                <TableHead>Categoria</TableHead>
+                                                <TableHead>Tipo</TableHead>
+                                                <TableHead>Origem</TableHead>
+                                                <TableHead>Usuário</TableHead>
+                                                <TableHead>Upload</TableHead>
+                                                <TableHead className="text-right">Tamanho</TableHead>
+                                                <TableHead className="text-right">Ações</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {comp.arquivos
+                                                .slice()
+                                                .sort((a, b) => b.created_at.localeCompare(a.created_at))
+                                                .map((a) => (
+                                                  <TableRow key={a.id}>
+                                                    <TableCell>{iconForExt(a.extensao)}</TableCell>
+                                                    <TableCell className="max-w-[280px]">
+                                                      <div className="truncate font-medium" title={a.nome_original}>
+                                                        {a.nome_original}
+                                                      </div>
+                                                      {a.observacao && (
+                                                        <div className="text-xs text-muted-foreground truncate" title={a.observacao}>
+                                                          {a.observacao}
+                                                        </div>
+                                                      )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                      <Badge variant="secondary">{a.categoria}</Badge>
+                                                    </TableCell>
+                                                    <TableCell>{tipoArquivo(a.extensao)}</TableCell>
+                                                    <TableCell>
+                                                      <Badge variant={a.origem === "financeiro" ? "default" : "outline"}>
+                                                        {a.origem === "financeiro" ? "Financeiro" : "Arquivos"}
+                                                      </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="max-w-[140px] truncate" title={a.uploaded_by_nome ?? ""}>
+                                                      {a.uploaded_by_nome ?? "—"}
+                                                    </TableCell>
+                                                    <TableCell className="whitespace-nowrap text-xs">
+                                                      {formatDateTime(a.created_at)}
+                                                    </TableCell>
+                                                    <TableCell className="text-right whitespace-nowrap">
+                                                      {formatBytes(a.tamanho_bytes)}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                      <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePreview(a)} title="Visualizar">
+                                                          <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(a)} title="Baixar">
+                                                          <Download className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(a)} title="Excluir">
+                                                          <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                      </div>
+                                                    </TableCell>
+                                                  </TableRow>
+                                                ))}
+                                            </TableBody>
+                                          </Table>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            );
+                          })}
+                      </Accordion>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             )}
           </CardContent>
         </Card>
