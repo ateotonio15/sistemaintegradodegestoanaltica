@@ -585,17 +585,21 @@ export type Database = {
       }
       financeiro_arquivos: {
         Row: {
+          anexo_financeiro_id: string | null
+          bucket: string
           categoria: string
           competencia: string
           created_at: string
           empresa_id: string
           extensao: string | null
+          financeiro_movimentacao_id: string | null
           hash_arquivo: string | null
           id: string
           mime_type: string | null
           nome_armazenado: string
           nome_original: string
           observacao: string | null
+          origem: string
           status: string
           storage_path: string
           tamanho_bytes: number | null
@@ -606,17 +610,21 @@ export type Database = {
           versao_de: string | null
         }
         Insert: {
+          anexo_financeiro_id?: string | null
+          bucket?: string
           categoria: string
           competencia: string
           created_at?: string
           empresa_id: string
           extensao?: string | null
+          financeiro_movimentacao_id?: string | null
           hash_arquivo?: string | null
           id?: string
           mime_type?: string | null
           nome_armazenado: string
           nome_original: string
           observacao?: string | null
+          origem?: string
           status?: string
           storage_path: string
           tamanho_bytes?: number | null
@@ -627,17 +635,21 @@ export type Database = {
           versao_de?: string | null
         }
         Update: {
+          anexo_financeiro_id?: string | null
+          bucket?: string
           categoria?: string
           competencia?: string
           created_at?: string
           empresa_id?: string
           extensao?: string | null
+          financeiro_movimentacao_id?: string | null
           hash_arquivo?: string | null
           id?: string
           mime_type?: string | null
           nome_armazenado?: string
           nome_original?: string
           observacao?: string | null
+          origem?: string
           status?: string
           storage_path?: string
           tamanho_bytes?: number | null
@@ -1443,6 +1455,10 @@ export type Database = {
       }
       enviar_movimentacao_ao_financeiro: {
         Args: { p_mov_id: string }
+        Returns: string
+      }
+      fin_arq_categoria_auto: {
+        Args: { _mime: string; _nome: string }
         Returns: string
       }
       get_comum_users_empresa_count: {
