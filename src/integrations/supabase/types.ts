@@ -472,6 +472,114 @@ export type Database = {
           },
         ]
       }
+      financeiro_analises: {
+        Row: {
+          analisado_por: string | null
+          analisado_por_nome: string | null
+          created_at: string
+          data_analise: string
+          divergencias: Json
+          empresa_id: string
+          financeiro_movimentacao_id: string | null
+          hash_excel: string | null
+          hash_pdf: string | null
+          id: string
+          mensagem_final: string | null
+          mes_referencia: string
+          nome_arquivo_excel: string | null
+          nome_arquivo_pdf: string | null
+          pagador_cnpj: string | null
+          pagador_nome: string | null
+          periodo: string
+          qtd_excel_apartamento: number | null
+          qtd_excel_enfermaria: number | null
+          qtd_pdf_apartamento: number | null
+          qtd_pdf_enfermaria: number | null
+          resultado_completo: Json | null
+          status_analise: string
+          tipo_analise: string | null
+          updated_at: string
+          valor_excel_apartamento: number | null
+          valor_excel_enfermaria: number | null
+          valor_excel_exclusoes: number | null
+          valor_excel_inclusoes: number | null
+          valor_pdf_apartamento: number | null
+          valor_pdf_enfermaria: number | null
+          valor_pdf_exclusoes: number | null
+          valor_pdf_inclusoes: number | null
+        }
+        Insert: {
+          analisado_por?: string | null
+          analisado_por_nome?: string | null
+          created_at?: string
+          data_analise?: string
+          divergencias?: Json
+          empresa_id: string
+          financeiro_movimentacao_id?: string | null
+          hash_excel?: string | null
+          hash_pdf?: string | null
+          id?: string
+          mensagem_final?: string | null
+          mes_referencia: string
+          nome_arquivo_excel?: string | null
+          nome_arquivo_pdf?: string | null
+          pagador_cnpj?: string | null
+          pagador_nome?: string | null
+          periodo: string
+          qtd_excel_apartamento?: number | null
+          qtd_excel_enfermaria?: number | null
+          qtd_pdf_apartamento?: number | null
+          qtd_pdf_enfermaria?: number | null
+          resultado_completo?: Json | null
+          status_analise?: string
+          tipo_analise?: string | null
+          updated_at?: string
+          valor_excel_apartamento?: number | null
+          valor_excel_enfermaria?: number | null
+          valor_excel_exclusoes?: number | null
+          valor_excel_inclusoes?: number | null
+          valor_pdf_apartamento?: number | null
+          valor_pdf_enfermaria?: number | null
+          valor_pdf_exclusoes?: number | null
+          valor_pdf_inclusoes?: number | null
+        }
+        Update: {
+          analisado_por?: string | null
+          analisado_por_nome?: string | null
+          created_at?: string
+          data_analise?: string
+          divergencias?: Json
+          empresa_id?: string
+          financeiro_movimentacao_id?: string | null
+          hash_excel?: string | null
+          hash_pdf?: string | null
+          id?: string
+          mensagem_final?: string | null
+          mes_referencia?: string
+          nome_arquivo_excel?: string | null
+          nome_arquivo_pdf?: string | null
+          pagador_cnpj?: string | null
+          pagador_nome?: string | null
+          periodo?: string
+          qtd_excel_apartamento?: number | null
+          qtd_excel_enfermaria?: number | null
+          qtd_pdf_apartamento?: number | null
+          qtd_pdf_enfermaria?: number | null
+          resultado_completo?: Json | null
+          status_analise?: string
+          tipo_analise?: string | null
+          updated_at?: string
+          valor_excel_apartamento?: number | null
+          valor_excel_enfermaria?: number | null
+          valor_excel_exclusoes?: number | null
+          valor_excel_inclusoes?: number | null
+          valor_pdf_apartamento?: number | null
+          valor_pdf_enfermaria?: number | null
+          valor_pdf_exclusoes?: number | null
+          valor_pdf_inclusoes?: number | null
+        }
+        Relationships: []
+      }
       financeiro_movimentacoes: {
         Row: {
           aguardando_nota_em: string | null
