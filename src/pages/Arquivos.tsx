@@ -252,8 +252,11 @@ export default function Arquivos() {
         .update({ status: "removido" })
         .eq("id", a.id);
       if (error) throw error;
-      // Best-effort: remove o objeto do storage também
-      await supabase.storage.from(a.bucket || DEFAULT_BUCKET).remove([a.storage_path]).catch(() => null);
+      // Só remove o objeto do storage se for um upload nativo da aba Arquivos.
+      // Arquivos espelhados do Financeiro pertencem àquela aba e não devem ser apagados aqui.
+      if (a.origem !== "financeiro") {
+        await supabase.storage.from(a.bucket || DEFAULT_BUCKET).remove([a.storage_path]).catch(() => null);
+      }
       toast.success("Arquivo removido");
       queryClient.invalidateQueries({ queryKey: ["financeiro-arquivos"] });
     } catch (e: any) {
