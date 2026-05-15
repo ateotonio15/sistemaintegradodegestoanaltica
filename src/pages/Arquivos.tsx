@@ -132,6 +132,7 @@ export default function Arquivos() {
   const [categoriaFilter, setCategoriaFilter] = useState("todas");
   const [tipoFilter, setTipoFilter] = useState("todos");
   const [usuarioFilter, setUsuarioFilter] = useState("todos");
+  const [contratoFilter, setContratoFilter] = useState("todos");
   const [confirmDelete, setConfirmDelete] = useState<ArquivoRow | null>(null);
 
   const { data: empresas = [] } = useQuery({
