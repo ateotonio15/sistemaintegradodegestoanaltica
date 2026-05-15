@@ -153,6 +153,7 @@ export function AnexosViewerDialog({
     }
   };
 
+  const [preview, setPreview] = useState<AnexoRow | null>(null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -196,6 +197,15 @@ export function AnexosViewerDialog({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 shrink-0"
+                    onClick={() => setPreview(a)}
+                    title="Visualizar"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
                     onClick={() => handleDownload(a.bucket, a.storage_path, a.nome_arquivo)}
                     title="Download"
                   >
@@ -207,6 +217,15 @@ export function AnexosViewerDialog({
           )}
         </div>
       </DialogContent>
+      {preview && (
+        <PreviewArquivoDialog
+          open={!!preview}
+          onOpenChange={(v) => !v && setPreview(null)}
+          bucket={preview.bucket}
+          storagePath={preview.storage_path}
+          nomeArquivo={preview.nome_arquivo}
+        />
+      )}
     </Dialog>
   );
 }
