@@ -761,47 +761,104 @@ export default function Financeiro() {
       const rowsByKey = new Map<string, FinanceiroRow>();
       filteredRows.forEach((r) => rowsByKey.set(r.rowKey ?? r.id, r));
 
+      const fmtMoney = (n: number | null | undefined) =>
+        n === null || n === undefined || isNaN(n as number)
+          ? "—"
+          : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n as number);
+      const fmtNum = (n: number | null | undefined) =>
+        n === null || n === undefined || isNaN(n as number) ? "—" : String(n);
+
       type Linha = {
         empresa: string;
         contrato: string;
         cnpj: string;
         pagador: string;
         mes: string;
-        tipo: "Aviso (Excel)" | "Divergência (Excel x PDF)" | "Aviso (PDF)";
+        campo: string;
+        valor_excel: string;
+        valor_pdf: string;
         mensagem: string;
       };
       const linhas: Linha[] = [];
 
-      const pushFor = (key: string, tipo: Linha["tipo"], pagador: string, msgs: string[]) => {
+      const pushDiverg = (
+        key: string,
+        pagador: string,
+        campo: string,
+        excel: number | null | undefined,
+        pdf: number | null | undefined,
+        money: boolean,
+        mensagem: string,
+      ) => {
         const r = rowsByKey.get(key);
-        if (!r || !msgs?.length) return;
-        msgs.forEach((m) => {
-          linhas.push({
-            empresa: r.empresa_nome || "",
-            contrato: r.empresa_codigo || "",
-            cnpj: r.empresa_cnpj || "",
-            pagador: pagador || r.empresa_nome || "",
-            mes: formatMesReferencia(mes),
-            tipo,
-            mensagem: m,
-          });
+        if (!r) return;
+        linhas.push({
+          empresa: r.empresa_nome || "",
+          contrato: r.empresa_codigo || "",
+          cnpj: r.empresa_cnpj || "",
+          pagador: pagador || r.empresa_nome || "",
+          mes: formatMesReferencia(mes),
+          campo,
+          valor_excel: money ? fmtMoney(excel) : fmtNum(excel),
+          valor_pdf: money ? fmtMoney(pdf) : fmtNum(pdf),
+          mensagem,
         });
       };
 
-      Object.entries(analiseResultados).forEach(([key, lista]) => {
-        (lista || []).forEach((a: any) => {
-          pushFor(key, "Aviso (Excel)", a.pagador, a.avisos || []);
-        });
-      });
+      // Considerar APENAS divergências reais entre Excel e PDF.
+      // Avisos do parser (Excel/PDF) e categorias inexistentes no contrato são ignorados.
       Object.entries(analiseComparacoes).forEach(([key, lista]) => {
         (lista || []).forEach((c: any) => {
-          pushFor(key, "Divergência (Excel x PDF)", c.pagador, c.divergencias || []);
-          pushFor(key, "Aviso (PDF)", c.pagador, c.avisosPdf || []);
+          if (!c || !c.arquivoPdf) return; // sem PDF, não há comparação real
+          const pagador = c.pagador || "";
+
+          // Comparação detalhada (enfermaria/apartamento/inclusões com Excel × PDF)
+          const checkCampo = (
+            label: string,
+            cmp: { excel: number; pdf: number | null; ok: boolean } | null | undefined,
+            money: boolean,
+          ) => {
+            // Só é erro real quando o PDF retornou valor e ele difere do Excel.
+            if (!cmp || cmp.pdf === null || cmp.pdf === undefined) return;
+            if (cmp.ok) return;
+            pushDiverg(
+              key,
+              pagador,
+              label,
+              cmp.excel,
+              cmp.pdf,
+              money,
+              `Valor divergente entre Excel e PDF em ${label}.`,
+            );
+          };
+
+          if (c.enfermaria) {
+            checkCampo("Enfermaria — beneficiários", c.enfermaria.beneficiarios, false);
+            checkCampo("Enfermaria — mensalidade", c.enfermaria.mensalidade, true);
+            checkCampo("Enfermaria — total", c.enfermaria.total, true);
+          }
+          if (c.apartamento) {
+            checkCampo("Apartamento — beneficiários", c.apartamento.beneficiarios, false);
+            checkCampo("Apartamento — mensalidade", c.apartamento.mensalidade, true);
+            checkCampo("Apartamento — total", c.apartamento.total, true);
+          }
+          if (c.inclusoes) {
+            // ComparacaoResultado: { total }; ComparacaoSimplificada: { excel, pdf, ok }
+            const incCmp =
+              "total" in c.inclusoes ? (c.inclusoes as any).total : (c.inclusoes as any);
+            checkCampo("Inclusões — total", incCmp, true);
+          }
+          if (c.beneficiarios) {
+            checkCampo("Total de beneficiários", c.beneficiarios, false);
+          }
+          if (c.exclusoes) {
+            checkCampo("Exclusões — total", c.exclusoes, true);
+          }
         });
       });
 
       if (linhas.length === 0) {
-        toast.warning("Nenhum erro encontrado nas análises atuais.");
+        toast.success("Nenhuma divergência encontrada — todas as análises estão OK.");
         return;
       }
 
@@ -813,8 +870,10 @@ export default function Financeiro() {
         { header: "CNPJ", key: "cnpj", width: 20 },
         { header: "Pagador", key: "pagador", width: 38 },
         { header: "Mês", key: "mes", width: 12 },
-        { header: "Tipo", key: "tipo", width: 26 },
-        { header: "Mensagem", key: "mensagem", width: 80 },
+        { header: "Campo", key: "campo", width: 32 },
+        { header: "Valor Excel", key: "valor_excel", width: 18 },
+        { header: "Valor PDF", key: "valor_pdf", width: 18 },
+        { header: "Mensagem", key: "mensagem", width: 60 },
       ];
       ws.getRow(1).font = { bold: true };
       linhas.forEach((l) => ws.addRow(l));
