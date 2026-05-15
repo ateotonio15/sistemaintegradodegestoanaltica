@@ -27,7 +27,12 @@ const ALLOWED_MIME = [
   "", // alguns navegadores não preenchem mime
 ];
 
-export function validarArquivo(f: File): { ok: true } | { ok: false; motivo: string } {
+export interface ValidacaoArquivo {
+  ok: boolean;
+  motivo?: string;
+}
+
+export function validarArquivo(f: File): ValidacaoArquivo {
   if (f.size > MAX_BYTES) return { ok: false, motivo: "Arquivo maior que 25 MB" };
   const ext = (f.name.split(".").pop() ?? "").toLowerCase();
   if (BLOCKED_EXT.includes(ext)) return { ok: false, motivo: "Tipo de arquivo não permitido" };
