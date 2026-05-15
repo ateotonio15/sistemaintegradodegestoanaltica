@@ -86,6 +86,8 @@ interface ArquivoRow {
   status: string;
   versao: number;
   created_at: string;
+  bucket?: string | null;
+  origem?: string | null;
 }
 
 function iconForExt(ext: string | null) {
