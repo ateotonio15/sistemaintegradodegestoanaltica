@@ -183,21 +183,40 @@
     @apply w-full;
   }
 
-  /* Smooth transitions globally */
-  button, a, input, select, textarea {
-    @apply transition-all duration-200;
+  /* Smooth transitions globally — motion tokens (Linear-like easing) */
+  :root {
+    --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --motion-fast: 120ms;
+    --motion-normal: 180ms;
+    --motion-slow: 240ms;
   }
 
-  /* Refined scrollbar */
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  button, a, input, select, textarea {
+    transition: color var(--motion-fast) var(--ease-premium),
+                background-color var(--motion-normal) var(--ease-premium),
+                border-color var(--motion-fast) var(--ease-premium),
+                box-shadow var(--motion-normal) var(--ease-premium),
+                transform var(--motion-normal) var(--ease-premium),
+                opacity var(--motion-fast) var(--ease-premium);
+  }
+
+  /* Premium scrollbar — slim, green-tinted */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
+    background: hsl(var(--primary) / 0.18);
     border-radius: 9999px;
     border: 2px solid transparent;
     background-clip: padding-box;
+    transition: background var(--motion-normal) var(--ease-premium);
   }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); background-clip: padding-box; border: 2px solid transparent; }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.45);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+  }
+  * { scrollbar-color: hsl(var(--primary) / 0.25) transparent; scrollbar-width: thin; }
 }
 
 @layer components {
@@ -214,14 +233,52 @@
     @apply text-sm text-muted-foreground mt-1;
   }
 
-  /* Card hover lift */
+  /* Card hover lift — premium easing */
   .card-hover {
-    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg;
+    transition: transform var(--motion-normal) var(--ease-premium),
+                box-shadow var(--motion-normal) var(--ease-premium),
+                border-color var(--motion-normal) var(--ease-premium);
   }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg), 0 0 0 1px hsl(var(--primary) / 0.12);
+    border-color: hsl(var(--primary) / 0.25);
+  }
+
+  /* Premium hoverable surface — discreet glow */
+  .hover-premium {
+    transition: all var(--motion-normal) var(--ease-premium);
+  }
+  .hover-premium:hover {
+    background-color: hsl(var(--accent) / 0.6);
+    box-shadow: inset 0 1px 0 0 hsl(var(--primary) / 0.08),
+                0 6px 18px -8px hsl(var(--primary) / 0.25);
+  }
+
+  /* Stagger entrance for dashboard grids */
+  .stagger-fade > * { opacity: 0; animation: fade-in 0.4s var(--ease-premium) forwards; }
+  .stagger-fade > *:nth-child(1) { animation-delay: 40ms; }
+  .stagger-fade > *:nth-child(2) { animation-delay: 90ms; }
+  .stagger-fade > *:nth-child(3) { animation-delay: 140ms; }
+  .stagger-fade > *:nth-child(4) { animation-delay: 190ms; }
+  .stagger-fade > *:nth-child(5) { animation-delay: 240ms; }
+  .stagger-fade > *:nth-child(6) { animation-delay: 290ms; }
+  .stagger-fade > *:nth-child(n+7) { animation-delay: 340ms; }
 
   /* Glass surface */
   .glass {
     @apply bg-card/70 backdrop-blur-xl border border-border/60;
+  }
+
+  /* Glass popover/dropdown — premium frosted */
+  .glass-popover {
+    background: hsl(var(--popover) / 0.78);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid hsl(var(--border) / 0.7);
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.05) inset,
+      0 12px 40px -12px hsl(150 60% 3% / 0.55);
   }
 
   /* Gradient text */
