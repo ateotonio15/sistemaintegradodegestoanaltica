@@ -1,149 +1,79 @@
-# Reformulação da aba Arquivos — Repositório Documental Financeiro
+# Modernização Visual do CS Control
 
-## Objetivo
-Transformar `/arquivos` em um módulo profissional de gestão documental **exclusivo do setor Financeiro/Admin**, mostrando **somente arquivos enviados manualmente** pelo Financeiro. Análises automáticas, anexos do Cadastro/operacional, espelhamentos via trigger e cache do sistema **não aparecem** mais aqui.
+Refinar toda a interface mantendo a identidade atual (verde + dark), elevando o sistema para um padrão SaaS moderno (estilo Linear/Vercel), com micro-interações sutis e profissionais.
 
----
+## Princípios de design
 
-## 1. Banco de dados (migration)
+- **Manter**: paleta verde primário, dark mode default, fonte Inter, estrutura shadcn/ui.
+- **Elevar**: hierarquia visual, respiração (espaçamentos), profundidade sutil, consistência entre telas.
+- **Interatividade nível 3/5**: transições suaves, hover states refinados, feedback claro — sem exageros.
 
-### Nova tabela `financeiro_arquivos`
-Campos de domínio:
-- `empresa_id` (uuid, NOT NULL)
-- `competencia` (text, formato `YYYY-MM`)
-- `categoria` (text) — enum textual: Boletos, Notas Fiscais, Contratos, Excel Financeiro, PDF Financeiro, Comprovantes, Inclusões, Exclusões, Outros
-- `nome_original` (text)
-- `nome_armazenado` (text)
-- `extensao` (text)
-- `mime_type` (text)
-- `tamanho_bytes` (bigint)
-- `hash_arquivo` (text) — sha-256 hex
-- `observacao` (text, nullable)
-- `uploaded_by` (uuid)
-- `uploaded_by_nome` (text)
-- `storage_path` (text)
-- `status` (text default `ativo`) — `ativo` | `substituido` | `removido`
-- `versao` (int default 1)
-- `versao_de` (uuid, nullable, FK lógica para id da versão anterior)
+## 1. Design tokens (base do sistema)
 
-Padrão: `id`, `created_at`, `updated_at` + trigger `update_updated_at_column`.
+Arquivos: `src/index.css`, `tailwind.config.ts`
 
-Índices:
-- `(empresa_id, competencia)`
-- `(hash_arquivo)` — para detectar duplicidade
-- `(uploaded_by)`, `(categoria)`
+- Refinar paleta HSL: verde primário com glow secundário, surfaces em camadas (bg, card, elevated, overlay).
+- Adicionar tokens semânticos: `--surface-1/2/3`, `--border-subtle`, `--ring-focus`, `--shadow-elegant`, `--shadow-glow`.
+- Gradientes utilitários: `--gradient-primary`, `--gradient-surface`.
+- Border radius: subir levemente (cards `rounded-xl → rounded-2xl` seletivo).
+- Tipografia: escala mais clara (display, h1-h4, body, caption) com tracking ajustado.
 
-Constraint única para evitar duplicado ativo por empresa/competência:
-- `unique (empresa_id, competencia, hash_arquivo) where status = 'ativo'`
+## 2. Componentes globais
 
-### RLS
-- Admin: ALL
-- Financeiro: ALL
-- Demais perfis: **sem acesso** (nenhuma policy SELECT) — mantém a aba escondida e bloqueada.
+- **Sidebar** (`AppLayout.tsx`, `NavLink.tsx`): item ativo com indicador lateral verde + bg sutil, ícones com leve glow no hover, agrupamento visual mais limpo, transição suave de colapso.
+- **Header**: altura padronizada, busca global com estilo command-palette, badge de notificações refinado.
+- **Cards** (`KpiCards`, `PeriodSummary`, etc.): borda mais suave, hover com lift sutil (`translate-y` + shadow), ícones em containers com gradiente.
+- **Tabelas** (`FinanceiroTable`, listagens): linhas zebradas opcionais, hover row destacado, header sticky com blur, badges de status com pill refinado.
+- **Botões**: variante `premium` com gradiente verde + glow, estados loading consistentes.
+- **Dialogs/Sheets**: overlay com blur, animação `scale-in` + `fade-in`, header com divisor sutil.
+- **Inputs/Selects**: focus ring verde discreto, transição de borda.
+- **Empty states**: ilustração mínima + CTA claro.
+- **Skeletons**: padrão consistente para loading em todas as listagens.
 
-### Storage bucket
-Novo bucket privado `arquivos-financeiro` (separado do `anexos-financeiro` que é usado pela trigger de espelhamento).
+## 3. Páginas (aplicação dos novos padrões)
 
-Policies em `storage.objects`:
-- SELECT/INSERT/UPDATE/DELETE no bucket `arquivos-financeiro` somente para `admin` e `financeiro`.
+Aplicar os componentes refinados em:
 
-> Layout do path: `{empresa_id}/{competencia}/{uuid}.{ext}`.
+- Dashboard (Cadastro e Financeiro)
+- Empresas / Implantação
+- Financeiro (tabela, KPIs, resumos)
+- Arquivos (cards de contrato/competência)
+- Reajustes
+- Movimentações
+- Executivas
+- Saúde nas Empresas
+- Usuários, Auth
 
----
+Sem mudar lógica/comportamento — apenas estrutura visual, espaçamentos, classes e micro-animações.
 
-## 2. Roteamento (`App.tsx`)
-Trocar `<ProtectedRoute>` da rota `/arquivos` por um novo `FinanceiroOnlyRoute` que libera **apenas** `isAdmin || isFinanceiro`. Demais perfis são redirecionados para `/`.
+## 4. Micro-interações (nível 3/5)
 
-Esconder o link "Arquivos" do menu lateral (`AppLayout.tsx`/`NavLink.tsx`) para perfis não autorizados.
+- `fade-in` ao montar listas e cards
+- `hover-scale` sutil (1.02) em cards clicáveis
+- Transição de cor 200ms em todos os interativos
+- Badges de status com leve pulse quando "Fora do prazo"
+- Tabs com indicador deslizante
+- Toasts com slide-in suave
 
----
+## Execução em fases
 
-## 3. UI — `src/pages/Arquivos.tsx` (reescrita completa)
+1. **Fundação**: tokens, tema, tipografia, componentes base (Button, Card, Badge, Input, Table, Dialog).
+2. **Shell**: Sidebar, Header, layout geral.
+3. **Páginas core**: Dashboard, Financeiro, Empresas.
+4. **Demais telas**: Arquivos, Reajustes, Movimentações, Executivas, Saúde, Usuários.
+5. **Polish**: animações, empty states, skeletons, revisão final.
 
-### Cabeçalho
-- Título "Repositório Financeiro" + subtítulo.
-- Botão **Enviar arquivos** (abre dialog de upload).
+## Detalhes técnicos
 
-### KPIs (cards no topo)
-- Total de arquivos (status ativo)
-- PDFs
-- Excels
-- Últimos uploads (últimos 7 dias)
-- Espaço utilizado (soma `tamanho_bytes`)
+- Tudo via tokens semânticos HSL no `index.css` — zero cores hardcoded em componentes.
+- Variantes via `class-variance-authority` nos componentes shadcn customizados.
+- Animações usando keyframes do `tailwind.config.ts` (já existentes: `fade-in`, `scale-in`, `accordion-*`) + adições mínimas (`slide-up`, `shimmer`).
+- Sem mudanças em lógica de negócio, RLS, queries ou estruturas de dados.
+- Sem novas dependências.
 
-### Filtros
-- Busca textual (nome, empresa, contrato, competência)
-- Empresa (select)
-- Competência (select dinâmico)
-- Categoria (select)
-- Tipo de arquivo (select: PDF, Excel, Imagem, Doc, Outros)
-- Período de upload (date range)
-- Usuário responsável (select)
+## Fora de escopo
 
-### Tabela moderna (`Table` shadcn)
-Colunas:
-| Ícone | Nome do arquivo | Empresa | Contrato | Competência | Categoria | Tipo | Usuário | Data upload | Tamanho | Status | Ações |
-
-Ações por linha:
-- Visualizar (signed URL em nova aba; PDFs abrem em modal com `<iframe>`)
-- Baixar
-- Substituir (abre dialog; cria nova versão, marca anterior como `substituido`)
-- Excluir (soft delete `status = 'removido'`)
-- Histórico de versões (dialog listando versões anteriores)
-
-Ordenação por data desc por padrão; agrupamento opcional por **competência** (toggle).
-
-### Dialog de Upload (`UploadArquivoDialog.tsx`)
-Campos:
-1. Empresa (combobox)
-2. Contrato (auto-preenchido a partir da empresa, read-only)
-3. Competência (mes/ano)
-4. Categoria (select obrigatório)
-5. Observação (textarea opcional)
-6. Drop zone com múltiplos arquivos + barra de progresso por arquivo
-
-Validações client-side:
-- Extensões: `.pdf, .xlsx, .xls, .csv, .docx, .png, .jpg, .jpeg`
-- MIME type correspondente
-- Tamanho máx 25 MB por arquivo
-- Bloqueio de extensões executáveis (`.exe, .bat, .sh, .js, .msi, ...`)
-- Cálculo sha-256 (Web Crypto). Antes do upload, consulta `financeiro_arquivos` por `(empresa_id, competencia, hash_arquivo, status='ativo')`. Se existir → toast aviso "duplicado, ignorado".
-
-Após upload bem-sucedido:
-- Insere registro em `financeiro_arquivos` com metadados completos.
-- Invalida query e fecha dialog.
-
-### Componentes novos
-- `src/components/arquivos/UploadArquivoDialog.tsx`
-- `src/components/arquivos/HistoricoVersoesDialog.tsx`
-- `src/components/arquivos/PreviewPdfDialog.tsx`
-
----
-
-## 4. Separação clara
-- A aba **Arquivos** lê **apenas** `financeiro_arquivos` (bucket `arquivos-financeiro`).
-- Não lê mais `anexos_financeiro`, `anexos_movimentacao`, nem `financeiro_analises`.
-- A persistência de análises Excel × PDF continua intacta na aba Financeiro.
-
----
-
-## 5. Critérios de aceite
-1. Apenas Financeiro/Admin acessam a rota e veem o link no menu.
-2. Somente arquivos enviados pelo dialog aparecem listados.
-3. Upload múltiplo + drag and drop + barra de progresso funcionam.
-4. Duplicidade (hash idêntico no mesmo escopo) é bloqueada.
-5. Substituição cria nova versão preservando histórico.
-6. Exclusão é soft delete; arquivo some da listagem padrão.
-7. Filtros, busca e KPIs respondem corretamente.
-8. Performance ok com paginação client-side até alguns milhares de registros (futuro: paginação server-side se necessário).
-
----
-
-## Arquivos
-- **Migration**: `supabase/migrations/<ts>_financeiro_arquivos.sql` (tabela + RLS + bucket + storage policies)
-- **Novo**: `src/components/arquivos/UploadArquivoDialog.tsx`
-- **Novo**: `src/components/arquivos/HistoricoVersoesDialog.tsx`
-- **Novo**: `src/components/arquivos/PreviewPdfDialog.tsx`
-- **Reescrito**: `src/pages/Arquivos.tsx`
-- **Editado**: `src/App.tsx` (gate `FinanceiroOnlyRoute`)
-- **Editado**: `src/components/AppLayout.tsx` (esconder link para não autorizados)
+- Mudanças funcionais ou de regras de negócio
+- Alterações em banco/RLS/Edge Functions
+- Troca de paleta principal
+- Reestruturação de navegação/rotas
