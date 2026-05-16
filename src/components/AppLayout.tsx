@@ -265,7 +265,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200",
                   active
                     ? "nav-pill-active text-primary"
-                    : "text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/70",
+                    : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/70",
                   collapsed && "justify-center px-0"
                 )}
               >
@@ -274,7 +274,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     "h-[18px] w-[18px] shrink-0 transition-all duration-200",
                     active
                       ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]"
-                      : "text-muted-foreground group-hover:text-sidebar-foreground group-hover:scale-110"
+                      : "text-sidebar-foreground/70 group-hover:text-sidebar-foreground group-hover:scale-110"
                   )}
                 />
                 {!collapsed && <span className="truncate tracking-tight">{item.label}</span>}
