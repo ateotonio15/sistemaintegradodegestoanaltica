@@ -32,7 +32,7 @@ import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
-import { WelcomeHero } from "@/components/dashboard/WelcomeHero";
+
 
 export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
