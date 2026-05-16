@@ -270,6 +270,17 @@
     @apply bg-card/70 backdrop-blur-xl border border-border/60;
   }
 
+  /* Glass popover/dropdown — premium frosted */
+  .glass-popover {
+    background: hsl(var(--popover) / 0.78);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid hsl(var(--border) / 0.7);
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.05) inset,
+      0 12px 40px -12px hsl(150 60% 3% / 0.55);
+  }
+
   /* Gradient text */
   .text-gradient {
     background: var(--gradient-primary);
