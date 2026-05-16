@@ -183,21 +183,40 @@
     @apply w-full;
   }
 
-  /* Smooth transitions globally */
-  button, a, input, select, textarea {
-    @apply transition-all duration-200;
+  /* Smooth transitions globally — motion tokens (Linear-like easing) */
+  :root {
+    --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --motion-fast: 120ms;
+    --motion-normal: 180ms;
+    --motion-slow: 240ms;
   }
 
-  /* Refined scrollbar */
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  button, a, input, select, textarea {
+    transition: color var(--motion-fast) var(--ease-premium),
+                background-color var(--motion-normal) var(--ease-premium),
+                border-color var(--motion-fast) var(--ease-premium),
+                box-shadow var(--motion-normal) var(--ease-premium),
+                transform var(--motion-normal) var(--ease-premium),
+                opacity var(--motion-fast) var(--ease-premium);
+  }
+
+  /* Premium scrollbar — slim, green-tinted */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
+    background: hsl(var(--primary) / 0.18);
     border-radius: 9999px;
     border: 2px solid transparent;
     background-clip: padding-box;
+    transition: background var(--motion-normal) var(--ease-premium);
   }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); background-clip: padding-box; border: 2px solid transparent; }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.45);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+  }
+  * { scrollbar-color: hsl(var(--primary) / 0.25) transparent; scrollbar-width: thin; }
 }
 
 @layer components {
