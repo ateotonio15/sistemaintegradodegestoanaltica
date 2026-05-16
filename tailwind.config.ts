@@ -60,6 +60,10 @@ export default {
   				foreground: 'hsl(var(--info-foreground))'
   			},
   			icon: 'hsl(var(--icon))',
+  			'surface-1': 'hsl(var(--surface-1))',
+  			'surface-2': 'hsl(var(--surface-2))',
+  			'surface-3': 'hsl(var(--surface-3))',
+  			'border-subtle': 'hsl(var(--border-subtle))',
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',
