@@ -223,10 +223,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar/95 backdrop-blur-xl transition-all duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border transition-all duration-300 ease-in-out",
           collapsed ? "w-[72px]" : "w-[252px]",
           isMobile && collapsed && "-translate-x-full"
         )}
+        style={{
+          background: "linear-gradient(180deg, #0B1410 0%, #101A15 100%)",
+          boxShadow: "0 0 24px rgba(34,197,94,0.06)",
+        }}
       >
         <div className={cn(
           "flex h-16 items-center border-b border-sidebar-border/70 px-3 shrink-0",
@@ -294,7 +298,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className={cn("border-t p-3 shrink-0", collapsed && "flex justify-center")}>
+        <div className={cn("border-t border-sidebar-border/70 p-3 shrink-0", collapsed && "flex justify-center")}>
           {collapsed ? (
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
