@@ -227,10 +227,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           collapsed ? "w-[72px]" : "w-[252px]",
           isMobile && collapsed && "-translate-x-full"
         )}
-        style={{
-          backgroundImage:
-            "radial-gradient(ellipse 60% 30% at 50% 0%, hsl(var(--primary) / 0.08), transparent 70%)",
-        }}
       >
         <div className={cn(
           "flex h-16 items-center border-b border-sidebar-border/70 px-3 shrink-0",
