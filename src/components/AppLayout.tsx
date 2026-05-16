@@ -217,7 +217,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex relative">
+      {/* Ambient background glow */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-gradient-glow opacity-60" />
       {/* Sidebar */}
       <aside
         className={cn(
