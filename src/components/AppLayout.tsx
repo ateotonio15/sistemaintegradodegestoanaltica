@@ -221,13 +221,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-card/95 backdrop-blur-xl transition-all duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-border/60 bg-card/95 backdrop-blur-xl transition-all duration-300 ease-in-out",
           collapsed ? "w-[70px]" : "w-[240px]",
           isMobile && collapsed && "-translate-x-full"
         )}
       >
         <div className={cn(
-          "flex h-16 items-center border-b px-3 shrink-0",
+          "flex h-16 items-center border-b border-border/60 px-3 shrink-0",
           collapsed ? "justify-center" : "justify-between"
         )}>
           {!collapsed && (
@@ -248,7 +248,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-1 p-3 overflow-y-auto">
+        <nav className="flex-1 flex flex-col gap-0.5 p-3 overflow-y-auto">
           {navItems.map((item) => {
             const active = isActive(item.to);
             const linkContent = (
@@ -256,14 +256,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   active
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent",
+                    ? "bg-primary/12 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60",
                   collapsed && "justify-center px-0"
                 )}
               >
-                <item.icon className={cn("h-5 w-5 shrink-0", collapsed && "h-5 w-5")} />
+                <span
+                  className={cn(
+                    "absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-primary transition-all duration-200",
+                    active ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0"
+                  )}
+                />
+                <item.icon
+                  className={cn(
+                    "h-5 w-5 shrink-0 transition-transform duration-200",
+                    active ? "text-primary" : "text-muted-foreground group-hover:text-foreground group-hover:scale-110"
+                  )}
+                />
                 {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
