@@ -320,8 +320,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium truncate">{displayName}</p>
-                <p className="text-xs text-muted-foreground truncate">@{username}</p>
+                <p className="text-sm font-semibold truncate text-sidebar-foreground">{displayName}</p>
+                <p className="text-xs truncate text-sidebar-foreground/60">@{username}</p>
               </div>
             </div>
           )}
