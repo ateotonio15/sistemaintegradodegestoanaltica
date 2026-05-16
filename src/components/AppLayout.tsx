@@ -223,25 +223,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-border/60 bg-card/95 backdrop-blur-xl transition-all duration-300 ease-in-out",
-          collapsed ? "w-[70px]" : "w-[240px]",
+          "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar/95 backdrop-blur-xl transition-all duration-300 ease-in-out",
+          collapsed ? "w-[72px]" : "w-[252px]",
           isMobile && collapsed && "-translate-x-full"
         )}
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 60% 30% at 50% 0%, hsl(var(--primary) / 0.08), transparent 70%)",
+        }}
       >
         <div className={cn(
-          "flex h-16 items-center border-b border-border/60 px-3 shrink-0",
+          "flex h-16 items-center border-b border-sidebar-border/70 px-3 shrink-0",
           collapsed ? "justify-center" : "justify-between"
         )}>
           {!collapsed && (
-            <Link to="/" className="flex items-center gap-2.5 font-bold text-lg tracking-tight text-foreground hover:opacity-80 transition-opacity">
-              <img src={logoImg} alt="CS Control" className="h-9 w-9 rounded-xl object-contain shrink-0" />
+            <Link to="/" className="flex items-center gap-2.5 font-bold text-[15px] tracking-tight text-sidebar-foreground hover:opacity-80 transition-opacity">
+              <img src={logoImg} alt="CS Control" className="h-9 w-9 rounded-xl object-contain shrink-0 ring-1 ring-primary/20" />
               <span className="truncate">CS Control</span>
             </Link>
           )}
           <button
             onClick={toggleSidebar}
             className={cn(
-              "p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground",
+              "p-2 rounded-lg hover:bg-sidebar-accent transition-colors text-muted-foreground hover:text-sidebar-foreground",
               collapsed && "mx-auto"
             )}
             title={collapsed ? "Expandir menu" : "Recolher menu"}
@@ -250,7 +254,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-0.5 p-3 overflow-y-auto">
+        <nav className="flex-1 flex flex-col gap-1 p-3 overflow-y-auto">
           {navItems.map((item) => {
             const active = isActive(item.to);
             const linkContent = (
@@ -258,26 +262,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200",
                   active
-                    ? "bg-primary/12 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60",
+                    ? "nav-pill-active text-primary"
+                    : "text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/70",
                   collapsed && "justify-center px-0"
                 )}
               >
-                <span
-                  className={cn(
-                    "absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-primary transition-all duration-200",
-                    active ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0"
-                  )}
-                />
                 <item.icon
                   className={cn(
-                    "h-5 w-5 shrink-0 transition-transform duration-200",
-                    active ? "text-primary" : "text-muted-foreground group-hover:text-foreground group-hover:scale-110"
+                    "h-[18px] w-[18px] shrink-0 transition-all duration-200",
+                    active
+                      ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]"
+                      : "text-muted-foreground group-hover:text-sidebar-foreground group-hover:scale-110"
                   )}
                 />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && <span className="truncate tracking-tight">{item.label}</span>}
               </Link>
             );
 
@@ -339,11 +339,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main area */}
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300 ease-in-out",
-        !isMobile && (collapsed ? "ml-[70px]" : "ml-[240px]"),
+        !isMobile && (collapsed ? "ml-[72px]" : "ml-[252px]"),
         isMobile && "ml-0"
       )}>
         {/* Header */}
-        <header className="sticky top-0 z-30 border-b bg-card/80 backdrop-blur-xl shadow-sm">
+        <header className="sticky top-0 z-30 border-b border-border/50 bg-background/70 backdrop-blur-xl">
           <div className="flex h-14 items-center justify-between px-4 md:px-6">
             <div className="flex items-center gap-3">
               {isMobile && (

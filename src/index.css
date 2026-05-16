@@ -90,61 +90,60 @@
   }
 
   .dark {
-    /* Paleta inspirada no mockup Vendas Samel — verde mint suave sobre dark */
-    --background: 150 18% 5%;
-    --foreground: 150 15% 95%;
+    /* Paleta premium — verde petróleo + verde vivo (#22C55E) */
+    --background: 150 14% 7%;          /* #0F1512 */
+    --foreground: 150 12% 96%;
 
-    --card: 150 18% 9%;
-    --card-foreground: 150 15% 95%;
+    --card: 150 22% 12%;               /* #18241E */
+    --card-foreground: 150 12% 96%;
 
-    --popover: 150 18% 9%;
-    --popover-foreground: 150 15% 95%;
+    --popover: 150 22% 12%;
+    --popover-foreground: 150 12% 96%;
 
-    /* Mint suave (#A7E3C5) — destaques/abas ativas com texto escuro */
-    --primary: 146 51% 78%;
-    --primary-foreground: 150 30% 10%;
+    /* Primária vibrante #22C55E com texto branco para contraste premium */
+    --primary: 142 71% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 16% 11%;
-    --secondary-foreground: 150 15% 95%;
+    --secondary: 150 18% 13%;
+    --secondary-foreground: 150 12% 96%;
 
-    --muted: 150 16% 11%;
-    --muted-foreground: 150 8% 65%;
+    --muted: 150 16% 14%;
+    --muted-foreground: 150 6% 65%;
 
-    --accent: 148 18% 14%;
-    --accent-foreground: 146 51% 82%;
+    --accent: 148 22% 16%;
+    --accent-foreground: 142 69% 70%;
 
-    --destructive: 0 65% 55%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 150 14% 16%;
-    --input: 150 14% 16%;
-    --ring: 146 51% 78%;
+    --border: 150 14% 17%;
+    --input: 150 14% 17%;
+    --ring: 142 71% 45%;
 
-    /* Verde vivo (#22C55E) reservado para success/realces de valor */
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 88% 55%;
+    --warning: 38 92% 55%;
     --warning-foreground: 0 0% 100%;
-    --info: 160 60% 45%;
+    --info: 199 89% 55%;
     --info-foreground: 0 0% 100%;
 
-    --chart-1: 146 51% 78%;
-    --chart-2: 142 71% 45%;
-    --chart-3: 160 50% 50%;
-    --chart-4: 38 88% 55%;
-    --chart-5: 170 40% 40%;
+    --chart-1: 142 71% 45%;
+    --chart-2: 142 69% 58%;            /* #4ADE80 */
+    --chart-3: 160 60% 50%;
+    --chart-4: 38 92% 60%;
+    --chart-5: 199 89% 55%;
 
-    --sidebar: 150 18% 7%;
-    --sidebar-background: 150 18% 7%;
-    --sidebar-foreground: 150 15% 95%;
-    --sidebar-primary: 146 51% 78%;
-    --sidebar-primary-foreground: 150 30% 10%;
-    --sidebar-accent: 148 22% 13%;
-    --sidebar-accent-foreground: 146 51% 82%;
-    --sidebar-border: 150 14% 14%;
-    --sidebar-ring: 146 51% 78%;
+    --sidebar: 150 18% 8%;
+    --sidebar-background: 150 18% 8%;
+    --sidebar-foreground: 150 12% 92%;
+    --sidebar-primary: 142 71% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 148 22% 14%;
+    --sidebar-accent-foreground: 142 69% 75%;
+    --sidebar-border: 150 14% 13%;
+    --sidebar-ring: 142 71% 45%;
 
-    --icon: 142 71% 45%;
+    --icon: 142 71% 50%;
 
     --shadow-2xs: 0 1px 2px 0 hsl(142 60% 4% / 0.25);
     --shadow-xs: 0 1px 2px 0 hsl(142 60% 4% / 0.3);
@@ -155,16 +154,16 @@
     --shadow-xl: 0 20px 25px -5px hsl(142 60% 4% / 0.5), 0 8px 10px -6px hsl(142 60% 4% / 0.35);
     --shadow-2xl: 0 25px 50px -12px hsl(142 60% 3% / 0.6);
 
-    /* Surfaces & gradients (dark) */
-    --surface-1: 150 18% 9%;
-    --surface-2: 150 16% 11%;
-    --surface-3: 148 18% 14%;
-    --border-subtle: 150 14% 18%;
-    --gradient-primary: linear-gradient(135deg, hsl(146 51% 78%), hsl(160 55% 68%));
-    --gradient-surface: linear-gradient(180deg, hsl(150 18% 9%), hsl(150 18% 7%));
-    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(146 51% 78% / 0.10), transparent 70%);
-    --shadow-glow: 0 0 0 1px hsl(146 51% 78% / 0.18), 0 8px 24px -6px hsl(146 51% 78% / 0.22);
-    --shadow-elegant: 0 1px 0 0 hsl(150 15% 95% / 0.03) inset, 0 8px 24px -8px hsl(142 60% 3% / 0.5);
+    /* Surfaces & gradients (dark premium) */
+    --surface-1: 150 22% 12%;
+    --surface-2: 150 18% 14%;
+    --surface-3: 148 18% 17%;
+    --border-subtle: 150 14% 20%;
+    --gradient-primary: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(142 71% 45%) 50%, hsl(142 69% 58%) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(150 22% 13%) 0%, hsl(150 18% 10%) 100%);
+    --gradient-glow: radial-gradient(ellipse 80% 50% at 50% -10%, hsl(142 71% 45% / 0.18), transparent 70%);
+    --shadow-glow: 0 0 0 1px hsl(142 71% 45% / 0.25), 0 10px 30px -8px hsl(142 71% 45% / 0.35);
+    --shadow-elegant: 0 1px 0 0 hsl(142 69% 70% / 0.06) inset, 0 12px 32px -10px hsl(150 60% 3% / 0.6);
   }
 }
 
@@ -252,4 +251,45 @@
 @keyframes status-pulse {
   0%, 100% { box-shadow: 0 0 0 0 hsl(var(--destructive) / 0.45); }
   50% { box-shadow: 0 0 0 6px hsl(var(--destructive) / 0); }
+}
+
+@layer components {
+  /* Premium surface card with subtle gradient and inner highlight */
+  .surface-premium {
+    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--surface-2)) 100%);
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.04) inset,
+      0 1px 2px 0 hsl(0 0% 0% / 0.2),
+      0 12px 32px -16px hsl(150 60% 3% / 0.4);
+  }
+
+  /* Shimmer skeleton */
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--surface-3)) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s linear infinite;
+  }
+
+  /* Premium focus ring */
+  .focus-glow:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--primary) / 0.4),
+      0 0 20px hsl(var(--primary) / 0.25);
+  }
+
+  /* Sidebar nav pill (active) */
+  .nav-pill-active {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.18), hsl(var(--primary) / 0.08));
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.25),
+      0 4px 16px -4px hsl(var(--primary) / 0.35),
+      inset 0 1px 0 0 hsl(var(--primary) / 0.15);
+  }
 }
