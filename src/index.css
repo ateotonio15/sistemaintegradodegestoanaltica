@@ -203,11 +203,15 @@
 @layer components {
   /* Page header style */
   .page-header {
-    @apply flex items-center justify-between mb-6;
+    @apply flex items-center justify-between mb-6 animate-fade-in;
   }
 
   .page-title {
-    @apply text-2xl font-bold tracking-tight text-foreground;
+    @apply text-2xl md:text-3xl font-bold tracking-tight text-foreground;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-muted-foreground mt-1;
   }
 
   /* Card hover lift */
