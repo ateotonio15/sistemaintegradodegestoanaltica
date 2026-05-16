@@ -217,6 +217,52 @@
     border: 2px solid transparent;
   }
   * { scrollbar-color: hsl(var(--primary) / 0.25) transparent; scrollbar-width: thin; }
+
+  /* Premium icon micro-interaction (lucide) — discreet across the system */
+  .lucide {
+    transition: transform var(--motion-normal) var(--ease-premium),
+                color var(--motion-fast) var(--ease-premium),
+                filter var(--motion-normal) var(--ease-premium),
+                opacity var(--motion-fast) var(--ease-premium);
+    transform-origin: center;
+    will-change: transform;
+  }
+
+  /* On hover of any interactive ancestor, the icon reacts */
+  button:hover .lucide,
+  a:hover .lucide,
+  [role="button"]:hover .lucide,
+  [role="menuitem"]:hover .lucide,
+  [role="tab"]:hover .lucide,
+  [role="option"]:hover .lucide,
+  label:hover > .lucide,
+  .icon-hover:hover .lucide {
+    transform: scale(1.12) rotate(-2deg);
+    color: hsl(var(--primary));
+    filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.35));
+  }
+
+  /* Slight press feedback */
+  button:active .lucide,
+  a:active .lucide,
+  [role="button"]:active .lucide {
+    transform: scale(0.94);
+    filter: none;
+  }
+
+  /* Disabled stays calm */
+  button:disabled .lucide,
+  [aria-disabled="true"] .lucide {
+    transform: none !important;
+    filter: none !important;
+    color: inherit !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lucide { transition: none; }
+    button:hover .lucide,
+    a:hover .lucide { transform: none; filter: none; }
+  }
 }
 
 @layer components {
