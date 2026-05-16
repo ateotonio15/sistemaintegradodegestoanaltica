@@ -605,14 +605,6 @@ export default function Dashboard() {
         <AlertaReajustesParaConfirmar />
         {role === "visualizacao" && <AlertaReajustesPendentes />}
 
-        {/* Welcome hero */}
-        <WelcomeHero
-          totalAtivas={empresasAtivas.length}
-          totalNoPeriodo={totalNoPeriodo}
-          pendentes={pendentes}
-          concluidas={concluidas}
-        />
-
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
