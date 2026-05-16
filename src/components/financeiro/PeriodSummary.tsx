@@ -11,7 +11,7 @@ interface PeriodSummaryProps {
 
 export function PeriodSummary({ countByPeriodo, selected, onSelect }: PeriodSummaryProps) {
   return (
-    <Card className="rounded-xl shadow-sm">
+    <Card className="rounded-2xl border-border/60 shadow-sm">
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Resumo por período</h3>
@@ -30,14 +30,14 @@ export function PeriodSummary({ countByPeriodo, selected, onSelect }: PeriodSumm
                 key={p}
                 onClick={() => onSelect(isActive ? null : p)}
                 className={cn(
-                  "rounded-lg border px-3 py-2.5 text-left transition-all",
+                  "group relative rounded-xl border px-3 py-2.5 text-left transition-all duration-200 hover:-translate-y-0.5",
                   isActive
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-card text-card-foreground border-border hover:bg-accent hover:border-accent",
+                    ? "bg-gradient-primary text-primary-foreground border-transparent shadow-glow"
+                    : "bg-card text-card-foreground border-border/60 hover:bg-accent/60 hover:border-primary/40 hover:shadow-sm",
                 )}
               >
-                <p className="text-[11px] font-medium opacity-80">{p}</p>
-                <p className="text-lg font-bold leading-tight">{count}</p>
+                <p className={cn("text-[11px] font-medium", isActive ? "opacity-90" : "opacity-70")}>{p}</p>
+                <p className="text-lg font-bold leading-tight tabular-nums">{count}</p>
               </button>
             );
           })}
