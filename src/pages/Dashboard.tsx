@@ -32,6 +32,7 @@ import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
+import { WelcomeHero } from "@/components/dashboard/WelcomeHero";
 
 export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
@@ -603,11 +604,20 @@ export default function Dashboard() {
       <div className="space-y-8">
         <AlertaReajustesParaConfirmar />
         {role === "visualizacao" && <AlertaReajustesPendentes />}
+
+        {/* Welcome hero */}
+        <WelcomeHero
+          totalAtivas={empresasAtivas.length}
+          totalNoPeriodo={totalNoPeriodo}
+          pendentes={pendentes}
+          concluidas={concluidas}
+        />
+
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-1">Visão geral das movimentações e empresas</p>
+            <h2 className="text-xl font-semibold tracking-tight">Operação do período</h2>
+            <p className="text-sm text-muted-foreground mt-1">Filtre e acompanhe as movimentações em andamento</p>
           </div>
           <div className="flex gap-2">
             {isAdmin && (
