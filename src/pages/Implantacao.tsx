@@ -7,7 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSignature, Plus, Search, FileText, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { FileSignature, Plus, Search, FileText, Clock, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 
@@ -28,13 +33,16 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function Implantacao() {
-  const { isAdmin, role } = useAuth();
+  const { isAdmin, isVendas, role } = useAuth();
   const queryClient = useQueryClient();
   const canEdit = isAdmin || role === "comum";
+  const canDelete = isAdmin || isVendas;
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["implantacoes"],
@@ -91,6 +99,28 @@ export default function Implantacao() {
     }
     queryClient.invalidateQueries({ queryKey: ["implantacoes"] });
     setOpenId((data as any).id);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget || !canDelete) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.rpc("excluir_implantacao" as any, { p_id: deleteTarget.id });
+      if (error) throw error;
+      const paths = ((data as any)?.storage_paths || []) as string[];
+      if (paths.length > 0) {
+        await supabase.storage.from("implantacao-anexos").remove(paths).catch(() => {});
+      }
+      toast.success("Implantação excluída");
+      queryClient.invalidateQueries({ queryKey: ["implantacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["implantacoes-andamento"] });
+      queryClient.invalidateQueries({ queryKey: ["implantacao-alertas-count"] });
+      setDeleteTarget(null);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir implantação");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -172,9 +202,25 @@ export default function Implantacao() {
                     <CardTitle className="text-base truncate">
                       {i.nome_empresa || "Sem nome"}
                     </CardTitle>
-                    <Badge variant="outline" className={STATUS_COLOR[i.status]}>
-                      {STATUS_LABEL[i.status]}
-                    </Badge>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Badge variant="outline" className={STATUS_COLOR[i.status]}>
+                        {STATUS_LABEL[i.status]}
+                      </Badge>
+                      {canDelete && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground hover:text-red-600 hover:bg-red-500/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget({ id: i.id, nome: i.nome_empresa || "Sem nome" });
+                          }}
+                          title="Excluir implantação"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
@@ -213,6 +259,28 @@ export default function Implantacao() {
             readOnly={!canEdit}
           />
         )}
+
+        <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir implantação?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação removerá permanentemente o contrato <strong>{deleteTarget?.nome}</strong>,
+                seus anexos, alertas e histórico. Não é possível desfazer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); handleDelete(); }}
+                disabled={deleting}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deleting ? "Excluindo..." : "Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
