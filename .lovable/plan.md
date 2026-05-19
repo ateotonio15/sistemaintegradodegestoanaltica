@@ -1,33 +1,64 @@
-# Excluir contratos em implantação (Admin e Vendas)
+# ETAPA 43 — Leitura inteligente do layout de importação (regra do "I")
 
-Permitir que perfis **Admin** e **Vendas** excluam contratos da tela de Implantação.
+Refinar `src/lib/relatorio-vidas-validator.ts` para que a validação do layout Excel processe apenas linhas com `TIPO OPERACAO = "I"` e reaproveite dados já existentes no banco, reduzindo erros e retrabalho.
 
-## 1. Backend (migration)
+## 1. Mudanças no validador (`src/lib/relatorio-vidas-validator.ts`)
 
-- Adicionar política RLS em `implantacoes_contratos`:
-  - `Vendas delete implantacoes` → DELETE permitido quando `has_role(auth.uid(), 'vendas')` (qualquer contrato, não só os próprios).
-- Garantir limpeza em cascata das tabelas dependentes:
-  - `implantacao_anexos` (incluindo storage — feito no client antes do delete).
-  - `implantacao_alertas`.
-  - `implantacao_logs`.
-- Criar RPC `excluir_implantacao(p_id uuid)` `SECURITY DEFINER`:
-  - Valida que o caller é `admin` ou `vendas` via `has_role`.
-  - Apaga registros filhos (alertas, logs, anexos) e o contrato.
-  - Retorna lista de `storage_path` dos anexos para o client remover do bucket.
-- Admin já tem ALL; Vendas ganha DELETE amplo via política + RPC.
+- Após ler o header, localizar a coluna `TIPO OPERACAO`.
+- Para cada linha:
+  - Ler o valor de `TIPO OPERACAO` com `trim()`.
+  - Se vazio / null / undefined / espaços → **ignorar a linha inteira**: não conta em `total_linhas`, não conta em `vazias/preenchidas` das colunas, não gera pendência.
+  - Se diferente de `"I"` (case-insensitive) → ignorar igualmente e contar em `linhas_ignoradas_outro_tipo` (apenas para feedback).
+  - Se `= "I"` → validar normalmente (campos obrigatórios, CPF, CEP, datas, etc.).
+- Novos contadores no retorno:
+  - `linhas_lidas` (total de linhas com qualquer conteúdo)
+  - `linhas_validas` (TIPO OPERACAO = "I")
+  - `linhas_ignoradas_vazias`
+  - `linhas_ignoradas_outro_tipo`
+  - `linhas_reaproveitadas` (CPF já existente no banco)
+- Aceitar um parâmetro opcional `cpfsExistentes: Set<string>` para marcar campos como **opcionais** quando o CPF da linha já existe (não gerar erro de campo vazio para essa linha, exceto o próprio `TIPO OPERACAO`, `CPF` e `GRAU PARENTESCO`).
 
-## 2. Frontend
+## 2. Reaproveitamento de dados (consulta ao banco)
 
-- `src/pages/Implantacao.tsx`:
-  - Importar `useAuth` para flag `isVendas` (já existe `isAdmin`).
-  - Em cada card da lista, adicionar botão lixeira (canto superior direito) visível só para `isAdmin || isVendas`.
-  - Click abre `AlertDialog` (shadcn) de confirmação com nome da empresa.
-  - Ao confirmar: chamar RPC `excluir_implantacao`, remover anexos do storage (paths retornados), invalidar `["implantacoes"]`, `["implantacoes-andamento"]`, `["implantacao-alertas-count"]` e toast de sucesso.
-- `src/components/dashboard/ImplantacoesAndamentoCard.tsx`:
-  - Mesmo botão lixeira no card, com `stopPropagation` para não abrir navegação.
+Antes de chamar `validarRelatorioVidas` no wizard:
 
-## 3. Não fazer
+- Extrair todos os CPFs (coluna `CPF`) das linhas com `TIPO OPERACAO = "I"`.
+- Consultar `vidas_samel` / fonte equivalente para obter os CPFs já cadastrados.
+- Passar o `Set<string>` para o validador.
 
-- Não permitir exclusão para outros perfis (Comum/Diretora/Visualização/Financeiro).
-- Não apagar dados de `empresas` mesmo quando o contrato referencia uma empresa criada.
-- Sem soft-delete — exclusão definitiva (mais simples e é o pedido do usuário).
+Se a tabela de vidas não estiver disponível no projeto, usar `implantacoes_contratos` apenas para sinalizar empresa/CNPJ já cadastrados (reaproveitamento por empresa). Detalhe técnico abaixo.
+
+## 3. UI no wizard (`src/components/implantacao/ImplantacaoWizard.tsx`)
+
+- Após a validação, exibir resumo com os novos contadores:
+  - Linhas lidas / válidas (I) / ignoradas vazias / ignoradas outro tipo / reaproveitadas / erros / alertas.
+- Aviso fixo (`<Alert>`): "Linhas sem TIPO OPERACAO = I foram ignoradas automaticamente."
+- Tabela de pendências continua mostrando só linhas com `TIPO OPERACAO = "I"`.
+
+## 4. Performance
+
+- Loop continua O(linhas), mas pula imediatamente quando `TIPO OPERACAO ≠ "I"`, sem ler as demais células.
+
+## 5. Não fazer
+
+- Não alterar o schema do banco.
+- Não mudar o upload, storage ou demais etapas do wizard.
+- Não remover validações existentes para linhas com `I`.
+
+## Detalhes técnicos
+
+- Função `normalize` já existente serve para comparar `"I"`.
+- Atualizar interface `ValidacaoResultado` com os novos campos e ajustar consumidores (`ImplantacaoWizard.tsx` exibe `total_linhas` hoje; trocar pelos novos contadores).
+- `cpfsExistentes`: `Set<string>` com apenas dígitos. Lookup com `cpf.replace(/\D/g,"")`.
+- Para reaproveitamento real consultar `supabase.from("vidas_samel").select("cpf").in("cpf", lista)` em lote (máx 1000 por chamada). Caso a tabela não exista no schema atual, deixar o parâmetro opcional e seguir com `Set` vazio — a regra do "I" já entrega o ganho principal.
+
+```text
+Linha do Excel
+   │
+   ├─ TIPO OPERACAO vazio ──► ignorar (linhas_ignoradas_vazias++)
+   ├─ TIPO OPERACAO ≠ "I" ──► ignorar (linhas_ignoradas_outro_tipo++)
+   └─ TIPO OPERACAO = "I"
+         │
+         ├─ CPF existe no banco ──► validar mínimos, marcar reaproveitada
+         └─ CPF novo            ──► validar todos os campos obrigatórios
+```
