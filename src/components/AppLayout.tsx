@@ -146,7 +146,6 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       return data as Notificacao[];
     },
     enabled: !!user?.id,
-    refetchInterval: 30000,
   });
 
   // Fetch read notifications for current user
