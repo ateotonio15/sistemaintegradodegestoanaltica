@@ -189,6 +189,23 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {job && !resumo && (
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                {job.status === "error" ? (
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                ) : (
+                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                )}
+                Processo salvo: {job.status === "pending" ? "pendente" : job.status === "processing" ? "processando" : job.status}
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div className="h-full bg-primary transition-all" style={{ width: `${job.progress || 0}%` }} />
+              </div>
+              <p className="text-xs text-muted-foreground">{job.message || "Consultando status salvo..."}</p>
+            </div>
+          )}
+
           <label className="block">
             <input
               type="file"
@@ -254,12 +271,12 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={handleClose} disabled={importing}>
-              {resumo ? "Fechar" : "Cancelar"}
+            <Button variant="outline" onClick={handleClose}>
+              {resumo || importing ? "Fechar" : "Cancelar"}
             </Button>
             {parsedRows.length > 0 && !resumo && (
               <Button onClick={handleImport} disabled={importing}>
-                {importing ? "Importando..." : `Importar ${parsedRows.length} pagador(es)`}
+                {importing ? "Processando no servidor..." : `Importar ${parsedRows.length} pagador(es)`}
               </Button>
             )}
           </div>
