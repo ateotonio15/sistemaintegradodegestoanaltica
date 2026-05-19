@@ -29,7 +29,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
-import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
+import { ImplantacoesAndamentoCard } from "@/components/dashboard/ImplantacoesAndamentoCard";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
 
