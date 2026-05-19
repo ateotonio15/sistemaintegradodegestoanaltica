@@ -10,6 +10,7 @@ import Movimentacoes from "./pages/Movimentacoes";
 import Usuarios from "./pages/Usuarios";
 import Dashboard from "./pages/Dashboard";
 import DashboardFinanceiro from "./pages/DashboardFinanceiro";
+import DashboardVendas from "./pages/DashboardVendas";
 import Executivas from "./pages/Executivas";
 
 import Financeiro from "./pages/Financeiro";
@@ -67,10 +68,11 @@ function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
 
 function HomeRoute() {
   // Roteamento por perfil para a raiz
-  const { user, loading, isFinanceiro } = useAuth();
+  const { user, loading, isFinanceiro, isVendas } = useAuth();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Carregando...</div>;
   if (!user) return <Navigate to="/auth" replace />;
   if (isFinanceiro) return <DashboardFinanceiro />;
+  if (isVendas) return <DashboardVendas />;
   return <Dashboard />;
 }
 
