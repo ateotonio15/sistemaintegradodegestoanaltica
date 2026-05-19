@@ -9,14 +9,26 @@ export const COLUNAS_OBRIGATORIAS = [
 ] as const;
 
 // Validação obrigatória de preenchimento (erros). Demais geram apenas alertas.
+// GRAU PARENTESCO e TITULAR NÃO são obrigatórios: vazio = TITULAR (regra automática ETAPA 45).
 const CAMPOS_OBRIGATORIOS_LINHA = [
-  "TIPO OPERACAO", "NOME", "DATA NASC", "CPF", "GRAU PARENTESCO",
+  "TIPO OPERACAO", "NOME", "DATA NASC", "CPF",
 ];
 
 // Campos sempre obrigatórios mesmo quando CPF já existe no banco (reaproveitamento).
 const CAMPOS_OBRIGATORIOS_MESMO_REAPROVEITADO = new Set([
-  "TIPO OPERACAO", "CPF", "GRAU PARENTESCO",
+  "TIPO OPERACAO", "CPF",
 ]);
+
+export type TipoBeneficiario = "TITULAR" | "FILHO" | "CONJUGE" | "DEPENDENTE";
+
+export function classificarParentesco(grauRaw: any): TipoBeneficiario {
+  const g = (grauRaw == null ? "" : String(grauRaw)).trim();
+  if (g === "") return "TITULAR";
+  const n = parseInt(g, 10);
+  if (n === 6) return "FILHO";
+  if (n === 4) return "CONJUGE";
+  return "DEPENDENTE";
+}
 
 export type Severidade = "ok" | "alerta" | "erro";
 
@@ -54,6 +66,11 @@ export interface ValidacaoResultado {
   linhas_ignoradas_vazias: number;
   linhas_ignoradas_outro_tipo: number;
   linhas_reaproveitadas: number;
+  // ETAPA 45 - classificação automática por GRAU PARENTESCO
+  titulares_auto: number;
+  filhos: number;
+  conjuges: number;
+  outros_dependentes: number;
 }
 
 export interface ValidacaoOptions {
@@ -148,6 +165,10 @@ export async function validarRelatorioVidas(
   let linhas_ignoradas_vazias = 0;
   let linhas_ignoradas_outro_tipo = 0;
   let linhas_reaproveitadas = 0;
+  let titulares_auto = 0;
+  let filhos = 0;
+  let conjuges = 0;
+  let outros_dependentes = 0;
 
   const rowCount = ws.rowCount;
   const idxTipo = colIndex["TIPO OPERACAO"];
@@ -191,21 +212,26 @@ export async function validarRelatorioVidas(
     const reaproveitada = cpfDigits.length === 11 && cpfsExistentes.has(cpfDigits);
     if (reaproveitada) linhas_reaproveitadas++;
 
-    // contagem de vidas
-    const grau = normalize(get("GRAU PARENTESCO"));
-    if (grau === "TITULAR" || grau === "") titulares++;
-    else dependentes++;
+    // ETAPA 45 - classificação automática por GRAU PARENTESCO
+    const grauRaw = get("GRAU PARENTESCO");
+    const tipoBenef = classificarParentesco(grauRaw);
+    const grau = (grauRaw || "").trim();
+    if (tipoBenef === "TITULAR") { titulares++; titulares_auto++; }
+    else {
+      dependentes++;
+      if (tipoBenef === "FILHO") filhos++;
+      else if (tipoBenef === "CONJUGE") conjuges++;
+      else outros_dependentes++;
+    }
 
     for (const c of COLUNAS_OBRIGATORIAS) {
       if (colIndex[c] === undefined) continue;
       const raw = get(c);
       const val = (raw || "").trim();
-      let obrigBase = CAMPOS_OBRIGATORIOS_LINHA.includes(c);
-      // TITULAR torna-se obrigatório quando GRAU PARENTESCO está preenchido
-      if (c === "TITULAR" && grau !== "") obrigBase = true;
+      const obrigBase = CAMPOS_OBRIGATORIOS_LINHA.includes(c);
       // Se a vida já existe no banco, só seguem obrigatórios os campos chave
       const obrig = reaproveitada
-        ? (obrigBase && (CAMPOS_OBRIGATORIOS_MESMO_REAPROVEITADO.has(c) || (c === "TITULAR" && grau !== "")))
+        ? (obrigBase && CAMPOS_OBRIGATORIOS_MESMO_REAPROVEITADO.has(c))
         : obrigBase;
 
       if (!val) {
@@ -264,6 +290,10 @@ export async function validarRelatorioVidas(
     valido: colunas_ausentes.length === 0 && erros === 0 && linhas_validas > 0,
     linhas_lidas,
     linhas_validas,
+    titulares_auto,
+    filhos,
+    conjuges,
+    outros_dependentes,
     linhas_ignoradas_vazias,
     linhas_ignoradas_outro_tipo,
     linhas_reaproveitadas,

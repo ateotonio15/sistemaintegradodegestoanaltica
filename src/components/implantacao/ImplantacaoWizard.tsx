@@ -698,8 +698,9 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
 
       {validacao && (
         <>
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-xs text-yellow-700 dark:text-yellow-400">
-            Linhas sem <strong>TIPO OPERACAO = I</strong> foram ignoradas automaticamente.
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-xs text-yellow-700 dark:text-yellow-400 space-y-1">
+            <div>Linhas sem <strong>TIPO OPERACAO = I</strong> foram ignoradas automaticamente.</div>
+            <div>Linhas sem <strong>GRAU PARENTESCO</strong> foram identificadas automaticamente como <strong>TITULAR</strong>.</div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             <KpiBox label="Linhas Lidas" value={validacao.linhas_lidas ?? validacao.total_linhas} color="text-muted-foreground" />
@@ -710,7 +711,11 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <KpiBox label="Titulares" value={validacao.titulares} color="text-blue-500" />
-            <KpiBox label="Dependentes" value={validacao.dependentes} color="text-purple-500" />
+            <KpiBox label="Dep. Filhos" value={validacao.filhos ?? 0} color="text-purple-500" />
+            <KpiBox label="Dep. Cônjuges" value={validacao.conjuges ?? 0} color="text-pink-500" />
+            <KpiBox label="Outros Dep." value={validacao.outros_dependentes ?? 0} color="text-muted-foreground" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-2">
             <KpiBox label="Erros" value={validacao.erros} color="text-destructive" />
             <KpiBox label="Alertas" value={validacao.alertas} color="text-orange-500" />
           </div>
