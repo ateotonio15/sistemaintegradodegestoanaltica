@@ -134,10 +134,19 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     if (readOnly) return;
     setUploading(true);
     try {
-      const path = `${id}/${tipo}/${Date.now()}-${file.name}`;
+      // Sanitiza o nome para o path do Storage (remove acentos e caracteres especiais)
+      const safeName = file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "_")
+        .replace(/_+/g, "_");
+      const path = `${id}/${tipo}/${Date.now()}-${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("anexos-implantacao")
-        .upload(path, file);
+        .upload(path, file, {
+          contentType: file.type || "application/octet-stream",
+          upsert: false,
+        });
       if (upErr) throw upErr;
       const { data: u } = await supabase.auth.getUser();
       const { error: insErr } = await supabase
@@ -155,7 +164,8 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
       qc.invalidateQueries({ queryKey: ["impl-anexos", id] });
       toast.success("Arquivo enviado");
     } catch (e: any) {
-      toast.error(e.message);
+      console.error("Erro upload anexo:", e);
+      toast.error(e.message || "Falha no upload");
     } finally {
       setUploading(false);
     }
