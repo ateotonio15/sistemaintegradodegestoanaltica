@@ -101,6 +101,28 @@ export default function Implantacao() {
     setOpenId((data as any).id);
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget || !canDelete) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.rpc("excluir_implantacao" as any, { p_id: deleteTarget.id });
+      if (error) throw error;
+      const paths = ((data as any)?.storage_paths || []) as string[];
+      if (paths.length > 0) {
+        await supabase.storage.from("implantacao-anexos").remove(paths).catch(() => {});
+      }
+      toast.success("Implantação excluída");
+      queryClient.invalidateQueries({ queryKey: ["implantacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["implantacoes-andamento"] });
+      queryClient.invalidateQueries({ queryKey: ["implantacao-alertas-count"] });
+      setDeleteTarget(null);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir implantação");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="p-4 md:p-6 space-y-6">
