@@ -9,14 +9,26 @@ export const COLUNAS_OBRIGATORIAS = [
 ] as const;
 
 // Validação obrigatória de preenchimento (erros). Demais geram apenas alertas.
+// GRAU PARENTESCO e TITULAR NÃO são obrigatórios: vazio = TITULAR (regra automática ETAPA 45).
 const CAMPOS_OBRIGATORIOS_LINHA = [
-  "TIPO OPERACAO", "NOME", "DATA NASC", "CPF", "GRAU PARENTESCO",
+  "TIPO OPERACAO", "NOME", "DATA NASC", "CPF",
 ];
 
 // Campos sempre obrigatórios mesmo quando CPF já existe no banco (reaproveitamento).
 const CAMPOS_OBRIGATORIOS_MESMO_REAPROVEITADO = new Set([
-  "TIPO OPERACAO", "CPF", "GRAU PARENTESCO",
+  "TIPO OPERACAO", "CPF",
 ]);
+
+export type TipoBeneficiario = "TITULAR" | "FILHO" | "CONJUGE" | "DEPENDENTE";
+
+export function classificarParentesco(grauRaw: any): TipoBeneficiario {
+  const g = (grauRaw == null ? "" : String(grauRaw)).trim();
+  if (g === "") return "TITULAR";
+  const n = parseInt(g, 10);
+  if (n === 6) return "FILHO";
+  if (n === 4) return "CONJUGE";
+  return "DEPENDENTE";
+}
 
 export type Severidade = "ok" | "alerta" | "erro";
 
