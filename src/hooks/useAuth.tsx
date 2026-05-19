@@ -35,6 +35,7 @@ const AuthContext = createContext<AuthContextType>({
   isComum: false,
   isVendas: false,
   isDiretora: false,
+  isAdministradoras: false,
   canEditFinanceiro: false,
   signOut: async () => {},
 });
