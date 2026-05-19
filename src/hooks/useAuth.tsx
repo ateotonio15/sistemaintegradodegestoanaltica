@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -43,43 +43,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole>(null);
+  const lastUserIdRef = useRef<string | null>(null);
+  const roleRequestRef = useRef(0);
 
-  const fetchRole = async (userId: string) => {
+  const fetchRole = useCallback(async (userId: string) => {
+    const requestId = ++roleRequestRef.current;
     const { data } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .maybeSingle();
+    if (requestId !== roleRequestRef.current) return;
     setRole((data?.role as UserRole) ?? "comum");
-  };
+  }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setLoading(true);
-        setTimeout(() => {
-          fetchRole(session.user.id).finally(() => setLoading(false));
-        }, 0);
-      } else {
+    const applySession = async (nextSession: Session | null) => {
+      const nextUser = nextSession?.user ?? null;
+      const nextUserId = nextUser?.id ?? null;
+
+      setSession(nextSession);
+      setUser(nextUser);
+
+      if (!nextUserId) {
+        lastUserIdRef.current = null;
+        roleRequestRef.current += 1;
         setRole(null);
         setLoading(false);
+        return;
       }
+
+      // TOKEN_REFRESHED/SIGNED_IN ao voltar foco não deve derrubar o layout para "Carregando".
+      if (lastUserIdRef.current === nextUserId && role) {
+        setLoading(false);
+        return;
+      }
+
+      lastUserIdRef.current = nextUserId;
+      if (!role) setLoading(true);
+      await fetchRole(nextUserId).finally(() => setLoading(false));
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      void applySession(session);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRole(session.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
+      void applySession(session);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchRole, role]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
