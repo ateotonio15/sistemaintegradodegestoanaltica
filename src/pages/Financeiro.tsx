@@ -1196,6 +1196,19 @@ export default function Financeiro() {
           </CardContent>
         </Card>
 
+        {/* Aviso discreto quando há um burst de alterações em tempo real */}
+        {pendingCount > 0 && (
+          <div className="flex items-center justify-between rounded-lg border border-info/40 bg-info/5 px-3 py-2 text-sm">
+            <span className="text-info">
+              Novas alterações financeiras disponíveis ({pendingCount}).
+            </span>
+            <Button size="sm" variant="outline" onClick={applyPending} className="gap-1">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Atualizar tabela
+            </Button>
+          </div>
+        )}
+
         {/* Tabela */}
         <FinanceiroTable
           rows={filteredRows}
