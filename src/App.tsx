@@ -78,9 +78,10 @@ function RoleGate({
 }
 
 function HomeRoute() {
-  const { isFinanceiro, isVendas } = useAuth();
+  const { isFinanceiro, isVendas, isAdministradoras } = useAuth();
   if (isFinanceiro) return <DashboardFinanceiro />;
   if (isVendas) return <DashboardVendas />;
+  if (isAdministradoras) return <DashboardAdministradoras />;
   return <Dashboard />;
 }
 
