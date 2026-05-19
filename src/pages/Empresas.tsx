@@ -150,7 +150,16 @@ export default function Empresas() {
         return;
       }
       const payload: any = { ...values };
-      if (payload.tipo_movimentacao === "Diária") {
+      if (payload.tipo_contrato === "ADMINISTRADORA") {
+        payload.tipo_movimentacao = "Diária";
+        payload.periodo_movimentacao = null;
+        payload.executiva_user_id = null;
+        payload.email_empresa = null;
+        payload.telefone_empresa = null;
+        payload.contato_empresa = null;
+        payload.prazo = null;
+        payload.grupo_contrato = null;
+      } else if (payload.tipo_movimentacao === "Diária") {
         payload.periodo_movimentacao = null;
       }
       if (dataImplantacao) payload.data_implantacao = dataImplantacao;
@@ -302,6 +311,7 @@ export default function Empresas() {
       contato_empresa: (e as any).contato_empresa ?? "",
       contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
       vidas: (e as any).vidas ?? 0,
+      tipo_contrato: (e as any).tipo_contrato ?? "EMPRESARIAL",
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
     setDataVencimentoFatura((e as any).data_vencimento_fatura ?? "");
