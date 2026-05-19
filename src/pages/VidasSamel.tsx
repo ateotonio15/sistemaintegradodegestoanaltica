@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -156,7 +155,7 @@ export default function VidasSamel() {
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
         <div>
@@ -412,7 +411,7 @@ export default function VidasSamel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppLayout>
+    </>
   );
 }
 

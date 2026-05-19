@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
-import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -600,7 +599,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-8">
         <AlertaReajustesParaConfirmar />
         {role === "visualizacao" && <AlertaReajustesPendentes />}
@@ -1236,6 +1235,6 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
       </div>
-    </AppLayout>
+    </>
   );
 }

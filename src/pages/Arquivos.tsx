@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AppLayout } from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -339,7 +338,7 @@ export default function Arquivos() {
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
@@ -658,7 +657,7 @@ export default function Arquivos() {
           mimeType={previewArquivo.mime_type}
         />
       )}
-    </AppLayout>
+    </>
   );
 }
 
