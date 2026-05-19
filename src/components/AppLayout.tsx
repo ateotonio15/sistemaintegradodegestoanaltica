@@ -100,6 +100,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
+      if (role === "vendas") {
+        const allowed = ["/", "/empresas", "/movimentacoes", "/executivas", "/implantacao"];
+        return allowed.includes(item.to);
+      }
       if (isFinanceiro) {
         const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes"];
         return allowed.includes(item.to);

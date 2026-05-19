@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, Wallet } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
-type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro";
+type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas";
 
 interface UserProfile {
   user_id: string;
@@ -33,6 +33,7 @@ const roleLabel: Record<AppRole, string> = {
   diretora: "Diretora",
   enfermeira: "Enfermeira",
   financeiro: "Financeiro",
+  vendas: "Vendas",
 };
 
 const roleIcon: Record<AppRole, typeof Shield> = {
@@ -43,6 +44,7 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   diretora: Eye,
   enfermeira: HeartPulse,
   financeiro: Wallet,
+  vendas: User,
 };
 
 function generatePassword(length = 10) {
@@ -306,6 +308,7 @@ export default function Usuarios() {
                       <SelectItem value="diretora">Diretora</SelectItem>
                       <SelectItem value="enfermeira">Enfermeira</SelectItem>
                       <SelectItem value="financeiro">Financeiro</SelectItem>
+                      <SelectItem value="vendas">Vendas</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
