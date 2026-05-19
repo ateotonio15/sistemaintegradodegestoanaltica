@@ -12,6 +12,7 @@ import Usuarios from "./pages/Usuarios";
 import Dashboard from "./pages/Dashboard";
 import DashboardFinanceiro from "./pages/DashboardFinanceiro";
 import DashboardVendas from "./pages/DashboardVendas";
+import DashboardAdministradoras from "./pages/DashboardAdministradoras";
 import Executivas from "./pages/Executivas";
 import Financeiro from "./pages/Financeiro";
 import Reajustes from "./pages/Reajustes";
