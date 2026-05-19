@@ -235,9 +235,9 @@ export async function validarRelatorioVidas(
         : obrigBase;
 
       if (!val) {
-        // TITULAR vazio é semanticamente válido: indica o próprio titular.
-        // Não conta como vazia nem gera alerta/erro.
-        if (c === "TITULAR") {
+        // TITULAR/GRAU PARENTESCO vazios são semanticamente válidos:
+        // indicam o próprio titular. Não conta como vazia nem gera alerta/erro.
+        if (c === "TITULAR" || c === "GRAU PARENTESCO") {
           colStats[c].preenchidas++;
           continue;
         }
