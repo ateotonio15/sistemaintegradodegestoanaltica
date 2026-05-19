@@ -17,6 +17,7 @@ interface AuthContextType {
   isComum: boolean;
   isVendas: boolean;
   isDiretora: boolean;
+  isAdministradoras: boolean;
   canEditFinanceiro: boolean;
   signOut: () => Promise<void>;
 }
