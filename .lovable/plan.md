@@ -1,60 +1,33 @@
-# ETAPA 42 — Dashboard de Implantações
+# Excluir contratos em implantação (Admin e Vendas)
 
-Substituir o card "Faturamentos Não Enviados" no Dashboard por um painel "Implantações em Andamento", e mover a função antiga para a aba Movimentações, sem perder dados nem regras existentes.
+Permitir que perfis **Admin** e **Vendas** excluam contratos da tela de Implantação.
 
-## 1. Dashboard — Novo painel "Implantações em Andamento"
+## 1. Backend (migration)
 
-Novo componente `src/components/dashboard/ImplantacoesAndamentoCard.tsx` substituindo `<FaturamentosEnviadosCard />` em `src/pages/Dashboard.tsx` (linha 798).
+- Adicionar política RLS em `implantacoes_contratos`:
+  - `Vendas delete implantacoes` → DELETE permitido quando `has_role(auth.uid(), 'vendas')` (qualquer contrato, não só os próprios).
+- Garantir limpeza em cascata das tabelas dependentes:
+  - `implantacao_anexos` (incluindo storage — feito no client antes do delete).
+  - `implantacao_alertas`.
+  - `implantacao_logs`.
+- Criar RPC `excluir_implantacao(p_id uuid)` `SECURITY DEFINER`:
+  - Valida que o caller é `admin` ou `vendas` via `has_role`.
+  - Apaga registros filhos (alertas, logs, anexos) e o contrato.
+  - Retorna lista de `storage_path` dos anexos para o client remover do bucket.
+- Admin já tem ALL; Vendas ganha DELETE amplo via política + RPC.
 
-Visual estilo Linear, dark green premium, com:
+## 2. Frontend
 
-- Header com KPIs: total em implantação, aguardando diretoria, em correção, atrasadas, total de vidas.
-- Lista/grid de contratos em implantação, cada card mostrando:
-  - Nome da empresa + código do contrato
-  - Responsável (Diretora — `aprovado_por_nome` / `created_by_nome` quando aplicável)
-  - Data de início (`inicio_atendimento`), última atualização (`updated_at`), prazo (`data_vigencia`)
-  - Status com badge colorido (usa `STATUS_META` de `src/lib/implantacao-status.ts`)
-  - Etapa atual (`etapa_atual` / 7) e pendências (alertas abertos em `implantacao_alertas`)
-  - Total de vidas (`total_vidas`), titulares, dependentes; quando disponível, vidas ativas/aguardando/processadas vindas de `relatorio_validacao`
-  - Barra de progresso (`progresso` 0–100) com cor: verde ≥80, amarelo 40–79, vermelho <40 ou atrasado
-- Timeline horizontal compacta por card: criação → envio diretoria → aprovação → cadastro → implantado (usa `created_at`, `enviado_diretoria_em`, `aprovado_em`, `enviado_cadastro_em`, `implantado_em`).
-- Indicador de pendências (badge com contagem de alertas pendentes do contrato).
-- Alertas visuais: implantação atrasada (prazo vencido), documento faltando, aguardando diretoria, aguardando cadastro.
+- `src/pages/Implantacao.tsx`:
+  - Importar `useAuth` para flag `isVendas` (já existe `isAdmin`).
+  - Em cada card da lista, adicionar botão lixeira (canto superior direito) visível só para `isAdmin || isVendas`.
+  - Click abre `AlertDialog` (shadcn) de confirmação com nome da empresa.
+  - Ao confirmar: chamar RPC `excluir_implantacao`, remover anexos do storage (paths retornados), invalidar `["implantacoes"]`, `["implantacoes-andamento"]`, `["implantacao-alertas-count"]` e toast de sucesso.
+- `src/components/dashboard/ImplantacoesAndamentoCard.tsx`:
+  - Mesmo botão lixeira no card, com `stopPropagation` para não abrir navegação.
 
-Filtros (toolbar do painel):
-- Responsável (diretora aprovador)
-- Mês (do `created_at` ou `inicio_atendimento`)
-- Status (multiselect com os enums)
-- Empresa (busca por nome/CNPJ/contrato)
-- Faixa de vidas (slider/select: <50, 50–200, 200–500, 500+)
+## 3. Não fazer
 
-Fonte de dados:
-- Tabela `implantacoes_contratos` (filtrar status ≠ `implantado` e ≠ `rejeitado` por padrão; toggle "mostrar concluídos").
-- Tabela `implantacao_alertas` (contagem de pendências por `implantacao_id`, `status='Pendente'`).
-- Permissões já cobertas por RLS atuais (admin, comum, vendas, diretora, visualizacao).
-
-## 2. Mover "Faturamentos Não Enviados" para Movimentações
-
-- Remover `<FaturamentosEnviadosCard />` e seu import do `Dashboard.tsx`.
-- Manter o arquivo `src/components/dashboard/FaturamentosEnviadosCard.tsx` (renderizado em outro local) — não apagar lógica.
-- Em `src/pages/Movimentacoes.tsx`, adicionar nova seção "Faturamentos Não Enviados" no topo (ou em uma nova aba interna `Tabs`), renderizando o mesmo `FaturamentosEnviadosCard` sem alterações de regras, filtros, alertas, status ou períodos.
-
-## 3. Sem alterações em
-
-- Regras financeiras, RPCs, RLS de movimentações/financeiro.
-- Schema do banco (nenhuma migration necessária — todos os campos já existem em `implantacoes_contratos` e `implantacao_alertas`).
-- Wizard de implantação, fluxo Vendas → Diretora → Cadastro já existente.
-
-## Detalhes técnicos
-
-- Novos arquivos: `src/components/dashboard/ImplantacoesAndamentoCard.tsx` (+ subcomponentes opcionais: `ImplantacaoRowCard`, `ImplantacaoMiniTimeline`, `ImplantacoesFilters`).
-- Edits: `src/pages/Dashboard.tsx` (substituir o card), `src/pages/Movimentacoes.tsx` (adicionar seção/aba reutilizando `FaturamentosEnviadosCard`).
-- React Query: nova chave `["implantacoes-andamento", filters]` + `["implantacao-alertas-count"]`; invalidar quando workflow muda status.
-- Status badges reaproveitam `STATUS_META` já existente.
-- Acessível via perfis: admin, comum (cadastro), diretora, vendas, visualizacao — consistente com RLS já aplicadas.
-
-## Não fazer
-
-- Não apagar `FaturamentosEnviadosCard.tsx` nem alterar suas regras.
-- Não criar migration nova.
-- Não mexer no fluxo de aprovação/correção da diretoria.
+- Não permitir exclusão para outros perfis (Comum/Diretora/Visualização/Financeiro).
+- Não apagar dados de `empresas` mesmo quando o contrato referencia uma empresa criada.
+- Sem soft-delete — exclusão definitiva (mais simples e é o pedido do usuário).
