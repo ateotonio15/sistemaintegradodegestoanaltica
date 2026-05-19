@@ -234,6 +234,10 @@ export async function validarRelatorioVidas(
         ? (obrigBase && CAMPOS_OBRIGATORIOS_MESMO_REAPROVEITADO.has(c))
         : obrigBase;
 
+      // ESTADO CIVIL = "2" (ou "CASADO") indica casado → DT CASAMENTO obrigatório
+      const ecRaw = normalize(get("ESTADO CIVIL"));
+      const isCasado = ecRaw === "2" || ecRaw === "CASADO" || ecRaw === "CASADA" || ecRaw === "CASADO(A)";
+
       if (!val) {
         // TITULAR/GRAU PARENTESCO vazios são semanticamente válidos:
         // indicam o próprio titular. Não conta como vazia nem gera alerta/erro.
@@ -241,8 +245,13 @@ export async function validarRelatorioVidas(
           colStats[c].preenchidas++;
           continue;
         }
+        // DT CASAMENTO só é exigida quando ESTADO CIVIL = casado (2)
+        if (c === "DT CASAMENTO" && !isCasado) {
+          colStats[c].preenchidas++;
+          continue;
+        }
         colStats[c].vazias++;
-        if (obrig) {
+        if (obrig || (c === "DT CASAMENTO" && isCasado)) {
           colStats[c].severidade = "erro";
           pendencias.push({ linha: r, coluna: c, motivo: "vazio", severidade: "erro" });
         } else if (!reaproveitada && colStats[c].severidade === "ok") {
@@ -258,10 +267,7 @@ export async function validarRelatorioVidas(
       else if (c === "CEP" && !isValidCEP(val)) { invalido = true; motivo = "CEP inválido"; }
       else if ((c === "DATA NASC" || c === "DATA ADMISSAO" || c === "DT CASAMENTO") && !isValidDate(val)) {
         if (c === "DT CASAMENTO") {
-          const ec = normalize(get("ESTADO CIVIL"));
-          if (ec === "CASADO" || ec === "CASADA" || ec === "CASADO(A)") {
-            invalido = true; motivo = "data inválida";
-          }
+          if (isCasado) { invalido = true; motivo = "data inválida"; }
         } else {
           invalido = true; motivo = "data inválida";
         }
