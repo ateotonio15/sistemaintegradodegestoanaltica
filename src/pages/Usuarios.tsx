@@ -33,6 +33,7 @@ const roleLabel: Record<AppRole, string> = {
   enfermeira: "Enfermeira",
   financeiro: "Financeiro",
   vendas: "Vendas",
+  administradoras: "Administradoras",
 };
 
 const roleIcon: Record<AppRole, typeof Shield> = {
@@ -44,6 +45,7 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   enfermeira: HeartPulse,
   financeiro: Wallet,
   vendas: User,
+  administradoras: Building2,
 };
 
 function generatePassword(length = 10) {
