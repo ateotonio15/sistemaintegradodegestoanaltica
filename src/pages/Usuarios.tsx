@@ -310,6 +310,7 @@ export default function Usuarios() {
                       <SelectItem value="enfermeira">Enfermeira</SelectItem>
                       <SelectItem value="financeiro">Financeiro</SelectItem>
                       <SelectItem value="vendas">Vendas</SelectItem>
+                      <SelectItem value="administradoras">Administradoras</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -433,6 +434,8 @@ export default function Usuarios() {
                     <SelectItem value="diretora">Diretora</SelectItem>
                     <SelectItem value="enfermeira">Enfermeira</SelectItem>
                     <SelectItem value="financeiro">Financeiro</SelectItem>
+                    <SelectItem value="vendas">Vendas</SelectItem>
+                    <SelectItem value="administradoras">Administradoras</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
