@@ -165,6 +165,10 @@ export async function validarRelatorioVidas(
   let linhas_ignoradas_vazias = 0;
   let linhas_ignoradas_outro_tipo = 0;
   let linhas_reaproveitadas = 0;
+  let titulares_auto = 0;
+  let filhos = 0;
+  let conjuges = 0;
+  let outros_dependentes = 0;
 
   const rowCount = ws.rowCount;
   const idxTipo = colIndex["TIPO OPERACAO"];
