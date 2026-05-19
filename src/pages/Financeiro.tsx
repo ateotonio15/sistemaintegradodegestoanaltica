@@ -36,6 +36,7 @@ import { EditarMovimentacaoDialog } from "@/components/financeiro/EditarMoviment
 import { CobrancaDialog } from "@/components/financeiro/CobrancaDialog";
 import { ImportPagadoresDialog } from "@/components/financeiro/ImportPagadoresDialog";
 import { ReajusteCobrancaRetroativa } from "@/components/financeiro/ReajusteCobrancaRetroativa";
+import { useFinanceiroRealtime } from "@/hooks/useFinanceiroRealtime";
 
 import {
   type FinanceiroMovimentacao,
