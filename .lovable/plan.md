@@ -1,79 +1,60 @@
-# Modernização Visual do CS Control
+# ETAPA 42 — Dashboard de Implantações
 
-Refinar toda a interface mantendo a identidade atual (verde + dark), elevando o sistema para um padrão SaaS moderno (estilo Linear/Vercel), com micro-interações sutis e profissionais.
+Substituir o card "Faturamentos Não Enviados" no Dashboard por um painel "Implantações em Andamento", e mover a função antiga para a aba Movimentações, sem perder dados nem regras existentes.
 
-## Princípios de design
+## 1. Dashboard — Novo painel "Implantações em Andamento"
 
-- **Manter**: paleta verde primário, dark mode default, fonte Inter, estrutura shadcn/ui.
-- **Elevar**: hierarquia visual, respiração (espaçamentos), profundidade sutil, consistência entre telas.
-- **Interatividade nível 3/5**: transições suaves, hover states refinados, feedback claro — sem exageros.
+Novo componente `src/components/dashboard/ImplantacoesAndamentoCard.tsx` substituindo `<FaturamentosEnviadosCard />` em `src/pages/Dashboard.tsx` (linha 798).
 
-## 1. Design tokens (base do sistema)
+Visual estilo Linear, dark green premium, com:
 
-Arquivos: `src/index.css`, `tailwind.config.ts`
+- Header com KPIs: total em implantação, aguardando diretoria, em correção, atrasadas, total de vidas.
+- Lista/grid de contratos em implantação, cada card mostrando:
+  - Nome da empresa + código do contrato
+  - Responsável (Diretora — `aprovado_por_nome` / `created_by_nome` quando aplicável)
+  - Data de início (`inicio_atendimento`), última atualização (`updated_at`), prazo (`data_vigencia`)
+  - Status com badge colorido (usa `STATUS_META` de `src/lib/implantacao-status.ts`)
+  - Etapa atual (`etapa_atual` / 7) e pendências (alertas abertos em `implantacao_alertas`)
+  - Total de vidas (`total_vidas`), titulares, dependentes; quando disponível, vidas ativas/aguardando/processadas vindas de `relatorio_validacao`
+  - Barra de progresso (`progresso` 0–100) com cor: verde ≥80, amarelo 40–79, vermelho <40 ou atrasado
+- Timeline horizontal compacta por card: criação → envio diretoria → aprovação → cadastro → implantado (usa `created_at`, `enviado_diretoria_em`, `aprovado_em`, `enviado_cadastro_em`, `implantado_em`).
+- Indicador de pendências (badge com contagem de alertas pendentes do contrato).
+- Alertas visuais: implantação atrasada (prazo vencido), documento faltando, aguardando diretoria, aguardando cadastro.
 
-- Refinar paleta HSL: verde primário com glow secundário, surfaces em camadas (bg, card, elevated, overlay).
-- Adicionar tokens semânticos: `--surface-1/2/3`, `--border-subtle`, `--ring-focus`, `--shadow-elegant`, `--shadow-glow`.
-- Gradientes utilitários: `--gradient-primary`, `--gradient-surface`.
-- Border radius: subir levemente (cards `rounded-xl → rounded-2xl` seletivo).
-- Tipografia: escala mais clara (display, h1-h4, body, caption) com tracking ajustado.
+Filtros (toolbar do painel):
+- Responsável (diretora aprovador)
+- Mês (do `created_at` ou `inicio_atendimento`)
+- Status (multiselect com os enums)
+- Empresa (busca por nome/CNPJ/contrato)
+- Faixa de vidas (slider/select: <50, 50–200, 200–500, 500+)
 
-## 2. Componentes globais
+Fonte de dados:
+- Tabela `implantacoes_contratos` (filtrar status ≠ `implantado` e ≠ `rejeitado` por padrão; toggle "mostrar concluídos").
+- Tabela `implantacao_alertas` (contagem de pendências por `implantacao_id`, `status='Pendente'`).
+- Permissões já cobertas por RLS atuais (admin, comum, vendas, diretora, visualizacao).
 
-- **Sidebar** (`AppLayout.tsx`, `NavLink.tsx`): item ativo com indicador lateral verde + bg sutil, ícones com leve glow no hover, agrupamento visual mais limpo, transição suave de colapso.
-- **Header**: altura padronizada, busca global com estilo command-palette, badge de notificações refinado.
-- **Cards** (`KpiCards`, `PeriodSummary`, etc.): borda mais suave, hover com lift sutil (`translate-y` + shadow), ícones em containers com gradiente.
-- **Tabelas** (`FinanceiroTable`, listagens): linhas zebradas opcionais, hover row destacado, header sticky com blur, badges de status com pill refinado.
-- **Botões**: variante `premium` com gradiente verde + glow, estados loading consistentes.
-- **Dialogs/Sheets**: overlay com blur, animação `scale-in` + `fade-in`, header com divisor sutil.
-- **Inputs/Selects**: focus ring verde discreto, transição de borda.
-- **Empty states**: ilustração mínima + CTA claro.
-- **Skeletons**: padrão consistente para loading em todas as listagens.
+## 2. Mover "Faturamentos Não Enviados" para Movimentações
 
-## 3. Páginas (aplicação dos novos padrões)
+- Remover `<FaturamentosEnviadosCard />` e seu import do `Dashboard.tsx`.
+- Manter o arquivo `src/components/dashboard/FaturamentosEnviadosCard.tsx` (renderizado em outro local) — não apagar lógica.
+- Em `src/pages/Movimentacoes.tsx`, adicionar nova seção "Faturamentos Não Enviados" no topo (ou em uma nova aba interna `Tabs`), renderizando o mesmo `FaturamentosEnviadosCard` sem alterações de regras, filtros, alertas, status ou períodos.
 
-Aplicar os componentes refinados em:
+## 3. Sem alterações em
 
-- Dashboard (Cadastro e Financeiro)
-- Empresas / Implantação
-- Financeiro (tabela, KPIs, resumos)
-- Arquivos (cards de contrato/competência)
-- Reajustes
-- Movimentações
-- Executivas
-- Saúde nas Empresas
-- Usuários, Auth
-
-Sem mudar lógica/comportamento — apenas estrutura visual, espaçamentos, classes e micro-animações.
-
-## 4. Micro-interações (nível 3/5)
-
-- `fade-in` ao montar listas e cards
-- `hover-scale` sutil (1.02) em cards clicáveis
-- Transição de cor 200ms em todos os interativos
-- Badges de status com leve pulse quando "Fora do prazo"
-- Tabs com indicador deslizante
-- Toasts com slide-in suave
-
-## Execução em fases
-
-1. **Fundação**: tokens, tema, tipografia, componentes base (Button, Card, Badge, Input, Table, Dialog).
-2. **Shell**: Sidebar, Header, layout geral.
-3. **Páginas core**: Dashboard, Financeiro, Empresas.
-4. **Demais telas**: Arquivos, Reajustes, Movimentações, Executivas, Saúde, Usuários.
-5. **Polish**: animações, empty states, skeletons, revisão final.
+- Regras financeiras, RPCs, RLS de movimentações/financeiro.
+- Schema do banco (nenhuma migration necessária — todos os campos já existem em `implantacoes_contratos` e `implantacao_alertas`).
+- Wizard de implantação, fluxo Vendas → Diretora → Cadastro já existente.
 
 ## Detalhes técnicos
 
-- Tudo via tokens semânticos HSL no `index.css` — zero cores hardcoded em componentes.
-- Variantes via `class-variance-authority` nos componentes shadcn customizados.
-- Animações usando keyframes do `tailwind.config.ts` (já existentes: `fade-in`, `scale-in`, `accordion-*`) + adições mínimas (`slide-up`, `shimmer`).
-- Sem mudanças em lógica de negócio, RLS, queries ou estruturas de dados.
-- Sem novas dependências.
+- Novos arquivos: `src/components/dashboard/ImplantacoesAndamentoCard.tsx` (+ subcomponentes opcionais: `ImplantacaoRowCard`, `ImplantacaoMiniTimeline`, `ImplantacoesFilters`).
+- Edits: `src/pages/Dashboard.tsx` (substituir o card), `src/pages/Movimentacoes.tsx` (adicionar seção/aba reutilizando `FaturamentosEnviadosCard`).
+- React Query: nova chave `["implantacoes-andamento", filters]` + `["implantacao-alertas-count"]`; invalidar quando workflow muda status.
+- Status badges reaproveitam `STATUS_META` já existente.
+- Acessível via perfis: admin, comum (cadastro), diretora, vendas, visualizacao — consistente com RLS já aplicadas.
 
-## Fora de escopo
+## Não fazer
 
-- Mudanças funcionais ou de regras de negócio
-- Alterações em banco/RLS/Edge Functions
-- Troca de paleta principal
-- Reestruturação de navegação/rotas
+- Não apagar `FaturamentosEnviadosCard.tsx` nem alterar suas regras.
+- Não criar migration nova.
+- Não mexer no fluxo de aprovação/correção da diretoria.
