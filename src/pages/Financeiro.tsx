@@ -82,6 +82,13 @@ export default function Financeiro() {
   const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
   const [historicoOpen, setHistoricoOpen] = useState(false);
 
+  // Realtime exclusivo da aba Financeiro — refetch incremental por linha,
+  // sem reload, sem reset de filtros/estado. Cleanup automático ao sair.
+  const { pendingCount, applyPending } = useFinanceiroRealtime({
+    enabled: !!user && canViewFinanceiro,
+    mesReferencia: mes,
+  });
+
   // Movimentações financeiras do mês + dados de empresa via consulta separada
   const { data: financeiroRaw = [], isLoading } = useQuery({
     queryKey: ["financeiro", mes],
