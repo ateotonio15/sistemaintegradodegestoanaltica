@@ -389,6 +389,7 @@ export type Database = {
           responsavel_user_id: string | null
           status_empresa: string | null
           telefone_empresa: string | null
+          tipo_contrato: string
           tipo_financeiro: string | null
           tipo_movimentacao: string | null
           updated_at: string
@@ -423,6 +424,7 @@ export type Database = {
           responsavel_user_id?: string | null
           status_empresa?: string | null
           telefone_empresa?: string | null
+          tipo_contrato?: string
           tipo_financeiro?: string | null
           tipo_movimentacao?: string | null
           updated_at?: string
@@ -457,6 +459,7 @@ export type Database = {
           responsavel_user_id?: string | null
           status_empresa?: string | null
           telefone_empresa?: string | null
+          tipo_contrato?: string
           tipo_financeiro?: string | null
           tipo_movimentacao?: string | null
           updated_at?: string
@@ -1650,6 +1653,7 @@ export type Database = {
         | "financeiro"
         | "diretora"
         | "vendas"
+        | "administradoras"
       implantacao_status:
         | "em_implantacao"
         | "aguardando_documentos"
@@ -1798,6 +1802,7 @@ export const Constants = {
         "financeiro",
         "diretora",
         "vendas",
+        "administradoras",
       ],
       implantacao_status: [
         "em_implantacao",

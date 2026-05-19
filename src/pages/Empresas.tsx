@@ -49,6 +49,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   telefone_empresa: "",
   contato_empresa: "",
   vidas: 0,
+  tipo_contrato: "EMPRESARIAL",
 };
 
 export default function Empresas() {
@@ -149,7 +150,16 @@ export default function Empresas() {
         return;
       }
       const payload: any = { ...values };
-      if (payload.tipo_movimentacao === "Diária") {
+      if (payload.tipo_contrato === "ADMINISTRADORA") {
+        payload.tipo_movimentacao = "Diária";
+        payload.periodo_movimentacao = null;
+        payload.executiva_user_id = null;
+        payload.email_empresa = null;
+        payload.telefone_empresa = null;
+        payload.contato_empresa = null;
+        payload.prazo = null;
+        payload.grupo_contrato = null;
+      } else if (payload.tipo_movimentacao === "Diária") {
         payload.periodo_movimentacao = null;
       }
       if (dataImplantacao) payload.data_implantacao = dataImplantacao;
@@ -301,6 +311,7 @@ export default function Empresas() {
       contato_empresa: (e as any).contato_empresa ?? "",
       contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
       vidas: (e as any).vidas ?? 0,
+      tipo_contrato: (e as any).tipo_contrato ?? "EMPRESARIAL",
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
     setDataVencimentoFatura((e as any).data_vencimento_fatura ?? "");
@@ -443,18 +454,33 @@ export default function Empresas() {
                         <Label className="text-sm font-medium">Vidas</Label>
                         <Input type="number" min={0} value={(form as any).vidas ?? 0} onChange={(e) => setForm({ ...form, vidas: e.target.value ? Number(e.target.value) : 0 } as any)} placeholder="0" className="rounded-lg" />
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2 sm:col-span-2">
                         <Label className="text-sm font-medium">Tipo de Contrato *</Label>
-                        <Select value={form.tipo_movimentacao ?? "Fechada"} onValueChange={(v) => setForm({ ...form, tipo_movimentacao: v })}>
+                        <Select
+                          value={(form as any).tipo_contrato ?? "EMPRESARIAL"}
+                          onValueChange={(v) => setForm({ ...form, tipo_contrato: v } as any)}
+                        >
                           <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Diária">Diário</SelectItem>
-                            <SelectItem value="Fechada">Período</SelectItem>
+                            <SelectItem value="EMPRESARIAL">Empresarial</SelectItem>
+                            <SelectItem value="ADMINISTRADORA">Administradora</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      {form.tipo_movimentacao === "Fechada" && (
-                        <div className="space-y-2">
+                      {(form as any).tipo_contrato !== "ADMINISTRADORA" && (
+                        <div className="space-y-2 animate-fade-in">
+                          <Label className="text-sm font-medium">Tipo de Movimentação *</Label>
+                          <Select value={form.tipo_movimentacao ?? "Fechada"} onValueChange={(v) => setForm({ ...form, tipo_movimentacao: v })}>
+                            <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Diária">Diário</SelectItem>
+                              <SelectItem value="Fechada">Período</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      {(form as any).tipo_contrato !== "ADMINISTRADORA" && form.tipo_movimentacao === "Fechada" && (
+                        <div className="space-y-2 animate-fade-in">
                           <Label className="text-sm font-medium">Período de Movimentação *</Label>
                           <Select value={form.periodo_movimentacao ?? ""} onValueChange={(v) => setForm({ ...form, periodo_movimentacao: v })}>
                             <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -464,39 +490,55 @@ export default function Empresas() {
                           </Select>
                         </div>
                       )}
-                      {form.tipo_movimentacao === "Diária" && (
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Data de Corte (dia) *</Label>
-                          <Input type="number" min={1} max={31} value={form.data_corte ?? ""} onChange={(e) => setForm({ ...form, data_corte: e.target.value ? Number(e.target.value) : null })} required className="rounded-lg" />
+                      {((form as any).tipo_contrato === "ADMINISTRADORA" || form.tipo_movimentacao === "Diária") && (
+                        <div className="space-y-2 animate-fade-in">
+                          <Label className="text-sm font-medium">Data de Corte *</Label>
+                          {(form as any).tipo_contrato === "ADMINISTRADORA" ? (
+                            <Select value={form.data_corte ? String(form.data_corte) : ""} onValueChange={(v) => setForm({ ...form, data_corte: Number(v) })}>
+                              <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">Dia 01</SelectItem>
+                                <SelectItem value="5">Dia 05</SelectItem>
+                                <SelectItem value="10">Dia 10</SelectItem>
+                                <SelectItem value="20">Dia 20</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input type="number" min={1} max={31} value={form.data_corte ?? ""} onChange={(e) => setForm({ ...form, data_corte: e.target.value ? Number(e.target.value) : null })} required className="rounded-lg" />
+                          )}
                         </div>
                       )}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">E-mail da Empresa</Label>
-                        <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Telefone da Empresa</Label>
-                        <Input value={(form as any).telefone_empresa ?? ""} onChange={(e) => setForm({ ...form, telefone_empresa: e.target.value } as any)} placeholder="(92) 99999-9999" className="rounded-lg" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Contato da Empresa</Label>
-                        <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Prazo (Entrada sem carência)</Label>
-                        <Input value={(form as any).prazo ?? ""} onChange={(e) => setForm({ ...form, prazo: e.target.value } as any)} placeholder="Ex: 30 dias" className="rounded-lg" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Grupo de Contrato</Label>
-                        <Select value={(form as any).grupo_contrato ?? ""} onValueChange={(v) => setForm({ ...form, grupo_contrato: v } as any)}>
-                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o grupo" /></SelectTrigger>
-                          <SelectContent>
-                            {GRUPO_CONTRATO_OPTIONS.map((opt) => (
-                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {(form as any).tipo_contrato !== "ADMINISTRADORA" && (
+                        <>
+                          <div className="space-y-2 animate-fade-in">
+                            <Label className="text-sm font-medium">E-mail da Empresa</Label>
+                            <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
+                          </div>
+                          <div className="space-y-2 animate-fade-in">
+                            <Label className="text-sm font-medium">Telefone da Empresa</Label>
+                            <Input value={(form as any).telefone_empresa ?? ""} onChange={(e) => setForm({ ...form, telefone_empresa: e.target.value } as any)} placeholder="(92) 99999-9999" className="rounded-lg" />
+                          </div>
+                          <div className="space-y-2 animate-fade-in">
+                            <Label className="text-sm font-medium">Contato da Empresa</Label>
+                            <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
+                          </div>
+                          <div className="space-y-2 animate-fade-in">
+                            <Label className="text-sm font-medium">Prazo (Entrada sem carência)</Label>
+                            <Input value={(form as any).prazo ?? ""} onChange={(e) => setForm({ ...form, prazo: e.target.value } as any)} placeholder="Ex: 30 dias" className="rounded-lg" />
+                          </div>
+                          <div className="space-y-2 animate-fade-in">
+                            <Label className="text-sm font-medium">Grupo de Contrato</Label>
+                            <Select value={(form as any).grupo_contrato ?? ""} onValueChange={(v) => setForm({ ...form, grupo_contrato: v } as any)}>
+                              <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o grupo" /></SelectTrigger>
+                              <SelectContent>
+                                {GRUPO_CONTRATO_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Status da Empresa</Label>
                         <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>

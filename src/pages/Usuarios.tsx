@@ -11,10 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, Wallet } from "lucide-react";
+import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, Wallet, Building2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
-type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas";
+type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras";
 
 interface UserProfile {
   user_id: string;
@@ -33,6 +33,7 @@ const roleLabel: Record<AppRole, string> = {
   enfermeira: "Enfermeira",
   financeiro: "Financeiro",
   vendas: "Vendas",
+  administradoras: "Administradoras",
 };
 
 const roleIcon: Record<AppRole, typeof Shield> = {
@@ -44,6 +45,7 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   enfermeira: HeartPulse,
   financeiro: Wallet,
   vendas: User,
+  administradoras: Building2,
 };
 
 function generatePassword(length = 10) {
@@ -308,6 +310,7 @@ export default function Usuarios() {
                       <SelectItem value="enfermeira">Enfermeira</SelectItem>
                       <SelectItem value="financeiro">Financeiro</SelectItem>
                       <SelectItem value="vendas">Vendas</SelectItem>
+                      <SelectItem value="administradoras">Administradoras</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -431,6 +434,8 @@ export default function Usuarios() {
                     <SelectItem value="diretora">Diretora</SelectItem>
                     <SelectItem value="enfermeira">Enfermeira</SelectItem>
                     <SelectItem value="financeiro">Financeiro</SelectItem>
+                    <SelectItem value="vendas">Vendas</SelectItem>
+                    <SelectItem value="administradoras">Administradoras</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

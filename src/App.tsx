@@ -12,6 +12,7 @@ import Usuarios from "./pages/Usuarios";
 import Dashboard from "./pages/Dashboard";
 import DashboardFinanceiro from "./pages/DashboardFinanceiro";
 import DashboardVendas from "./pages/DashboardVendas";
+import DashboardAdministradoras from "./pages/DashboardAdministradoras";
 import Executivas from "./pages/Executivas";
 import Financeiro from "./pages/Financeiro";
 import Reajustes from "./pages/Reajustes";
@@ -77,9 +78,10 @@ function RoleGate({
 }
 
 function HomeRoute() {
-  const { isFinanceiro, isVendas } = useAuth();
+  const { isFinanceiro, isVendas, isAdministradoras } = useAuth();
   if (isFinanceiro) return <DashboardFinanceiro />;
   if (isVendas) return <DashboardVendas />;
+  if (isAdministradoras) return <DashboardAdministradoras />;
   return <Dashboard />;
 }
 
@@ -98,11 +100,17 @@ const AppRoutes = () => (
       <Route path="/dashboard" element={<HomeRoute />} />
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/movimentacoes" element={<Movimentacoes />} />
-      <Route path="/vidas-samel" element={<VidasSamel />} />
-      <Route path="/reajustes" element={<Reajustes />} />
+
+      <Route element={<RoleGate deny={["administradoras"]} />}>
+        <Route path="/vidas-samel" element={<VidasSamel />} />
+        <Route path="/reajustes" element={<Reajustes />} />
+      </Route>
+
+      <Route element={<RoleGate deny={["financeiro", "administradoras"]} />}>
+        <Route path="/executivas" element={<Executivas />} />
+      </Route>
 
       <Route element={<RoleGate deny={["financeiro"]} />}>
-        <Route path="/executivas" element={<Executivas />} />
         <Route path="/implantacao" element={<Implantacao />} />
       </Route>
 

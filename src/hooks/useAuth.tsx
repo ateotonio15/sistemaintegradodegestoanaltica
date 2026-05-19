@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-type UserRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | null;
+type UserRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras" | null;
 
 interface AuthContextType {
   user: User | null;
@@ -17,6 +17,7 @@ interface AuthContextType {
   isComum: boolean;
   isVendas: boolean;
   isDiretora: boolean;
+  isAdministradoras: boolean;
   canEditFinanceiro: boolean;
   signOut: () => Promise<void>;
 }
@@ -34,6 +35,7 @@ const AuthContext = createContext<AuthContextType>({
   isComum: false,
   isVendas: false,
   isDiretora: false,
+  isAdministradoras: false,
   canEditFinanceiro: false,
   signOut: async () => {},
 });
@@ -117,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isComum: role === "comum",
       isVendas: role === "vendas",
       isDiretora: role === "diretora",
+      isAdministradoras: role === "administradoras",
       canEditFinanceiro: role === "admin" || role === "financeiro",
       signOut,
     }}>
