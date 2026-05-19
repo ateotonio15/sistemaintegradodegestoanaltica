@@ -10,12 +10,12 @@ export const COLUNAS_OBRIGATORIAS = [
 
 // Validação obrigatória de preenchimento (erros). Demais geram apenas alertas.
 const CAMPOS_OBRIGATORIOS_LINHA = [
-  "TIPO OPERACAO", "NOME", "DATA NASC", "CPF", "GRAU PARENTESCO",
+  "TIPO OPERACAO", "NOME", "TITULAR", "DATA NASC", "CPF", "GRAU PARENTESCO",
 ];
 
 // Campos sempre obrigatórios mesmo quando CPF já existe no banco (reaproveitamento).
 const CAMPOS_OBRIGATORIOS_MESMO_REAPROVEITADO = new Set([
-  "TIPO OPERACAO", "CPF", "GRAU PARENTESCO",
+  "TIPO OPERACAO", "TITULAR", "CPF", "GRAU PARENTESCO",
 ]);
 
 export type Severidade = "ok" | "alerta" | "erro";
