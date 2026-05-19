@@ -90,7 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      void applySession(session);
+      setTimeout(() => {
+        void applySession(session);
+      }, 0);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
