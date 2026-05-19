@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -82,7 +81,7 @@ export default function DashboardVendas() {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="p-4 md:p-6 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -182,7 +181,7 @@ export default function DashboardVendas() {
           readOnly={false}
         />
       )}
-    </AppLayout>
+    </>
   );
 }
 

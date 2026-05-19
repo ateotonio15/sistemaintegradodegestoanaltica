@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -224,7 +223,7 @@ export default function Reajustes() {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="p-4 md:p-6 space-y-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
@@ -578,7 +577,7 @@ export default function Reajustes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AppLayout>
+    </>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse } from "lucide-react";
 import logoImg from "@/assets/logo-cs-control.png";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -65,7 +65,7 @@ function formatDateBR(dateStr: string | null | undefined): string {
   }
 }
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+export function AppLayout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user, isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, role } = useAuth();
@@ -531,10 +531,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 animate-fade-in space-y-4">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 space-y-4">
           <SuspensaoBanner />
           {!isFinanceiro && <CobrancaBanner />}
-          {children}
+          {children ?? <Outlet />}
         </main>
       </div>
     </div>

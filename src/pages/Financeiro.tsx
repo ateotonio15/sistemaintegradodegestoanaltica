@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -998,7 +997,7 @@ export default function Financeiro() {
   const editingNome = editing ? empresasMap[editing.empresa_id]?.nome : undefined;
 
   return (
-    <AppLayout>
+    <>
       <div className="p-4 md:p-6 space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1235,6 +1234,6 @@ export default function Financeiro() {
           canManage={!!canManageFinanceiro}
         />
       </div>
-    </AppLayout>
+    </>
   );
 }

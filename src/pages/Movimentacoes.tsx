@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
-import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -284,7 +283,7 @@ export default function Movimentacoes() {
   const isFechada = (form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao) === "Fechada";
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-6">
         <FaturamentosEnviadosCard />
         <div className="flex items-center justify-between">
@@ -542,6 +541,6 @@ export default function Movimentacoes() {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
+    </>
   );
 }

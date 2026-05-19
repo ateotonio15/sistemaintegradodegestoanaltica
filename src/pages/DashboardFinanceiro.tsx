@@ -1,9 +1,8 @@
-import { AppLayout } from "@/components/AppLayout";
 import { DashboardFinanceiro as DashboardFinanceiroContent } from "@/components/dashboard/DashboardFinanceiro";
 
 export default function DashboardFinanceiroPage() {
   return (
-    <AppLayout>
+    <>
       <div className="p-4 md:p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard Financeiro</h1>
@@ -11,6 +10,6 @@ export default function DashboardFinanceiroPage() {
         </div>
         <DashboardFinanceiroContent />
       </div>
-    </AppLayout>
+    </>
   );
 }
