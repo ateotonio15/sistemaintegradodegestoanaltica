@@ -172,10 +172,21 @@ export async function validarRelatorioVidas(
 
   const rowCount = ws.rowCount;
   const idxTipo = colIndex["TIPO OPERACAO"];
+  const idxNome = colIndex["NOME"];
 
   for (let r = 2; r <= rowCount; r++) {
     const row = ws.getRow(r);
     if (!row.hasValues) continue;
+
+    // Regra: só conta como linha lida/válida quando NOME está preenchido.
+    // Linhas com NOME vazio são totalmente ignoradas (não entram em Linhas Lidas).
+    let nomeVal = "";
+    if (idxNome !== undefined) {
+      const rawNome = row.getCell(idxNome).value;
+      nomeVal = (rawNome == null ? "" : String((rawNome as any).text ?? (rawNome as any).result ?? rawNome)).trim();
+    }
+    if (!nomeVal) continue;
+
     linhas_lidas++;
 
     if (onProgress && r % 200 === 0) onProgress(Math.min(99, (r / rowCount) * 100));
