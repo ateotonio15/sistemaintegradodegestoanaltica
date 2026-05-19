@@ -1,64 +1,99 @@
-# ETAPA 43 — Leitura inteligente do layout de importação (regra do "I")
+# Etapa 46 — Novo perfil "Administradoras"
 
-Refinar `src/lib/relatorio-vidas-validator.ts` para que a validação do layout Excel processe apenas linhas com `TIPO OPERACAO = "I"` e reaproveite dados já existentes no banco, reduzindo erros e retrabalho.
+Criação de um perfil novo, com dashboard exclusivo, regras específicas de movimentação e cadastro inteligente de empresas que se adapta ao tipo de contrato (Empresarial x Administradora).
 
-## 1. Mudanças no validador (`src/lib/relatorio-vidas-validator.ts`)
+## 1. Banco de dados
 
-- Após ler o header, localizar a coluna `TIPO OPERACAO`.
-- Para cada linha:
-  - Ler o valor de `TIPO OPERACAO` com `trim()`.
-  - Se vazio / null / undefined / espaços → **ignorar a linha inteira**: não conta em `total_linhas`, não conta em `vazias/preenchidas` das colunas, não gera pendência.
-  - Se diferente de `"I"` (case-insensitive) → ignorar igualmente e contar em `linhas_ignoradas_outro_tipo` (apenas para feedback).
-  - Se `= "I"` → validar normalmente (campos obrigatórios, CPF, CEP, datas, etc.).
-- Novos contadores no retorno:
-  - `linhas_lidas` (total de linhas com qualquer conteúdo)
-  - `linhas_validas` (TIPO OPERACAO = "I")
-  - `linhas_ignoradas_vazias`
-  - `linhas_ignoradas_outro_tipo`
-  - `linhas_reaproveitadas` (CPF já existente no banco)
-- Aceitar um parâmetro opcional `cpfsExistentes: Set<string>` para marcar campos como **opcionais** quando o CPF da linha já existe (não gerar erro de campo vazio para essa linha, exceto o próprio `TIPO OPERACAO`, `CPF` e `GRAU PARENTESCO`).
+Migração nova:
 
-## 2. Reaproveitamento de dados (consulta ao banco)
+- Adicionar valor `'administradoras'` ao enum `app_role`.
+- Tabela `empresas`: novo campo `tipo_contrato text not null default 'EMPRESARIAL'` com check em (`'EMPRESARIAL'`, `'ADMINISTRADORA'`).
+- Atualizar trigger `guard_empresas_executivo` para incluir o novo campo na lista de campos protegidos.
+- RLS:
+  - `empresas`, `movimentacoes`, `anexos_movimentacao`, `empresa_usuarios`, `implantacoes_contratos`, `implantacao_anexos`, `implantacao_alertas`, `profiles`: adicionar policies de leitura para o role `administradoras` (mesmos moldes das policies de `executivo`/`visualizacao`).
+  - Sem nenhuma policy para `administradoras` em `financeiro_*`, `reajustes*`, `user_roles`, garantindo bloqueio.
+- Função `has_role` já cobre o novo enum automaticamente.
 
-Antes de chamar `validarRelatorioVidas` no wizard:
+## 2. Autenticação e roteamento
 
-- Extrair todos os CPFs (coluna `CPF`) das linhas com `TIPO OPERACAO = "I"`.
-- Consultar `vidas_samel` / fonte equivalente para obter os CPFs já cadastrados.
-- Passar o `Set<string>` para o validador.
+- `src/hooks/useAuth.tsx`: adicionar `isAdministradoras` ao tipo e ao contexto.
+- `src/App.tsx`:
+  - `HomeRoute`: se `isAdministradoras`, renderizar novo `DashboardAdministradoras`.
+  - `RoleGate` para `/financeiro`, `/arquivos`, `/reajustes`, `/usuarios`, `/executivas`, `/vidas-samel`: bloquear `administradoras`.
+  - Rotas permitidas: `/`, `/empresas`, `/movimentacoes`, `/implantacao`.
+- `src/components/AppLayout.tsx`: filtro de `navItems` — quando role = `administradoras`, mostrar apenas Dashboard, Empresas, Movimentações, Implantação.
+- `src/pages/Usuarios.tsx`: adicionar opção "Administradoras" no select de perfil (somente Admin enxerga).
 
-Se a tabela de vidas não estiver disponível no projeto, usar `implantacoes_contratos` apenas para sinalizar empresa/CNPJ já cadastrados (reaproveitamento por empresa). Detalhe técnico abaixo.
+## 3. Dashboard exclusivo `DashboardAdministradoras`
 
-## 3. UI no wizard (`src/components/implantacao/ImplantacaoWizard.tsx`)
+Novo arquivo `src/pages/DashboardAdministradoras.tsx` no estilo dark-green/Linear já usado.
 
-- Após a validação, exibir resumo com os novos contadores:
-  - Linhas lidas / válidas (I) / ignoradas vazias / ignoradas outro tipo / reaproveitadas / erros / alertas.
-- Aviso fixo (`<Alert>`): "Linhas sem TIPO OPERACAO = I foram ignoradas automaticamente."
-- Tabela de pendências continua mostrando só linhas com `TIPO OPERACAO = "I"`.
+KPIs (cards):
 
-## 4. Performance
+- Total de Administradoras (empresas com `tipo_contrato='ADMINISTRADORA'` e `status_empresa='Ativa'`).
+- Vidas Ativas (soma de `vidas`).
+- Próximo Fechamento (próxima `data_corte` 1/5/10/20).
+- Contratos Pendentes (sem `data_implantacao` ou implantação em andamento).
+- Movimentações do Mês (count em `movimentacoes` no mês atual).
 
-- Loop continua O(linhas), mas pula imediatamente quando `TIPO OPERACAO ≠ "I"`, sem ler as demais células.
+Seções:
 
-## 5. Não fazer
+- Lista de contratos ativos.
+- Movimentações pendentes do período atual.
+- Próximos fechamentos agrupados por data de corte.
+- Contratos implantados x aguardando.
 
-- Não alterar o schema do banco.
-- Não mudar o upload, storage ou demais etapas do wizard.
-- Não remover validações existentes para linhas com `I`.
+Filtros: período de corte, status, empresa, situação de implantação, situação de movimentação.
 
-## Detalhes técnicos
+## 4. Cadastro de empresas inteligente (`src/pages/Empresas.tsx`)
 
-- Função `normalize` já existente serve para comparar `"I"`.
-- Atualizar interface `ValidacaoResultado` com os novos campos e ajustar consumidores (`ImplantacaoWizard.tsx` exibe `total_linhas` hoje; trocar pelos novos contadores).
-- `cpfsExistentes`: `Set<string>` com apenas dígitos. Lookup com `cpf.replace(/\D/g,"")`.
-- Para reaproveitamento real consultar `supabase.from("vidas_samel").select("cpf").in("cpf", lista)` em lote (máx 1000 por chamada). Caso a tabela não exista no schema atual, deixar o parâmetro opcional e seguir com `Set` vazio — a regra do "I" já entrega o ganho principal.
+- Novo campo obrigatório no formulário: **Tipo de Contrato** (`Empresarial` | `Administradora`), default `Empresarial`.
+- Quando `Administradora`:
+  - **Ocultar** com transição suave (`animate-fade-in` + `transition-all`):
+    Executiva Responsável, Tipo de Movimentação (Fechada/Diária), E-mail, Telefone, Contato, Prazo, Grupo de Contrato.
+  - Forçar `tipo_movimentacao = 'Diária'` internamente.
+  - Mostrar somente o campo **Data Corte** com opções fixas `1`, `5`, `10`, `20` (Select, não Input).
+  - Não enviar/validar os campos ocultos; salvar `null` para eles.
+- Quando `Empresarial`: comportamento atual 100% preservado.
+- Layout: usar grid que recolapsa automaticamente para não deixar buracos.
+- Detalhe da empresa: esconder linhas dos campos não aplicáveis quando `tipo_contrato='ADMINISTRADORA'`.
 
-```text
-Linha do Excel
-   │
-   ├─ TIPO OPERACAO vazio ──► ignorar (linhas_ignoradas_vazias++)
-   ├─ TIPO OPERACAO ≠ "I" ──► ignorar (linhas_ignoradas_outro_tipo++)
-   └─ TIPO OPERACAO = "I"
-         │
-         ├─ CPF existe no banco ──► validar mínimos, marcar reaproveitada
-         └─ CPF novo            ──► validar todos os campos obrigatórios
-```
+## 5. Movimentações
+
+- `src/pages/Movimentacoes.tsx`: quando empresa é Administradora, períodos disponíveis = `1`, `5`, `10`, `20` (apenas). Continua usando alertas, fechamento e validações existentes.
+- Cálculo de período/cut-off reutiliza utilitários atuais; só muda o conjunto de opções permitidas.
+
+## 6. Permissões resumidas do novo perfil
+
+| Acesso | Administradoras |
+| --- | --- |
+| Dashboard exclusivo | sim |
+| Empresas (leitura + suas) | sim |
+| Movimentações | sim |
+| Implantação | sim |
+| Financeiro | não |
+| Reajuste | não |
+| Arquivos | não |
+| Usuários | não |
+| Executivas | não |
+
+## 7. Memória
+
+Atualizar `mem://index.md` Core: incluir perfil "Administradoras (dashboard próprio, períodos 1/5/10/20)" e criar `mem://features/administradoras` com regras do tipo de contrato.
+
+## 8. Detalhes técnicos
+
+- Animações: `transition-all duration-300` + render condicional para evitar validação de campos ocultos (usar `react-hook-form`? — o projeto usa estado manual em `Empresas.tsx`, mantém o mesmo padrão).
+- Tipos do Supabase serão regenerados após a migração; nenhum patch manual em `types.ts`.
+- Não tocar fluxo Empresarial existente.
+- Sem `window.location.reload`, sem refetch automático extra (segue padrão SPA já vigente).
+
+## Ordem de execução
+
+1. Migração SQL (enum + coluna + RLS + trigger).
+2. `useAuth`, `App.tsx`, `AppLayout` (roteamento e menu).
+3. `Empresas.tsx` (campo Tipo de Contrato + ocultação inteligente).
+4. `Movimentacoes.tsx` (períodos 1/5/10/20 para Administradora).
+5. `DashboardAdministradoras.tsx` + integração no `HomeRoute`.
+6. `Usuarios.tsx` (opção de perfil no select).
+7. Atualizar memória.
