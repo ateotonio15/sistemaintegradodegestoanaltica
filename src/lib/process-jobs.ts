@@ -33,7 +33,7 @@ export async function createProcessJob(
     .select("*")
     .single();
   if (error) throw error;
-  return data as ProcessJob;
+  return data as unknown as ProcessJob;
 }
 
 export async function updateProcessJob(
@@ -47,7 +47,7 @@ export async function updateProcessJob(
 export async function getProcessJob(jobId: string): Promise<ProcessJob | null> {
   const { data, error } = await supabase.from("process_jobs" as any).select("*").eq("id", jobId).maybeSingle();
   if (error) throw error;
-  return (data as ProcessJob | null) ?? null;
+  return (data as unknown as ProcessJob | null) ?? null;
 }
 
 export async function listRecentProcessJobs(jobType?: string, limit = 20): Promise<ProcessJob[]> {
@@ -59,5 +59,5 @@ export async function listRecentProcessJobs(jobType?: string, limit = 20): Promi
   if (jobType) query = query.eq("job_type", jobType);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []) as ProcessJob[];
+  return (data ?? []) as unknown as ProcessJob[];
 }
