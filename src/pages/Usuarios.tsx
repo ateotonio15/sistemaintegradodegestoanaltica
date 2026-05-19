@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, Wallet } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
-type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas";
+type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras";
 
 interface UserProfile {
   user_id: string;
