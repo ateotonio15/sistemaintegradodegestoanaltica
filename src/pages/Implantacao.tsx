@@ -202,9 +202,25 @@ export default function Implantacao() {
                     <CardTitle className="text-base truncate">
                       {i.nome_empresa || "Sem nome"}
                     </CardTitle>
-                    <Badge variant="outline" className={STATUS_COLOR[i.status]}>
-                      {STATUS_LABEL[i.status]}
-                    </Badge>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Badge variant="outline" className={STATUS_COLOR[i.status]}>
+                        {STATUS_LABEL[i.status]}
+                      </Badge>
+                      {canDelete && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground hover:text-red-600 hover:bg-red-500/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget({ id: i.id, nome: i.nome_empresa || "Sem nome" });
+                          }}
+                          title="Excluir implantação"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
