@@ -46,7 +46,6 @@ export default function DashboardVendas() {
       return data as any[];
     },
     enabled: !!user?.id,
-    refetchInterval: 20000,
   });
 
   const filtered = useMemo(() => {
