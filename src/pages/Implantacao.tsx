@@ -33,13 +33,16 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function Implantacao() {
-  const { isAdmin, role } = useAuth();
+  const { isAdmin, isVendas, role } = useAuth();
   const queryClient = useQueryClient();
   const canEdit = isAdmin || role === "comum";
+  const canDelete = isAdmin || isVendas;
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["implantacoes"],
