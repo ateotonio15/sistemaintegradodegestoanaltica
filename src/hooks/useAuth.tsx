@@ -43,8 +43,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole>(null);
+  const roleRef = useRef<UserRole>(null);
   const lastUserIdRef = useRef<string | null>(null);
   const roleRequestRef = useRef(0);
+
+  useEffect(() => {
+    roleRef.current = role;
+  }, [role]);
 
   const fetchRole = useCallback(async (userId: string) => {
     const requestId = ++roleRequestRef.current;
@@ -74,13 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // TOKEN_REFRESHED/SIGNED_IN ao voltar foco não deve derrubar o layout para "Carregando".
-      if (lastUserIdRef.current === nextUserId && role) {
+      if (lastUserIdRef.current === nextUserId && roleRef.current) {
         setLoading(false);
         return;
       }
 
       lastUserIdRef.current = nextUserId;
-      if (!role) setLoading(true);
+      if (!roleRef.current) setLoading(true);
       await fetchRole(nextUserId).finally(() => setLoading(false));
     };
 
@@ -93,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchRole, role]);
+  }, [fetchRole]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
