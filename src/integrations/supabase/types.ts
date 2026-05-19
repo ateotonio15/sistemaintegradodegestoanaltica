@@ -1489,12 +1489,19 @@ export type Database = {
         | "enfermeira"
         | "financeiro"
         | "diretora"
+        | "vendas"
       implantacao_status:
         | "em_implantacao"
         | "aguardando_documentos"
         | "em_validacao"
         | "implantado"
         | "pendente_ajuste"
+        | "documentacao_pendente"
+        | "em_analise_diretoria"
+        | "aprovado_diretoria"
+        | "enviado_cadastro"
+        | "rejeitado"
+        | "necessita_correcao"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1630,6 +1637,7 @@ export const Constants = {
         "enfermeira",
         "financeiro",
         "diretora",
+        "vendas",
       ],
       implantacao_status: [
         "em_implantacao",
@@ -1637,6 +1645,12 @@ export const Constants = {
         "em_validacao",
         "implantado",
         "pendente_ajuste",
+        "documentacao_pendente",
+        "em_analise_diretoria",
+        "aprovado_diretoria",
+        "enviado_cadastro",
+        "rejeitado",
+        "necessita_correcao",
       ],
     },
   },
