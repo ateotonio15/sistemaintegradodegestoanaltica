@@ -286,6 +286,7 @@ export default function Movimentacoes() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        <FaturamentosEnviadosCard />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Movimentações</h1>
