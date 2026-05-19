@@ -1556,6 +1556,7 @@ export type Database = {
         Args: { p_mov_id: string }
         Returns: string
       }
+      excluir_implantacao: { Args: { p_id: string }; Returns: Json }
       fin_arq_categoria_auto: {
         Args: { _mime: string; _nome: string }
         Returns: string
