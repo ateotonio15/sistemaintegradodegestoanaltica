@@ -212,10 +212,17 @@ export async function validarRelatorioVidas(
     const reaproveitada = cpfDigits.length === 11 && cpfsExistentes.has(cpfDigits);
     if (reaproveitada) linhas_reaproveitadas++;
 
-    // contagem de vidas
-    const grau = normalize(get("GRAU PARENTESCO"));
-    if (grau === "TITULAR" || grau === "") titulares++;
-    else dependentes++;
+    // ETAPA 45 - classificação automática por GRAU PARENTESCO
+    const grauRaw = get("GRAU PARENTESCO");
+    const tipoBenef = classificarParentesco(grauRaw);
+    const grau = (grauRaw || "").trim();
+    if (tipoBenef === "TITULAR") { titulares++; titulares_auto++; }
+    else {
+      dependentes++;
+      if (tipoBenef === "FILHO") filhos++;
+      else if (tipoBenef === "CONJUGE") conjuges++;
+      else outros_dependentes++;
+    }
 
     for (const c of COLUNAS_OBRIGATORIAS) {
       if (colIndex[c] === undefined) continue;
