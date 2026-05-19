@@ -200,10 +200,12 @@ export async function validarRelatorioVidas(
       if (colIndex[c] === undefined) continue;
       const raw = get(c);
       const val = (raw || "").trim();
-      const obrigBase = CAMPOS_OBRIGATORIOS_LINHA.includes(c);
+      let obrigBase = CAMPOS_OBRIGATORIOS_LINHA.includes(c);
+      // TITULAR torna-se obrigatório quando GRAU PARENTESCO está preenchido
+      if (c === "TITULAR" && grau !== "") obrigBase = true;
       // Se a vida já existe no banco, só seguem obrigatórios os campos chave
       const obrig = reaproveitada
-        ? (obrigBase && CAMPOS_OBRIGATORIOS_MESMO_REAPROVEITADO.has(c))
+        ? (obrigBase && (CAMPOS_OBRIGATORIOS_MESMO_REAPROVEITADO.has(c) || (c === "TITULAR" && grau !== "")))
         : obrigBase;
 
       if (!val) {
