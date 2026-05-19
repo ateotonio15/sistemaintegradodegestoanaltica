@@ -796,6 +796,54 @@ export type Database = {
         }
         Relationships: []
       }
+      implantacao_alertas: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          criado_por_nome: string | null
+          destinatario_role: string
+          destinatario_user_id: string | null
+          empresa_nome: string | null
+          finalizado_em: string | null
+          id: string
+          implantacao_id: string
+          mensagem: string | null
+          status: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
+          destinatario_role: string
+          destinatario_user_id?: string | null
+          empresa_nome?: string | null
+          finalizado_em?: string | null
+          id?: string
+          implantacao_id: string
+          mensagem?: string | null
+          status?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
+          destinatario_role?: string
+          destinatario_user_id?: string | null
+          empresa_nome?: string | null
+          finalizado_em?: string | null
+          id?: string
+          implantacao_id?: string
+          mensagem?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       implantacao_anexos: {
         Row: {
           created_at: string
@@ -865,6 +913,9 @@ export type Database = {
       implantacoes_contratos: {
         Row: {
           acomodacao: string | null
+          aprovado_em: string | null
+          aprovado_por: string | null
+          aprovado_por_nome: string | null
           cep: string | null
           cnpj: string | null
           codigo_contrato: string | null
@@ -878,18 +929,28 @@ export type Database = {
           dia_movimentacao: number | null
           empresa_id: string | null
           endereco: string | null
+          enviado_cadastro_em: string | null
+          enviado_diretoria_em: string | null
+          enviado_diretoria_por: string | null
+          enviado_diretoria_por_nome: string | null
           etapa_atual: number
           faixas_etarias: Json | null
           grupo_contrato: string | null
           id: string
+          implantado_em: string | null
+          implantado_por: string | null
+          implantado_por_nome: string | null
           inicio_atendimento: string | null
           inscricao_estadual: string | null
           inscricao_municipal: string | null
           modalidade: string | null
+          motivo_correcao: string | null
           nome_empresa: string | null
+          observacao_diretoria: string | null
           percentual_agenciamento: number | null
           percentual_vitalicio: number | null
           periodo_movimentacao: string | null
+          progresso: number
           relatorio_validacao: Json | null
           status: Database["public"]["Enums"]["implantacao_status"]
           telefone: string | null
@@ -905,6 +966,9 @@ export type Database = {
         }
         Insert: {
           acomodacao?: string | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          aprovado_por_nome?: string | null
           cep?: string | null
           cnpj?: string | null
           codigo_contrato?: string | null
@@ -918,18 +982,28 @@ export type Database = {
           dia_movimentacao?: number | null
           empresa_id?: string | null
           endereco?: string | null
+          enviado_cadastro_em?: string | null
+          enviado_diretoria_em?: string | null
+          enviado_diretoria_por?: string | null
+          enviado_diretoria_por_nome?: string | null
           etapa_atual?: number
           faixas_etarias?: Json | null
           grupo_contrato?: string | null
           id?: string
+          implantado_em?: string | null
+          implantado_por?: string | null
+          implantado_por_nome?: string | null
           inicio_atendimento?: string | null
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
           modalidade?: string | null
+          motivo_correcao?: string | null
           nome_empresa?: string | null
+          observacao_diretoria?: string | null
           percentual_agenciamento?: number | null
           percentual_vitalicio?: number | null
           periodo_movimentacao?: string | null
+          progresso?: number
           relatorio_validacao?: Json | null
           status?: Database["public"]["Enums"]["implantacao_status"]
           telefone?: string | null
@@ -945,6 +1019,9 @@ export type Database = {
         }
         Update: {
           acomodacao?: string | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          aprovado_por_nome?: string | null
           cep?: string | null
           cnpj?: string | null
           codigo_contrato?: string | null
@@ -958,18 +1035,28 @@ export type Database = {
           dia_movimentacao?: number | null
           empresa_id?: string | null
           endereco?: string | null
+          enviado_cadastro_em?: string | null
+          enviado_diretoria_em?: string | null
+          enviado_diretoria_por?: string | null
+          enviado_diretoria_por_nome?: string | null
           etapa_atual?: number
           faixas_etarias?: Json | null
           grupo_contrato?: string | null
           id?: string
+          implantado_em?: string | null
+          implantado_por?: string | null
+          implantado_por_nome?: string | null
           inicio_atendimento?: string | null
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
           modalidade?: string | null
+          motivo_correcao?: string | null
           nome_empresa?: string | null
+          observacao_diretoria?: string | null
           percentual_agenciamento?: number | null
           percentual_vitalicio?: number | null
           periodo_movimentacao?: string | null
+          progresso?: number
           relatorio_validacao?: Json | null
           status?: Database["public"]["Enums"]["implantacao_status"]
           telefone?: string | null
@@ -1445,6 +1532,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _log_impl: {
+        Args: { _acao: string; _detalhes: Json; _impl: string }
+        Returns: undefined
+      }
       alertar_financeiro_nota: {
         Args: {
           p_empresa_id: string
@@ -1453,12 +1544,24 @@ export type Database = {
         }
         Returns: string
       }
+      aprovar_implantacao: {
+        Args: { p_impl: string; p_observacao?: string }
+        Returns: string
+      }
+      enviar_implantacao_diretoria: {
+        Args: { p_impl: string }
+        Returns: string
+      }
       enviar_movimentacao_ao_financeiro: {
         Args: { p_mov_id: string }
         Returns: string
       }
       fin_arq_categoria_auto: {
         Args: { _mime: string; _nome: string }
+        Returns: string
+      }
+      finalizar_implantacao_cadastro: {
+        Args: { p_impl: string }
         Returns: string
       }
       get_comum_users_empresa_count: {
@@ -1476,6 +1579,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      rejeitar_implantacao: {
+        Args: { p_impl: string; p_motivo: string }
+        Returns: string
+      }
+      solicitar_correcao_implantacao: {
+        Args: { p_impl: string; p_motivo: string }
+        Returns: string
       }
       solicitar_reajuste: { Args: { p_empresa_id: string }; Returns: string }
       vincular_empresas_por_responsavel: { Args: never; Returns: undefined }
