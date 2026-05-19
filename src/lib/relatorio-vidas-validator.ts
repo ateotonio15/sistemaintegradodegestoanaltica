@@ -66,6 +66,11 @@ export interface ValidacaoResultado {
   linhas_ignoradas_vazias: number;
   linhas_ignoradas_outro_tipo: number;
   linhas_reaproveitadas: number;
+  // ETAPA 45 - classificação automática por GRAU PARENTESCO
+  titulares_auto: number;
+  filhos: number;
+  conjuges: number;
+  outros_dependentes: number;
 }
 
 export interface ValidacaoOptions {
