@@ -119,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isComum: role === "comum",
       isVendas: role === "vendas",
       isDiretora: role === "diretora",
+      isAdministradoras: role === "administradoras",
       canEditFinanceiro: role === "admin" || role === "financeiro",
       signOut,
     }}>
