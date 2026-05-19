@@ -1650,6 +1650,7 @@ export type Database = {
         | "financeiro"
         | "diretora"
         | "vendas"
+        | "administradoras"
       implantacao_status:
         | "em_implantacao"
         | "aguardando_documentos"
@@ -1798,6 +1799,7 @@ export const Constants = {
         "financeiro",
         "diretora",
         "vendas",
+        "administradoras",
       ],
       implantacao_status: [
         "em_implantacao",
