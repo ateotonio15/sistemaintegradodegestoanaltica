@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, Wallet } from "lucide-react";
+import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, Wallet, Building2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras";
