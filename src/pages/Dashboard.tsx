@@ -29,7 +29,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
-import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
+import { ImplantacoesAndamentoCard } from "@/components/dashboard/ImplantacoesAndamentoCard";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
 
@@ -794,8 +794,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Faturamentos Enviados (substitui o gráfico Empresas por Status) */}
-        <FaturamentosEnviadosCard />
+        {/* Implantações em Andamento (substitui Faturamentos Não Enviados) */}
+        <ImplantacoesAndamentoCard />
 
         {/* Lista de Empresas no Período */}
         <Card className="rounded-xl shadow-sm overflow-hidden">

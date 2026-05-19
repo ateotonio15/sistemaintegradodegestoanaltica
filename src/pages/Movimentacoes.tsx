@@ -29,6 +29,7 @@ import {
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
 import ExcelJS from "exceljs";
 
 type EmpresaOption = {
@@ -285,6 +286,7 @@ export default function Movimentacoes() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        <FaturamentosEnviadosCard />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Movimentações</h1>
