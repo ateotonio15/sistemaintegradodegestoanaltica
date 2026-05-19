@@ -108,7 +108,6 @@ export function AlertaReajustesPendentes() {
 
       return pendentes.sort((a, b) => a.empresa.nome.localeCompare(b.empresa.nome));
     },
-    refetchInterval: 60000,
   });
 
   const lista = data || [];

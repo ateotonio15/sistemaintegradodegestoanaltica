@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, focusManager, onlineManager } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -21,13 +21,22 @@ import VidasSamel from "./pages/VidasSamel";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
+// Desativa gatilhos globais de foco/reconexão: voltar para a aba não deve reiniciar/refazer telas.
+focusManager.setEventListener(() => () => {});
+onlineManager.setEventListener(() => () => {});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Mantém cache vivo entre navegações para preservar dados/filtros/estado
-      staleTime: 30_000,
-      gcTime: 5 * 60_000,
+      // Mantém cache vivo entre navegações e impede refetch automático ao trocar/voltar de aba.
+      staleTime: 2 * 60_000,
+      gcTime: 15 * 60_000,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+    },
+    mutations: {
+      retry: false,
     },
   },
 });

@@ -23,7 +23,6 @@ export function AlertaReajustesParaConfirmar() {
       return c || 0;
     },
     enabled: !!user?.id,
-    refetchInterval: 60000,
   });
 
   useEffect(() => {

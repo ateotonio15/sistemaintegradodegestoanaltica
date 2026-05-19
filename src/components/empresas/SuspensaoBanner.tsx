@@ -20,7 +20,6 @@ export function SuspensaoBanner() {
       return data;
     },
     enabled: !!user,
-    refetchInterval: 60000,
   });
 
   if (suspensas.length === 0) return null;

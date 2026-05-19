@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
@@ -11,7 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileSpreadsheet, CheckCircle2 } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import type { ProcessJob } from "@/lib/process-jobs";
 
 interface Props {
   open: boolean;
@@ -40,12 +41,62 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
   const [parsedRows, setParsedRows] = useState<LinhaImport[]>([]);
   const [fileName, setFileName] = useState<string>("");
   const [importing, setImporting] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(() => {
+    try { return localStorage.getItem("import-pagadores-job-id"); } catch { return null; }
+  });
   const [resumo, setResumo] = useState<{
     criados: number;
     atualizados: number;
     ignorados: number;
     erros: string[];
   } | null>(null);
+
+  const { data: job } = useQuery({
+    queryKey: ["process-job", jobId],
+    enabled: !!jobId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("process_jobs" as any)
+        .select("*")
+        .eq("id", jobId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as ProcessJob | null;
+    },
+  });
+
+  const jobResult = useMemo(() => job?.result as any, [job]);
+
+  useEffect(() => {
+    if (!jobId) return;
+    const ch = supabase
+      .channel(`process-job-import-pagadores-${jobId}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "process_jobs", filter: `id=eq.${jobId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ["process-job", jobId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [jobId, queryClient]);
+
+  useEffect(() => {
+    if (!job) return;
+    if (job.status === "completed" || job.status === "error") {
+      const nextResumo = {
+        criados: Number(jobResult?.criados ?? 0),
+        atualizados: Number(jobResult?.atualizados ?? 0),
+        ignorados: Number(jobResult?.ignorados ?? 0),
+        erros: Array.isArray(jobResult?.erros) ? jobResult.erros : job.error ? [job.error] : [],
+      };
+      setResumo(nextResumo);
+      setImporting(false);
+      queryClient.invalidateQueries({ queryKey: ["financeiro-pagadores-all"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-pagadores"] });
+      if (job.status === "completed") toast.success("Importação de pagadores concluída");
+      else toast.warning("Importação concluída com erro(s). Veja o resultado salvo.");
+    } else if (job.status === "pending" || job.status === "processing") {
+      setImporting(true);
+    }
+  }, [job, jobResult, queryClient]);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,96 +145,18 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
   const handleImport = async () => {
     if (parsedRows.length === 0) return;
     setImporting(true);
-    let criados = 0;
-    let atualizados = 0;
-    let ignorados = 0;
-    const erros: string[] = [];
-
     try {
-      // Buscar a empresa "âncora" de cada contrato (1ª encontrada com aquele codigo_contrato).
-      // Pagadores ficam vinculados a essa empresa em financeiro_pagadores.
-      const contratos = Array.from(new Set(parsedRows.map((r) => r.contrato)));
-      const { data: empresasContrato } = await supabase
-        .from("empresas")
-        .select("id, nome, codigo_contrato")
-        .in("codigo_contrato", contratos);
-
-      const ancoraPorContrato = new Map<string, { id: string; nome: string }>();
-      (empresasContrato || []).forEach((e: any) => {
-        if (!ancoraPorContrato.has(e.codigo_contrato)) {
-          ancoraPorContrato.set(e.codigo_contrato, { id: e.id, nome: e.nome });
-        }
+      const { data, error } = await supabase.functions.invoke("import-pagadores", {
+        body: { rows: parsedRows, fileName },
       });
-
-      // Pagadores já cadastrados nessas empresas (para detectar duplicados)
-      const ancoraIds = Array.from(ancoraPorContrato.values()).map((a) => a.id);
-      const { data: pagsExist } = ancoraIds.length
-        ? await supabase
-            .from("financeiro_pagadores")
-            .select("id, empresa_id, nome_pagador, cnpj")
-            .in("empresa_id", ancoraIds)
-        : { data: [] as any[] };
-
-      const chaveExist = new Set<string>();
-      const cnpjPorChave = new Map<string, { id: string; cnpj: string | null }>();
-      (pagsExist || []).forEach((p: any) => {
-        const k = `${p.empresa_id}|${p.nome_pagador.trim().toLowerCase()}`;
-        chaveExist.add(k);
-        cnpjPorChave.set(k, { id: p.id, cnpj: p.cnpj });
-      });
-
-      for (const linha of parsedRows) {
-        try {
-          const ancora = ancoraPorContrato.get(linha.contrato);
-          if (!ancora) {
-            erros.push(`${linha.empresa} (${linha.contrato}): contrato não encontrado em Empresas`);
-            continue;
-          }
-          const k = `${ancora.id}|${linha.empresa.trim().toLowerCase()}`;
-          if (chaveExist.has(k)) {
-            // já existe — atualiza CNPJ se vier preenchido e estiver vazio
-            const ex = cnpjPorChave.get(k)!;
-            if (linha.cnpj && !ex.cnpj) {
-              const { error } = await supabase
-                .from("financeiro_pagadores")
-                .update({ cnpj: linha.cnpj })
-                .eq("id", ex.id);
-              if (error) throw error;
-              atualizados += 1;
-            } else {
-              ignorados += 1;
-            }
-          } else {
-            const { error } = await supabase.from("financeiro_pagadores").insert({
-              empresa_id: ancora.id,
-              nome_pagador: linha.empresa,
-              cnpj: linha.cnpj,
-              ativo: true,
-            });
-            if (error) throw error;
-            criados += 1;
-            chaveExist.add(k);
-          }
-        } catch (err: any) {
-          erros.push(`${linha.empresa} (${linha.contrato}): ${err.message}`);
-        }
-      }
-
-      setResumo({ criados, atualizados, ignorados, erros });
-      queryClient.invalidateQueries({ queryKey: ["financeiro-pagadores-all"] });
-      queryClient.invalidateQueries({ queryKey: ["financeiro-pagadores"] });
-
-      if (erros.length === 0) {
-        toast.success(
-          `Importação concluída: ${criados} criados, ${atualizados} atualizados, ${ignorados} ignorados`,
-        );
-      } else {
-        toast.warning(
-          `Concluído com ${erros.length} erro(s). ${criados} criados, ${atualizados} atualizados.`,
-        );
-      }
-    } finally {
+      if (error) throw error;
+      if (!data?.jobId) throw new Error("Servidor não retornou o código do processo");
+      setJobId(data.jobId);
+      try { localStorage.setItem("import-pagadores-job-id", data.jobId); } catch {}
+      toast.success("Importação enviada ao servidor. Você pode trocar de aba sem perder o processo.");
+    } catch (err: any) {
       setImporting(false);
+      toast.error("Erro ao iniciar importação: " + err.message);
     }
   };
 
@@ -191,6 +164,10 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
     setParsedRows([]);
     setFileName("");
     setResumo(null);
+    if (job?.status === "completed" || job?.status === "error") {
+      setJobId(null);
+      try { localStorage.removeItem("import-pagadores-job-id"); } catch {}
+    }
     onOpenChange(false);
   };
 
@@ -212,6 +189,23 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {job && !resumo && (
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                {job.status === "error" ? (
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                ) : (
+                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                )}
+                Processo salvo: {job.status === "pending" ? "pendente" : job.status === "processing" ? "processando" : job.status}
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div className="h-full bg-primary transition-all" style={{ width: `${job.progress || 0}%` }} />
+              </div>
+              <p className="text-xs text-muted-foreground">{job.message || "Consultando status salvo..."}</p>
+            </div>
+          )}
+
           <label className="block">
             <input
               type="file"
@@ -277,12 +271,12 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={handleClose} disabled={importing}>
-              {resumo ? "Fechar" : "Cancelar"}
+            <Button variant="outline" onClick={handleClose}>
+              {resumo || importing ? "Fechar" : "Cancelar"}
             </Button>
             {parsedRows.length > 0 && !resumo && (
               <Button onClick={handleImport} disabled={importing}>
-                {importing ? "Importando..." : `Importar ${parsedRows.length} pagador(es)`}
+                {importing ? "Processando no servidor..." : `Importar ${parsedRows.length} pagador(es)`}
               </Button>
             )}
           </div>

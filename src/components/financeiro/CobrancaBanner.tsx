@@ -119,7 +119,6 @@ export function CobrancaBanner() {
       }));
     },
     enabled: !!user,
-    refetchInterval: 60000,
   });
 
   if (cobrancas.length === 0) return null;
