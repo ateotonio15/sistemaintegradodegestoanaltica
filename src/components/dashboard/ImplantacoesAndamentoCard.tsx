@@ -390,11 +390,27 @@ export function ImplantacoesAndamentoCard() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      {meta && (
-                        <Badge className={`${meta.badge} border text-[10px]`} variant="outline">
-                          {meta.label}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {meta && (
+                          <Badge className={`${meta.badge} border text-[10px]`} variant="outline">
+                            {meta.label}
+                          </Badge>
+                        )}
+                        {canDelete && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-muted-foreground hover:text-red-600 hover:bg-red-500/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget({ id: row.id, nome: row.nome_empresa || "Sem nome" });
+                            }}
+                            title="Excluir implantação"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
                       {pendencias > 0 && (
                         <Badge className="bg-red-500/10 text-red-600 border-red-500/30 text-[10px]" variant="outline">
                           {pendencias} pendência{pendencias > 1 ? "s" : ""}
