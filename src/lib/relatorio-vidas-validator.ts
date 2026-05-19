@@ -13,6 +13,11 @@ const CAMPOS_OBRIGATORIOS_LINHA = [
   "TIPO OPERACAO", "NOME", "DATA NASC", "CPF", "GRAU PARENTESCO",
 ];
 
+// Campos sempre obrigatórios mesmo quando CPF já existe no banco (reaproveitamento).
+const CAMPOS_OBRIGATORIOS_MESMO_REAPROVEITADO = new Set([
+  "TIPO OPERACAO", "CPF", "GRAU PARENTESCO",
+]);
+
 export type Severidade = "ok" | "alerta" | "erro";
 
 export interface ColunaResultado {
@@ -33,8 +38,8 @@ export interface PendenciaLinha {
 
 export interface ValidacaoResultado {
   verificado_em: string;
-  total_linhas: number;
-  total_vidas: number;
+  total_linhas: number; // mantido por compatibilidade = linhas_validas
+  total_vidas: number;  // = linhas_validas
   titulares: number;
   dependentes: number;
   colunas: ColunaResultado[];
@@ -43,6 +48,16 @@ export interface ValidacaoResultado {
   erros: number;
   alertas: number;
   valido: boolean;
+  // Novos contadores da ETAPA 43
+  linhas_lidas: number;
+  linhas_validas: number;
+  linhas_ignoradas_vazias: number;
+  linhas_ignoradas_outro_tipo: number;
+  linhas_reaproveitadas: number;
+}
+
+export interface ValidacaoOptions {
+  cpfsExistentes?: Set<string>;
 }
 
 function normalize(s: string) {
@@ -54,8 +69,12 @@ function normalize(s: string) {
     .trim();
 }
 
+function onlyDigits(v: string) {
+  return (v || "").replace(/\D/g, "");
+}
+
 function isValidCPF(v: string) {
-  const c = (v || "").replace(/\D/g, "");
+  const c = onlyDigits(v);
   if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
   const calc = (n: number) => {
     let s = 0;
@@ -67,7 +86,7 @@ function isValidCPF(v: string) {
 }
 
 function isValidCEP(v: string) {
-  return /^\d{8}$/.test((v || "").replace(/\D/g, ""));
+  return /^\d{8}$/.test(onlyDigits(v));
 }
 
 function isValidDate(v: any) {
@@ -86,13 +105,15 @@ function isValidDate(v: any) {
 export async function validarRelatorioVidas(
   buffer: ArrayBuffer,
   onProgress?: (pct: number) => void,
+  options: ValidacaoOptions = {},
 ): Promise<ValidacaoResultado> {
+  const cpfsExistentes = options.cpfsExistentes ?? new Set<string>();
+
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
   const ws = wb.worksheets[0];
   if (!ws) throw new Error("Planilha vazia");
 
-  // header row = 1
   const headerRow = ws.getRow(1);
   const headers: string[] = [];
   headerRow.eachCell({ includeEmpty: false }, (cell, col) => {
@@ -121,13 +142,20 @@ export async function validarRelatorioVidas(
   const pendencias: PendenciaLinha[] = [];
   let titulares = 0;
   let dependentes = 0;
-  let totalLinhas = 0;
+
+  let linhas_lidas = 0;
+  let linhas_validas = 0;
+  let linhas_ignoradas_vazias = 0;
+  let linhas_ignoradas_outro_tipo = 0;
+  let linhas_reaproveitadas = 0;
 
   const rowCount = ws.rowCount;
+  const idxTipo = colIndex["TIPO OPERACAO"];
+
   for (let r = 2; r <= rowCount; r++) {
     const row = ws.getRow(r);
     if (!row.hasValues) continue;
-    totalLinhas++;
+    linhas_lidas++;
 
     if (onProgress && r % 200 === 0) onProgress(Math.min(99, (r / rowCount) * 100));
 
@@ -141,7 +169,29 @@ export async function validarRelatorioVidas(
       return String(v);
     };
 
-    // grau parentesco — contagem de vidas
+    // === Regra do "I": só processa quando TIPO OPERACAO = "I" ===
+    let tipoOp = "";
+    if (idxTipo !== undefined) {
+      const rawTipo = row.getCell(idxTipo).value;
+      tipoOp = normalize(rawTipo == null ? "" : String((rawTipo as any).text ?? (rawTipo as any).result ?? rawTipo));
+    }
+    if (!tipoOp) {
+      linhas_ignoradas_vazias++;
+      continue;
+    }
+    if (tipoOp !== "I") {
+      linhas_ignoradas_outro_tipo++;
+      continue;
+    }
+
+    linhas_validas++;
+
+    // Reaproveitamento: CPF já cadastrado no banco
+    const cpfDigits = onlyDigits(get("CPF"));
+    const reaproveitada = cpfDigits.length === 11 && cpfsExistentes.has(cpfDigits);
+    if (reaproveitada) linhas_reaproveitadas++;
+
+    // contagem de vidas
     const grau = normalize(get("GRAU PARENTESCO"));
     if (grau === "TITULAR" || grau === "") titulares++;
     else dependentes++;
@@ -150,14 +200,18 @@ export async function validarRelatorioVidas(
       if (colIndex[c] === undefined) continue;
       const raw = get(c);
       const val = (raw || "").trim();
-      const obrig = CAMPOS_OBRIGATORIOS_LINHA.includes(c);
+      const obrigBase = CAMPOS_OBRIGATORIOS_LINHA.includes(c);
+      // Se a vida já existe no banco, só seguem obrigatórios os campos chave
+      const obrig = reaproveitada
+        ? (obrigBase && CAMPOS_OBRIGATORIOS_MESMO_REAPROVEITADO.has(c))
+        : obrigBase;
 
       if (!val) {
         colStats[c].vazias++;
         if (obrig) {
           colStats[c].severidade = "erro";
           pendencias.push({ linha: r, coluna: c, motivo: "vazio", severidade: "erro" });
-        } else if (colStats[c].severidade === "ok") {
+        } else if (!reaproveitada && colStats[c].severidade === "ok") {
           colStats[c].severidade = "alerta";
         }
         continue;
@@ -169,7 +223,6 @@ export async function validarRelatorioVidas(
       if (c === "CPF" && !isValidCPF(val)) { invalido = true; motivo = "CPF inválido"; }
       else if (c === "CEP" && !isValidCEP(val)) { invalido = true; motivo = "CEP inválido"; }
       else if ((c === "DATA NASC" || c === "DATA ADMISSAO" || c === "DT CASAMENTO") && !isValidDate(val)) {
-        // DT CASAMENTO só erro se ESTADO CIVIL = CASADO
         if (c === "DT CASAMENTO") {
           const ec = normalize(get("ESTADO CIVIL"));
           if (ec === "CASADO" || ec === "CASADA" || ec === "CASADO(A)") {
@@ -181,7 +234,7 @@ export async function validarRelatorioVidas(
       }
       if (invalido) {
         colStats[c].invalidas++;
-        const sev: Severidade = CAMPOS_OBRIGATORIOS_LINHA.includes(c) ? "erro" : "alerta";
+        const sev: Severidade = obrig ? "erro" : "alerta";
         if (sev === "erro") colStats[c].severidade = "erro";
         else if (colStats[c].severidade === "ok") colStats[c].severidade = "alerta";
         pendencias.push({ linha: r, coluna: c, motivo, severidade: sev });
@@ -197,8 +250,8 @@ export async function validarRelatorioVidas(
 
   return {
     verificado_em: new Date().toISOString(),
-    total_linhas: totalLinhas,
-    total_vidas: totalLinhas,
+    total_linhas: linhas_validas,
+    total_vidas: linhas_validas,
     titulares,
     dependentes,
     colunas,
@@ -206,6 +259,11 @@ export async function validarRelatorioVidas(
     pendencias: pendencias.slice(0, 500),
     erros,
     alertas,
-    valido: colunas_ausentes.length === 0 && erros === 0,
+    valido: colunas_ausentes.length === 0 && erros === 0 && linhas_validas > 0,
+    linhas_lidas,
+    linhas_validas,
+    linhas_ignoradas_vazias,
+    linhas_ignoradas_outro_tipo,
+    linhas_reaproveitadas,
   };
 }

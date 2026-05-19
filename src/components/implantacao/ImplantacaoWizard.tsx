@@ -698,8 +698,17 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
 
       {validacao && (
         <>
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-xs text-yellow-700 dark:text-yellow-400">
+            Linhas sem <strong>TIPO OPERACAO = I</strong> foram ignoradas automaticamente.
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            <KpiBox label="Total Vidas" value={validacao.total_vidas} color="text-primary" />
+            <KpiBox label="Linhas Lidas" value={validacao.linhas_lidas ?? validacao.total_linhas} color="text-muted-foreground" />
+            <KpiBox label="Válidas (I)" value={validacao.linhas_validas ?? validacao.total_linhas} color="text-primary" />
+            <KpiBox label="Ignoradas (vazias)" value={validacao.linhas_ignoradas_vazias ?? 0} color="text-muted-foreground" />
+            <KpiBox label="Ignoradas (outro tipo)" value={validacao.linhas_ignoradas_outro_tipo ?? 0} color="text-muted-foreground" />
+            <KpiBox label="Reaproveitadas" value={validacao.linhas_reaproveitadas ?? 0} color="text-green-500" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <KpiBox label="Titulares" value={validacao.titulares} color="text-blue-500" />
             <KpiBox label="Dependentes" value={validacao.dependentes} color="text-purple-500" />
             <KpiBox label="Erros" value={validacao.erros} color="text-destructive" />
