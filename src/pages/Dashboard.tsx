@@ -794,8 +794,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Faturamentos Enviados (substitui o gráfico Empresas por Status) */}
-        <FaturamentosEnviadosCard />
+        {/* Implantações em Andamento (substitui Faturamentos Não Enviados) */}
+        <ImplantacoesAndamentoCard />
 
         {/* Lista de Empresas no Período */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
