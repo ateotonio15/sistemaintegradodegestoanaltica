@@ -100,11 +100,17 @@ const AppRoutes = () => (
       <Route path="/dashboard" element={<HomeRoute />} />
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/movimentacoes" element={<Movimentacoes />} />
-      <Route path="/vidas-samel" element={<VidasSamel />} />
-      <Route path="/reajustes" element={<Reajustes />} />
+
+      <Route element={<RoleGate deny={["administradoras"]} />}>
+        <Route path="/vidas-samel" element={<VidasSamel />} />
+        <Route path="/reajustes" element={<Reajustes />} />
+      </Route>
+
+      <Route element={<RoleGate deny={["financeiro", "administradoras"]} />}>
+        <Route path="/executivas" element={<Executivas />} />
+      </Route>
 
       <Route element={<RoleGate deny={["financeiro"]} />}>
-        <Route path="/executivas" element={<Executivas />} />
         <Route path="/implantacao" element={<Implantacao />} />
       </Route>
 
