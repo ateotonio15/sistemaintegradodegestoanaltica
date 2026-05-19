@@ -388,11 +388,21 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                     <input
                       type="file"
                       className="hidden"
-                      onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0], tipo)}
+                      multiple={tipo === "complementar"}
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files || []);
+                        for (const f of files) {
+                          await onUpload(f, tipo);
+                        }
+                        e.target.value = "";
+                      }}
                       disabled={uploading}
                     />
                     <Button asChild size="sm" variant="outline">
-                      <span><Upload className="h-3 w-3 mr-1" /> Anexar</span>
+                      <span>
+                        <Upload className="h-3 w-3 mr-1" />
+                        {tipo === "complementar" ? "Anexar (vários)" : "Anexar"}
+                      </span>
                     </Button>
                   </label>
                 )}
