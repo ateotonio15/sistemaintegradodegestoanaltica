@@ -269,7 +269,7 @@ function ResumoContrato({
   possuiApt,
 }: {
   empresa: Empresa | null;
-  reajuste: Reajuste;
+  reajuste: Reajuste | null;
   possuiEnf: boolean;
   possuiApt: boolean;
 }) {
@@ -290,14 +290,14 @@ function ResumoContrato({
           </span>
         }
       />
-      <InfoCard label="Ano do Reajuste" value={String(reajuste.ano)} />
-      <InfoCard label="Mês do Reajuste" value={nomeMes(reajuste.mes_reajuste) || "—"} />
-      <InfoCard label="Data de Aplicação" value={formatDateBR(reajuste.data_aplicacao) || "—"} />
+      <InfoCard label="Ano do Reajuste" value={reajuste ? String(reajuste.ano) : "—"} />
+      <InfoCard label="Mês do Reajuste" value={reajuste ? (nomeMes(reajuste.mes_reajuste) || "—") : "—"} />
+      <InfoCard label="Data de Aplicação" value={reajuste ? (formatDateBR(reajuste.data_aplicacao) || "—") : "—"} />
       <InfoCard
         label="Percentual"
         value={
           <Badge variant="outline" className="rounded-md">
-            {Number(reajuste.percentual ?? 0).toFixed(2)}%
+            {Number(reajuste?.percentual ?? 0).toFixed(2)}%
           </Badge>
         }
       />
