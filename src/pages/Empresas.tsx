@@ -929,6 +929,12 @@ export default function Empresas() {
           open={!!valoresEmpresa}
           onOpenChange={(open) => { if (!open) setValoresEmpresa(null); }}
         />
+
+        <ImportarValoresIniciaisDialog
+          open={importValoresOpen}
+          onOpenChange={setImportValoresOpen}
+        />
+
       </div>
     </>
   );
