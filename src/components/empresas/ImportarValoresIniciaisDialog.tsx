@@ -23,9 +23,10 @@ const FAIXAS: Array<[number, number, string]> = [
 type ParsedRow = {
   codigo: string;
   nome: string;
-  enf: number; // centavos
+  percentual: number; // %
+  enf: number; // centavos (valor atual)
   apt: number;
-  enfFaixas: number[]; // centavos por faixa (10)
+  enfFaixas: number[]; // centavos por faixa (10) - valor atual
   aptFaixas: number[];
   status: "match" | "not-found" | "ambiguous";
   empresaId?: string;
@@ -34,16 +35,23 @@ type ParsedRow = {
   error?: string;
 };
 
-function toCentavos(v: unknown): number {
+function toNumber(v: unknown): number {
   if (v == null || v === "") return 0;
-  let n: number;
-  if (typeof v === "number") n = v;
-  else {
-    const s = String(v).replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
-    n = parseFloat(s);
-  }
-  if (!isFinite(n) || n < 0) return 0;
+  if (typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  const n = parseFloat(s);
+  return isFinite(n) ? n : 0;
+}
+
+function toCentavos(v: unknown): number {
+  const n = toNumber(v);
+  if (n < 0) return 0;
   return Math.round(n * 100);
+}
+
+function aplicarPct(centavos: number, pct: number): number {
+  if (!centavos || !pct) return centavos;
+  return Math.round(centavos * (1 + pct / 100));
 }
 
 export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
