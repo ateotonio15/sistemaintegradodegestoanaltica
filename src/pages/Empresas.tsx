@@ -159,6 +159,8 @@ export default function Empresas() {
         payload.contato_empresa = null;
         payload.prazo = null;
         payload.grupo_contrato = null;
+        payload.responsavel_contrato = "Márcia Cristina";
+        payload.responsavel_user_id = null;
       } else if (payload.tipo_movimentacao === "Diária") {
         payload.periodo_movimentacao = null;
       }
