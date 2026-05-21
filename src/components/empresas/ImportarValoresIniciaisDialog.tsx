@@ -23,9 +23,10 @@ const FAIXAS: Array<[number, number, string]> = [
 type ParsedRow = {
   codigo: string;
   nome: string;
-  enf: number; // centavos
+  percentual: number; // %
+  enf: number; // centavos (valor atual)
   apt: number;
-  enfFaixas: number[]; // centavos por faixa (10)
+  enfFaixas: number[]; // centavos por faixa (10) - valor atual
   aptFaixas: number[];
   status: "match" | "not-found" | "ambiguous";
   empresaId?: string;
@@ -34,16 +35,23 @@ type ParsedRow = {
   error?: string;
 };
 
-function toCentavos(v: unknown): number {
+function toNumber(v: unknown): number {
   if (v == null || v === "") return 0;
-  let n: number;
-  if (typeof v === "number") n = v;
-  else {
-    const s = String(v).replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
-    n = parseFloat(s);
-  }
-  if (!isFinite(n) || n < 0) return 0;
+  if (typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v).replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  const n = parseFloat(s);
+  return isFinite(n) ? n : 0;
+}
+
+function toCentavos(v: unknown): number {
+  const n = toNumber(v);
+  if (n < 0) return 0;
   return Math.round(n * 100);
+}
+
+function aplicarPct(centavos: number, pct: number): number {
+  if (!centavos || !pct) return centavos;
+  return Math.round(centavos * (1 + pct / 100));
 }
 
 export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
@@ -74,11 +82,12 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
         const codigo = String(row.getCell(1).value ?? "").trim();
         const nome = String(row.getCell(2).value ?? "").trim();
         if (!codigo && !nome) return;
-        const enf = toCentavos(row.getCell(3).value);
-        const apt = toCentavos(row.getCell(4).value);
-        const enfFaixas = FAIXAS.map((_, i) => toCentavos(row.getCell(5 + i).value));
-        const aptFaixas = FAIXAS.map((_, i) => toCentavos(row.getCell(15 + i).value));
-        parsed.push({ codigo, nome, enf, apt, enfFaixas, aptFaixas });
+        const percentual = toNumber(row.getCell(3).value);
+        const enf = toCentavos(row.getCell(4).value);
+        const apt = toCentavos(row.getCell(5).value);
+        const enfFaixas = FAIXAS.map((_, i) => toCentavos(row.getCell(6 + i).value));
+        const aptFaixas = FAIXAS.map((_, i) => toCentavos(row.getCell(16 + i).value));
+        parsed.push({ codigo, nome, percentual, enf, apt, enfFaixas, aptFaixas });
       });
 
       if (parsed.length === 0) throw new Error("Nenhuma linha encontrada");
@@ -182,10 +191,94 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
           });
           if (error) { errCount++; continue; }
         }
+
+        // Se houver percentual, criar/atualizar reajuste do ano atual com os valores do layout como "valor atual"
+        if (r.percentual > 0) {
+          const ano = new Date().getFullYear();
+          const possui_enfermaria = r.enf > 0 || r.enfFaixas.some((x) => x > 0);
+          const possui_apartamento = r.apt > 0 || r.aptFaixas.some((x) => x > 0);
+          const usa_faixa_enf = r.enfFaixas.some((x) => x > 0);
+          const usa_faixa_apt = r.aptFaixas.some((x) => x > 0);
+
+          const enfReaj = aplicarPct(r.enf, r.percentual);
+          const aptReaj = aplicarPct(r.apt, r.percentual);
+
+          const { data: reajUp, error: reajErr } = await supabase
+            .from("reajustes_anuais")
+            .upsert(
+              {
+                empresa_id: r.empresaId!,
+                ano,
+                percentual: r.percentual,
+                mes_reajuste: new Date().getMonth() + 1,
+                data_aplicacao: new Date().toISOString().slice(0, 10),
+                status: "Reajustado",
+                status_reajuste: "confirmado",
+                possui_enfermaria,
+                possui_apartamento,
+                usa_faixa_etaria_enfermaria: usa_faixa_enf,
+                usa_faixa_etaria_apartamento: usa_faixa_apt,
+                percentual_unico_enfermaria: !usa_faixa_enf,
+                percentual_unico_apartamento: !usa_faixa_apt,
+                valor_antigo_enfermaria_centavos: r.enf,
+                valor_reajustado_enfermaria_centavos: enfReaj,
+                valor_final_enfermaria_centavos: enfReaj,
+                valor_antigo_apartamento_centavos: r.apt,
+                valor_reajustado_apartamento_centavos: aptReaj,
+                valor_final_apartamento_centavos: aptReaj,
+                valor_antigo_centavos: r.enf + r.apt,
+                valor_reajustado_centavos: enfReaj + aptReaj,
+                valor_final_centavos: enfReaj + aptReaj,
+                observacao: "Importado via planilha de valores iniciais",
+              },
+              { onConflict: "empresa_id,ano" }
+            )
+            .select("id")
+            .single();
+
+          if (!reajErr && reajUp?.id) {
+            // Limpa faixas anteriores e insere novas
+            await supabase.from("reajuste_faixas").delete().eq("reajuste_id", reajUp.id);
+            const faixasInsert: any[] = [];
+            FAIXAS.forEach(([ini, fim], i) => {
+              if (r.enfFaixas[i] > 0) {
+                const reaj = aplicarPct(r.enfFaixas[i], r.percentual);
+                faixasInsert.push({
+                  reajuste_id: reajUp.id,
+                  modalidade: "enfermaria",
+                  idade_inicial: ini,
+                  idade_final: fim,
+                  valor_atual_centavos: r.enfFaixas[i],
+                  percentual: r.percentual,
+                  valor_reajustado_centavos: reaj,
+                  valor_final_centavos: reaj,
+                });
+              }
+              if (r.aptFaixas[i] > 0) {
+                const reaj = aplicarPct(r.aptFaixas[i], r.percentual);
+                faixasInsert.push({
+                  reajuste_id: reajUp.id,
+                  modalidade: "apartamento",
+                  idade_inicial: ini,
+                  idade_final: fim,
+                  valor_atual_centavos: r.aptFaixas[i],
+                  percentual: r.percentual,
+                  valor_reajustado_centavos: reaj,
+                  valor_final_centavos: reaj,
+                });
+              }
+            });
+            if (faixasInsert.length > 0) {
+              await supabase.from("reajuste_faixas").insert(faixasInsert);
+            }
+          }
+        }
+
         okCount++;
       }
 
       qc.invalidateQueries({ queryKey: ["empresa-valores"] });
+      qc.invalidateQueries({ queryKey: ["reajustes"] });
       toast({
         title: "Importação concluída",
         description: `${okCount} empresa(s) atualizada(s)${errCount > 0 ? ` · ${errCount} erro(s)` : ""}`,
@@ -211,7 +304,7 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
             Importar Valores Iniciais
           </DialogTitle>
           <DialogDescription>
-            Planilha com Código/Nome da empresa, Valor Enfermaria, Valor Apartamento e 10 faixas etárias ANS para cada modalidade.
+            Planilha com Código/Nome da empresa, Percentual de Reajuste, Valor Enfermaria, Valor Apartamento e 10 faixas etárias ANS para cada modalidade. Os valores informados são considerados Valor Atual (antes do reajuste) e o percentual é aplicado automaticamente.
           </DialogDescription>
         </DialogHeader>
 
@@ -248,6 +341,7 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
                     <TableHead>Código</TableHead>
                     <TableHead>Nome (planilha)</TableHead>
                     <TableHead>Empresa encontrada</TableHead>
+                    <TableHead className="text-right">% Reaj</TableHead>
                     <TableHead className="text-right">Enf</TableHead>
                     <TableHead className="text-right">Apt</TableHead>
                     <TableHead className="text-right">Faixas Enf</TableHead>
@@ -269,6 +363,7 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
                       <TableCell className="font-mono text-xs">{r.codigo || "—"}</TableCell>
                       <TableCell className="text-sm">{r.nome || "—"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{r.empresaNome ?? r.error ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums text-xs">{r.percentual > 0 ? `${r.percentual.toFixed(2)}%` : "—"}</TableCell>
                       <TableCell className="text-right tabular-nums text-xs">{(r.enf / 100).toFixed(2)}</TableCell>
                       <TableCell className="text-right tabular-nums text-xs">{(r.apt / 100).toFixed(2)}</TableCell>
                       <TableCell className="text-right tabular-nums text-xs">{r.enfFaixas.filter((x) => x > 0).length}/10</TableCell>
