@@ -13,12 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet } from "lucide-react";
 import { PERIODOS } from "@/lib/movimentacao-utils";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import { ValoresFaixaEtariaDialog } from "@/components/empresas/ValoresFaixaEtariaDialog";
+import { ImportarValoresIniciaisDialog } from "@/components/empresas/ImportarValoresIniciaisDialog";
 import ExcelJS from "exceljs";
 
 import { cn } from "@/lib/utils";
@@ -67,6 +68,7 @@ export default function Empresas() {
   const [dataEmissaoFatura, setDataEmissaoFatura] = useState<number | "">("");
   const [suspensaoEmpresa, setSuspensaoEmpresa] = useState<Empresa | null>(null);
   const [valoresEmpresa, setValoresEmpresa] = useState<Empresa | null>(null);
+  const [importValoresOpen, setImportValoresOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -386,6 +388,11 @@ export default function Empresas() {
               <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="rounded-lg">
                 <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
               </Button>
+              {isAdmin && (
+                <Button variant="outline" onClick={() => setImportValoresOpen(true)} className="rounded-lg">
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />Importar Valores
+                </Button>
+              )}
               <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
                 <DialogTrigger asChild>
                   <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
