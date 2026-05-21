@@ -916,6 +916,12 @@ export default function Empresas() {
           onOpenChange={(open) => { if (!open) setSuspensaoEmpresa(null); }}
           empresa={suspensaoEmpresa as any}
         />
+
+        <ValoresFaixaEtariaDialog
+          empresa={valoresEmpresa}
+          open={!!valoresEmpresa}
+          onOpenChange={(open) => { if (!open) setValoresEmpresa(null); }}
+        />
       </div>
     </>
   );
