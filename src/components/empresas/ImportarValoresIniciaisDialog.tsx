@@ -304,7 +304,7 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
             Importar Valores Iniciais
           </DialogTitle>
           <DialogDescription>
-            Planilha com Código/Nome da empresa, Percentual de Reajuste, Valor Enfermaria, Valor Apartamento e 10 faixas etárias ANS para cada modalidade. Os valores informados são considerados Valor Atual (antes do reajuste) e o percentual é aplicado automaticamente.
+            O tipo de contrato é detectado automaticamente: preencha <b>Valor Enfermaria/Apartamento</b> para contratos com <b>valor fixo</b>, ou preencha as <b>10 colunas de faixa etária</b> (Enf/Apt) para contratos por <b>faixa etária</b>. Veja a aba <b>Instruções</b> do template. Os valores informados são Valor Atual e o % é aplicado automaticamente.
           </DialogDescription>
         </DialogHeader>
 
