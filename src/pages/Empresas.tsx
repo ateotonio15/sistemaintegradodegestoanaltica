@@ -13,11 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet } from "lucide-react";
 import { PERIODOS } from "@/lib/movimentacao-utils";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
+import { ValoresFaixaEtariaDialog } from "@/components/empresas/ValoresFaixaEtariaDialog";
 import ExcelJS from "exceljs";
 
 import { cn } from "@/lib/utils";
@@ -65,6 +66,7 @@ export default function Empresas() {
   const [dataVencimentoFatura, setDataVencimentoFatura] = useState<number | "">("");
   const [dataEmissaoFatura, setDataEmissaoFatura] = useState<number | "">("");
   const [suspensaoEmpresa, setSuspensaoEmpresa] = useState<Empresa | null>(null);
+  const [valoresEmpresa, setValoresEmpresa] = useState<Empresa | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -674,15 +676,15 @@ export default function Empresas() {
                     <TableHead className="font-semibold">Venc. Fatura</TableHead>
                     <TableHead className="font-semibold">Emissão Fatura</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
-                    {canEdit && <TableHead className="w-24 font-semibold">Ações</TableHead>}
+                    <TableHead className="w-24 font-semibold">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
-                     <TableRow><TableCell colSpan={canEdit ? 14 : 13} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
-                  ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEdit ? 14 : 13} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
-                  ) : (
+                   {isLoading ? (
+                      <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                   ) : filtered.length === 0 ? (
+                     <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
+                   ) : (
                     filtered.map((e) => {
                       const suspenso = (e as any).contrato_suspenso;
                       const faixa = (e as any).contrato_faixa_etaria;
@@ -731,16 +733,25 @@ export default function Empresas() {
                               )}
                             </div>
                           </TableCell>
-                          {canEdit && (
-                            <TableCell>
-                              <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
-                                <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
-                                {canFullEdit && (
-                                  <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          )}
+                          <TableCell>
+                            <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setValoresEmpresa(e)}
+                                className="rounded-lg hover:bg-primary/10"
+                                title="Valores e Faixa Etária"
+                              >
+                                <Wallet className="h-4 w-4 text-primary" />
+                              </Button>
+                              {canEdit && (
+                                <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10" title="Editar"><Pencil className="h-4 w-4 text-primary" /></Button>
+                              )}
+                              {canFullEdit && (
+                                <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10" title="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              )}
+                            </div>
+                          </TableCell>
                         </TableRow>
                       );
                     })
@@ -904,6 +915,12 @@ export default function Empresas() {
           open={!!suspensaoEmpresa}
           onOpenChange={(open) => { if (!open) setSuspensaoEmpresa(null); }}
           empresa={suspensaoEmpresa as any}
+        />
+
+        <ValoresFaixaEtariaDialog
+          empresa={valoresEmpresa}
+          open={!!valoresEmpresa}
+          onOpenChange={(open) => { if (!open) setValoresEmpresa(null); }}
         />
       </div>
     </>
