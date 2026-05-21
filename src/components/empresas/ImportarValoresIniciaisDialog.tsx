@@ -191,10 +191,94 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
           });
           if (error) { errCount++; continue; }
         }
+
+        // Se houver percentual, criar/atualizar reajuste do ano atual com os valores do layout como "valor atual"
+        if (r.percentual > 0) {
+          const ano = new Date().getFullYear();
+          const possui_enfermaria = r.enf > 0 || r.enfFaixas.some((x) => x > 0);
+          const possui_apartamento = r.apt > 0 || r.aptFaixas.some((x) => x > 0);
+          const usa_faixa_enf = r.enfFaixas.some((x) => x > 0);
+          const usa_faixa_apt = r.aptFaixas.some((x) => x > 0);
+
+          const enfReaj = aplicarPct(r.enf, r.percentual);
+          const aptReaj = aplicarPct(r.apt, r.percentual);
+
+          const { data: reajUp, error: reajErr } = await supabase
+            .from("reajustes_anuais")
+            .upsert(
+              {
+                empresa_id: r.empresaId!,
+                ano,
+                percentual: r.percentual,
+                mes_reajuste: new Date().getMonth() + 1,
+                data_aplicacao: new Date().toISOString().slice(0, 10),
+                status: "Reajustado",
+                status_reajuste: "confirmado",
+                possui_enfermaria,
+                possui_apartamento,
+                usa_faixa_etaria_enfermaria: usa_faixa_enf,
+                usa_faixa_etaria_apartamento: usa_faixa_apt,
+                percentual_unico_enfermaria: !usa_faixa_enf,
+                percentual_unico_apartamento: !usa_faixa_apt,
+                valor_antigo_enfermaria_centavos: r.enf,
+                valor_reajustado_enfermaria_centavos: enfReaj,
+                valor_final_enfermaria_centavos: enfReaj,
+                valor_antigo_apartamento_centavos: r.apt,
+                valor_reajustado_apartamento_centavos: aptReaj,
+                valor_final_apartamento_centavos: aptReaj,
+                valor_antigo_centavos: r.enf + r.apt,
+                valor_reajustado_centavos: enfReaj + aptReaj,
+                valor_final_centavos: enfReaj + aptReaj,
+                observacao: "Importado via planilha de valores iniciais",
+              },
+              { onConflict: "empresa_id,ano" }
+            )
+            .select("id")
+            .single();
+
+          if (!reajErr && reajUp?.id) {
+            // Limpa faixas anteriores e insere novas
+            await supabase.from("reajuste_faixas").delete().eq("reajuste_id", reajUp.id);
+            const faixasInsert: any[] = [];
+            FAIXAS.forEach(([ini, fim], i) => {
+              if (r.enfFaixas[i] > 0) {
+                const reaj = aplicarPct(r.enfFaixas[i], r.percentual);
+                faixasInsert.push({
+                  reajuste_id: reajUp.id,
+                  modalidade: "enfermaria",
+                  idade_inicial: ini,
+                  idade_final: fim,
+                  valor_atual_centavos: r.enfFaixas[i],
+                  percentual: r.percentual,
+                  valor_reajustado_centavos: reaj,
+                  valor_final_centavos: reaj,
+                });
+              }
+              if (r.aptFaixas[i] > 0) {
+                const reaj = aplicarPct(r.aptFaixas[i], r.percentual);
+                faixasInsert.push({
+                  reajuste_id: reajUp.id,
+                  modalidade: "apartamento",
+                  idade_inicial: ini,
+                  idade_final: fim,
+                  valor_atual_centavos: r.aptFaixas[i],
+                  percentual: r.percentual,
+                  valor_reajustado_centavos: reaj,
+                  valor_final_centavos: reaj,
+                });
+              }
+            });
+            if (faixasInsert.length > 0) {
+              await supabase.from("reajuste_faixas").insert(faixasInsert);
+            }
+          }
+        }
+
         okCount++;
       }
 
       qc.invalidateQueries({ queryKey: ["empresa-valores"] });
+      qc.invalidateQueries({ queryKey: ["reajustes"] });
       toast({
         title: "Importação concluída",
         description: `${okCount} empresa(s) atualizada(s)${errCount > 0 ? ` · ${errCount} erro(s)` : ""}`,
