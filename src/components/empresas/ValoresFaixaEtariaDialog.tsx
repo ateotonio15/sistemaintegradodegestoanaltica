@@ -49,23 +49,40 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
         .limit(1);
       if (error) throw error;
       const reajuste = (reajustes?.[0] ?? null) as Reajuste | null;
-      if (!reajuste) return { reajuste: null, faixas: [] as ReajusteFaixa[] };
 
-      const { data: faixas, error: errF } = await supabase
-        .from("reajuste_faixas")
-        .select("*")
-        .eq("reajuste_id", reajuste.id)
-        .order("idade_inicial", { ascending: true });
-      if (errF) throw errF;
-      return { reajuste, faixas: (faixas ?? []) as ReajusteFaixa[] };
+      let faixas: ReajusteFaixa[] = [];
+      if (reajuste) {
+        const { data: f, error: errF } = await supabase
+          .from("reajuste_faixas")
+          .select("*")
+          .eq("reajuste_id", reajuste.id)
+          .order("idade_inicial", { ascending: true });
+        if (errF) throw errF;
+        faixas = (f ?? []) as ReajusteFaixa[];
+      }
+
+      const { data: impl } = await supabase
+        .from("implantacoes_contratos")
+        .select("valor_enfermaria_centavos, valor_apartamento_centavos, faixas_etarias, modalidade, acomodacao, data_vigencia")
+        .eq("empresa_id", empresaId!)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      return { reajuste, faixas, implantacao: impl ?? null };
     },
   });
 
   const reajuste = data?.reajuste ?? null;
   const faixas = data?.faixas ?? [];
+  const implantacao = data?.implantacao ?? null;
 
-  const possuiEnf = reajuste?.possui_enfermaria ?? false;
-  const possuiApt = reajuste?.possui_apartamento ?? false;
+  const possuiEnf = reajuste
+    ? (reajuste.possui_enfermaria ?? false)
+    : (implantacao?.valor_enfermaria_centavos ?? 0) > 0;
+  const possuiApt = reajuste
+    ? (reajuste.possui_apartamento ?? false)
+    : (implantacao?.valor_apartamento_centavos ?? 0) > 0;
 
   // Pivot faixas por (idade_inicial, idade_final)
   const faixasPivot = (() => {
@@ -86,6 +103,13 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
     return Array.from(map.values()).sort((a, b) => a.ini - b.ini);
   })();
 
+  const faixasObservacao =
+    !reajuste && implantacao?.faixas_etarias && typeof implantacao.faixas_etarias === "object" && !Array.isArray(implantacao.faixas_etarias)
+      ? ((implantacao.faixas_etarias as { observacao?: string }).observacao ?? "")
+      : "";
+
+  const semDados = !reajuste && !implantacao;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl animate-fade-in">
@@ -105,7 +129,7 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-32 w-full" />
           </div>
-        ) : !reajuste ? (
+        ) : semDados ? (
           <EmptyState empresa={empresa} />
         ) : (
           <Tabs defaultValue="resumo" className="w-full animate-fade-in">
@@ -121,7 +145,17 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
             </TabsList>
 
             <TabsContent value="resumo" className="mt-4 animate-fade-in">
-              <ResumoContrato empresa={empresa} reajuste={reajuste} possuiEnf={possuiEnf} possuiApt={possuiApt} />
+              <ResumoContrato
+                empresa={empresa}
+                reajuste={reajuste}
+                possuiEnf={possuiEnf}
+                possuiApt={possuiApt}
+              />
+              {!reajuste && (
+                <p className="text-xs text-muted-foreground mt-3 italic">
+                  Contrato ainda não reajustado — exibindo valores originais da implantação.
+                </p>
+              )}
             </TabsContent>
 
             <TabsContent value="enfermaria" className="mt-4 animate-fade-in">
@@ -129,11 +163,12 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
                 <ValoresCard
                   titulo="Enfermaria"
                   icon={<BedDouble className="h-4 w-4" />}
-                  atual={reajuste.valor_antigo_enfermaria_centavos ?? 0}
-                  percentual={reajuste.percentual ?? 0}
-                  reajustado={reajuste.valor_reajustado_enfermaria_centavos ?? 0}
-                  retroativo={reajuste.valor_retroativo_enfermaria_centavos ?? 0}
-                  final={reajuste.valor_final_enfermaria_centavos ?? 0}
+                  atual={reajuste?.valor_antigo_enfermaria_centavos ?? implantacao?.valor_enfermaria_centavos ?? 0}
+                  percentual={reajuste?.percentual ?? 0}
+                  reajustado={reajuste?.valor_reajustado_enfermaria_centavos ?? 0}
+                  retroativo={reajuste?.valor_retroativo_enfermaria_centavos ?? 0}
+                  final={reajuste?.valor_final_enfermaria_centavos ?? implantacao?.valor_enfermaria_centavos ?? 0}
+                  semReajuste={!reajuste}
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">Modalidade não contratada.</p>
@@ -145,11 +180,12 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
                 <ValoresCard
                   titulo="Apartamento"
                   icon={<Hotel className="h-4 w-4" />}
-                  atual={reajuste.valor_antigo_apartamento_centavos ?? 0}
-                  percentual={reajuste.percentual ?? 0}
-                  reajustado={reajuste.valor_reajustado_apartamento_centavos ?? 0}
-                  retroativo={reajuste.valor_retroativo_apartamento_centavos ?? 0}
-                  final={reajuste.valor_final_apartamento_centavos ?? 0}
+                  atual={reajuste?.valor_antigo_apartamento_centavos ?? implantacao?.valor_apartamento_centavos ?? 0}
+                  percentual={reajuste?.percentual ?? 0}
+                  reajustado={reajuste?.valor_reajustado_apartamento_centavos ?? 0}
+                  retroativo={reajuste?.valor_retroativo_apartamento_centavos ?? 0}
+                  final={reajuste?.valor_final_apartamento_centavos ?? implantacao?.valor_apartamento_centavos ?? 0}
+                  semReajuste={!reajuste}
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">Modalidade não contratada.</p>
@@ -158,8 +194,12 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
 
             <TabsContent value="faixa" className="mt-4 animate-fade-in">
               {faixasPivot.length === 0 ? (
-                <div className="text-sm text-muted-foreground p-6 text-center rounded-lg border border-dashed">
-                  Reajuste por valor único — sem faixa etária.
+                <div className="text-sm text-muted-foreground p-6 text-center rounded-lg border border-dashed whitespace-pre-wrap">
+                  {faixasObservacao
+                    ? faixasObservacao
+                    : !reajuste
+                    ? "Contrato ainda não reajustado — nenhuma tabela de faixa etária registrada."
+                    : "Reajuste por valor único — sem faixa etária."}
                 </div>
               ) : (
                 <div className="rounded-lg border border-border overflow-hidden">
@@ -198,6 +238,7 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
             </TabsContent>
           </Tabs>
         )}
+
       </DialogContent>
     </Dialog>
   );
@@ -228,7 +269,7 @@ function ResumoContrato({
   possuiApt,
 }: {
   empresa: Empresa | null;
-  reajuste: Reajuste;
+  reajuste: Reajuste | null;
   possuiEnf: boolean;
   possuiApt: boolean;
 }) {
@@ -249,14 +290,14 @@ function ResumoContrato({
           </span>
         }
       />
-      <InfoCard label="Ano do Reajuste" value={String(reajuste.ano)} />
-      <InfoCard label="Mês do Reajuste" value={nomeMes(reajuste.mes_reajuste) || "—"} />
-      <InfoCard label="Data de Aplicação" value={formatDateBR(reajuste.data_aplicacao) || "—"} />
+      <InfoCard label="Ano do Reajuste" value={reajuste ? String(reajuste.ano) : "—"} />
+      <InfoCard label="Mês do Reajuste" value={reajuste ? (nomeMes(reajuste.mes_reajuste) || "—") : "—"} />
+      <InfoCard label="Data de Aplicação" value={reajuste ? (formatDateBR(reajuste.data_aplicacao) || "—") : "—"} />
       <InfoCard
         label="Percentual"
         value={
           <Badge variant="outline" className="rounded-md">
-            {Number(reajuste.percentual ?? 0).toFixed(2)}%
+            {Number(reajuste?.percentual ?? 0).toFixed(2)}%
           </Badge>
         }
       />
@@ -281,6 +322,7 @@ function ValoresCard({
   reajustado,
   retroativo,
   final,
+  semReajuste,
 }: {
   titulo: string;
   icon: React.ReactNode;
@@ -289,12 +331,18 @@ function ValoresCard({
   reajustado: number;
   retroativo: number;
   final: number;
+  semReajuste?: boolean;
 }) {
   return (
     <div className="rounded-xl border border-border overflow-hidden animate-scale-in">
       <div className="px-4 py-3 bg-accent/30 border-b border-border flex items-center gap-2">
         {icon}
         <h3 className="font-semibold">{titulo}</h3>
+        {semReajuste && (
+          <Badge variant="outline" className="ml-auto rounded-md text-[10px]">
+            Valor da implantação
+          </Badge>
+        )}
       </div>
       <div className="grid gap-3 p-4 sm:grid-cols-2">
         <ValorLinha label="Valor Atual" value={formatCentavosBRL(atual)} />
