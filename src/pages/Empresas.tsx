@@ -406,19 +406,27 @@ export default function Empresas() {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
-                        <Select
-                          value={form.responsavel_user_id ?? ""}
-                          onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
-                        >
-                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
-                          <SelectContent>
-                            {comunUsers.map((u) => (
-                              <SelectItem key={u.user_id} value={u.user_id}>
-                                {u.display_name || u.user_id}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {(form as any).tipo_contrato === "ADMINISTRADORA" ? (
+                          <Input
+                            value={(form as any).responsavel_contrato || "Márcia Cristina"}
+                            readOnly
+                            className="rounded-lg bg-muted transition-all duration-300 animate-fade-in"
+                          />
+                        ) : (
+                          <Select
+                            value={form.responsavel_user_id ?? ""}
+                            onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
+                          >
+                            <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                            <SelectContent>
+                              {comunUsers.map((u) => (
+                                <SelectItem key={u.user_id} value={u.user_id}>
+                                  {u.display_name || u.user_id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Executiva Responsável</Label>
