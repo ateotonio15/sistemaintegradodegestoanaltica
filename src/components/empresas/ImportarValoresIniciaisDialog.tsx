@@ -82,11 +82,12 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
         const codigo = String(row.getCell(1).value ?? "").trim();
         const nome = String(row.getCell(2).value ?? "").trim();
         if (!codigo && !nome) return;
-        const enf = toCentavos(row.getCell(3).value);
-        const apt = toCentavos(row.getCell(4).value);
-        const enfFaixas = FAIXAS.map((_, i) => toCentavos(row.getCell(5 + i).value));
-        const aptFaixas = FAIXAS.map((_, i) => toCentavos(row.getCell(15 + i).value));
-        parsed.push({ codigo, nome, enf, apt, enfFaixas, aptFaixas });
+        const percentual = toNumber(row.getCell(3).value);
+        const enf = toCentavos(row.getCell(4).value);
+        const apt = toCentavos(row.getCell(5).value);
+        const enfFaixas = FAIXAS.map((_, i) => toCentavos(row.getCell(6 + i).value));
+        const aptFaixas = FAIXAS.map((_, i) => toCentavos(row.getCell(16 + i).value));
+        parsed.push({ codigo, nome, percentual, enf, apt, enfFaixas, aptFaixas });
       });
 
       if (parsed.length === 0) throw new Error("Nenhuma linha encontrada");
