@@ -341,6 +341,7 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
                     <TableHead>Código</TableHead>
                     <TableHead>Nome (planilha)</TableHead>
                     <TableHead>Empresa encontrada</TableHead>
+                    <TableHead className="text-right">% Reaj</TableHead>
                     <TableHead className="text-right">Enf</TableHead>
                     <TableHead className="text-right">Apt</TableHead>
                     <TableHead className="text-right">Faixas Enf</TableHead>
