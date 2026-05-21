@@ -122,7 +122,7 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
   };
 
   const downloadTemplate = () => {
-    window.open("https://gdojlriuewowyomypwzl.supabase.co/storage/v1/object/public/templates/template_valores_iniciais.xlsx", "_blank");
+    window.open("/template_valores_iniciais.xlsx", "_blank");
   };
 
   const handleSave = async () => {
