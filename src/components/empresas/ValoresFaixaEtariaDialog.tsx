@@ -77,30 +77,58 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
   const faixas = data?.faixas ?? [];
   const implantacao = data?.implantacao ?? null;
 
+  const implFaixas = (implantacao?.faixas_etarias && typeof implantacao.faixas_etarias === "object"
+    ? implantacao.faixas_etarias as {
+        enfermaria?: Array<{ centavos: number }>;
+        apartamento?: Array<{ centavos: number }>;
+      }
+    : null);
+  const implTemEnfFaixa = (implFaixas?.enfermaria ?? []).some((f) => (f.centavos ?? 0) > 0);
+  const implTemAptFaixa = (implFaixas?.apartamento ?? []).some((f) => (f.centavos ?? 0) > 0);
+
   const possuiEnf = reajuste
     ? (reajuste.possui_enfermaria ?? false)
-    : (implantacao?.valor_enfermaria_centavos ?? 0) > 0;
+    : ((implantacao?.valor_enfermaria_centavos ?? 0) > 0 || implTemEnfFaixa);
   const possuiApt = reajuste
     ? (reajuste.possui_apartamento ?? false)
-    : (implantacao?.valor_apartamento_centavos ?? 0) > 0;
+    : ((implantacao?.valor_apartamento_centavos ?? 0) > 0 || implTemAptFaixa);
 
-  // Pivot faixas por (idade_inicial, idade_final)
+  // Pivot faixas por (idade_inicial, idade_final) — primeiro tenta reajuste_faixas
   const faixasPivot = (() => {
     const map = new Map<
       string,
-      { ini: number; fim: number; enf?: ReajusteFaixa; apt?: ReajusteFaixa }
+      { ini: number; fim: number; enfCent?: number; aptCent?: number }
     >();
     for (const f of faixas) {
       const key = `${f.idade_inicial}-${f.idade_final}`;
-      const row = map.get(key) ?? {
-        ini: f.idade_inicial,
-        fim: f.idade_final,
-      };
-      if (f.modalidade === "enfermaria") row.enf = f;
-      if (f.modalidade === "apartamento") row.apt = f;
+      const row = map.get(key) ?? { ini: f.idade_inicial, fim: f.idade_final };
+      if (f.modalidade === "enfermaria") row.enfCent = f.valor_final_centavos;
+      if (f.modalidade === "apartamento") row.aptCent = f.valor_final_centavos;
       map.set(key, row);
     }
-    return Array.from(map.values()).sort((a, b) => a.ini - b.ini);
+
+    // Fallback: usa faixas_etarias da implantação se não há reajuste
+    if (map.size === 0 && implantacao?.faixas_etarias && typeof implantacao.faixas_etarias === "object") {
+      const fe = implantacao.faixas_etarias as {
+        enfermaria?: Array<{ ini: number; fim: number; centavos: number }>;
+        apartamento?: Array<{ ini: number; fim: number; centavos: number }>;
+      };
+      const allFaixas = [
+        ...(fe.enfermaria ?? []).map((f) => ({ ...f, mod: "enf" as const })),
+        ...(fe.apartamento ?? []).map((f) => ({ ...f, mod: "apt" as const })),
+      ];
+      for (const f of allFaixas) {
+        const key = `${f.ini}-${f.fim}`;
+        const row = map.get(key) ?? { ini: f.ini, fim: f.fim };
+        if (f.mod === "enf") row.enfCent = f.centavos;
+        else row.aptCent = f.centavos;
+        map.set(key, row);
+      }
+    }
+
+    return Array.from(map.values())
+      .filter((r) => (r.enfCent ?? 0) > 0 || (r.aptCent ?? 0) > 0)
+      .sort((a, b) => a.ini - b.ini);
   })();
 
   const faixasObservacao =
@@ -221,12 +249,12 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
                           <TableCell className="font-medium">{labelFaixa(row.ini, row.fim)}</TableCell>
                           {possuiEnf && (
                             <TableCell className="text-right tabular-nums">
-                              {row.enf ? formatCentavosBRL(row.enf.valor_final_centavos) : "—"}
+                              {row.enfCent ? formatCentavosBRL(row.enfCent) : "—"}
                             </TableCell>
                           )}
                           {possuiApt && (
                             <TableCell className="text-right tabular-nums">
-                              {row.apt ? formatCentavosBRL(row.apt.valor_final_centavos) : "—"}
+                              {row.aptCent ? formatCentavosBRL(row.aptCent) : "—"}
                             </TableCell>
                           )}
                         </TableRow>
