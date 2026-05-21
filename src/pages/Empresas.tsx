@@ -159,6 +159,8 @@ export default function Empresas() {
         payload.contato_empresa = null;
         payload.prazo = null;
         payload.grupo_contrato = null;
+        payload.responsavel_contrato = "Márcia Cristina";
+        payload.responsavel_user_id = null;
       } else if (payload.tipo_movimentacao === "Diária") {
         payload.periodo_movimentacao = null;
       }
@@ -404,19 +406,27 @@ export default function Empresas() {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
-                        <Select
-                          value={form.responsavel_user_id ?? ""}
-                          onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
-                        >
-                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
-                          <SelectContent>
-                            {comunUsers.map((u) => (
-                              <SelectItem key={u.user_id} value={u.user_id}>
-                                {u.display_name || u.user_id}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {(form as any).tipo_contrato === "ADMINISTRADORA" ? (
+                          <Input
+                            value={(form as any).responsavel_contrato || "Márcia Cristina"}
+                            readOnly
+                            className="rounded-lg bg-muted transition-all duration-300 animate-fade-in"
+                          />
+                        ) : (
+                          <Select
+                            value={form.responsavel_user_id ?? ""}
+                            onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
+                          >
+                            <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                            <SelectContent>
+                              {comunUsers.map((u) => (
+                                <SelectItem key={u.user_id} value={u.user_id}>
+                                  {u.display_name || u.user_id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Executiva Responsável</Label>
@@ -458,7 +468,16 @@ export default function Empresas() {
                         <Label className="text-sm font-medium">Tipo de Contrato *</Label>
                         <Select
                           value={(form as any).tipo_contrato ?? "EMPRESARIAL"}
-                          onValueChange={(v) => setForm({ ...form, tipo_contrato: v } as any)}
+                          onValueChange={(v) => setForm((prev) => {
+                            const next: any = { ...prev, tipo_contrato: v };
+                            if (v === "ADMINISTRADORA") {
+                              next.responsavel_contrato = "Márcia Cristina";
+                              next.responsavel_user_id = null;
+                            } else if ((prev as any).responsavel_contrato === "Márcia Cristina") {
+                              next.responsavel_contrato = "";
+                            }
+                            return next;
+                          })}
                         >
                           <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>
