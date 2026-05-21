@@ -77,12 +77,21 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
   const faixas = data?.faixas ?? [];
   const implantacao = data?.implantacao ?? null;
 
+  const implFaixas = (implantacao?.faixas_etarias && typeof implantacao.faixas_etarias === "object"
+    ? implantacao.faixas_etarias as {
+        enfermaria?: Array<{ centavos: number }>;
+        apartamento?: Array<{ centavos: number }>;
+      }
+    : null);
+  const implTemEnfFaixa = (implFaixas?.enfermaria ?? []).some((f) => (f.centavos ?? 0) > 0);
+  const implTemAptFaixa = (implFaixas?.apartamento ?? []).some((f) => (f.centavos ?? 0) > 0);
+
   const possuiEnf = reajuste
     ? (reajuste.possui_enfermaria ?? false)
-    : (implantacao?.valor_enfermaria_centavos ?? 0) > 0;
+    : ((implantacao?.valor_enfermaria_centavos ?? 0) > 0 || implTemEnfFaixa);
   const possuiApt = reajuste
     ? (reajuste.possui_apartamento ?? false)
-    : (implantacao?.valor_apartamento_centavos ?? 0) > 0;
+    : ((implantacao?.valor_apartamento_centavos ?? 0) > 0 || implTemAptFaixa);
 
   // Pivot faixas por (idade_inicial, idade_final) — primeiro tenta reajuste_faixas
   const faixasPivot = (() => {
