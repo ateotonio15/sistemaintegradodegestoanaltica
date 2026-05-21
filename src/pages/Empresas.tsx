@@ -676,7 +676,7 @@ export default function Empresas() {
                     <TableHead className="font-semibold">Venc. Fatura</TableHead>
                     <TableHead className="font-semibold">Emissão Fatura</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
-                    {canEdit && <TableHead className="w-24 font-semibold">Ações</TableHead>}
+                    <TableHead className="w-24 font-semibold">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
