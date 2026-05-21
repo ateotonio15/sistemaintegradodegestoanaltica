@@ -122,7 +122,12 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
   };
 
   const downloadTemplate = () => {
-    window.open("/template_valores_iniciais.xlsx", "_blank");
+    const link = document.createElement("a");
+    link.href = "/template_valores_iniciais.xlsx";
+    link.download = "template_valores_iniciais.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleSave = async () => {
