@@ -680,11 +680,11 @@ export default function Empresas() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
-                     <TableRow><TableCell colSpan={canEdit ? 14 : 13} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
-                  ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEdit ? 14 : 13} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
-                  ) : (
+                   {isLoading ? (
+                      <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                   ) : filtered.length === 0 ? (
+                     <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
+                   ) : (
                     filtered.map((e) => {
                       const suspenso = (e as any).contrato_suspenso;
                       const faixa = (e as any).contrato_faixa_etaria;
