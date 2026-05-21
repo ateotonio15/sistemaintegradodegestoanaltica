@@ -322,6 +322,7 @@ function ValoresCard({
   reajustado,
   retroativo,
   final,
+  semReajuste,
 }: {
   titulo: string;
   icon: React.ReactNode;
@@ -330,12 +331,18 @@ function ValoresCard({
   reajustado: number;
   retroativo: number;
   final: number;
+  semReajuste?: boolean;
 }) {
   return (
     <div className="rounded-xl border border-border overflow-hidden animate-scale-in">
       <div className="px-4 py-3 bg-accent/30 border-b border-border flex items-center gap-2">
         {icon}
         <h3 className="font-semibold">{titulo}</h3>
+        {semReajuste && (
+          <Badge variant="outline" className="ml-auto rounded-md text-[10px]">
+            Valor da implantação
+          </Badge>
+        )}
       </div>
       <div className="grid gap-3 p-4 sm:grid-cols-2">
         <ValorLinha label="Valor Atual" value={formatCentavosBRL(atual)} />
