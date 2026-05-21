@@ -363,6 +363,7 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
                       <TableCell className="font-mono text-xs">{r.codigo || "—"}</TableCell>
                       <TableCell className="text-sm">{r.nome || "—"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{r.empresaNome ?? r.error ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums text-xs">{r.percentual > 0 ? `${r.percentual.toFixed(2)}%` : "—"}</TableCell>
                       <TableCell className="text-right tabular-nums text-xs">{(r.enf / 100).toFixed(2)}</TableCell>
                       <TableCell className="text-right tabular-nums text-xs">{(r.apt / 100).toFixed(2)}</TableCell>
                       <TableCell className="text-right tabular-nums text-xs">{r.enfFaixas.filter((x) => x > 0).length}/10</TableCell>
