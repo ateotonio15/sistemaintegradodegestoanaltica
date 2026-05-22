@@ -66,6 +66,7 @@ export function FinanceiroTable({
   expandedRowId,
   onToggleExpand,
   onReanalisar,
+  onGerarHistorico,
   analiseResultados,
   analiseLoading,
   analiseComparacoes,
