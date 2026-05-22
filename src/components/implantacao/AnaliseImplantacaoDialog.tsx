@@ -178,21 +178,55 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
 
             {/* Anexos */}
             <div>
-              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2"><Paperclip className="h-4 w-4" /> Documentos ({anexos.length})</h4>
-              {anexos.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sem anexos.</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {anexos.map((a) => (
-                    <button key={a.id} onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}
-                      className="flex items-center gap-2 text-left text-sm p-2 rounded-lg border hover:bg-accent transition-colors">
-                      <FileText className="h-4 w-4 text-primary shrink-0" />
-                      <span className="truncate flex-1">{a.nome_arquivo}</span>
-                      <Badge variant="secondary" className="text-[10px]">{a.tipo}</Badge>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2"><Paperclip className="h-4 w-4" /> Documentos ({(readOnly ? anexos.filter((a: any) => {
+                const tipo = String(a.tipo || "").toLowerCase();
+                const nome = String(a.nome_arquivo || "").toLowerCase();
+                if (tipo === "anexo_1" || tipo === "relatorio_vidas") return true;
+                if (nome.includes("cartao") && nome.includes("cnpj")) return true;
+                if (nome.includes("cartão") && nome.includes("cnpj")) return true;
+                return false;
+              }) : anexos).length})</h4>
+              {(() => {
+                const visiveis = readOnly ? anexos.filter((a: any) => {
+                  const tipo = String(a.tipo || "").toLowerCase();
+                  const nome = String(a.nome_arquivo || "").toLowerCase();
+                  if (tipo === "anexo_1" || tipo === "relatorio_vidas") return true;
+                  if ((nome.includes("cartao") || nome.includes("cartão")) && nome.includes("cnpj")) return true;
+                  return false;
+                }) : anexos;
+                if (visiveis.length === 0) return <p className="text-sm text-muted-foreground">Sem anexos.</p>;
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {visiveis.map((a: any) => (
+                      <button key={a.id} onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}
+                        className="flex items-center gap-2 text-left text-sm p-2 rounded-lg border hover:bg-accent transition-colors">
+                        <FileText className="h-4 w-4 text-primary shrink-0" />
+                        <span className="truncate flex-1">{a.nome_arquivo}</span>
+                        <Badge variant="secondary" className="text-[10px]">{a.tipo}</Badge>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Dados para Implantação (oriundos do Anexo 1) */}
+            <div>
+              <h4 className="text-sm font-semibold mb-2">Dados para Implantação</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs p-3 rounded-lg border bg-muted/30">
+                <div><p className="text-muted-foreground">Telefone</p><p className="font-semibold text-sm">{impl.telefone || "—"}</p></div>
+                <div><p className="text-muted-foreground">Inscrição Municipal</p><p className="font-semibold text-sm">{impl.inscricao_municipal || "—"}</p></div>
+                <div><p className="text-muted-foreground">Inscrição Estadual</p><p className="font-semibold text-sm">{impl.inscricao_estadual || "—"}</p></div>
+                <div className="md:col-span-2"><p className="text-muted-foreground">Endereço</p><p className="font-semibold text-sm">{impl.endereco || "—"}</p></div>
+                <div><p className="text-muted-foreground">CEP</p><p className="font-semibold text-sm">{impl.cep || "—"}</p></div>
+                <div><p className="text-muted-foreground">Grupo Contrato</p><p className="font-semibold text-sm">{impl.grupo_contrato || "—"}</p></div>
+                <div><p className="text-muted-foreground">Início Atendimento</p><p className="font-semibold text-sm">{formatDateBR(impl.inicio_atendimento)}</p></div>
+                <div><p className="text-muted-foreground">Dia Movimentação</p><p className="font-semibold text-sm">{impl.dia_movimentacao ?? "—"}</p></div>
+                <div><p className="text-muted-foreground">Data de Corte</p><p className="font-semibold text-sm">{impl.data_corte ?? "—"}</p></div>
+                <div><p className="text-muted-foreground">Ticket</p><p className="font-semibold text-sm">{impl.ticket || "—"}</p></div>
+                <div><p className="text-muted-foreground">Vidas Titulares</p><p className="font-semibold text-sm">{impl.vidas_titulares ?? "—"}</p></div>
+                <div><p className="text-muted-foreground">Vidas Dependentes</p><p className="font-semibold text-sm">{impl.vidas_dependentes ?? "—"}</p></div>
+              </div>
             </div>
 
             {/* Dados Comerciais */}
@@ -207,6 +241,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                 <div><p className="text-muted-foreground">Código do Contrato</p><p className="font-semibold text-sm">{impl.codigo_contrato || "—"}</p></div>
               </div>
             </div>
+
 
 
             {/* Ação Cadastro: Liberar contrato */}
