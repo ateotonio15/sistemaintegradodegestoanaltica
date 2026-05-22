@@ -594,9 +594,6 @@ export default function Arquivos() {
                                                         </div>
                                                       )}
                                                     </TableCell>
-                                                    <TableCell>
-                                                      <Badge variant="secondary">{a.categoria}</Badge>
-                                                    </TableCell>
                                                     <TableCell>{tipoArquivo(a.extensao)}</TableCell>
                                                     <TableCell>
                                                       <Badge variant={a.origem === "financeiro" ? "default" : "outline"}>
