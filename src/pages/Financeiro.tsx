@@ -35,6 +35,7 @@ import { FinanceiroTable, type FinanceiroRow } from "@/components/financeiro/Fin
 import { EditarMovimentacaoDialog } from "@/components/financeiro/EditarMovimentacaoDialog";
 import { CobrancaDialog } from "@/components/financeiro/CobrancaDialog";
 import { ImportPagadoresDialog } from "@/components/financeiro/ImportPagadoresDialog";
+import { GerarHistoricoDialog } from "@/components/financeiro/GerarHistoricoDialog";
 import { ReajusteCobrancaRetroativa } from "@/components/financeiro/ReajusteCobrancaRetroativa";
 import { useFinanceiroRealtime } from "@/hooks/useFinanceiroRealtime";
 
@@ -81,6 +82,8 @@ export default function Financeiro() {
   const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
   const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
   const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [historicoRow, setHistoricoRow] = useState<FinanceiroRow | null>(null);
+  const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
 
   // Realtime exclusivo da aba Financeiro — refetch incremental por linha,
   // sem reload, sem reset de filtros/estado. Cleanup automático ao sair.
@@ -579,6 +582,11 @@ export default function Financeiro() {
 
   const handleReanalisar = async (row: FinanceiroRow) => {
     await runAnalise(row, { force: true });
+  };
+
+  const handleGerarHistorico = (row: FinanceiroRow) => {
+    setHistoricoRow(row);
+    setHistoricoDialogOpen(true);
   };
 
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
@@ -1208,6 +1216,7 @@ export default function Financeiro() {
           expandedRowId={expandedRowId}
           onToggleExpand={handleToggleExpand}
           onReanalisar={handleReanalisar}
+          onGerarHistorico={canManageFinanceiro ? handleGerarHistorico : undefined}
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
@@ -1244,6 +1253,16 @@ export default function Financeiro() {
           empresasMap={empresasMap as any}
           canManage={!!canManageFinanceiro}
         />
+
+        {canManageFinanceiro && (
+          <GerarHistoricoDialog
+            open={historicoDialogOpen}
+            onOpenChange={setHistoricoDialogOpen}
+            row={historicoRow}
+            resultados={historicoRow ? (analiseResultados[historicoRow.rowKey ?? historicoRow.id] ?? analiseResultados[historicoRow.id] ?? null) : null}
+            anexosNomes={historicoRow ? ((anexosMap[historicoRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
+          />
+        )}
       </div>
     </>
   );

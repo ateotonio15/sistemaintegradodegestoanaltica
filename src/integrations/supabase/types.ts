@@ -808,6 +808,57 @@ export type Database = {
         }
         Relationships: []
       }
+      historicos_financeiros: {
+        Row: {
+          competencia: string
+          created_at: string
+          data_geracao: string
+          empresa_id: string
+          financeiro_movimentacao_id: string
+          id: string
+          motivo_prorrogacao: string | null
+          periodo: string
+          prorrogado: boolean
+          texto_historico: string
+          updated_at: string
+          usuario_geracao: string | null
+          usuario_geracao_nome: string | null
+          vencimento_utilizado: string | null
+        }
+        Insert: {
+          competencia: string
+          created_at?: string
+          data_geracao?: string
+          empresa_id: string
+          financeiro_movimentacao_id: string
+          id?: string
+          motivo_prorrogacao?: string | null
+          periodo: string
+          prorrogado?: boolean
+          texto_historico: string
+          updated_at?: string
+          usuario_geracao?: string | null
+          usuario_geracao_nome?: string | null
+          vencimento_utilizado?: string | null
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          data_geracao?: string
+          empresa_id?: string
+          financeiro_movimentacao_id?: string
+          id?: string
+          motivo_prorrogacao?: string | null
+          periodo?: string
+          prorrogado?: boolean
+          texto_historico?: string
+          updated_at?: string
+          usuario_geracao?: string | null
+          usuario_geracao_nome?: string | null
+          vencimento_utilizado?: string | null
+        }
+        Relationships: []
+      }
       implantacao_alertas: {
         Row: {
           created_at: string
