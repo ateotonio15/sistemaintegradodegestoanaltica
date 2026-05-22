@@ -185,7 +185,32 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const irmaos = pagadores.filter((p) => p.id !== movimentacao?.empresa_id);
   const temIrmaos = irmaos.length > 0;
 
-  const buildPayload = () => {
+  // Nome de quem confirmou o boleto DDA
+  const { data: confirmadorNome } = useQuery({
+    queryKey: ["profile-name", boletoConfirmadoPor],
+    queryFn: async () => {
+      if (!boletoConfirmadoPor) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", boletoConfirmadoPor)
+        .maybeSingle();
+      return data?.display_name ?? null;
+    },
+    enabled: !!boletoConfirmadoPor,
+  });
+
+  const handleToggleBoletoDda = (checked: boolean) => {
+    if (!canEditFinanceiro) return;
+    setBoletoDda(checked);
+    if (checked) {
+      setBoletoConfirmadoPor(user?.id ?? null);
+      setBoletoConfirmadoEm(new Date().toISOString());
+    } else {
+      setBoletoConfirmadoPor(null);
+      setBoletoConfirmadoEm(null);
+    }
+  };
     if (!movimentacao) return null;
     const envioAlterado =
       !!dataEnvioNota && dataEnvioNota !== (movimentacao.data_envio_nota || "");
