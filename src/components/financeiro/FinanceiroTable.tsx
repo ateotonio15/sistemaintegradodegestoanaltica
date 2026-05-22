@@ -253,6 +253,7 @@ export function FinanceiroTable({
                       resultados={analiseResultados[rowKey] ?? analiseResultados[row.id] ?? null}
                       comparacoes={analiseComparacoes?.[rowKey] ?? analiseComparacoes?.[row.id] ?? null}
                       onReanalisar={onReanalisar ? () => onReanalisar(row) : undefined}
+                      onGerarHistorico={onGerarHistorico ? () => onGerarHistorico(row) : undefined}
                     />
                   )}
                 </Fragment>
