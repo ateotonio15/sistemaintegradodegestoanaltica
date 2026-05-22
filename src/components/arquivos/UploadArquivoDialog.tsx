@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, X, FileUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { CATEGORIAS_ARQUIVO, formatBytes, sha256Hex, validarArquivo } from "@/lib/arquivos-utils";
+import { formatBytes, sha256Hex, validarArquivo } from "@/lib/arquivos-utils";
 
 const BUCKET = "arquivos-financeiro";
 
