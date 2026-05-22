@@ -176,7 +176,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
                   <Textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Comentário para o cadastro…" rows={2} />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button onClick={() => aprovar.mutate()} disabled={aprovar.isPending} className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700">
+                  <Button onClick={() => setAtribuirOpen(true)} disabled={aprovar.isPending} className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700">
                     <CheckCircle2 className="h-4 w-4" /> Aprovar e enviar ao Cadastro
                   </Button>
                   <Button onClick={() => setMode("correcao")} variant="outline" className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-500/10">
