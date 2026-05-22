@@ -50,7 +50,7 @@ export default function Dashboard() {
   const [editingEmpresa, setEditingEmpresa] = useState<Tables<"empresas"> | null>(null);
   const [empresaEditForm, setEmpresaEditForm] = useState<any>({});
   const queryClient = useQueryClient();
-  const { user, isAdmin, isExecutivo, role, isViewOnly, isDiretora } = useAuth();
+  const { user, isAdmin, isExecutivo, role, isViewOnly, isDiretora, isVendas } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const canEditDates = !isViewOnly && (isAdmin || role === "comum");
