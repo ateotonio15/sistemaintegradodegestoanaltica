@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ImplantacaoTimeline } from "./ImplantacaoTimeline";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
 import { formatDateBR } from "@/lib/date-utils";
+import { formatCentavosBRL } from "@/lib/reajuste-utils";
+
 
 interface Props {
   implantacaoId: string;
