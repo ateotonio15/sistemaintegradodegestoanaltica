@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Upload, FileText, Sparkles, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle,
   Loader2, Trash2, Download, Building2, FileSignature, DollarSign, Users,
-  ShieldCheck, XCircle, AlertTriangle,
+  ShieldCheck, XCircle, AlertTriangle, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -74,7 +74,7 @@ function brFromCents(c: number | null | undefined): string {
 
 export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const qc = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isComum, isVendas, isDiretora } = useAuth();
   const [data, setData] = useState<any>(null);
   const [step, setStep] = useState(1);
   const [extracting, setExtracting] = useState(false);
@@ -254,11 +254,22 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   };
   const goBack = () => setStep((s) => Math.max(1, s - 1));
 
-  const handleConcluir = async () => {
-    const ok = await save({ status: "implantado", etapa_atual: 6 });
+  const handleEnviarAnalise = async () => {
+    const ok = await save({ status: "em_analise_diretoria", etapa_atual: 6, motivo_correcao: null });
     if (ok) {
-      toast.success("Implantação concluída!");
+      toast.success("Implantação enviada para análise da Diretoria!");
       onClose();
+    }
+  };
+
+  const handleFinalizarCadastro = async () => {
+    try {
+      const { error } = await supabase.rpc("finalizar_implantacao_cadastro", { p_impl: data.id });
+      if (error) throw error;
+      toast.success("Implantação concluída! Empresa criada automaticamente.");
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao concluir implantação");
     }
   };
 
@@ -376,10 +387,16 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
             <Button onClick={goNext} disabled={!valid[step] || readOnly} className="gap-2">
               Avançar <ArrowRight className="h-4 w-4" />
             </Button>
-          ) : (
-            <Button onClick={handleConcluir} disabled={readOnly} className="gap-2">
+          ) : isComum || isAdmin ? (
+            <Button onClick={handleFinalizarCadastro} disabled={readOnly} className="gap-2">
               <CheckCircle2 className="h-4 w-4" /> Concluir Implantação
             </Button>
+          ) : isVendas ? (
+            <Button onClick={handleEnviarAnalise} disabled={readOnly} className="gap-2">
+              <Send className="h-4 w-4" /> Enviar para Análise
+            </Button>
+          ) : (
+            <div className="text-xs text-muted-foreground italic">Aguardando próxima etapa do fluxo</div>
           )}
         </div>
       </DialogContent>
