@@ -75,7 +75,7 @@ function getMesesOptions(): string[] {
   return out.reverse();
 }
 
-export function UploadArquivoDialog({ open, onOpenChange }: Props) {
+export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defaultCompetencia }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const dropRef = useRef<HTMLDivElement>(null);
@@ -88,7 +88,10 @@ export function UploadArquivoDialog({ open, onOpenChange }: Props) {
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setEmpresaId(defaultEmpresaId ?? "");
+      setCompetencia(defaultCompetencia ?? mesAtual());
+    } else {
       setEmpresaId("");
       setCompetencia(mesAtual());
       setCategoria("Outros");
@@ -96,7 +99,7 @@ export function UploadArquivoDialog({ open, onOpenChange }: Props) {
       setArquivos([]);
       setEnviando(false);
     }
-  }, [open]);
+  }, [open, defaultEmpresaId, defaultCompetencia]);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["arquivos-upload-empresas"],
