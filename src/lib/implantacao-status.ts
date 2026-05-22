@@ -34,7 +34,7 @@ export const STATUS_META: Record<string, { label: string; badge: string; gradien
     gradient: "from-amber-500 to-amber-600",
   },
   em_analise_diretoria: {
-    label: "Em análise (Diretoria)",
+    label: "Contrato disponível para análise",
     badge: "bg-blue-500/10 text-blue-600 border-blue-500/30",
     gradient: "from-blue-500 to-blue-600",
   },

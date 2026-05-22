@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -209,8 +209,26 @@ export function ImplantacoesAndamentoCard() {
     return Array.from(set).sort().reverse();
   }, [implantacoes]);
 
+  // Realtime sync
+  useEffect(() => {
+    const channel = supabase
+      .channel("impl-andamento-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "implantacoes_contratos" },
+        () => queryClient.invalidateQueries({ queryKey: ["implantacoes-andamento"] })
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "implantacao_alertas" },
+        () => queryClient.invalidateQueries({ queryKey: ["implantacao-alertas-count"] })
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   const filtered = useMemo(() => {
-    return implantacoes.filter((r) => {
+    const list = implantacoes.filter((r) => {
       if (!mostrarConcluidos && ["implantado", "rejeitado"].includes(r.status)) return false;
       if (filterStatus !== "all" && r.status !== filterStatus) return false;
       if (filterResponsavel !== "all" && r.aprovado_por_nome !== filterResponsavel) return false;
@@ -233,6 +251,12 @@ export function ImplantacoesAndamentoCard() {
         if (!hit) return false;
       }
       return true;
+    });
+    // Prioriza "Disponível para análise" no topo
+    return [...list].sort((a, b) => {
+      const aP = a.status === "em_analise_diretoria" ? 0 : 1;
+      const bP = b.status === "em_analise_diretoria" ? 0 : 1;
+      return aP - bP;
     });
   }, [implantacoes, mostrarConcluidos, filterStatus, filterResponsavel, filterMes, filterVidas, search]);
 
@@ -352,14 +376,22 @@ export function ImplantacoesAndamentoCard() {
               const vidasAguardando = rel.vidas_aguardando ?? rel.aguardando ?? null;
               const vidasProcessadas = rel.vidas_processadas ?? rel.processadas ?? null;
 
+              const aguardandoAnalise = row.status === "em_analise_diretoria";
               return (
                 <div
                   key={row.id}
                   onClick={() => navigate(`/implantacao?id=${row.id}`)}
-                  className="group relative rounded-xl border bg-card hover:bg-accent/40 hover:border-primary/40 transition-all cursor-pointer p-4 shadow-sm hover:shadow-md"
+                  className={`group relative rounded-xl border bg-card hover:bg-accent/40 hover:border-primary/40 transition-all cursor-pointer p-4 shadow-sm hover:shadow-md ${
+                    aguardandoAnalise
+                      ? "ring-1 ring-blue-500/40 border-blue-500/40 shadow-blue-500/10 shadow-md animate-in fade-in slide-in-from-top-1 duration-300"
+                      : ""
+                  }`}
                 >
                   {atrasado && (
                     <div className="absolute top-0 left-0 h-full w-1 bg-red-500 rounded-l-xl" />
+                  )}
+                  {aguardandoAnalise && !atrasado && (
+                    <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-blue-500 to-blue-600 rounded-l-xl" />
                   )}
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="min-w-0 flex-1">

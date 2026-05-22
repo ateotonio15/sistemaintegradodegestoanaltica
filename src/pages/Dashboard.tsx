@@ -29,6 +29,7 @@ import { formatDateBR } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImplantacoesAndamentoCard } from "@/components/dashboard/ImplantacoesAndamentoCard";
+import { AlertasContratosAnaliseDiretora } from "@/components/dashboard/AlertasContratosAnaliseDiretora";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
 
@@ -48,7 +49,7 @@ export default function Dashboard() {
   const [editingEmpresa, setEditingEmpresa] = useState<Tables<"empresas"> | null>(null);
   const [empresaEditForm, setEmpresaEditForm] = useState<any>({});
   const queryClient = useQueryClient();
-  const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
+  const { user, isAdmin, isExecutivo, role, isViewOnly, isDiretora } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const canEditDates = !isViewOnly && (isAdmin || role === "comum");
@@ -600,6 +601,7 @@ export default function Dashboard() {
   return (
     <>
       <div className="space-y-8">
+        {isDiretora && <AlertasContratosAnaliseDiretora />}
         <AlertaReajustesParaConfirmar />
         {role === "visualizacao" && <AlertaReajustesPendentes />}
 
