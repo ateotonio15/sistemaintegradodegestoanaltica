@@ -95,7 +95,7 @@ function MiniTimeline({ row }: { row: ImplRow }) {
   const steps = [
     { key: "created_at", label: "Criação", date: row.created_at },
     { key: "enviado_diretoria_em", label: "Diretoria", date: row.enviado_diretoria_em },
-    { key: "aprovado_em", label: "Aprovação", date: row.aprovado_em },
+    
     { key: "enviado_cadastro_em", label: "Cadastro", date: row.enviado_cadastro_em },
     { key: "implantado_em", label: "Implantado", date: row.implantado_em },
   ];
