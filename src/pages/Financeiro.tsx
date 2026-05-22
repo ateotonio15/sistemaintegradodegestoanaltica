@@ -82,6 +82,8 @@ export default function Financeiro() {
   const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
   const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
   const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [historicoRow, setHistoricoRow] = useState<FinanceiroRow | null>(null);
+  const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
 
   // Realtime exclusivo da aba Financeiro — refetch incremental por linha,
   // sem reload, sem reset de filtros/estado. Cleanup automático ao sair.
