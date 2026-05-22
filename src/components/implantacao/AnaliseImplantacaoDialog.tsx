@@ -24,6 +24,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
   const [obs, setObs] = useState("");
   const [motivo, setMotivo] = useState("");
   const [mode, setMode] = useState<"view" | "correcao" | "rejeicao">("view");
+  const [atribuirOpen, setAtribuirOpen] = useState(false);
 
   const { data: impl } = useQuery({
     queryKey: ["impl-analise", implantacaoId],
