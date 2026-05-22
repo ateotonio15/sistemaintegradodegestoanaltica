@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -14,7 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Copy, Save, FileText } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Copy, FileText } from "lucide-react";
 import {
   calcularVencimentoPadrao,
   detectarCompetencia,
@@ -23,6 +30,13 @@ import {
 } from "@/lib/historico-utils";
 import type { AnaliseResultado } from "@/lib/excel-analysis-utils";
 import type { FinanceiroRow } from "./FinanceiroTable";
+
+const MOTIVOS_PRORROGACAO = [
+  "Solicitado pela empresa",
+  "Atraso Financeiro",
+  "Atraso Cadastro",
+  "Outros",
+] as const;
 
 type Step = "prorrogacao" | "preview";
 
