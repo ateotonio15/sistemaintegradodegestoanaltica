@@ -66,7 +66,6 @@ import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  CATEGORIAS_ARQUIVO,
   compLabel,
   formatBytes,
   tipoArquivo,
@@ -133,7 +132,7 @@ export default function Arquivos() {
   const [search, setSearch] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState("todas");
   const [competenciaFilter, setCompetenciaFilter] = useState("todas");
-  const [categoriaFilter, setCategoriaFilter] = useState("todas");
+  
   const [tipoFilter, setTipoFilter] = useState("todos");
   const [usuarioFilter, setUsuarioFilter] = useState("todos");
   const [contratoFilter, setContratoFilter] = useState("todos");
@@ -206,7 +205,7 @@ export default function Arquivos() {
       if (empresaFilter !== "todas" && a.empresa_id !== empresaFilter) return false;
       if (contratoFilter !== "todos" && (emp?.codigo_contrato ?? "") !== contratoFilter) return false;
       if (competenciaFilter !== "todas" && a.competencia !== competenciaFilter) return false;
-      if (categoriaFilter !== "todas" && a.categoria !== categoriaFilter) return false;
+      
       if (tipoFilter !== "todos" && tipoArquivo(a.extensao) !== tipoFilter) return false;
       if (usuarioFilter !== "todos" && a.uploaded_by !== usuarioFilter) return false;
       if (!q) return true;
@@ -231,7 +230,7 @@ export default function Arquivos() {
     empresaFilter,
     contratoFilter,
     competenciaFilter,
-    categoriaFilter,
+    
     tipoFilter,
     usuarioFilter,
     empresasMap,
@@ -434,15 +433,6 @@ export default function Arquivos() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
-                <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas categorias</SelectItem>
-                  {CATEGORIAS_ARQUIVO.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Select value={tipoFilter} onValueChange={setTipoFilter}>
                 <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
                 <SelectContent>
@@ -577,7 +567,7 @@ export default function Arquivos() {
                                               <TableRow>
                                                 <TableHead className="w-8"></TableHead>
                                                 <TableHead>Nome</TableHead>
-                                                <TableHead>Categoria</TableHead>
+                                                
                                                 <TableHead>Tipo</TableHead>
                                                 <TableHead>Origem</TableHead>
                                                 <TableHead>Usuário</TableHead>
@@ -602,9 +592,6 @@ export default function Arquivos() {
                                                           {a.observacao}
                                                         </div>
                                                       )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                      <Badge variant="secondary">{a.categoria}</Badge>
                                                     </TableCell>
                                                     <TableCell>{tipoArquivo(a.extensao)}</TableCell>
                                                     <TableCell>

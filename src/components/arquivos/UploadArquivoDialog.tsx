@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, X, FileUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { CATEGORIAS_ARQUIVO, formatBytes, sha256Hex, validarArquivo } from "@/lib/arquivos-utils";
+import { formatBytes, sha256Hex, validarArquivo } from "@/lib/arquivos-utils";
 
 const BUCKET = "arquivos-financeiro";
 
@@ -340,21 +340,6 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
             </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Categoria *</Label>
-            <Select value={categoria} onValueChange={setCategoria}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIAS_ARQUIVO.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
           <div className="space-y-1.5 md:col-span-2">
             <Label>Observação (opcional)</Label>
