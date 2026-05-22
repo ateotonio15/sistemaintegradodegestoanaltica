@@ -21,23 +21,12 @@ export function fmtBR(n: number): string {
   return fmtNum.format(n);
 }
 
-/** Detecta mês/ano a partir do mes_referencia (YYYY-MM) ou nome de arquivo. */
+/** Detecta mês/ano priorizando o nome do arquivo de faturamento. */
 export function detectarCompetencia(
   mesReferencia?: string | null,
   nomeArquivo?: string | null,
 ): { label: string; mes: number; ano: number } | null {
-  // 1) mes_referencia preferido (formato esperado YYYY-MM)
-  if (mesReferencia) {
-    const m = /^(\d{4})-(\d{2})$/.exec(mesReferencia);
-    if (m) {
-      const ano = parseInt(m[1], 10);
-      const mes = parseInt(m[2], 10) - 1;
-      if (mes >= 0 && mes < 12) {
-        return { label: `${MESES_PT[mes]}/${ano}`, mes, ano };
-      }
-    }
-  }
-  // 2) Tenta extrair do nome do arquivo
+  // 1) Nome do arquivo de faturamento (prioridade — é o mês da cobrança/vencimento)
   if (nomeArquivo) {
     const upper = nomeArquivo
       .toUpperCase()
@@ -49,6 +38,17 @@ export function detectarCompetencia(
       const mes = MESES_MAP[r[1]];
       const ano = parseInt(r[2], 10);
       return { label: `${MESES_PT[mes]}/${ano}`, mes, ano };
+    }
+  }
+  // 2) Fallback: mes_referencia (YYYY-MM)
+  if (mesReferencia) {
+    const m = /^(\d{4})-(\d{2})$/.exec(mesReferencia);
+    if (m) {
+      const ano = parseInt(m[1], 10);
+      const mes = parseInt(m[2], 10) - 1;
+      if (mes >= 0 && mes < 12) {
+        return { label: `${MESES_PT[mes]}/${ano}`, mes, ano };
+      }
     }
   }
   return null;
