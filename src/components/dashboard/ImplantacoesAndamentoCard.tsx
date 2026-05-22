@@ -523,6 +523,15 @@ export function ImplantacoesAndamentoCard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {viewId && (
+        <AnaliseImplantacaoDialog
+          implantacaoId={viewId}
+          open={!!viewId}
+          onClose={() => setViewId(null)}
+          readOnly
+        />
+      )}
     </Card>
   );
 }
