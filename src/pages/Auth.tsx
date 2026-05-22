@@ -30,11 +30,13 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data: email, error: lookupError } = await supabase.rpc(
-        "get_email_by_username",
-        { _username: username },
+      const { data: resolved, error: lookupError } = await supabase.functions.invoke(
+        "resolve-username",
+        { body: { username } },
       );
+      const email = resolved?.email as string | undefined;
       if (lookupError || !email) throw new Error("Usuário não encontrado");
+
 
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
