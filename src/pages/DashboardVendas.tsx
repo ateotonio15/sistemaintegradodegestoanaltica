@@ -10,7 +10,7 @@ import { FileSignature, Plus, Send, AlertTriangle, CheckCircle2, Clock, Users, T
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { STATUS_META, STATUS_ORDER } from "@/lib/implantacao-status";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, formatDay } from "@/lib/date-utils";
 
 export default function DashboardVendas() {
   const { user } = useAuth();
@@ -169,7 +169,7 @@ export default function DashboardVendas() {
                             {i.modalidade && <span>· {i.modalidade}</span>}
                             {i.acomodacao && <span>· {i.acomodacao}</span>}
                             {i.data_vigencia && <span>· Vigência {formatDateBR(i.data_vigencia)}</span>}
-                            {i.data_vencimento && <span>· Venc. {formatDateBR(i.data_vencimento)}</span>}
+                            {i.data_vencimento && <span>· Venc. dia {formatDay(i.data_vencimento)}</span>}
                             {i.corretora && <span>· {i.corretora}</span>}
                           </div>
                           <div className="text-[11px] text-muted-foreground mt-0.5">

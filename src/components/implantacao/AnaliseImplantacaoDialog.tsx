@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
 
 
@@ -170,7 +170,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                   <div><p className="text-muted-foreground">Modalidade</p><p className="font-semibold text-sm">{impl.modalidade || "—"}</p></div>
                   <div><p className="text-muted-foreground">Tipo de Contrato</p><p className="font-semibold text-sm">{impl.tipo_contrato || "—"}</p></div>
                   <div><p className="text-muted-foreground">Período Movimentação</p><p className="font-semibold text-sm">{impl.periodo_movimentacao || "—"}</p></div>
-                  <div><p className="text-muted-foreground">Data Vencimento</p><p className="font-semibold text-sm flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDateBR(impl.data_vencimento)}</p></div>
+                  <div><p className="text-muted-foreground">Dia Vencimento</p><p className="font-semibold text-sm flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDay(impl.data_vencimento)}</p></div>
                 </div>
 
               </CardContent>
