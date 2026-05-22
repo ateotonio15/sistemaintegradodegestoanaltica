@@ -136,6 +136,7 @@ export function ImplantacoesAndamentoCard() {
   const isComum = role === "comum";
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [viewId, setViewId] = useState<string | null>(null);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
