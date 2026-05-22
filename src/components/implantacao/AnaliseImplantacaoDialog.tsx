@@ -103,9 +103,21 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
   });
 
   const handleDownload = async (path: string, name: string) => {
-    const { data } = await supabase.storage.from("anexos-implantacao").createSignedUrl(path, 60);
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    const { data, error } = await supabase.storage.from("anexos-implantacao").createSignedUrl(path, 300);
+    if (error || !data?.signedUrl) {
+      toast({ title: "Erro ao abrir anexo", description: error?.message, variant: "destructive" });
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
