@@ -387,10 +387,16 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
             <Button onClick={goNext} disabled={!valid[step] || readOnly} className="gap-2">
               Avançar <ArrowRight className="h-4 w-4" />
             </Button>
-          ) : (
-            <Button onClick={handleConcluir} disabled={readOnly} className="gap-2">
+          ) : isComum || isAdmin ? (
+            <Button onClick={handleFinalizarCadastro} disabled={readOnly} className="gap-2">
               <CheckCircle2 className="h-4 w-4" /> Concluir Implantação
             </Button>
+          ) : isVendas ? (
+            <Button onClick={handleEnviarAnalise} disabled={readOnly} className="gap-2">
+              <Send className="h-4 w-4" /> Enviar para Análise
+            </Button>
+          ) : (
+            <div className="text-xs text-muted-foreground italic">Aguardando próxima etapa do fluxo</div>
           )}
         </div>
       </DialogContent>
