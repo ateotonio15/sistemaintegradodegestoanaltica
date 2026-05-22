@@ -200,8 +200,19 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     enabled: !!boletoConfirmadoPor,
   });
 
+  // Nota emitida = existe anexo PDF OU data_envio_nota preenchida.
+  // Espelha a lógica de calcularStatusFinanceiro em src/lib/financeiro-utils.ts.
+  const notaEmitida =
+    !!dataEnvioNota ||
+    anexos.some((a: any) => {
+      const mime = (a.mime_type || "").toLowerCase();
+      const nome = (a.nome_arquivo || "").toLowerCase();
+      return mime.includes("pdf") || nome.endsWith(".pdf");
+    });
+  const podeAlterarBoletoDda = canEditFinanceiro && notaEmitida;
+
   const handleToggleBoletoDda = (checked: boolean) => {
-    if (!canEditFinanceiro) return;
+    if (!podeAlterarBoletoDda) return;
     setBoletoDda(checked);
     if (checked) {
       setBoletoConfirmadoPor(user?.id ?? null);
@@ -571,7 +582,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                     Boleto DDA · {boletoDda ? "Boleto disponível" : "Boleto pendente"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {canEditFinanceiro
+                    {!notaEmitida
+                      ? "Disponível após emissão da nota fiscal."
+                      : canEditFinanceiro
                       ? "Marque quando o boleto estiver gerado/disponível no banco."
                       : "Somente o Financeiro pode alterar este status."}
                   </p>
@@ -580,7 +593,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               <Switch
                 checked={boletoDda}
                 onCheckedChange={handleToggleBoletoDda}
-                disabled={!canEditFinanceiro}
+                disabled={!podeAlterarBoletoDda}
               />
             </div>
             {boletoDda && boletoConfirmadoEm && (
