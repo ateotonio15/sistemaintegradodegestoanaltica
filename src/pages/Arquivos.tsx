@@ -205,7 +205,7 @@ export default function Arquivos() {
       if (empresaFilter !== "todas" && a.empresa_id !== empresaFilter) return false;
       if (contratoFilter !== "todos" && (emp?.codigo_contrato ?? "") !== contratoFilter) return false;
       if (competenciaFilter !== "todas" && a.competencia !== competenciaFilter) return false;
-      if (categoriaFilter !== "todas" && a.categoria !== categoriaFilter) return false;
+      
       if (tipoFilter !== "todos" && tipoArquivo(a.extensao) !== tipoFilter) return false;
       if (usuarioFilter !== "todos" && a.uploaded_by !== usuarioFilter) return false;
       if (!q) return true;
