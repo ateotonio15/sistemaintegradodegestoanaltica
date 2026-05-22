@@ -32,6 +32,7 @@ interface Props {
   resultados: AnaliseResultado[] | null;
   comparacoes?: ComparacaoQualquer[] | null;
   onReanalisar?: () => void;
+  onGerarHistorico?: () => void;
 }
 
 function ValorComCheck({
