@@ -29,6 +29,7 @@ import { STATUS_META } from "@/lib/implantacao-status";
 import { formatDateBR } from "@/lib/date-utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
 
 type ImplRow = {
   id: string;
