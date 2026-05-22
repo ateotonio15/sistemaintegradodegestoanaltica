@@ -361,10 +361,12 @@ export default function Arquivos() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setUploadOpen(true)} className="gap-2">
-            <Upload className="h-4 w-4" />
-            Enviar arquivos
-          </Button>
+          {canEditFinanceiro && (
+            <Button onClick={() => openUpload()} className="gap-2" size="lg">
+              <Plus className="h-4 w-4" />
+              Adicionar arquivo
+            </Button>
+          )}
         </header>
 
         {/* KPIs */}
