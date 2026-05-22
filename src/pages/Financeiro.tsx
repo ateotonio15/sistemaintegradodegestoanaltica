@@ -1216,6 +1216,7 @@ export default function Financeiro() {
           expandedRowId={expandedRowId}
           onToggleExpand={handleToggleExpand}
           onReanalisar={handleReanalisar}
+          onGerarHistorico={canManageFinanceiro ? handleGerarHistorico : undefined}
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
