@@ -164,14 +164,21 @@ export function ImplantacoesAndamentoCard() {
   const [mostrarConcluidos, setMostrarConcluidos] = useState(false);
 
   const { data: implantacoes = [], isLoading } = useQuery({
-    queryKey: ["implantacoes-andamento"],
+    queryKey: ["implantacoes-andamento", isComum ? user?.id : "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("implantacoes_contratos")
         .select(
-          "id, nome_empresa, codigo_contrato, status, etapa_atual, progresso, total_vidas, vidas_titulares, vidas_dependentes, inicio_atendimento, data_vigencia, data_vencimento, created_at, updated_at, created_by_nome, enviado_diretoria_em, enviado_diretoria_por_nome, aprovado_em, aprovado_por_nome, enviado_cadastro_em, implantado_em, implantado_por_nome, motivo_correcao, relatorio_validacao"
+          "id, nome_empresa, codigo_contrato, status, etapa_atual, progresso, total_vidas, vidas_titulares, vidas_dependentes, inicio_atendimento, data_vigencia, data_vencimento, created_at, updated_at, created_by_nome, enviado_diretoria_em, enviado_diretoria_por_nome, aprovado_em, aprovado_por_nome, enviado_cadastro_em, implantado_em, implantado_por_nome, motivo_correcao, relatorio_validacao, responsavel_cadastro_user_id"
         )
         .order("updated_at", { ascending: false });
+
+      // Cadastro vê apenas: legados sem responsável OU contratos atribuídos a ele
+      if (isComum && !isAdmin && user?.id) {
+        query = query.or(`responsavel_cadastro_user_id.is.null,responsavel_cadastro_user_id.eq.${user.id}`);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as ImplRow[];
     },
