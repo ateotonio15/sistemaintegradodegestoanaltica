@@ -182,8 +182,9 @@ export async function analisarPdfFinanceiro(
       "i",
     );
 
+  // Aceita: Inclusão, Inclusao, Inclusões, Inclusoes, Incluso, Incluído, Incluidos, etc.
   const reInclusao = new RegExp(
-    `inclus(?:ao|oes|ões)?\\s*:?\\s*r?\\$?\\s*(${NUM})`,
+    `inclus(?:ao|oes|ões|o|os|ido|idos|ida|idas)?\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
     "i",
   );
 
@@ -339,7 +340,7 @@ export async function analisarPdfFinanceiroSimplificado(
   let incQtd: number | null = null;
   let incTotal = 0;
   const reInc = new RegExp(
-    `inclus(?:ao|oes|ões)?\\s*[:\\-=]?\\s*(?:(\\d+)\\s*[xX×]\\s*)?(${NUM})`,
+    `inclus(?:ao|oes|ões|o|os|ido|idos|ida|idas)?\\s*[:\\-=]?\\s*(?:(\\d+)\\s*[xX×]\\s*)?(${NUM})`,
     "i",
   );
   const mInc = t.match(reInc);
