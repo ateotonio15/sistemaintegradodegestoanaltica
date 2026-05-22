@@ -44,7 +44,7 @@ import {
   Image as ImageIcon,
   Download,
   Eye,
-  Upload,
+  // Upload icon removed: replaced by Plus on Adicionar arquivo button
   Trash2,
   Files,
   HardDrive,
