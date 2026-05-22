@@ -1,77 +1,61 @@
-# Etapa 48 — Modal "Valores e Faixa Etária" na aba Empresas
+# Auto-preenchimento de "Data de Emissão" (Financeiro)
 
-## Objetivo
-Adicionar um botão na coluna **Ações** da tabela de Empresas que abre um modal premium (somente leitura) com valores do contrato, reajuste mais recente e tabela de faixa etária, sem precisar abrir a aba Reajustes.
+## Regra
+A "Data de Emissão" (`dia_emissao`) é calculada automaticamente a partir do período da movimentação:
 
-## Onde aparece o botão
-Coluna **Ações** em `src/pages/Empresas.tsx` (linhas 734–743), antes do botão de editar.
+- Pega o último dia do intervalo do período.
+- Soma +2 dias.
+- Define como `dia_emissao`.
 
-- Ícone: `Wallet` (lucide-react) — representa valores.
-- Tooltip: "Valores e Faixa Etária".
-- Visível para todos os perfis que já enxergam a tabela (Admin, Cadastro, Diretora, Visualização, Administradoras, Vendas, Executivo). Não substitui editar/excluir.
-- Como hoje a coluna Ações só aparece quando `canEdit`, vamos:
-  - Renderizar a coluna **Ações** sempre que houver pelo menos um botão visível (todos os perfis terão acesso ao botão "Valores").
-  - Os botões editar/excluir continuam condicionados a `canEdit` / `canFullEdit`.
+Mapeamento resultante:
 
-## Novo componente
-`src/components/empresas/ValoresFaixaEtariaDialog.tsx`
+| Período | dia_emissao |
+|---|---|
+| 01-05 | 07 |
+| 05-10 | 12 |
+| 10-15 | 17 |
+| 15-20 | 22 |
+| 20-25 | (não alterar — manter como está) |
+| 25-30 | (não alterar — manter como está) |
 
-Props:
+## Regras de preservação
+- Se `dia_emissao` já estiver preenchido, **nunca** sobrescreve.
+- Períodos 20-25 e 25-30 ficam intocados, mesmo se vazios (lógica atual continua valendo).
+- Backfill aplicado uma única vez agora; sem trigger automático para o futuro.
+
+## Implementação
+
+### 1. Backfill no banco (operação única)
+`UPDATE financeiro_movimentacoes` definindo `dia_emissao` apenas onde:
+- `dia_emissao IS NULL`
+- `periodo IN ('01-05','05-10','10-15','15-20')`
+
+Mapeamento via `CASE`: 01-05→7, 05-10→12, 10-15→17, 15-20→22.
+
+### 2. Default no frontend (criação/edição)
+Em `EditarMovimentacaoDialog.tsx`, ao abrir uma movimentação:
+- Se `movimentacao.dia_emissao` está vazio **e** período ∈ {01-05, 05-10, 10-15, 15-20} → pré-seleciona o dia calculado.
+- Caso contrário mantém o comportamento atual.
+
+Isso garante que novas edições/salvamentos resultem em `dia_emissao` populado sem mudar a UX (o usuário ainda pode trocar manualmente antes de salvar).
+
+### 3. Helper utilitário
+Adicionar em `src/lib/financeiro-utils.ts`:
 ```ts
-{ empresa: Empresa | null; open: boolean; onOpenChange: (v: boolean) => void; }
+export function calcularDiaEmissaoPadrao(periodo: string): number | null {
+  const map: Record<string, number> = {
+    "01-05": 7, "05-10": 12, "10-15": 17, "15-20": 22,
+  };
+  return map[periodo] ?? null;
+}
 ```
+Usado tanto pelo dialog quanto por qualquer fluxo futuro.
 
-Comportamento:
-- Busca via React Query (chave `["empresa-valores", empresa.id]`) o último reajuste da empresa:
-  - `reajustes_anuais` ordenado por `created_at desc`, `limit 1`, filtrando por `empresa_id`.
-  - Se houver reajuste → busca `reajuste_faixas` (`reajuste_id = reajuste.id`).
-- Exibe skeletons durante o carregamento.
-- Estado vazio elegante: "Esta empresa ainda não possui reajuste registrado" + valores básicos do contrato (se disponíveis).
+## Exibição
+Já existe em `FinanceiroTable.tsx`: `Emissão dia XX`. Sem mudanças visuais.
 
-## Estrutura do modal
-`Dialog` com `DialogContent` de largura grande (`sm:max-w-4xl`), `max-h-[90vh]`, `overflow-y-auto`, `rounded-xl`, animação `animate-fade-in`. Conteúdo organizado em `Tabs`:
-
-1. **Resumo do Contrato**
-   - Cards com: Empresa, Código do Contrato, Tipo Contrato, Modalidade (Enfermaria/Apartamento/Ambos detectado pelas flags do reajuste), Data de Vigência (`reajuste.data_vigencia` se existir), Mês do Reajuste (extraído da vigência ou `reajuste.mes_referencia`).
-
-2. **Valores Enfermaria** (oculta se `possui_enfermaria === false`)
-   - Card com Valor Atual, %, Valor Reajustado, Retroativo, Valor Final.
-   - Valores em `formatCentavosBRL` (utilitário já existente em `src/lib/reajuste-utils.ts`).
-
-3. **Valores Apartamento** (oculta se `possui_apartamento === false`)
-   - Mesmo layout, totalmente separado da Enfermaria. **Não somar** os dois.
-
-4. **Faixa Etária**
-   - Tabela premium com colunas: Faixa | Enfermaria (Valor Final) | Apartamento (Valor Final).
-   - Linhas geradas agrupando `reajuste_faixas` por `(idade_inicial, idade_final)` e pivotando por `modalidade`.
-   - Colunas Enfermaria/Apartamento ocultas dinamicamente se a modalidade não existir.
-   - Hover suave, cabeçalho destacado, bordas elegantes.
-   - Se não houver faixas: estado vazio "Reajuste por valor único — sem faixa etária".
-
-## Permissões e segurança
-- Componente é **somente leitura**: nenhum botão de salvar, editar, excluir.
-- RLS já permite SELECT em `reajustes_anuais` e `reajuste_faixas` para todos os perfis autenticados.
-- Não altera nenhuma regra ou mutation existente.
-
-## Detalhes técnicos
-- Reaproveitar:
-  - `formatCentavosBRL` de `src/lib/reajuste-utils.ts`.
-  - Tipos do Supabase (`Database["public"]["Tables"]["reajustes_anuais"]`).
-- Tabs via `@/components/ui/tabs` (shadcn já instalado).
-- Tabela via `@/components/ui/table`.
-- Skeleton via `@/components/ui/skeleton`.
-- Animação: `animate-fade-in` e `animate-scale-in` nas trocas de aba.
-- Tema: usar tokens semânticos (`bg-accent/30`, `text-primary`, `border-border`) — sem cores hard-coded.
-
-## Arquivos alterados/criados
-- **Criar**: `src/components/empresas/ValoresFaixaEtariaDialog.tsx`
-- **Editar**: `src/pages/Empresas.tsx`
-  - Importar `Wallet` e o novo dialog.
-  - Estado `valoresEmpresa: Empresa | null`.
-  - Renderizar coluna Ações para todos os perfis (botão Valores sempre presente).
-  - Ajustar `colSpan` nas linhas de "Carregando…" / "Nenhuma empresa".
-
-## Fora do escopo
-- Não altera a aba Reajustes.
-- Não cria endpoints/migrations.
-- Não muda fluxo de cadastro/edição.
+## Resumo técnico
+- 1 migração de dados (UPDATE com WHERE restrito).
+- 1 helper novo em `financeiro-utils.ts`.
+- 1 edit em `EditarMovimentacaoDialog.tsx` (default ao abrir).
+- Sem mudanças de schema, sem trigger, sem alteração nos períodos 20-25 e 25-30.
