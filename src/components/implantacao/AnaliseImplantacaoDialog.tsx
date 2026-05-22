@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
 import { formatDateBR } from "@/lib/date-utils";
@@ -103,6 +103,21 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
     onError: (e: any) => toast({ title: e?.message || "Erro ao rejeitar", variant: "destructive" }),
   });
 
+  const liberar = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("finalizar_implantacao_cadastro" as any, { p_impl: implantacaoId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["implantacoes"] });
+      qc.invalidateQueries({ queryKey: ["implantacoes-andamento"] });
+      qc.invalidateQueries({ queryKey: ["impl-alertas"] });
+      toast({ title: "Contrato liberado! Empresa criada automaticamente." });
+      onClose();
+    },
+    onError: (e: any) => toast({ title: e?.message || "Erro ao liberar contrato", variant: "destructive" }),
+  });
+
   const handleDownload = async (path: string, name: string) => {
     const { data, error } = await supabase.storage.from("anexos-implantacao").createSignedUrl(path, 300);
     if (error || !data?.signedUrl) {
@@ -194,7 +209,19 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             </div>
 
 
-            {/* Ações */}
+            {/* Ação Cadastro: Liberar contrato */}
+            {readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
+              <div className="pt-2 border-t">
+                <Button
+                  onClick={() => liberar.mutate()}
+                  disabled={liberar.isPending}
+                  className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Rocket className="h-4 w-4" /> {liberar.isPending ? "Liberando…" : "Liberar contrato"}
+                </Button>
+              </div>
+            )}
+
             {!readOnly && mode === "view" && (
               <div className="space-y-3 pt-2 border-t">
                 <div>
