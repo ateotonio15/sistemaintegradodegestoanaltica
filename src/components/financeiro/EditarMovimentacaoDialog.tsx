@@ -30,6 +30,7 @@ import {
   buildStoragePath,
   formatBytes,
   TIPOS_FINANCEIRO,
+  calcularDiaEmissaoPadrao,
 } from "@/lib/financeiro-utils";
 import { todayLocalISO } from "@/lib/date-utils";
 import {
@@ -113,7 +114,12 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       } else {
         setDiaVencimento("__none__");
       }
-      setDiaEmissao(movimentacao.dia_emissao ? String(movimentacao.dia_emissao) : "__none__");
+      if (movimentacao.dia_emissao) {
+        setDiaEmissao(String(movimentacao.dia_emissao));
+      } else {
+        const padrao = calcularDiaEmissaoPadrao(movimentacao.periodo);
+        setDiaEmissao(padrao ? String(padrao) : "__none__");
+      }
       setTipoAnalise((movimentacao.tipo_analise as string) || "normal");
       setDentroPrazo(movimentacao.dentro_prazo);
       setPossuiProrrogacao(!!movimentacao.possui_prorrogacao);

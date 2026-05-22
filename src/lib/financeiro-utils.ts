@@ -211,3 +211,19 @@ export function getMesesOptions(): string[] {
   }
   return meses;
 }
+
+/**
+ * Calcula o dia de emissão padrão a partir do período (último dia + 2).
+ * Aplica somente aos períodos 01-05, 05-10, 10-15 e 15-20.
+ * Para 20-25 e 25-30 retorna null (mantém comportamento manual atual).
+ */
+export function calcularDiaEmissaoPadrao(periodo: string | null | undefined): number | null {
+  if (!periodo) return null;
+  const map: Record<string, number> = {
+    "01-05": 7,
+    "05-10": 12,
+    "10-15": 17,
+    "15-20": 22,
+  };
+  return map[periodo] ?? null;
+}
