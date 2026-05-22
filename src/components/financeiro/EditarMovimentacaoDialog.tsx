@@ -132,6 +132,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       setDataProrrogacao(movimentacao.data_prorrogacao || "");
       setMotivoProrrogacao(movimentacao.motivo_prorrogacao || "");
       setObservacaoProrrogacao(movimentacao.observacao_prorrogacao || "");
+      setBoletoDda(!!movimentacao.boleto_dda);
+      setBoletoConfirmadoPor(movimentacao.boleto_confirmado_por ?? null);
+      setBoletoConfirmadoEm(movimentacao.boleto_confirmado_em ?? null);
     }
   }, [movimentacao]);
 
