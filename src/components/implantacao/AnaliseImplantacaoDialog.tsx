@@ -103,6 +103,21 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
     onError: (e: any) => toast({ title: e?.message || "Erro ao rejeitar", variant: "destructive" }),
   });
 
+  const liberar = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("finalizar_implantacao_cadastro" as any, { p_impl: implantacaoId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["implantacoes"] });
+      qc.invalidateQueries({ queryKey: ["implantacoes-andamento"] });
+      qc.invalidateQueries({ queryKey: ["impl-alertas"] });
+      toast({ title: "Contrato liberado! Empresa criada automaticamente." });
+      onClose();
+    },
+    onError: (e: any) => toast({ title: e?.message || "Erro ao liberar contrato", variant: "destructive" }),
+  });
+
   const handleDownload = async (path: string, name: string) => {
     const { data, error } = await supabase.storage.from("anexos-implantacao").createSignedUrl(path, 300);
     if (error || !data?.signedUrl) {
