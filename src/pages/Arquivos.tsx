@@ -499,22 +499,39 @@ export default function Arquivos() {
                     value={emp.empresaId}
                     className="border rounded-lg px-3 bg-card"
                   >
-                    <AccordionTrigger className="hover:no-underline py-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Building2 className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="text-left min-w-0">
-                          <div className="font-semibold truncate">{emp.nome}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {emp.contratos.size} contrato{emp.contratos.size === 1 ? "" : "s"} • {emp.total} arquivo{emp.total === 1 ? "" : "s"}
-                            {emp.ultimoUpload > 0 && (
-                              <> • Último: {formatDateTime(new Date(emp.ultimoUpload).toISOString())}</>
-                            )}
+                    <div className="flex items-center gap-2 py-1">
+                      <AccordionTrigger className="hover:no-underline py-3 flex-1">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Building2 className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="text-left min-w-0">
+                            <div className="font-semibold truncate">{emp.nome}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {emp.contratos.size} contrato{emp.contratos.size === 1 ? "" : "s"} • {emp.total} arquivo{emp.total === 1 ? "" : "s"}
+                              {emp.ultimoUpload > 0 && (
+                                <> • Último: {formatDateTime(new Date(emp.ultimoUpload).toISOString())}</>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </AccordionTrigger>
+                      </AccordionTrigger>
+                      {canEditFinanceiro && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1 shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openUpload(emp.empresaId);
+                          }}
+                          title="Adicionar arquivo neste contrato"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Adicionar
+                        </Button>
+                      )}
+                    </div>
                     <AccordionContent className="pb-3">
                       <Accordion type="multiple" className="space-y-2 pl-2">
                         {Array.from(emp.contratos.values())
