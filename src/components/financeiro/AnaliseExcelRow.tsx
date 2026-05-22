@@ -71,22 +71,39 @@ function ValorComCheck({
   );
 }
 
-export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar }: Props) {
+export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico }: Props) {
+  const temResultados = !!resultados && resultados.length > 0;
   return (
     <TableRow className="bg-muted/30 border-l-2 border-l-primary hover:bg-muted/30">
       <TableCell colSpan={colSpan} className="p-0">
         <div className="px-6 py-4 relative">
-          {onReanalisar && !isLoading && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onReanalisar}
-              className="absolute top-3 right-4 h-7 gap-1.5 text-xs"
-              title="Forçar nova análise dos anexos (ignora cache)"
-            >
-              <RefreshCw className="h-3 w-3" />
-              Reanalisar
-            </Button>
+          {!isLoading && (onReanalisar || (onGerarHistorico && temResultados)) && (
+            <div className="absolute top-3 right-4 flex gap-2">
+              {onGerarHistorico && temResultados && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGerarHistorico}
+                  className="h-7 gap-1.5 text-xs"
+                  title="Gerar histórico financeiro a partir da análise"
+                >
+                  <FileText className="h-3 w-3" />
+                  Gerar Histórico
+                </Button>
+              )}
+              {onReanalisar && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onReanalisar}
+                  className="h-7 gap-1.5 text-xs"
+                  title="Forçar nova análise dos anexos (ignora cache)"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Reanalisar
+                </Button>
+              )}
+            </div>
           )}
           {isLoading ? (
             <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
