@@ -376,14 +376,22 @@ export function ImplantacoesAndamentoCard() {
               const vidasAguardando = rel.vidas_aguardando ?? rel.aguardando ?? null;
               const vidasProcessadas = rel.vidas_processadas ?? rel.processadas ?? null;
 
+              const aguardandoAnalise = row.status === "em_analise_diretoria";
               return (
                 <div
                   key={row.id}
                   onClick={() => navigate(`/implantacao?id=${row.id}`)}
-                  className="group relative rounded-xl border bg-card hover:bg-accent/40 hover:border-primary/40 transition-all cursor-pointer p-4 shadow-sm hover:shadow-md"
+                  className={`group relative rounded-xl border bg-card hover:bg-accent/40 hover:border-primary/40 transition-all cursor-pointer p-4 shadow-sm hover:shadow-md ${
+                    aguardandoAnalise
+                      ? "ring-1 ring-blue-500/40 border-blue-500/40 shadow-blue-500/10 shadow-md animate-in fade-in slide-in-from-top-1 duration-300"
+                      : ""
+                  }`}
                 >
                   {atrasado && (
                     <div className="absolute top-0 left-0 h-full w-1 bg-red-500 rounded-l-xl" />
+                  )}
+                  {aguardandoAnalise && !atrasado && (
+                    <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-blue-500 to-blue-600 rounded-l-xl" />
                   )}
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="min-w-0 flex-1">
