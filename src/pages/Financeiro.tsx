@@ -1253,6 +1253,16 @@ export default function Financeiro() {
           empresasMap={empresasMap as any}
           canManage={!!canManageFinanceiro}
         />
+
+        {canManageFinanceiro && (
+          <GerarHistoricoDialog
+            open={historicoDialogOpen}
+            onOpenChange={setHistoricoDialogOpen}
+            row={historicoRow}
+            resultados={historicoRow ? (analiseResultados[historicoRow.rowKey ?? historicoRow.id] ?? analiseResultados[historicoRow.id] ?? null) : null}
+            anexosNomes={historicoRow ? ((anexosMap[historicoRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
+          />
+        )}
       </div>
     </>
   );
