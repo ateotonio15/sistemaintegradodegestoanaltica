@@ -24,7 +24,6 @@ export default function DashboardVendas() {
       const { data, error } = await supabase
         .from("implantacoes_contratos" as any)
         .select("*")
-        .eq("created_by", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
@@ -48,11 +47,21 @@ export default function DashboardVendas() {
     enabled: !!user?.id,
   });
 
+  const emAndamento = useMemo(
+    () => items.filter((i) => i.status !== "implantado" && i.status !== "rejeitado"),
+    [items]
+  );
+
   const filtered = useMemo(() => {
-    if (!search) return items;
+    if (!search) return emAndamento;
     const s = search.toLowerCase();
-    return items.filter((i) => (i.nome_empresa || "").toLowerCase().includes(s) || (i.cnpj || "").toLowerCase().includes(s));
-  }, [items, search]);
+    return emAndamento.filter((i) =>
+      (i.nome_empresa || "").toLowerCase().includes(s) ||
+      (i.cnpj || "").toLowerCase().includes(s) ||
+      (i.codigo_contrato || "").toLowerCase().includes(s)
+    );
+  }, [emAndamento, search]);
+
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -147,16 +156,26 @@ export default function DashboardVendas() {
                           <FileSignature className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-semibold truncate">{i.nome_empresa || "Sem nome"}</p>
                             <Badge variant="outline" className={meta.badge}>{meta.label}</Badge>
+                            {i.codigo_contrato && (
+                              <Badge variant="secondary" className="text-[10px]">#{i.codigo_contrato}</Badge>
+                            )}
                           </div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-3 mt-0.5">
+                          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                            {i.cnpj && <span>CNPJ: {i.cnpj}</span>}
                             <span>{i.total_vidas || 0} vidas</span>
-                            <span>·</span>
-                            <span>Criado em {formatDateBR(i.created_at)}</span>
+                            {i.modalidade && <span>· {i.modalidade}</span>}
+                            {i.acomodacao && <span>· {i.acomodacao}</span>}
+                            {i.data_vigencia && <span>· Vigência {formatDateBR(i.data_vigencia)}</span>}
+                            {i.data_vencimento && <span>· Venc. {formatDateBR(i.data_vencimento)}</span>}
+                            {i.corretora && <span>· {i.corretora}</span>}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            Criado por {i.created_by_nome || "—"} em {formatDateBR(i.created_at)}
                             {i.motivo_correcao && (
-                              <span className="text-amber-600 truncate">· {i.motivo_correcao}</span>
+                              <span className="text-amber-600"> · Correção: {i.motivo_correcao}</span>
                             )}
                           </div>
                           <Progress value={i.progresso || 0} className="h-1.5 mt-2" />
@@ -170,6 +189,7 @@ export default function DashboardVendas() {
             )}
           </CardContent>
         </Card>
+
       </div>
 
       {openId && (
