@@ -658,7 +658,11 @@ export default function Arquivos() {
         </Card>
       </div>
 
-      <UploadArquivoDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+      <UploadArquivoDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        defaultEmpresaId={uploadDefaults.empresaId}
+      />
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
         <AlertDialogContent>
