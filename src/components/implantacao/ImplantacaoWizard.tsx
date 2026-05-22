@@ -254,11 +254,22 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   };
   const goBack = () => setStep((s) => Math.max(1, s - 1));
 
-  const handleConcluir = async () => {
-    const ok = await save({ status: "implantado", etapa_atual: 6 });
+  const handleEnviarAnalise = async () => {
+    const ok = await save({ status: "em_analise_diretoria", etapa_atual: 6, motivo_correcao: null });
     if (ok) {
-      toast.success("Implantação concluída!");
+      toast.success("Implantação enviada para análise da Diretoria!");
       onClose();
+    }
+  };
+
+  const handleFinalizarCadastro = async () => {
+    try {
+      const { error } = await supabase.rpc("finalizar_implantacao_cadastro", { p_impl: data.id });
+      if (error) throw error;
+      toast.success("Implantação concluída! Empresa criada automaticamente.");
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao concluir implantação");
     }
   };
 
