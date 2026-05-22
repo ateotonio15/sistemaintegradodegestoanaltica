@@ -127,7 +127,9 @@ function formatDateTime(iso: string): string {
 
 export default function Arquivos() {
   const queryClient = useQueryClient();
+  const { canEditFinanceiro } = useAuth();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadDefaults, setUploadDefaults] = useState<{ empresaId?: string }>({});
   const [search, setSearch] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState("todas");
   const [competenciaFilter, setCompetenciaFilter] = useState("todas");
@@ -137,6 +139,11 @@ export default function Arquivos() {
   const [contratoFilter, setContratoFilter] = useState("todos");
   const [confirmDelete, setConfirmDelete] = useState<ArquivoRow | null>(null);
   const [previewArquivo, setPreviewArquivo] = useState<ArquivoRow | null>(null);
+
+  function openUpload(empresaId?: string) {
+    setUploadDefaults({ empresaId });
+    setUploadOpen(true);
+  }
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["arquivos-empresas-list"],
