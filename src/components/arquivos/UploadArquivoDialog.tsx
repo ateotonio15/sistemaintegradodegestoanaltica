@@ -55,14 +55,22 @@ function mesAtual(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// Lista competências de 01/2026 até o mês atual (mais recente primeiro).
+// Não permite competências futuras. Conforme o tempo avança, novos meses
+// são adicionados automaticamente.
 function getMesesOptions(): string[] {
-  const now = new Date();
   const out: string[] = [];
-  for (let i = -2; i <= 12; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  const now = new Date();
+  const endY = now.getFullYear();
+  const endM = now.getMonth() + 1; // 1..12
+  let y = 2026;
+  let m = 1;
+  while (y < endY || (y === endY && m <= endM)) {
+    out.push(`${y}-${String(m).padStart(2, "0")}`);
+    m += 1;
+    if (m > 12) { m = 1; y += 1; }
   }
-  return out;
+  return out.reverse();
 }
 
 export function UploadArquivoDialog({ open, onOpenChange }: Props) {
