@@ -568,7 +568,7 @@ export default function Arquivos() {
                                               <TableRow>
                                                 <TableHead className="w-8"></TableHead>
                                                 <TableHead>Nome</TableHead>
-                                                <TableHead>Categoria</TableHead>
+                                                
                                                 <TableHead>Tipo</TableHead>
                                                 <TableHead>Origem</TableHead>
                                                 <TableHead>Usuário</TableHead>
