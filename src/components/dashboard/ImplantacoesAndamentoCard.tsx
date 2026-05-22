@@ -55,6 +55,7 @@ type ImplRow = {
   implantado_por_nome: string | null;
   motivo_correcao: string | null;
   relatorio_validacao: any;
+  responsavel_cadastro_user_id?: string | null;
 };
 
 function progressColor(pct: number, atrasado: boolean) {
