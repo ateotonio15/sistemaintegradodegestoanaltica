@@ -31,6 +31,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   rowKey?: string;
   /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
   pagador_id?: string | null;
+  boleto_dda?: boolean | null;
 };
 
 export interface PagadorCadastrado {
