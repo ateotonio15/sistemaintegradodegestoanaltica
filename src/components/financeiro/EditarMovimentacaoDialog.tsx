@@ -30,6 +30,7 @@ import {
   buildStoragePath,
   formatBytes,
   TIPOS_FINANCEIRO,
+  calcularDiaEmissaoPadrao,
 } from "@/lib/financeiro-utils";
 import { todayLocalISO } from "@/lib/date-utils";
 import {
