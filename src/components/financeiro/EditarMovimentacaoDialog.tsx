@@ -582,7 +582,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                     Boleto DDA · {boletoDda ? "Boleto disponível" : "Boleto pendente"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {canEditFinanceiro
+                    {!notaEmitida
+                      ? "Disponível após emissão da nota fiscal."
+                      : canEditFinanceiro
                       ? "Marque quando o boleto estiver gerado/disponível no banco."
                       : "Somente o Financeiro pode alterar este status."}
                   </p>
@@ -591,7 +593,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               <Switch
                 checked={boletoDda}
                 onCheckedChange={handleToggleBoletoDda}
-                disabled={!canEditFinanceiro}
+                disabled={!podeAlterarBoletoDda}
               />
             </div>
             {boletoDda && boletoConfirmadoEm && (
