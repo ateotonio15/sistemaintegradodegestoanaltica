@@ -129,8 +129,9 @@ function MiniTimeline({ row }: { row: ImplRow }) {
 export function ImplantacoesAndamentoCard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin, isVendas } = useAuth();
+  const { isAdmin, isVendas, role, user } = useAuth();
   const canDelete = isAdmin || isVendas;
+  const isComum = role === "comum";
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
