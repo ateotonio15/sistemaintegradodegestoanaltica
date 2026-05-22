@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
 
 
