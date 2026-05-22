@@ -58,6 +58,9 @@ type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & {
   data_prorrogacao?: string | null;
   motivo_prorrogacao?: string | null;
   observacao_prorrogacao?: string | null;
+  boleto_dda?: boolean | null;
+  boleto_confirmado_por?: string | null;
+  boleto_confirmado_em?: string | null;
 };
 
 const MOTIVOS_PRORROGACAO = [
