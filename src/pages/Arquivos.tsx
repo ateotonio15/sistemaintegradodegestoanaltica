@@ -484,9 +484,12 @@ export default function Arquivos() {
               <div className="py-16 text-center text-muted-foreground space-y-2">
                 <FolderArchive className="h-10 w-10 mx-auto opacity-50" />
                 <p>Nenhum arquivo encontrado.</p>
-                <Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}>
-                  Enviar primeiro arquivo
-                </Button>
+                {canEditFinanceiro && (
+                  <Button variant="outline" size="sm" onClick={() => openUpload()}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Adicionar primeiro arquivo
+                  </Button>
+                )}
               </div>
             ) : (
               <Accordion type="multiple" className="space-y-3">
