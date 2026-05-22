@@ -250,22 +250,10 @@ export function GerarHistoricoDialog({
               rows={16}
               className="font-mono text-xs"
             />
-            <DialogFooter className="gap-2 sm:gap-2">
-              <Button variant="outline" onClick={handleCopiar} className="gap-1">
+            <DialogFooter>
+              <Button onClick={handleCopiar} className="gap-1">
                 <Copy className="h-4 w-4" />
                 Copiar histórico
-              </Button>
-              <Button
-                onClick={() => salvarMutation.mutate()}
-                disabled={salvarMutation.isPending || !texto.trim()}
-                className="gap-1"
-              >
-                {salvarMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Salvar histórico
               </Button>
             </DialogFooter>
           </div>
