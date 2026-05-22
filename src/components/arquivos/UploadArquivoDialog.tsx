@@ -38,6 +38,8 @@ interface Empresa {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  defaultEmpresaId?: string;
+  defaultCompetencia?: string;
 }
 
 type FileStatus = "pendente" | "enviando" | "ok" | "duplicado" | "erro";
