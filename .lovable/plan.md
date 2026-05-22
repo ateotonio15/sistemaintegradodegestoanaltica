@@ -1,61 +1,50 @@
-# Auto-preenchimento de "Data de Emissão" (Financeiro)
+# Restringir ícone "DDA" ao status "Nota emitida"
 
-## Regra
-A "Data de Emissão" (`dia_emissao`) é calculada automaticamente a partir do período da movimentação:
+## Objetivo
+O ícone/badge "DDA" ao lado do nome da empresa na aba **Financeiro** só deve aparecer (e ser editável) após a movimentação atingir o status **"Nota emitida"** (ou superior — "Enviada", que já pressupõe nota emitida). Antes disso fica oculto. Validação também no backend.
 
-- Pega o último dia do intervalo do período.
-- Soma +2 dias.
-- Define como `dia_emissao`.
+## Como o status é calculado hoje
+Em `src/lib/financeiro-utils.ts`, `calcularStatusFinanceiro()` retorna `"Nota emitida"` quando existe **anexo PDF**, e `"Enviada"` quando `data_envio_nota` está preenchida. Ambos significam que a nota já foi emitida — então o DDA fica liberado nesses dois casos. Para os demais (`Pendente`, `Aguardando nota`, `Faturado`, `Fora do prazo`) o ícone fica oculto.
 
-Mapeamento resultante:
+## Mudanças
 
-| Período | dia_emissao |
-|---|---|
-| 01-05 | 07 |
-| 05-10 | 12 |
-| 10-15 | 17 |
-| 15-20 | 22 |
-| 20-25 | (não alterar — manter como está) |
-| 25-30 | (não alterar — manter como está) |
+### 1. `src/components/financeiro/FinanceiroTable.tsx`
+- Envolver o `<Badge>` "DDA" / "DDA OK" em uma condição: renderizar somente se `row.status === "Nota emitida" || row.status === "Enviada"`.
+- Nenhuma outra mudança visual (mantém cores verde/amarelo já existentes).
 
-## Regras de preservação
-- Se `dia_emissao` já estiver preenchido, **nunca** sobrescreve.
-- Períodos 20-25 e 25-30 ficam intocados, mesmo se vazios (lógica atual continua valendo).
-- Backfill aplicado uma única vez agora; sem trigger automático para o futuro.
+### 2. `src/components/financeiro/EditarMovimentacaoDialog.tsx`
+- Calcular um booleano `notaEmitida` a partir do mesmo critério (anexos com PDF **ou** `data_envio_nota` preenchida) — já temos esses dados no diálogo.
+- Desabilitar o `Switch` "Boleto DDA" quando `!notaEmitida` (além da regra de permissão já existente `canEditFinanceiro`).
+- Mostrar mensagem auxiliar abaixo do switch: *"Disponível após emissão da nota fiscal."* quando bloqueado por status.
+- Se a movimentação ainda não tem nota emitida mas `boleto_dda` já estava `true` (caso raro de dados legados), exibir mesmo assim como leitura, mas não permitir alterar.
 
-## Implementação
+### 3. Backend — trigger de validação (migration)
+Criar trigger `BEFORE UPDATE` em `public.financeiro_movimentacoes` que bloqueia mudar `boleto_dda` de `false → true` quando a movimentação ainda **não tem nota emitida**. Critério (espelha o frontend):
 
-### 1. Backfill no banco (operação única)
-`UPDATE financeiro_movimentacoes` definindo `dia_emissao` apenas onde:
-- `dia_emissao IS NULL`
-- `periodo IN ('01-05','05-10','10-15','15-20')`
-
-Mapeamento via `CASE`: 01-05→7, 05-10→12, 10-15→17, 15-20→22.
-
-### 2. Default no frontend (criação/edição)
-Em `EditarMovimentacaoDialog.tsx`, ao abrir uma movimentação:
-- Se `movimentacao.dia_emissao` está vazio **e** período ∈ {01-05, 05-10, 10-15, 15-20} → pré-seleciona o dia calculado.
-- Caso contrário mantém o comportamento atual.
-
-Isso garante que novas edições/salvamentos resultem em `dia_emissao` populado sem mudar a UX (o usuário ainda pode trocar manualmente antes de salvar).
-
-### 3. Helper utilitário
-Adicionar em `src/lib/financeiro-utils.ts`:
-```ts
-export function calcularDiaEmissaoPadrao(periodo: string): number | null {
-  const map: Record<string, number> = {
-    "01-05": 7, "05-10": 12, "10-15": 17, "15-20": 22,
-  };
-  return map[periodo] ?? null;
-}
+```sql
+nota_emitida := (NEW.data_envio_nota IS NOT NULL)
+  OR EXISTS (
+    SELECT 1
+    FROM public.movimentacao_anexos ma
+    WHERE ma.empresa_id = NEW.empresa_id
+      AND ma.mes_referencia = NEW.mes_referencia
+      AND ma.periodo = NEW.periodo
+      AND (lower(coalesce(ma.mime_type,'')) LIKE '%pdf%'
+           OR lower(coalesce(ma.nome_arquivo,'')) LIKE '%.pdf')
+  );
 ```
-Usado tanto pelo dialog quanto por qualquer fluxo futuro.
+Se `NEW.boleto_dda = true` e `OLD.boleto_dda IS DISTINCT FROM true` e `NOT nota_emitida` → `RAISE EXCEPTION 'Boleto DDA só pode ser confirmado após emissão da nota fiscal'`.
 
-## Exibição
-Já existe em `FinanceiroTable.tsx`: `Emissão dia XX`. Sem mudanças visuais.
+Também limpar `boleto_confirmado_por` / `boleto_confirmado_em` quando `boleto_dda` voltar para `false` (consistência — já é feito no frontend, mas garantir no banco).
 
-## Resumo técnico
-- 1 migração de dados (UPDATE com WHERE restrito).
-- 1 helper novo em `financeiro-utils.ts`.
-- 1 edit em `EditarMovimentacaoDialog.tsx` (default ao abrir).
-- Sem mudanças de schema, sem trigger, sem alteração nos períodos 20-25 e 25-30.
+> Observação: nome real da tabela de anexos será confirmado na migração (provavelmente `movimentacao_anexos` conforme padrão do projeto); ajusto no SQL final se necessário.
+
+## Compatibilidade
+- Movimentações antigas com nota já emitida → ícone aparece automaticamente (regra é derivada do status atual, não há flag a preencher).
+- Movimentações antigas sem nota → ícone oculto, conforme pedido.
+- Permissões existentes (`canEditFinanceiro`) continuam valendo; a nova regra é adicional.
+
+## Arquivos
+- `src/components/financeiro/FinanceiroTable.tsx` (condição de render)
+- `src/components/financeiro/EditarMovimentacaoDialog.tsx` (gate do Switch + mensagem)
+- Nova migration: trigger de validação em `financeiro_movimentacoes`
