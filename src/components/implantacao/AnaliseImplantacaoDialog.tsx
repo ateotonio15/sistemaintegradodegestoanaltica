@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImplantacaoTimeline } from "./ImplantacaoTimeline";
+import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
 import { formatDateBR } from "@/lib/date-utils";
 
 interface Props {
@@ -23,6 +24,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
   const [obs, setObs] = useState("");
   const [motivo, setMotivo] = useState("");
   const [mode, setMode] = useState<"view" | "correcao" | "rejeicao">("view");
+  const [atribuirOpen, setAtribuirOpen] = useState(false);
 
   const { data: impl } = useQuery({
     queryKey: ["impl-analise", implantacaoId],
@@ -52,14 +54,20 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
   });
 
   const aprovar = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc("aprovar_implantacao" as any, { p_impl: implantacaoId, p_observacao: obs || null });
+    mutationFn: async (resp: { userId: string; userNome: string }) => {
+      const { error } = await supabase.rpc("aprovar_implantacao" as any, {
+        p_impl: implantacaoId,
+        p_observacao: obs || null,
+        p_responsavel: resp.userId,
+        p_responsavel_nome: resp.userNome,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["implantacoes"] });
       qc.invalidateQueries({ queryKey: ["impl-alertas"] });
-      toast({ title: "Contrato aprovado e enviado ao Cadastro!" });
+      toast({ title: "Contrato aprovado e atribuído ao Cadastro!" });
+      setAtribuirOpen(false);
       onClose();
     },
     onError: (e: any) => toast({ title: e?.message || "Erro ao aprovar", variant: "destructive" }),
@@ -168,7 +176,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
                   <Textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Comentário para o cadastro…" rows={2} />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button onClick={() => aprovar.mutate()} disabled={aprovar.isPending} className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700">
+                  <Button onClick={() => setAtribuirOpen(true)} disabled={aprovar.isPending} className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700">
                     <CheckCircle2 className="h-4 w-4" /> Aprovar e enviar ao Cadastro
                   </Button>
                   <Button onClick={() => setMode("correcao")} variant="outline" className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-500/10">
@@ -205,6 +213,12 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
           </div>
         )}
       </DialogContent>
+      <SelecionarResponsavelCadastroDialog
+        open={atribuirOpen}
+        onClose={() => setAtribuirOpen(false)}
+        onConfirm={(userId, userNome) => aprovar.mutate({ userId, userNome })}
+        loading={aprovar.isPending}
+      />
     </Dialog>
   );
 }

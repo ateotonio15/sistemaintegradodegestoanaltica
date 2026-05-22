@@ -1,50 +1,53 @@
-# Restringir ícone "DDA" ao status "Nota emitida"
+## Estado atual
 
-## Objetivo
-O ícone/badge "DDA" ao lado do nome da empresa na aba **Financeiro** só deve aparecer (e ser editável) após a movimentação atingir o status **"Nota emitida"** (ou superior — "Enviada", que já pressupõe nota emitida). Antes disso fica oculto. Validação também no backend.
+Já existem: wizard Vendas, envio para Diretoria, aprovar/rejeitar/correção com motivo, timeline, logs, alertas realtime para Diretora, RLS por perfil, finalização pelo Cadastro com mudança de status. Faltam três blocos para completar o pedido.
 
-## Como o status é calculado hoje
-Em `src/lib/financeiro-utils.ts`, `calcularStatusFinanceiro()` retorna `"Nota emitida"` quando existe **anexo PDF**, e `"Enviada"` quando `data_envio_nota` está preenchida. Ambos significam que a nota já foi emitida — então o DDA fica liberado nesses dois casos. Para os demais (`Pendente`, `Aguardando nota`, `Faturado`, `Fora do prazo`) o ícone fica oculto.
+## 1. Atribuição direcionada Diretora → Cadastro
 
-## Mudanças
+**Backend (migração)**
+- Adicionar colunas `responsavel_cadastro_user_id uuid` e `responsavel_cadastro_nome text` em `implantacoes_contratos`.
+- Alterar RPC `aprovar_implantacao(p_impl, p_observacao, p_responsavel uuid, p_responsavel_nome text)`: grava o responsável escolhido e cria o alerta com `destinatario_user_id = p_responsavel` (em vez de broadcast por role).
+- Ajustar policy `Cadastro manage impl alertas` para também aceitar `destinatario_user_id = auth.uid()`.
 
-### 1. `src/components/financeiro/FinanceiroTable.tsx`
-- Envolver o `<Badge>` "DDA" / "DDA OK" em uma condição: renderizar somente se `row.status === "Nota emitida" || row.status === "Enviada"`.
-- Nenhuma outra mudança visual (mantém cores verde/amarelo já existentes).
+**Frontend** — `AnaliseImplantacaoDialog.tsx`
+- Botão "Aprovar e enviar ao Cadastro" abre sub-modal premium listando usuários Cadastro com nº de empresas ativas (via `get_comum_users_empresa_count`) e nº de implantações em andamento.
+- Confirmar atribui responsável e aprova.
 
-### 2. `src/components/financeiro/EditarMovimentacaoDialog.tsx`
-- Calcular um booleano `notaEmitida` a partir do mesmo critério (anexos com PDF **ou** `data_envio_nota` preenchida) — já temos esses dados no diálogo.
-- Desabilitar o `Switch` "Boleto DDA" quando `!notaEmitida` (além da regra de permissão já existente `canEditFinanceiro`).
-- Mostrar mensagem auxiliar abaixo do switch: *"Disponível após emissão da nota fiscal."* quando bloqueado por status.
-- Se a movimentação ainda não tem nota emitida mas `boleto_dda` já estava `true` (caso raro de dados legados), exibir mesmo assim como leitura, mas não permitir alterar.
+**ImplantacoesAndamentoCard / Dashboard Cadastro**: filtrar lista de "Aguardando Cadastro" por `responsavel_cadastro_user_id = auth.uid()` (admin vê tudo; legados sem responsável continuam visíveis para todo Cadastro).
 
-### 3. Backend — trigger de validação (migration)
-Criar trigger `BEFORE UPDATE` em `public.financeiro_movimentacoes` que bloqueia mudar `boleto_dda` de `false → true` quando a movimentação ainda **não tem nota emitida**. Critério (espelha o frontend):
+## 2. Criação automática da empresa no "Contrato Implantado"
 
-```sql
-nota_emitida := (NEW.data_envio_nota IS NOT NULL)
-  OR EXISTS (
-    SELECT 1
-    FROM public.movimentacao_anexos ma
-    WHERE ma.empresa_id = NEW.empresa_id
-      AND ma.mes_referencia = NEW.mes_referencia
-      AND ma.periodo = NEW.periodo
-      AND (lower(coalesce(ma.mime_type,'')) LIKE '%pdf%'
-           OR lower(coalesce(ma.nome_arquivo,'')) LIKE '%.pdf')
-  );
-```
-Se `NEW.boleto_dda = true` e `OLD.boleto_dda IS DISTINCT FROM true` e `NOT nota_emitida` → `RAISE EXCEPTION 'Boleto DDA só pode ser confirmado após emissão da nota fiscal'`.
+**Migração** — redefinir `finalizar_implantacao_cadastro(p_impl)`:
 
-Também limpar `boleto_confirmado_por` / `boleto_confirmado_em` quando `boleto_dda` voltar para `false` (consistência — já é feito no frontend, mas garantir no banco).
+1. Se `empresa_id` já existir no contrato, só atualiza status.
+2. Se houver empresa com mesmo `cnpj` (não-nulo), apenas vincula `empresa_id` ao contrato.
+3. Caso contrário, INSERT em `public.empresas` mapeando: `nome ← nome_empresa`, `cnpj`, `codigo_contrato`, `grupo_contrato`, `endereco`, `telefone_empresa ← telefone`, `tipo_contrato`, `periodo_movimentacao`, `dia_movimentacao`, `data_corte`, `tipo_movimentacao` (derivado do periodo), `data_implantacao ← inicio_atendimento`, `vidas ← total_vidas`, `operadora_plano ← modalidade`, `responsavel_contrato ← created_by_nome`, `responsavel_user_id ← responsavel_cadastro_user_id`, `status_empresa = 'Ativa'`, `contrato_faixa_etaria ← (faixas_etarias is not null)`.
+4. Adicionar coluna `empresa_id uuid` em `implantacao_anexos` e atualizar os anexos do contrato com o `empresa_id` recém-criado (arquivos físicos permanecem no bucket `anexos-implantacao`).
+5. Atualiza status do contrato para `implantado`, log e finaliza alertas pendentes.
 
-> Observação: nome real da tabela de anexos será confirmado na migração (provavelmente `movimentacao_anexos` conforme padrão do projeto); ajusto no SQL final se necessário.
+**Frontend**: toast pós-finalização "Empresa cadastrada automaticamente em Empresas".
 
-## Compatibilidade
-- Movimentações antigas com nota já emitida → ícone aparece automaticamente (regra é derivada do status atual, não há flag a preencher).
-- Movimentações antigas sem nota → ícone oculto, conforme pedido.
-- Permissões existentes (`canEditFinanceiro`) continuam valendo; a nova regra é adicional.
+## 3. Card de alertas para Vendas
 
-## Arquivos
-- `src/components/financeiro/FinanceiroTable.tsx` (condição de render)
-- `src/components/financeiro/EditarMovimentacaoDialog.tsx` (gate do Switch + mensagem)
-- Nova migration: trigger de validação em `financeiro_movimentacoes`
+**Novo componente** `src/components/dashboard/AlertasContratosVendas.tsx`
+- Subscribe realtime em `implantacao_alertas` filtrado por `destinatario_role='vendas' AND destinatario_user_id = auth.uid() AND status='Pendente'`.
+- Renderiza cards: nome empresa, tipo (`rejeitado` vermelho / `correcao` âmbar), motivo (`motivo_correcao`), botão "Corrigir e reenviar" → abre `ImplantacaoWizard`.
+- Incluir em `Dashboard.tsx` para `isVendas`.
+
+**ImplantacaoWizard.tsx**: banner topo quando `status in ('necessita_correcao','rejeitado')` mostrando `motivo_correcao`.
+
+## 4. Arquivos a alterar/criar
+
+- Nova migração (colunas + RPCs `aprovar_implantacao` e `finalizar_implantacao_cadastro` + policy).
+- `src/components/implantacao/AnaliseImplantacaoDialog.tsx` (fluxo de atribuição).
+- `src/components/implantacao/SelecionarResponsavelCadastroDialog.tsx` (novo).
+- `src/components/implantacao/ImplantacaoWizard.tsx` (banner motivo).
+- `src/components/dashboard/AlertasContratosVendas.tsx` (novo).
+- `src/pages/Dashboard.tsx` (render condicional para Vendas).
+- `src/components/dashboard/ImplantacoesAndamentoCard.tsx` (filtro por responsável).
+
+## 5. Fora do escopo
+
+- Dashboards de KPI/SLA dedicados (já há card de progresso).
+- Backfill de contratos antigos (compatibilidade por fallback NULL).
+- Reescrita visual do wizard.

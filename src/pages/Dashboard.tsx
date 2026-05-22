@@ -30,6 +30,7 @@ import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentaca
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImplantacoesAndamentoCard } from "@/components/dashboard/ImplantacoesAndamentoCard";
 import { AlertasContratosAnaliseDiretora } from "@/components/dashboard/AlertasContratosAnaliseDiretora";
+import { AlertasContratosVendas } from "@/components/dashboard/AlertasContratosVendas";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
 
@@ -49,7 +50,7 @@ export default function Dashboard() {
   const [editingEmpresa, setEditingEmpresa] = useState<Tables<"empresas"> | null>(null);
   const [empresaEditForm, setEmpresaEditForm] = useState<any>({});
   const queryClient = useQueryClient();
-  const { user, isAdmin, isExecutivo, role, isViewOnly, isDiretora } = useAuth();
+  const { user, isAdmin, isExecutivo, role, isViewOnly, isDiretora, isVendas } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const canEditDates = !isViewOnly && (isAdmin || role === "comum");
@@ -602,6 +603,7 @@ export default function Dashboard() {
     <>
       <div className="space-y-8">
         {isDiretora && <AlertasContratosAnaliseDiretora />}
+        {isVendas && <AlertasContratosVendas />}
         <AlertaReajustesParaConfirmar />
         {role === "visualizacao" && <AlertaReajustesPendentes />}
 

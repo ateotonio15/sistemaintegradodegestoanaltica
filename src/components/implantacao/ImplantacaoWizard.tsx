@@ -281,6 +281,26 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
           </DialogTitle>
         </DialogHeader>
 
+        {(data.status === "necessita_correcao" || data.status === "rejeitado") && data.motivo_correcao && (
+          <div className={cn(
+            "rounded-lg border p-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-1",
+            data.status === "rejeitado"
+              ? "border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200"
+              : "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+          )}>
+            {data.status === "rejeitado"
+              ? <XCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              : <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />}
+            <div className="text-sm">
+              <p className="font-semibold mb-0.5">
+                {data.status === "rejeitado" ? "Contrato rejeitado pela Diretoria" : "Correção solicitada pela Diretoria"}
+              </p>
+              <p className="text-xs opacity-90">{data.motivo_correcao}</p>
+              <p className="text-[11px] opacity-70 mt-1">Ajuste os dados e clique em <strong>Enviar para Análise</strong> novamente.</p>
+            </div>
+          </div>
+        )}
+
         {/* Progress bar */}
         <div className="flex items-center justify-between gap-2 py-2 overflow-x-auto">
           {STEPS.map((s, i) => {

@@ -859,6 +859,7 @@ export type Database = {
       implantacao_anexos: {
         Row: {
           created_at: string
+          empresa_id: string | null
           id: string
           implantacao_id: string
           mime_type: string | null
@@ -870,6 +871,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          empresa_id?: string | null
           id?: string
           implantacao_id: string
           mime_type?: string | null
@@ -881,6 +883,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          empresa_id?: string | null
           id?: string
           implantacao_id?: string
           mime_type?: string | null
@@ -964,6 +967,8 @@ export type Database = {
           periodo_movimentacao: string | null
           progresso: number
           relatorio_validacao: Json | null
+          responsavel_cadastro_nome: string | null
+          responsavel_cadastro_user_id: string | null
           status: Database["public"]["Enums"]["implantacao_status"]
           telefone: string | null
           ticket: string | null
@@ -1017,6 +1022,8 @@ export type Database = {
           periodo_movimentacao?: string | null
           progresso?: number
           relatorio_validacao?: Json | null
+          responsavel_cadastro_nome?: string | null
+          responsavel_cadastro_user_id?: string | null
           status?: Database["public"]["Enums"]["implantacao_status"]
           telefone?: string | null
           ticket?: string | null
@@ -1070,6 +1077,8 @@ export type Database = {
           periodo_movimentacao?: string | null
           progresso?: number
           relatorio_validacao?: Json | null
+          responsavel_cadastro_nome?: string | null
+          responsavel_cadastro_user_id?: string | null
           status?: Database["public"]["Enums"]["implantacao_status"]
           telefone?: string | null
           ticket?: string | null
@@ -1604,10 +1613,17 @@ export type Database = {
         }
         Returns: string
       }
-      aprovar_implantacao: {
-        Args: { p_impl: string; p_observacao?: string }
-        Returns: string
-      }
+      aprovar_implantacao:
+        | { Args: { p_impl: string; p_observacao?: string }; Returns: string }
+        | {
+            Args: {
+              p_impl: string
+              p_observacao?: string
+              p_responsavel?: string
+              p_responsavel_nome?: string
+            }
+            Returns: string
+          }
       enviar_implantacao_diretoria: {
         Args: { p_impl: string }
         Returns: string
