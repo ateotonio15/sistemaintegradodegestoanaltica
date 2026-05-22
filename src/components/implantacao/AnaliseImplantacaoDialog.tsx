@@ -17,9 +17,10 @@ interface Props {
   implantacaoId: string;
   open: boolean;
   onClose: () => void;
+  readOnly?: boolean;
 }
 
-export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props) {
+export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnly = false }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [obs, setObs] = useState("");
@@ -194,7 +195,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
 
 
             {/* Ações */}
-            {mode === "view" && (
+            {!readOnly && mode === "view" && (
               <div className="space-y-3 pt-2 border-t">
                 <div>
                   <label className="text-sm font-medium">Observação (opcional)</label>
@@ -214,7 +215,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
               </div>
             )}
 
-            {mode !== "view" && (
+            {!readOnly && mode !== "view" && (
               <div className="space-y-3 pt-2 border-t">
                 <div>
                   <label className="text-sm font-medium">

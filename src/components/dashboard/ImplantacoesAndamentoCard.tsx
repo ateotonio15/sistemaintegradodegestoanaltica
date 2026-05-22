@@ -29,6 +29,7 @@ import { STATUS_META } from "@/lib/implantacao-status";
 import { formatDateBR } from "@/lib/date-utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
 
 type ImplRow = {
   id: string;
@@ -135,6 +136,7 @@ export function ImplantacoesAndamentoCard() {
   const isComum = role === "comum";
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [viewId, setViewId] = useState<string | null>(null);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -389,7 +391,7 @@ export function ImplantacoesAndamentoCard() {
               return (
                 <div
                   key={row.id}
-                  onClick={() => navigate(`/implantacao?id=${row.id}`)}
+                  onClick={() => isComum ? setViewId(row.id) : navigate(`/implantacao?id=${row.id}`)}
                   className={`group relative rounded-xl border bg-card hover:bg-accent/40 hover:border-primary/40 transition-all cursor-pointer p-4 shadow-sm hover:shadow-md ${
                     aguardandoAnalise
                       ? "ring-1 ring-blue-500/40 border-blue-500/40 shadow-blue-500/10 shadow-md animate-in fade-in slide-in-from-top-1 duration-300"
@@ -521,6 +523,15 @@ export function ImplantacoesAndamentoCard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {viewId && (
+        <AnaliseImplantacaoDialog
+          implantacaoId={viewId}
+          open={!!viewId}
+          onClose={() => setViewId(null)}
+          readOnly
+        />
+      )}
     </Card>
   );
 }
