@@ -189,15 +189,24 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
         const buffer = await item.file.arrayBuffer();
         const hash = await sha256Hex(buffer);
 
-        // Verifica duplicidade ativa por escopo (hash ou mesmo nome no contrato + competência)
-        const { data: dup } = await supabase
+        // Verifica duplicidade ativa: mesmo hash OU mesmo nome no contrato/competência
+        const { data: dupHash } = await supabase
           .from("financeiro_arquivos")
-          .select("id, nome_original, hash_arquivo")
+          .select("id")
           .eq("empresa_id", empresaId)
           .eq("competencia", competencia)
+          .eq("hash_arquivo", hash)
           .eq("status", "ativo")
-          .or(`hash_arquivo.eq.${hash},nome_original.eq.${item.file.name.replace(/,/g, "\\,")}`)
           .maybeSingle();
+        const { data: dupNome } = dupHash ? { data: null } : await supabase
+          .from("financeiro_arquivos")
+          .select("id")
+          .eq("empresa_id", empresaId)
+          .eq("competencia", competencia)
+          .eq("nome_original", item.file.name)
+          .eq("status", "ativo")
+          .maybeSingle();
+        const dup = dupHash ?? dupNome;
 
         if (dup) {
           setArquivos((prev) =>
