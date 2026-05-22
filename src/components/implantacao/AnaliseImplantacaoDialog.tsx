@@ -221,6 +221,8 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                 </Button>
               </div>
             )}
+
+            {!readOnly && mode === "view" && (
               <div className="space-y-3 pt-2 border-t">
                 <div>
                   <label className="text-sm font-medium">Observação (opcional)</label>
