@@ -238,6 +238,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         possuiProrrogacao && motivoProrrogacao === "Outros"
           ? observacaoProrrogacao.trim() || null
           : null,
+      boleto_dda: boletoDda,
+      boleto_confirmado_por: boletoDda ? boletoConfirmadoPor : null,
+      boleto_confirmado_em: boletoDda ? boletoConfirmadoEm : null,
     };
     if (envioAlterado && user?.id) {
       payload.enviado_por_user_id = user.id;
