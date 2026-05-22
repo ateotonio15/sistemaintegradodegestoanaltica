@@ -35,6 +35,7 @@ import { FinanceiroTable, type FinanceiroRow } from "@/components/financeiro/Fin
 import { EditarMovimentacaoDialog } from "@/components/financeiro/EditarMovimentacaoDialog";
 import { CobrancaDialog } from "@/components/financeiro/CobrancaDialog";
 import { ImportPagadoresDialog } from "@/components/financeiro/ImportPagadoresDialog";
+import { GerarHistoricoDialog } from "@/components/financeiro/GerarHistoricoDialog";
 import { ReajusteCobrancaRetroativa } from "@/components/financeiro/ReajusteCobrancaRetroativa";
 import { useFinanceiroRealtime } from "@/hooks/useFinanceiroRealtime";
 
