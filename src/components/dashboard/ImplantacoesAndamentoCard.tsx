@@ -209,8 +209,26 @@ export function ImplantacoesAndamentoCard() {
     return Array.from(set).sort().reverse();
   }, [implantacoes]);
 
+  // Realtime sync
+  useEffect(() => {
+    const channel = supabase
+      .channel("impl-andamento-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "implantacoes_contratos" },
+        () => queryClient.invalidateQueries({ queryKey: ["implantacoes-andamento"] })
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "implantacao_alertas" },
+        () => queryClient.invalidateQueries({ queryKey: ["implantacao-alertas-count"] })
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   const filtered = useMemo(() => {
-    return implantacoes.filter((r) => {
+    const list = implantacoes.filter((r) => {
       if (!mostrarConcluidos && ["implantado", "rejeitado"].includes(r.status)) return false;
       if (filterStatus !== "all" && r.status !== filterStatus) return false;
       if (filterResponsavel !== "all" && r.aprovado_por_nome !== filterResponsavel) return false;
@@ -233,6 +251,12 @@ export function ImplantacoesAndamentoCard() {
         if (!hit) return false;
       }
       return true;
+    });
+    // Prioriza "Disponível para análise" no topo
+    return [...list].sort((a, b) => {
+      const aP = a.status === "em_analise_diretoria" ? 0 : 1;
+      const bP = b.status === "em_analise_diretoria" ? 0 : 1;
+      return aP - bP;
     });
   }, [implantacoes, mostrarConcluidos, filterStatus, filterResponsavel, filterMes, filterVidas, search]);
 
