@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History } from "lucide-react";
+import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -31,6 +31,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   rowKey?: string;
   /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
   pagador_id?: string | null;
+  boleto_dda?: boolean | null;
 };
 
 export interface PagadorCadastrado {
@@ -137,6 +138,19 @@ export function FinanceiroTable({
                             Retroativo
                           </Badge>
                         )}
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] px-1.5 py-0 h-5",
+                            row.boleto_dda
+                              ? "text-success border-success/50"
+                              : "text-warning border-warning/50",
+                          )}
+                          title={row.boleto_dda ? "Boleto disponível no DDA" : "Boleto pendente"}
+                        >
+                          <Receipt className="h-2.5 w-2.5 mr-1" />
+                          {row.boleto_dda ? "DDA OK" : "DDA"}
+                        </Badge>
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground text-center">

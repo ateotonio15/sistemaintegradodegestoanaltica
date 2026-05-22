@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock } from "lucide-react";
+import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -58,6 +58,9 @@ type FinanceiroMovimentacaoExt = FinanceiroMovimentacao & {
   data_prorrogacao?: string | null;
   motivo_prorrogacao?: string | null;
   observacao_prorrogacao?: string | null;
+  boleto_dda?: boolean | null;
+  boleto_confirmado_por?: string | null;
+  boleto_confirmado_em?: string | null;
 };
 
 const MOTIVOS_PRORROGACAO = [
@@ -82,7 +85,7 @@ const TIPOS_ANALISE = [
 
 export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, empresaNome }: Props) {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, canEditFinanceiro } = useAuth();
   const [tipoCobranca, setTipoCobranca] = useState("");
   const [dataEnvioNota, setDataEnvioNota] = useState("");
   const [diaVencimento, setDiaVencimento] = useState<string>("__none__");
@@ -93,6 +96,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [dataProrrogacao, setDataProrrogacao] = useState("");
   const [motivoProrrogacao, setMotivoProrrogacao] = useState<string>("");
   const [observacaoProrrogacao, setObservacaoProrrogacao] = useState("");
+  const [boletoDda, setBoletoDda] = useState(false);
+  const [boletoConfirmadoPor, setBoletoConfirmadoPor] = useState<string | null>(null);
+  const [boletoConfirmadoEm, setBoletoConfirmadoEm] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [replicaConfirm, setReplicaConfirm] = useState<{
     title: string;
@@ -126,6 +132,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       setDataProrrogacao(movimentacao.data_prorrogacao || "");
       setMotivoProrrogacao(movimentacao.motivo_prorrogacao || "");
       setObservacaoProrrogacao(movimentacao.observacao_prorrogacao || "");
+      setBoletoDda(!!movimentacao.boleto_dda);
+      setBoletoConfirmadoPor(movimentacao.boleto_confirmado_por ?? null);
+      setBoletoConfirmadoEm(movimentacao.boleto_confirmado_em ?? null);
     }
   }, [movimentacao]);
 
@@ -176,6 +185,33 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const irmaos = pagadores.filter((p) => p.id !== movimentacao?.empresa_id);
   const temIrmaos = irmaos.length > 0;
 
+  // Nome de quem confirmou o boleto DDA
+  const { data: confirmadorNome } = useQuery({
+    queryKey: ["profile-name", boletoConfirmadoPor],
+    queryFn: async () => {
+      if (!boletoConfirmadoPor) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", boletoConfirmadoPor)
+        .maybeSingle();
+      return data?.display_name ?? null;
+    },
+    enabled: !!boletoConfirmadoPor,
+  });
+
+  const handleToggleBoletoDda = (checked: boolean) => {
+    if (!canEditFinanceiro) return;
+    setBoletoDda(checked);
+    if (checked) {
+      setBoletoConfirmadoPor(user?.id ?? null);
+      setBoletoConfirmadoEm(new Date().toISOString());
+    } else {
+      setBoletoConfirmadoPor(null);
+      setBoletoConfirmadoEm(null);
+    }
+  };
+
   const buildPayload = () => {
     if (!movimentacao) return null;
     const envioAlterado =
@@ -202,6 +238,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         possuiProrrogacao && motivoProrrogacao === "Outros"
           ? observacaoProrrogacao.trim() || null
           : null,
+      boleto_dda: boletoDda,
+      boleto_confirmado_por: boletoDda ? boletoConfirmadoPor : null,
+      boleto_confirmado_em: boletoDda ? boletoConfirmadoEm : null,
     };
     if (envioAlterado && user?.id) {
       payload.enviado_por_user_id = user.id;
@@ -513,6 +552,44 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               </div>
               <Switch checked={dentroPrazo} onCheckedChange={setDentroPrazo} />
             </div>
+          </div>
+
+          {/* Boleto DDA */}
+          <div
+            className={cn(
+              "rounded-lg border p-3 space-y-2 transition-colors",
+              boletoDda
+                ? "border-success/40 bg-success/5"
+                : "border-warning/30 bg-warning/5",
+            )}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Receipt className={cn("h-4 w-4", boletoDda ? "text-success" : "text-warning")} />
+                <div>
+                  <p className="text-sm font-medium">
+                    Boleto DDA · {boletoDda ? "Boleto disponível" : "Boleto pendente"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {canEditFinanceiro
+                      ? "Marque quando o boleto estiver gerado/disponível no banco."
+                      : "Somente o Financeiro pode alterar este status."}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={boletoDda}
+                onCheckedChange={handleToggleBoletoDda}
+                disabled={!canEditFinanceiro}
+              />
+            </div>
+            {boletoDda && boletoConfirmadoEm && (
+              <p className="text-[11px] text-success flex items-center gap-1 pl-6">
+                <CheckCircle2 className="h-3 w-3" />
+                Confirmado{confirmadorNome ? ` por ${confirmadorNome}` : ""} em{" "}
+                {new Date(boletoConfirmadoEm).toLocaleString("pt-BR")}
+              </p>
+            )}
           </div>
 
           {/* Prorrogação */}
