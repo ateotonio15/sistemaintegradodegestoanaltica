@@ -52,6 +52,7 @@ import {
   Building2,
   FileSignature,
   CalendarDays,
+  Plus,
 } from "lucide-react";
 import {
   Accordion,
@@ -63,6 +64,7 @@ import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
 import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
+import { useAuth } from "@/hooks/useAuth";
 import {
   CATEGORIAS_ARQUIVO,
   compLabel,
