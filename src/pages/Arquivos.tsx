@@ -230,7 +230,7 @@ export default function Arquivos() {
     empresaFilter,
     contratoFilter,
     competenciaFilter,
-    categoriaFilter,
+    
     tipoFilter,
     usuarioFilter,
     empresasMap,
