@@ -66,7 +66,6 @@ import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  CATEGORIAS_ARQUIVO,
   compLabel,
   formatBytes,
   tipoArquivo,
