@@ -54,14 +54,20 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
   });
 
   const aprovar = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc("aprovar_implantacao" as any, { p_impl: implantacaoId, p_observacao: obs || null });
+    mutationFn: async (resp: { userId: string; userNome: string }) => {
+      const { error } = await supabase.rpc("aprovar_implantacao" as any, {
+        p_impl: implantacaoId,
+        p_observacao: obs || null,
+        p_responsavel: resp.userId,
+        p_responsavel_nome: resp.userNome,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["implantacoes"] });
       qc.invalidateQueries({ queryKey: ["impl-alertas"] });
-      toast({ title: "Contrato aprovado e enviado ao Cadastro!" });
+      toast({ title: "Contrato aprovado e atribuído ao Cadastro!" });
+      setAtribuirOpen(false);
       onClose();
     },
     onError: (e: any) => toast({ title: e?.message || "Erro ao aprovar", variant: "destructive" }),
