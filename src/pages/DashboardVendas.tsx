@@ -10,7 +10,7 @@ import { FileSignature, Plus, Send, AlertTriangle, CheckCircle2, Clock, Users, T
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { STATUS_META, STATUS_ORDER } from "@/lib/implantacao-status";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, formatDay } from "@/lib/date-utils";
 
 export default function DashboardVendas() {
   const { user } = useAuth();
