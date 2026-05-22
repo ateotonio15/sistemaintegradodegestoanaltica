@@ -96,6 +96,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [dataProrrogacao, setDataProrrogacao] = useState("");
   const [motivoProrrogacao, setMotivoProrrogacao] = useState<string>("");
   const [observacaoProrrogacao, setObservacaoProrrogacao] = useState("");
+  const [boletoDda, setBoletoDda] = useState(false);
+  const [boletoConfirmadoPor, setBoletoConfirmadoPor] = useState<string | null>(null);
+  const [boletoConfirmadoEm, setBoletoConfirmadoEm] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [replicaConfirm, setReplicaConfirm] = useState<{
     title: string;
