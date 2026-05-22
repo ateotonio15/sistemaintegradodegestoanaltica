@@ -48,10 +48,13 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   administradoras: Building2,
 };
 
-function generatePassword(length = 10) {
+function generatePassword(length = 14) {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
-  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  const array = new Uint32Array(length);
+  crypto.getRandomValues(array);
+  return Array.from(array, (n) => chars[n % chars.length]).join("");
 }
+
 
 export default function Usuarios() {
   const { isAdmin, isExecutivo } = useAuth();
