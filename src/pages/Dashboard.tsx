@@ -30,6 +30,7 @@ import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentaca
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImplantacoesAndamentoCard } from "@/components/dashboard/ImplantacoesAndamentoCard";
 import { AlertasContratosAnaliseDiretora } from "@/components/dashboard/AlertasContratosAnaliseDiretora";
+import { AlertasContratosVendas } from "@/components/dashboard/AlertasContratosVendas";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
 
