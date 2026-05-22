@@ -603,6 +603,7 @@ export default function Dashboard() {
     <>
       <div className="space-y-8">
         {isDiretora && <AlertasContratosAnaliseDiretora />}
+        {isVendas && <AlertasContratosVendas />}
         <AlertaReajustesParaConfirmar />
         {role === "visualizacao" && <AlertaReajustesPendentes />}
 
