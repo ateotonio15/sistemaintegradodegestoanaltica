@@ -132,7 +132,7 @@ export default function Arquivos() {
   const [search, setSearch] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState("todas");
   const [competenciaFilter, setCompetenciaFilter] = useState("todas");
-  const [categoriaFilter, setCategoriaFilter] = useState("todas");
+  
   const [tipoFilter, setTipoFilter] = useState("todos");
   const [usuarioFilter, setUsuarioFilter] = useState("todos");
   const [contratoFilter, setContratoFilter] = useState("todos");
