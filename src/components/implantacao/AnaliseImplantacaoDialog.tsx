@@ -209,8 +209,18 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             </div>
 
 
-            {/* Ações */}
-            {!readOnly && mode === "view" && (
+            {/* Ação Cadastro: Liberar contrato */}
+            {readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
+              <div className="pt-2 border-t">
+                <Button
+                  onClick={() => liberar.mutate()}
+                  disabled={liberar.isPending}
+                  className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Rocket className="h-4 w-4" /> {liberar.isPending ? "Liberando…" : "Liberar contrato"}
+                </Button>
+              </div>
+            )}
               <div className="space-y-3 pt-2 border-t">
                 <div>
                   <label className="text-sm font-medium">Observação (opcional)</label>
