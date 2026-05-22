@@ -182,8 +182,9 @@ export async function analisarPdfFinanceiro(
       "i",
     );
 
+  // Aceita: Inclusão, Inclusao, Inclusões, Inclusoes, Incluso, Incluído, Incluidos, etc.
   const reInclusao = new RegExp(
-    `inclus(?:ao|oes|ões)?\\s*:?\\s*r?\\$?\\s*(${NUM})`,
+    `inclus(?:ao|oes|ões|o|os|ido|idos|ida|idas)?\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
     "i",
   );
 
