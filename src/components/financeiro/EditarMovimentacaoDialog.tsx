@@ -211,6 +211,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       setBoletoConfirmadoEm(null);
     }
   };
+
+  const buildPayload = () => {
     if (!movimentacao) return null;
     const envioAlterado =
       !!dataEnvioNota && dataEnvioNota !== (movimentacao.data_envio_nota || "");
