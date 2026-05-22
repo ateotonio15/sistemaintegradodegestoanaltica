@@ -44,7 +44,7 @@ import {
   Image as ImageIcon,
   Download,
   Eye,
-  Upload,
+  // Upload icon removed: replaced by Plus on Adicionar arquivo button
   Trash2,
   Files,
   HardDrive,
@@ -52,6 +52,7 @@ import {
   Building2,
   FileSignature,
   CalendarDays,
+  Plus,
 } from "lucide-react";
 import {
   Accordion,
@@ -63,6 +64,7 @@ import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
 import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
+import { useAuth } from "@/hooks/useAuth";
 import {
   CATEGORIAS_ARQUIVO,
   compLabel,
@@ -125,7 +127,9 @@ function formatDateTime(iso: string): string {
 
 export default function Arquivos() {
   const queryClient = useQueryClient();
+  const { canEditFinanceiro } = useAuth();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadDefaults, setUploadDefaults] = useState<{ empresaId?: string }>({});
   const [search, setSearch] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState("todas");
   const [competenciaFilter, setCompetenciaFilter] = useState("todas");
@@ -135,6 +139,11 @@ export default function Arquivos() {
   const [contratoFilter, setContratoFilter] = useState("todos");
   const [confirmDelete, setConfirmDelete] = useState<ArquivoRow | null>(null);
   const [previewArquivo, setPreviewArquivo] = useState<ArquivoRow | null>(null);
+
+  function openUpload(empresaId?: string) {
+    setUploadDefaults({ empresaId });
+    setUploadOpen(true);
+  }
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["arquivos-empresas-list"],
@@ -352,10 +361,12 @@ export default function Arquivos() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setUploadOpen(true)} className="gap-2">
-            <Upload className="h-4 w-4" />
-            Enviar arquivos
-          </Button>
+          {canEditFinanceiro && (
+            <Button onClick={() => openUpload()} className="gap-2" size="lg">
+              <Plus className="h-4 w-4" />
+              Adicionar arquivo
+            </Button>
+          )}
         </header>
 
         {/* KPIs */}
@@ -473,9 +484,12 @@ export default function Arquivos() {
               <div className="py-16 text-center text-muted-foreground space-y-2">
                 <FolderArchive className="h-10 w-10 mx-auto opacity-50" />
                 <p>Nenhum arquivo encontrado.</p>
-                <Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}>
-                  Enviar primeiro arquivo
-                </Button>
+                {canEditFinanceiro && (
+                  <Button variant="outline" size="sm" onClick={() => openUpload()}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Adicionar primeiro arquivo
+                  </Button>
+                )}
               </div>
             ) : (
               <Accordion type="multiple" className="space-y-3">
@@ -485,22 +499,39 @@ export default function Arquivos() {
                     value={emp.empresaId}
                     className="border rounded-lg px-3 bg-card"
                   >
-                    <AccordionTrigger className="hover:no-underline py-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Building2 className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="text-left min-w-0">
-                          <div className="font-semibold truncate">{emp.nome}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {emp.contratos.size} contrato{emp.contratos.size === 1 ? "" : "s"} • {emp.total} arquivo{emp.total === 1 ? "" : "s"}
-                            {emp.ultimoUpload > 0 && (
-                              <> • Último: {formatDateTime(new Date(emp.ultimoUpload).toISOString())}</>
-                            )}
+                    <div className="flex items-center gap-2 py-1">
+                      <AccordionTrigger className="hover:no-underline py-3 flex-1">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Building2 className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="text-left min-w-0">
+                            <div className="font-semibold truncate">{emp.nome}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {emp.contratos.size} contrato{emp.contratos.size === 1 ? "" : "s"} • {emp.total} arquivo{emp.total === 1 ? "" : "s"}
+                              {emp.ultimoUpload > 0 && (
+                                <> • Último: {formatDateTime(new Date(emp.ultimoUpload).toISOString())}</>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </AccordionTrigger>
+                      </AccordionTrigger>
+                      {canEditFinanceiro && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1 shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openUpload(emp.empresaId);
+                          }}
+                          title="Adicionar arquivo neste contrato"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Adicionar
+                        </Button>
+                      )}
+                    </div>
                     <AccordionContent className="pb-3">
                       <Accordion type="multiple" className="space-y-2 pl-2">
                         {Array.from(emp.contratos.values())
@@ -598,9 +629,11 @@ export default function Arquivos() {
                                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(a)} title="Baixar">
                                                           <Download className="h-4 w-4" />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(a)} title="Excluir">
-                                                          <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                        {canEditFinanceiro && (
+                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(a)} title="Excluir">
+                                                            <Trash2 className="h-4 w-4" />
+                                                          </Button>
+                                                        )}
                                                       </div>
                                                     </TableCell>
                                                   </TableRow>
@@ -625,7 +658,11 @@ export default function Arquivos() {
         </Card>
       </div>
 
-      <UploadArquivoDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+      <UploadArquivoDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        defaultEmpresaId={uploadDefaults.empresaId}
+      />
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
         <AlertDialogContent>
