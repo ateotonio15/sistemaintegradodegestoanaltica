@@ -554,6 +554,44 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </div>
           </div>
 
+          {/* Boleto DDA */}
+          <div
+            className={cn(
+              "rounded-lg border p-3 space-y-2 transition-colors",
+              boletoDda
+                ? "border-success/40 bg-success/5"
+                : "border-warning/30 bg-warning/5",
+            )}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Receipt className={cn("h-4 w-4", boletoDda ? "text-success" : "text-warning")} />
+                <div>
+                  <p className="text-sm font-medium">
+                    Boleto DDA · {boletoDda ? "Boleto disponível" : "Boleto pendente"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {canEditFinanceiro
+                      ? "Marque quando o boleto estiver gerado/disponível no banco."
+                      : "Somente o Financeiro pode alterar este status."}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={boletoDda}
+                onCheckedChange={handleToggleBoletoDda}
+                disabled={!canEditFinanceiro}
+              />
+            </div>
+            {boletoDda && boletoConfirmadoEm && (
+              <p className="text-[11px] text-success flex items-center gap-1 pl-6">
+                <CheckCircle2 className="h-3 w-3" />
+                Confirmado{confirmadorNome ? ` por ${confirmadorNome}` : ""} em{" "}
+                {new Date(boletoConfirmadoEm).toLocaleString("pt-BR")}
+              </p>
+            )}
+          </div>
+
           {/* Prorrogação */}
           <div className="rounded-lg border border-border p-3 space-y-3">
             <div className="flex items-center justify-between">
