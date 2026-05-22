@@ -24,7 +24,6 @@ export default function DashboardVendas() {
       const { data, error } = await supabase
         .from("implantacoes_contratos" as any)
         .select("*")
-        .eq("created_by", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
@@ -48,11 +47,21 @@ export default function DashboardVendas() {
     enabled: !!user?.id,
   });
 
+  const emAndamento = useMemo(
+    () => items.filter((i) => i.status !== "implantado" && i.status !== "rejeitado"),
+    [items]
+  );
+
   const filtered = useMemo(() => {
-    if (!search) return items;
+    if (!search) return emAndamento;
     const s = search.toLowerCase();
-    return items.filter((i) => (i.nome_empresa || "").toLowerCase().includes(s) || (i.cnpj || "").toLowerCase().includes(s));
-  }, [items, search]);
+    return emAndamento.filter((i) =>
+      (i.nome_empresa || "").toLowerCase().includes(s) ||
+      (i.cnpj || "").toLowerCase().includes(s) ||
+      (i.codigo_contrato || "").toLowerCase().includes(s)
+    );
+  }, [emAndamento, search]);
+
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
