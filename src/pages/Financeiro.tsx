@@ -584,6 +584,11 @@ export default function Financeiro() {
     await runAnalise(row, { force: true });
   };
 
+  const handleGerarHistorico = (row: FinanceiroRow) => {
+    setHistoricoRow(row);
+    setHistoricoDialogOpen(true);
+  };
+
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
   const ANALISE_PARSER_VERSION = "7";
 
