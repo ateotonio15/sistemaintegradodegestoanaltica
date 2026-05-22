@@ -60,8 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("role")
       .eq("user_id", userId)
       .maybeSingle();
+    // Se um pedido mais recente sobrescreveu este, abandone sem mexer em role/loading
+    // (o pedido mais novo é quem vai finalizar o loading).
     if (requestId !== roleRequestRef.current) return;
     setRole((data?.role as UserRole) ?? "comum");
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -88,7 +91,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       lastUserIdRef.current = nextUserId;
       if (!roleRef.current) setLoading(true);
-      await fetchRole(nextUserId).finally(() => setLoading(false));
+      // Importante: não usar .finally(setLoading(false)) aqui — fetchRole só
+      // libera o loading quando ele próprio é o pedido vencedor, evitando que
+      // um pedido abortado deixe loading=false com role=null (o que faria as
+      // rotas com `allow` redirecionarem indevidamente para /).
+      void fetchRole(nextUserId);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
