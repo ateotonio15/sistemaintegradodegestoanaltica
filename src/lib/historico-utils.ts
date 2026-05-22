@@ -1,0 +1,143 @@
+import type { AnaliseResultado } from "./excel-analysis-utils";
+
+const MESES_PT = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+const MESES_MAP: Record<string, number> = {
+  JANEIRO: 0, FEVEREIRO: 1, MARCO: 2, MARÇO: 2, ABRIL: 3, MAIO: 4, JUNHO: 5,
+  JULHO: 6, AGOSTO: 7, SETEMBRO: 8, OUTUBRO: 9, NOVEMBRO: 10, DEZEMBRO: 11,
+};
+
+const fmtNum = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Formata número estilo brasileiro sem símbolo de moeda. */
+export function fmtBR(n: number): string {
+  if (!isFinite(n)) return "0,00";
+  return fmtNum.format(n);
+}
+
+/** Detecta mês/ano a partir do mes_referencia (YYYY-MM) ou nome de arquivo. */
+export function detectarCompetencia(
+  mesReferencia?: string | null,
+  nomeArquivo?: string | null,
+): { label: string; mes: number; ano: number } | null {
+  // 1) mes_referencia preferido (formato esperado YYYY-MM)
+  if (mesReferencia) {
+    const m = /^(\d{4})-(\d{2})$/.exec(mesReferencia);
+    if (m) {
+      const ano = parseInt(m[1], 10);
+      const mes = parseInt(m[2], 10) - 1;
+      if (mes >= 0 && mes < 12) {
+        return { label: `${MESES_PT[mes]}/${ano}`, mes, ano };
+      }
+    }
+  }
+  // 2) Tenta extrair do nome do arquivo
+  if (nomeArquivo) {
+    const upper = nomeArquivo
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    const re = new RegExp(`(${Object.keys(MESES_MAP).join("|")})\\s*[/_-]?\\s*(\\d{4})`);
+    const r = re.exec(upper);
+    if (r) {
+      const mes = MESES_MAP[r[1]];
+      const ano = parseInt(r[2], 10);
+      return { label: `${MESES_PT[mes]}/${ano}`, mes, ano };
+    }
+  }
+  return null;
+}
+
+export interface HistoricoOpts {
+  competenciaLabel: string;
+  /** Data já formatada DD/MM/AAAA */
+  dataVencimento: string;
+  incluirDda: boolean;
+}
+
+/** Gera o texto do histórico no padrão fixo da empresa. */
+export function gerarHistoricoTexto(
+  resultados: AnaliseResultado[],
+  opts: HistoricoOpts,
+): string {
+  const linhas: string[] = [];
+  linhas.push(`Período de: ${opts.competenciaLabel}.`);
+  linhas.push("");
+
+  // Agrega categorias somando todos os pagadores
+  let benefEnf = 0, totalEnf = 0, mensEnf = 0;
+  let benefApt = 0, totalApt = 0, mensApt = 0;
+  let totalInc = 0;
+  let totalExc = 0;
+
+  resultados.forEach((r) => {
+    if (r.enfermaria.beneficiarios > 0 || r.enfermaria.total > 0) {
+      benefEnf += r.enfermaria.beneficiarios;
+      totalEnf += r.enfermaria.total;
+      if (r.enfermaria.mensalidade) mensEnf = r.enfermaria.mensalidade;
+    }
+    if (r.apartamento.beneficiarios > 0 || r.apartamento.total > 0) {
+      benefApt += r.apartamento.beneficiarios;
+      totalApt += r.apartamento.total;
+      if (r.apartamento.mensalidade) mensApt = r.apartamento.mensalidade;
+    }
+    if (r.inclusoes?.total) totalInc += r.inclusoes.total;
+    if (r.exclusoes?.total) totalExc += r.exclusoes.total;
+  });
+
+  if (benefEnf > 0 || totalEnf > 0) {
+    linhas.push(`Enfermaria: ${benefEnf}x${fmtBR(mensEnf)}= ${fmtBR(totalEnf)} /`);
+  }
+  if (benefApt > 0 || totalApt > 0) {
+    linhas.push(`Apartamento: ${benefApt}x${fmtBR(mensApt)}= ${fmtBR(totalApt)} /`);
+  }
+  if (totalInc > 0) {
+    linhas.push(`Inclusão= ${fmtBR(totalInc)} /`);
+  }
+  if (totalExc !== 0) {
+    const v = Math.abs(totalExc);
+    linhas.push(`Exclusão: (${fmtBR(v)}).`);
+  }
+
+  linhas.push("");
+  linhas.push(`Data de Vencimento: ${opts.dataVencimento}.`);
+  linhas.push("");
+  if (opts.incluirDda) {
+    linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
+    linhas.push("");
+  }
+  linhas.push(
+    "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+  );
+  linhas.push(
+    "Suspensão de PIS e COFINS, trânsito em julgado conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+  );
+
+  return linhas.join("\n");
+}
+
+/** Constrói data de vencimento DD/MM/AAAA a partir de dia + competência. */
+export function calcularVencimentoPadrao(
+  diaVencimento: number | null | undefined,
+  mes0: number,
+  ano: number,
+): string {
+  const dia = Math.max(1, Math.min(31, diaVencimento ?? 1));
+  // Ajusta se o mês não tiver esse dia
+  const ultimoDia = new Date(ano, mes0 + 1, 0).getDate();
+  const d = Math.min(dia, ultimoDia);
+  return `${String(d).padStart(2, "0")}/${String(mes0 + 1).padStart(2, "0")}/${ano}`;
+}
+
+/** Formata uma data ISO YYYY-MM-DD em DD/MM/AAAA sem deslocamento de timezone. */
+export function isoToBR(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
