@@ -140,7 +140,11 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
                   <div><p className="text-muted-foreground">Vigência</p><p className="font-semibold text-sm flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDateBR(impl.data_vigencia)}</p></div>
                   <div><p className="text-muted-foreground">Acomodação</p><p className="font-semibold text-sm">{impl.acomodacao || "—"}</p></div>
                   <div><p className="text-muted-foreground">Modalidade</p><p className="font-semibold text-sm">{impl.modalidade || "—"}</p></div>
+                  <div><p className="text-muted-foreground">Tipo de Contrato</p><p className="font-semibold text-sm">{impl.tipo_contrato || "—"}</p></div>
+                  <div><p className="text-muted-foreground">Período Movimentação</p><p className="font-semibold text-sm">{impl.periodo_movimentacao || "—"}</p></div>
+                  <div><p className="text-muted-foreground">Data Vencimento</p><p className="font-semibold text-sm flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDateBR(impl.data_vencimento)}</p></div>
                 </div>
+
               </CardContent>
             </Card>
 
