@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Upload, FileText, Sparkles, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle,
   Loader2, Trash2, Download, Building2, FileSignature, DollarSign, Users,
-  ShieldCheck, XCircle, AlertTriangle,
+  ShieldCheck, XCircle, AlertTriangle, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
