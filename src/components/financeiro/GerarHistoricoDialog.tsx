@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -14,7 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Copy, Save, FileText } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Copy, FileText } from "lucide-react";
 import {
   calcularVencimentoPadrao,
   detectarCompetencia,
@@ -23,6 +30,13 @@ import {
 } from "@/lib/historico-utils";
 import type { AnaliseResultado } from "@/lib/excel-analysis-utils";
 import type { FinanceiroRow } from "./FinanceiroTable";
+
+const MOTIVOS_PRORROGACAO = [
+  "Solicitado pela empresa",
+  "Atraso Financeiro",
+  "Atraso Cadastro",
+  "Outros",
+] as const;
 
 type Step = "prorrogacao" | "preview";
 
@@ -141,55 +155,6 @@ export function GerarHistoricoDialog({
     setStep("preview");
   };
 
-  const salvarMutation = useMutation({
-    mutationFn: async () => {
-      if (!row || !competencia) throw new Error("Dados incompletos.");
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id ?? null;
-      let nomeUser: string | null = null;
-      if (uid) {
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("user_id", uid)
-          .maybeSingle();
-        nomeUser = prof?.display_name ?? null;
-      }
-      const vencimentoIso = prorrogar && dataProrrogacao
-        ? dataProrrogacao
-        : (() => {
-            const dia = empresaInfo?.data_vencimento_fatura ?? 1;
-            const ultimo = new Date(competencia.ano, competencia.mes + 1, 0).getDate();
-            const d = Math.min(Math.max(1, dia), ultimo);
-            return `${competencia.ano}-${String(competencia.mes + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-          })();
-
-      const { error } = await supabase
-        .from("historicos_financeiros")
-        .upsert(
-          {
-            empresa_id: row.empresa_id,
-            financeiro_movimentacao_id: row.id,
-            competencia: row.mes_referencia,
-            periodo: row.periodo,
-            texto_historico: texto,
-            vencimento_utilizado: vencimentoIso,
-            prorrogado: !!prorrogar,
-            motivo_prorrogacao: prorrogar ? motivoProrrogacao : null,
-            usuario_geracao: uid,
-            usuario_geracao_nome: nomeUser,
-            data_geracao: new Date().toISOString(),
-          },
-          { onConflict: "financeiro_movimentacao_id" },
-        );
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Histórico salvo.");
-      onOpenChange(false);
-    },
-    onError: (e: any) => toast.error("Erro ao salvar: " + (e?.message || e)),
-  });
 
   const handleCopiar = async () => {
     try {
@@ -244,12 +209,19 @@ export function GerarHistoricoDialog({
                 </div>
                 <div>
                   <Label htmlFor="motivo-prorrog">Motivo da prorrogação</Label>
-                  <Input
-                    id="motivo-prorrog"
-                    value={motivoProrrogacao}
-                    onChange={(e) => setMotivoProrrogacao(e.target.value)}
-                    placeholder="Ex.: Solicitação da empresa"
-                  />
+                  <Select
+                    value={motivoProrrogacao || undefined}
+                    onValueChange={(v) => setMotivoProrrogacao(v)}
+                  >
+                    <SelectTrigger id="motivo-prorrog">
+                      <SelectValue placeholder="Selecione o motivo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MOTIVOS_PRORROGACAO.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="obs-prorrog">Observação</Label>
@@ -278,22 +250,10 @@ export function GerarHistoricoDialog({
               rows={16}
               className="font-mono text-xs"
             />
-            <DialogFooter className="gap-2 sm:gap-2">
-              <Button variant="outline" onClick={handleCopiar} className="gap-1">
+            <DialogFooter>
+              <Button onClick={handleCopiar} className="gap-1">
                 <Copy className="h-4 w-4" />
                 Copiar histórico
-              </Button>
-              <Button
-                onClick={() => salvarMutation.mutate()}
-                disabled={salvarMutation.isPending || !texto.trim()}
-                className="gap-1"
-              >
-                {salvarMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Salvar histórico
               </Button>
             </DialogFooter>
           </div>
