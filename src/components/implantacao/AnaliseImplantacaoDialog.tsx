@@ -220,10 +220,6 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                 <div className="md:col-span-2"><p className="text-muted-foreground">Endereço</p><p className="font-semibold text-sm">{impl.endereco || "—"}</p></div>
                 <div><p className="text-muted-foreground">CEP</p><p className="font-semibold text-sm">{impl.cep || "—"}</p></div>
                 <div><p className="text-muted-foreground">Grupo Contrato</p><p className="font-semibold text-sm">{impl.grupo_contrato || "—"}</p></div>
-                <div><p className="text-muted-foreground">Início Atendimento</p><p className="font-semibold text-sm">{formatDateBR(impl.inicio_atendimento)}</p></div>
-                <div><p className="text-muted-foreground">Dia Movimentação</p><p className="font-semibold text-sm">{impl.dia_movimentacao ?? "—"}</p></div>
-                <div><p className="text-muted-foreground">Data de Corte</p><p className="font-semibold text-sm">{impl.data_corte ?? "—"}</p></div>
-                <div><p className="text-muted-foreground">Ticket</p><p className="font-semibold text-sm">{impl.ticket || "—"}</p></div>
                 <div><p className="text-muted-foreground">Vidas Titulares</p><p className="font-semibold text-sm">{impl.vidas_titulares ?? "—"}</p></div>
                 <div><p className="text-muted-foreground">Vidas Dependentes</p><p className="font-semibold text-sm">{impl.vidas_dependentes ?? "—"}</p></div>
               </div>
