@@ -258,12 +258,19 @@ export function GerarHistoricoDialog({
                 </div>
                 <div>
                   <Label htmlFor="motivo-prorrog">Motivo da prorrogação</Label>
-                  <Input
-                    id="motivo-prorrog"
-                    value={motivoProrrogacao}
-                    onChange={(e) => setMotivoProrrogacao(e.target.value)}
-                    placeholder="Ex.: Solicitação da empresa"
-                  />
+                  <Select
+                    value={motivoProrrogacao || undefined}
+                    onValueChange={(v) => setMotivoProrrogacao(v)}
+                  >
+                    <SelectTrigger id="motivo-prorrog">
+                      <SelectValue placeholder="Selecione o motivo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MOTIVOS_PRORROGACAO.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="obs-prorrog">Observação</Label>
