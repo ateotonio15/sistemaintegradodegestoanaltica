@@ -49,6 +49,7 @@ interface Props {
   expandedRowId: string | null;
   onToggleExpand: (row: FinanceiroRow) => void;
   onReanalisar?: (row: FinanceiroRow) => void;
+  onGerarHistorico?: (row: FinanceiroRow) => void;
   analiseResultados: Record<string, AnaliseResultado[]>;
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
