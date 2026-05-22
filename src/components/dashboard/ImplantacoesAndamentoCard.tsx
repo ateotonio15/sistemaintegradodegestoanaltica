@@ -391,7 +391,7 @@ export function ImplantacoesAndamentoCard() {
               return (
                 <div
                   key={row.id}
-                  onClick={() => navigate(`/implantacao?id=${row.id}`)}
+                  onClick={() => isComum ? setViewId(row.id) : navigate(`/implantacao?id=${row.id}`)}
                   className={`group relative rounded-xl border bg-card hover:bg-accent/40 hover:border-primary/40 transition-all cursor-pointer p-4 shadow-sm hover:shadow-md ${
                     aguardandoAnalise
                       ? "ring-1 ring-blue-500/40 border-blue-500/40 shadow-blue-500/10 shadow-md animate-in fade-in slide-in-from-top-1 duration-300"
