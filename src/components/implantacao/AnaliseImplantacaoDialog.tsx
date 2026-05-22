@@ -213,6 +213,12 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose }: Props
           </div>
         )}
       </DialogContent>
+      <SelecionarResponsavelCadastroDialog
+        open={atribuirOpen}
+        onClose={() => setAtribuirOpen(false)}
+        onConfirm={(userId, userNome) => aprovar.mutate({ userId, userNome })}
+        loading={aprovar.isPending}
+      />
     </Dialog>
   );
 }
