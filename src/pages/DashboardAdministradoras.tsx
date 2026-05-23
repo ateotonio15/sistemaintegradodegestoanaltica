@@ -1,14 +1,19 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, ListChecks, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, Search, Paperclip } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
+import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { toast } from "sonner";
 
 type Empresa = Tables<"empresas">;
 type Movimentacao = Tables<"movimentacoes">;
@@ -31,6 +36,9 @@ export default function DashboardAdministradoras() {
   const [corteFilter, setCorteFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [implFilter, setImplFilter] = useState<string>("all");
+  const [selectedEmpresa, setSelectedEmpresa] = useState<Empresa | null>(null);
+  const [editEnvio, setEditEnvio] = useState<string>("");
+  const queryClient = useQueryClient();
 
   const { data: empresas = [], isLoading } = useQuery({
     queryKey: ["empresas-administradoras"],
@@ -205,8 +213,18 @@ export default function DashboardAdministradoras() {
                     ) : filtered.length === 0 ? (
                       <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
                     ) : (
-                      filtered.map((e) => (
-                        <TableRow key={e.id} className="hover:bg-accent/40 transition-colors">
+                      filtered.map((e) => {
+                        const mov = movsMes.find((m) => m.empresa_id === e.id);
+                        const enviado = !!mov?.data_envio_financeiro;
+                        return (
+                        <TableRow
+                          key={e.id}
+                          className="hover:bg-accent/40 transition-colors cursor-pointer"
+                          onClick={() => {
+                            setSelectedEmpresa(e);
+                            setEditEnvio(mov?.data_envio_financeiro ?? "");
+                          }}
+                        >
                           <TableCell className="font-medium">{e.nome}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{e.cnpj || "—"}</TableCell>
                           <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
@@ -218,15 +236,23 @@ export default function DashboardAdministradoras() {
                           </TableCell>
                           <TableCell>{e.data_implantacao ? formatDateBR(e.data_implantacao) : <Badge variant="outline" className="rounded-md">Aguardando</Badge>}</TableCell>
                           <TableCell className="text-right">
-                            <Badge
-                              variant={e.status_empresa === "Ativa" ? "default" : "secondary"}
-                              className="rounded-md"
-                            >
-                              {e.status_empresa}
-                            </Badge>
+                            <div className="flex items-center justify-end gap-2">
+                              {enviado && (
+                                <Badge variant="outline" className="rounded-md gap-1 border-success/40 text-success">
+                                  <Paperclip className="h-3 w-3" /> Enviado
+                                </Badge>
+                              )}
+                              <Badge
+                                variant={e.status_empresa === "Ativa" ? "default" : "secondary"}
+                                className="rounded-md"
+                              >
+                                {e.status_empresa}
+                              </Badge>
+                            </div>
                           </TableCell>
                         </TableRow>
-                      ))
+                      );})
+
                     )}
                   </TableBody>
                 </Table>
@@ -299,9 +325,133 @@ export default function DashboardAdministradoras() {
           </Card>
         </div>
       </div>
+
+      <EnvioFinanceiroDialog
+        empresa={selectedEmpresa}
+        mesRef={mesRef}
+        editEnvio={editEnvio}
+        setEditEnvio={setEditEnvio}
+        existingMov={selectedEmpresa ? movsMes.find((m) => m.empresa_id === selectedEmpresa.id) ?? null : null}
+        onClose={() => setSelectedEmpresa(null)}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["movs-administradoras"] });
+        }}
+      />
     </div>
   );
 }
+
+function EnvioFinanceiroDialog({
+  empresa,
+  mesRef,
+  editEnvio,
+  setEditEnvio,
+  existingMov,
+  onClose,
+  onSaved,
+}: {
+  empresa: Empresa | null;
+  mesRef: string;
+  editEnvio: string;
+  setEditEnvio: (v: string) => void;
+  existingMov: Movimentacao | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [movId, setMovId] = useState<string | null>(existingMov?.id ?? null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setMovId(existingMov?.id ?? null);
+  }, [existingMov?.id, empresa?.id]);
+
+  const handleSave = async () => {
+    if (!empresa) return;
+    setSaving(true);
+    try {
+      let id = movId;
+      if (!id) {
+        const periodo = empresa.periodo_movimentacao || "Mensal";
+        const { data, error } = await supabase
+          .from("movimentacoes")
+          .insert({
+            empresa_id: empresa.id,
+            mes_referencia: mesRef,
+            periodo,
+            data_envio_financeiro: editEnvio || null,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        id = data.id;
+        setMovId(id);
+      } else {
+        const { error } = await supabase
+          .from("movimentacoes")
+          .update({ data_envio_financeiro: editEnvio || null })
+          .eq("id", id);
+        if (error) throw error;
+      }
+      toast.success(editEnvio ? "Envio ao financeiro registrado" : "Data de envio limpa");
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      toast.error("Erro: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!empresa} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg rounded-xl">
+        <DialogHeader>
+          <DialogTitle>Contrato — Envio ao Financeiro</DialogTitle>
+        </DialogHeader>
+        {empresa && (
+          <div className="space-y-5">
+            <div className="text-sm p-3 bg-accent/40 rounded-lg">
+              <p className="font-medium text-foreground">{empresa.nome}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {empresa.codigo_contrato || "—"} · {empresa.cnpj || "—"}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Data de envio ao Financeiro</Label>
+              <Input
+                type="date"
+                value={editEnvio}
+                onChange={(e) => setEditEnvio(e.target.value)}
+                max={todayLocalISO()}
+                className="rounded-lg"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Ao preencher, os documentos anexados ficam disponíveis para o Financeiro.
+              </p>
+            </div>
+
+            <AnexosMovimentacao
+              movimentacaoId={movId}
+              empresaId={empresa.id}
+              required={!!editEnvio}
+            />
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={onClose} className="rounded-lg" disabled={saving}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave} className="rounded-lg" disabled={saving}>
+                {saving ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function KpiCard({
   icon: Icon,
