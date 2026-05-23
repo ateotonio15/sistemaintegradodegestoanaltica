@@ -36,8 +36,10 @@ export default function DashboardAdministradoras() {
   const [corteFilter, setCorteFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [implFilter, setImplFilter] = useState<string>("all");
+  const [selectedEmpresa, setSelectedEmpresa] = useState<Empresa | null>(null);
+  const [editEnvio, setEditEnvio] = useState<string>("");
+  const queryClient = useQueryClient();
 
-  const { data: empresas = [], isLoading } = useQuery({
     queryKey: ["empresas-administradoras"],
     queryFn: async () => {
       const { data, error } = await supabase
