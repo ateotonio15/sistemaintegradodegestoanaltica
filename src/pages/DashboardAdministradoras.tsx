@@ -325,9 +325,133 @@ export default function DashboardAdministradoras() {
           </Card>
         </div>
       </div>
+
+      <EnvioFinanceiroDialog
+        empresa={selectedEmpresa}
+        mesRef={mesRef}
+        editEnvio={editEnvio}
+        setEditEnvio={setEditEnvio}
+        existingMov={selectedEmpresa ? movsMes.find((m) => m.empresa_id === selectedEmpresa.id) ?? null : null}
+        onClose={() => setSelectedEmpresa(null)}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["movs-administradoras"] });
+        }}
+      />
     </div>
   );
 }
+
+function EnvioFinanceiroDialog({
+  empresa,
+  mesRef,
+  editEnvio,
+  setEditEnvio,
+  existingMov,
+  onClose,
+  onSaved,
+}: {
+  empresa: Empresa | null;
+  mesRef: string;
+  editEnvio: string;
+  setEditEnvio: (v: string) => void;
+  existingMov: Movimentacao | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [movId, setMovId] = useState<string | null>(existingMov?.id ?? null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setMovId(existingMov?.id ?? null);
+  }, [existingMov?.id, empresa?.id]);
+
+  const handleSave = async () => {
+    if (!empresa) return;
+    setSaving(true);
+    try {
+      let id = movId;
+      if (!id) {
+        const periodo = empresa.periodo_movimentacao || "Mensal";
+        const { data, error } = await supabase
+          .from("movimentacoes")
+          .insert({
+            empresa_id: empresa.id,
+            mes_referencia: mesRef,
+            periodo,
+            data_envio_financeiro: editEnvio || null,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        id = data.id;
+        setMovId(id);
+      } else {
+        const { error } = await supabase
+          .from("movimentacoes")
+          .update({ data_envio_financeiro: editEnvio || null })
+          .eq("id", id);
+        if (error) throw error;
+      }
+      toast.success(editEnvio ? "Envio ao financeiro registrado" : "Data de envio limpa");
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      toast.error("Erro: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!empresa} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg rounded-xl">
+        <DialogHeader>
+          <DialogTitle>Contrato — Envio ao Financeiro</DialogTitle>
+        </DialogHeader>
+        {empresa && (
+          <div className="space-y-5">
+            <div className="text-sm p-3 bg-accent/40 rounded-lg">
+              <p className="font-medium text-foreground">{empresa.nome}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {empresa.codigo_contrato || "—"} · {empresa.cnpj || "—"}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Data de envio ao Financeiro</Label>
+              <Input
+                type="date"
+                value={editEnvio}
+                onChange={(e) => setEditEnvio(e.target.value)}
+                max={todayLocalISO()}
+                className="rounded-lg"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Ao preencher, os documentos anexados ficam disponíveis para o Financeiro.
+              </p>
+            </div>
+
+            <AnexosMovimentacao
+              movimentacaoId={movId}
+              empresaId={empresa.id}
+              required={!!editEnvio}
+            />
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={onClose} className="rounded-lg" disabled={saving}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave} className="rounded-lg" disabled={saving}>
+                {saving ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function KpiCard({
   icon: Icon,
