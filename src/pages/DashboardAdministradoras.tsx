@@ -368,6 +368,7 @@ export default function DashboardAdministradoras() {
         onClose={() => setSelectedEmpresa(null)}
         onSaved={() => {
           queryClient.invalidateQueries({ queryKey: ["movs-administradoras"] });
+          queryClient.invalidateQueries({ queryKey: ["anexos-count-administradoras"] });
         }}
       />
     </div>
