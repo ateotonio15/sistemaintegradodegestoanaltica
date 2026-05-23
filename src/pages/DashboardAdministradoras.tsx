@@ -379,6 +379,15 @@ export default function DashboardAdministradoras() {
           queryClient.invalidateQueries({ queryKey: ["anexos-count-administradoras"] });
         }}
       />
+
+      <AnexosViewerDialog
+        open={!!anexosViewer}
+        onOpenChange={(v) => !v && setAnexosViewer(null)}
+        empresaId={anexosViewer?.empresa.id ?? null}
+        empresaNome={anexosViewer?.empresa.nome ?? ""}
+        mesReferencia={mesRef}
+        periodo={anexosViewer?.periodo ?? ""}
+      />
     </div>
   );
 }
