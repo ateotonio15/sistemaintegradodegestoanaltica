@@ -213,8 +213,18 @@ export default function DashboardAdministradoras() {
                     ) : filtered.length === 0 ? (
                       <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
                     ) : (
-                      filtered.map((e) => (
-                        <TableRow key={e.id} className="hover:bg-accent/40 transition-colors">
+                      filtered.map((e) => {
+                        const mov = movsMes.find((m) => m.empresa_id === e.id);
+                        const enviado = !!mov?.data_envio_financeiro;
+                        return (
+                        <TableRow
+                          key={e.id}
+                          className="hover:bg-accent/40 transition-colors cursor-pointer"
+                          onClick={() => {
+                            setSelectedEmpresa(e);
+                            setEditEnvio(mov?.data_envio_financeiro ?? "");
+                          }}
+                        >
                           <TableCell className="font-medium">{e.nome}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{e.cnpj || "—"}</TableCell>
                           <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
@@ -226,15 +236,23 @@ export default function DashboardAdministradoras() {
                           </TableCell>
                           <TableCell>{e.data_implantacao ? formatDateBR(e.data_implantacao) : <Badge variant="outline" className="rounded-md">Aguardando</Badge>}</TableCell>
                           <TableCell className="text-right">
-                            <Badge
-                              variant={e.status_empresa === "Ativa" ? "default" : "secondary"}
-                              className="rounded-md"
-                            >
-                              {e.status_empresa}
-                            </Badge>
+                            <div className="flex items-center justify-end gap-2">
+                              {enviado && (
+                                <Badge variant="outline" className="rounded-md gap-1 border-success/40 text-success">
+                                  <Paperclip className="h-3 w-3" /> Enviado
+                                </Badge>
+                              )}
+                              <Badge
+                                variant={e.status_empresa === "Ativa" ? "default" : "secondary"}
+                                className="rounded-md"
+                              >
+                                {e.status_empresa}
+                              </Badge>
+                            </div>
                           </TableCell>
                         </TableRow>
-                      ))
+                      );})
+
                     )}
                   </TableBody>
                 </Table>
