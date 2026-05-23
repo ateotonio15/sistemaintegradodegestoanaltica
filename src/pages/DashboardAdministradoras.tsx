@@ -75,6 +75,25 @@ export default function DashboardAdministradoras() {
     enabled: empresaIds.length > 0,
   });
 
+  const movIds = useMemo(() => movsMes.map((m) => m.id), [movsMes]);
+
+  const { data: anexosCount = {} } = useQuery({
+    queryKey: ["anexos-count-administradoras", movIds.join(",")],
+    enabled: movIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anexos_movimentacao")
+        .select("movimentacao_id")
+        .in("movimentacao_id", movIds);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach((a: any) => {
+        counts[a.movimentacao_id] = (counts[a.movimentacao_id] ?? 0) + 1;
+      });
+      return counts;
+    },
+  });
+
   const ativas = useMemo(() => empresas.filter((e) => e.status_empresa === "Ativa"), [empresas]);
   const totalVidas = useMemo(() => ativas.reduce((s, e) => s + (e.vidas ?? 0), 0), [ativas]);
   const implantadas = useMemo(() => ativas.filter((e) => !!e.data_implantacao), [ativas]);
