@@ -47,9 +47,24 @@ export default function DashboardVendas() {
     enabled: !!user?.id,
   });
 
+  const now = new Date();
+  const mesAtual = now.getMonth();
+  const anoAtual = now.getFullYear();
+
+  const isImplantadoNoMes = (i: any) => {
+    if (i.status !== "implantado" || !i.implantado_em) return false;
+    const d = new Date(i.implantado_em);
+    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  };
+
   const emAndamento = useMemo(
-    () => items.filter((i) => i.status !== "implantado" && i.status !== "rejeitado"),
-    [items]
+    () =>
+      items.filter(
+        (i) =>
+          (i.status !== "implantado" && i.status !== "rejeitado") ||
+          isImplantadoNoMes(i)
+      ),
+    [items, mesAtual, anoAtual]
   );
 
   const filtered = useMemo(() => {
@@ -70,12 +85,11 @@ export default function DashboardVendas() {
   }, [items]);
 
   const totalVidas = useMemo(
-    () => items.reduce((acc, i) => acc + (i.total_vidas || 0), 0),
-    [items]
+    () => items.filter(isImplantadoNoMes).reduce((acc, i) => acc + (i.total_vidas || 0), 0),
+    [items, mesAtual, anoAtual]
   );
 
-  const mesAtual = new Date().getMonth();
-  const implantadosMes = items.filter((i) => i.status === "implantado" && i.implantado_em && new Date(i.implantado_em).getMonth() === mesAtual).length;
+  const implantadosMes = items.filter(isImplantadoNoMes).length;
 
   const handleNew = async () => {
     const { data: prof } = await supabase.from("profiles").select("display_name").eq("user_id", user!.id).maybeSingle();
