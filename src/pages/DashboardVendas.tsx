@@ -143,7 +143,7 @@ export default function DashboardVendas() {
           <Kpi icon={<CheckCircle2 />} label="Aprovados" value={(counts.aprovado_diretoria || 0) + (counts.enviado_cadastro || 0)} accent="text-emerald-500" />
           <Kpi icon={<CheckCircle2 />} label="Implantados" value={counts.implantado || 0} accent="text-emerald-600" />
           <Kpi icon={<TrendingUp />} label="Implantados no mês" value={implantadosMes} accent="text-emerald-600" />
-          <Kpi icon={<Users />} label="Vidas totais" value={totalVidas} accent="text-primary" />
+          <Kpi icon={<Users />} label="Vidas no mês" value={totalVidas} accent="text-primary" />
           <Kpi icon={<XCircle />} label="Rejeitados" value={counts.rejeitado || 0} accent="text-red-500" />
         </div>
 
