@@ -13,6 +13,7 @@ import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, Search,
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { toast } from "sonner";
 
 type Empresa = Tables<"empresas">;
@@ -38,6 +39,7 @@ export default function DashboardAdministradoras() {
   const [implFilter, setImplFilter] = useState<string>("all");
   const [selectedEmpresa, setSelectedEmpresa] = useState<Empresa | null>(null);
   const [editEnvio, setEditEnvio] = useState<string>("");
+  const [anexosViewer, setAnexosViewer] = useState<{ empresa: Empresa; periodo: string } | null>(null);
   const queryClient = useQueryClient();
 
   const { data: empresas = [], isLoading } = useQuery({
@@ -269,7 +271,13 @@ export default function DashboardAdministradoras() {
                           <TableCell className="text-center">
                             <Badge
                               variant="outline"
-                              className={`rounded-md gap-1 ${qtdAnexos > 0 ? "border-info/40 text-info" : "text-muted-foreground"}`}
+                              className={`rounded-md gap-1 ${qtdAnexos > 0 ? "border-info/40 text-info cursor-pointer hover:bg-info/10" : "text-muted-foreground"}`}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                if (qtdAnexos > 0 && mov) {
+                                  setAnexosViewer({ empresa: e, periodo: mov.periodo });
+                                }
+                              }}
                             >
                               <Paperclip className="h-3 w-3" /> {qtdAnexos}
                             </Badge>
@@ -370,6 +378,15 @@ export default function DashboardAdministradoras() {
           queryClient.invalidateQueries({ queryKey: ["movs-administradoras"] });
           queryClient.invalidateQueries({ queryKey: ["anexos-count-administradoras"] });
         }}
+      />
+
+      <AnexosViewerDialog
+        open={!!anexosViewer}
+        onOpenChange={(v) => !v && setAnexosViewer(null)}
+        empresaId={anexosViewer?.empresa.id ?? null}
+        empresaNome={anexosViewer?.empresa.nome ?? ""}
+        mesReferencia={mesRef}
+        periodo={anexosViewer?.periodo ?? ""}
       />
     </div>
   );
