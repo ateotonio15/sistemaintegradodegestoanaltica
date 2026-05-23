@@ -223,18 +223,21 @@ export default function DashboardAdministradoras() {
                       <TableHead className="font-semibold text-center">Vidas</TableHead>
                       <TableHead className="font-semibold">Corte</TableHead>
                       <TableHead className="font-semibold">Implantação</TableHead>
+                      <TableHead className="font-semibold">Enviado Financ.</TableHead>
+                      <TableHead className="font-semibold text-center">Anexos</TableHead>
                       <TableHead className="font-semibold text-right">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
                     ) : filtered.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
                     ) : (
                       filtered.map((e) => {
                         const mov = movsMes.find((m) => m.empresa_id === e.id);
                         const enviado = !!mov?.data_envio_financeiro;
+                        const qtdAnexos = mov ? (anexosCount[mov.id] ?? 0) : 0;
                         return (
                         <TableRow
                           key={e.id}
@@ -254,23 +257,34 @@ export default function DashboardAdministradoras() {
                             ) : "—"}
                           </TableCell>
                           <TableCell>{e.data_implantacao ? formatDateBR(e.data_implantacao) : <Badge variant="outline" className="rounded-md">Aguardando</Badge>}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {enviado && (
-                                <Badge variant="outline" className="rounded-md gap-1 border-success/40 text-success">
-                                  <Paperclip className="h-3 w-3" /> Enviado
-                                </Badge>
-                              )}
-                              <Badge
-                                variant={e.status_empresa === "Ativa" ? "default" : "secondary"}
-                                className="rounded-md"
-                              >
-                                {e.status_empresa}
+                          <TableCell>
+                            {enviado ? (
+                              <Badge variant="outline" className="rounded-md border-success/40 text-success">
+                                {formatDateBR(mov!.data_envio_financeiro)}
                               </Badge>
-                            </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant="outline"
+                              className={`rounded-md gap-1 ${qtdAnexos > 0 ? "border-info/40 text-info" : "text-muted-foreground"}`}
+                            >
+                              <Paperclip className="h-3 w-3" /> {qtdAnexos}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge
+                              variant={e.status_empresa === "Ativa" ? "default" : "secondary"}
+                              className="rounded-md"
+                            >
+                              {e.status_empresa}
+                            </Badge>
                           </TableCell>
                         </TableRow>
                       );})
+
 
                     )}
                   </TableBody>
