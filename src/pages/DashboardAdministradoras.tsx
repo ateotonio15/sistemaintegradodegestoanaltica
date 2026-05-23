@@ -13,6 +13,7 @@ import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, Search,
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { toast } from "sonner";
 
 type Empresa = Tables<"empresas">;
