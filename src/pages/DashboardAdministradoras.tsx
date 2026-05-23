@@ -271,7 +271,13 @@ export default function DashboardAdministradoras() {
                           <TableCell className="text-center">
                             <Badge
                               variant="outline"
-                              className={`rounded-md gap-1 ${qtdAnexos > 0 ? "border-info/40 text-info" : "text-muted-foreground"}`}
+                              className={`rounded-md gap-1 ${qtdAnexos > 0 ? "border-info/40 text-info cursor-pointer hover:bg-info/10" : "text-muted-foreground"}`}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                if (qtdAnexos > 0 && mov) {
+                                  setAnexosViewer({ empresa: e, periodo: mov.periodo });
+                                }
+                              }}
                             >
                               <Paperclip className="h-3 w-3" /> {qtdAnexos}
                             </Badge>
