@@ -47,9 +47,24 @@ export default function DashboardVendas() {
     enabled: !!user?.id,
   });
 
+  const now = new Date();
+  const mesAtual = now.getMonth();
+  const anoAtual = now.getFullYear();
+
+  const isImplantadoNoMes = (i: any) => {
+    if (i.status !== "implantado" || !i.implantado_em) return false;
+    const d = new Date(i.implantado_em);
+    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  };
+
   const emAndamento = useMemo(
-    () => items.filter((i) => i.status !== "implantado" && i.status !== "rejeitado"),
-    [items]
+    () =>
+      items.filter(
+        (i) =>
+          (i.status !== "implantado" && i.status !== "rejeitado") ||
+          isImplantadoNoMes(i)
+      ),
+    [items, mesAtual, anoAtual]
   );
 
   const filtered = useMemo(() => {
@@ -70,12 +85,11 @@ export default function DashboardVendas() {
   }, [items]);
 
   const totalVidas = useMemo(
-    () => items.reduce((acc, i) => acc + (i.total_vidas || 0), 0),
-    [items]
+    () => items.filter(isImplantadoNoMes).reduce((acc, i) => acc + (i.total_vidas || 0), 0),
+    [items, mesAtual, anoAtual]
   );
 
-  const mesAtual = new Date().getMonth();
-  const implantadosMes = items.filter((i) => i.status === "implantado" && i.implantado_em && new Date(i.implantado_em).getMonth() === mesAtual).length;
+  const implantadosMes = items.filter(isImplantadoNoMes).length;
 
   const handleNew = async () => {
     const { data: prof } = await supabase.from("profiles").select("display_name").eq("user_id", user!.id).maybeSingle();
@@ -129,7 +143,7 @@ export default function DashboardVendas() {
           <Kpi icon={<CheckCircle2 />} label="Aprovados" value={(counts.aprovado_diretoria || 0) + (counts.enviado_cadastro || 0)} accent="text-emerald-500" />
           <Kpi icon={<CheckCircle2 />} label="Implantados" value={counts.implantado || 0} accent="text-emerald-600" />
           <Kpi icon={<TrendingUp />} label="Implantados no mês" value={implantadosMes} accent="text-emerald-600" />
-          <Kpi icon={<Users />} label="Vidas totais" value={totalVidas} accent="text-primary" />
+          <Kpi icon={<Users />} label="Vidas no mês" value={totalVidas} accent="text-primary" />
           <Kpi icon={<XCircle />} label="Rejeitados" value={counts.rejeitado || 0} accent="text-red-500" />
         </div>
 
