@@ -114,7 +114,7 @@ export default function DashboardAdministradoras() {
   }, [ativas]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dashboard Administradoras</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -130,165 +130,201 @@ export default function DashboardAdministradoras() {
           icon={CalendarClock}
           label="Próximo Fechamento"
           value={proximoFechamento ? formatDateBR(proximoFechamento.toISOString().slice(0, 10)) : "—"}
+          highlight
         />
         <KpiCard icon={FileSignature} label="Contratos Pendentes" value={aguardando.length} />
-        <KpiCard icon={ArrowLeftRight} label="Movimentações do Mês" value={movsMes.length} />
+        <KpiCard icon={ArrowLeftRight} label="Movimentações do Mês" value={movsMes.length} accent="amber" />
       </div>
 
-      {/* Próximos fechamentos por corte */}
-      <Card className="rounded-xl shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <CalendarClock className="h-4 w-4 text-primary" />
-            Próximos fechamentos por data de corte
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {CORTE_OPTIONS.map((dia) => {
-              const list = proximosFechamentosPorCorte[dia] ?? [];
-              return (
-                <div key={dia} className="rounded-lg border border-border/60 bg-accent/20 p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-                      Dia {String(dia).padStart(2, "0")}
-                    </span>
-                    <Badge variant="secondary" className="rounded-md">{list.length}</Badge>
-                  </div>
-                  <p className="text-sm mt-1 text-foreground/80">
-                    {list.length === 0 ? "Nenhuma" : `${list.length} contrato(s)`}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Left: Filters + Table */}
+        <div className="lg:col-span-3 space-y-6">
+          <Card className="rounded-xl shadow-sm">
+            <CardContent className="p-3 flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[260px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, código ou CNPJ..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 rounded-lg"
+                />
+              </div>
+              <Select value={corteFilter} onValueChange={setCorteFilter}>
+                <SelectTrigger className="w-[160px] rounded-lg"><SelectValue placeholder="Período corte" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os cortes</SelectItem>
+                  {CORTE_OPTIONS.map((d) => (
+                    <SelectItem key={d} value={String(d)}>Dia {String(d).padStart(2, "0")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px] rounded-lg"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos status</SelectItem>
+                  <SelectItem value="Ativa">Ativa</SelectItem>
+                  <SelectItem value="Inativa">Inativa</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={implFilter} onValueChange={setImplFilter}>
+                <SelectTrigger className="w-[180px] rounded-lg"><SelectValue placeholder="Implantação" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas implantações</SelectItem>
+                  <SelectItem value="implantada">Implantadas</SelectItem>
+                  <SelectItem value="aguardando">Aguardando</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
 
-      {/* Movimentações pendentes */}
-      <Card className="rounded-xl shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <ListChecks className="h-4 w-4 text-primary" />
-            Movimentações pendentes — {mesRef}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {movsPendentes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma movimentação pendente neste mês.</p>
-          ) : (
-            <p className="text-sm">
-              <span className="text-2xl font-bold text-primary">{movsPendentes.length}</span>{" "}
-              <span className="text-muted-foreground">movimentação(ões) aguardando envio ao financeiro.</span>
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Filtros */}
-      <Card className="rounded-xl shadow-sm">
-        <CardContent className="p-4 flex flex-wrap items-center gap-3">
-          <div className="relative max-w-sm flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, código ou CNPJ..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 rounded-lg"
-            />
-          </div>
-          <Select value={corteFilter} onValueChange={setCorteFilter}>
-            <SelectTrigger className="w-[180px] rounded-lg"><SelectValue placeholder="Período corte" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os cortes</SelectItem>
-              {CORTE_OPTIONS.map((d) => (
-                <SelectItem key={d} value={String(d)}>Dia {String(d).padStart(2, "0")}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px] rounded-lg"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos status</SelectItem>
-              <SelectItem value="Ativa">Ativa</SelectItem>
-              <SelectItem value="Inativa">Inativa</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={implFilter} onValueChange={setImplFilter}>
-            <SelectTrigger className="w-[200px] rounded-lg"><SelectValue placeholder="Implantação" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas implantações</SelectItem>
-              <SelectItem value="implantada">Implantadas</SelectItem>
-              <SelectItem value="aguardando">Aguardando</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      {/* Lista de contratos */}
-      <Card className="rounded-xl shadow-sm overflow-hidden">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">
-            Contratos ({filtered.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-accent/20 hover:bg-accent/20">
-                  <TableHead className="font-semibold">Nome</TableHead>
-                  <TableHead className="font-semibold">CNPJ</TableHead>
-                  <TableHead className="font-semibold">Código</TableHead>
-                  <TableHead className="font-semibold text-right">Vidas</TableHead>
-                  <TableHead className="font-semibold">Data Corte</TableHead>
-                  <TableHead className="font-semibold">Implantação</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
-                ) : (
-                  filtered.map((e) => (
-                    <TableRow key={e.id} className="hover:bg-accent/40 transition-colors">
-                      <TableCell className="font-medium">{e.nome}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{e.cnpj || "—"}</TableCell>
-                      <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{(e.vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
-                      <TableCell>{e.data_corte ? `Dia ${String(e.data_corte).padStart(2, "0")}` : "—"}</TableCell>
-                      <TableCell>{e.data_implantacao ? formatDateBR(e.data_implantacao) : <Badge variant="outline" className="rounded-md">Aguardando</Badge>}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={e.status_empresa === "Ativa" ? "default" : "secondary"}
-                          className="rounded-md"
-                        >
-                          {e.status_empresa}
-                        </Badge>
-                      </TableCell>
+          <Card className="rounded-xl shadow-sm overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">
+                Contratos <span className="text-muted-foreground font-normal ml-1">({filtered.length})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-accent/20 hover:bg-accent/20">
+                      <TableHead className="font-semibold">Nome</TableHead>
+                      <TableHead className="font-semibold">CNPJ</TableHead>
+                      <TableHead className="font-semibold">Código</TableHead>
+                      <TableHead className="font-semibold text-center">Vidas</TableHead>
+                      <TableHead className="font-semibold">Corte</TableHead>
+                      <TableHead className="font-semibold">Implantação</TableHead>
+                      <TableHead className="font-semibold text-right">Status</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
+                    ) : filtered.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
+                    ) : (
+                      filtered.map((e) => (
+                        <TableRow key={e.id} className="hover:bg-accent/40 transition-colors">
+                          <TableCell className="font-medium">{e.nome}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{e.cnpj || "—"}</TableCell>
+                          <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
+                          <TableCell className="text-center tabular-nums">{(e.vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell>
+                            {e.data_corte ? (
+                              <Badge variant="secondary" className="rounded-md">Dia {String(e.data_corte).padStart(2, "0")}</Badge>
+                            ) : "—"}
+                          </TableCell>
+                          <TableCell>{e.data_implantacao ? formatDateBR(e.data_implantacao) : <Badge variant="outline" className="rounded-md">Aguardando</Badge>}</TableCell>
+                          <TableCell className="text-right">
+                            <Badge
+                              variant={e.status_empresa === "Ativa" ? "default" : "secondary"}
+                              className="rounded-md"
+                            >
+                              {e.status_empresa}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right: Sidebar alerts + schedules */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Pending Alert */}
+          <Card className="rounded-xl border-primary/30 bg-primary/5 relative overflow-hidden">
+            <CardContent className="p-5 relative">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-primary">
+                  Movimentações Pendentes
+                </h4>
+              </div>
+              {movsPendentes.length === 0 ? (
+                <>
+                  <p className="text-2xl font-bold">0</p>
+                  <p className="text-xs text-muted-foreground mt-1">Nenhuma pendência neste mês.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold">{movsPendentes.length} pendência{movsPendentes.length > 1 ? "s" : ""}</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-tight">
+                    — {mesRef}. Aguardando envio ao financeiro.
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Schedules */}
+          <Card className="rounded-xl shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <CalendarClock className="h-3.5 w-3.5" />
+                Próximos Fechamentos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2.5">
+              {CORTE_OPTIONS.map((dia) => {
+                const list = proximosFechamentosPorCorte[dia] ?? [];
+                const has = list.length > 0;
+                return (
+                  <div
+                    key={dia}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                      has
+                        ? "bg-primary/10 border-primary/20"
+                        : "bg-accent/10 border-border/40 opacity-60"
+                    }`}
+                  >
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Dia {String(dia).padStart(2, "0")}
+                      </p>
+                      <p className={`text-sm font-semibold ${has ? "text-foreground" : "text-muted-foreground"}`}>
+                        {has ? `${list.length} contrato${list.length > 1 ? "s" : ""}` : "Nenhuma"}
+                      </p>
+                    </div>
+                    {has && <span className="w-1 h-8 bg-primary rounded-full" />}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
 
-function KpiCard({ icon: Icon, label, value }: { icon: any; label: string; value: number | string }) {
+function KpiCard({
+  icon: Icon,
+  label,
+  value,
+  highlight,
+  accent,
+}: {
+  icon: any;
+  label: string;
+  value: number | string;
+  highlight?: boolean;
+  accent?: "amber";
+}) {
+  const iconBg = accent === "amber" ? "bg-amber-500/10 text-amber-500" : "bg-primary/10 text-primary";
   return (
-    <Card className="rounded-xl shadow-sm">
-      <CardContent className="p-4 flex items-center gap-4">
-        <div className="p-3 rounded-xl bg-primary/10">
-          <Icon className="h-5 w-5 text-primary" />
+    <Card className={`rounded-xl shadow-sm ${highlight ? "border-primary/30 bg-primary/5" : ""}`}>
+      <CardContent className="p-4 flex items-center gap-3">
+        <div className={`p-2.5 rounded-lg ${iconBg}`}>
+          <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider truncate">{label}</p>
+          <p className={`text-[10px] font-bold uppercase tracking-wider truncate ${highlight ? "text-primary" : "text-muted-foreground"}`}>{label}</p>
           <p className="text-xl font-bold tabular-nums mt-0.5 truncate">{value}</p>
         </div>
       </CardContent>
