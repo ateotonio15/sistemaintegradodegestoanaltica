@@ -73,12 +73,10 @@ export function setUnauthorizedHandler(fn: (() => void) | null) {
 }
 
 async function authedFetch(path: string, init: RequestInit = {}, retried = false): Promise<Response> {
-  let token = getToken();
+  const token = getToken();
   if (!token) {
-    try { token = await login(); } catch (e) {
-      if (onUnauthorized) onUnauthorized();
-      throw e;
-    }
+    if (onUnauthorized) onUnauthorized();
+    throw new Error("Não autorizado. Faça login novamente.");
   }
   const headers = new Headers(init.headers || {});
   headers.set("Authorization", `Bearer ${token}`);
@@ -87,13 +85,8 @@ async function authedFetch(path: string, init: RequestInit = {}, retried = false
   const res = await fetch(`${VIDAS_API_BASE_URL}${path}`, { ...init, headers });
   if (res.status === 401 && !retried) {
     clearToken();
-    try {
-      await login();
-      return authedFetch(path, init, true);
-    } catch {
-      if (onUnauthorized) onUnauthorized();
-      throw new Error("Não autorizado. Faça login novamente.");
-    }
+    if (onUnauthorized) onUnauthorized();
+    throw new Error("Não autorizado. Faça login novamente.");
   }
   return res;
 }
