@@ -156,7 +156,7 @@ export function ContratosAVigenciarCard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("implantacao_anexos" as any)
-        .select("id, implantacao_id, nome_arquivo, storage_path, mime_type, tamanho_bytes, created_at")
+        .select("id, implantacao_id, nome_arquivo, storage_path, mime_type, tamanho_bytes, created_at, uploaded_by")
         .in("implantacao_id", implIdsForAnexos)
         .order("created_at", { ascending: false });
       if (error) throw error;
