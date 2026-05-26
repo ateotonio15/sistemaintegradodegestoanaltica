@@ -177,6 +177,13 @@ export function ContratosAVigenciarCard() {
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0 || !openRow) return;
+    if (!openRow.implantacao_id) {
+      toast.error(
+        "Esta empresa ainda não possui uma implantação registrada. Crie a implantação para anexar documentos.",
+      );
+      return;
+    }
+    const implId = openRow.implantacao_id;
     setUploading(true);
     try {
       const { data: u } = await supabase.auth.getUser();
@@ -186,7 +193,7 @@ export function ContratosAVigenciarCard() {
           .replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-zA-Z0-9._-]/g, "_")
           .replace(/_+/g, "_");
-        const path = `${openRow.id}/complementar/${Date.now()}-${safeName}`;
+        const path = `${implId}/complementar/${Date.now()}-${safeName}`;
         const { error: upErr } = await supabase.storage
           .from("anexos-implantacao")
           .upload(path, file, {
@@ -195,7 +202,7 @@ export function ContratosAVigenciarCard() {
           });
         if (upErr) throw upErr;
         const { error: insErr } = await supabase.from("implantacao_anexos" as any).insert({
-          implantacao_id: openRow.id,
+          implantacao_id: implId,
           tipo: "complementar",
           nome_arquivo: file.name,
           storage_path: path,
