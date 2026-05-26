@@ -27,12 +27,17 @@ import { formatDateBR } from "@/lib/date-utils";
 import { useAuth } from "@/hooks/useAuth";
 
 type Row = {
+  /** key for the row (implantacao_id when present, else empresa_id) */
   id: string;
+  /** implantacao_contratos.id when available — required for uploading anexos */
+  implantacao_id: string | null;
+  empresa_id: string | null;
   nome_empresa: string | null;
   codigo_contrato: string | null;
   total_vidas: number | null;
   data_vigencia: string | null;
-  status: string;
+  status: string | null;
+  origem: "implantacao" | "empresa";
 };
 
 type Anexo = {
@@ -69,26 +74,87 @@ export function ContratosAVigenciarCard() {
   const { data: rows = [], isFetching } = useQuery({
     queryKey: ["contratos-a-vigenciar"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // 1) Implantações com vigência futura
+      const implP = supabase
         .from("implantacoes_contratos")
-        .select("id, nome_empresa, codigo_contrato, total_vidas, data_vigencia, status")
+        .select("id, empresa_id, nome_empresa, codigo_contrato, total_vidas, data_vigencia, status")
         .gte("data_vigencia", todayIso)
-        .not("status", "in", '("implantado","rejeitado")')
-        .order("data_vigencia", { ascending: true });
-      if (error) throw error;
-      return (data || []) as Row[];
+        .not("status", "in", '("implantado","rejeitado")');
+      // 2) Empresas "novas": sem data de implantação ou com implantação futura
+      const empP = supabase
+        .from("empresas")
+        .select("id, nome, codigo_contrato, vidas, data_implantacao, status_empresa")
+        .or(`data_implantacao.is.null,data_implantacao.gt.${todayIso}`);
+
+      const [implRes, empRes] = await Promise.all([implP, empP]);
+      if (implRes.error) throw implRes.error;
+      if (empRes.error) throw empRes.error;
+
+      // Mapa empresa_id -> implantacao mais recente (qualquer status), para anexar arquivos
+      const empresaIds = (empRes.data || []).map((e: any) => e.id);
+      let implByEmpresa: Record<string, string> = {};
+      if (empresaIds.length > 0) {
+        const { data: linked } = await supabase
+          .from("implantacoes_contratos")
+          .select("id, empresa_id, created_at")
+          .in("empresa_id", empresaIds)
+          .order("created_at", { ascending: false });
+        ((linked as any[]) || []).forEach((l) => {
+          if (l.empresa_id && !implByEmpresa[l.empresa_id]) implByEmpresa[l.empresa_id] = l.id;
+        });
+      }
+
+      const implRows: Row[] = ((implRes.data as any[]) || []).map((r) => ({
+        id: r.id,
+        implantacao_id: r.id,
+        empresa_id: r.empresa_id,
+        nome_empresa: r.nome_empresa,
+        codigo_contrato: r.codigo_contrato,
+        total_vidas: r.total_vidas,
+        data_vigencia: r.data_vigencia,
+        status: r.status,
+        origem: "implantacao",
+      }));
+      const implEmpresaIds = new Set(implRows.map((r) => r.empresa_id).filter(Boolean) as string[]);
+      const empRows: Row[] = ((empRes.data as any[]) || [])
+        .filter((e) => !implEmpresaIds.has(e.id))
+        .map((e) => ({
+          id: e.id,
+          implantacao_id: implByEmpresa[e.id] || null,
+          empresa_id: e.id,
+          nome_empresa: e.nome,
+          codigo_contrato: e.codigo_contrato,
+          total_vidas: e.vidas,
+          data_vigencia: e.data_implantacao,
+          status: e.status_empresa,
+          origem: "empresa",
+        }));
+
+      const all = [...implRows, ...empRows];
+      // Ordena por data (nulls por último)
+      all.sort((a, b) => {
+        if (!a.data_vigencia && !b.data_vigencia) return 0;
+        if (!a.data_vigencia) return 1;
+        if (!b.data_vigencia) return -1;
+        return a.data_vigencia.localeCompare(b.data_vigencia);
+      });
+      return all;
     },
   });
 
+  const implIdsForAnexos = useMemo(
+    () => rows.map((r) => r.implantacao_id).filter(Boolean) as string[],
+    [rows],
+  );
+
   const { data: anexosByImpl = {} } = useQuery({
-    queryKey: ["contratos-a-vigenciar-anexos", rows.map((r) => r.id)],
-    enabled: rows.length > 0,
+    queryKey: ["contratos-a-vigenciar-anexos", implIdsForAnexos],
+    enabled: implIdsForAnexos.length > 0,
     queryFn: async () => {
-      const ids = rows.map((r) => r.id);
       const { data, error } = await supabase
         .from("implantacao_anexos" as any)
         .select("id, implantacao_id, nome_arquivo, storage_path, mime_type, tamanho_bytes, created_at")
-        .in("implantacao_id", ids)
+        .in("implantacao_id", implIdsForAnexos)
         .order("created_at", { ascending: false });
       if (error) throw error;
       const map: Record<string, Anexo[]> = {};
@@ -111,6 +177,13 @@ export function ContratosAVigenciarCard() {
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0 || !openRow) return;
+    if (!openRow.implantacao_id) {
+      toast.error(
+        "Esta empresa ainda não possui uma implantação registrada. Crie a implantação para anexar documentos.",
+      );
+      return;
+    }
+    const implId = openRow.implantacao_id;
     setUploading(true);
     try {
       const { data: u } = await supabase.auth.getUser();
@@ -120,7 +193,7 @@ export function ContratosAVigenciarCard() {
           .replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-zA-Z0-9._-]/g, "_")
           .replace(/_+/g, "_");
-        const path = `${openRow.id}/complementar/${Date.now()}-${safeName}`;
+        const path = `${implId}/complementar/${Date.now()}-${safeName}`;
         const { error: upErr } = await supabase.storage
           .from("anexos-implantacao")
           .upload(path, file, {
@@ -129,7 +202,7 @@ export function ContratosAVigenciarCard() {
           });
         if (upErr) throw upErr;
         const { error: insErr } = await supabase.from("implantacao_anexos" as any).insert({
-          implantacao_id: openRow.id,
+          implantacao_id: implId,
           tipo: "complementar",
           nome_arquivo: file.name,
           storage_path: path,
@@ -195,7 +268,7 @@ export function ContratosAVigenciarCard() {
           ) : (
             <div className="divide-y">
               {filtered.map((r) => {
-                const anexos = anexosByImpl[r.id] || [];
+                const anexos = r.implantacao_id ? anexosByImpl[r.implantacao_id] || [] : [];
                 const dias = daysUntil(r.data_vigencia);
                 const proximo = dias !== null && dias <= 7;
                 return (
@@ -213,19 +286,24 @@ export function ContratosAVigenciarCard() {
                             {r.codigo_contrato}
                           </Badge>
                         )}
+                        {r.origem === "empresa" && (
+                          <Badge variant="outline" className="text-xs bg-info/10 text-info border-info/30">
+                            Nova Empresa
+                          </Badge>
+                        )}
                         <Badge
                           variant={proximo ? "destructive" : "secondary"}
                           className="text-xs gap-1"
                         >
                           <Calendar className="h-3 w-3" />
-                          {formatDateBR(r.data_vigencia)}
+                          {r.data_vigencia ? formatDateBR(r.data_vigencia) : "Sem data"}
                           {dias !== null && (
                             <span className="opacity-80">
                               · {dias === 0 ? "hoje" : `em ${dias}d`}
                             </span>
                           )}
                         </Badge>
-                        {r.total_vidas != null && (
+                        {r.total_vidas != null && r.total_vidas > 0 && (
                           <Badge variant="outline" className="text-xs gap-1">
                             <Users className="h-3 w-3" />
                             {r.total_vidas} vidas
@@ -261,78 +339,86 @@ export function ContratosAVigenciarCard() {
               Anexos — {openRow?.nome_empresa}
             </DialogTitle>
           </DialogHeader>
-          {openRow && (
-            <div className="space-y-4">
-              {canManage && (
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => handleUpload(e.target.files)}
-                  />
-                  <Button
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="gap-2 rounded-lg"
-                  >
-                    <Upload className="h-4 w-4" />
-                    {uploading ? "Enviando..." : "Anexar documento"}
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    PDF, imagens ou planilhas
-                  </span>
-                </div>
-              )}
-              <div className="border rounded-lg divide-y max-h-[400px] overflow-y-auto">
-                {(anexosByImpl[openRow.id] || []).length === 0 ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">
-                    Nenhum anexo enviado.
+          {openRow && (() => {
+            const implId = openRow.implantacao_id;
+            const list = implId ? anexosByImpl[implId] || [] : [];
+            return (
+              <div className="space-y-4">
+                {!implId && (
+                  <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-300">
+                    Esta empresa ainda não possui uma implantação registrada.
+                    Crie a implantação na aba <strong>Implantação</strong> para anexar documentos.
                   </div>
-                ) : (
-                  (anexosByImpl[openRow.id] || []).map((a) => (
-                    <div
-                      key={a.id}
-                      className="p-3 flex items-center gap-3 hover:bg-accent/30"
+                )}
+                {canManage && implId && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => handleUpload(e.target.files)}
+                    />
+                    <Button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                      className="gap-2 rounded-lg"
                     >
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {a.nome_arquivo}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDateBR(a.created_at)}
-                          {a.tamanho_bytes != null && (
-                            <span> · {(a.tamanho_bytes / 1024).toFixed(0)} KB</span>
-                          )}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDownload(a)}
-                        title="Baixar"
+                      <Upload className="h-4 w-4" />
+                      {uploading ? "Enviando..." : "Anexar documento"}
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      PDF, imagens ou planilhas
+                    </span>
+                  </div>
+                )}
+                <div className="border rounded-lg divide-y max-h-[400px] overflow-y-auto">
+                  {list.length === 0 ? (
+                    <div className="p-6 text-center text-sm text-muted-foreground">
+                      Nenhum anexo enviado.
+                    </div>
+                  ) : (
+                    list.map((a) => (
+                      <div
+                        key={a.id}
+                        className="p-3 flex items-center gap-3 hover:bg-accent/30"
                       >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      {canManage && (
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{a.nome_arquivo}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDateBR(a.created_at)}
+                            {a.tamanho_bytes != null && (
+                              <span> · {(a.tamanho_bytes / 1024).toFixed(0)} KB</span>
+                            )}
+                          </p>
+                        </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(a)}
-                          title="Excluir"
-                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDownload(a)}
+                          title="Baixar"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Download className="h-4 w-4" />
                         </Button>
-                      )}
-                    </div>
-                  ))
-                )}
+                        {canManage && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(a)}
+                            title="Excluir"
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </>
