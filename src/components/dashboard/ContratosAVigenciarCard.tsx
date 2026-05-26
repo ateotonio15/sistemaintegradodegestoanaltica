@@ -378,7 +378,7 @@ export function ContratosAVigenciarCard() {
             const list = implId ? anexosByImpl[implId] || [] : [];
             return (
               <div className="space-y-4">
-                {canManage && (
+                {canUpload && (
                   <div className="flex items-center gap-2">
                     <input
                       ref={fileRef}
