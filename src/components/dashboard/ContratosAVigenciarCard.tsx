@@ -47,6 +47,7 @@ type Anexo = {
   mime_type: string | null;
   tamanho_bytes: number | null;
   created_at: string;
+  uploaded_by: string | null;
 };
 
 function daysUntil(iso: string | null): number | null {
