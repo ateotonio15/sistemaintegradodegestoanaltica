@@ -719,7 +719,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                     className="flex items-center gap-2 text-sm bg-muted/50 rounded-md px-2.5 py-1.5"
                   >
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1 truncate" title={a.nome_arquivo}>
+                    <span className="flex-1 min-w-0 truncate" title={a.nome_arquivo}>
                       {a.nome_arquivo}
                     </span>
                     <span className="text-xs text-muted-foreground shrink-0">
