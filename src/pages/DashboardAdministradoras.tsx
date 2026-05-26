@@ -42,6 +42,8 @@ export default function DashboardAdministradoras() {
   const [selectedEmpresa, setSelectedEmpresa] = useState<Empresa | null>(null);
   const [editEnvio, setEditEnvio] = useState<string>("");
   const [anexosViewer, setAnexosViewer] = useState<{ empresa: Empresa; periodo: string } | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const { isAdmin, isComum } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: empresas = [], isLoading } = useQuery({
