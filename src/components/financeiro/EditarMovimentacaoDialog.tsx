@@ -424,15 +424,15 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Editar movimentação</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="max-w-full truncate">
             {empresaNome} · {movimentacao.mes_referencia} · período {movimentacao.periodo}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {temIrmaos && (
             <div className="flex items-start gap-2 rounded-lg border border-info/30 bg-info/5 px-3 py-2 text-xs">
               <Users className="h-4 w-4 text-info shrink-0 mt-0.5" />
@@ -685,8 +685,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             )}
           </div>
 
-          <div className="rounded-lg border border-border p-3 space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="min-w-0 rounded-lg border border-border p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Paperclip className="h-4 w-4 text-info" />
                 Anexos ({anexos.length})
@@ -712,14 +712,14 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                 Nenhum anexo. Aceita PDF, Excel e CSV.
               </p>
             ) : (
-              <ul className="space-y-1.5">
+              <ul className="min-w-0 space-y-1.5">
                 {anexos.map((a) => (
                   <li
                     key={a.id}
-                    className="flex items-center gap-2 text-sm bg-muted/50 rounded-md px-2.5 py-1.5"
+                    className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
                   >
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1 min-w-0 truncate" title={a.nome_arquivo}>
+                    <span className="min-w-0 truncate" title={a.nome_arquivo}>
                       {a.nome_arquivo}
                     </span>
                     <span className="text-xs text-muted-foreground shrink-0">
@@ -728,7 +728,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-7 w-7 shrink-0"
                       onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}
                     >
                       <Download className="h-3.5 w-3.5" />
@@ -736,7 +736,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
                       onClick={() => handleDelete(a.id, a.storage_path)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
