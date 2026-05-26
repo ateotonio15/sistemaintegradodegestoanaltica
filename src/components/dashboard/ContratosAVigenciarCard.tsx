@@ -371,13 +371,7 @@ export function ContratosAVigenciarCard() {
             const list = implId ? anexosByImpl[implId] || [] : [];
             return (
               <div className="space-y-4">
-                {!implId && (
-                  <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-300">
-                    Esta empresa ainda não possui uma implantação registrada.
-                    Crie a implantação na aba <strong>Implantação</strong> para anexar documentos.
-                  </div>
-                )}
-                {canManage && implId && (
+                {canManage && (
                   <div className="flex items-center gap-2">
                     <input
                       ref={fileRef}
