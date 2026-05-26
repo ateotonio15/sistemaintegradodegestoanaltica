@@ -284,6 +284,102 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
 
         <nav className="flex-1 flex flex-col gap-1 p-3 overflow-y-auto">
           {navItems.map((item) => {
+            // Grupo "Painéis" (admin) — colapsável com subitens
+            if ("children" in item && item.children) {
+              const groupActive = item.children.some((c) => isActive(c.to));
+              if (collapsed) {
+                return (
+                  <Popover key={item.to}>
+                    <PopoverTrigger asChild>
+                      <button
+                        className={cn(
+                          "group relative flex items-center justify-center rounded-xl px-0 py-2.5 text-[13.5px] font-medium transition-all duration-200",
+                          groupActive
+                            ? "nav-pill-active text-primary"
+                            : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/70"
+                        )}
+                        title={item.label}
+                      >
+                        <item.icon className="h-[18px] w-[18px] shrink-0" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent side="right" align="start" className="w-56 p-1">
+                      {item.children.map((c) => {
+                        const cActive = isActive(c.to);
+                        return (
+                          <Link
+                            key={c.to}
+                            to={c.to}
+                            className={cn(
+                              "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
+                              cActive
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "text-foreground/80 hover:bg-accent"
+                            )}
+                          >
+                            <c.icon className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{c.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </PopoverContent>
+                  </Popover>
+                );
+              }
+              return (
+                <div key={item.to} className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => setDashOpen((v) => !v)}
+                    className={cn(
+                      "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200 w-full",
+                      groupActive
+                        ? "nav-pill-active text-primary"
+                        : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/70"
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        "h-[18px] w-[18px] shrink-0 transition-all duration-200",
+                        groupActive
+                          ? "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]"
+                          : "text-sidebar-foreground/70 group-hover:text-sidebar-foreground"
+                      )}
+                    />
+                    <span className="truncate tracking-tight flex-1 text-left">{item.label}</span>
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 shrink-0 text-sidebar-foreground/60 transition-transform duration-200",
+                        dashOpen && "rotate-180"
+                      )}
+                    />
+                  </button>
+                  {dashOpen && (
+                    <div className="mt-1 ml-3 pl-3 border-l border-sidebar-border/60 flex flex-col gap-0.5">
+                      {item.children.map((c) => {
+                        const cActive = isActive(c.to);
+                        return (
+                          <Link
+                            key={c.to}
+                            to={c.to}
+                            className={cn(
+                              "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12.5px] font-medium transition-colors",
+                              cActive
+                                ? "bg-primary/10 text-primary"
+                                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                            )}
+                          >
+                            <c.icon className="h-[15px] w-[15px] shrink-0" />
+                            <span className="truncate">{c.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             const active = isActive(item.to);
             const linkContent = (
               <Link
@@ -324,6 +420,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
 
             return linkContent;
           })}
+
         </nav>
 
         <div className={cn("border-t border-sidebar-border/70 p-3 shrink-0", collapsed && "flex justify-center")}>
