@@ -128,7 +128,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if (item.adminOnly && !isAdmin) return false;
       if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "visualizacao") return false;
       if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "visualizacao" && role !== "diretora") return false;
-      if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
+      if (item.to === "/arquivos" && !isAdmin && !isFinanceiro && role !== "comum") return false;
       if (isEnfermeira) {
         const allowed = ["/empresas", "/executivas", "/reajustes"];
         return allowed.includes(item.to);
