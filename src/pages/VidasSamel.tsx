@@ -85,10 +85,7 @@ export default function VidasSamel() {
   useEffect(() => {
     setUnauthorizedHandler(() => setLoginOpen(true));
     if (!getToken()) {
-      login().catch((e) => {
-        console.error(e);
-        setLoginOpen(true);
-      });
+      setLoginOpen(true);
     }
     return () => setUnauthorizedHandler(null);
   }, []);
