@@ -339,78 +339,86 @@ export function ContratosAVigenciarCard() {
               Anexos — {openRow?.nome_empresa}
             </DialogTitle>
           </DialogHeader>
-          {openRow && (
-            <div className="space-y-4">
-              {canManage && (
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => handleUpload(e.target.files)}
-                  />
-                  <Button
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="gap-2 rounded-lg"
-                  >
-                    <Upload className="h-4 w-4" />
-                    {uploading ? "Enviando..." : "Anexar documento"}
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    PDF, imagens ou planilhas
-                  </span>
-                </div>
-              )}
-              <div className="border rounded-lg divide-y max-h-[400px] overflow-y-auto">
-                {(anexosByImpl[openRow.id] || []).length === 0 ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">
-                    Nenhum anexo enviado.
+          {openRow && (() => {
+            const implId = openRow.implantacao_id;
+            const list = implId ? anexosByImpl[implId] || [] : [];
+            return (
+              <div className="space-y-4">
+                {!implId && (
+                  <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-300">
+                    Esta empresa ainda não possui uma implantação registrada.
+                    Crie a implantação na aba <strong>Implantação</strong> para anexar documentos.
                   </div>
-                ) : (
-                  (anexosByImpl[openRow.id] || []).map((a) => (
-                    <div
-                      key={a.id}
-                      className="p-3 flex items-center gap-3 hover:bg-accent/30"
+                )}
+                {canManage && implId && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => handleUpload(e.target.files)}
+                    />
+                    <Button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                      className="gap-2 rounded-lg"
                     >
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {a.nome_arquivo}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDateBR(a.created_at)}
-                          {a.tamanho_bytes != null && (
-                            <span> · {(a.tamanho_bytes / 1024).toFixed(0)} KB</span>
-                          )}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDownload(a)}
-                        title="Baixar"
+                      <Upload className="h-4 w-4" />
+                      {uploading ? "Enviando..." : "Anexar documento"}
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      PDF, imagens ou planilhas
+                    </span>
+                  </div>
+                )}
+                <div className="border rounded-lg divide-y max-h-[400px] overflow-y-auto">
+                  {list.length === 0 ? (
+                    <div className="p-6 text-center text-sm text-muted-foreground">
+                      Nenhum anexo enviado.
+                    </div>
+                  ) : (
+                    list.map((a) => (
+                      <div
+                        key={a.id}
+                        className="p-3 flex items-center gap-3 hover:bg-accent/30"
                       >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      {canManage && (
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{a.nome_arquivo}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDateBR(a.created_at)}
+                            {a.tamanho_bytes != null && (
+                              <span> · {(a.tamanho_bytes / 1024).toFixed(0)} KB</span>
+                            )}
+                          </p>
+                        </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(a)}
-                          title="Excluir"
-                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDownload(a)}
+                          title="Baixar"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Download className="h-4 w-4" />
                         </Button>
-                      )}
-                    </div>
-                  ))
-                )}
+                        {canManage && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(a)}
+                            title="Excluir"
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </>
