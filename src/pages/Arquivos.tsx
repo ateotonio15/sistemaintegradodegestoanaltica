@@ -159,6 +159,29 @@ export default function Arquivos() {
 
       const implMap = new Map<string, any>();
       ((implRes.data as any[]) || []).forEach((i) => implMap.set(i.id, i));
+
+      // Carrega status das empresas referenciadas para filtrar somente ATIVAS
+      const empresaIds = Array.from(
+        new Set(
+          ((implRes.data as any[]) || [])
+            .map((i) => i.empresa_id)
+            .concat(list.map((a) => a.empresa_id))
+            .filter(Boolean),
+        ),
+      ) as string[];
+      const activeEmpresaIds = new Set<string>();
+      if (empresaIds.length) {
+        const { data: emps } = await supabase
+          .from("empresas")
+          .select("id, status_empresa, contrato_suspenso")
+          .in("id", empresaIds);
+        ((emps as any[]) || []).forEach((e) => {
+          if (e.status_empresa === "Ativa" && !e.contrato_suspenso) {
+            activeEmpresaIds.add(e.id);
+          }
+        });
+      }
+
       const nameMap = new Map<string, string>();
       ((profRes.data as any[]) || []).forEach((p) =>
         nameMap.set(p.user_id, p.display_name),
@@ -189,11 +212,14 @@ export default function Arquivos() {
         };
       });
 
+      // Apenas empresas ATIVAS (status_empresa = 'Ativa' e não suspensas)
+      const onlyActive = rows.filter((r) => r.empresa_id && activeEmpresaIds.has(r.empresa_id));
+
       // Financeiro: somente os anexos que ele mesmo enviou
       if (isFinanceiro && currentUid) {
-        return rows.filter((r) => r.uploaded_by === currentUid);
+        return onlyActive.filter((r) => r.uploaded_by === currentUid);
       }
-      return rows;
+      return onlyActive;
     },
   });
 
