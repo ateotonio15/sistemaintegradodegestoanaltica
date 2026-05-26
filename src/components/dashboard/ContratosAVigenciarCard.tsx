@@ -268,7 +268,7 @@ export function ContratosAVigenciarCard() {
           ) : (
             <div className="divide-y">
               {filtered.map((r) => {
-                const anexos = anexosByImpl[r.id] || [];
+                const anexos = r.implantacao_id ? anexosByImpl[r.implantacao_id] || [] : [];
                 const dias = daysUntil(r.data_vigencia);
                 const proximo = dias !== null && dias <= 7;
                 return (
@@ -286,19 +286,24 @@ export function ContratosAVigenciarCard() {
                             {r.codigo_contrato}
                           </Badge>
                         )}
+                        {r.origem === "empresa" && (
+                          <Badge variant="outline" className="text-xs bg-info/10 text-info border-info/30">
+                            Nova Empresa
+                          </Badge>
+                        )}
                         <Badge
                           variant={proximo ? "destructive" : "secondary"}
                           className="text-xs gap-1"
                         >
                           <Calendar className="h-3 w-3" />
-                          {formatDateBR(r.data_vigencia)}
+                          {r.data_vigencia ? formatDateBR(r.data_vigencia) : "Sem data"}
                           {dias !== null && (
                             <span className="opacity-80">
                               · {dias === 0 ? "hoje" : `em ${dias}d`}
                             </span>
                           )}
                         </Badge>
-                        {r.total_vidas != null && (
+                        {r.total_vidas != null && r.total_vidas > 0 && (
                           <Badge variant="outline" className="text-xs gap-1">
                             <Users className="h-3 w-3" />
                             {r.total_vidas} vidas
