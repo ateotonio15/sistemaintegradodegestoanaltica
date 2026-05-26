@@ -29,6 +29,7 @@ import { formatDateBR } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImplantacoesAndamentoCard } from "@/components/dashboard/ImplantacoesAndamentoCard";
+import { ContratosAVigenciarCard } from "@/components/dashboard/ContratosAVigenciarCard";
 import { AlertasContratosAnaliseDiretora } from "@/components/dashboard/AlertasContratosAnaliseDiretora";
 import { AlertasContratosVendas } from "@/components/dashboard/AlertasContratosVendas";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
@@ -795,6 +796,9 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Contratos com vigência futura — pendentes de documentos */}
+        <ContratosAVigenciarCard />
 
         {/* Implantações em Andamento (substitui Faturamentos Não Enviados) */}
         <ImplantacoesAndamentoCard />
