@@ -261,7 +261,11 @@ export function ContratosAVigenciarCard() {
   };
 
   const handleDelete = async (a: Anexo) => {
-    if (!canManage) return;
+    const mine = !!currentUid && a.uploaded_by === currentUid;
+    if (!canDeleteAll && !mine) {
+      toast.error("Você só pode excluir anexos enviados por você.");
+      return;
+    }
     if (!confirm(`Excluir o anexo "${a.nome_arquivo}"?`)) return;
     await supabase.storage.from("anexos-implantacao").remove([a.storage_path]).catch(() => {});
     await supabase.from("implantacao_anexos" as any).delete().eq("id", a.id);
