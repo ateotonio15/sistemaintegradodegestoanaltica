@@ -177,16 +177,41 @@ export function ContratosAVigenciarCard() {
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0 || !openRow) return;
-    if (!openRow.implantacao_id) {
-      toast.error(
-        "Esta empresa ainda não possui uma implantação registrada. Crie a implantação para anexar documentos.",
-      );
-      return;
-    }
-    const implId = openRow.implantacao_id;
     setUploading(true);
     try {
       const { data: u } = await supabase.auth.getUser();
+      const uid = u.user?.id;
+
+      // Se não houver implantação ainda, cria um esboço para receber os anexos
+      let implId = openRow.implantacao_id;
+      if (!implId) {
+        if (!openRow.empresa_id) throw new Error("Empresa não identificada.");
+        const userName =
+          (u.user?.user_metadata as any)?.display_name ||
+          (u.user?.user_metadata as any)?.full_name ||
+          u.user?.email ||
+          null;
+        const { data: created, error: cErr } = await supabase
+          .from("implantacoes_contratos" as any)
+          .insert({
+            empresa_id: openRow.empresa_id,
+            nome_empresa: openRow.nome_empresa,
+            codigo_contrato: openRow.codigo_contrato,
+            total_vidas: openRow.total_vidas,
+            data_vigencia: openRow.data_vigencia,
+            status: "em_implantacao",
+            etapa_atual: 1,
+            progresso: 0,
+            created_by: uid,
+            created_by_nome: userName,
+          } as any)
+          .select("id")
+          .single();
+        if (cErr) throw cErr;
+        implId = (created as any).id;
+        setOpenRow({ ...openRow, implantacao_id: implId });
+      }
+
       for (const file of Array.from(files)) {
         const safeName = file.name
           .normalize("NFD")
@@ -208,11 +233,12 @@ export function ContratosAVigenciarCard() {
           storage_path: path,
           mime_type: file.type,
           tamanho_bytes: file.size,
-          uploaded_by: u.user?.id,
+          uploaded_by: uid,
         } as any);
         if (insErr) throw insErr;
       }
       toast.success("Arquivo(s) anexado(s) com sucesso");
+      qc.invalidateQueries({ queryKey: ["contratos-a-vigenciar"] });
       qc.invalidateQueries({ queryKey: ["contratos-a-vigenciar-anexos"] });
     } catch (e: any) {
       console.error(e);
@@ -222,6 +248,7 @@ export function ContratosAVigenciarCard() {
       if (fileRef.current) fileRef.current.value = "";
     }
   };
+
 
   const handleDownload = async (a: Anexo) => {
     const { data } = await supabase.storage
