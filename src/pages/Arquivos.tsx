@@ -11,12 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -44,15 +39,11 @@ import {
   Image as ImageIcon,
   Download,
   Eye,
-  // Upload icon removed: replaced by Plus on Adicionar arquivo button
   Trash2,
   Files,
   HardDrive,
   Clock,
   Building2,
-  FileSignature,
-  CalendarDays,
-  Plus,
 } from "lucide-react";
 import {
   Accordion,
@@ -62,42 +53,32 @@ import {
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
-import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  compLabel,
-  formatBytes,
-  tipoArquivo,
-} from "@/lib/arquivos-utils";
+import { formatBytes, tipoArquivo } from "@/lib/arquivos-utils";
 
-const DEFAULT_BUCKET = "arquivos-financeiro";
-
-interface Empresa {
-  id: string;
-  nome: string;
-  codigo_contrato: string | null;
-  cnpj: string | null;
-}
+const BUCKET = "anexos-implantacao";
 
 interface ArquivoRow {
   id: string;
-  empresa_id: string;
-  competencia: string;
-  categoria: string;
-  nome_original: string;
+  implantacao_id: string;
+  empresa_id: string | null;
+  empresa_nome: string;
+  codigo_contrato: string | null;
+  nome_arquivo: string;
   extensao: string | null;
   mime_type: string | null;
   tamanho_bytes: number | null;
-  observacao: string | null;
   uploaded_by: string | null;
   uploaded_by_nome: string | null;
+  uploader_role: "cadastro" | "financeiro" | "outro";
   storage_path: string;
-  status: string;
-  versao: number;
   created_at: string;
-  bucket?: string | null;
-  origem?: string | null;
+}
+
+function extOf(nome: string): string | null {
+  const m = nome.match(/\.([^.]+)$/);
+  return m ? m[1].toLowerCase() : null;
 }
 
 function iconForExt(ext: string | null) {
@@ -126,172 +107,146 @@ function formatDateTime(iso: string): string {
 
 export default function Arquivos() {
   const queryClient = useQueryClient();
-  const { canEditFinanceiro } = useAuth();
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [uploadDefaults, setUploadDefaults] = useState<{ empresaId?: string }>({});
+  const { user, isAdmin, isComum, isFinanceiro } = useAuth();
+  const currentUid = user?.id ?? null;
+  const canDeleteAll = isAdmin || isComum;
   const [search, setSearch] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState("todas");
-  const [competenciaFilter, setCompetenciaFilter] = useState("todas");
-  
   const [tipoFilter, setTipoFilter] = useState("todos");
-  const [usuarioFilter, setUsuarioFilter] = useState("todos");
-  const [contratoFilter, setContratoFilter] = useState("todos");
+  const [origemFilter, setOrigemFilter] = useState("todas");
   const [confirmDelete, setConfirmDelete] = useState<ArquivoRow | null>(null);
   const [previewArquivo, setPreviewArquivo] = useState<ArquivoRow | null>(null);
 
-  function openUpload(empresaId?: string) {
-    setUploadDefaults({ empresaId });
-    setUploadOpen(true);
-  }
-
-  const { data: empresas = [] } = useQuery({
-    queryKey: ["arquivos-empresas-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj")
-        .order("nome");
-      if (error) throw error;
-      return (data ?? []) as Empresa[];
-    },
-  });
-
   const { data: arquivos = [], isLoading } = useQuery({
-    queryKey: ["financeiro-arquivos"],
+    queryKey: ["arquivos-implantacao", currentUid, isFinanceiro],
+    enabled: !!currentUid,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("financeiro_arquivos")
-        .select("*")
-        .eq("status", "ativo")
+      const { data: anexos, error } = await supabase
+        .from("implantacao_anexos" as any)
+        .select(
+          "id, implantacao_id, empresa_id, nome_arquivo, mime_type, tamanho_bytes, storage_path, uploaded_by, created_at",
+        )
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as ArquivoRow[];
+      const list = (anexos as any[]) || [];
+      if (list.length === 0) return [] as ArquivoRow[];
+
+      const implIds = Array.from(new Set(list.map((a) => a.implantacao_id).filter(Boolean)));
+      const uploaderIds = Array.from(
+        new Set(list.map((a) => a.uploaded_by).filter(Boolean)),
+      ) as string[];
+
+      const [implRes, profRes, rolesRes] = await Promise.all([
+        implIds.length
+          ? supabase
+              .from("implantacoes_contratos")
+              .select("id, empresa_id, nome_empresa, codigo_contrato")
+              .in("id", implIds as string[])
+          : Promise.resolve({ data: [], error: null } as any),
+        uploaderIds.length
+          ? supabase
+              .from("profiles")
+              .select("user_id, display_name")
+              .in("user_id", uploaderIds)
+          : Promise.resolve({ data: [], error: null } as any),
+        uploaderIds.length
+          ? supabase
+              .from("user_roles")
+              .select("user_id, role")
+              .in("user_id", uploaderIds)
+          : Promise.resolve({ data: [], error: null } as any),
+      ]);
+
+      const implMap = new Map<string, any>();
+      ((implRes.data as any[]) || []).forEach((i) => implMap.set(i.id, i));
+      const nameMap = new Map<string, string>();
+      ((profRes.data as any[]) || []).forEach((p) =>
+        nameMap.set(p.user_id, p.display_name),
+      );
+      const roleMap = new Map<string, string>();
+      ((rolesRes.data as any[]) || []).forEach((r) => roleMap.set(r.user_id, r.role));
+
+      const rows: ArquivoRow[] = list.map((a) => {
+        const impl = implMap.get(a.implantacao_id);
+        const role = a.uploaded_by ? roleMap.get(a.uploaded_by) : null;
+        const uploaderRole: ArquivoRow["uploader_role"] =
+          role === "financeiro" ? "financeiro" : role === "comum" || role === "admin" ? "cadastro" : "outro";
+        return {
+          id: a.id,
+          implantacao_id: a.implantacao_id,
+          empresa_id: impl?.empresa_id ?? a.empresa_id ?? null,
+          empresa_nome: impl?.nome_empresa ?? "Empresa não identificada",
+          codigo_contrato: impl?.codigo_contrato ?? null,
+          nome_arquivo: a.nome_arquivo,
+          extensao: extOf(a.nome_arquivo),
+          mime_type: a.mime_type,
+          tamanho_bytes: a.tamanho_bytes,
+          uploaded_by: a.uploaded_by,
+          uploaded_by_nome: a.uploaded_by ? nameMap.get(a.uploaded_by) ?? null : null,
+          uploader_role: uploaderRole,
+          storage_path: a.storage_path,
+          created_at: a.created_at,
+        };
+      });
+
+      // Financeiro: somente os anexos que ele mesmo enviou
+      if (isFinanceiro && currentUid) {
+        return rows.filter((r) => r.uploaded_by === currentUid);
+      }
+      return rows;
     },
   });
 
-  const empresasMap = useMemo(() => {
-    const m = new Map<string, Empresa>();
-    for (const e of empresas) m.set(e.id, e);
-    return m;
-  }, [empresas]);
-
-  const competenciasDisponiveis = useMemo(() => {
-    const s = new Set<string>();
-    arquivos.forEach((a) => s.add(a.competencia));
-    return Array.from(s).sort().reverse();
-  }, [arquivos]);
-
-  const usuariosDisponiveis = useMemo(() => {
+  const empresasDisponiveis = useMemo(() => {
     const m = new Map<string, string>();
     arquivos.forEach((a) => {
-      if (a.uploaded_by) m.set(a.uploaded_by, a.uploaded_by_nome ?? a.uploaded_by);
+      if (a.empresa_id) m.set(a.empresa_id, a.empresa_nome);
     });
     return Array.from(m.entries()).map(([id, nome]) => ({ id, nome }));
   }, [arquivos]);
 
-  const contratosDisponiveis = useMemo(() => {
-    const s = new Set<string>();
-    arquivos.forEach((a) => {
-      const cc = empresasMap.get(a.empresa_id)?.codigo_contrato;
-      if (cc) s.add(cc);
-    });
-    return Array.from(s).sort();
-  }, [arquivos, empresasMap]);
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return arquivos.filter((a) => {
-      const emp = empresasMap.get(a.empresa_id);
       if (empresaFilter !== "todas" && a.empresa_id !== empresaFilter) return false;
-      if (contratoFilter !== "todos" && (emp?.codigo_contrato ?? "") !== contratoFilter) return false;
-      if (competenciaFilter !== "todas" && a.competencia !== competenciaFilter) return false;
-      
       if (tipoFilter !== "todos" && tipoArquivo(a.extensao) !== tipoFilter) return false;
-      if (usuarioFilter !== "todos" && a.uploaded_by !== usuarioFilter) return false;
+      if (origemFilter !== "todas" && a.uploader_role !== origemFilter) return false;
       if (!q) return true;
-      const hay = [
-        a.nome_original,
-        a.competencia,
-        compLabel(a.competencia),
-        a.categoria,
-        emp?.nome,
-        emp?.codigo_contrato,
-        emp?.cnpj,
-        a.uploaded_by_nome,
-      ]
+      const hay = [a.nome_arquivo, a.empresa_nome, a.codigo_contrato, a.uploaded_by_nome]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [
-    arquivos,
-    search,
-    empresaFilter,
-    contratoFilter,
-    competenciaFilter,
-    
-    tipoFilter,
-    usuarioFilter,
-    empresasMap,
-  ]);
+  }, [arquivos, search, empresaFilter, tipoFilter, origemFilter]);
 
-  // Agrupamento: Empresa -> Contrato -> Competência -> arquivos[]
   const grouped = useMemo(() => {
-    type Comp = { competencia: string; arquivos: ArquivoRow[] };
-    type Contr = {
-      contrato: string;
-      empresaIds: Set<string>;
-      arquivos: ArquivoRow[];
-      competencias: Map<string, Comp>;
-      ultimoUpload: number;
-    };
     type Emp = {
       empresaId: string;
       nome: string;
-      contratos: Map<string, Contr>;
-      total: number;
+      contrato: string | null;
+      arquivos: ArquivoRow[];
       ultimoUpload: number;
     };
-    const empMap = new Map<string, Emp>();
+    const m = new Map<string, Emp>();
     for (const a of filtered) {
-      const e = empresasMap.get(a.empresa_id);
-      const empKey = a.empresa_id;
-      const empNome = e?.nome ?? "Empresa desconhecida";
-      const contrato = e?.codigo_contrato ?? "Sem contrato";
-      const ts = new Date(a.created_at).getTime();
-      if (!empMap.has(empKey)) {
-        empMap.set(empKey, {
-          empresaId: empKey,
-          nome: empNome,
-          contratos: new Map(),
-          total: 0,
-          ultimoUpload: 0,
-        });
-      }
-      const emp = empMap.get(empKey)!;
-      emp.total += 1;
-      emp.ultimoUpload = Math.max(emp.ultimoUpload, ts);
-      if (!emp.contratos.has(contrato)) {
-        emp.contratos.set(contrato, {
-          contrato,
-          empresaIds: new Set(),
+      const key = a.empresa_id ?? a.empresa_nome;
+      if (!m.has(key)) {
+        m.set(key, {
+          empresaId: key,
+          nome: a.empresa_nome,
+          contrato: a.codigo_contrato,
           arquivos: [],
-          competencias: new Map(),
           ultimoUpload: 0,
         });
       }
-      const c = emp.contratos.get(contrato)!;
-      c.empresaIds.add(empKey);
-      c.arquivos.push(a);
-      c.ultimoUpload = Math.max(c.ultimoUpload, ts);
-      if (!c.competencias.has(a.competencia)) {
-        c.competencias.set(a.competencia, { competencia: a.competencia, arquivos: [] });
-      }
-      c.competencias.get(a.competencia)!.arquivos.push(a);
+      const e = m.get(key)!;
+      e.arquivos.push(a);
+      const ts = new Date(a.created_at).getTime();
+      e.ultimoUpload = Math.max(e.ultimoUpload, ts);
     }
-    return Array.from(empMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [filtered, empresasMap]);
+    return Array.from(m.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [filtered]);
 
   const kpis = useMemo(() => {
     const total = arquivos.length;
@@ -305,12 +260,12 @@ export default function Arquivos() {
 
   async function handleDownload(a: ArquivoRow) {
     try {
-      const { data, error } = await supabase.storage.from(a.bucket || DEFAULT_BUCKET).download(a.storage_path);
+      const { data, error } = await supabase.storage.from(BUCKET).download(a.storage_path);
       if (error || !data) throw error ?? new Error("Falha ao baixar");
       const url = URL.createObjectURL(data);
       const link = document.createElement("a");
       link.href = url;
-      link.download = a.nome_original;
+      link.download = a.nome_arquivo;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -320,24 +275,23 @@ export default function Arquivos() {
     }
   }
 
-  function handlePreview(a: ArquivoRow) {
-    setPreviewArquivo(a);
-  }
-
   async function handleDelete(a: ArquivoRow) {
+    const mine = !!currentUid && a.uploaded_by === currentUid;
+    if (!canDeleteAll && !mine) {
+      toast.error("Você só pode excluir anexos enviados por você.");
+      setConfirmDelete(null);
+      return;
+    }
     try {
+      await supabase.storage.from(BUCKET).remove([a.storage_path]).catch(() => null);
       const { error } = await supabase
-        .from("financeiro_arquivos")
-        .update({ status: "removido" })
+        .from("implantacao_anexos" as any)
+        .delete()
         .eq("id", a.id);
       if (error) throw error;
-      // Só remove o objeto do storage se for um upload nativo da aba Arquivos.
-      // Arquivos espelhados do Financeiro pertencem àquela aba e não devem ser apagados aqui.
-      if (a.origem !== "financeiro") {
-        await supabase.storage.from(a.bucket || DEFAULT_BUCKET).remove([a.storage_path]).catch(() => null);
-      }
       toast.success("Arquivo removido");
-      queryClient.invalidateQueries({ queryKey: ["financeiro-arquivos"] });
+      queryClient.invalidateQueries({ queryKey: ["arquivos-implantacao"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-a-vigenciar-anexos"] });
     } catch (e: any) {
       toast.error("Erro ao remover: " + (e?.message ?? "desconhecido"));
     } finally {
@@ -348,24 +302,18 @@ export default function Arquivos() {
   return (
     <>
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
-        <header className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
-              <FolderArchive className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Repositório Financeiro</h1>
-              <p className="text-sm text-muted-foreground">
-                Gestão documental dos arquivos enviados manualmente pelo Financeiro
-              </p>
-            </div>
+        <header className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+            <FolderArchive className="h-6 w-6 text-primary" />
           </div>
-          {canEditFinanceiro && (
-            <Button onClick={() => openUpload()} className="gap-2" size="lg">
-              <Plus className="h-4 w-4" />
-              Adicionar arquivo
-            </Button>
-          )}
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Documentos de Contratos</h1>
+            <p className="text-sm text-muted-foreground">
+              {isFinanceiro
+                ? "Documentos que você anexou aos contratos a vigenciar"
+                : "Documentos anexados pelo Cadastro e Financeiro no card Contratos a Vigenciar"}
+            </p>
+          </div>
         </header>
 
         {/* KPIs */}
@@ -396,45 +344,33 @@ export default function Arquivos() {
         {/* Filtros */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="relative md:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="relative lg:col-span-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar arquivo, empresa, contrato, competência..."
+                  placeholder="Buscar arquivo, empresa, contrato, usuário..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
                 />
               </div>
               <Select value={empresaFilter} onValueChange={setEmpresaFilter}>
-                <SelectTrigger><SelectValue placeholder="Empresa" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Empresa" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas as empresas</SelectItem>
-                  {empresas.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={contratoFilter} onValueChange={setContratoFilter}>
-                <SelectTrigger><SelectValue placeholder="Contrato" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos contratos</SelectItem>
-                  {contratosDisponiveis.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={competenciaFilter} onValueChange={setCompetenciaFilter}>
-                <SelectTrigger><SelectValue placeholder="Competência" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas competências</SelectItem>
-                  {competenciasDisponiveis.map((c) => (
-                    <SelectItem key={c} value={c}>{compLabel(c)}</SelectItem>
+                  {empresasDisponiveis.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.nome}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={tipoFilter} onValueChange={setTipoFilter}>
-                <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos tipos</SelectItem>
                   <SelectItem value="PDF">PDF</SelectItem>
@@ -444,26 +380,31 @@ export default function Arquivos() {
                   <SelectItem value="Outro">Outro</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={usuarioFilter} onValueChange={setUsuarioFilter}>
-                <SelectTrigger><SelectValue placeholder="Usuário" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos usuários</SelectItem>
-                  {usuariosDisponiveis.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {!isFinanceiro && (
+                <Select value={origemFilter} onValueChange={setOrigemFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Origem" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas origens</SelectItem>
+                    <SelectItem value="cadastro">Cadastro</SelectItem>
+                    <SelectItem value="financeiro">Financeiro</SelectItem>
+                    <SelectItem value="outro">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Lista agrupada: Empresa → Contrato → Competência */}
+        {/* Lista por Empresa */}
         <Card>
-          <CardHeader className="pb-3 flex-row items-center justify-between">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">
-              Repositório por contrato{" "}
+              Documentos por empresa{" "}
               <span className="text-muted-foreground font-normal">
-                ({grouped.length} empresa{grouped.length === 1 ? "" : "s"} • {filtered.length} arquivo{filtered.length === 1 ? "" : "s"})
+                ({grouped.length} empresa{grouped.length === 1 ? "" : "s"} • {filtered.length}{" "}
+                arquivo{filtered.length === 1 ? "" : "s"})
               </span>
             </CardTitle>
           </CardHeader>
@@ -474,12 +415,10 @@ export default function Arquivos() {
               <div className="py-16 text-center text-muted-foreground space-y-2">
                 <FolderArchive className="h-10 w-10 mx-auto opacity-50" />
                 <p>Nenhum arquivo encontrado.</p>
-                {canEditFinanceiro && (
-                  <Button variant="outline" size="sm" onClick={() => openUpload()}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Adicionar primeiro arquivo
-                  </Button>
-                )}
+                <p className="text-xs">
+                  Os documentos aparecem aqui após serem anexados no card{" "}
+                  <strong>Contratos a Vigenciar</strong> do Dashboard.
+                </p>
               </div>
             ) : (
               <Accordion type="multiple" className="space-y-3">
@@ -489,153 +428,128 @@ export default function Arquivos() {
                     value={emp.empresaId}
                     className="border rounded-lg px-3 bg-card"
                   >
-                    <div className="flex items-center gap-2 py-1">
-                      <AccordionTrigger className="hover:no-underline py-3 flex-1">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <Building2 className="h-4 w-4 text-primary" />
-                          </div>
-                          <div className="text-left min-w-0">
-                            <div className="font-semibold truncate">{emp.nome}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {emp.contratos.size} contrato{emp.contratos.size === 1 ? "" : "s"} • {emp.total} arquivo{emp.total === 1 ? "" : "s"}
-                              {emp.ultimoUpload > 0 && (
-                                <> • Último: {formatDateTime(new Date(emp.ultimoUpload).toISOString())}</>
-                              )}
-                            </div>
+                    <AccordionTrigger className="hover:no-underline py-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Building2 className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="text-left min-w-0">
+                          <div className="font-semibold truncate">{emp.nome}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {emp.contrato && <>Contrato {emp.contrato} • </>}
+                            {emp.arquivos.length} arquivo
+                            {emp.arquivos.length === 1 ? "" : "s"}
+                            {emp.ultimoUpload > 0 && (
+                              <>
+                                {" "}
+                                • Último:{" "}
+                                {formatDateTime(new Date(emp.ultimoUpload).toISOString())}
+                              </>
+                            )}
                           </div>
                         </div>
-                      </AccordionTrigger>
-                      {canEditFinanceiro && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 shrink-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openUpload(emp.empresaId);
-                          }}
-                          title="Adicionar arquivo neste contrato"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Adicionar
-                        </Button>
-                      )}
-                    </div>
+                      </div>
+                    </AccordionTrigger>
                     <AccordionContent className="pb-3">
-                      <Accordion type="multiple" className="space-y-2 pl-2">
-                        {Array.from(emp.contratos.values())
-                          .sort((a, b) => a.contrato.localeCompare(b.contrato))
-                          .map((c) => {
-                            const compsOrdenadas = Array.from(c.competencias.values()).sort(
-                              (a, b) => b.competencia.localeCompare(a.competencia),
-                            );
-                            return (
-                              <AccordionItem
-                                key={c.contrato}
-                                value={`${emp.empresaId}-${c.contrato}`}
-                                className="border rounded-md px-3 bg-muted/30"
-                              >
-                                <AccordionTrigger className="hover:no-underline py-2">
-                                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <FileSignature className="h-4 w-4 text-primary shrink-0" />
-                                    <div className="text-left min-w-0">
-                                      <div className="font-medium truncate">Contrato {c.contrato}</div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {compsOrdenadas.length} competência{compsOrdenadas.length === 1 ? "" : "s"} • {c.arquivos.length} arquivo{c.arquivos.length === 1 ? "" : "s"}
-                                        {c.ultimoUpload > 0 && (
-                                          <> • Último: {formatDateTime(new Date(c.ultimoUpload).toISOString())}</>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-8"></TableHead>
+                              <TableHead>Nome</TableHead>
+                              <TableHead>Tipo</TableHead>
+                              <TableHead>Origem</TableHead>
+                              <TableHead>Usuário</TableHead>
+                              <TableHead>Upload</TableHead>
+                              <TableHead className="text-right">Tamanho</TableHead>
+                              <TableHead className="text-right">Ações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {emp.arquivos
+                              .slice()
+                              .sort((a, b) => b.created_at.localeCompare(a.created_at))
+                              .map((a) => {
+                                const mine = !!currentUid && a.uploaded_by === currentUid;
+                                const canDelete = canDeleteAll || mine;
+                                return (
+                                  <TableRow key={a.id}>
+                                    <TableCell>{iconForExt(a.extensao)}</TableCell>
+                                    <TableCell className="max-w-[280px]">
+                                      <div
+                                        className="truncate font-medium"
+                                        title={a.nome_arquivo}
+                                      >
+                                        {a.nome_arquivo}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{tipoArquivo(a.extensao)}</TableCell>
+                                    <TableCell>
+                                      <Badge
+                                        variant={
+                                          a.uploader_role === "financeiro"
+                                            ? "default"
+                                            : "outline"
+                                        }
+                                      >
+                                        {a.uploader_role === "financeiro"
+                                          ? "Financeiro"
+                                          : a.uploader_role === "cadastro"
+                                          ? "Cadastro"
+                                          : "Outro"}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                      className="max-w-[140px] truncate"
+                                      title={a.uploaded_by_nome ?? ""}
+                                    >
+                                      {a.uploaded_by_nome ?? "—"}
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap text-xs">
+                                      {formatDateTime(a.created_at)}
+                                    </TableCell>
+                                    <TableCell className="text-right whitespace-nowrap">
+                                      {formatBytes(a.tamanho_bytes)}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <div className="flex justify-end gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          onClick={() => setPreviewArquivo(a)}
+                                          title="Visualizar"
+                                        >
+                                          <Eye className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          onClick={() => handleDownload(a)}
+                                          title="Baixar"
+                                        >
+                                          <Download className="h-4 w-4" />
+                                        </Button>
+                                        {canDelete && (
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-destructive hover:text-destructive"
+                                            onClick={() => setConfirmDelete(a)}
+                                            title="Excluir"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
                                         )}
                                       </div>
-                                    </div>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="pb-3">
-                                  <div className="space-y-3 pl-2">
-                                    {compsOrdenadas.map((comp) => (
-                                      <div key={comp.competencia} className="border rounded-md bg-background">
-                                        <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 rounded-t-md">
-                                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                                          <span className="text-sm font-medium">{compLabel(comp.competencia)}</span>
-                                          <Badge variant="outline" className="ml-auto">
-                                            {comp.arquivos.length} arquivo{comp.arquivos.length === 1 ? "" : "s"}
-                                          </Badge>
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead className="w-8"></TableHead>
-                                                <TableHead>Nome</TableHead>
-                                                
-                                                <TableHead>Tipo</TableHead>
-                                                <TableHead>Origem</TableHead>
-                                                <TableHead>Usuário</TableHead>
-                                                <TableHead>Upload</TableHead>
-                                                <TableHead className="text-right">Tamanho</TableHead>
-                                                <TableHead className="text-right">Ações</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              {comp.arquivos
-                                                .slice()
-                                                .sort((a, b) => b.created_at.localeCompare(a.created_at))
-                                                .map((a) => (
-                                                  <TableRow key={a.id}>
-                                                    <TableCell>{iconForExt(a.extensao)}</TableCell>
-                                                    <TableCell className="max-w-[280px]">
-                                                      <div className="truncate font-medium" title={a.nome_original}>
-                                                        {a.nome_original}
-                                                      </div>
-                                                      {a.observacao && (
-                                                        <div className="text-xs text-muted-foreground truncate" title={a.observacao}>
-                                                          {a.observacao}
-                                                        </div>
-                                                      )}
-                                                    </TableCell>
-                                                    <TableCell>{tipoArquivo(a.extensao)}</TableCell>
-                                                    <TableCell>
-                                                      <Badge variant={a.origem === "financeiro" ? "default" : "outline"}>
-                                                        {a.origem === "financeiro" ? "Financeiro" : "Arquivos"}
-                                                      </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="max-w-[140px] truncate" title={a.uploaded_by_nome ?? ""}>
-                                                      {a.uploaded_by_nome ?? "—"}
-                                                    </TableCell>
-                                                    <TableCell className="whitespace-nowrap text-xs">
-                                                      {formatDateTime(a.created_at)}
-                                                    </TableCell>
-                                                    <TableCell className="text-right whitespace-nowrap">
-                                                      {formatBytes(a.tamanho_bytes)}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                      <div className="flex justify-end gap-1">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePreview(a)} title="Visualizar">
-                                                          <Eye className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(a)} title="Baixar">
-                                                          <Download className="h-4 w-4" />
-                                                        </Button>
-                                                        {canEditFinanceiro && (
-                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(a)} title="Excluir">
-                                                            <Trash2 className="h-4 w-4" />
-                                                          </Button>
-                                                        )}
-                                                      </div>
-                                                    </TableCell>
-                                                  </TableRow>
-                                                ))}
-                                            </TableBody>
-                                          </Table>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            );
-                          })}
-                      </Accordion>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 ))}
@@ -645,18 +559,15 @@ export default function Arquivos() {
         </Card>
       </div>
 
-      <UploadArquivoDialog
-        open={uploadOpen}
-        onOpenChange={setUploadOpen}
-        defaultEmpresaId={uploadDefaults.empresaId}
-      />
-
-      <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
+      <AlertDialog
+        open={!!confirmDelete}
+        onOpenChange={(v) => !v && setConfirmDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover arquivo?</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmDelete?.nome_original} será removido permanentemente do repositório.
+              {confirmDelete?.nome_arquivo} será removido permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -675,9 +586,9 @@ export default function Arquivos() {
         <PreviewArquivoDialog
           open={!!previewArquivo}
           onOpenChange={(v) => !v && setPreviewArquivo(null)}
-          bucket={previewArquivo.bucket || DEFAULT_BUCKET}
+          bucket={BUCKET}
           storagePath={previewArquivo.storage_path}
-          nomeArquivo={previewArquivo.nome_original}
+          nomeArquivo={previewArquivo.nome_arquivo}
           mimeType={previewArquivo.mime_type}
         />
       )}
@@ -685,7 +596,15 @@ export default function Arquivos() {
   );
 }
 
-function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function KpiCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <Card>
       <CardContent className="pt-5 pb-4">
