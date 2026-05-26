@@ -429,7 +429,7 @@ export function ContratosAVigenciarCard() {
                         >
                           <Download className="h-4 w-4" />
                         </Button>
-                        {canManage && (
+                        {(canDeleteAll || (!!currentUid && a.uploaded_by === currentUid)) && (
                           <Button
                             variant="ghost"
                             size="icon"
