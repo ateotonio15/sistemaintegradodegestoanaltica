@@ -99,7 +99,17 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   }, [isMobile]);
 
   const navItems = useMemo(() => {
-    return allNavItems.filter((item) => {
+    const base = isAdmin
+      ? [
+          allNavItems[0],
+          { to: "/dashboard/geral", label: "Dash. Geral", icon: LayoutDashboard },
+          { to: "/dashboard/financeiro", label: "Dash. Financeiro", icon: Wallet },
+          { to: "/dashboard/vendas", label: "Dash. Vendas", icon: TrendingUp },
+          { to: "/dashboard/administradoras", label: "Dash. Administradoras", icon: Building },
+          ...allNavItems.slice(1),
+        ]
+      : allNavItems;
+    return base.filter((item) => {
       if (role === "administradoras") {
         const allowed = ["/", "/empresas", "/movimentacoes", "/implantacao"];
         return allowed.includes(item.to);
@@ -123,6 +133,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       return true;
     });
   }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role]);
+
 
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
