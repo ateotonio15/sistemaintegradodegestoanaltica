@@ -109,13 +109,22 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
 
   const reset = () => { setRows([]); setFileName(""); if (fileRef.current) fileRef.current.value = ""; };
 
-  const downloadTemplate = () => {
-    const link = document.createElement("a");
-    link.href = "/template_administradoras.xlsx";
-    link.download = "template_administradoras.xlsx";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadTemplate = async () => {
+    try {
+      const res = await fetch("/template_administradoras.xlsx");
+      if (!res.ok) throw new Error("Falha ao baixar template");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "template_administradoras.xlsx";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message ?? "Não foi possível baixar o template", variant: "destructive" });
+    }
   };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
