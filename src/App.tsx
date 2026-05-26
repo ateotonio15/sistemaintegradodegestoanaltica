@@ -98,6 +98,13 @@ const AppRoutes = () => (
     <Route element={<AppShell />}>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/dashboard" element={<HomeRoute />} />
+      <Route element={<RoleGate allow={["admin"]} />}>
+        <Route path="/dashboard/geral" element={<Dashboard />} />
+        <Route path="/dashboard/financeiro" element={<DashboardFinanceiro />} />
+        <Route path="/dashboard/vendas" element={<DashboardVendas />} />
+        <Route path="/dashboard/administradoras" element={<DashboardAdministradoras />} />
+      </Route>
+
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/movimentacoes" element={<Movimentacoes />} />
 
