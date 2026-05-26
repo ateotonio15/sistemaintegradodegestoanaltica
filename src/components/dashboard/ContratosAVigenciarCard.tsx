@@ -27,12 +27,17 @@ import { formatDateBR } from "@/lib/date-utils";
 import { useAuth } from "@/hooks/useAuth";
 
 type Row = {
+  /** key for the row (implantacao_id when present, else empresa_id) */
   id: string;
+  /** implantacao_contratos.id when available — required for uploading anexos */
+  implantacao_id: string | null;
+  empresa_id: string | null;
   nome_empresa: string | null;
   codigo_contrato: string | null;
   total_vidas: number | null;
   data_vigencia: string | null;
-  status: string;
+  status: string | null;
+  origem: "implantacao" | "empresa";
 };
 
 type Anexo = {
@@ -69,26 +74,87 @@ export function ContratosAVigenciarCard() {
   const { data: rows = [], isFetching } = useQuery({
     queryKey: ["contratos-a-vigenciar"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // 1) Implantações com vigência futura
+      const implP = supabase
         .from("implantacoes_contratos")
-        .select("id, nome_empresa, codigo_contrato, total_vidas, data_vigencia, status")
+        .select("id, empresa_id, nome_empresa, codigo_contrato, total_vidas, data_vigencia, status")
         .gte("data_vigencia", todayIso)
-        .not("status", "in", '("implantado","rejeitado")')
-        .order("data_vigencia", { ascending: true });
-      if (error) throw error;
-      return (data || []) as Row[];
+        .not("status", "in", '("implantado","rejeitado")');
+      // 2) Empresas "novas": sem data de implantação ou com implantação futura
+      const empP = supabase
+        .from("empresas")
+        .select("id, nome, codigo_contrato, vidas, data_implantacao, status_empresa")
+        .or(`data_implantacao.is.null,data_implantacao.gt.${todayIso}`);
+
+      const [implRes, empRes] = await Promise.all([implP, empP]);
+      if (implRes.error) throw implRes.error;
+      if (empRes.error) throw empRes.error;
+
+      // Mapa empresa_id -> implantacao mais recente (qualquer status), para anexar arquivos
+      const empresaIds = (empRes.data || []).map((e: any) => e.id);
+      let implByEmpresa: Record<string, string> = {};
+      if (empresaIds.length > 0) {
+        const { data: linked } = await supabase
+          .from("implantacoes_contratos")
+          .select("id, empresa_id, created_at")
+          .in("empresa_id", empresaIds)
+          .order("created_at", { ascending: false });
+        ((linked as any[]) || []).forEach((l) => {
+          if (l.empresa_id && !implByEmpresa[l.empresa_id]) implByEmpresa[l.empresa_id] = l.id;
+        });
+      }
+
+      const implRows: Row[] = ((implRes.data as any[]) || []).map((r) => ({
+        id: r.id,
+        implantacao_id: r.id,
+        empresa_id: r.empresa_id,
+        nome_empresa: r.nome_empresa,
+        codigo_contrato: r.codigo_contrato,
+        total_vidas: r.total_vidas,
+        data_vigencia: r.data_vigencia,
+        status: r.status,
+        origem: "implantacao",
+      }));
+      const implEmpresaIds = new Set(implRows.map((r) => r.empresa_id).filter(Boolean) as string[]);
+      const empRows: Row[] = ((empRes.data as any[]) || [])
+        .filter((e) => !implEmpresaIds.has(e.id))
+        .map((e) => ({
+          id: e.id,
+          implantacao_id: implByEmpresa[e.id] || null,
+          empresa_id: e.id,
+          nome_empresa: e.nome,
+          codigo_contrato: e.codigo_contrato,
+          total_vidas: e.vidas,
+          data_vigencia: e.data_implantacao,
+          status: e.status_empresa,
+          origem: "empresa",
+        }));
+
+      const all = [...implRows, ...empRows];
+      // Ordena por data (nulls por último)
+      all.sort((a, b) => {
+        if (!a.data_vigencia && !b.data_vigencia) return 0;
+        if (!a.data_vigencia) return 1;
+        if (!b.data_vigencia) return -1;
+        return a.data_vigencia.localeCompare(b.data_vigencia);
+      });
+      return all;
     },
   });
 
+  const implIdsForAnexos = useMemo(
+    () => rows.map((r) => r.implantacao_id).filter(Boolean) as string[],
+    [rows],
+  );
+
   const { data: anexosByImpl = {} } = useQuery({
-    queryKey: ["contratos-a-vigenciar-anexos", rows.map((r) => r.id)],
-    enabled: rows.length > 0,
+    queryKey: ["contratos-a-vigenciar-anexos", implIdsForAnexos],
+    enabled: implIdsForAnexos.length > 0,
     queryFn: async () => {
-      const ids = rows.map((r) => r.id);
       const { data, error } = await supabase
         .from("implantacao_anexos" as any)
         .select("id, implantacao_id, nome_arquivo, storage_path, mime_type, tamanho_bytes, created_at")
-        .in("implantacao_id", ids)
+        .in("implantacao_id", implIdsForAnexos)
         .order("created_at", { ascending: false });
       if (error) throw error;
       const map: Record<string, Anexo[]> = {};
