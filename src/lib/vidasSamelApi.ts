@@ -5,7 +5,9 @@ export const VIDAS_API_BASE_URL =
   "https://7d89d067-237e-4701-b281-3359d59c0e84-00-2zicaaljfkz2e.worf.replit.dev/api";
 
 const TOKEN_KEY = "vidas_samel_token";
-const CRED_KEY = "vidas_samel_cred";
+const USER_KEY = "vidas_samel_user";
+// Legacy key – cleaned up on load to remove any plaintext password previously stored.
+const LEGACY_CRED_KEY = "vidas_samel_cred";
 
 export function getToken(): string | null {
   try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
@@ -19,23 +21,40 @@ export function clearToken() {
 
 export interface Credentials { username: string; password: string; }
 
+// Remove any legacy plaintext credentials that may have been persisted by earlier versions.
+try {
+  if (typeof localStorage !== "undefined" && localStorage.getItem(LEGACY_CRED_KEY)) {
+    localStorage.removeItem(LEGACY_CRED_KEY);
+  }
+} catch {}
+
+/**
+ * Returns the last username used (for UX convenience only). Passwords are never
+ * persisted on the client. Returns empty strings when no username is saved so
+ * the login dialog appears instead of attempting auto-login with defaults.
+ */
 export function getSavedCredentials(): Credentials {
   try {
-    const raw = localStorage.getItem(CRED_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return { username: "admin", password: "admin" };
+    const username = localStorage.getItem(USER_KEY) || "";
+    return { username, password: "" };
+  } catch {
+    return { username: "", password: "" };
+  }
 }
+
+/** Only stores the username – never the password. */
 export function saveCredentials(c: Credentials) {
-  try { localStorage.setItem(CRED_KEY, JSON.stringify(c)); } catch {}
+  try { localStorage.setItem(USER_KEY, c.username || ""); } catch {}
 }
 
 export async function login(credentials?: Credentials): Promise<string> {
-  const creds = credentials ?? getSavedCredentials();
+  if (!credentials || !credentials.username || !credentials.password) {
+    throw new Error("Credenciais necessárias para login");
+  }
   const res = await fetch(`${VIDAS_API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(creds),
+    body: JSON.stringify(credentials),
   });
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
@@ -44,7 +63,7 @@ export async function login(credentials?: Credentials): Promise<string> {
   const json = await res.json();
   if (!json?.token) throw new Error("Resposta de login sem token");
   setToken(json.token);
-  saveCredentials(creds);
+  saveCredentials({ username: credentials.username, password: "" });
   return json.token as string;
 }
 
