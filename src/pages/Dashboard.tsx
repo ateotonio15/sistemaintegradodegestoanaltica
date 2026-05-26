@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Building2, Clock, CheckCircle2, RotateCcw, RefreshCw, Users, Pencil, TrendingUp, Search, BellRing, Trash2, Paperclip } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -1045,13 +1045,16 @@ export default function Dashboard() {
 
         {/* Edit Movimentação Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingMov(null); }}>
-          <DialogContent className="sm:max-w-md rounded-xl">
+          <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-xl">
             <DialogHeader>
               <DialogTitle>Editar Movimentação</DialogTitle>
+              <DialogDescription className="sr-only">
+                Edite as datas da movimentação e gerencie os anexos relacionados.
+              </DialogDescription>
             </DialogHeader>
             {editingMov && (
-              <div className="space-y-5">
-                <div className="text-sm text-muted-foreground p-3 bg-accent/50 rounded-lg">
+              <div className="min-w-0 space-y-5">
+                <div className="min-w-0 text-sm text-muted-foreground p-3 bg-accent/50 rounded-lg truncate">
                   <span className="font-medium text-foreground">{(editingMov as any).empresas?.nome}</span>
                   {" — "}{(editingMov as any).empresas?.codigo_contrato || ""}
                 </div>
