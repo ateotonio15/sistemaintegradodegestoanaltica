@@ -119,7 +119,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
   const showRequiredWarn = required && anexos.length === 0;
 
   return (
-    <div className={`rounded-lg border p-3 space-y-3 ${showRequiredWarn ? "border-warning/50 bg-warning/5" : "border-border"}`}>
+    <div className={`min-w-0 max-w-full rounded-lg border p-3 space-y-3 overflow-hidden ${showRequiredWarn ? "border-warning/50 bg-warning/5" : "border-border"}`}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Paperclip className="h-4 w-4 text-info" />
@@ -160,19 +160,19 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
           Nenhum anexo. Aceita PDF, Excel, CSV e imagens.
         </p>
       ) : (
-        <ul className="space-y-1.5">
+        <ul className="min-w-0 max-w-full space-y-1.5">
           {anexos.map((a) => (
             <li
               key={a.id}
-              className="flex items-center gap-2 text-sm bg-muted/50 rounded-md px-2.5 py-1.5"
+              className="grid min-w-0 max-w-full grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
             >
               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="flex-1 truncate" title={a.nome_arquivo}>{a.nome_arquivo}</span>
+              <span className="min-w-0 truncate" title={a.nome_arquivo}>{a.nome_arquivo}</span>
               <span className="text-xs text-muted-foreground shrink-0">{formatBytes(a.tamanho_bytes)}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
                 <Download className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(a.id, a.storage_path)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={() => handleDelete(a.id, a.storage_path)}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </li>
