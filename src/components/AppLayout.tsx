@@ -98,14 +98,17 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     });
   }, [isMobile]);
 
+  const dashChildren = useMemo(() => ([
+    { to: "/dashboard/geral", label: "Geral", icon: LayoutDashboard },
+    { to: "/dashboard/financeiro", label: "Financeiro", icon: Wallet },
+    { to: "/dashboard/vendas", label: "Vendas", icon: TrendingUp },
+    { to: "/dashboard/administradoras", label: "Administradoras", icon: Building },
+  ]), []);
+
   const navItems = useMemo(() => {
-    const base = isAdmin
+    const base: Array<typeof allNavItems[number] & { children?: typeof dashChildren }> = isAdmin
       ? [
-          allNavItems[0],
-          { to: "/dashboard/geral", label: "Dash. Geral", icon: LayoutDashboard },
-          { to: "/dashboard/financeiro", label: "Dash. Financeiro", icon: Wallet },
-          { to: "/dashboard/vendas", label: "Dash. Vendas", icon: TrendingUp },
-          { to: "/dashboard/administradoras", label: "Dash. Administradoras", icon: Building },
+          { to: "/", label: "Painéis", icon: LayoutDashboard, children: dashChildren },
           ...allNavItems.slice(1),
         ]
       : allNavItems;
@@ -132,7 +135,14 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       }
       return true;
     });
-  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role]);
+  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren]);
+
+  const isDashChildActive = dashChildren.some((c) => location.pathname === c.to);
+  const [dashOpen, setDashOpen] = useState<boolean>(isDashChildActive);
+  useEffect(() => {
+    if (isDashChildActive) setDashOpen(true);
+  }, [isDashChildActive]);
+
 
 
   const { data: profile } = useQuery({
