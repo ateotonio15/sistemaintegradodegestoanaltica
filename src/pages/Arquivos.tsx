@@ -212,11 +212,14 @@ export default function Arquivos() {
         };
       });
 
+      // Apenas empresas ATIVAS (status_empresa = 'Ativa' e não suspensas)
+      const onlyActive = rows.filter((r) => r.empresa_id && activeEmpresaIds.has(r.empresa_id));
+
       // Financeiro: somente os anexos que ele mesmo enviou
       if (isFinanceiro && currentUid) {
-        return rows.filter((r) => r.uploaded_by === currentUid);
+        return onlyActive.filter((r) => r.uploaded_by === currentUid);
       }
-      return rows;
+      return onlyActive;
     },
   });
 
