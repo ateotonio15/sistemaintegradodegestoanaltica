@@ -61,8 +61,10 @@ function daysUntil(iso: string | null): number | null {
 
 export function ContratosAVigenciarCard() {
   const qc = useQueryClient();
-  const { isAdmin, role } = useAuth();
-  const canManage = isAdmin || role === "comum" || role === "vendas";
+  const { user, isAdmin, role } = useAuth();
+  const canUpload = isAdmin || role === "comum" || role === "vendas" || role === "financeiro";
+  const canDeleteAll = isAdmin || role === "comum" || role === "vendas";
+  const currentUid = user?.id ?? null;
   const [search, setSearch] = useState("");
   const [openRow, setOpenRow] = useState<Row | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
