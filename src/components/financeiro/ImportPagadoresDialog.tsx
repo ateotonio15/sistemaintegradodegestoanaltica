@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import ExcelJS from "exceljs";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Trash2, CheckCircle2, AlertCircle, Loader2, FileSpreadsheet } from "lucide-react";
 import type { ProcessJob } from "@/lib/process-jobs";
 
 interface Props {
@@ -22,24 +22,21 @@ interface Props {
 interface LinhaImport {
   empresa: string;
   contrato: string;
-  cnpj: string | null;
+  cnpj: string;
 }
 
-function normalizeCnpj(v: unknown): string | null {
-  if (v === null || v === undefined) return null;
-  // Mantém apenas dígitos (Excel pode entregar como número, perdendo zeros à esquerda)
-  const digits = String(v).replace(/\D/g, "");
+function normalizeCnpj(v: string): string | null {
+  const digits = v.replace(/\D/g, "");
   if (!digits) return null;
-  // CNPJ tem 14 dígitos — preenche zeros à esquerda quando vier truncado
   if (digits.length <= 14) return digits.padStart(14, "0");
-  // Se vier algo maior (improvável), retorna como está
   return digits;
 }
 
+const emptyRow = (): LinhaImport => ({ empresa: "", contrato: "", cnpj: "" });
+
 export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
-  const [parsedRows, setParsedRows] = useState<LinhaImport[]>([]);
-  const [fileName, setFileName] = useState<string>("");
+  const [rows, setRows] = useState<LinhaImport[]>([emptyRow()]);
   const [importing, setImporting] = useState(false);
   const [jobId, setJobId] = useState<string | null>(() => {
     try { return localStorage.getItem("import-pagadores-job-id"); } catch { return null; }
@@ -81,13 +78,12 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
   useEffect(() => {
     if (!job) return;
     if (job.status === "completed" || job.status === "error") {
-      const nextResumo = {
+      setResumo({
         criados: Number(jobResult?.criados ?? 0),
         atualizados: Number(jobResult?.atualizados ?? 0),
         ignorados: Number(jobResult?.ignorados ?? 0),
         erros: Array.isArray(jobResult?.erros) ? jobResult.erros : job.error ? [job.error] : [],
-      };
-      setResumo(nextResumo);
+      });
       setImporting(false);
       queryClient.invalidateQueries({ queryKey: ["financeiro-pagadores-all"] });
       queryClient.invalidateQueries({ queryKey: ["financeiro-pagadores"] });
@@ -98,62 +94,41 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
     }
   }, [job, jobResult, queryClient]);
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setFileName(file.name);
-    setResumo(null);
-    try {
-      const buffer = await file.arrayBuffer();
-      const wb = new ExcelJS.Workbook();
-      await wb.xlsx.load(buffer);
-      const ws = wb.worksheets[0];
-      if (!ws) throw new Error("Planilha vazia");
-
-      const rows: LinhaImport[] = [];
-      let header: Record<string, number> = {};
-      ws.eachRow((row, rowNumber) => {
-        const cells = row.values as any[];
-        if (rowNumber === 1) {
-          cells.forEach((c, idx) => {
-            if (c == null) return;
-            const key = String(c).toLowerCase().trim();
-            if (key.includes("empresa")) header.empresa = idx;
-            else if (key.includes("contrato")) header.contrato = idx;
-            else if (key.includes("cnpj")) header.cnpj = idx;
-          });
-          return;
-        }
-        const empresa = header.empresa ? String(cells[header.empresa] ?? "").trim() : "";
-        const contrato = header.contrato ? String(cells[header.contrato] ?? "").trim() : "";
-        const cnpj = header.cnpj ? normalizeCnpj(cells[header.cnpj]) : null;
-        if (!empresa || !contrato) return;
-        rows.push({ empresa, contrato, cnpj });
-      });
-
-      if (rows.length === 0) {
-        toast.error("Nenhuma linha válida. Use as colunas: Empresa, Contrato, CNPJ");
-        return;
-      }
-      setParsedRows(rows);
-    } catch (err: any) {
-      toast.error("Erro ao ler planilha: " + err.message);
-    }
+  const updateRow = (idx: number, field: keyof LinhaImport, value: string) => {
+    setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));
   };
 
+  const addRow = () => setRows((prev) => [...prev, emptyRow()]);
+  const removeRow = (idx: number) =>
+    setRows((prev) => (prev.length === 1 ? [emptyRow()] : prev.filter((_, i) => i !== idx)));
+
+  const validRows = useMemo(
+    () =>
+      rows
+        .map((r) => ({
+          empresa: r.empresa.trim(),
+          contrato: r.contrato.trim(),
+          cnpj: normalizeCnpj(r.cnpj),
+        }))
+        .filter((r) => r.empresa && r.contrato),
+    [rows]
+  );
+
   const handleImport = async () => {
-    if (parsedRows.length === 0) return;
+    if (validRows.length === 0) {
+      toast.error("Preencha pelo menos uma linha com Empresa e Contrato");
+      return;
+    }
     setImporting(true);
     try {
       const { data, error } = await supabase.functions.invoke("import-pagadores", {
-        body: { rows: parsedRows, fileName },
+        body: { rows: validRows, fileName: "entrada-manual" },
       });
       if (error) throw error;
       if (!data?.jobId) throw new Error("Servidor não retornou o código do processo");
       setJobId(data.jobId);
       try { localStorage.setItem("import-pagadores-job-id", data.jobId); } catch {}
-      toast.success("Importação enviada ao servidor. Você pode trocar de aba sem perder o processo.");
+      toast.success("Importação enviada ao servidor.");
     } catch (err: any) {
       setImporting(false);
       toast.error("Erro ao iniciar importação: " + err.message);
@@ -161,8 +136,7 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
   };
 
   const handleClose = () => {
-    setParsedRows([]);
-    setFileName("");
+    setRows([emptyRow()]);
     setResumo(null);
     if (job?.status === "completed" || job?.status === "error") {
       setJobId(null);
@@ -171,19 +145,13 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
     onOpenChange(false);
   };
 
-  const grupos = parsedRows.reduce<Record<string, LinhaImport[]>>((acc, r) => {
-    if (!acc[r.contrato]) acc[r.contrato] = [];
-    acc[r.contrato].push(r);
-    return acc;
-  }, {});
-
   return (
     <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(v) : handleClose())}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Importar pagadores</DialogTitle>
+          <DialogTitle>Adicionar pagadores</DialogTitle>
           <DialogDescription>
-            Planilha Excel com colunas: <strong>Empresa</strong>, <strong>Contrato</strong>,{" "}
+            Preencha as colunas <strong>Empresa</strong>, <strong>Contrato</strong> e{" "}
             <strong>CNPJ</strong> (opcional). Pagadores irmãos compartilham o mesmo Contrato.
           </DialogDescription>
         </DialogHeader>
@@ -206,43 +174,73 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
             </div>
           )}
 
-          <label className="block">
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              className="hidden"
-              onChange={handleFile}
-              disabled={importing}
-            />
-            <span className="inline-flex items-center gap-2 rounded-md border-2 border-dashed border-border px-4 py-6 w-full justify-center cursor-pointer hover:bg-muted/40 transition-colors">
-              <Upload className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm">
-                {fileName ? `Arquivo: ${fileName} (clique para trocar)` : "Selecionar planilha (.xlsx)"}
-              </span>
-            </span>
-          </label>
-
-          {parsedRows.length > 0 && !resumo && (
-            <div className="rounded-lg border border-border max-h-72 overflow-auto">
+          {!resumo && (
+            <div className="rounded-lg border border-border overflow-hidden">
               <div className="bg-muted/50 px-3 py-2 text-xs font-medium flex items-center gap-2">
                 <FileSpreadsheet className="h-4 w-4" />
-                {parsedRows.length} pagador(es) em {Object.keys(grupos).length} contrato(s)
+                {validRows.length} linha(s) válida(s) de {rows.length}
               </div>
-              <ul className="divide-y divide-border text-sm">
-                {Object.entries(grupos).map(([contrato, lista]) => (
-                  <li key={contrato} className="px-3 py-2">
-                    <p className="text-xs text-muted-foreground">Contrato {contrato}</p>
-                    {lista.map((l, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <span>{l.empresa}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {l.cnpj || "sem CNPJ"}
-                        </span>
-                      </div>
+              <div className="max-h-80 overflow-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/30 sticky top-0">
+                    <tr className="text-left text-xs text-muted-foreground">
+                      <th className="px-2 py-2 font-medium">Empresa *</th>
+                      <th className="px-2 py-2 font-medium w-40">Contrato *</th>
+                      <th className="px-2 py-2 font-medium w-48">CNPJ</th>
+                      <th className="px-2 py-2 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, idx) => (
+                      <tr key={idx} className="border-t border-border">
+                        <td className="px-2 py-1">
+                          <Input
+                            value={r.empresa}
+                            onChange={(e) => updateRow(idx, "empresa", e.target.value)}
+                            placeholder="Nome do pagador"
+                            className="h-8"
+                            disabled={importing}
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Input
+                            value={r.contrato}
+                            onChange={(e) => updateRow(idx, "contrato", e.target.value)}
+                            placeholder="Código"
+                            className="h-8"
+                            disabled={importing}
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Input
+                            value={r.cnpj}
+                            onChange={(e) => updateRow(idx, "cnpj", e.target.value)}
+                            placeholder="Opcional"
+                            className="h-8"
+                            disabled={importing}
+                          />
+                        </td>
+                        <td className="px-2 py-1 text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => removeRow(idx)}
+                            disabled={importing}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
                     ))}
-                  </li>
-                ))}
-              </ul>
+                  </tbody>
+                </table>
+              </div>
+              <div className="border-t border-border p-2">
+                <Button variant="outline" size="sm" onClick={addRow} disabled={importing} className="w-full">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar linha
+                </Button>
+              </div>
             </div>
           )}
 
@@ -274,9 +272,9 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
             <Button variant="outline" onClick={handleClose}>
               {resumo || importing ? "Fechar" : "Cancelar"}
             </Button>
-            {parsedRows.length > 0 && !resumo && (
-              <Button onClick={handleImport} disabled={importing}>
-                {importing ? "Processando no servidor..." : `Importar ${parsedRows.length} pagador(es)`}
+            {!resumo && (
+              <Button onClick={handleImport} disabled={importing || validRows.length === 0}>
+                {importing ? "Processando no servidor..." : `Adicionar ${validRows.length} pagador(es)`}
               </Button>
             )}
           </div>
