@@ -1,5 +1,4 @@
 import { DashboardFinanceiro as DashboardFinanceiroContent } from "@/components/dashboard/DashboardFinanceiro";
-import { ContratosAVigenciarCard } from "@/components/dashboard/ContratosAVigenciarCard";
 
 export default function DashboardFinanceiroPage() {
   return (
@@ -9,7 +8,6 @@ export default function DashboardFinanceiroPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard Financeiro</h1>
           <p className="text-sm text-muted-foreground">Visão geral de cobranças, vencimentos e inadimplência</p>
         </div>
-        <ContratosAVigenciarCard />
         <DashboardFinanceiroContent />
       </div>
     </>

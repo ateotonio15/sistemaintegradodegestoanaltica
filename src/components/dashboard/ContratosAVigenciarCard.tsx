@@ -47,7 +47,6 @@ type Anexo = {
   mime_type: string | null;
   tamanho_bytes: number | null;
   created_at: string;
-  uploaded_by: string | null;
 };
 
 function daysUntil(iso: string | null): number | null {
@@ -61,10 +60,8 @@ function daysUntil(iso: string | null): number | null {
 
 export function ContratosAVigenciarCard() {
   const qc = useQueryClient();
-  const { user, isAdmin, role } = useAuth();
-  const canUpload = isAdmin || role === "comum" || role === "vendas" || role === "financeiro";
-  const canDeleteAll = isAdmin || role === "comum" || role === "vendas";
-  const currentUid = user?.id ?? null;
+  const { isAdmin, role } = useAuth();
+  const canManage = isAdmin || role === "comum" || role === "vendas";
   const [search, setSearch] = useState("");
   const [openRow, setOpenRow] = useState<Row | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -156,7 +153,7 @@ export function ContratosAVigenciarCard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("implantacao_anexos" as any)
-        .select("id, implantacao_id, nome_arquivo, storage_path, mime_type, tamanho_bytes, created_at, uploaded_by")
+        .select("id, implantacao_id, nome_arquivo, storage_path, mime_type, tamanho_bytes, created_at")
         .in("implantacao_id", implIdsForAnexos)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -261,11 +258,7 @@ export function ContratosAVigenciarCard() {
   };
 
   const handleDelete = async (a: Anexo) => {
-    const mine = !!currentUid && a.uploaded_by === currentUid;
-    if (!canDeleteAll && !mine) {
-      toast.error("Você só pode excluir anexos enviados por você.");
-      return;
-    }
+    if (!canManage) return;
     if (!confirm(`Excluir o anexo "${a.nome_arquivo}"?`)) return;
     await supabase.storage.from("anexos-implantacao").remove([a.storage_path]).catch(() => {});
     await supabase.from("implantacao_anexos" as any).delete().eq("id", a.id);
@@ -378,7 +371,7 @@ export function ContratosAVigenciarCard() {
             const list = implId ? anexosByImpl[implId] || [] : [];
             return (
               <div className="space-y-4">
-                {canUpload && (
+                {canManage && (
                   <div className="flex items-center gap-2">
                     <input
                       ref={fileRef}
@@ -429,7 +422,7 @@ export function ContratosAVigenciarCard() {
                         >
                           <Download className="h-4 w-4" />
                         </Button>
-                        {(canDeleteAll || (!!currentUid && a.uploaded_by === currentUid)) && (
+                        {canManage && (
                           <Button
                             variant="ghost"
                             size="icon"
