@@ -316,6 +316,7 @@ export default function Empresas() {
       telefone_empresa: (e as any).telefone_empresa ?? "",
       contato_empresa: (e as any).contato_empresa ?? "",
       contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
+      pagamento_via_deposito: (e as any).pagamento_via_deposito ?? false,
       vidas: (e as any).vidas ?? 0,
       tipo_contrato: (e as any).tipo_contrato ?? "EMPRESARIAL",
     } as any);
