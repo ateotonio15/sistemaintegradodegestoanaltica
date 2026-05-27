@@ -45,12 +45,49 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const userId = claimsData.claims.sub as string;
+
+    // --- Verificação de role ---
+    const { data: roles, error: rolesErr } = await userClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    if (rolesErr) {
+      return new Response(JSON.stringify({ error: "Falha ao validar permissão" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const roleSet = new Set((roles ?? []).map((r: any) => r.role));
+    const allowed = ["admin", "comum", "vendas", "diretora", "financeiro"];
+    if (!allowed.some((r) => roleSet.has(r))) {
+      return new Response(JSON.stringify({ error: "Permissão negada" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { storage_path, mime_type } = await req.json();
-    if (!storage_path || typeof storage_path !== "string") {
-      return new Response(JSON.stringify({ error: "storage_path requerido" }), {
+    if (!storage_path || typeof storage_path !== "string"
+        || !/^[A-Za-z0-9._\/\-]+$/.test(storage_path)
+        || storage_path.includes("..")) {
+      return new Response(JSON.stringify({ error: "storage_path inválido" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Vendas: só pode acessar anexos de implantações criadas pelo próprio usuário
+    if (roleSet.has("vendas") && !roleSet.has("admin")
+        && !roleSet.has("comum") && !roleSet.has("diretora") && !roleSet.has("financeiro")) {
+      const { data: owned, error: ownErr } = await userClient
+        .from("implantacao_anexos")
+        .select("implantacao_id, implantacoes_contratos!inner(created_by)")
+        .eq("storage_path", storage_path)
+        .limit(1)
+        .maybeSingle();
+      if (ownErr || !owned || (owned as any).implantacoes_contratos?.created_by !== userId) {
+        return new Response(JSON.stringify({ error: "Permissão negada" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
 
