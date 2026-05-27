@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText, Paperclip, Play, Loader2, CheckCircle2 } from "lucide-react";
+import { Download, Eye, FileText, Paperclip, Play, Loader2, CheckCircle2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
