@@ -291,14 +291,28 @@ export function AnexosViewerDialog({
             {faturamentoIniciadoEm ? (
               <div className="flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-400/30 px-3 py-2.5 text-sm">
                 <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-300 shrink-0" />
-                <div className="flex flex-col leading-tight">
-                  <span className="font-medium text-blue-700 dark:text-blue-200">
+                <div className="flex flex-col leading-tight flex-1 min-w-0">
+                  <span className="font-medium text-blue-700 dark:text-blue-200 truncate">
                     Faturamento iniciado{faturamentoIniciadoPorNome ? ` por ${faturamentoIniciadoPorNome}` : ""}
                   </span>
                   <span className="text-xs text-blue-600/80 dark:text-blue-300/80">
                     Iniciado às {formatDateTime(faturamentoIniciadoEm)}
                   </span>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelarFaturamento}
+                  disabled={cancelando}
+                  className="shrink-0 border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-400/40 dark:text-blue-200 dark:hover:bg-blue-500/20"
+                >
+                  {cancelando ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <X className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  Cancelar
+                </Button>
               </div>
             ) : (
               <Button
