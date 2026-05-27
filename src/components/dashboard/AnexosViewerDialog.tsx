@@ -58,7 +58,46 @@ export function AnexosViewerDialog({
   empresaNome,
   mesReferencia,
   periodo,
+  movimentacaoId = null,
+  faturamentoIniciadoEm = null,
+  faturamentoIniciadoPorNome = null,
 }: Props) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [iniciando, setIniciando] = useState(false);
+
+  const handleIniciarFaturamento = async () => {
+    if (!movimentacaoId || !user) return;
+    setIniciando(true);
+    try {
+      // Busca o nome do usuário atual
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("display_name, username")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const nome = prof?.display_name || prof?.username || user.email || "Usuário";
+
+      const { error } = await supabase
+        .from("financeiro_movimentacoes")
+        .update({
+          faturamento_iniciado_por: user.id,
+          faturamento_iniciado_por_nome: nome,
+          faturamento_iniciado_em: new Date().toISOString(),
+        })
+        .eq("id", movimentacaoId);
+      if (error) throw error;
+
+      toast.success("Faturamento iniciado");
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+    } catch (e: any) {
+      toast.error("Erro ao iniciar faturamento: " + e.message);
+    } finally {
+      setIniciando(false);
+    }
+  };
+
+
   const { data: anexos = [], isLoading } = useQuery<AnexoRow[]>({
     queryKey: ["anexos-viewer-merged", empresaId, mesReferencia, periodo],
     enabled: open && !!empresaId,
