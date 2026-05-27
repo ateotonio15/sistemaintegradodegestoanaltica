@@ -54,10 +54,12 @@ const STATUS_OPTIONS: StatusFinanceiro[] = [
   "Nota emitida",
   "Faturado",
   "Enviada",
+  "Em faturamento",
   "Aguardando nota",
   "Pendente",
   "Fora do prazo",
 ];
+
 
 export default function Financeiro() {
   const { user, loading, isAdmin, isFinanceiro, isComum, isViewOnly } = useAuth();
