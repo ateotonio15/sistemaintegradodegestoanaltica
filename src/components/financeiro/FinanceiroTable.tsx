@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History, Receipt } from "lucide-react";
+import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History, Receipt, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -25,6 +25,9 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   dia_emissao?: number | null;
   aguardando_nota_em?: string | null;
   enviado_por_nome?: string | null;
+  faturamento_iniciado_por?: string | null;
+  faturamento_iniciado_por_nome?: string | null;
+  faturamento_iniciado_em?: string | null;
   /** Indica que existe ao menos um anexo originado de Reajuste/Cobrança Retroativa */
   retroativo?: boolean;
   /** Chave única por linha (id da movimentação + id do pagador, quando aplicável) */
@@ -33,6 +36,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   pagador_id?: string | null;
   boleto_dda?: boolean | null;
 };
+
 
 export interface PagadorCadastrado {
   id: string;
