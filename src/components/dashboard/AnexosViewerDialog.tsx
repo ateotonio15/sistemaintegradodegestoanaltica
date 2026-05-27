@@ -261,7 +261,39 @@ export function AnexosViewerDialog({
             </ul>
           )}
         </div>
+
+        {movimentacaoId && (
+          <div className="border-t pt-3 mt-1">
+            {faturamentoIniciadoEm ? (
+              <div className="flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-400/30 px-3 py-2.5 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-300 shrink-0" />
+                <div className="flex flex-col leading-tight">
+                  <span className="font-medium text-blue-700 dark:text-blue-200">
+                    Faturamento iniciado{faturamentoIniciadoPorNome ? ` por ${faturamentoIniciadoPorNome}` : ""}
+                  </span>
+                  <span className="text-xs text-blue-600/80 dark:text-blue-300/80">
+                    Iniciado às {formatDateTime(faturamentoIniciadoEm)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <Button
+                onClick={handleIniciarFaturamento}
+                disabled={iniciando}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {iniciando ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4 mr-2" />
+                )}
+                Iniciar faturamento
+              </Button>
+            )}
+          </div>
+        )}
       </DialogContent>
+
       {preview && (
         <PreviewArquivoDialog
           open={!!preview}
