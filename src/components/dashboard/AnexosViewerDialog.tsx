@@ -65,6 +65,7 @@ export function AnexosViewerDialog({
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [iniciando, setIniciando] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
 
   const handleIniciarFaturamento = async () => {
     if (!movimentacaoId || !user) return;
@@ -94,6 +95,29 @@ export function AnexosViewerDialog({
       toast.error("Erro ao iniciar faturamento: " + e.message);
     } finally {
       setIniciando(false);
+    }
+  };
+
+  const handleCancelarFaturamento = async () => {
+    if (!movimentacaoId) return;
+    if (!confirm("Deseja realmente cancelar o faturamento em andamento?")) return;
+    setCancelando(true);
+    try {
+      const { error } = await supabase
+        .from("financeiro_movimentacoes")
+        .update({
+          faturamento_iniciado_por: null,
+          faturamento_iniciado_por_nome: null,
+          faturamento_iniciado_em: null,
+        })
+        .eq("id", movimentacaoId);
+      if (error) throw error;
+      toast.success("Faturamento cancelado");
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+    } catch (e: any) {
+      toast.error("Erro ao cancelar faturamento: " + e.message);
+    } finally {
+      setCancelando(false);
     }
   };
 
