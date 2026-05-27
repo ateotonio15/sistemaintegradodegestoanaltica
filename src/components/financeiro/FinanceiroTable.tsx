@@ -187,10 +187,21 @@ export function FinanceiroTable({
                         : <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge className={cn("text-xs", statusFinanceiroColor(row.status))}>
-                        {row.status}
-                      </Badge>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <Badge className={cn("text-xs gap-1", statusFinanceiroColor(row.status))}>
+                          {row.status === "Em faturamento" && (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          )}
+                          {row.status}
+                        </Badge>
+                        {row.status === "Em faturamento" && row.faturamento_iniciado_por_nome && (
+                          <span className="text-[10px] text-blue-600 dark:text-blue-300 leading-tight">
+                            por {row.faturamento_iniciado_por_nome}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
+
                     <TableCell className="text-sm text-center">
                       {row.enviado_por_nome || <span className="text-muted-foreground">—</span>}
                     </TableCell>
