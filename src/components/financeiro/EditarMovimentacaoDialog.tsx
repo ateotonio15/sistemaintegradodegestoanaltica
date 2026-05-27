@@ -168,19 +168,30 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   });
 
   // Pagadores do mesmo contrato (para sincronização)
-  const { data: pagadores = [] } = useQuery({
-    queryKey: ["financeiro-pagadores", movimentacao?.empresa_id],
+  const { data: empresaCfg } = useQuery({
+    queryKey: ["financeiro-empresa-cfg", movimentacao?.empresa_id],
     queryFn: async () => {
-      if (!movimentacao) return [] as Pagador[];
-      const { data: emp } = await supabase
+      if (!movimentacao) return null;
+      const { data } = await supabase
         .from("empresas")
-        .select("codigo_contrato")
+        .select("codigo_contrato, pagamento_via_deposito")
         .eq("id", movimentacao.empresa_id)
         .maybeSingle();
-      return getPagadoresDoContrato(movimentacao.empresa_id, emp?.codigo_contrato);
+      return data;
     },
     enabled: !!movimentacao && open,
   });
+
+  const { data: pagadores = [] } = useQuery({
+    queryKey: ["financeiro-pagadores", movimentacao?.empresa_id, empresaCfg?.codigo_contrato],
+    queryFn: async () => {
+      if (!movimentacao) return [] as Pagador[];
+      return getPagadoresDoContrato(movimentacao.empresa_id, empresaCfg?.codigo_contrato);
+    },
+    enabled: !!movimentacao && open && empresaCfg !== undefined,
+  });
+
+  const pagamentoViaDeposito = !!(empresaCfg as any)?.pagamento_via_deposito;
 
   const irmaos = pagadores.filter((p) => p.id !== movimentacao?.empresa_id);
   const temIrmaos = irmaos.length > 0;
@@ -565,7 +576,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </div>
           </div>
 
-          {/* Boleto DDA */}
+          {/* Boleto DDA — oculto quando empresa usa pagamento via depósito */}
+          {!pagamentoViaDeposito && (
           <div
             className={cn(
               "rounded-lg border p-3 space-y-2 transition-colors",
@@ -604,6 +616,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               </p>
             )}
           </div>
+          )}
 
           {/* Prorrogação */}
           <div className="rounded-lg border border-border p-3 space-y-3">

@@ -120,7 +120,7 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito")
         .in("id", empresaIds);
       if (error) throw error;
       const map: Record<string, {
@@ -131,6 +131,7 @@ export default function Financeiro() {
         periodo_movimentacao: string | null;
         data_corte: number | null;
         ativa: boolean;
+        pagamento_via_deposito: boolean;
       }> = {};
       data.forEach((e: any) => {
         const statusOk = (e.status_empresa ?? "Ativa") === "Ativa";
@@ -143,6 +144,7 @@ export default function Financeiro() {
           periodo_movimentacao: e.periodo_movimentacao ?? null,
           data_corte: e.data_corte ?? null,
           ativa,
+          pagamento_via_deposito: !!e.pagamento_via_deposito,
         };
       });
       return map;
@@ -353,6 +355,7 @@ export default function Financeiro() {
         faturamento_iniciado_por_nome: (f as any).faturamento_iniciado_por_nome ?? null,
         faturamento_iniciado_em: (f as any).faturamento_iniciado_em ?? null,
         retroativo: temRetroativo,
+        pagamento_via_deposito: !!emp?.pagamento_via_deposito,
       };
     });
 

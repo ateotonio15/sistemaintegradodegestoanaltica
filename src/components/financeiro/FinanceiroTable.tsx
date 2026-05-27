@@ -35,6 +35,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
   pagador_id?: string | null;
   boleto_dda?: boolean | null;
+  pagamento_via_deposito?: boolean;
 };
 
 
@@ -151,7 +152,7 @@ export function FinanceiroTable({
                             Retroativo
                           </Badge>
                         )}
-                        {(row.status === "Nota emitida" || row.status === "Enviada") && (
+                        {(row.status === "Nota emitida" || row.status === "Enviada") && !row.pagamento_via_deposito && (
                           <Badge
                             variant="outline"
                             className={cn(
