@@ -131,8 +131,11 @@ export function FinanceiroTable({
                   <TableRow
                     className={cn(
                       isOverdue && "bg-destructive/5 border-l-2 border-l-destructive",
+                      row.status === "Em faturamento" &&
+                        "bg-blue-50/70 dark:bg-blue-500/10 border-l-4 border-l-blue-500",
                     )}
                   >
+
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
