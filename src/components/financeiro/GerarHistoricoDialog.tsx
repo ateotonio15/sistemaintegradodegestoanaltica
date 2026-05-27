@@ -109,6 +109,7 @@ export function GerarHistoricoDialog({
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
       incluirDda: notaEmitida,
+      pagamentoViaDeposito: !!(empresaInfo as any)?.pagamento_via_deposito,
     });
   };
 
