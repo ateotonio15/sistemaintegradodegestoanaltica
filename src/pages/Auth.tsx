@@ -30,15 +30,17 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data: resolved, error: lookupError } = await supabase.functions.invoke(
+      const { data, error: fnError } = await supabase.functions.invoke(
         "resolve-username",
-        { body: { username } },
+        { body: { username, password } },
       );
-      const email = resolved?.email as string | undefined;
-      if (lookupError || !email) throw new Error("Usuário não encontrado");
-
-
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (fnError || !data?.session?.access_token) {
+        throw new Error(data?.error || "Usuário ou senha inválidos");
+      }
+      const { error } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
       if (error) throw error;
     } catch (err: any) {
       const msg = err.message?.includes("Invalid login")
