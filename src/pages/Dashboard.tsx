@@ -46,6 +46,7 @@ export default function Dashboard() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingMov, setEditingMov] = useState<Movimentacao | null>(null);
   const [editForm, setEditForm] = useState({ data_envio_empresa: "", data_envio_financeiro: "" });
+  const [editAnexosCount, setEditAnexosCount] = useState(0);
   // Edit empresa inline
   const [editEmpresaDialogOpen, setEditEmpresaDialogOpen] = useState(false);
   const [editingEmpresa, setEditingEmpresa] = useState<Tables<"empresas"> | null>(null);
