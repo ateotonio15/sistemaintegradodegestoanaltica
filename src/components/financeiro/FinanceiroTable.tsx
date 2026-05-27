@@ -220,8 +220,12 @@ export function FinanceiroTable({
                             empresaNome: row.empresa_nome,
                             mesReferencia: row.mes_referencia,
                             periodo: row.periodo,
+                            movimentacaoId: row.id,
+                            faturamentoIniciadoEm: row.faturamento_iniciado_em ?? null,
+                            faturamentoIniciadoPorNome: row.faturamento_iniciado_por_nome ?? null,
                           })
                         }
+
                         title="Ver anexos"
                       >
                         <Paperclip className="h-3 w-3" />
