@@ -70,7 +70,7 @@ export function GerarHistoricoDialog({
       if (!row?.empresa_id) return null;
       const { data, error } = await supabase
         .from("empresas")
-        .select("data_vencimento_fatura")
+        .select("data_vencimento_fatura, pagamento_via_deposito")
         .eq("id", row.empresa_id)
         .maybeSingle();
       if (error) throw error;
