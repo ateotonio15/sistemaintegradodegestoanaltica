@@ -296,6 +296,10 @@ export function FinanceiroTable({
         empresaNome={anexosDialog?.empresaNome ?? ""}
         mesReferencia={anexosDialog?.mesReferencia ?? ""}
         periodo={anexosDialog?.periodo ?? ""}
+        movimentacaoId={anexosDialog?.movimentacaoId ?? null}
+        faturamentoIniciadoEm={anexosDialog?.faturamentoIniciadoEm ?? null}
+        faturamentoIniciadoPorNome={anexosDialog?.faturamentoIniciadoPorNome ?? null}
+
       />
 
     </div>
