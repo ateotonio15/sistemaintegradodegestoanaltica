@@ -121,6 +121,12 @@ async function processImport(adminClient: any, jobId: string, rows: LinhaImport[
       cnpjPorChave.set(k, { id: p.id, cnpj: p.cnpj });
     });
 
+    const last2 = (cnpj: string | null) => (cnpj ? cnpj.slice(-2) : "");
+    const sufixar = (nome: string, cnpj: string | null) => {
+      const s = last2(cnpj);
+      return s ? `${nome.trim()} ${s}` : nome.trim();
+    };
+
     for (let i = 0; i < rows.length; i += 1) {
       const linha = rows[i];
       try {
@@ -129,26 +135,64 @@ async function processImport(adminClient: any, jobId: string, rows: LinhaImport[
           erros.push(`${linha.empresa} (${linha.contrato}): contrato não encontrado em Empresas`);
           continue;
         }
-        const k = `${ancora.id}|${linha.empresa.trim().toLowerCase()}`;
+        const nomeBase = linha.empresa.trim();
+        const k = `${ancora.id}|${nomeBase.toLowerCase()}`;
         if (chaveExist.has(k)) {
           const ex = cnpjPorChave.get(k)!;
-          if (linha.cnpj && !ex.cnpj) {
-            const { error } = await adminClient.from("financeiro_pagadores").update({ cnpj: linha.cnpj }).eq("id", ex.id);
-            if (error) throw error;
-            atualizados += 1;
-          } else {
+          // mesmo nome já cadastrado — verifica se é o mesmo CNPJ ou um homônimo
+          if (ex.cnpj && linha.cnpj && ex.cnpj === linha.cnpj) {
+            // realmente duplicado
             ignorados += 1;
+          } else if (!linha.cnpj) {
+            // sem CNPJ na linha: se o existente não tem cnpj é o mesmo; senão ignora
+            ignorados += 1;
+          } else {
+            // homônimo com CNPJ diferente: renomear o existente (se ainda não estiver sufixado)
+            // e inserir o novo com sufixo dos 2 últimos dígitos do CNPJ
+            const novoNomeNovo = sufixar(nomeBase, linha.cnpj);
+            const kNovo = `${ancora.id}|${novoNomeNovo.toLowerCase()}`;
+            if (chaveExist.has(kNovo)) {
+              ignorados += 1;
+            } else {
+              // renomeia o existente se tiver CNPJ próprio e ainda não foi sufixado
+              if (ex.cnpj) {
+                const novoNomeAntigo = sufixar(nomeBase, ex.cnpj);
+                const kAntigo = `${ancora.id}|${novoNomeAntigo.toLowerCase()}`;
+                if (!chaveExist.has(kAntigo) && novoNomeAntigo.toLowerCase() !== nomeBase.toLowerCase()) {
+                  const { error: upErr } = await adminClient
+                    .from("financeiro_pagadores")
+                    .update({ nome_pagador: novoNomeAntigo })
+                    .eq("id", ex.id);
+                  if (upErr) throw upErr;
+                  chaveExist.delete(k);
+                  chaveExist.add(kAntigo);
+                  cnpjPorChave.set(kAntigo, ex);
+                  atualizados += 1;
+                }
+              }
+              const { error } = await adminClient.from("financeiro_pagadores").insert({
+                empresa_id: ancora.id,
+                nome_pagador: novoNomeNovo,
+                cnpj: linha.cnpj,
+                ativo: true,
+              });
+              if (error) throw error;
+              criados += 1;
+              chaveExist.add(kNovo);
+              cnpjPorChave.set(kNovo, { id: "", cnpj: linha.cnpj });
+            }
           }
         } else {
           const { error } = await adminClient.from("financeiro_pagadores").insert({
             empresa_id: ancora.id,
-            nome_pagador: linha.empresa,
+            nome_pagador: nomeBase,
             cnpj: linha.cnpj,
             ativo: true,
           });
           if (error) throw error;
           criados += 1;
           chaveExist.add(k);
+          cnpjPorChave.set(k, { id: "", cnpj: linha.cnpj });
         }
       } catch (err: any) {
         erros.push(`${linha.empresa} (${linha.contrato}): ${err.message}`);
