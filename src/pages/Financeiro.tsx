@@ -1046,19 +1046,6 @@ export default function Financeiro() {
               <Download className={`h-3.5 w-3.5 ${isExporting ? "animate-pulse" : ""}`} />
               {isExporting ? "Exportando..." : "Exportar Excel"}
             </Button>
-            {isAdmin && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportErros}
-                disabled={isExportingErros}
-                className="gap-1.5"
-                title="Baixa um Excel com todas as análises que apresentaram erros ou divergências"
-              >
-                <Download className={`h-3.5 w-3.5 ${isExportingErros ? "animate-pulse" : ""}`} />
-                {isExportingErros ? "Gerando..." : "Exportar erros"}
-              </Button>
-            )}
             <Button
               variant="outline"
               size="sm"
