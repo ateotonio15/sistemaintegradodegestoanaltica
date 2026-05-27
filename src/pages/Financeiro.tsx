@@ -355,6 +355,7 @@ export default function Financeiro() {
         faturamento_iniciado_por_nome: (f as any).faturamento_iniciado_por_nome ?? null,
         faturamento_iniciado_em: (f as any).faturamento_iniciado_em ?? null,
         retroativo: temRetroativo,
+        pagamento_via_deposito: !!emp?.pagamento_via_deposito,
       };
     });
 
