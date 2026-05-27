@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText, Paperclip } from "lucide-react";
+import { Download, Eye, FileText, Paperclip, Play, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
@@ -29,10 +30,15 @@ interface Props {
   empresaNome: string;
   mesReferencia: string;
   periodo: string;
+  /** ID da financeiro_movimentacoes para suporte ao botão "Iniciar faturamento". */
+  movimentacaoId?: string | null;
+  faturamentoIniciadoEm?: string | null;
+  faturamentoIniciadoPorNome?: string | null;
 }
 
 const BUCKET_FINANCEIRO = "anexos-financeiro";
 const BUCKET_OPERACIONAL = "anexos-movimentacoes";
+
 
 type AnexoRow = {
   id: string;
@@ -52,7 +58,46 @@ export function AnexosViewerDialog({
   empresaNome,
   mesReferencia,
   periodo,
+  movimentacaoId = null,
+  faturamentoIniciadoEm = null,
+  faturamentoIniciadoPorNome = null,
 }: Props) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [iniciando, setIniciando] = useState(false);
+
+  const handleIniciarFaturamento = async () => {
+    if (!movimentacaoId || !user) return;
+    setIniciando(true);
+    try {
+      // Busca o nome do usuário atual
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("display_name, username")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const nome = prof?.display_name || prof?.username || user.email || "Usuário";
+
+      const { error } = await supabase
+        .from("financeiro_movimentacoes")
+        .update({
+          faturamento_iniciado_por: user.id,
+          faturamento_iniciado_por_nome: nome,
+          faturamento_iniciado_em: new Date().toISOString(),
+        })
+        .eq("id", movimentacaoId);
+      if (error) throw error;
+
+      toast.success("Faturamento iniciado");
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+    } catch (e: any) {
+      toast.error("Erro ao iniciar faturamento: " + e.message);
+    } finally {
+      setIniciando(false);
+    }
+  };
+
+
   const { data: anexos = [], isLoading } = useQuery<AnexoRow[]>({
     queryKey: ["anexos-viewer-merged", empresaId, mesReferencia, periodo],
     enabled: open && !!empresaId,
@@ -216,7 +261,39 @@ export function AnexosViewerDialog({
             </ul>
           )}
         </div>
+
+        {movimentacaoId && (
+          <div className="border-t pt-3 mt-1">
+            {faturamentoIniciadoEm ? (
+              <div className="flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-400/30 px-3 py-2.5 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-300 shrink-0" />
+                <div className="flex flex-col leading-tight">
+                  <span className="font-medium text-blue-700 dark:text-blue-200">
+                    Faturamento iniciado{faturamentoIniciadoPorNome ? ` por ${faturamentoIniciadoPorNome}` : ""}
+                  </span>
+                  <span className="text-xs text-blue-600/80 dark:text-blue-300/80">
+                    Iniciado às {formatDateTime(faturamentoIniciadoEm)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <Button
+                onClick={handleIniciarFaturamento}
+                disabled={iniciando}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {iniciando ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4 mr-2" />
+                )}
+                Iniciar faturamento
+              </Button>
+            )}
+          </div>
+        )}
       </DialogContent>
+
       {preview && (
         <PreviewArquivoDialog
           open={!!preview}

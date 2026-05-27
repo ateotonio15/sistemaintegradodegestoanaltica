@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History, Receipt } from "lucide-react";
+import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History, Receipt, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -25,6 +25,9 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   dia_emissao?: number | null;
   aguardando_nota_em?: string | null;
   enviado_por_nome?: string | null;
+  faturamento_iniciado_por?: string | null;
+  faturamento_iniciado_por_nome?: string | null;
+  faturamento_iniciado_em?: string | null;
   /** Indica que existe ao menos um anexo originado de Reajuste/Cobrança Retroativa */
   retroativo?: boolean;
   /** Chave única por linha (id da movimentação + id do pagador, quando aplicável) */
@@ -33,6 +36,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   pagador_id?: string | null;
   boleto_dda?: boolean | null;
 };
+
 
 export interface PagadorCadastrado {
   id: string;
@@ -77,7 +81,11 @@ export function FinanceiroTable({
     empresaNome: string;
     mesReferencia: string;
     periodo: string;
+    movimentacaoId: string;
+    faturamentoIniciadoEm: string | null;
+    faturamentoIniciadoPorNome: string | null;
   } | null>(null);
+
 
 
   return (
@@ -123,8 +131,11 @@ export function FinanceiroTable({
                   <TableRow
                     className={cn(
                       isOverdue && "bg-destructive/5 border-l-2 border-l-destructive",
+                      row.status === "Em faturamento" &&
+                        "bg-blue-50/70 dark:bg-blue-500/10 border-l-4 border-l-blue-500",
                     )}
                   >
+
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
@@ -176,10 +187,21 @@ export function FinanceiroTable({
                         : <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge className={cn("text-xs", statusFinanceiroColor(row.status))}>
-                        {row.status}
-                      </Badge>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <Badge className={cn("text-xs gap-1", statusFinanceiroColor(row.status))}>
+                          {row.status === "Em faturamento" && (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          )}
+                          {row.status}
+                        </Badge>
+                        {row.status === "Em faturamento" && row.faturamento_iniciado_por_nome && (
+                          <span className="text-[10px] text-blue-600 dark:text-blue-300 leading-tight">
+                            por {row.faturamento_iniciado_por_nome}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
+
                     <TableCell className="text-sm text-center">
                       {row.enviado_por_nome || <span className="text-muted-foreground">—</span>}
                     </TableCell>
@@ -198,8 +220,12 @@ export function FinanceiroTable({
                             empresaNome: row.empresa_nome,
                             mesReferencia: row.mes_referencia,
                             periodo: row.periodo,
+                            movimentacaoId: row.id,
+                            faturamentoIniciadoEm: row.faturamento_iniciado_em ?? null,
+                            faturamentoIniciadoPorNome: row.faturamento_iniciado_por_nome ?? null,
                           })
                         }
+
                         title="Ver anexos"
                       >
                         <Paperclip className="h-3 w-3" />
@@ -270,6 +296,10 @@ export function FinanceiroTable({
         empresaNome={anexosDialog?.empresaNome ?? ""}
         mesReferencia={anexosDialog?.mesReferencia ?? ""}
         periodo={anexosDialog?.periodo ?? ""}
+        movimentacaoId={anexosDialog?.movimentacaoId ?? null}
+        faturamentoIniciadoEm={anexosDialog?.faturamentoIniciadoEm ?? null}
+        faturamentoIniciadoPorNome={anexosDialog?.faturamentoIniciadoPorNome ?? null}
+
       />
 
     </div>

@@ -679,6 +679,9 @@ export type Database = {
           dia_emissao: number | null
           empresa_id: string
           enviado_por_user_id: string | null
+          faturamento_iniciado_em: string | null
+          faturamento_iniciado_por: string | null
+          faturamento_iniciado_por_nome: string | null
           id: string
           mes_referencia: string
           motivo_prorrogacao: string | null
@@ -705,6 +708,9 @@ export type Database = {
           dia_emissao?: number | null
           empresa_id: string
           enviado_por_user_id?: string | null
+          faturamento_iniciado_em?: string | null
+          faturamento_iniciado_por?: string | null
+          faturamento_iniciado_por_nome?: string | null
           id?: string
           mes_referencia: string
           motivo_prorrogacao?: string | null
@@ -731,6 +737,9 @@ export type Database = {
           dia_emissao?: number | null
           empresa_id?: string
           enviado_por_user_id?: string | null
+          faturamento_iniciado_em?: string | null
+          faturamento_iniciado_por?: string | null
+          faturamento_iniciado_por_nome?: string | null
           id?: string
           mes_referencia?: string
           motivo_prorrogacao?: string | null

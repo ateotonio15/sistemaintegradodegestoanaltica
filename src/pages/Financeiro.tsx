@@ -54,10 +54,12 @@ const STATUS_OPTIONS: StatusFinanceiro[] = [
   "Nota emitida",
   "Faturado",
   "Enviada",
+  "Em faturamento",
   "Aguardando nota",
   "Pendente",
   "Fora do prazo",
 ];
+
 
 export default function Financeiro() {
   const { user, loading, isAdmin, isFinanceiro, isComum, isViewOnly } = useAuth();
@@ -347,9 +349,13 @@ export default function Financeiro() {
         status: calcularStatusFinanceiro(f, envioOperacional, anexosParaStatus),
         anexos_count: anexosAll.length + (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0),
         enviado_por_nome: uploaderId ? uploaderMap[uploaderId] || null : null,
+        faturamento_iniciado_por: (f as any).faturamento_iniciado_por ?? null,
+        faturamento_iniciado_por_nome: (f as any).faturamento_iniciado_por_nome ?? null,
+        faturamento_iniciado_em: (f as any).faturamento_iniciado_em ?? null,
         retroativo: temRetroativo,
       };
     });
+
   }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosMap, pdfUploaderByMov, uploaderMap]);
 
   // Tipos únicos para o filtro

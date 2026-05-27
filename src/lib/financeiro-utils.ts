@@ -21,6 +21,7 @@ export type StatusFinanceiro =
   | "Nota emitida"
   | "Faturado"
   | "Enviada"
+  | "Em faturamento"
   | "Aguardando nota"
   | "Pendente"
   | "Fora do prazo";
@@ -52,12 +53,15 @@ export function isXlsAnexo(a: { mime_type?: string | null; nome_arquivo?: string
  * 1. **Enviada** — `data_envio_nota` preenchida (estágio final do Financeiro)
  * 2. **Nota emitida** — existe ao menos um anexo PDF
  * 3. **Faturado** — existe ao menos um anexo XLS/planilha (e nenhum PDF)
- * 4. **Fora do prazo** — `dentro_prazo === false` e sem anexo/nota
- * 5. **Aguardando nota** — operacional já enviou ao financeiro mas ainda sem anexo/nota
- * 6. **Pendente** — nada ainda
+ * 4. **Em faturamento** — usuário iniciou o faturamento (faturamento_iniciado_em)
+ * 5. **Fora do prazo** — `dentro_prazo === false` e sem anexo/nota
+ * 6. **Aguardando nota** — operacional já enviou ao financeiro mas ainda sem anexo/nota
+ * 7. **Pendente** — nada ainda
  */
 export function calcularStatusFinanceiro(
-  mov: Pick<FinanceiroMovimentacao, "data_envio_nota" | "dentro_prazo">,
+  mov: Pick<FinanceiroMovimentacao, "data_envio_nota" | "dentro_prazo"> & {
+    faturamento_iniciado_em?: string | null;
+  },
   envioOperacionalFeito: boolean,
   anexos: Array<{ mime_type?: string | null; nome_arquivo?: string | null }> = [],
 ): StatusFinanceiro {
@@ -66,6 +70,7 @@ export function calcularStatusFinanceiro(
   if (temPdf) return "Nota emitida";
   const temXls = anexos.some(isXlsAnexo);
   if (temXls) return "Faturado";
+  if (mov.faturamento_iniciado_em) return "Em faturamento";
   if (mov.dentro_prazo === false) return "Fora do prazo";
   if (envioOperacionalFeito) return "Aguardando nota";
   return "Pendente";
@@ -79,6 +84,8 @@ export function statusFinanceiroColor(status: StatusFinanceiro): string {
       return "bg-info text-info-foreground";
     case "Enviada":
       return "bg-success/80 text-success-foreground";
+    case "Em faturamento":
+      return "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-300/60 dark:border-blue-400/30";
     case "Aguardando nota":
       return "bg-warning text-warning-foreground";
     case "Fora do prazo":
@@ -88,6 +95,7 @@ export function statusFinanceiroColor(status: StatusFinanceiro): string {
       return "bg-muted text-muted-foreground";
   }
 }
+
 
 export function getCurrentMesReferencia(): string {
   const now = new Date();
