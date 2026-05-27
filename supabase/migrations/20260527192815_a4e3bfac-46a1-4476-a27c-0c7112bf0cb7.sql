@@ -1,0 +1,1 @@
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS pagamento_via_deposito boolean NOT NULL DEFAULT false;

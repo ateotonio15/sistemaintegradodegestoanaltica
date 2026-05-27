@@ -316,6 +316,7 @@ export default function Empresas() {
       telefone_empresa: (e as any).telefone_empresa ?? "",
       contato_empresa: (e as any).contato_empresa ?? "",
       contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
+      pagamento_via_deposito: (e as any).pagamento_via_deposito ?? false,
       vidas: (e as any).vidas ?? 0,
       tipo_contrato: (e as any).tipo_contrato ?? "EMPRESARIAL",
     } as any);
@@ -586,6 +587,20 @@ export default function Empresas() {
                           />
                           <span className="text-sm text-muted-foreground">
                             {(form as any).contrato_faixa_etaria ? "Sim" : "Não"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label className="text-sm font-medium">Pagamento via depósito</Label>
+                        <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                          <Switch
+                            checked={!!(form as any).pagamento_via_deposito}
+                            onCheckedChange={(v) => setForm({ ...form, pagamento_via_deposito: v } as any)}
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {(form as any).pagamento_via_deposito
+                              ? "Ativo — histórico exibirá os dados bancários para depósito"
+                              : "Inativo — histórico exibirá o aviso de boleto DDA"}
                           </span>
                         </div>
                       </div>

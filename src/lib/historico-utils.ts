@@ -59,6 +59,8 @@ export interface HistoricoOpts {
   /** Data já formatada DD/MM/AAAA */
   dataVencimento: string;
   incluirDda: boolean;
+  /** Quando true, substitui o bloco DDA pelos dados bancários de depósito. */
+  pagamentoViaDeposito?: boolean;
 }
 
 /** Gera o texto do histórico no padrão fixo da empresa. */
@@ -108,16 +110,30 @@ export function gerarHistoricoTexto(
   linhas.push("");
   linhas.push(`Data de Vencimento: ${opts.dataVencimento}.`);
   linhas.push("");
-  if (opts.incluirDda) {
-    linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
+
+  if (opts.pagamentoViaDeposito) {
+    linhas.push(
+      "OBS.: Dados bancários para depósito: Banco Itaú, Agência: 0071, Conta Corrente: 11663-6.",
+    );
     linhas.push("");
+    linhas.push(
+      "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+    );
+    linhas.push(
+      "Decisão judicial conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+    );
+  } else {
+    if (opts.incluirDda) {
+      linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
+      linhas.push("");
+    }
+    linhas.push(
+      "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+    );
+    linhas.push(
+      "Suspensão de PIS e COFINS, trânsito em julgado conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+    );
   }
-  linhas.push(
-    "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
-  );
-  linhas.push(
-    "Suspensão de PIS e COFINS, trânsito em julgado conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
-  );
 
   return linhas.join("\n");
 }

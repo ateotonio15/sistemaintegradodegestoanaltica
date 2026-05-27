@@ -383,6 +383,7 @@ export type Database = {
           nome: string
           observacoes: string | null
           operadora_plano: string | null
+          pagamento_via_deposito: boolean
           periodo_movimentacao: string | null
           prazo: string | null
           responsavel_contrato: string | null
@@ -418,6 +419,7 @@ export type Database = {
           nome: string
           observacoes?: string | null
           operadora_plano?: string | null
+          pagamento_via_deposito?: boolean
           periodo_movimentacao?: string | null
           prazo?: string | null
           responsavel_contrato?: string | null
@@ -453,6 +455,7 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           operadora_plano?: string | null
+          pagamento_via_deposito?: boolean
           periodo_movimentacao?: string | null
           prazo?: string | null
           responsavel_contrato?: string | null
