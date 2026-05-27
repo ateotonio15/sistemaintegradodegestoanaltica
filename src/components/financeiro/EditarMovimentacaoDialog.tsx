@@ -616,6 +616,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               </p>
             )}
           </div>
+          )}
 
           {/* Prorrogação */}
           <div className="rounded-lg border border-border p-3 space-y-3">
