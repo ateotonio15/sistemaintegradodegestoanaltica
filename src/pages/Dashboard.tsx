@@ -1092,21 +1092,29 @@ export default function Dashboard() {
                   movimentacaoId={editingMov.id}
                   empresaId={editingMov.empresa_id}
                   required={!!editForm.data_envio_financeiro}
+                  onCountChange={setEditAnexosCount}
                 />
 
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingMov(null); }} className="rounded-lg">Cancelar</Button>
-                  <Button
-                    className="rounded-lg"
-                    onClick={() => updateMov.mutate({
-                      id: editingMov.id,
-                      data_envio_empresa: editForm.data_envio_empresa || null,
-                      data_envio_financeiro: editForm.data_envio_financeiro || null,
-                    })}
-                    disabled={updateMov.isPending}
-                  >
-                    {updateMov.isPending ? "Salvando..." : "Salvar"}
-                  </Button>
+                <div className="flex flex-col gap-2">
+                  {editForm.data_envio_financeiro && editAnexosCount === 0 && (
+                    <p className="text-xs text-destructive text-right">
+                      Anexe ao menos um documento antes de enviar ao Financeiro.
+                    </p>
+                  )}
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingMov(null); }} className="rounded-lg">Cancelar</Button>
+                    <Button
+                      className="rounded-lg"
+                      onClick={() => updateMov.mutate({
+                        id: editingMov.id,
+                        data_envio_empresa: editForm.data_envio_empresa || null,
+                        data_envio_financeiro: editForm.data_envio_financeiro || null,
+                      })}
+                      disabled={updateMov.isPending || (!!editForm.data_envio_financeiro && editAnexosCount === 0)}
+                    >
+                      {updateMov.isPending ? "Salvando..." : "Salvar"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
