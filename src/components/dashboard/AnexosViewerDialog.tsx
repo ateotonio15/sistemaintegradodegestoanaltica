@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText, Paperclip } from "lucide-react";
+import { Download, Eye, FileText, Paperclip, Play, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
@@ -29,10 +30,15 @@ interface Props {
   empresaNome: string;
   mesReferencia: string;
   periodo: string;
+  /** ID da financeiro_movimentacoes para suporte ao botão "Iniciar faturamento". */
+  movimentacaoId?: string | null;
+  faturamentoIniciadoEm?: string | null;
+  faturamentoIniciadoPorNome?: string | null;
 }
 
 const BUCKET_FINANCEIRO = "anexos-financeiro";
 const BUCKET_OPERACIONAL = "anexos-movimentacoes";
+
 
 type AnexoRow = {
   id: string;
