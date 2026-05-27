@@ -144,8 +144,24 @@ export function GerarHistoricoDialog({
       vencimentoBR = isoToBR(dataProrrogacao);
       toast.success("Prorrogação salva.");
     } else {
+      // Prioriza o dia de vencimento da própria movimentação (coluna VENCIMENTO da tabela);
+      // se ausente, usa o cadastrado na empresa.
+      let diaVenc: number | null = null;
+      if (row.data_vencimento) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(row.data_vencimento);
+        if (m) diaVenc = parseInt(m[3], 10);
+        else {
+          const n = parseInt(String(row.data_vencimento), 10);
+          if (Number.isFinite(n) && n >= 1 && n <= 31) diaVenc = n;
+        }
+      }
+      if (diaVenc == null && empresaInfo?.data_vencimento_fatura != null) {
+        const v: any = empresaInfo.data_vencimento_fatura;
+        const n = typeof v === "number" ? v : parseInt(String(v), 10);
+        if (Number.isFinite(n) && n >= 1 && n <= 31) diaVenc = n;
+      }
       vencimentoBR = calcularVencimentoPadrao(
-        empresaInfo?.data_vencimento_fatura ?? null,
+        diaVenc,
         competencia.mes,
         competencia.ano,
       );
