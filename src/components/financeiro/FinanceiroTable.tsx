@@ -81,7 +81,11 @@ export function FinanceiroTable({
     empresaNome: string;
     mesReferencia: string;
     periodo: string;
+    movimentacaoId: string;
+    faturamentoIniciadoEm: string | null;
+    faturamentoIniciadoPorNome: string | null;
   } | null>(null);
+
 
 
   return (
