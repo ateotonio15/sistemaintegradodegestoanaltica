@@ -1,0 +1,1 @@
+DELETE FROM public.financeiro_pagadores WHERE id = '5cb010d6-b00c-4f29-81d8-954c85eaef19';
