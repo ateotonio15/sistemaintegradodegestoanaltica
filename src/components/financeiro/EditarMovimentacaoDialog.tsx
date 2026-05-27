@@ -576,7 +576,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </div>
           </div>
 
-          {/* Boleto DDA */}
+          {/* Boleto DDA — oculto quando empresa usa pagamento via depósito */}
+          {!pagamentoViaDeposito && (
           <div
             className={cn(
               "rounded-lg border p-3 space-y-2 transition-colors",
