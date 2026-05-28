@@ -169,7 +169,7 @@ export default function VidasSamel() {
 
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <KpiCard label="Total de Vidas" value={totalVidas} icon={HeartPulse} accent="text-primary" bg="bg-primary/10" loading={titularesQuery.isLoading || dependentesQuery.isLoading} />
+          <KpiCard label="Vidas Ativas" value={totalVidas} icon={HeartPulse} accent="text-primary" bg="bg-primary/10" loading={titularesQuery.isLoading || dependentesQuery.isLoading} />
           <KpiCard label="Titulares" value={titulares} icon={User} accent="text-success" bg="bg-success/10" loading={titularesQuery.isLoading} />
           <KpiCard label="Dependentes" value={dependentes} icon={UsersIcon} accent="text-info" bg="bg-info/10" loading={dependentesQuery.isLoading} />
         </div>

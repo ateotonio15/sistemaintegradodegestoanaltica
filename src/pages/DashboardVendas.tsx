@@ -179,7 +179,7 @@ export default function DashboardVendas() {
                           </div>
                           <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
                             {i.cnpj && <span>CNPJ: {i.cnpj}</span>}
-                            <span>{i.total_vidas || 0} vidas</span>
+                            <span>{i.total_vidas || 0} vidas ativas</span>
                             {i.modalidade && <span>· {i.modalidade}</span>}
                             {i.acomodacao && <span>· {i.acomodacao}</span>}
                             {i.data_vigencia && <span>· Vigência {formatDateBR(i.data_vigencia)}</span>}
