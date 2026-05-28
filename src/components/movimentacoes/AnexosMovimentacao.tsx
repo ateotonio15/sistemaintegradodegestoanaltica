@@ -152,6 +152,38 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
     }
   };
 
+  const handleExtrairVidas = async (path: string, nome: string) => {
+    if (!empresaId) return;
+    try {
+      const { data, error } = await supabase.storage.from(STORAGE_BUCKET).download(path);
+      if (error) throw error;
+      const buffer = await data.arrayBuffer();
+      const sig = new Uint8Array(buffer.slice(0, 4));
+      if (!(sig[0] === 0x50 && sig[1] === 0x4b)) {
+        toast.error("Arquivo não é um Excel válido (.xlsx)");
+        return;
+      }
+      const result = await validarRelatorioVidas(buffer);
+      const vidas = result?.total_vidas ?? 0;
+      if (vidas <= 0) {
+        toast.warning(`Nenhuma vida identificada em ${nome}`);
+        return;
+      }
+      const { error: updErr } = await supabase
+        .from("empresas")
+        .update({ vidas, updated_at: new Date().toISOString() })
+        .eq("id", empresaId);
+      if (updErr) throw updErr;
+      toast.success(`Vidas Ativas atualizadas: ${vidas}`);
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+    } catch (err: any) {
+      toast.error("Erro ao extrair vidas: " + err.message);
+    }
+  };
+
   const showRequiredWarn = required && anexos.length === 0;
 
   return (
