@@ -119,18 +119,9 @@ export default function DashboardAdministradoras() {
     return new Date(Math.min(...datas.map((d) => d.getTime())));
   }, [ativas]);
 
-  const periodoAtual = useMemo(() => getCurrentPeriodo(), []);
-
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return empresas
-      // Mostra somente contratos cujo dia de corte cai no período vigente
-      // (mesma regra do Dashboard do Cadastro / "Próximos Fechamentos")
-      .filter((e) => {
-        const dc = e.data_corte;
-        if (!dc || !CORTE_OPTIONS.includes(dc as 1 | 5 | 10 | 20)) return false;
-        return periodoDaDataCorte(dc) === periodoAtual;
-      })
       .filter((e) => statusFilter === "all" ? true : e.status_empresa === statusFilter)
       .filter((e) => corteFilter === "all" ? true : String(e.data_corte ?? "") === corteFilter)
       .filter((e) => {
@@ -143,7 +134,7 @@ export default function DashboardAdministradoras() {
         (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
         (e.cnpj ?? "").toLowerCase().includes(q)
       );
-  }, [empresas, search, corteFilter, statusFilter, implFilter, periodoAtual]);
+  }, [empresas, search, corteFilter, statusFilter, implFilter]);
 
   const proximosFechamentosPorCorte = useMemo(() => {
     const groups: Record<number, Empresa[]> = {};
@@ -366,13 +357,18 @@ export default function DashboardAdministradoras() {
               {CORTE_OPTIONS.map((dia) => {
                 const list = proximosFechamentosPorCorte[dia] ?? [];
                 const has = list.length > 0;
+                const isActive = corteFilter === String(dia);
                 return (
-                  <div
+                  <button
                     key={dia}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                      has
-                        ? "bg-primary/10 border-primary/20"
-                        : "bg-accent/10 border-border/40 opacity-60"
+                    type="button"
+                    onClick={() => setCorteFilter(isActive ? "all" : String(dia))}
+                    className={`w-full text-left flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                      isActive
+                        ? "bg-primary/20 border-primary ring-1 ring-primary"
+                        : has
+                          ? "bg-primary/10 border-primary/20 hover:bg-primary/15"
+                          : "bg-accent/10 border-border/40 opacity-60 hover:opacity-80"
                     }`}
                   >
                     <div>
@@ -383,10 +379,19 @@ export default function DashboardAdministradoras() {
                         {has ? `${list.length} contrato${list.length > 1 ? "s" : ""}` : "Nenhuma"}
                       </p>
                     </div>
-                    {has && <span className="w-1 h-8 bg-primary rounded-full" />}
-                  </div>
+                    {has && <span className={`w-1 h-8 rounded-full ${isActive ? "bg-primary" : "bg-primary/70"}`} />}
+                  </button>
                 );
               })}
+              {corteFilter !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setCorteFilter("all")}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-accent/30 transition-colors"
+                >
+                  Limpar filtro
+                </button>
+              )}
             </CardContent>
           </Card>
         </div>
