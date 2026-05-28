@@ -29,6 +29,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
+import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 import ExcelJS from "exceljs";
 
 type EmpresaOption = {
@@ -53,7 +54,8 @@ const emptyForm = {
   tipo_movimentacao: null as string | null,
 };
 
-export default function Movimentacoes() {
+  const [activeTab, setActiveTab] = useState<"empresas" | "administradoras">("empresas");
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -288,29 +290,52 @@ export default function Movimentacoes() {
   const selectedEmpresa = empresas.find((e) => e.id === form.empresa_id);
   const isFechada = (form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao) === "Fechada";
 
+  const tabs = (
+    <div className="flex justify-center">
+      <div className="inline-flex items-center gap-1 rounded-full border bg-card p-1 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setActiveTab("empresas")}
+          className={
+            activeTab === "empresas"
+              ? "rounded-full bg-primary px-5 py-1.5 text-sm font-medium text-primary-foreground shadow"
+              : "rounded-full px-5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          }
+        >
+          Empresas
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("administradoras")}
+          className={
+            activeTab === "administradoras"
+              ? "rounded-full bg-primary px-5 py-1.5 text-sm font-medium text-primary-foreground shadow"
+              : "rounded-full px-5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          }
+        >
+          Administradoras
+        </button>
+      </div>
+    </div>
+  );
+
+  if (activeTab === "administradoras") {
+    return (
+      <div className="space-y-6">
+        {tabs}
+        <DashboardAdministradoras />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-6">
-        <div className="flex justify-center">
-          <div className="inline-flex items-center gap-1 rounded-full border bg-card p-1 shadow-sm">
-            <button
-              type="button"
-              className="rounded-full bg-primary px-5 py-1.5 text-sm font-medium text-primary-foreground shadow"
-            >
-              Empresas
-            </button>
-            <button
-              type="button"
-              onClick={() => { window.location.href = "/dashboard/administradoras"; }}
-              className="rounded-full px-5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Administradoras
-            </button>
-          </div>
-        </div>
+        {tabs}
         <FaturamentosEnviadosCard />
 
         <div className="flex items-center justify-between">
+
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Movimentações</h1>
             <p className="text-sm text-muted-foreground mt-1">{filtered.length} movimentação(ões) encontrada(s)</p>
