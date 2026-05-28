@@ -95,6 +95,28 @@ export function normalizarCnpj(s: unknown): string {
   return String(s ?? "").replace(/\D/g, "");
 }
 
+/** Retorna "0001-69" a partir dos 14 dígitos do CNPJ (filial + DV). */
+export function formatCnpjSufixo(cnpj: unknown): string {
+  const d = normalizarCnpj(cnpj);
+  if (d.length < 14) return "";
+  return `${d.slice(8, 12)}-${d.slice(12, 14)}`;
+}
+
+/** Formata CNPJ completo: "00.000.000/0001-69". */
+export function formatCnpjCompleto(cnpj: unknown): string {
+  const d = normalizarCnpj(cnpj);
+  if (d.length !== 14) return String(cnpj ?? "");
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`;
+}
+
+/** "APOEMA RESTAURANTES LTDA — 0001-69" (cai para só nome se CNPJ ausente). */
+export function formatNomeComCnpj(nome: unknown, cnpj: unknown): string {
+  const sufixo = formatCnpjSufixo(cnpj);
+  const n = String(nome ?? "").trim() || "Sem nome";
+  return sufixo ? `${n} — ${sufixo}` : n;
+}
+
+
 export interface FiltroPagador {
   cnpj?: string | null;
   nome?: string | null;
