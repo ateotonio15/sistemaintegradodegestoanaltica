@@ -379,7 +379,25 @@ export interface ComparacaoResultado {
   inclusoes: { total: CampoValidacao } | null;
   divergencias: string[];
   avisosPdf: string[];
+  /** CNPJ (14 dígitos) do bloco analisado, quando disponível. */
+  cnpj?: string;
+  /** Nome formatado para exibição ("NOME — 0001-69"). */
+  nomeExibicao?: string;
+  /** Motivo declarativo quando não há PDF casado (ex.: "NF não localizada para este CNPJ"). */
+  motivoSemPdf?: string;
+  /** CNPJ do tomador, conforme PDF casado. */
+  tomadorCnpj?: string | null;
 }
+
+/** Nota fiscal cujo CNPJ do tomador não aparece em nenhum bloco do Excel. */
+export interface NotaOrfa {
+  arquivo: string;
+  tomadorCnpj: string;        // 14 dígitos, "" se não detectado
+  tomadorNome: string | null;
+  valorLiquido: number | null;
+  nfNumero: string | null;
+}
+
 
 const eqMoney = (a: number, b: number) => Math.abs(a - b) < 0.01;
 const eqInt = (a: number, b: number) => Math.round(a) === Math.round(b);
