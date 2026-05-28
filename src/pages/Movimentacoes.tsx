@@ -74,23 +74,23 @@ export default function Movimentacoes() {
   const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
 
   const { data: empresas = [] } = useQuery({
-    queryKey: ["empresas"],
+    queryKey: ["empresas", activeTab],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
         .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id, status_empresa, data_corte, tipo_contrato")
         .order("nome");
       if (error) throw error;
-      // Excluir Administradoras (tem dashboard/visualização própria)
-      return (data as (EmpresaOption & { tipo_contrato?: string | null })[]).filter(
-        (e) => (e.tipo_contrato ?? "") !== "ADMINISTRADORA"
-      );
+      const all = data as (EmpresaOption & { tipo_contrato?: string | null })[];
+      return activeTab === "administradoras"
+        ? all.filter((e) => (e.tipo_contrato ?? "") === "ADMINISTRADORA")
+        : all.filter((e) => (e.tipo_contrato ?? "") !== "ADMINISTRADORA");
     },
     enabled: !!user,
   });
 
   const { data: movimentacoes = [], isLoading } = useQuery({
-    queryKey: ["movimentacoes", filterMes],
+    queryKey: ["movimentacoes", filterMes, activeTab],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
@@ -99,11 +99,12 @@ export default function Movimentacoes() {
         .order("created_at", { ascending: false });
       if (error) throw error;
       const rows = data as (Movimentacao & { empresas?: { responsavel_contrato: string | null; tipo_contrato?: string | null } | null })[];
-      // Excluir movimentações de Administradoras
-      return rows.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "") !== "ADMINISTRADORA");
+      return activeTab === "administradoras"
+        ? rows.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "") === "ADMINISTRADORA")
+        : rows.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "") !== "ADMINISTRADORA");
     },
     enabled: !!user,
-  });
+
 
 
   // Mapa de "Nota Enviada" do módulo financeiro: (empresa_id|mes|periodo) -> data_envio_nota
