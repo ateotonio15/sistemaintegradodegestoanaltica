@@ -480,14 +480,20 @@ export default function Dashboard() {
   };
 
   const mesesOptions = useMemo(() => {
-    const options: string[] = [];
+    const set = new Set<string>();
     const now = new Date();
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      options.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    // 3 meses futuros + mês atual + 11 meses anteriores
+    for (let i = 3; i >= -11; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     }
-    return options;
-  }, []);
+    // garante que qualquer mês com movimentação existente apareça
+    for (const m of movimentacoes) {
+      if (m.mes_referencia) set.add(m.mes_referencia);
+    }
+    return Array.from(set).sort().reverse();
+  }, [movimentacoes]);
+
 
   const responsaveis = useMemo(() => {
     const set = new Set(movimentacoes.map((m) => m.responsavel_movimentacao).filter(Boolean) as string[]);
