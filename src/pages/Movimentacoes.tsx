@@ -68,7 +68,7 @@ export default function Movimentacoes() {
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
   const canEdit = !isViewOnly && isAdmin;
-  const canEditDates = !isViewOnly && (isAdmin || role === "comum");
+  const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas"],
