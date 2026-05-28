@@ -35,26 +35,65 @@ function isValidCPF(v: string) {
 }
 
 /**
- * Extrai conjunto de CPFs válidos (linhas TIPO OPERACAO = "I") de um layout Excel.
- * NÃO retorna nomes ou dados pessoais.
+ * Extrai conjunto de identificadores únicos de vidas de um layout Excel.
+ *
+ * Suporta dois formatos:
+ *  1) Layout SAMEL de movimentação: cabeçalhos `CPF` + `NOME` (+ opcional
+ *     `TIPO OPERACAO`). Considera apenas linhas com TIPO OPERACAO = "I".
+ *  2) Layout de roster de administradora (ex.: Plural/Qualicorp/Allcare):
+ *     cabeçalho `CARTEIRINHA` (snapshot da base ativa). Considera todas
+ *     as linhas com beneficiário preenchido.
+ *
+ * NÃO retorna nomes ou dados pessoais — apenas identificadores em formato
+ * numérico/string para diff entre meses.
  */
 export async function extractCpfsFromLayout(buffer: ArrayBuffer): Promise<Set<string>> {
-  const cpfs = new Set<string>();
+  const ids = new Set<string>();
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
 
-  // Encontra melhor sheet/linha header
-  let chosen: { ws: ExcelJS.Worksheet; headerRow: number } | null = null;
+  type Chosen = {
+    ws: ExcelJS.Worksheet;
+    headerRow: number;
+    mode: "cpf" | "carteirinha";
+    idxId: number;
+    idxNome: number;
+    idxTipo: number;
+  };
+
+  let chosen: Chosen | null = null;
   let bestVidas = -1;
+
   for (const sheet of wb.worksheets) {
     for (let r = 1; r <= Math.min(30, sheet.rowCount); r++) {
       const headers: string[] = [];
       sheet.getRow(r).eachCell({ includeEmpty: false }, (cell, col) => {
         headers[col] = normalize(cellToString(cell.value));
       });
+
+      // Tenta layout Carteirinha (roster administradora)
+      const idxCart = headers.findIndex((h) => h === "CARTEIRINHA" || h === "CARTAO" || h === "CARTAO IDENTIFICACAO");
+      const idxBenef = headers.findIndex((h) => h === "BENEFICIARIO" || h === "NOME BENEFICIARIO" || h === "NOME");
+
+      if (idxCart >= 0 && idxBenef >= 0) {
+        let vidas = 0;
+        for (let rr = r + 1; rr <= sheet.rowCount; rr++) {
+          const nome = cellToString(sheet.getRow(rr).getCell(idxBenef).value).trim();
+          const cart = cellToString(sheet.getRow(rr).getCell(idxCart).value).trim();
+          if (nome && cart) vidas++;
+        }
+        if (vidas > bestVidas) {
+          bestVidas = vidas;
+          chosen = { ws: sheet, headerRow: r, mode: "carteirinha", idxId: idxCart, idxNome: idxBenef, idxTipo: -1 };
+        }
+        continue;
+      }
+
+      // Fallback: layout CPF (movimentação SAMEL)
       const idxCpf = headers.findIndex((h) => h === "CPF");
       const idxNome = headers.findIndex((h) => h === "NOME");
       if (idxCpf < 0 || idxNome < 0) continue;
+      const idxTipo = headers.findIndex((h) => h === "TIPO OPERACAO");
       let vidas = 0;
       for (let rr = r + 1; rr <= sheet.rowCount; rr++) {
         const nome = cellToString(sheet.getRow(rr).getCell(idxNome).value).trim();
@@ -62,32 +101,32 @@ export async function extractCpfsFromLayout(buffer: ArrayBuffer): Promise<Set<st
       }
       if (vidas > bestVidas) {
         bestVidas = vidas;
-        chosen = { ws: sheet, headerRow: r };
+        chosen = { ws: sheet, headerRow: r, mode: "cpf", idxId: idxCpf, idxNome, idxTipo };
       }
     }
   }
-  if (!chosen) return cpfs;
 
-  const headers: string[] = [];
-  chosen.ws.getRow(chosen.headerRow).eachCell({ includeEmpty: false }, (cell, col) => {
-    headers[col] = normalize(cellToString(cell.value));
-  });
-  const idxCpf = headers.findIndex((h) => h === "CPF");
-  const idxTipo = headers.findIndex((h) => h === "TIPO OPERACAO");
-  const idxNome = headers.findIndex((h) => h === "NOME");
-  if (idxCpf < 0) return cpfs;
+  if (!chosen) return ids;
 
   for (let r = chosen.headerRow + 1; r <= chosen.ws.rowCount; r++) {
     const row = chosen.ws.getRow(r);
     if (!row.hasValues) continue;
-    const nome = idxNome >= 0 ? cellToString(row.getCell(idxNome).value).trim() : "";
+    const nome = cellToString(row.getCell(chosen.idxNome).value).trim();
     if (!nome) continue;
-    if (idxTipo >= 0) {
-      const tipo = normalize(cellToString(row.getCell(idxTipo).value));
-      if (tipo !== "I") continue;
+
+    if (chosen.mode === "cpf") {
+      if (chosen.idxTipo >= 0) {
+        const tipo = normalize(cellToString(row.getCell(chosen.idxTipo).value));
+        if (tipo !== "I") continue;
+      }
+      const cpf = onlyDigits(cellToString(row.getCell(chosen.idxId).value));
+      if (isValidCPF(cpf)) ids.add(cpf);
+    } else {
+      // mode === "carteirinha"
+      const cart = onlyDigits(cellToString(row.getCell(chosen.idxId).value));
+      if (cart.length >= 6) ids.add(cart);
     }
-    const cpf = onlyDigits(cellToString(row.getCell(idxCpf).value));
-    if (isValidCPF(cpf)) cpfs.add(cpf);
   }
-  return cpfs;
+  return ids;
 }
+
