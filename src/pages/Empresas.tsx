@@ -346,6 +346,18 @@ export default function Empresas() {
     return "Não definida";
   };
 
+  const respOptions = useMemo(() => {
+    const set = new Set<string>();
+    empresas.forEach((e) => { const v = (e.responsavel_contrato ?? "").trim(); if (v) set.add(v); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [empresas]);
+
+  const corretoraOptions = useMemo(() => {
+    const set = new Set<string>();
+    empresas.forEach((e) => { const v = (e.operadora_plano ?? "").trim(); if (v) set.add(v); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [empresas]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let list = empresas;
@@ -354,12 +366,14 @@ export default function Empresas() {
     }
     return list
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
+      .filter((e) => respFilter === "all" || (e.responsavel_contrato ?? "").trim() === respFilter)
+      .filter((e) => corretoraFilter === "all" || (e.operadora_plano ?? "").trim() === corretoraFilter)
       .filter((e) =>
         e.nome.toLowerCase().includes(q) ||
         (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
         (e.cnpj ?? "").toLowerCase().includes(q)
       );
-  }, [empresas, search, showInativas, isExecutivo, user]);
+  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter]);
 
   return (
     <>
