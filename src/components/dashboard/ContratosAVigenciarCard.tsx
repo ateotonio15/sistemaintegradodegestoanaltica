@@ -80,6 +80,7 @@ export function ContratosAVigenciarCard() {
         .from("implantacoes_contratos")
         .select("id, empresa_id, nome_empresa, codigo_contrato, total_vidas, data_vigencia, status, tipo_contrato")
         .gte("data_vigencia", todayIso)
+        .neq("tipo_contrato", "ADMINISTRADORA")
         .not("status", "in", '("implantado","rejeitado")');
       // 2) Empresas "novas": sem data de implantação ou com implantação futura (exclui Administradoras)
       const empP = supabase
