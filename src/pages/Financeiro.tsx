@@ -121,13 +121,14 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas")
         .in("id", empresaIds);
       if (error) throw error;
       const map: Record<string, {
         nome: string;
         codigo: string | null;
         cnpj: string | null;
+        vidas: number | null;
         tipo_movimentacao: string | null;
         periodo_movimentacao: string | null;
         data_corte: number | null;
@@ -141,6 +142,7 @@ export default function Financeiro() {
           nome: e.nome,
           codigo: e.codigo_contrato,
           cnpj: e.cnpj,
+          vidas: e.vidas ?? 0,
           tipo_movimentacao: e.tipo_movimentacao ?? null,
           periodo_movimentacao: e.periodo_movimentacao ?? null,
           data_corte: e.data_corte ?? null,
@@ -348,6 +350,7 @@ export default function Financeiro() {
         empresa_nome: emp?.nome || "—",
         empresa_codigo: emp?.codigo ?? null,
         empresa_cnpj: emp?.cnpj ?? null,
+        empresa_vidas: emp?.vidas ?? 0,
         periodo_corte: periodoCorte,
         status: calcularStatusFinanceiro(f, envioOperacional, anexosParaStatus),
         anexos_count: anexosAll.length + (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0),
