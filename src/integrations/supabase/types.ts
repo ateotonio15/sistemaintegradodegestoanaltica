@@ -1659,6 +1659,47 @@ export type Database = {
         }
         Relationships: []
       }
+      vidas_historico_administradoras: {
+        Row: {
+          calculado_em: string
+          empresa_id: string
+          entradas: number
+          id: string
+          mes_referencia: string
+          saidas: number
+          total_anterior: number
+          total_atual: number
+        }
+        Insert: {
+          calculado_em?: string
+          empresa_id: string
+          entradas?: number
+          id?: string
+          mes_referencia: string
+          saidas?: number
+          total_anterior?: number
+          total_atual?: number
+        }
+        Update: {
+          calculado_em?: string
+          empresa_id?: string
+          entradas?: number
+          id?: string
+          mes_referencia?: string
+          saidas?: number
+          total_anterior?: number
+          total_atual?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vidas_historico_administradoras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
