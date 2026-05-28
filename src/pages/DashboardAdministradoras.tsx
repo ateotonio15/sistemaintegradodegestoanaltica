@@ -64,10 +64,11 @@ export default function DashboardAdministradoras() {
 
   const empresaIds = useMemo(() => empresas.map((e) => e.id), [empresas]);
 
-  const mesRef = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  }, []);
+  // Mês/Ano selecionados
+  const now = new Date();
+  const [mes, setMes] = useState<number>(now.getMonth() + 1);
+  const [ano, setAno] = useState<number>(now.getFullYear());
+  const mesRef = useMemo(() => `${ano}-${String(mes).padStart(2, "0")}`, [ano, mes]);
 
   const { data: movsMes = [] } = useQuery({
     queryKey: ["movs-administradoras", mesRef, empresaIds.join(",")],
@@ -102,6 +103,106 @@ export default function DashboardAdministradoras() {
       return counts;
     },
   });
+
+  // Histórico de entradas/saídas para o mês selecionado
+  const { data: historicoMes = [] } = useQuery({
+    queryKey: ["vidas-historico-adm", mesRef, empresaIds.join(",")],
+    enabled: empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vidas_historico_administradoras")
+        .select("*")
+        .eq("mes_referencia", mesRef)
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Histórico dos últimos 6 meses (gráfico evolução)
+  const ultimos6 = useMemo(() => {
+    const arr: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(ano, mes - 1 - i, 1);
+      arr.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return arr;
+  }, [ano, mes]);
+
+  const { data: historico6 = [] } = useQuery({
+    queryKey: ["vidas-historico-adm-6", ultimos6.join(","), empresaIds.join(",")],
+    enabled: empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vidas_historico_administradoras")
+        .select("mes_referencia, entradas, saidas, total_atual")
+        .in("mes_referencia", ultimos6)
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const entradasSaidasPorEmpresa = useMemo(() => {
+    const map: Record<string, EmpresaEntradaSaida> = {};
+    for (const h of historicoMes as any[]) {
+      map[h.empresa_id] = {
+        empresa_id: h.empresa_id,
+        entradas: h.entradas,
+        saidas: h.saidas,
+        total_atual: h.total_atual,
+        total_anterior: h.total_anterior,
+      };
+    }
+    return map;
+  }, [historicoMes]);
+
+  const totalEntradas = useMemo(
+    () => Object.values(entradasSaidasPorEmpresa).reduce((s, e) => s + e.entradas, 0),
+    [entradasSaidasPorEmpresa]
+  );
+  const totalSaidas = useMemo(
+    () => Object.values(entradasSaidasPorEmpresa).reduce((s, e) => s + e.saidas, 0),
+    [entradasSaidasPorEmpresa]
+  );
+  const saldoVidas = totalEntradas - totalSaidas;
+
+  const evolucaoChart = useMemo(() => {
+    const grouped: Record<string, { mes: string; entradas: number; saidas: number; total: number }> = {};
+    for (const m of ultimos6) {
+      const [y, mm] = m.split("-");
+      grouped[m] = { mes: `${mm}/${y.slice(2)}`, entradas: 0, saidas: 0, total: 0 };
+    }
+    for (const h of historico6 as any[]) {
+      if (!grouped[h.mes_referencia]) continue;
+      grouped[h.mes_referencia].entradas += h.entradas;
+      grouped[h.mes_referencia].saidas += h.saidas;
+      grouped[h.mes_referencia].total += h.total_atual;
+    }
+    return Object.values(grouped);
+  }, [ultimos6, historico6]);
+
+  const [calculando, setCalculando] = useState(false);
+  const [progressoCalc, setProgressoCalc] = useState<{ done: number; total: number } | null>(null);
+  const handleCalcular = async () => {
+    if (empresaIds.length === 0) return;
+    setCalculando(true);
+    setProgressoCalc({ done: 0, total: empresaIds.length });
+    try {
+      await computeEntradasSaidas(empresaIds, mesRef, (done, total) => {
+        setProgressoCalc({ done, total });
+      });
+      toast.success("Entradas e saídas recalculadas");
+      queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm"] });
+      queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm-6"] });
+    } catch (e: any) {
+      toast.error("Erro ao calcular: " + (e?.message ?? String(e)));
+    } finally {
+      setCalculando(false);
+      setProgressoCalc(null);
+    }
+  };
+
 
   const ativas = useMemo(() => empresas.filter((e) => e.status_empresa === "Ativa"), [empresas]);
   const totalVidas = useMemo(() => ativas.reduce((s, e) => s + (e.vidas ?? 0), 0), [ativas]);
