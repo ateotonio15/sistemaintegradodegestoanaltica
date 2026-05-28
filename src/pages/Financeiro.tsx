@@ -83,6 +83,7 @@ export default function Financeiro() {
   const [analiseResultados, setAnaliseResultados] = useState<Record<string, import("@/lib/excel-analysis-utils").AnaliseResultado[]>>({});
   const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
   const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
+  const [analiseNotasOrfas, setAnaliseNotasOrfas] = useState<Record<string, import("@/lib/excel-analysis-utils").NotaOrfa[]>>({});
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [historicoRow, setHistoricoRow] = useState<FinanceiroRow | null>(null);
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
