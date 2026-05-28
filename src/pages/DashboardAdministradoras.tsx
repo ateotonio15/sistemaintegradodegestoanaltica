@@ -411,6 +411,8 @@ export default function DashboardAdministradoras() {
                       <TableHead className="font-semibold">CNPJ</TableHead>
                       <TableHead className="font-semibold">Código</TableHead>
                       <TableHead className="font-semibold text-center">Vidas Ativas</TableHead>
+                      <TableHead className="font-semibold text-center">Entradas</TableHead>
+                      <TableHead className="font-semibold text-center">Saídas</TableHead>
                       <TableHead className="font-semibold">Corte</TableHead>
                       <TableHead className="font-semibold">Implantação</TableHead>
                       <TableHead className="font-semibold">Enviado Financ.</TableHead>
@@ -420,9 +422,10 @@ export default function DashboardAdministradoras() {
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
                     ) : filtered.length === 0 ? (
-                      <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
+                    ) : (
                     ) : (
                       filtered.map((e) => {
                         const mov = movsMes.find((m) => m.empresa_id === e.id);
