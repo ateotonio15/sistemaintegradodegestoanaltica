@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, Search, Paperclip, FileSpreadsheet } from "lucide-react";
+import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, Search, Paperclip, FileSpreadsheet, TrendingUp, TrendingDown, Scale, RefreshCw, AlertTriangle } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
 import { getCurrentPeriodo, periodoDaDataCorte } from "@/lib/movimentacao-utils";
@@ -18,6 +18,8 @@ import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImportarAdministradorasDialog } from "@/components/dashboard/ImportarAdministradorasDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { computeEntradasSaidas, type EmpresaEntradaSaida } from "@/lib/entradas-saidas-analyzer";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Line } from "recharts";
 
 type Empresa = Tables<"empresas">;
 type Movimentacao = Tables<"movimentacoes">;
@@ -62,10 +64,11 @@ export default function DashboardAdministradoras() {
 
   const empresaIds = useMemo(() => empresas.map((e) => e.id), [empresas]);
 
-  const mesRef = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  }, []);
+  // Mês/Ano selecionados
+  const now = new Date();
+  const [mes, setMes] = useState<number>(now.getMonth() + 1);
+  const [ano, setAno] = useState<number>(now.getFullYear());
+  const mesRef = useMemo(() => `${ano}-${String(mes).padStart(2, "0")}`, [ano, mes]);
 
   const { data: movsMes = [] } = useQuery({
     queryKey: ["movs-administradoras", mesRef, empresaIds.join(",")],
@@ -100,6 +103,106 @@ export default function DashboardAdministradoras() {
       return counts;
     },
   });
+
+  // Histórico de entradas/saídas para o mês selecionado
+  const { data: historicoMes = [] } = useQuery({
+    queryKey: ["vidas-historico-adm", mesRef, empresaIds.join(",")],
+    enabled: empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vidas_historico_administradoras")
+        .select("*")
+        .eq("mes_referencia", mesRef)
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Histórico dos últimos 6 meses (gráfico evolução)
+  const ultimos6 = useMemo(() => {
+    const arr: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(ano, mes - 1 - i, 1);
+      arr.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return arr;
+  }, [ano, mes]);
+
+  const { data: historico6 = [] } = useQuery({
+    queryKey: ["vidas-historico-adm-6", ultimos6.join(","), empresaIds.join(",")],
+    enabled: empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vidas_historico_administradoras")
+        .select("mes_referencia, entradas, saidas, total_atual")
+        .in("mes_referencia", ultimos6)
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const entradasSaidasPorEmpresa = useMemo(() => {
+    const map: Record<string, EmpresaEntradaSaida> = {};
+    for (const h of historicoMes as any[]) {
+      map[h.empresa_id] = {
+        empresa_id: h.empresa_id,
+        entradas: h.entradas,
+        saidas: h.saidas,
+        total_atual: h.total_atual,
+        total_anterior: h.total_anterior,
+      };
+    }
+    return map;
+  }, [historicoMes]);
+
+  const totalEntradas = useMemo(
+    () => Object.values(entradasSaidasPorEmpresa).reduce((s, e) => s + e.entradas, 0),
+    [entradasSaidasPorEmpresa]
+  );
+  const totalSaidas = useMemo(
+    () => Object.values(entradasSaidasPorEmpresa).reduce((s, e) => s + e.saidas, 0),
+    [entradasSaidasPorEmpresa]
+  );
+  const saldoVidas = totalEntradas - totalSaidas;
+
+  const evolucaoChart = useMemo(() => {
+    const grouped: Record<string, { mes: string; entradas: number; saidas: number; total: number }> = {};
+    for (const m of ultimos6) {
+      const [y, mm] = m.split("-");
+      grouped[m] = { mes: `${mm}/${y.slice(2)}`, entradas: 0, saidas: 0, total: 0 };
+    }
+    for (const h of historico6 as any[]) {
+      if (!grouped[h.mes_referencia]) continue;
+      grouped[h.mes_referencia].entradas += h.entradas;
+      grouped[h.mes_referencia].saidas += h.saidas;
+      grouped[h.mes_referencia].total += h.total_atual;
+    }
+    return Object.values(grouped);
+  }, [ultimos6, historico6]);
+
+  const [calculando, setCalculando] = useState(false);
+  const [progressoCalc, setProgressoCalc] = useState<{ done: number; total: number } | null>(null);
+  const handleCalcular = async () => {
+    if (empresaIds.length === 0) return;
+    setCalculando(true);
+    setProgressoCalc({ done: 0, total: empresaIds.length });
+    try {
+      await computeEntradasSaidas(empresaIds, mesRef, (done, total) => {
+        setProgressoCalc({ done, total });
+      });
+      toast.success("Entradas e saídas recalculadas");
+      queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm"] });
+      queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm-6"] });
+    } catch (e: any) {
+      toast.error("Erro ao calcular: " + (e?.message ?? String(e)));
+    } finally {
+      setCalculando(false);
+      setProgressoCalc(null);
+    }
+  };
+
 
   const ativas = useMemo(() => empresas.filter((e) => e.status_empresa === "Ativa"), [empresas]);
   const totalVidas = useMemo(() => ativas.reduce((s, e) => s + (e.vidas ?? 0), 0), [ativas]);
@@ -147,6 +250,15 @@ export default function DashboardAdministradoras() {
     return groups;
   }, [ativas]);
 
+  const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const anosOpcoes = useMemo(() => {
+    const y = now.getFullYear();
+    return [y - 2, y - 1, y, y + 1];
+  }, [now]);
+
+  const ALERTA_LIMITE = 50; // alerta para variações > 50 vidas
+  const variacaoAlerta = Math.abs(saldoVidas) >= ALERTA_LIMITE;
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -156,30 +268,90 @@ export default function DashboardAdministradoras() {
             Visão exclusiva dos contratos de administradoras
           </p>
         </div>
-        {(isAdmin || isComum) && (
-          <Button onClick={() => setImportOpen(true)} className="rounded-lg">
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
-            Importar Administradoras
-          </Button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
+            <SelectTrigger className="w-[150px] rounded-lg"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MESES_NOMES.map((n, i) => (
+                <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+            <SelectTrigger className="w-[110px] rounded-lg"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {anosOpcoes.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(isAdmin || isComum) && (
+            <Button variant="outline" onClick={handleCalcular} disabled={calculando} className="rounded-lg">
+              <RefreshCw className={`mr-2 h-4 w-4 ${calculando ? "animate-spin" : ""}`} />
+              {calculando && progressoCalc
+                ? `Calculando ${progressoCalc.done}/${progressoCalc.total}...`
+                : "Recalcular Entradas/Saídas"}
+            </Button>
+          )}
+          {(isAdmin || isComum) && (
+            <Button onClick={() => setImportOpen(true)} className="rounded-lg">
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Importar Administradoras
+            </Button>
+          )}
+        </div>
       </div>
 
       <ImportarAdministradorasDialog open={importOpen} onOpenChange={setImportOpen} />
 
+      {/* Alerta de variação grande */}
+      {variacaoAlerta && (
+        <div className={`rounded-xl border p-4 flex items-center gap-3 ${saldoVidas > 0 ? "border-success/40 bg-success/5 text-success" : "border-destructive/40 bg-destructive/5 text-destructive"}`}>
+          <AlertTriangle className="h-5 w-5" />
+          <div className="text-sm">
+            <span className="font-semibold">
+              {saldoVidas > 0 ? "Crescimento significativo de vidas" : "Redução significativa de vidas"}
+            </span>{" "}
+            no mês ({saldoVidas > 0 ? "+" : ""}{saldoVidas}).
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard icon={Building2} label="Total Administradoras" value={ativas.length} />
-        <KpiCard icon={Users} label="Vidas Ativas" value={totalVidas.toLocaleString("pt-BR")} />
-        <KpiCard
-          icon={CalendarClock}
-          label="Próximo Fechamento"
-          value={proximoFechamento ? formatDateBR(proximoFechamento.toISOString().slice(0, 10)) : "—"}
-          highlight
-        />
-        <KpiCard icon={FileSignature} label="Contratos Pendentes" value={aguardando.length} />
+        <KpiCard icon={Users} label="Total Vidas" value={totalVidas.toLocaleString("pt-BR")} />
+        <KpiCard icon={CalendarClock} label="Próximo Fechamento" value={proximoFechamento ? formatDateBR(proximoFechamento.toISOString().slice(0, 10)) : "—"} highlight />
         <KpiCard icon={ArrowLeftRight} label="Movimentações do Mês" value={movsMes.length} accent="amber" />
       </div>
+
+      {/* KPI Entradas / Saídas */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <KpiCard icon={TrendingUp} label="Entradas do Mês" value={`+${totalEntradas}`} accent="success" />
+        <KpiCard icon={TrendingDown} label="Saídas do Mês" value={`-${totalSaidas}`} accent="destructive" />
+        <KpiCard icon={Scale} label="Saldo de Vidas" value={`${saldoVidas > 0 ? "+" : ""}${saldoVidas}`} accent={saldoVidas >= 0 ? "success" : "destructive"} />
+        <KpiCard icon={FileSignature} label="Contratos Pendentes" value={aguardando.length} />
+      </div>
+
+      {/* Gráfico Evolução */}
+      <Card className="rounded-xl shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Evolução — Entradas x Saídas (últimos 6 meses)</CardTitle>
+        </CardHeader>
+        <CardContent className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={evolucaoChart}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <XAxis dataKey="mes" className="text-xs" />
+              <YAxis className="text-xs" />
+              <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+              <Legend />
+              <Bar dataKey="entradas" name="Entradas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="saidas" name="Saídas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -239,6 +411,8 @@ export default function DashboardAdministradoras() {
                       <TableHead className="font-semibold">CNPJ</TableHead>
                       <TableHead className="font-semibold">Código</TableHead>
                       <TableHead className="font-semibold text-center">Vidas Ativas</TableHead>
+                      <TableHead className="font-semibold text-center">Entradas</TableHead>
+                      <TableHead className="font-semibold text-center">Saídas</TableHead>
                       <TableHead className="font-semibold">Corte</TableHead>
                       <TableHead className="font-semibold">Implantação</TableHead>
                       <TableHead className="font-semibold">Enviado Financ.</TableHead>
@@ -248,14 +422,15 @@ export default function DashboardAdministradoras() {
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
                     ) : filtered.length === 0 ? (
-                      <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
                     ) : (
                       filtered.map((e) => {
                         const mov = movsMes.find((m) => m.empresa_id === e.id);
                         const enviado = !!mov?.data_envio_financeiro;
                         const qtdAnexos = mov ? (anexosCount[mov.id] ?? 0) : 0;
+                        const es = entradasSaidasPorEmpresa[e.id];
                         return (
                         <TableRow
                           key={e.id}
@@ -269,6 +444,20 @@ export default function DashboardAdministradoras() {
                           <TableCell className="text-sm text-muted-foreground">{e.cnpj || "—"}</TableCell>
                           <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-center tabular-nums">{(e.vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {es ? (
+                              <span className={es.entradas > 0 ? "text-success font-semibold" : "text-muted-foreground"}>
+                                {es.entradas > 0 ? `+${es.entradas}` : "0"}
+                              </span>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {es ? (
+                              <span className={es.saidas > 0 ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                                {es.saidas > 0 ? `-${es.saidas}` : "0"}
+                              </span>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
                           <TableCell>
                             {e.data_corte ? (
                               <Badge variant="secondary" className="rounded-md">Dia {String(e.data_corte).padStart(2, "0")}</Badge>
@@ -572,9 +761,13 @@ function KpiCard({
   label: string;
   value: number | string;
   highlight?: boolean;
-  accent?: "amber";
+  accent?: "amber" | "success" | "destructive";
 }) {
-  const iconBg = accent === "amber" ? "bg-amber-500/10 text-amber-500" : "bg-primary/10 text-primary";
+  const iconBg =
+    accent === "amber" ? "bg-amber-500/10 text-amber-500"
+      : accent === "success" ? "bg-success/10 text-success"
+      : accent === "destructive" ? "bg-destructive/10 text-destructive"
+      : "bg-primary/10 text-primary";
   return (
     <Card className={`rounded-xl shadow-sm ${highlight ? "border-primary/30 bg-primary/5" : ""}`}>
       <CardContent className="p-4 flex items-center gap-3">
@@ -589,3 +782,4 @@ function KpiCard({
     </Card>
   );
 }
+
