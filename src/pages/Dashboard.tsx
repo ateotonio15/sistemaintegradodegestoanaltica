@@ -658,7 +658,27 @@ export default function Dashboard() {
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
-          </div>
+        </div>
+
+        {/* Modo do Dashboard */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={dashboardMode === "movimentacao" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDashboardMode("movimentacao")}
+            className="rounded-lg"
+          >
+            Movimentação
+          </Button>
+          <Button
+            variant={dashboardMode === "implantacao" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDashboardMode("implantacao")}
+            className="rounded-lg"
+          >
+            Implantação
+          </Button>
+        </div>
         </div>
 
         {/* Filters + Search */}
