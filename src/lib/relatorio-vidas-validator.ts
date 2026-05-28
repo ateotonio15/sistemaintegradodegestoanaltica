@@ -189,7 +189,8 @@ export async function validarRelatorioVidas(
 
   const rowCount = ws.rowCount;
   const idxTipo = colIndex["TIPO OPERACAO"];
-  const idxNome = colIndex["NOME"] ?? headers.findIndex((h) => h === "BENEFICIARIO");
+  const idxBeneficiario = headers.findIndex((h) => h === "BENEFICIARIO");
+  const idxNome = colIndex["NOME"] ?? (idxBeneficiario >= 0 ? idxBeneficiario : undefined);
 
   for (let r = headerRowNumber + 1; r <= rowCount; r++) {
     const row = ws.getRow(r);
