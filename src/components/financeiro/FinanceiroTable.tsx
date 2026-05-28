@@ -58,6 +58,7 @@ interface Props {
   analiseResultados: Record<string, AnaliseResultado[]>;
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
+  analiseNotasOrfas?: Record<string, NotaOrfa[]>;
   readOnly?: boolean;
 }
 
