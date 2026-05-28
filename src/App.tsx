@@ -108,12 +108,12 @@ const AppRoutes = () => (
       <Route path="/empresas" element={<Empresas />} />
       <Route path="/movimentacoes" element={<Movimentacoes />} />
 
-      <Route element={<RoleGate deny={["administradoras"]} />}>
+      <Route element={<RoleGate deny={[]} />}>
         <Route path="/vidas-samel" element={<VidasSamel />} />
         <Route path="/reajustes" element={<Reajustes />} />
       </Route>
 
-      <Route element={<RoleGate deny={["financeiro", "administradoras"]} />}>
+      <Route element={<RoleGate deny={["financeiro"]} />}>
         <Route path="/executivas" element={<Executivas />} />
       </Route>
 
@@ -121,7 +121,7 @@ const AppRoutes = () => (
         <Route path="/implantacao" element={<Implantacao />} />
       </Route>
 
-      <Route element={<RoleGate allow={["admin", "financeiro", "comum", "visualizacao", "diretora"]} />}>
+      <Route element={<RoleGate allow={["admin", "financeiro", "comum", "administradoras", "visualizacao", "diretora"]} />}>
         <Route path="/financeiro" element={<Financeiro />} />
       </Route>
 

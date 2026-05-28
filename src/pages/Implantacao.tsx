@@ -34,7 +34,7 @@ const STATUS_COLOR: Record<string, string> = {
 export default function Implantacao() {
   const { isAdmin, isVendas, role } = useAuth();
   const queryClient = useQueryClient();
-  const canEdit = isAdmin || role === "comum";
+  const canEdit = isAdmin || role === "comum" || role === "administradoras";
   const canDelete = isAdmin || isVendas;
 
   const [search, setSearch] = useState("");

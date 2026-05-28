@@ -69,7 +69,7 @@ function openWhatsApp(phone: string) {
 
 export default function Executivas() {
   const { isAdmin, isExecutivo, isViewOnly, user, role } = useAuth();
-  const isComum = role === "comum";
+  const isComum = role === "comum" || role === "administradoras";
   const [search, setSearch] = useState("");
   const [filterExecutiva, setFilterExecutiva] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");

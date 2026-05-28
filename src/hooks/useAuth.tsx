@@ -123,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isViewOnly: role === "visualizacao" || role === "diretora",
       isEnfermeira: role === "enfermeira",
       isFinanceiro: role === "financeiro",
-      isComum: role === "comum",
+      isComum: role === "comum" || role === "administradoras",
       isVendas: role === "vendas",
       isDiretora: role === "diretora",
       isAdministradoras: role === "administradoras",

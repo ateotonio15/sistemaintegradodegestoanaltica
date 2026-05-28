@@ -63,7 +63,7 @@ export function CobrancaBanner() {
           .select("id, nome")
           .eq("executiva_user_id", user.id);
         empresaIds = (emps ?? []).map((e: any) => e.id);
-      } else if (role === "comum") {
+      } else if (role === "comum" || role === "administradoras") {
         const { data: links } = await supabase
           .from("empresa_usuarios")
           .select("empresa_id, empresas:empresa_id(nome)")

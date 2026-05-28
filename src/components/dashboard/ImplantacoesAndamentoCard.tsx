@@ -133,7 +133,7 @@ export function ImplantacoesAndamentoCard() {
   const queryClient = useQueryClient();
   const { isAdmin, isVendas, role, user } = useAuth();
   const canDelete = isAdmin || isVendas;
-  const isComum = role === "comum";
+  const isComum = role === "comum" || role === "administradoras";
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [viewId, setViewId] = useState<string | null>(null);
