@@ -641,6 +641,7 @@ function EnvioFinanceiroDialog({
   existingMov,
   onClose,
   onSaved,
+  onAttachmentsChange,
 }: {
   empresa: Empresa | null;
   mesRef: string;
@@ -649,6 +650,7 @@ function EnvioFinanceiroDialog({
   existingMov: Movimentacao | null;
   onClose: () => void;
   onSaved: () => void;
+  onAttachmentsChange: (empresaId: string) => Promise<void>;
 }) {
   const [movId, setMovId] = useState<string | null>(existingMov?.id ?? null);
   const [saving, setSaving] = useState(false);
@@ -762,6 +764,7 @@ function EnvioFinanceiroDialog({
               movimentacaoId={movId}
               empresaId={empresa.id}
               required={!!editEnvio}
+              onAttachmentsChange={() => onAttachmentsChange(empresa.id)}
             />
 
             <div className="flex justify-end gap-2 pt-2">
