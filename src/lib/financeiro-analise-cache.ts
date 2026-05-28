@@ -4,6 +4,7 @@ import type {
   ComparacaoResultado,
   ComparacaoSimplificada,
   CampoValidacao,
+  NotaOrfa,
 } from "@/lib/excel-analysis-utils";
 
 export type StatusAnalise = "OK" | "ERRO" | "PENDENTE";
