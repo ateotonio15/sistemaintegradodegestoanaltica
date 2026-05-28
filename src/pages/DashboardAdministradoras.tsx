@@ -238,7 +238,7 @@ export default function DashboardAdministradoras() {
                       <TableHead className="font-semibold">Nome</TableHead>
                       <TableHead className="font-semibold">CNPJ</TableHead>
                       <TableHead className="font-semibold">Código</TableHead>
-                      <TableHead className="font-semibold text-center">Vidas</TableHead>
+                      <TableHead className="font-semibold text-center">Vidas Ativas</TableHead>
                       <TableHead className="font-semibold">Corte</TableHead>
                       <TableHead className="font-semibold">Implantação</TableHead>
                       <TableHead className="font-semibold">Enviado Financ.</TableHead>

@@ -402,7 +402,7 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
                     <TableHead>Nome</TableHead>
                     <TableHead>CNPJ</TableHead>
                     <TableHead>Código</TableHead>
-                    <TableHead className="text-center">Vidas</TableHead>
+                    <TableHead className="text-center">Vidas Ativas</TableHead>
                     <TableHead className="text-center">Corte</TableHead>
                     <TableHead className="text-right">Faixas</TableHead>
                     <TableHead>Status</TableHead>

@@ -33,7 +33,7 @@ const STEPS = [
   { n: 2, label: "Extração", icon: Sparkles },
   { n: 3, label: "Contrato", icon: FileSignature },
   { n: 4, label: "Comissão", icon: DollarSign },
-  { n: 5, label: "Vidas", icon: Users },
+  { n: 5, label: "Vidas Ativas", icon: Users },
   { n: 6, label: "Revisão", icon: CheckCircle2 },
 ];
 
@@ -908,8 +908,8 @@ function Step6Revisao({ data, anexos }: any) {
         <Row k="% Vitalício" v={`${data.percentual_vitalicio || 0}%`} />
       </CardContent></Card>
       <Card><CardContent className="p-4">
-        <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Vidas & Documentos</h4>
-        <Row k="Total Vidas" v={data.total_vidas} />
+        <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Vidas Ativas & Documentos</h4>
+        <Row k="Total Vidas Ativas" v={data.total_vidas} />
         <Row k="Titulares" v={data.vidas_titulares} />
         <Row k="Dependentes" v={data.vidas_dependentes} />
         <Row k="Layout Validado" v={data.relatorio_validacao?.valido ? "Sim" : "Não"} />

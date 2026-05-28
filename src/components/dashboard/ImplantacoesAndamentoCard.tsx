@@ -353,7 +353,7 @@ export function ImplantacoesAndamentoCard() {
             </SelectContent>
           </Select>
           <Select value={filterVidas} onValueChange={setFilterVidas}>
-            <SelectTrigger className="h-9 w-[160px] rounded-lg"><SelectValue placeholder="Vidas" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-[160px] rounded-lg"><SelectValue placeholder="Vidas Ativas" /></SelectTrigger>
             <SelectContent>
               {FAIXAS_VIDAS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
             </SelectContent>
