@@ -85,6 +85,21 @@ export default function DashboardAdministradoras() {
     enabled: empresaIds.length > 0,
   });
 
+  const movsPorEmpresa = useMemo(() => {
+    const map: Record<string, Movimentacao> = {};
+    for (const mov of movsMes) {
+      const current = map[mov.empresa_id];
+      if (!current) {
+        map[mov.empresa_id] = mov;
+        continue;
+      }
+      const score = (m: Movimentacao) =>
+        (m.data_envio_financeiro ? 1_000_000_000 : 0) + new Date(m.created_at).getTime();
+      if (score(mov) > score(current)) map[mov.empresa_id] = mov;
+    }
+    return map;
+  }, [movsMes]);
+
   const movIds = useMemo(() => movsMes.map((m) => m.id), [movsMes]);
 
   const { data: anexosCount = {} } = useQuery({
@@ -201,6 +216,12 @@ export default function DashboardAdministradoras() {
       setCalculando(false);
       setProgressoCalc(null);
     }
+  };
+
+  const recomputeEmpresa = async (empresaId: string) => {
+    await computeEntradasSaidas([empresaId], mesRef);
+    queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm"] });
+    queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm-6"] });
   };
 
 
@@ -427,7 +448,7 @@ export default function DashboardAdministradoras() {
                       <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
                     ) : (
                       filtered.map((e) => {
-                        const mov = movsMes.find((m) => m.empresa_id === e.id);
+                        const mov = movsPorEmpresa[e.id];
                         const enviado = !!mov?.data_envio_financeiro;
                         const qtdAnexos = mov ? (anexosCount[mov.id] ?? 0) : 0;
                         const es = entradasSaidasPorEmpresa[e.id];
@@ -591,12 +612,13 @@ export default function DashboardAdministradoras() {
         mesRef={mesRef}
         editEnvio={editEnvio}
         setEditEnvio={setEditEnvio}
-        existingMov={selectedEmpresa ? movsMes.find((m) => m.empresa_id === selectedEmpresa.id) ?? null : null}
+        existingMov={selectedEmpresa ? movsPorEmpresa[selectedEmpresa.id] ?? null : null}
         onClose={() => setSelectedEmpresa(null)}
         onSaved={() => {
           queryClient.invalidateQueries({ queryKey: ["movs-administradoras"] });
           queryClient.invalidateQueries({ queryKey: ["anexos-count-administradoras"] });
         }}
+        onAttachmentsChange={recomputeEmpresa}
       />
 
       <AnexosViewerDialog
