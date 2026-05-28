@@ -119,9 +119,18 @@ export default function DashboardAdministradoras() {
     return new Date(Math.min(...datas.map((d) => d.getTime())));
   }, [ativas]);
 
+  const periodoAtual = useMemo(() => getCurrentPeriodo(), []);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return empresas
+      // Mostra somente contratos cujo dia de corte cai no período vigente
+      // (mesma regra do Dashboard do Cadastro / "Próximos Fechamentos")
+      .filter((e) => {
+        const dc = e.data_corte;
+        if (!dc || !CORTE_OPTIONS.includes(dc as 1 | 5 | 10 | 20)) return false;
+        return periodoDaDataCorte(dc) === periodoAtual;
+      })
       .filter((e) => statusFilter === "all" ? true : e.status_empresa === statusFilter)
       .filter((e) => corteFilter === "all" ? true : String(e.data_corte ?? "") === corteFilter)
       .filter((e) => {
@@ -134,7 +143,7 @@ export default function DashboardAdministradoras() {
         (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
         (e.cnpj ?? "").toLowerCase().includes(q)
       );
-  }, [empresas, search, corteFilter, statusFilter, implFilter]);
+  }, [empresas, search, corteFilter, statusFilter, implFilter, periodoAtual]);
 
   const proximosFechamentosPorCorte = useMemo(() => {
     const groups: Record<number, Empresa[]> = {};
