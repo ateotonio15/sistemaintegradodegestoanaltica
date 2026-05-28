@@ -78,14 +78,14 @@ export function ContratosAVigenciarCard() {
       // 1) Implantações com vigência futura
       const implP = supabase
         .from("implantacoes_contratos")
-        .select("id, empresa_id, nome_empresa, codigo_contrato, total_vidas, data_vigencia, status")
+        .select("id, empresa_id, nome_empresa, codigo_contrato, total_vidas, data_vigencia, status, tipo_contrato")
         .gte("data_vigencia", todayIso)
         .not("status", "in", '("implantado","rejeitado")');
-      // 2) Empresas "novas": sem data de implantação ou com implantação futura
+      // 2) Empresas "novas" ou Administradoras (contratos contínuos sem vigência futura)
       const empP = supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, vidas, data_implantacao, status_empresa")
-        .or(`data_implantacao.is.null,data_implantacao.gt.${todayIso}`);
+        .select("id, nome, codigo_contrato, vidas, data_implantacao, status_empresa, tipo_contrato")
+        .or(`data_implantacao.is.null,data_implantacao.gt.${todayIso},tipo_contrato.eq.ADMINISTRADORA`);
 
       const [implRes, empRes] = await Promise.all([implP, empP]);
       if (implRes.error) throw implRes.error;
@@ -115,6 +115,7 @@ export function ContratosAVigenciarCard() {
         data_vigencia: r.data_vigencia,
         status: r.status,
         origem: "implantacao",
+        tipo_contrato: r.tipo_contrato ?? null,
       }));
       const implEmpresaIds = new Set(implRows.map((r) => r.empresa_id).filter(Boolean) as string[]);
       const empRows: Row[] = ((empRes.data as any[]) || [])
@@ -129,6 +130,7 @@ export function ContratosAVigenciarCard() {
           data_vigencia: e.data_implantacao,
           status: e.status_empresa,
           origem: "empresa",
+          tipo_contrato: e.tipo_contrato ?? null,
         }));
 
       const all = [...implRows, ...empRows];
