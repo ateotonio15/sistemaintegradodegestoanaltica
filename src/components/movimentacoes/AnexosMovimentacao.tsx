@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Paperclip, Upload, FileText, Download, Trash2, AlertCircle } from "lucide-react";
+import { Paperclip, Upload, FileText, Download, Trash2, AlertCircle, Users } from "lucide-react";
 import {
   ACCEPTED_FILE_TYPES,
   ACCEPTED_MIME_TYPES,
