@@ -4,6 +4,7 @@ import type {
   ComparacaoResultado,
   ComparacaoSimplificada,
   CampoValidacao,
+  NotaOrfa,
 } from "@/lib/excel-analysis-utils";
 
 export type StatusAnalise = "OK" | "ERRO" | "PENDENTE";
@@ -185,6 +186,7 @@ export interface SalvarAnaliseInput {
   resultadoCompletoExtra?: {
     resultados: AnaliseResultado[];
     comparacoes: Array<ComparacaoResultado | ComparacaoSimplificada>;
+    notasOrfas?: NotaOrfa[];
   };
 }
 
