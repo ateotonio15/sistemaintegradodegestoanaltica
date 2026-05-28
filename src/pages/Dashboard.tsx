@@ -941,12 +941,17 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+        </>
+        )}
 
         {/* Implantações em Andamento */}
-        <ImplantacoesAndamentoCard />
+        {dashboardMode === "implantacao" && <ImplantacoesAndamentoCard />}
 
         {/* Contratos com vigência futura — pendentes de documentos */}
         <ContratosAVigenciarCard />
+
+        {dashboardMode === "movimentacao" && (
+
 
 
         {/* Enviadas ao Financeiro */}
