@@ -57,6 +57,8 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
 export default function Empresas() {
   const [search, setSearch] = useState("");
   const [showInativas, setShowInativas] = useState(false);
+  const [respFilter, setRespFilter] = useState<string>("all");
+  const [corretoraFilter, setCorretoraFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailEmpresa, setDetailEmpresa] = useState<Empresa | null>(null);
   const [rescisaoDate, setRescisaoDate] = useState("");
@@ -344,6 +346,18 @@ export default function Empresas() {
     return "Não definida";
   };
 
+  const respOptions = useMemo(() => {
+    const set = new Set<string>();
+    empresas.forEach((e) => { const v = (e.responsavel_contrato ?? "").trim(); if (v) set.add(v); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [empresas]);
+
+  const corretoraOptions = useMemo(() => {
+    const set = new Set<string>();
+    empresas.forEach((e) => { const v = (e.operadora_plano ?? "").trim(); if (v) set.add(v); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [empresas]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let list = empresas;
@@ -352,12 +366,14 @@ export default function Empresas() {
     }
     return list
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
+      .filter((e) => respFilter === "all" || (e.responsavel_contrato ?? "").trim() === respFilter)
+      .filter((e) => corretoraFilter === "all" || (e.operadora_plano ?? "").trim() === corretoraFilter)
       .filter((e) =>
         e.nome.toLowerCase().includes(q) ||
         (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
         (e.cnpj ?? "").toLowerCase().includes(q)
       );
-  }, [empresas, search, showInativas, isExecutivo, user]);
+  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter]);
 
   return (
     <>
@@ -665,15 +681,34 @@ export default function Empresas() {
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative max-w-sm flex-1">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative max-w-sm flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Buscar por nome, código ou CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-lg" />
           </div>
+          <Select value={respFilter} onValueChange={setRespFilter}>
+            <SelectTrigger className="rounded-lg w-[220px]"><SelectValue placeholder="Resp. Contrato" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os responsáveis</SelectItem>
+              {respOptions.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={corretoraFilter} onValueChange={setCorretoraFilter}>
+            <SelectTrigger className="rounded-lg w-[220px]"><SelectValue placeholder="Corretora" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as corretoras</SelectItem>
+              {corretoraOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {(respFilter !== "all" || corretoraFilter !== "all") && (
+            <Button variant="ghost" size="sm" onClick={() => { setRespFilter("all"); setCorretoraFilter("all"); }} className="rounded-lg">
+              Limpar filtros
+            </Button>
+          )}
           <Button
             variant={showInativas ? "default" : "outline"}
             onClick={() => setShowInativas(!showInativas)}
-            className="rounded-lg"
+            className="rounded-lg ml-auto"
           >
             {showInativas ? "Ver Ativas" : "Ver Inativas"}
           </Button>
