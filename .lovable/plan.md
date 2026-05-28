@@ -1,61 +1,65 @@
-## Funcionalidade: Gerar Histórico Automático
+## Objetivo
 
-Adicionar geração automática do texto de histórico financeiro a partir da análise do Excel/PDF, mantendo o padrão textual atual da empresa.
+Hoje a comparação entre faturamento (Excel) e notas fiscais (PDF) é feita por pagador cadastrado (nome/CNPJ). Quando há vários CNPJs com o mesmo nome (caso APOEMA), a planilha é agregada incorretamente e CNPJs sem NF não aparecem como pendência. O plano abaixo reescreve essa lógica para usar **CNPJ como chave única**, ignorar pagadores cadastrados como filtro e detectar automaticamente todas as filiais presentes na planilha.
 
-### 1. UI — botão "Gerar Histórico"
-Em `src/components/financeiro/AnaliseExcelRow.tsx`, ao lado do botão **Reanalisar** (mesmo canto superior direito), adicionar botão **Gerar Histórico** (variant outline, ícone `FileText`).
-- Aparece apenas quando há `resultados` (análise concluída).
-- Passar nova prop `onGerarHistorico?: () => void` recebendo a row.
-- Propagar a prop em `FinanceiroTable.tsx` igual à `onReanalisar`, e expor no chamador (`Financeiro.tsx`).
+## O que muda na prática
 
-### 2. Diálogo de Prorrogação (passo 1)
-Novo componente `src/components/financeiro/GerarHistoricoDialog.tsx`. Ao clicar em "Gerar Histórico":
-- Primeiro modal pergunta: **"O vencimento será prorrogado?"** com botões **Sim / Não**.
-- Se **Não** → usa vencimento padrão (dia `empresas.data_vencimento_fatura` + mês/ano da competência).
-- Se **Sim** → exibe os mesmos campos do `EditarMovimentacaoDialog` (Data da prorrogação, Motivo, Observação) e ao confirmar:
-  - Faz `UPDATE` em `financeiro_movimentacoes` setando `possui_prorrogacao=true`, `data_prorrogacao`, `motivo_prorrogacao`, `observacao_prorrogacao`, `data_vencimento` (nova data).
-  - Invalida queries para o `EditarMovimentacaoDialog` refletir automaticamente.
+1. O analisador percorre a planilha e separa as linhas por CNPJ. Cada CNPJ vira um "bloco" de análise (Enfermaria / Apartamento / Inclusões / Exclusões).
+2. Cada PDF anexo é validado pelo seu **CNPJ do tomador**, casando 1-para-1 com o bloco daquele CNPJ.
+3. Se um CNPJ aparece no Excel mas não tem PDF correspondente → bloco marcado como **"NF não localizada para este CNPJ"** (vermelho, com valor e nome).
+4. Se um PDF tem CNPJ que não aparece no Excel → aparece em um **bloco extra de divergência** ("NF sem CNPJ correspondente no faturamento"), mostrando arquivo, CNPJ do tomador e valor da NF.
+5. O nome do pagador passa a ser sempre exibido como **`NOME — 0001-69`** (os 6 últimos dígitos do CNPJ formatados), eliminando ambiguidade.
+6. Nome igual com CNPJ diferente nunca gera divergência de nome — são tratados como filiais.
 
-### 3. Geração do texto
-Novo util `src/lib/historico-utils.ts` com função `gerarHistorico(row, resultados, opts)`:
-- **Competência**: extrai do `mes_referencia` (preferido) ou do nome do arquivo Excel (regex `MES(ANO)`). Formato `Mês/AAAA` com mês em PT-BR capitalizado.
-- **Linhas por categoria** (Enfermaria / Apartamento), no padrão `Enfermaria: {benef}x{mensalidade}= {total}` usando vírgula decimal e ponto de milhar (mesma formatação do `formatBRL` sem `R$`).
-- **Inclusão**: só se `inclusoes.total > 0` → `Inclusão= {valor}`.
-- **Exclusão**: só se `exclusoes.total != 0` → `Exclusão: ({valor positivo})`.
-- **Data de Vencimento**: `DD/MM/AAAA` (prorrogada ou padrão).
-- **Observações fixas** sempre incluídas:
-  - "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM)."
-  - "Suspensão de PIS e COFINS, trânsito em julgado conforme Processo n° 0655998-44.2022.8.04.0001 TJAM"
-- **Observação DDA**: incluir "OBS.: O boleto está disponível no sistema de DDA." **apenas** quando a movimentação estiver com nota emitida (`data_envio_nota` preenchida ou anexo PDF presente — mesma regra usada no `EditarMovimentacaoDialog`).
+## Mudanças por arquivo
 
-### 4. Preview / Edição / Ações
-Após decidir prorrogação, abrir segundo modal com:
-- `Textarea` editável contendo o texto gerado (preview).
-- Botões: **Copiar histórico** (clipboard), **Salvar histórico** (persiste no banco), **Cancelar**.
+### `src/lib/excel-analysis-utils.ts`
+- Nova função `analisarExcelFinanceiroPorCnpj(buffer)` que retorna um array `AnalisePorCnpj[]`:
+  ```ts
+  interface AnalisePorCnpj {
+    cnpj: string;           // 14 dígitos, normalizado
+    nome: string;           // nome do pagador como aparece no Excel
+    nomeExibicao: string;   // "NOME — 0001-69"
+    enfermaria, apartamento, inclusoes, exclusoes?
+    avisos: string[];
+  }
+  ```
+- Helper `formatCnpjSufixo(cnpj)` → `"0001-69"` (a partir dos dígitos 9-14).
+- Helper `formatNomeComCnpj(nome, cnpj)` → `"APOEMA RESTAURANTES LTDA — 0001-69"`.
+- Mantém `analisarExcelFinanceiroPorPagador` como wrapper (compatibilidade Moto Honda / chamadas legadas).
+- Nova função de comparação `cruzarExcelComPdfs(blocosExcel, pdfs)` que devolve:
+  - `comparacoes`: 1 entrada por bloco do Excel (com PDF casado por CNPJ ou nulo)
+  - `notasOrfas`: PDFs cujo `tomadorCnpj` não bate com nenhum bloco do Excel
+- `ComparacaoResultado` ganha campos `cnpj`, `nomeExibicao`, `motivoSemPdf` (ex.: `"NF não localizada para este CNPJ"`).
 
-### 5. Banco de dados
-Nova tabela `public.historicos_financeiros`:
-- `id uuid pk`
-- `empresa_id uuid` (fk lógica)
-- `financeiro_movimentacao_id uuid`
-- `competencia text` (mes_referencia)
-- `periodo text`
-- `texto_historico text`
-- `vencimento_utilizado date`
-- `prorrogado boolean default false`
-- `motivo_prorrogacao text`
-- `usuario_geracao uuid`, `usuario_geracao_nome text`
-- `data_geracao timestamptz default now()`
-- `created_at`, `updated_at`
-- Index único por `(financeiro_movimentacao_id)` — substituir ao regerar (upsert).
-- RLS: leitura/escrita para `admin`, `financeiro`, `diretora`, `visualizacao` (consistente com `financeiro_movimentacoes`).
+### `src/lib/pdf-analysis-utils.ts`
+- Mantém `extrairTomador` (já normaliza CNPJ para 14 dígitos). Sem mudanças funcionais; só garantir que `tomadorCnpj` esteja sempre presente quando detectado.
 
-### 6. Integração com Editar Movimentação
-- A prorrogação salva na etapa 2 já persiste em `financeiro_movimentacoes`; o `EditarMovimentacaoDialog` lê esses mesmos campos, então a sincronização é automática via React Query invalidation (`["financeiro-list"]`, etc.).
-- Garantir que após salvar a prorrogação, as queries do dashboard/edição sejam invalidadas.
+### `src/pages/Financeiro.tsx` (função que orquestra a análise, linhas ~620–820)
+- Remover o caminho atual baseado em `filtroPagador` (CNPJ/nome do pagador cadastrado).
+- Para cada `xlsAnexo` (geralmente 1), chamar `analisarExcelFinanceiroPorCnpj` → obtém N blocos.
+- Para cada bloco: encontrar PDF cujo `tomadorCnpj` (14 dígitos) seja igual ao CNPJ do bloco; sem match → comparação com `arquivoPdf: null` e `motivoSemPdf`.
+- PDFs não casados após o loop → entram em `notasOrfas` (lista que será mostrada como bloco extra).
+- A persistência em `financeiro_analises` passa a salvar 1 registro por CNPJ encontrado no Excel (`pagador_cnpj` = 14 dígitos, `pagador_nome` = nome exibido com sufixo). Mantém também 1 registro para cada NF órfã (com `pagador_cnpj` do tomador e flag de divergência).
+- A regra "linha mãe + linha por pagador cadastrado" da tabela continua existindo só como agrupamento visual da linha do financeiro (não interfere mais na análise). A análise é executada uma vez por movimentação (linha mãe) e o resultado contém todos os CNPJs.
 
-### Detalhes técnicos
-- **Arquivos novos**: `src/components/financeiro/GerarHistoricoDialog.tsx`, `src/lib/historico-utils.ts`, migration SQL.
-- **Arquivos editados**: `src/components/financeiro/AnaliseExcelRow.tsx` (botão + prop), `src/components/financeiro/FinanceiroTable.tsx` (prop pass-through), `src/pages/Financeiro.tsx` (estado do dialog + handlers), e import opcional no `EditarMovimentacaoDialog` se quisermos botão atalho (não obrigatório).
-- **Formatação numérica**: reutilizar `formatBRL` de `excel-analysis-utils` removendo `R$` (ou criar `formatNumeroBR`).
-- **Detecção de mês no nome do arquivo**: tabela `JANEIRO..DEZEMBRO` + fallback para `mes_referencia` da row.
+### `src/components/financeiro/AnaliseExcelRow.tsx`
+- O cabeçalho de cada bloco passa a mostrar `Pagador: {nomeExibicao}` (com sufixo `— 0001-69`).
+- Quando o bloco vier sem PDF casado, mostrar alerta vermelho **"NF não localizada para este CNPJ"** logo abaixo do cabeçalho (em vez de só "Validado contra: —").
+- Nova seção opcional `Notas fiscais sem CNPJ correspondente no faturamento`, renderizada uma vez no fim do componente quando `notasOrfas.length > 0`. Cada item lista: arquivo, CNPJ do tomador (formatado), nome do tomador e valor líquido da NF.
+
+### `src/components/financeiro/EditarMovimentacaoDialog.tsx` e `src/components/dashboard/PrevisaoFinanceira.tsx`
+- Atualizar imports e chamadas para usar a nova API quando aplicável (mantêm comportamento atual; provável só ajuste de tipos).
+
+## Sem mudanças
+
+- Banco de dados: a tabela `financeiro_analises` já tem colunas `pagador_cnpj` e `pagador_nome` suficientes. Sem migração.
+- Cadastro de pagadores (`financeiro_pagadores`): permanece intacto. Continua sendo usado para definir linhas/visualização e relatórios; só não controla mais qual CNPJ a análise considera.
+- Fluxo Moto Honda (`analisarExcelMotoHonda` + análise simplificada) permanece como está: continua usando comparação simplificada por arquivo (não há quebra por CNPJ nesse fluxo).
+
+## Validação esperada (caso APOEMA)
+
+- Excel com 6 CNPJs APOEMA → 6 blocos.
+- 5 PDFs anexados com tomadores casando 5 dos CNPJs → 5 blocos verdes.
+- CNPJ `04.739.000/0002-40` (R$ 3.559,13) sem PDF → bloco vermelho com **"NF não localizada para este CNPJ"**.
+- Nenhuma NF órfã (porque todos os PDFs casaram).

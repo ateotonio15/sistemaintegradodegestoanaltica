@@ -12,7 +12,7 @@ import {
 } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { AnaliseExcelRow } from "./AnaliseExcelRow";
-import type { AnaliseResultado, ComparacaoResultado } from "@/lib/excel-analysis-utils";
+import type { AnaliseResultado, ComparacaoResultado, NotaOrfa } from "@/lib/excel-analysis-utils";
 
 export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_nome: string;
@@ -58,6 +58,7 @@ interface Props {
   analiseResultados: Record<string, AnaliseResultado[]>;
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
+  analiseNotasOrfas?: Record<string, NotaOrfa[]>;
   readOnly?: boolean;
 }
 
@@ -75,6 +76,7 @@ export function FinanceiroTable({
   analiseResultados,
   analiseLoading,
   analiseComparacoes,
+  analiseNotasOrfas,
   readOnly = false,
 }: Props) {
   const [anexosDialog, setAnexosDialog] = useState<{

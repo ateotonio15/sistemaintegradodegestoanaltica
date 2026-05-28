@@ -13,6 +13,10 @@ export interface InclusaoResultado {
 
 export interface AnaliseResultado {
   pagador: string;
+  /** CNPJ normalizado (14 dígitos) do pagador da planilha, quando identificado. */
+  cnpj?: string;
+  /** Nome formatado para UI no formato "NOME — 0001-69". */
+  nomeExibicao?: string;
   enfermaria: CategoriaResultado;
   apartamento: CategoriaResultado;
   inclusoes: InclusaoResultado;
@@ -20,6 +24,19 @@ export interface AnaliseResultado {
   exclusoes?: InclusaoResultado;
   avisos: string[];
 }
+
+/** Bloco analítico de uma planilha agrupado por CNPJ. */
+export interface AnalisePorCnpj {
+  cnpj: string;              // 14 dígitos, vazio se não houver coluna CNPJ
+  nome: string;              // nome cru, vindo da coluna Pagador / Nome
+  nomeExibicao: string;      // "NOME — 0001-69" (ou só nome se sem CNPJ)
+  enfermaria: CategoriaResultado;
+  apartamento: CategoriaResultado;
+  inclusoes: InclusaoResultado;
+  exclusoes?: InclusaoResultado;
+  avisos: string[];
+}
+
 
 /** Validação simplificada (Moto Honda PDF sem detalhamento por categoria). */
 export interface ComparacaoSimplificada {
@@ -77,6 +94,28 @@ const COL_PAGADOR = ["pagador", "nome pagador", "nome do pagador", "razao social
 export function normalizarCnpj(s: unknown): string {
   return String(s ?? "").replace(/\D/g, "");
 }
+
+/** Retorna "0001-69" a partir dos 14 dígitos do CNPJ (filial + DV). */
+export function formatCnpjSufixo(cnpj: unknown): string {
+  const d = normalizarCnpj(cnpj);
+  if (d.length < 14) return "";
+  return `${d.slice(8, 12)}-${d.slice(12, 14)}`;
+}
+
+/** Formata CNPJ completo: "00.000.000/0001-69". */
+export function formatCnpjCompleto(cnpj: unknown): string {
+  const d = normalizarCnpj(cnpj);
+  if (d.length !== 14) return String(cnpj ?? "");
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`;
+}
+
+/** "APOEMA RESTAURANTES LTDA — 0001-69" (cai para só nome se CNPJ ausente). */
+export function formatNomeComCnpj(nome: unknown, cnpj: unknown): string {
+  const sufixo = formatCnpjSufixo(cnpj);
+  const n = String(nome ?? "").trim() || "Sem nome";
+  return sufixo ? `${n} — ${sufixo}` : n;
+}
+
 
 export interface FiltroPagador {
   cnpj?: string | null;
@@ -340,7 +379,25 @@ export interface ComparacaoResultado {
   inclusoes: { total: CampoValidacao } | null;
   divergencias: string[];
   avisosPdf: string[];
+  /** CNPJ (14 dígitos) do bloco analisado, quando disponível. */
+  cnpj?: string;
+  /** Nome formatado para exibição ("NOME — 0001-69"). */
+  nomeExibicao?: string;
+  /** Motivo declarativo quando não há PDF casado (ex.: "NF não localizada para este CNPJ"). */
+  motivoSemPdf?: string;
+  /** CNPJ do tomador, conforme PDF casado. */
+  tomadorCnpj?: string | null;
 }
+
+/** Nota fiscal cujo CNPJ do tomador não aparece em nenhum bloco do Excel. */
+export interface NotaOrfa {
+  arquivo: string;
+  tomadorCnpj: string;        // 14 dígitos, "" se não detectado
+  tomadorNome: string | null;
+  valorLiquido: number | null;
+  nfNumero: string | null;
+}
+
 
 const eqMoney = (a: number, b: number) => Math.abs(a - b) < 0.01;
 const eqInt = (a: number, b: number) => Math.round(a) === Math.round(b);
@@ -506,4 +563,232 @@ export function compararExcelComPdfSimplificado(
     divergencias,
     avisosPdf: pdf?.avisos ?? [],
   };
+}
+
+// =====================================================================
+// Análise por CNPJ (chave principal de validação)
+// =====================================================================
+
+/**
+ * Lê a planilha e devolve um array de blocos, um por CNPJ encontrado.
+ * Quando não há coluna de CNPJ, retorna um único bloco agregado (cnpj="").
+ */
+export async function analisarExcelFinanceiroPorCnpj(
+  buffer: ArrayBuffer,
+): Promise<AnalisePorCnpj[]> {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer);
+
+  const ws = wb.worksheets[0];
+  if (!ws) return [];
+
+  const allRows: unknown[][] = [];
+  ws.eachRow({ includeEmpty: false }, (row) => {
+    if (allRows.length >= 5000) return;
+    const values = (row.values as unknown[]).slice(1);
+    allRows.push(values);
+  });
+
+  let headerIdx = -1;
+  let idxPlano = -1;
+  let idxTipo = -1;
+  let idxValor = -1;
+  let idxCnpj = -1;
+  let idxPagador = -1;
+
+  for (let i = 0; i < Math.min(10, allRows.length); i++) {
+    const r = allRows[i];
+    const p = findColumnIndex(r, COL_PLANO);
+    const t = findColumnIndex(r, COL_TIPO_COBRANCA);
+    const v = findColumnIndex(r, COL_VALOR);
+    if (p >= 0 || t >= 0) {
+      headerIdx = i;
+      idxPlano = p;
+      idxTipo = t;
+      idxValor = v;
+      idxCnpj = findColumnIndex(r, COL_CNPJ);
+      idxPagador = findColumnIndex(r, COL_PAGADOR);
+      break;
+    }
+  }
+
+  if (headerIdx < 0) {
+    return [
+      {
+        cnpj: "",
+        nome: "Planilha",
+        nomeExibicao: "Planilha",
+        enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
+        apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
+        inclusoes: { quantidade: 0, total: 0 },
+        avisos: [
+          "Não foi possível identificar a linha de cabeçalho (esperado: 'Plano' e 'Tipo Cobrança').",
+        ],
+      },
+    ];
+  }
+
+  type Acc = {
+    cnpj: string;
+    nome: string;
+    enfValores: number[];
+    aptValores: number[];
+    incQtd: number;
+    incTotal: number;
+    excQtd: number;
+    excTotal: number;
+  };
+  const grupos = new Map<string, Acc>();
+  const getGrupo = (cnpj: string, nome: string): Acc => {
+    const key = cnpj || `__nome::${norm(nome)}`;
+    let g = grupos.get(key);
+    if (!g) {
+      g = {
+        cnpj,
+        nome,
+        enfValores: [],
+        aptValores: [],
+        incQtd: 0,
+        incTotal: 0,
+        excQtd: 0,
+        excTotal: 0,
+      };
+      grupos.set(key, g);
+    } else if (!g.nome && nome) {
+      g.nome = nome;
+    }
+    return g;
+  };
+
+  for (let i = headerIdx + 1; i < allRows.length; i++) {
+    const r = allRows[i];
+    if (!r || r.length === 0) continue;
+
+    const cnpjLinha = idxCnpj >= 0 ? normalizarCnpj(r[idxCnpj]) : "";
+    const nomeLinha = idxPagador >= 0 ? String(r[idxPagador] ?? "").trim() : "";
+    if (idxCnpj >= 0 && cnpjLinha.length !== 14 && !nomeLinha) continue;
+
+    const grp = getGrupo(cnpjLinha, nomeLinha);
+
+    const planoCell = idxPlano >= 0 ? r[idxPlano] : "";
+    const tipoCell = idxTipo >= 0 ? r[idxTipo] : "";
+    const valorCell = idxValor >= 0 ? r[idxValor] : 0;
+    const valor = toNumber(valorCell);
+    const valorNum = isNaN(valor) ? 0 : valor;
+    const valorValido = !isNaN(valor) && valor >= 0;
+
+    if (idxTipo >= 0 && isExclusao(String(tipoCell))) {
+      grp.excQtd += 1;
+      grp.excTotal += valorNum > 0 ? -valorNum : valorNum;
+      continue;
+    }
+    if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
+      grp.incQtd += 1;
+      if (valorValido) grp.incTotal += valor;
+      continue;
+    }
+    if (idxPlano < 0) continue;
+    const cat = classificarPlano(String(planoCell));
+    if (!cat) continue;
+    if (cat === "enfermaria") grp.enfValores.push(valorValido ? valor : 0);
+    else grp.aptValores.push(valorValido ? valor : 0);
+  }
+
+  const buildCategoria = (vals: number[]): CategoriaResultado => {
+    const total = vals.reduce((s, v) => s + v, 0);
+    const beneficiarios = vals.length;
+    const mensalidade = beneficiarios > 0 ? total / beneficiarios : 0;
+    return { beneficiarios, mensalidade, total };
+  };
+
+  const blocos: AnalisePorCnpj[] = Array.from(grupos.values())
+    .map((g) => {
+      const avisos: string[] = [];
+      if (!g.cnpj) avisos.push("CNPJ não identificado nesta linha — usando apenas o nome.");
+      const bloco: AnalisePorCnpj = {
+        cnpj: g.cnpj,
+        nome: g.nome || "Sem nome",
+        nomeExibicao: formatNomeComCnpj(g.nome || "Sem nome", g.cnpj),
+        enfermaria: buildCategoria(g.enfValores),
+        apartamento: buildCategoria(g.aptValores),
+        inclusoes: { quantidade: g.incQtd, total: g.incTotal },
+        avisos,
+      };
+      if (g.excQtd > 0 || g.excTotal !== 0) {
+        bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
+      }
+      return bloco;
+    })
+    .filter(
+      (b) =>
+        b.enfermaria.beneficiarios > 0 ||
+        b.apartamento.beneficiarios > 0 ||
+        b.inclusoes.quantidade > 0 ||
+        (b.exclusoes && b.exclusoes.quantidade > 0),
+    )
+    .sort((a, b) => {
+      const ta = a.enfermaria.total + a.apartamento.total + a.inclusoes.total;
+      const tb = b.enfermaria.total + b.apartamento.total + b.inclusoes.total;
+      return tb - ta;
+    });
+
+  return blocos;
+}
+
+/**
+ * Cruza blocos do Excel com PDFs analisados, casando por CNPJ do tomador.
+ * Devolve uma comparação por bloco (com motivo declarativo quando sem PDF)
+ * e a lista de NFs órfãs (PDFs cujo tomador não aparece em nenhum bloco).
+ */
+export function cruzarExcelComPdfs(
+  blocos: AnalisePorCnpj[],
+  pdfs: Array<AnalisePdfResultado & { arquivo: string }>,
+): { comparacoes: ComparacaoResultado[]; notasOrfas: NotaOrfa[] } {
+  const usados = new Set<number>();
+  const comparacoes: ComparacaoResultado[] = blocos.map((bloco) => {
+    let pdf: (AnalisePdfResultado & { arquivo: string }) | null = null;
+    if (bloco.cnpj) {
+      const idx = pdfs.findIndex(
+        (p, i) => !usados.has(i) && normalizarCnpj(p.tomadorCnpj) === bloco.cnpj,
+      );
+      if (idx >= 0) {
+        usados.add(idx);
+        pdf = pdfs[idx];
+      }
+    }
+    const excelResult: AnaliseResultado = {
+      pagador: bloco.nomeExibicao,
+      cnpj: bloco.cnpj,
+      nomeExibicao: bloco.nomeExibicao,
+      enfermaria: bloco.enfermaria,
+      apartamento: bloco.apartamento,
+      inclusoes: bloco.inclusoes,
+      exclusoes: bloco.exclusoes,
+      avisos: bloco.avisos,
+    };
+    const cmp = compararExcelComPdf(excelResult, pdf);
+    cmp.cnpj = bloco.cnpj;
+    cmp.nomeExibicao = bloco.nomeExibicao;
+    cmp.tomadorCnpj = pdf ? normalizarCnpj(pdf.tomadorCnpj) : null;
+    if (!pdf) {
+      cmp.motivoSemPdf = bloco.cnpj
+        ? "NF não localizada para este CNPJ"
+        : "CNPJ não identificado na planilha";
+      cmp.divergencias = [cmp.motivoSemPdf, ...cmp.divergencias];
+    }
+    return cmp;
+  });
+
+  const notasOrfas: NotaOrfa[] = pdfs
+    .map((p, i) => ({ p, i }))
+    .filter(({ i }) => !usados.has(i))
+    .map(({ p }) => ({
+      arquivo: p.arquivo,
+      tomadorCnpj: normalizarCnpj(p.tomadorCnpj),
+      tomadorNome: p.tomadorNome,
+      valorLiquido: p.valorLiquido,
+      nfNumero: p.nfNumero,
+    }));
+
+  return { comparacoes, notasOrfas };
 }
