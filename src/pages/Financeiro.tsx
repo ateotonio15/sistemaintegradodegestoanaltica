@@ -507,8 +507,9 @@ export default function Financeiro() {
     mutationFn: async () => {
       const { data: empresas, error: empErr } = await supabase
         .from("empresas")
-        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato");
-      if (empErr) throw empErr;
+        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato, nao_faturado_financeiro")
+        .eq("nao_faturado_financeiro", false);
+
 
       // Movimentações operacionais já existentes no mês (para incluir Inativas com histórico)
       const { data: movsMes, error: movErr } = await supabase
