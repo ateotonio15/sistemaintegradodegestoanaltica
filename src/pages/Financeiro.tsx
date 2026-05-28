@@ -84,6 +84,15 @@ export default function Financeiro() {
   const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
   const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
   const [analiseNotasOrfas, setAnaliseNotasOrfas] = useState<Record<string, import("@/lib/excel-analysis-utils").NotaOrfa[]>>({});
+  // Cache de análise no nível do contrato (chave = financeiro_movimentacoes.id).
+  // O resultado bruto é compartilhado entre a linha-mãe e todas as linhas de pagadores/substipulantes.
+  const motherAnalysisCache = useRef<Map<string, {
+    key: string;
+    resultados: import("@/lib/excel-analysis-utils").AnaliseResultado[];
+    comparacoes: import("@/lib/excel-analysis-utils").ComparacaoResultado[];
+    notasOrfas: import("@/lib/excel-analysis-utils").NotaOrfa[];
+    temXls: boolean;
+  }>>(new Map());
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [historicoRow, setHistoricoRow] = useState<FinanceiroRow | null>(null);
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
