@@ -80,12 +80,14 @@ export function ContratosAVigenciarCard() {
         .from("implantacoes_contratos")
         .select("id, empresa_id, nome_empresa, codigo_contrato, total_vidas, data_vigencia, status, tipo_contrato")
         .gte("data_vigencia", todayIso)
+        .neq("tipo_contrato", "ADMINISTRADORA")
         .not("status", "in", '("implantado","rejeitado")');
-      // 2) Empresas "novas" ou Administradoras (contratos contínuos sem vigência futura)
+      // 2) Empresas "novas": sem data de implantação ou com implantação futura (exclui Administradoras)
       const empP = supabase
         .from("empresas")
         .select("id, nome, codigo_contrato, vidas, data_implantacao, status_empresa, tipo_contrato")
-        .or(`data_implantacao.is.null,data_implantacao.gt.${todayIso},tipo_contrato.eq.ADMINISTRADORA`);
+        .neq("tipo_contrato", "ADMINISTRADORA")
+        .or(`data_implantacao.is.null,data_implantacao.gt.${todayIso}`);
 
       const [implRes, empRes] = await Promise.all([implP, empP]);
       if (implRes.error) throw implRes.error;
@@ -316,11 +318,7 @@ export function ContratosAVigenciarCard() {
                             {r.codigo_contrato}
                           </Badge>
                         )}
-                        {r.tipo_contrato === "ADMINISTRADORA" ? (
-                          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
-                            Administradora
-                          </Badge>
-                        ) : r.origem === "empresa" && (
+                        {r.origem === "empresa" && (
                           <Badge variant="outline" className="text-xs bg-info/10 text-info border-info/30">
                             Nova Empresa
                           </Badge>
