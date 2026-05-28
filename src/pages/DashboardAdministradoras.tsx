@@ -744,9 +744,13 @@ function KpiCard({
   label: string;
   value: number | string;
   highlight?: boolean;
-  accent?: "amber";
+  accent?: "amber" | "success" | "destructive";
 }) {
-  const iconBg = accent === "amber" ? "bg-amber-500/10 text-amber-500" : "bg-primary/10 text-primary";
+  const iconBg =
+    accent === "amber" ? "bg-amber-500/10 text-amber-500"
+      : accent === "success" ? "bg-success/10 text-success"
+      : accent === "destructive" ? "bg-destructive/10 text-destructive"
+      : "bg-primary/10 text-primary";
   return (
     <Card className={`rounded-xl shadow-sm ${highlight ? "border-primary/30 bg-primary/5" : ""}`}>
       <CardContent className="p-4 flex items-center gap-3">
@@ -761,3 +765,4 @@ function KpiCard({
     </Card>
   );
 }
+
