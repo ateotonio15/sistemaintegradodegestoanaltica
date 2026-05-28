@@ -440,6 +440,10 @@ export default function Financeiro() {
       return hay.includes(q);
     });
   }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap]);
+
+  // KPIs
+  const kpis = useMemo(() => {
+    const empresasUnicas = new Set(kpiRows.map((r) => r.empresa_id));
     let totalPagadores = 0;
     empresasUnicas.forEach((empId) => {
       const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
@@ -447,11 +451,6 @@ export default function Financeiro() {
       totalPagadores += lista.length > 0 ? lista.length : 1;
     });
 
-    let totalPagadores = 0;
-    empresasUnicas.forEach((empId) => {
-      const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
-      totalPagadores += 1 + lista.length;
-    });
     // Contratos = código de contrato distintos. Empresas sem código contam individualmente.
     const contratosSet = new Set(
       kpiRows.map((r) => r.empresa_codigo?.trim() || `__sem__${r.empresa_id}`),
