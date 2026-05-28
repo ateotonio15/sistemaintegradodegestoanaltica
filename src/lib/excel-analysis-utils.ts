@@ -13,6 +13,10 @@ export interface InclusaoResultado {
 
 export interface AnaliseResultado {
   pagador: string;
+  /** CNPJ normalizado (14 dígitos) do pagador da planilha, quando identificado. */
+  cnpj?: string;
+  /** Nome formatado para UI no formato "NOME — 0001-69". */
+  nomeExibicao?: string;
   enfermaria: CategoriaResultado;
   apartamento: CategoriaResultado;
   inclusoes: InclusaoResultado;
@@ -20,6 +24,19 @@ export interface AnaliseResultado {
   exclusoes?: InclusaoResultado;
   avisos: string[];
 }
+
+/** Bloco analítico de uma planilha agrupado por CNPJ. */
+export interface AnalisePorCnpj {
+  cnpj: string;              // 14 dígitos, vazio se não houver coluna CNPJ
+  nome: string;              // nome cru, vindo da coluna Pagador / Nome
+  nomeExibicao: string;      // "NOME — 0001-69" (ou só nome se sem CNPJ)
+  enfermaria: CategoriaResultado;
+  apartamento: CategoriaResultado;
+  inclusoes: InclusaoResultado;
+  exclusoes?: InclusaoResultado;
+  avisos: string[];
+}
+
 
 /** Validação simplificada (Moto Honda PDF sem detalhamento por categoria). */
 export interface ComparacaoSimplificada {
