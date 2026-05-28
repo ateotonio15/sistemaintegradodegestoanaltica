@@ -290,27 +290,52 @@ const emptyForm = {
   const selectedEmpresa = empresas.find((e) => e.id === form.empresa_id);
   const isFechada = (form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao) === "Fechada";
 
+  const tabs = (
+    <div className="flex justify-center">
+      <div className="inline-flex items-center gap-1 rounded-full border bg-card p-1 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setActiveTab("empresas")}
+          className={
+            activeTab === "empresas"
+              ? "rounded-full bg-primary px-5 py-1.5 text-sm font-medium text-primary-foreground shadow"
+              : "rounded-full px-5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          }
+        >
+          Empresas
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("administradoras")}
+          className={
+            activeTab === "administradoras"
+              ? "rounded-full bg-primary px-5 py-1.5 text-sm font-medium text-primary-foreground shadow"
+              : "rounded-full px-5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          }
+        >
+          Administradoras
+        </button>
+      </div>
+    </div>
+  );
+
+  if (activeTab === "administradoras") {
+    return (
+      <div className="space-y-6">
+        {tabs}
+        <DashboardAdministradoras />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-6">
-        <div className="flex justify-center">
-          <div className="inline-flex items-center gap-1 rounded-full border bg-card p-1 shadow-sm">
-            <button
-              type="button"
-              className="rounded-full bg-primary px-5 py-1.5 text-sm font-medium text-primary-foreground shadow"
-            >
-              Empresas
-            </button>
-            <button
-              type="button"
-              onClick={() => { window.location.href = "/dashboard/administradoras"; }}
-              className="rounded-full px-5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Administradoras
-            </button>
-          </div>
-        </div>
+        {tabs}
         <FaturamentosEnviadosCard />
+
+        <div className="flex items-center justify-between">
+
 
         <div className="flex items-center justify-between">
           <div>
