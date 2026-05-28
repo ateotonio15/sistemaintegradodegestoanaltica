@@ -380,6 +380,7 @@ export type Database = {
           grupo_contrato: string | null
           id: string
           motivo_suspensao: string | null
+          nao_faturado_financeiro: boolean
           nome: string
           observacoes: string | null
           operadora_plano: string | null
@@ -416,6 +417,7 @@ export type Database = {
           grupo_contrato?: string | null
           id?: string
           motivo_suspensao?: string | null
+          nao_faturado_financeiro?: boolean
           nome: string
           observacoes?: string | null
           operadora_plano?: string | null
@@ -452,6 +454,7 @@ export type Database = {
           grupo_contrato?: string | null
           id?: string
           motivo_suspensao?: string | null
+          nao_faturado_financeiro?: boolean
           nome?: string
           observacoes?: string | null
           operadora_plano?: string | null

@@ -130,7 +130,7 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro")
         .in("id", empresaIds);
       if (error) throw error;
       const map: Record<string, {
@@ -143,6 +143,7 @@ export default function Financeiro() {
         data_corte: number | null;
         ativa: boolean;
         pagamento_via_deposito: boolean;
+        nao_faturado_financeiro: boolean;
       }> = {};
       data.forEach((e: any) => {
         const statusOk = (e.status_empresa ?? "Ativa") === "Ativa";
@@ -157,8 +158,10 @@ export default function Financeiro() {
           data_corte: e.data_corte ?? null,
           ativa,
           pagamento_via_deposito: !!e.pagamento_via_deposito,
+          nao_faturado_financeiro: !!e.nao_faturado_financeiro,
         };
       });
+
       return map;
     },
     enabled: empresaIds.length > 0,
@@ -335,9 +338,11 @@ export default function Financeiro() {
     return financeiroRaw
       .filter((f) => {
         const emp = empresasMap[f.empresa_id];
+        if (emp?.nao_faturado_financeiro) return false;
         // Oculta empresas desativadas (rescindidas/suspensas/inativas) pelo cadastro
         return emp ? emp.ativa : true;
       })
+
       .map((f) => {
       const emp = empresasMap[f.empresa_id];
       const envioOperacional = !!operacionaisMap[`${f.empresa_id}|${f.periodo}`];
@@ -502,8 +507,10 @@ export default function Financeiro() {
     mutationFn: async () => {
       const { data: empresas, error: empErr } = await supabase
         .from("empresas")
-        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato");
+        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato, nao_faturado_financeiro")
+        .eq("nao_faturado_financeiro", false);
       if (empErr) throw empErr;
+
 
       // Movimentações operacionais já existentes no mês (para incluir Inativas com histórico)
       const { data: movsMes, error: movErr } = await supabase
