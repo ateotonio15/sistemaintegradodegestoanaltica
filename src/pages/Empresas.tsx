@@ -681,15 +681,34 @@ export default function Empresas() {
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative max-w-sm flex-1">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative max-w-sm flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Buscar por nome, código ou CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-lg" />
           </div>
+          <Select value={respFilter} onValueChange={setRespFilter}>
+            <SelectTrigger className="rounded-lg w-[220px]"><SelectValue placeholder="Resp. Contrato" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os responsáveis</SelectItem>
+              {respOptions.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={corretoraFilter} onValueChange={setCorretoraFilter}>
+            <SelectTrigger className="rounded-lg w-[220px]"><SelectValue placeholder="Corretora" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as corretoras</SelectItem>
+              {corretoraOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {(respFilter !== "all" || corretoraFilter !== "all") && (
+            <Button variant="ghost" size="sm" onClick={() => { setRespFilter("all"); setCorretoraFilter("all"); }} className="rounded-lg">
+              Limpar filtros
+            </Button>
+          )}
           <Button
             variant={showInativas ? "default" : "outline"}
             onClick={() => setShowInativas(!showInativas)}
-            className="rounded-lg"
+            className="rounded-lg ml-auto"
           >
             {showInativas ? "Ver Ativas" : "Ver Inativas"}
           </Button>
