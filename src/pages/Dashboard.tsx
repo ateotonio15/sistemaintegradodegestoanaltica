@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [filterCorretora, setFilterCorretora] = useState<string>("all");
   const [filterTipoContrato, setFilterTipoContrato] = useState<string>("all");
   const [searchGlobal, setSearchGlobal] = useState("");
+  const [dashboardMode, setDashboardMode] = useState<"movimentacao" | "implantacao">("movimentacao");
   const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
   const [showNovasEmpresasModal, setShowNovasEmpresasModal] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -657,7 +658,27 @@ export default function Dashboard() {
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
-          </div>
+        </div>
+
+        {/* Modo do Dashboard */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={dashboardMode === "movimentacao" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDashboardMode("movimentacao")}
+            className="rounded-lg"
+          >
+            Movimentação
+          </Button>
+          <Button
+            variant={dashboardMode === "implantacao" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDashboardMode("implantacao")}
+            className="rounded-lg"
+          >
+            Implantação
+          </Button>
+        </div>
         </div>
 
         {/* Filters + Search */}
@@ -835,6 +856,9 @@ export default function Dashboard() {
         </div>
 
         {/* Resumo por período */}
+        {dashboardMode === "movimentacao" && (
+        <>
+
         <Card className="rounded-xl shadow-sm">
           <CardHeader><CardTitle className="text-base font-semibold">Resumo Geral por Período</CardTitle></CardHeader>
           <CardContent>
@@ -917,14 +941,17 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+        </>
+        )}
 
         {/* Implantações em Andamento */}
-        <ImplantacoesAndamentoCard />
+        {dashboardMode === "implantacao" && <ImplantacoesAndamentoCard />}
 
         {/* Contratos com vigência futura — pendentes de documentos */}
         <ContratosAVigenciarCard />
 
-
+        {dashboardMode === "movimentacao" && (
+        <>
         {/* Enviadas ao Financeiro */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardHeader className="bg-success/5 border-b">
@@ -995,6 +1022,10 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+        </>
+        )}
+
+
 
         <AnexosViewerDialog
           open={!!anexosDialog}
