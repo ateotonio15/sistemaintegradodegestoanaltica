@@ -966,7 +966,7 @@ export default function Dashboard() {
                 <TableHeader>
                   <TableRow className="bg-accent/20 hover:bg-accent/20">
                     <TableHead className="font-semibold">Empresa</TableHead>
-                    <TableHead className="font-semibold text-right">Vidas Ativas</TableHead>
+                    
                     <TableHead className="font-semibold">Cód. Contrato</TableHead>
                     <TableHead className="font-semibold">Movimentação</TableHead>
                     <TableHead className="font-semibold">Resp. Contrato</TableHead>
