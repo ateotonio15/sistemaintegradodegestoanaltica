@@ -509,6 +509,7 @@ export default function Financeiro() {
         .from("empresas")
         .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato, nao_faturado_financeiro")
         .eq("nao_faturado_financeiro", false);
+      if (empErr) throw empErr;
 
 
       // Movimentações operacionais já existentes no mês (para incluir Inativas com histórico)
