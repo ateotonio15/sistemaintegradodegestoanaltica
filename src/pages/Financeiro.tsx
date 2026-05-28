@@ -409,9 +409,11 @@ export default function Financeiro() {
       return true;
     });
 
-    // Cada linha = 1 pagador individual.
-    // - Se há pagadores cadastrados ativos, NÃO mostra a linha-mãe (evita exibir múltiplos pagadores na mesma expansão).
-    // - Se não há pagadores cadastrados, mostra a linha-mãe sozinha (representa o único pagador).
+    // Cada linha = 1 pagador individual (1 CNPJ).
+    // - Sem pagadores cadastrados: mostra a linha-mãe sozinha.
+    // - Com pagadores cadastrados: mostra um por um. Se o CNPJ da empresa-mãe NÃO estiver
+    //   entre os pagadores cadastrados, inclui também a linha-mãe (evita "sumir" o CNPJ do contrato).
+    const onlyDigits = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
     const expanded: FinanceiroRow[] = [];
     base.forEach((r) => {
       const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p) => p.ativo);
@@ -419,6 +421,14 @@ export default function Financeiro() {
       if (pagadores.length === 0) {
         expanded.push({ ...r, rowKey: r.id, pagador_id: null });
         return;
+      }
+
+      const cnpjMae = onlyDigits(r.empresa_cnpj);
+      const cnpjsPagadores = new Set(pagadores.map((p) => onlyDigits(p.cnpj)).filter(Boolean));
+      const maeNaoCadastrada = !!cnpjMae && !cnpjsPagadores.has(cnpjMae);
+
+      if (maeNaoCadastrada || pagadores.length === 0) {
+        expanded.push({ ...r, rowKey: r.id, pagador_id: null });
       }
 
       pagadores.forEach((p) => {
@@ -431,6 +441,7 @@ export default function Financeiro() {
         });
       });
     });
+
 
 
     // Filtro de busca aplicado SOBRE as linhas já expandidas (busca pelo pagador certo)
