@@ -86,6 +86,13 @@ function normalize(s: string) {
     .trim();
 }
 
+function cellToString(v: any) {
+  if (v == null) return "";
+  if (typeof v === "object" && "text" in v) return String(v.text || "");
+  if (typeof v === "object" && "result" in v) return String(v.result ?? "");
+  return String(v);
+}
+
 function onlyDigits(v: string) {
   return (v || "").replace(/\D/g, "");
 }
@@ -131,10 +138,20 @@ export async function validarRelatorioVidas(
   const ws = wb.worksheets[0];
   if (!ws) throw new Error("Planilha vazia");
 
-  const headerRow = ws.getRow(1);
+  let headerRowNumber = 1;
+  for (let r = 1; r <= Math.min(20, ws.rowCount); r++) {
+    const values: string[] = [];
+    ws.getRow(r).eachCell({ includeEmpty: false }, (cell) => values.push(normalize(cellToString(cell.value))));
+    if (values.some((h) => h === "NOME" || h === "BENEFICIARIO")) {
+      headerRowNumber = r;
+      break;
+    }
+  }
+
+  const headerRow = ws.getRow(headerRowNumber);
   const headers: string[] = [];
   headerRow.eachCell({ includeEmpty: false }, (cell, col) => {
-    headers[col] = normalize(String(cell.value ?? ""));
+    headers[col] = normalize(cellToString(cell.value));
   });
 
   const colIndex: Record<string, number> = {};
@@ -172,9 +189,10 @@ export async function validarRelatorioVidas(
 
   const rowCount = ws.rowCount;
   const idxTipo = colIndex["TIPO OPERACAO"];
-  const idxNome = colIndex["NOME"];
+  const idxBeneficiario = headers.findIndex((h) => h === "BENEFICIARIO");
+  const idxNome = colIndex["NOME"] ?? (idxBeneficiario >= 0 ? idxBeneficiario : undefined);
 
-  for (let r = 2; r <= rowCount; r++) {
+  for (let r = headerRowNumber + 1; r <= rowCount; r++) {
     const row = ws.getRow(r);
     if (!row.hasValues) continue;
 
@@ -183,7 +201,7 @@ export async function validarRelatorioVidas(
     let nomeVal = "";
     if (idxNome !== undefined) {
       const rawNome = row.getCell(idxNome).value;
-      nomeVal = (rawNome == null ? "" : String((rawNome as any).text ?? (rawNome as any).result ?? rawNome)).trim();
+      nomeVal = cellToString(rawNome).trim();
     }
     if (!nomeVal) continue;
 
@@ -205,15 +223,17 @@ export async function validarRelatorioVidas(
     let tipoOp = "";
     if (idxTipo !== undefined) {
       const rawTipo = row.getCell(idxTipo).value;
-      tipoOp = normalize(rawTipo == null ? "" : String((rawTipo as any).text ?? (rawTipo as any).result ?? rawTipo));
+      tipoOp = normalize(cellToString(rawTipo));
     }
-    if (!tipoOp) {
-      linhas_ignoradas_vazias++;
-      continue;
-    }
-    if (tipoOp !== "I") {
-      linhas_ignoradas_outro_tipo++;
-      continue;
+    if (idxTipo !== undefined) {
+      if (!tipoOp) {
+        linhas_ignoradas_vazias++;
+        continue;
+      }
+      if (tipoOp !== "I") {
+        linhas_ignoradas_outro_tipo++;
+        continue;
+      }
     }
 
     linhas_validas++;

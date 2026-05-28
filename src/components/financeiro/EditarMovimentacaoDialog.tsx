@@ -33,6 +33,7 @@ import {
   calcularDiaEmissaoPadrao,
 } from "@/lib/financeiro-utils";
 import { todayLocalISO } from "@/lib/date-utils";
+import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -350,6 +351,27 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             uploaded_by: user?.id ?? null,
           });
           if (insErr) throw insErr;
+
+          const ext = (file.name.split(".").pop() || "").toLowerCase();
+          if (["xlsx", "xlsm", "xls"].includes(ext)) {
+            const buffer = await file.arrayBuffer();
+            const sig = new Uint8Array(buffer.slice(0, 4));
+            if (sig[0] === 0x50 && sig[1] === 0x4b) {
+              const result = await validarRelatorioVidas(buffer);
+              const vidas = result?.total_vidas ?? 0;
+              if (vidas > 0) {
+                const { error: updErr } = await supabase
+                  .from("empresas")
+                  .update({ vidas, updated_at: new Date().toISOString() })
+                  .eq("id", movimentacao.empresa_id);
+                if (updErr) throw updErr;
+                queryClient.invalidateQueries({ queryKey: ["empresas"] });
+                queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+                queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+                toast.success(`Vidas Ativas atualizadas pelo layout: ${vidas}`);
+              }
+            }
+          }
           sucessos += 1;
         } catch (err: any) {
           erros.push(`${file.name}: ${err.message}`);
