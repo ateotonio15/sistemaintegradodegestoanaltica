@@ -856,6 +856,9 @@ export default function Dashboard() {
         </div>
 
         {/* Resumo por período */}
+        {dashboardMode === "movimentacao" && (
+        <>
+
         <Card className="rounded-xl shadow-sm">
           <CardHeader><CardTitle className="text-base font-semibold">Resumo Geral por Período</CardTitle></CardHeader>
           <CardContent>
