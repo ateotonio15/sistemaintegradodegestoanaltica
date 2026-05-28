@@ -409,14 +409,18 @@ export default function Financeiro() {
       return true;
     });
 
-    // Sempre mantém a linha da empresa-mãe + adiciona uma linha por pagador cadastrado.
+    // Cada linha = 1 pagador individual.
+    // - Se há pagadores cadastrados ativos, NÃO mostra a linha-mãe (evita exibir múltiplos pagadores na mesma expansão).
+    // - Se não há pagadores cadastrados, mostra a linha-mãe sozinha (representa o único pagador).
     const expanded: FinanceiroRow[] = [];
     base.forEach((r) => {
-      // Linha da empresa principal (sempre presente)
-      expanded.push({ ...r, rowKey: r.id, pagador_id: null });
-
-      // Linhas adicionais para cada pagador cadastrado ativo
       const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p) => p.ativo);
+
+      if (pagadores.length === 0) {
+        expanded.push({ ...r, rowKey: r.id, pagador_id: null });
+        return;
+      }
+
       pagadores.forEach((p) => {
         expanded.push({
           ...r,
@@ -427,6 +431,7 @@ export default function Financeiro() {
         });
       });
     });
+
 
     // Filtro de busca aplicado SOBRE as linhas já expandidas (busca pelo pagador certo)
     if (!q) return expanded;
