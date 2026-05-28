@@ -490,7 +490,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Editar movimentação</DialogTitle>
           <DialogDescription className="max-w-full truncate">
@@ -512,7 +512,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               </div>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="tipo">Tipo de cobrança</Label>
               <Select
@@ -560,7 +560,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="dia_emissao">Dia de emissão</Label>
               <Select value={diaEmissao} onValueChange={setDiaEmissao}>
@@ -600,7 +600,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="dia_venc">Data de vencimento (dia)</Label>
               <Select value={diaVencimento} onValueChange={setDiaVencimento}>
@@ -690,7 +690,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
 
             {possuiProrrogacao && (
               <div className="space-y-3 pt-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="data_prorrog">Data da prorrogação</Label>
                     <Input
