@@ -72,7 +72,17 @@ function ValorComCheck({
 }
 
 export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico }: Props) {
-  const temResultados = !!resultados && resultados.length > 0;
+  const temResultados =
+    !!resultados &&
+    resultados.length > 0 &&
+    resultados.some(
+      (r) =>
+        r.enfermaria.beneficiarios > 0 ||
+        r.enfermaria.total > 0 ||
+        r.apartamento.beneficiarios > 0 ||
+        r.apartamento.total > 0 ||
+        r.inclusoes.quantidade > 0,
+    );
   return (
     <TableRow className="bg-muted/30 border-l-2 border-l-primary hover:bg-muted/30">
       <TableCell colSpan={colSpan} className="p-0">
