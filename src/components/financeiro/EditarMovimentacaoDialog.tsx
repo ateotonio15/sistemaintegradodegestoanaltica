@@ -452,6 +452,39 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     }
   };
 
+  const handleExtrairVidas = async (path: string, nome: string) => {
+    if (!movimentacao) return;
+    try {
+      const { data, error } = await supabase.storage.from("anexos-financeiro").download(path);
+      if (error) throw error;
+      const buffer = await data.arrayBuffer();
+      const sig = new Uint8Array(buffer.slice(0, 4));
+      if (!(sig[0] === 0x50 && sig[1] === 0x4b)) {
+        toast.error("Arquivo não é um Excel válido (.xlsx)");
+        return;
+      }
+      const result = await validarRelatorioVidas(buffer);
+      const vidas = result?.total_vidas ?? 0;
+      if (vidas <= 0) {
+        toast.warning(`Nenhuma vida identificada em ${nome}`);
+        return;
+      }
+      const { error: updErr } = await supabase
+        .from("empresas")
+        .update({ vidas, updated_at: new Date().toISOString() })
+        .eq("id", movimentacao.empresa_id);
+      if (updErr) throw updErr;
+      toast.success(`Número de vidas atualizado: ${vidas}`);
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+    } catch (e: any) {
+      toast.error("Erro ao extrair vidas: " + e.message);
+    }
+  };
+
   if (!movimentacao) return null;
 
   return (
@@ -748,10 +781,13 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               </p>
             ) : (
               <ul className="min-w-0 space-y-1.5">
-                {anexos.map((a) => (
+                {anexos.map((a) => {
+                  const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
+                  const isExcel = ["xlsx", "xlsm", "xls"].includes(ext);
+                  return (
                   <li
                     key={a.id}
-                    className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
+                    className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
                   >
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="min-w-0 truncate" title={a.nome_arquivo}>
@@ -760,6 +796,17 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                     <span className="text-xs text-muted-foreground shrink-0">
                       {formatBytes(a.tamanho_bytes)}
                     </span>
+                    {isExcel ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-info hover:text-info"
+                        title="Extrair número de vidas"
+                        onClick={() => handleExtrairVidas(a.storage_path, a.nome_arquivo)}
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                      </Button>
+                    ) : <span />}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -777,7 +824,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </div>
