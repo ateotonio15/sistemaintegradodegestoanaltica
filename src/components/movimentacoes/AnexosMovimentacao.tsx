@@ -93,16 +93,24 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
                   .from("empresas")
                   .update({ vidas, updated_at: new Date().toISOString() })
                   .eq("id", empresaId);
-                if (!updErr) {
-                  toast.success(`Vidas Ativas atualizadas pelo layout: ${vidas}`);
-                  queryClient.invalidateQueries({ queryKey: ["empresas"] });
-                  queryClient.invalidateQueries({ queryKey: ["dashboard-empresas"] });
-                  queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
-                }
+                if (updErr) throw updErr;
+
+                queryClient.setQueriesData({ queryKey: ["movimentacoes-dashboard"] }, (old: any) => {
+                  if (!Array.isArray(old)) return old;
+                  return old.map((mov) => mov?.empresa_id === empresaId
+                    ? { ...mov, empresas: mov.empresas ? { ...mov.empresas, vidas } : mov.empresas }
+                    : mov);
+                });
+                toast.success(`Vidas Ativas atualizadas pelo layout: ${vidas}`);
+                queryClient.invalidateQueries({ queryKey: ["empresas"] });
+                queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+                queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+                queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
               }
             }
           } catch (err) {
             console.warn("Análise automática do layout falhou:", err);
+            toast.error("Não foi possível atualizar Vidas Ativas pelo layout anexado.");
           }
         }
       }
