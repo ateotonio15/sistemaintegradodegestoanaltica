@@ -81,11 +81,12 @@ export function ContratosAVigenciarCard() {
         .select("id, empresa_id, nome_empresa, codigo_contrato, total_vidas, data_vigencia, status, tipo_contrato")
         .gte("data_vigencia", todayIso)
         .not("status", "in", '("implantado","rejeitado")');
-      // 2) Empresas "novas" ou Administradoras (contratos contínuos sem vigência futura)
+      // 2) Empresas "novas": sem data de implantação ou com implantação futura (exclui Administradoras)
       const empP = supabase
         .from("empresas")
         .select("id, nome, codigo_contrato, vidas, data_implantacao, status_empresa, tipo_contrato")
-        .or(`data_implantacao.is.null,data_implantacao.gt.${todayIso},tipo_contrato.eq.ADMINISTRADORA`);
+        .neq("tipo_contrato", "ADMINISTRADORA")
+        .or(`data_implantacao.is.null,data_implantacao.gt.${todayIso}`);
 
       const [implRes, empRes] = await Promise.all([implP, empP]);
       if (implRes.error) throw implRes.error;
