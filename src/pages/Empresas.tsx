@@ -57,6 +57,8 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
 export default function Empresas() {
   const [search, setSearch] = useState("");
   const [showInativas, setShowInativas] = useState(false);
+  const [respFilter, setRespFilter] = useState<string>("all");
+  const [corretoraFilter, setCorretoraFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailEmpresa, setDetailEmpresa] = useState<Empresa | null>(null);
   const [rescisaoDate, setRescisaoDate] = useState("");
