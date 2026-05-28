@@ -440,11 +440,13 @@ export default function Financeiro() {
       return hay.includes(q);
     });
   }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap]);
+    let totalPagadores = 0;
+    empresasUnicas.forEach((empId) => {
+      const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
+      // Se há pagadores cadastrados, contam-se apenas eles. Senão, conta a empresa-mãe como 1.
+      totalPagadores += lista.length > 0 ? lista.length : 1;
+    });
 
-  // KPIs
-  const kpis = useMemo(() => {
-    // Pagadores = empresa-mãe (1) + pagadores cadastrados ativos
-    const empresasUnicas = new Set(kpiRows.map((r) => r.empresa_id));
     let totalPagadores = 0;
     empresasUnicas.forEach((empId) => {
       const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
