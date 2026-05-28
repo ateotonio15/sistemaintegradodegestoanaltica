@@ -57,7 +57,7 @@ export default function Dashboard() {
   const { user, isAdmin, isExecutivo, role, isViewOnly, isDiretora, isVendas } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const canEditDates = !isViewOnly && (isAdmin || role === "comum");
+  const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
 
   const { data: allEmpresas = [] } = useQuery({
     queryKey: ["empresas-dashboard"],
