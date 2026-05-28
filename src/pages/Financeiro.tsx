@@ -409,14 +409,18 @@ export default function Financeiro() {
       return true;
     });
 
-    // Sempre mantém a linha da empresa-mãe + adiciona uma linha por pagador cadastrado.
+    // Cada linha = 1 pagador individual.
+    // - Se há pagadores cadastrados ativos, NÃO mostra a linha-mãe (evita exibir múltiplos pagadores na mesma expansão).
+    // - Se não há pagadores cadastrados, mostra a linha-mãe sozinha (representa o único pagador).
     const expanded: FinanceiroRow[] = [];
     base.forEach((r) => {
-      // Linha da empresa principal (sempre presente)
-      expanded.push({ ...r, rowKey: r.id, pagador_id: null });
-
-      // Linhas adicionais para cada pagador cadastrado ativo
       const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p) => p.ativo);
+
+      if (pagadores.length === 0) {
+        expanded.push({ ...r, rowKey: r.id, pagador_id: null });
+        return;
+      }
+
       pagadores.forEach((p) => {
         expanded.push({
           ...r,
@@ -428,6 +432,7 @@ export default function Financeiro() {
       });
     });
 
+
     // Filtro de busca aplicado SOBRE as linhas já expandidas (busca pelo pagador certo)
     if (!q) return expanded;
     return expanded.filter((r) => {
@@ -438,13 +443,14 @@ export default function Financeiro() {
 
   // KPIs
   const kpis = useMemo(() => {
-    // Pagadores = empresa-mãe (1) + pagadores cadastrados ativos
     const empresasUnicas = new Set(kpiRows.map((r) => r.empresa_id));
     let totalPagadores = 0;
     empresasUnicas.forEach((empId) => {
       const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
-      totalPagadores += 1 + lista.length;
+      // Se há pagadores cadastrados, contam-se apenas eles. Senão, conta a empresa-mãe como 1.
+      totalPagadores += lista.length > 0 ? lista.length : 1;
     });
+
     // Contratos = código de contrato distintos. Empresas sem código contam individualmente.
     const contratosSet = new Set(
       kpiRows.map((r) => r.empresa_codigo?.trim() || `__sem__${r.empresa_id}`),
@@ -954,26 +960,18 @@ export default function Financeiro() {
       }
 
       // Pula re-renderização se já está com o mesmo cache key
-      if (!opts.force && cachedRow && (cachedRow as any)._key === mother.key && !row.pagador_id) {
+      if (!opts.force && cachedRow && (cachedRow as any)._key === mother.key) {
         return;
       }
 
-      if (!row.pagador_id) {
-        // Linha-mãe: mostra todos os blocos (1 por CNPJ)
-        const resultadosFull = mother.resultados.slice();
-        Object.defineProperty(resultadosFull, "_key", { value: mother.key, enumerable: false });
-        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultadosFull }));
-        setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: mother.comparacoes }));
-        setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: mother.notasOrfas }));
-      } else {
-        // Linha de pagador/substipulante: filtra para o CNPJ do pagador
-        const filtrado = filtrarPorPagador(mother, row);
-        const resFiltrados = filtrado.resultados.slice();
-        Object.defineProperty(resFiltrados, "_key", { value: mother.key, enumerable: false });
-        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resFiltrados }));
-        setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: filtrado.comparacoes }));
-        setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
-      }
+      // Toda linha = 1 pagador individual. Sempre filtra pelo CNPJ da própria linha.
+      const filtrado = filtrarPorPagador(mother, row);
+      const resFiltrados = filtrado.resultados.slice();
+      Object.defineProperty(resFiltrados, "_key", { value: mother.key, enumerable: false });
+      setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resFiltrados }));
+      setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: filtrado.comparacoes }));
+      setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
+
     } finally {
       setAnaliseLoading((prev) => (prev[rowKey] ? { ...prev, [rowKey]: false } : prev));
     }
