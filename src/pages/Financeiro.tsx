@@ -454,13 +454,23 @@ export default function Financeiro() {
 
   // KPIs
   const kpis = useMemo(() => {
-    const empresasUnicas = new Set(kpiRows.map((r) => r.empresa_id));
-    let totalPagadores = 0;
-    empresasUnicas.forEach((empId) => {
-      const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
-      // Se há pagadores cadastrados, contam-se apenas eles. Senão, conta a empresa-mãe como 1.
-      totalPagadores += lista.length > 0 ? lista.length : 1;
+    const onlyDigits = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
+    const empresasUnicas = new Map<string, string | null>();
+    kpiRows.forEach((r) => {
+      if (!empresasUnicas.has(r.empresa_id)) empresasUnicas.set(r.empresa_id, r.empresa_cnpj);
     });
+    let totalPagadores = 0;
+    empresasUnicas.forEach((cnpjMae, empId) => {
+      const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
+      if (lista.length === 0) {
+        totalPagadores += 1;
+      } else {
+        const cnpjsPag = new Set(lista.map((p: any) => onlyDigits(p.cnpj)).filter(Boolean));
+        const incluiMae = !!onlyDigits(cnpjMae) && !cnpjsPag.has(onlyDigits(cnpjMae));
+        totalPagadores += lista.length + (incluiMae ? 1 : 0);
+      }
+    });
+
 
     // Contratos = código de contrato distintos. Empresas sem código contam individualmente.
     const contratosSet = new Set(
