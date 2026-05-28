@@ -39,6 +39,7 @@ type EmpresaOption = {
   periodo_movimentacao: string | null;
   responsavel_contrato: string | null;
   data_corte: number | null;
+  tipo_contrato?: string | null;
 };
 
 const emptyForm = {
@@ -137,7 +138,9 @@ export default function Movimentacoes() {
     const empresa = empresas.find((e) => e.id === empresaId);
     const tipo = empresa?.tipo_movimentacao ?? "Fechada";
     let periodo = form.periodo;
-    if (tipo === "Fechada" && empresa?.periodo_movimentacao) {
+    if (empresa?.tipo_contrato === "ADMINISTRADORA" && empresa?.data_corte) {
+      periodo = periodoDaDataCorte(empresa.data_corte);
+    } else if (tipo === "Fechada" && empresa?.periodo_movimentacao) {
       periodo = empresa.periodo_movimentacao;
     } else if (tipo === "Diária" && empresa?.data_corte) {
       periodo = periodoDaDataCorte(empresa.data_corte);
