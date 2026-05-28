@@ -492,6 +492,24 @@ export default function Dashboard() {
     return Array.from(set).sort();
   }, [movimentacoes]);
 
+  const corretoraOptions = useMemo(() => {
+    const set = new Set(
+      movimentacoes
+        .map((m) => ((m.empresas as any)?.operadora_plano ?? "").trim())
+        .filter((v): v is string => !!v),
+    );
+    return Array.from(set).sort();
+  }, [movimentacoes]);
+
+  const tipoContratoOptions = useMemo(() => {
+    const set = new Set(
+      movimentacoes
+        .map((m) => ((m.empresas as any)?.tipo_contrato ?? "").trim())
+        .filter((v): v is string => !!v),
+    );
+    return Array.from(set).sort();
+  }, [movimentacoes]);
+
   const activeMovimentacoes = useMemo(() => movimentacoes.filter((m) => (m.empresas as any)?.status_empresa === "Ativa"), [movimentacoes]);
   const withStatus = useMemo(() => activeMovimentacoes.map((m) => ({ ...m, status: calcularStatus(m) })), [activeMovimentacoes]);
 
@@ -499,6 +517,12 @@ export default function Dashboard() {
     let items = withStatus;
     if (filterResponsavel !== "all") {
       items = items.filter((m) => m.responsavel_movimentacao === filterResponsavel);
+    }
+    if (filterCorretora !== "all") {
+      items = items.filter((m) => ((m.empresas as any)?.operadora_plano ?? "").trim() === filterCorretora);
+    }
+    if (filterTipoContrato !== "all") {
+      items = items.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "").trim() === filterTipoContrato);
     }
     // Apply global search
     if (searchGlobal.trim()) {
@@ -511,7 +535,7 @@ export default function Dashboard() {
       });
     }
     return items;
-  }, [withStatus, filterResponsavel, searchGlobal]);
+  }, [withStatus, filterResponsavel, filterCorretora, filterTipoContrato, searchGlobal]);
 
   const periodItems = useMemo(() => {
     return filteredByResponsavel.filter((m) => m.periodo === filterPeriodo);
