@@ -164,7 +164,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                   <Badge variant="outline" className="text-xs">Enviado por {impl.enviado_diretoria_por_nome || impl.created_by_nome || "—"}</Badge>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs pt-2">
-                  <div><p className="text-muted-foreground">Vidas</p><p className="font-semibold text-sm flex items-center gap-1"><Users className="h-3 w-3" />{impl.total_vidas ?? "—"}</p></div>
+                  <div><p className="text-muted-foreground">Vidas Ativas</p><p className="font-semibold text-sm flex items-center gap-1"><Users className="h-3 w-3" />{impl.total_vidas ?? "—"}</p></div>
                   <div><p className="text-muted-foreground">Vigência</p><p className="font-semibold text-sm flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDateBR(impl.data_vigencia)}</p></div>
                   <div><p className="text-muted-foreground">Acomodação</p><p className="font-semibold text-sm">{impl.acomodacao || "—"}</p></div>
                   <div><p className="text-muted-foreground">Modalidade</p><p className="font-semibold text-sm">{impl.modalidade || "—"}</p></div>
@@ -220,8 +220,8 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                 <div className="md:col-span-2"><p className="text-muted-foreground">Endereço</p><p className="font-semibold text-sm">{impl.endereco || "—"}</p></div>
                 <div><p className="text-muted-foreground">CEP</p><p className="font-semibold text-sm">{impl.cep || "—"}</p></div>
                 <div><p className="text-muted-foreground">Grupo Contrato</p><p className="font-semibold text-sm">{impl.grupo_contrato || "—"}</p></div>
-                <div><p className="text-muted-foreground">Vidas Titulares</p><p className="font-semibold text-sm">{impl.vidas_titulares ?? "—"}</p></div>
-                <div><p className="text-muted-foreground">Vidas Dependentes</p><p className="font-semibold text-sm">{impl.vidas_dependentes ?? "—"}</p></div>
+                <div><p className="text-muted-foreground">Vidas Ativas Titulares</p><p className="font-semibold text-sm">{impl.vidas_titulares ?? "—"}</p></div>
+                <div><p className="text-muted-foreground">Vidas Ativas Dependentes</p><p className="font-semibold text-sm">{impl.vidas_dependentes ?? "—"}</p></div>
               </div>
             </div>
 
