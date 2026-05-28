@@ -951,9 +951,7 @@ export default function Dashboard() {
         <ContratosAVigenciarCard />
 
         {dashboardMode === "movimentacao" && (
-
-
-
+        <>
         {/* Enviadas ao Financeiro */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardHeader className="bg-success/5 border-b">
