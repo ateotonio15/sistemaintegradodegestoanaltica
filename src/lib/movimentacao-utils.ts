@@ -132,13 +132,18 @@ export function formatDateBR(dateStr: string | null | undefined): string {
 }
 
 /** Format período display based on tipo_movimentacao */
-export function formatPeriodoEmpresa(empresa: { tipo_movimentacao?: string | null; periodo_movimentacao?: string | null; data_corte?: number | null } | null | undefined): string {
+export function formatPeriodoEmpresa(empresa: { tipo_movimentacao?: string | null; periodo_movimentacao?: string | null; data_corte?: number | null; tipo_contrato?: string | null } | null | undefined): string {
   if (!empresa) return "—";
-  // Administradoras (Fechada) e Diárias usam data_corte para derivar o período
+  // Administradoras exibem a Data de Corte diretamente (ex.: "Dia 20")
+  if ((empresa.tipo_contrato ?? "") === "ADMINISTRADORA") {
+    return empresa.data_corte ? `Dia ${String(empresa.data_corte).padStart(2, "0")}` : "—";
+  }
+  // Demais: Fechada/Diárias usam data_corte para derivar o período
   if (empresa.data_corte) return periodoDaDataCorte(empresa.data_corte);
   if (empresa.tipo_movimentacao === "Diária") return "—";
   return empresa.periodo_movimentacao || "—";
 }
+
 
 
 // ============================================================
