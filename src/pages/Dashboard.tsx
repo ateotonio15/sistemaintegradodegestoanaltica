@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [filterCorretora, setFilterCorretora] = useState<string>("all");
   const [filterTipoContrato, setFilterTipoContrato] = useState<string>("all");
   const [searchGlobal, setSearchGlobal] = useState("");
+  const [dashboardMode, setDashboardMode] = useState<"movimentacao" | "implantacao">("movimentacao");
   const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
   const [showNovasEmpresasModal, setShowNovasEmpresasModal] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
