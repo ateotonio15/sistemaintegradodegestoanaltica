@@ -333,6 +333,9 @@ export default function Financeiro() {
     toast.warning(`${cobrancasAbertas.length} cobrança(s) aberta(s) neste mês`);
   }, [cobrancasAbertas.length, mes]);
 
+  // Linhas enriquecidas
+  const allRows: FinanceiroRow[] = useMemo(() => {
+    return financeiroRaw
       .filter((f) => {
         const emp = empresasMap[f.empresa_id];
         if (emp?.nao_faturado_financeiro) return false;
@@ -340,9 +343,6 @@ export default function Financeiro() {
         return emp ? emp.ativa : true;
       })
 
-        // Oculta empresas desativadas (rescindidas/suspensas/inativas) pelo cadastro
-        return emp ? emp.ativa : true;
-      })
       .map((f) => {
       const emp = empresasMap[f.empresa_id];
       const envioOperacional = !!operacionaisMap[`${f.empresa_id}|${f.periodo}`];
