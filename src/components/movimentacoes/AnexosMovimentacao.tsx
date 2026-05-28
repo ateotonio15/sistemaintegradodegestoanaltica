@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Paperclip, Upload, FileText, Download, Trash2, AlertCircle } from "lucide-react";
+import { Paperclip, Upload, FileText, Download, Trash2, AlertCircle, Users } from "lucide-react";
 import {
   ACCEPTED_FILE_TYPES,
   ACCEPTED_MIME_TYPES,
@@ -152,6 +152,38 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
     }
   };
 
+  const handleExtrairVidas = async (path: string, nome: string) => {
+    if (!empresaId) return;
+    try {
+      const { data, error } = await supabase.storage.from(STORAGE_BUCKET).download(path);
+      if (error) throw error;
+      const buffer = await data.arrayBuffer();
+      const sig = new Uint8Array(buffer.slice(0, 4));
+      if (!(sig[0] === 0x50 && sig[1] === 0x4b)) {
+        toast.error("Arquivo não é um Excel válido (.xlsx)");
+        return;
+      }
+      const result = await validarRelatorioVidas(buffer);
+      const vidas = result?.total_vidas ?? 0;
+      if (vidas <= 0) {
+        toast.warning(`Nenhuma vida identificada em ${nome}`);
+        return;
+      }
+      const { error: updErr } = await supabase
+        .from("empresas")
+        .update({ vidas, updated_at: new Date().toISOString() })
+        .eq("id", empresaId);
+      if (updErr) throw updErr;
+      toast.success(`Vidas Ativas atualizadas: ${vidas}`);
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+    } catch (err: any) {
+      toast.error("Erro ao extrair vidas: " + err.message);
+    }
+  };
+
   const showRequiredWarn = required && anexos.length === 0;
 
   return (
@@ -197,22 +229,31 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         </p>
       ) : (
         <ul className="min-w-0 max-w-full space-y-1.5">
-          {anexos.map((a) => (
-            <li
-              key={a.id}
-              className="grid min-w-0 max-w-full grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
-            >
-              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="min-w-0 truncate" title={a.nome_arquivo}>{a.nome_arquivo}</span>
-              <span className="text-xs text-muted-foreground shrink-0">{formatBytes(a.tamanho_bytes)}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
-                <Download className="h-3.5 w-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={() => handleDelete(a.id, a.storage_path)}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </li>
-          ))}
+          {anexos.map((a) => {
+            const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
+            const isExcel = ["xlsx", "xlsm", "xls"].includes(ext);
+            return (
+              <li
+                key={a.id}
+                className="grid min-w-0 max-w-full grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
+              >
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="min-w-0 truncate" title={a.nome_arquivo}>{a.nome_arquivo}</span>
+                <span className="text-xs text-muted-foreground shrink-0">{formatBytes(a.tamanho_bytes)}</span>
+                {isExcel ? (
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-info hover:text-info" title="Extrair Vidas Ativas" onClick={() => handleExtrairVidas(a.storage_path, a.nome_arquivo)}>
+                    <Users className="h-3.5 w-3.5" />
+                  </Button>
+                ) : <span />}
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
+                  <Download className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={() => handleDelete(a.id, a.storage_path)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
