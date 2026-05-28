@@ -772,7 +772,9 @@ export default function Empresas() {
                             <Badge variant="outline" className="rounded-md">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
                           </TableCell>
                           <TableCell>
-                            {e.tipo_movimentacao === "Diária"
+                            {(e as any).tipo_contrato === "ADMINISTRADORA"
+                              ? (e.data_corte ? `Dia ${String(e.data_corte).padStart(2, "0")}` : "—")
+                              : e.tipo_movimentacao === "Diária"
                               ? `Corte: dia ${e.data_corte ?? "—"}`
                               : e.periodo_movimentacao || "—"}
                           </TableCell>
