@@ -250,6 +250,15 @@ export default function DashboardAdministradoras() {
     return groups;
   }, [ativas]);
 
+  const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const anosOpcoes = useMemo(() => {
+    const y = now.getFullYear();
+    return [y - 2, y - 1, y, y + 1];
+  }, [now]);
+
+  const ALERTA_LIMITE = 50; // alerta para variações > 50 vidas
+  const variacaoAlerta = Math.abs(saldoVidas) >= ALERTA_LIMITE;
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -259,30 +268,90 @@ export default function DashboardAdministradoras() {
             Visão exclusiva dos contratos de administradoras
           </p>
         </div>
-        {(isAdmin || isComum) && (
-          <Button onClick={() => setImportOpen(true)} className="rounded-lg">
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
-            Importar Administradoras
-          </Button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
+            <SelectTrigger className="w-[150px] rounded-lg"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MESES_NOMES.map((n, i) => (
+                <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+            <SelectTrigger className="w-[110px] rounded-lg"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {anosOpcoes.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(isAdmin || isComum) && (
+            <Button variant="outline" onClick={handleCalcular} disabled={calculando} className="rounded-lg">
+              <RefreshCw className={`mr-2 h-4 w-4 ${calculando ? "animate-spin" : ""}`} />
+              {calculando && progressoCalc
+                ? `Calculando ${progressoCalc.done}/${progressoCalc.total}...`
+                : "Recalcular Entradas/Saídas"}
+            </Button>
+          )}
+          {(isAdmin || isComum) && (
+            <Button onClick={() => setImportOpen(true)} className="rounded-lg">
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Importar Administradoras
+            </Button>
+          )}
+        </div>
       </div>
 
       <ImportarAdministradorasDialog open={importOpen} onOpenChange={setImportOpen} />
 
+      {/* Alerta de variação grande */}
+      {variacaoAlerta && (
+        <div className={`rounded-xl border p-4 flex items-center gap-3 ${saldoVidas > 0 ? "border-success/40 bg-success/5 text-success" : "border-destructive/40 bg-destructive/5 text-destructive"}`}>
+          <AlertTriangle className="h-5 w-5" />
+          <div className="text-sm">
+            <span className="font-semibold">
+              {saldoVidas > 0 ? "Crescimento significativo de vidas" : "Redução significativa de vidas"}
+            </span>{" "}
+            no mês ({saldoVidas > 0 ? "+" : ""}{saldoVidas}).
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard icon={Building2} label="Total Administradoras" value={ativas.length} />
-        <KpiCard icon={Users} label="Vidas Ativas" value={totalVidas.toLocaleString("pt-BR")} />
-        <KpiCard
-          icon={CalendarClock}
-          label="Próximo Fechamento"
-          value={proximoFechamento ? formatDateBR(proximoFechamento.toISOString().slice(0, 10)) : "—"}
-          highlight
-        />
-        <KpiCard icon={FileSignature} label="Contratos Pendentes" value={aguardando.length} />
+        <KpiCard icon={Users} label="Total Vidas" value={totalVidas.toLocaleString("pt-BR")} />
+        <KpiCard icon={CalendarClock} label="Próximo Fechamento" value={proximoFechamento ? formatDateBR(proximoFechamento.toISOString().slice(0, 10)) : "—"} highlight />
         <KpiCard icon={ArrowLeftRight} label="Movimentações do Mês" value={movsMes.length} accent="amber" />
       </div>
+
+      {/* KPI Entradas / Saídas */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <KpiCard icon={TrendingUp} label="Entradas do Mês" value={`+${totalEntradas}`} accent="success" />
+        <KpiCard icon={TrendingDown} label="Saídas do Mês" value={`-${totalSaidas}`} accent="destructive" />
+        <KpiCard icon={Scale} label="Saldo de Vidas" value={`${saldoVidas > 0 ? "+" : ""}${saldoVidas}`} accent={saldoVidas >= 0 ? "success" : "destructive"} />
+        <KpiCard icon={FileSignature} label="Contratos Pendentes" value={aguardando.length} />
+      </div>
+
+      {/* Gráfico Evolução */}
+      <Card className="rounded-xl shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Evolução — Entradas x Saídas (últimos 6 meses)</CardTitle>
+        </CardHeader>
+        <CardContent className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={evolucaoChart}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <XAxis dataKey="mes" className="text-xs" />
+              <YAxis className="text-xs" />
+              <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+              <Legend />
+              <Bar dataKey="entradas" name="Entradas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="saidas" name="Saídas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
