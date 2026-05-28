@@ -357,13 +357,18 @@ export default function DashboardAdministradoras() {
               {CORTE_OPTIONS.map((dia) => {
                 const list = proximosFechamentosPorCorte[dia] ?? [];
                 const has = list.length > 0;
+                const isActive = corteFilter === String(dia);
                 return (
-                  <div
+                  <button
                     key={dia}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                      has
-                        ? "bg-primary/10 border-primary/20"
-                        : "bg-accent/10 border-border/40 opacity-60"
+                    type="button"
+                    onClick={() => setCorteFilter(isActive ? "all" : String(dia))}
+                    className={`w-full text-left flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                      isActive
+                        ? "bg-primary/20 border-primary ring-1 ring-primary"
+                        : has
+                          ? "bg-primary/10 border-primary/20 hover:bg-primary/15"
+                          : "bg-accent/10 border-border/40 opacity-60 hover:opacity-80"
                     }`}
                   >
                     <div>
@@ -374,10 +379,19 @@ export default function DashboardAdministradoras() {
                         {has ? `${list.length} contrato${list.length > 1 ? "s" : ""}` : "Nenhuma"}
                       </p>
                     </div>
-                    {has && <span className="w-1 h-8 bg-primary rounded-full" />}
-                  </div>
+                    {has && <span className={`w-1 h-8 rounded-full ${isActive ? "bg-primary" : "bg-primary/70"}`} />}
+                  </button>
                 );
               })}
+              {corteFilter !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setCorteFilter("all")}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-accent/30 transition-colors"
+                >
+                  Limpar filtro
+                </button>
+              )}
             </CardContent>
           </Card>
         </div>
