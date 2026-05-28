@@ -834,80 +834,6 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* =================== AÇÃO URGENTE =================== */}
-        <div className="flex items-center gap-2 pt-2">
-          <div className="h-6 w-1 rounded-full bg-destructive" />
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Ação Urgente</h3>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        {/* Lista de Empresas no Período (work list) */}
-        <Card className="rounded-xl shadow-sm overflow-hidden">
-          <CardHeader className="bg-accent/30 border-b">
-            <CardTitle className="text-base font-semibold">
-              Movimentações no Período {filterPeriodo} — {formatMesReferencia(filterMes)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-accent/20 hover:bg-accent/20">
-                    <TableHead className="font-semibold">Empresa</TableHead>
-                    <TableHead className="font-semibold text-right">Vidas</TableHead>
-                    <TableHead className="font-semibold">Cód. Contrato</TableHead>
-                    <TableHead className="font-semibold">Movimentação</TableHead>
-                    <TableHead className="font-semibold">Resp. Contrato</TableHead>
-                    <TableHead className="font-semibold">Período</TableHead>
-                    <TableHead className="font-semibold">Envio Empresa</TableHead>
-                    <TableHead className="font-semibold">Financeiro</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    {canEditDates && <TableHead className="w-12 font-semibold">Editar</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
-                  ) : listaTrabalho.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Nenhuma pendência neste período 🎉</TableCell></TableRow>
-                  ) : (
-                    listaTrabalho.map((m) => (
-                      <TableRow key={m.id} className={`transition-colors ${m.status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : "hover:bg-accent/50"}`}>
-                        <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                        <TableCell className="text-right font-medium tabular-nums">{(((m.empresas as any)?.vidas) ?? 0).toLocaleString("pt-BR")}</TableCell>
-                        <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
-                        <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
-                        <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
-                        <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
-                        <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
-                        <TableCell><Badge className={`${statusColor(m.status)} rounded-md`}>{m.status}</Badge></TableCell>
-                        {canEditDates && (
-                          <TableCell>
-                            <Button variant="ghost" size="icon" onClick={() => openEditFromDashboard(m)} className="rounded-lg hover:bg-primary/10">
-                              <Pencil className="h-4 w-4 text-primary" />
-                            </Button>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Implantações em Andamento */}
-        <ImplantacoesAndamentoCard />
-
-        {/* =================== ACOMPANHAMENTO =================== */}
-        <div className="flex items-center gap-2 pt-4">
-          <div className="h-6 w-1 rounded-full bg-warning" />
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Acompanhamento</h3>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
         {/* Resumo por período */}
         <Card className="rounded-xl shadow-sm">
           <CardHeader><CardTitle className="text-base font-semibold">Resumo Geral por Período</CardTitle></CardHeader>
@@ -935,12 +861,11 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* =================== INFORMATIVO =================== */}
-        <div className="flex items-center gap-2 pt-4">
-          <div className="h-6 w-1 rounded-full bg-info" />
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Informativo</h3>
-          <div className="flex-1 h-px bg-border" />
-        </div>
+        {/* Lista de Empresas no Período (work list) */}
+        <Card className="rounded-xl shadow-sm overflow-hidden">
+...
+        {/* Implantações em Andamento */}
+        <ImplantacoesAndamentoCard />
 
         {/* Contratos com vigência futura — pendentes de documentos */}
         <ContratosAVigenciarCard />
