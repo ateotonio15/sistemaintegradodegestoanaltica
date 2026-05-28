@@ -487,7 +487,7 @@ export default function Empresas() {
                         <Input value={form.operadora_plano ?? ""} onChange={(e) => setForm({ ...form, operadora_plano: e.target.value })} className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Vidas</Label>
+                        <Label className="text-sm font-medium">Vidas Ativas</Label>
                         <Input type="number" min={0} value={(form as any).vidas ?? 0} onChange={(e) => setForm({ ...form, vidas: e.target.value ? Number(e.target.value) : 0 } as any)} placeholder="0" className="rounded-lg" />
                       </div>
                       <div className="space-y-2 sm:col-span-2">
@@ -725,7 +725,7 @@ export default function Empresas() {
                     <TableHead className="font-semibold">Resp. Contrato</TableHead>
                     <TableHead className="font-semibold">Executiva</TableHead>
                     <TableHead className="font-semibold">CNPJ</TableHead>
-                    <TableHead className="font-semibold text-right">Vidas</TableHead>
+                    <TableHead className="font-semibold text-right">Vidas Ativas</TableHead>
                     <TableHead className="font-semibold">Corretora</TableHead>
                     <TableHead className="font-semibold">Tipo</TableHead>
                     <TableHead className="font-semibold">Período / Corte</TableHead>
