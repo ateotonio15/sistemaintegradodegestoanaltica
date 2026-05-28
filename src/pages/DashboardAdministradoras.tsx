@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, Search, Paperclip, FileSpreadsheet, TrendingUp, TrendingDown, Scale, RefreshCw, AlertTriangle } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
-import { getCurrentPeriodo, periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImportarAdministradorasDialog } from "@/components/dashboard/ImportarAdministradorasDialog";
@@ -25,6 +25,12 @@ type Empresa = Tables<"empresas">;
 type Movimentacao = Tables<"movimentacoes">;
 
 const CORTE_OPTIONS = [1, 5, 10, 20] as const;
+
+function getPeriodoAdministradora(empresa: Empresa): string {
+  if (empresa.data_corte) return periodoDaDataCorte(empresa.data_corte);
+  if (empresa.periodo_movimentacao) return empresa.periodo_movimentacao;
+  return "01-05";
+}
 
 function nextCorteDate(dia: number): Date {
   const today = new Date();
