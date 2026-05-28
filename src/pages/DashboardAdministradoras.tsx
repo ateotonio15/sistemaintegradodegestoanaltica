@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, Search, Paperclip, FileSpreadsheet } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
+import { getCurrentPeriodo, periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImportarAdministradorasDialog } from "@/components/dashboard/ImportarAdministradorasDialog";
