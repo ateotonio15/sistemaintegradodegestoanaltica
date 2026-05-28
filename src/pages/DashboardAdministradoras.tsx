@@ -426,11 +426,11 @@ export default function DashboardAdministradoras() {
                     ) : filtered.length === 0 ? (
                       <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
                     ) : (
-                    ) : (
                       filtered.map((e) => {
                         const mov = movsMes.find((m) => m.empresa_id === e.id);
                         const enviado = !!mov?.data_envio_financeiro;
                         const qtdAnexos = mov ? (anexosCount[mov.id] ?? 0) : 0;
+                        const es = entradasSaidasPorEmpresa[e.id];
                         return (
                         <TableRow
                           key={e.id}
@@ -444,6 +444,20 @@ export default function DashboardAdministradoras() {
                           <TableCell className="text-sm text-muted-foreground">{e.cnpj || "—"}</TableCell>
                           <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-center tabular-nums">{(e.vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {es ? (
+                              <span className={es.entradas > 0 ? "text-success font-semibold" : "text-muted-foreground"}>
+                                {es.entradas > 0 ? `+${es.entradas}` : "0"}
+                              </span>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {es ? (
+                              <span className={es.saidas > 0 ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                                {es.saidas > 0 ? `-${es.saidas}` : "0"}
+                              </span>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
                           <TableCell>
                             {e.data_corte ? (
                               <Badge variant="secondary" className="rounded-md">Dia {String(e.data_corte).padStart(2, "0")}</Badge>
