@@ -30,6 +30,78 @@ const SelectTrigger = React.forwardRef<
 ));
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
+/**
+ * Manual step buttons — substituem o auto-scroll-on-hover do Radix
+ * (SelectScrollUpButton/SelectScrollDownButton). A rolagem acontece
+ * SOMENTE no clique, avançando exatamente uma opção por vez.
+ */
+const StepButton = ({
+  direction,
+  viewportRef,
+}: {
+  direction: "up" | "down";
+  viewportRef: React.RefObject<HTMLDivElement>;
+}) => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const vp = viewportRef.current;
+    if (!vp) return;
+    // mede a altura de um item real para passos precisos
+    const firstItem = vp.querySelector<HTMLElement>("[role='option']");
+    const step = firstItem?.offsetHeight ?? 32;
+    vp.scrollBy({ top: direction === "down" ? step : -step, behavior: "smooth" });
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      onPointerDown={(e) => e.preventDefault()}
+      aria-label={direction === "up" ? "Subir uma opção" : "Descer uma opção"}
+      className="flex w-full cursor-pointer items-center justify-center py-1 hover:bg-accent hover:text-accent-foreground"
+    >
+      {direction === "up" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+    </button>
+  );
+};
+
+const SelectContent = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+>(({ className, children, position = "popper", ...props }, ref) => {
+  const viewportRef = React.useRef<HTMLDivElement>(null);
+  return (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        ref={ref}
+        className={cn(
+          "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+          position === "popper" &&
+            "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+          className,
+        )}
+        position={position}
+        {...props}
+      >
+        <StepButton direction="up" viewportRef={viewportRef} />
+        <SelectPrimitive.Viewport
+          ref={viewportRef}
+          className={cn(
+            "p-1 overflow-y-auto max-h-80",
+            position === "popper" &&
+              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+          )}
+        >
+          {children}
+        </SelectPrimitive.Viewport>
+        <StepButton direction="down" viewportRef={viewportRef} />
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+  );
+});
+SelectContent.displayName = SelectPrimitive.Content.displayName;
+
+// Mantidos exportados para compatibilidade, porém não usados internamente
 const SelectScrollUpButton = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
@@ -58,37 +130,6 @@ const SelectScrollDownButton = React.forwardRef<
 ));
 SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName;
 
-const SelectContent = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
-    <SelectPrimitive.Content
-      ref={ref}
-      className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        position === "popper" &&
-          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
-        className,
-      )}
-      position={position}
-      {...props}
-    >
-      <SelectScrollUpButton />
-      <SelectPrimitive.Viewport
-        className={cn(
-          "p-1",
-          position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
-        )}
-      >
-        {children}
-      </SelectPrimitive.Viewport>
-      <SelectScrollDownButton />
-    </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
-));
-SelectContent.displayName = SelectPrimitive.Content.displayName;
 
 const SelectLabel = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Label>,
