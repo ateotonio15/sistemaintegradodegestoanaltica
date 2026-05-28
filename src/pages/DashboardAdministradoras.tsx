@@ -450,9 +450,9 @@ export default function DashboardAdministradoras() {
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
                     ) : filtered.length === 0 ? (
-                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
                     ) : (
                       filtered.map((e) => {
                         const mov = movsPorEmpresa[e.id];
@@ -672,20 +672,13 @@ function EnvioFinanceiroDialog({
     setMovId(existingMov?.id ?? null);
   }, [existingMov?.id, empresa?.id]);
 
-  // Calcula período conforme regra do Dashboard (data_corte tem prioridade)
-  const computePeriodo = (emp: Empresa) => {
-    if (emp.data_corte) return periodoDaDataCorte(emp.data_corte);
-    if (emp.periodo_movimentacao) return emp.periodo_movimentacao;
-    return "01-05";
-  };
-
   // Auto-cria a movimentação ao abrir o diálogo para permitir anexos imediatos
   useEffect(() => {
     if (!empresa || movId || ensuring) return;
     setEnsuring(true);
     (async () => {
       try {
-        const periodo = computePeriodo(empresa);
+        const periodo = getPeriodoAdministradora(empresa);
         const { data, error } = await supabase
           .from("movimentacoes")
           .insert({
@@ -711,7 +704,7 @@ function EnvioFinanceiroDialog({
     try {
       let id = movId;
       if (!id) {
-        const periodo = computePeriodo(empresa);
+        const periodo = getPeriodoAdministradora(empresa);
         const { data, error } = await supabase
           .from("movimentacoes")
           .insert({
