@@ -832,16 +832,19 @@ export default function Financeiro() {
       setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: comparacoes }));
       setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: notasOrfas }));
 
-      // Persistência: 1 registro por CNPJ analisado
-      try {
-        for (let i = 0; i < resultados.length; i++) {
-          const r = resultados[i] as any;
+      // Libera o spinner imediatamente — persistência roda em background.
+      setAnaliseLoading((prev) => ({ ...prev, [rowKey]: false }));
+
+      // Persistência: 1 registro por CNPJ, em paralelo e sem bloquear a UI.
+      const extraCompleto = { resultados, comparacoes, notasOrfas };
+      Promise.all(
+        resultados.map((r: any, i) => {
           const cmp = comparacoes[i] ?? null;
           const cmpAny = cmp as any;
           const pdfMatch = pdfsValidos.find(
             (p) => r?.cnpj && onlyDigitsLocal(p.tomadorCnpj) === r.cnpj,
           );
-          await salvarAnalise({
+          return salvarAnalise({
             empresa_id: row.empresa_id,
             financeiro_movimentacao_id: row.id,
             pagador_id: null,
@@ -856,17 +859,20 @@ export default function Financeiro() {
             nome_arquivo_pdf: cmpAny?.arquivoPdf ?? null,
             resultado: r,
             comparacao: cmp,
-            resultadoCompletoExtra: { resultados, comparacoes, notasOrfas },
+            // Só anexa o payload completo no primeiro registro para não
+            // duplicar JSON pesado em todas as linhas.
+            resultadoCompletoExtra: i === 0 ? extraCompleto : undefined,
           });
-        }
-      } catch (persistErr) {
+        }),
+      ).catch((persistErr) => {
         console.warn("[financeiro] persist analise falhou:", persistErr);
-      }
-
+      });
     } finally {
-      setAnaliseLoading((prev) => ({ ...prev, [rowKey]: false }));
+      // Garante reset do loading caso o try acima tenha falhado antes do set.
+      setAnaliseLoading((prev) => (prev[rowKey] ? { ...prev, [rowKey]: false } : prev));
     }
   };
+
 
 
   const [isExportingErros, setIsExportingErros] = useState(false);
