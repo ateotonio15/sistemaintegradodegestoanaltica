@@ -40,6 +40,8 @@ export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
+  const [filterCorretora, setFilterCorretora] = useState<string>("all");
+  const [filterTipoContrato, setFilterTipoContrato] = useState<string>("all");
   const [searchGlobal, setSearchGlobal] = useState("");
   const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
   const [showNovasEmpresasModal, setShowNovasEmpresasModal] = useState(false);
