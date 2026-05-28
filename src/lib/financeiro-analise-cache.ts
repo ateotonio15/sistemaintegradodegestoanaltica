@@ -186,6 +186,7 @@ export interface SalvarAnaliseInput {
   resultadoCompletoExtra?: {
     resultados: AnaliseResultado[];
     comparacoes: Array<ComparacaoResultado | ComparacaoSimplificada>;
+    notasOrfas?: NotaOrfa[];
   };
 }
 
