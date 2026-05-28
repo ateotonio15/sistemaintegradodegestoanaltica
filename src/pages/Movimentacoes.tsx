@@ -104,7 +104,7 @@ export default function Movimentacoes() {
         : rows.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "") !== "ADMINISTRADORA");
     },
     enabled: !!user,
-
+  });
 
 
   // Mapa de "Nota Enviada" do módulo financeiro: (empresa_id|mes|periodo) -> data_envio_nota
