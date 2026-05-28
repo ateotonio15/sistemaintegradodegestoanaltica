@@ -440,6 +440,7 @@ export default function DashboardAdministradoras() {
                       <TableHead className="font-semibold text-center">Vidas Ativas</TableHead>
                       <TableHead className="font-semibold text-center">Entradas</TableHead>
                       <TableHead className="font-semibold text-center">Saídas</TableHead>
+                        <TableHead className="font-semibold">Período</TableHead>
                       <TableHead className="font-semibold">Corte</TableHead>
                       <TableHead className="font-semibold">Implantação</TableHead>
                       <TableHead className="font-semibold">Enviado Financ.</TableHead>
@@ -484,6 +485,11 @@ export default function DashboardAdministradoras() {
                                 {es.saidas > 0 ? `-${es.saidas}` : "0"}
                               </span>
                             ) : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="rounded-md">
+                              {mov?.periodo || getPeriodoAdministradora(e)}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             {e.data_corte ? (
