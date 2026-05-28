@@ -528,7 +528,7 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Período</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
                     <TableHead className="font-semibold">Resp. Mov.</TableHead>
-                    <TableHead className="font-semibold">Envio Empresa</TableHead>
+                    {activeTab !== "administradoras" && <TableHead className="font-semibold">Envio Empresa</TableHead>}
                     <TableHead className="font-semibold">Financeiro</TableHead>
                     <TableHead className="font-semibold">Nota Enviada</TableHead>
                     {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
@@ -536,9 +536,9 @@ export default function Movimentacoes() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? (activeTab === "administradoras" ? 10 : 11) : (activeTab === "administradoras" ? 9 : 10)} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? (activeTab === "administradoras" ? 10 : 11) : (activeTab === "administradoras" ? 9 : 10)} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
@@ -558,7 +558,7 @@ export default function Movimentacoes() {
                             <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground">{m.responsavel_movimentacao || "—"}</TableCell>
-                          <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
+                          {activeTab !== "administradoras" && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
                             {dataNota ? (
@@ -582,6 +582,7 @@ export default function Movimentacoes() {
                     })
                   )}
                 </TableBody>
+
               </Table>
             </div>
           </CardContent>
