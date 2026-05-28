@@ -10,6 +10,7 @@ import {
   ACCEPTED_MIME_TYPES,
   formatBytes,
 } from "@/lib/financeiro-utils";
+import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
 
 interface Props {
   movimentacaoId: string | null;
@@ -77,6 +78,33 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
           uploaded_by: user?.id ?? null,
         });
         if (insErr) throw insErr;
+
+        // Auto-análise do layout (Excel) — atualiza Vidas Ativas da empresa
+        const ext = (file.name.split(".").pop() || "").toLowerCase();
+        if (["xlsx", "xlsm", "xls"].includes(ext)) {
+          try {
+            const buffer = await file.arrayBuffer();
+            const sig = new Uint8Array(buffer.slice(0, 4));
+            if (sig[0] === 0x50 && sig[1] === 0x4b) {
+              const result = await validarRelatorioVidas(buffer);
+              const vidas = result?.total_vidas ?? 0;
+              if (vidas > 0) {
+                const { error: updErr } = await supabase
+                  .from("empresas")
+                  .update({ vidas, updated_at: new Date().toISOString() })
+                  .eq("id", empresaId);
+                if (!updErr) {
+                  toast.success(`Vidas Ativas atualizadas pelo layout: ${vidas}`);
+                  queryClient.invalidateQueries({ queryKey: ["empresas"] });
+                  queryClient.invalidateQueries({ queryKey: ["dashboard-empresas"] });
+                  queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+                }
+              }
+            }
+          } catch (err) {
+            console.warn("Análise automática do layout falhou:", err);
+          }
+        }
       }
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
       toast.success(files.length > 1 ? `${files.length} arquivos enviados` : "Arquivo enviado");
