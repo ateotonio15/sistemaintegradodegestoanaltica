@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, Search, Paperclip, FileSpreadsheet, TrendingUp, TrendingDown, Scale, RefreshCw, AlertTriangle } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
-import { getCurrentPeriodo, periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImportarAdministradorasDialog } from "@/components/dashboard/ImportarAdministradorasDialog";
@@ -25,6 +25,12 @@ type Empresa = Tables<"empresas">;
 type Movimentacao = Tables<"movimentacoes">;
 
 const CORTE_OPTIONS = [1, 5, 10, 20] as const;
+
+function getPeriodoAdministradora(empresa: Empresa): string {
+  if (empresa.data_corte) return periodoDaDataCorte(empresa.data_corte);
+  if (empresa.periodo_movimentacao) return empresa.periodo_movimentacao;
+  return "01-05";
+}
 
 function nextCorteDate(dia: number): Date {
   const today = new Date();
@@ -434,6 +440,7 @@ export default function DashboardAdministradoras() {
                       <TableHead className="font-semibold text-center">Vidas Ativas</TableHead>
                       <TableHead className="font-semibold text-center">Entradas</TableHead>
                       <TableHead className="font-semibold text-center">Saídas</TableHead>
+                        <TableHead className="font-semibold">Período</TableHead>
                       <TableHead className="font-semibold">Corte</TableHead>
                       <TableHead className="font-semibold">Implantação</TableHead>
                       <TableHead className="font-semibold">Enviado Financ.</TableHead>
@@ -443,9 +450,9 @@ export default function DashboardAdministradoras() {
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
                     ) : filtered.length === 0 ? (
-                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
                     ) : (
                       filtered.map((e) => {
                         const mov = movsPorEmpresa[e.id];
@@ -478,6 +485,11 @@ export default function DashboardAdministradoras() {
                                 {es.saidas > 0 ? `-${es.saidas}` : "0"}
                               </span>
                             ) : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="rounded-md">
+                              {mov?.periodo || getPeriodoAdministradora(e)}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             {e.data_corte ? (
@@ -660,20 +672,13 @@ function EnvioFinanceiroDialog({
     setMovId(existingMov?.id ?? null);
   }, [existingMov?.id, empresa?.id]);
 
-  // Calcula período conforme regra do Dashboard (data_corte tem prioridade)
-  const computePeriodo = (emp: Empresa) => {
-    if (emp.data_corte) return periodoDaDataCorte(emp.data_corte);
-    if (emp.periodo_movimentacao) return emp.periodo_movimentacao;
-    return "01-05";
-  };
-
   // Auto-cria a movimentação ao abrir o diálogo para permitir anexos imediatos
   useEffect(() => {
     if (!empresa || movId || ensuring) return;
     setEnsuring(true);
     (async () => {
       try {
-        const periodo = computePeriodo(empresa);
+        const periodo = getPeriodoAdministradora(empresa);
         const { data, error } = await supabase
           .from("movimentacoes")
           .insert({
@@ -699,7 +704,7 @@ function EnvioFinanceiroDialog({
     try {
       let id = movId;
       if (!id) {
-        const periodo = computePeriodo(empresa);
+        const periodo = getPeriodoAdministradora(empresa);
         const { data, error } = await supabase
           .from("movimentacoes")
           .insert({
