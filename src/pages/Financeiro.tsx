@@ -627,32 +627,13 @@ export default function Financeiro() {
 
     const tipoAnalise = ((row as any).tipo_analise as string) || "normal";
 
-    // Identifica filtro:
-    // - Linha de pagador → filtra pelo CNPJ/nome do pagador
-    // - Linha mãe COM pagadores cadastrados → filtra pelo CNPJ/nome da própria empresa
-    // - Linha mãe SEM pagadores cadastrados → análise agregada (sem filtro)
-    const pagadoresAtivos = (pagadoresCadastradosMap[row.empresa_id] || []).filter((p) => p.ativo);
-    const pagadorAtivo = row.pagador_id
-      ? pagadoresAtivos.find((p) => p.id === row.pagador_id)
-      : null;
-    const filtroPagador = pagadorAtivo
-      ? { cnpj: pagadorAtivo.cnpj, nome: pagadorAtivo.nome_pagador }
-      : pagadoresAtivos.length > 0
-        ? { cnpj: row.empresa_cnpj, nome: row.empresa_nome }
-        : null;
-    const filtroSuffix = pagadorAtivo
-      ? `::pag=${pagadorAtivo.id}`
-      : filtroPagador
-        ? `::mae=${row.empresa_id}`
-        : `::all`;
-
-
-    // Cache-key combina XLS + PDF + tipo + filtro de pagador + versão do parser
+    // Cache-key combina XLS + PDF + tipo + versão do parser.
+    // A partir de v8 a análise é feita por CNPJ (independente de pagador cadastrado).
     const cacheKey =
       [...xlsAnexos, ...pdfAnexos]
         .map((a) => a.storage_path)
         .sort()
-        .join("|") + `::${tipoAnalise}${filtroSuffix}::v${ANALISE_PARSER_VERSION}`;
+        .join("|") + `::${tipoAnalise}::v${ANALISE_PARSER_VERSION}`;
     const cached = analiseResultados[rowKey];
     if (!opts.force && cached && (cached as any)._key === cacheKey) {
       return;
@@ -661,6 +642,16 @@ export default function Financeiro() {
     if (xlsAnexos.length === 0) {
       setAnaliseResultados((prev) => ({ ...prev, [rowKey]: [] }));
       setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: [] }));
+      setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
+      return;
+    }
+
+    // Linhas de pagador expandido não disparam análise — ela roda na linha-mãe e
+    // o resultado (por CNPJ) já contempla todos os pagadores. Mantemos cache vazio.
+    if (row.pagador_id) {
+      setAnaliseResultados((prev) => ({ ...prev, [rowKey]: [] }));
+      setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: [] }));
+      setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
       return;
     }
 
@@ -668,6 +659,8 @@ export default function Financeiro() {
     try {
       const {
         analisarExcelFinanceiroPorPagador,
+        analisarExcelFinanceiroPorCnpj,
+        cruzarExcelComPdfs,
         compararExcelComPdf,
         compararExcelComPdfSimplificado,
       } = await import("@/lib/excel-analysis-utils");
@@ -676,7 +669,7 @@ export default function Financeiro() {
         "@/lib/pdf-analysis-utils"
       );
 
-      // PDFs (análise completa) — também coleta hash
+      // PDFs (análise completa + hash + buffer)
       const pdfResultados = await Promise.all(
         pdfAnexos.map(async (a) => {
           try {
@@ -695,134 +688,181 @@ export default function Financeiro() {
         }),
       );
       const pdfsValidos = pdfResultados.filter((p) => p !== null) as Array<
-        import("@/lib/pdf-analysis-utils").AnalisePdfResultado & { buf: ArrayBuffer; hash: string }
+        import("@/lib/pdf-analysis-utils").AnalisePdfResultado & {
+          arquivo: string;
+          buf: ArrayBuffer;
+          hash: string;
+        }
       >;
 
-      // Excel — escolhe parser conforme tipo_analise + hash
-      const resultados = await Promise.all(
-        xlsAnexos.map(async (a) => {
-          try {
-            const { data, error } = await supabase.storage
-              .from("anexos-financeiro")
-              .download(a.storage_path!);
-            if (error) throw error;
-            const buf = await data.arrayBuffer();
-            const hash = await sha256Hex(buf);
-            const r =
-              tipoAnalise === "moto_honda"
-                ? await analisarExcelMotoHonda(buf)
-                : await analisarExcelFinanceiroPorPagador(buf, filtroPagador ?? undefined);
-            return { pagador: pagadorAtivo?.nome_pagador || a.nome_arquivo || "Pagador", _hash: hash, _arquivo: a.nome_arquivo, ...r };
-          } catch (err: any) {
-            toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
-            return {
-              pagador: a.nome_arquivo || "Pagador",
-              _hash: null as string | null,
-              _arquivo: a.nome_arquivo,
-              enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
-              apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
-              inclusoes: { quantidade: 0, total: 0 },
-              avisos: [`Falha ao ler arquivo: ${err.message || err}`],
-            };
-          }
-        }),
-      );
+      const onlyDigitsLocal = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
 
-      // Decisão simplificado vs completo (apenas Moto Honda)
-      const useSimplificado =
-        tipoAnalise === "moto_honda" &&
-        pdfsValidos.length > 0 &&
-        pdfsValidos.every((p) => {
-          const semDetalhes =
-            (!p.enfermaria || (p.enfermaria.total === 0 && p.enfermaria.beneficiarios === null)) &&
-            (!p.apartamento || (p.apartamento.total === 0 && p.apartamento.beneficiarios === null));
-          return semDetalhes;
-        });
-
-      // Seleciona o PDF correto pelo CNPJ do TOMADOR DE SERVIÇO.
-      // Se houver filtro (pagador ou linha-mãe com pagadores), procura o PDF
-      // cujo tomadorCnpj bate com o CNPJ do filtro. Sem match, usa fallback por índice.
-      const onlyDigits = (s: string | null | undefined) =>
-        (s || "").replace(/\D/g, "");
-      const cnpjFiltroDigits = onlyDigits(filtroPagador?.cnpj);
-      const escolherPdfPorCnpj = <T extends { tomadorCnpj?: string | null }>(
-        lista: T[],
-        idxFallback: number,
-      ): T | null => {
-        if (cnpjFiltroDigits) {
-          const found = lista.find(
-            (p) => onlyDigits(p.tomadorCnpj) === cnpjFiltroDigits,
-          );
-          if (found) return found;
-        }
-        return lista[idxFallback] ?? lista[0] ?? null;
-      };
-
-      let comparacoes: any[] = [];
-      if (pdfsValidos.length === 0) {
-        comparacoes = [];
-      } else if (useSimplificado) {
-        const pdfsSimples = await Promise.all(
-          pdfsValidos.map(async (p) => {
-            const r = await analisarPdfFinanceiroSimplificado(p.buf);
-            return { arquivo: p.arquivo, tomadorCnpj: p.tomadorCnpj, ...r };
+      // ============ MOTO HONDA: fluxo legado (sem split por CNPJ) ============
+      if (tipoAnalise === "moto_honda") {
+        const resultados = await Promise.all(
+          xlsAnexos.map(async (a) => {
+            try {
+              const { data, error } = await supabase.storage
+                .from("anexos-financeiro")
+                .download(a.storage_path!);
+              if (error) throw error;
+              const buf = await data.arrayBuffer();
+              const hash = await sha256Hex(buf);
+              const r = await analisarExcelMotoHonda(buf);
+              return { pagador: a.nome_arquivo || "Pagador", _hash: hash, _arquivo: a.nome_arquivo, ...r };
+            } catch (err: any) {
+              toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
+              return {
+                pagador: a.nome_arquivo || "Pagador",
+                _hash: null as string | null,
+                _arquivo: a.nome_arquivo,
+                enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
+                apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
+                inclusoes: { quantidade: 0, total: 0 },
+                avisos: [`Falha ao ler arquivo: ${err.message || err}`],
+              };
+            }
           }),
         );
-        comparacoes = resultados.map((excel, idx) => {
-          const pdf = escolherPdfPorCnpj(pdfsSimples, idx);
-          return compararExcelComPdfSimplificado(excel, pdf);
-        });
-      } else {
-        comparacoes = resultados.map((excel, idx) => {
-          const pdf = escolherPdfPorCnpj(pdfsValidos, idx);
-          return compararExcelComPdf(excel, pdf);
-        });
+
+        const useSimplificado =
+          pdfsValidos.length > 0 &&
+          pdfsValidos.every((p) => {
+            const semDetalhes =
+              (!p.enfermaria || (p.enfermaria.total === 0 && p.enfermaria.beneficiarios === null)) &&
+              (!p.apartamento || (p.apartamento.total === 0 && p.apartamento.beneficiarios === null));
+            return semDetalhes;
+          });
+
+        let comparacoes: any[] = [];
+        if (pdfsValidos.length === 0) {
+          comparacoes = [];
+        } else if (useSimplificado) {
+          const pdfsSimples = await Promise.all(
+            pdfsValidos.map(async (p) => {
+              const r = await analisarPdfFinanceiroSimplificado(p.buf);
+              return { arquivo: p.arquivo, tomadorCnpj: p.tomadorCnpj, ...r };
+            }),
+          );
+          comparacoes = resultados.map((excel, idx) => {
+            const pdf = pdfsSimples[idx] ?? pdfsSimples[0] ?? null;
+            return compararExcelComPdfSimplificado(excel, pdf);
+          });
+        } else {
+          comparacoes = resultados.map((excel, idx) => {
+            const pdf = pdfsValidos[idx] ?? pdfsValidos[0] ?? null;
+            return compararExcelComPdf(excel, pdf);
+          });
+        }
+
+        Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
+        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados }));
+        setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: comparacoes }));
+        setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
+        return;
       }
+
+      // ============ FLUXO NORMAL: agrupamento por CNPJ ============
+      const blocosTotais: import("@/lib/excel-analysis-utils").AnalisePorCnpj[] = [];
+      const metaByCnpj = new Map<string, { hashExcel: string | null; arquivo: string | null }>();
+
+      for (const a of xlsAnexos) {
+        try {
+          const { data, error } = await supabase.storage
+            .from("anexos-financeiro")
+            .download(a.storage_path!);
+          if (error) throw error;
+          const buf = await data.arrayBuffer();
+          const hash = await sha256Hex(buf);
+          const blocos = await analisarExcelFinanceiroPorCnpj(buf);
+          blocos.forEach((b) => {
+            blocosTotais.push(b);
+            const key = b.cnpj || `__nome::${b.nome}`;
+            if (!metaByCnpj.has(key)) {
+              metaByCnpj.set(key, { hashExcel: hash, arquivo: a.nome_arquivo ?? null });
+            }
+          });
+        } catch (err: any) {
+          toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
+        }
+      }
+
+      if (blocosTotais.length === 0) {
+        // Fallback: usa parser legado agregado para não deixar a tela vazia
+        const r = await (async () => {
+          const a = xlsAnexos[0];
+          const { data } = await supabase.storage.from("anexos-financeiro").download(a.storage_path!);
+          const buf = await data!.arrayBuffer();
+          return analisarExcelFinanceiroPorPagador(buf);
+        })().catch(() => null);
+        const resultados = r
+          ? [{ pagador: row.empresa_nome, ...r, _hash: null, _arquivo: xlsAnexos[0]?.nome_arquivo ?? null }]
+          : [];
+        Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
+        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados as any }));
+        setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: [] }));
+        setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
+        return;
+      }
+
+      const { comparacoes, notasOrfas } = cruzarExcelComPdfs(blocosTotais, pdfsValidos);
+
+      const resultados: import("@/lib/excel-analysis-utils").AnaliseResultado[] = blocosTotais.map(
+        (b) => {
+          const key = b.cnpj || `__nome::${b.nome}`;
+          const meta = metaByCnpj.get(key);
+          const out: any = {
+            pagador: b.nomeExibicao,
+            cnpj: b.cnpj,
+            nomeExibicao: b.nomeExibicao,
+            enfermaria: b.enfermaria,
+            apartamento: b.apartamento,
+            inclusoes: b.inclusoes,
+            avisos: b.avisos,
+            _hash: meta?.hashExcel ?? null,
+            _arquivo: meta?.arquivo ?? null,
+          };
+          if (b.exclusoes) out.exclusoes = b.exclusoes;
+          return out;
+        },
+      );
 
       Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
       setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados }));
       setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: comparacoes }));
+      setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: notasOrfas }));
 
-      // Persistência: salva 1 registro por pagador analisado
+      // Persistência: 1 registro por CNPJ analisado
       try {
-        const onlyDigitsLocal = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
         for (let i = 0; i < resultados.length; i++) {
           const r = resultados[i] as any;
           const cmp = comparacoes[i] ?? null;
           const cmpAny = cmp as any;
-          const pagNome =
-            pagadorAtivo?.nome_pagador ||
-            r?.pagador ||
-            (filtroPagador?.nome ?? null);
-          const pagCnpj =
-            pagadorAtivo?.cnpj ||
-            (filtroPagador?.cnpj ?? null) ||
-            (cmpAny?.tomadorCnpj ?? null);
-          const hashExcel = (r?._hash as string | null) ?? null;
-          const hashPdf =
-            (cmpAny && (cmpAny.arquivoPdfHash || null)) ||
-            (pdfsValidos[i]?.hash ?? pdfsValidos[0]?.hash ?? null);
+          const pdfMatch = pdfsValidos.find(
+            (p) => r?.cnpj && onlyDigitsLocal(p.tomadorCnpj) === r.cnpj,
+          );
           await salvarAnalise({
             empresa_id: row.empresa_id,
             financeiro_movimentacao_id: row.id,
-            pagador_id: pagadorAtivo?.id ?? row.pagador_id ?? null,
-            pagador_nome: pagNome ?? null,
-            pagador_cnpj: pagCnpj ? onlyDigitsLocal(pagCnpj) : null,
+            pagador_id: null,
+            pagador_nome: r?.nomeExibicao ?? r?.pagador ?? null,
+            pagador_cnpj: r?.cnpj ? onlyDigitsLocal(r.cnpj) : null,
             mes_referencia: row.mes_referencia,
             periodo: row.periodo,
             tipo_analise: tipoAnalise,
-            hash_excel: hashExcel,
-            hash_pdf: hashPdf,
+            hash_excel: (r?._hash as string | null) ?? null,
+            hash_pdf: pdfMatch?.hash ?? null,
             nome_arquivo_excel: r?._arquivo ?? null,
             nome_arquivo_pdf: cmpAny?.arquivoPdf ?? null,
             resultado: r,
             comparacao: cmp,
-            resultadoCompletoExtra: { resultados, comparacoes },
+            resultadoCompletoExtra: { resultados, comparacoes, notasOrfas },
           });
         }
       } catch (persistErr) {
         console.warn("[financeiro] persist analise falhou:", persistErr);
       }
+
     } finally {
       setAnaliseLoading((prev) => ({ ...prev, [rowKey]: false }));
     }
