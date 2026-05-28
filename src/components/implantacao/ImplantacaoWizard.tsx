@@ -163,6 +163,42 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
       if (insErr) throw insErr;
       qc.invalidateQueries({ queryKey: ["impl-anexos", id] });
       toast.success("Arquivo enviado");
+
+      // Auto-análise do Relatório de Vidas: extrai total de vidas automaticamente
+      if (tipo === "relatorio_vidas") {
+        const ext = (file.name.split(".").pop() || "").toLowerCase();
+        if (["xlsx", "xlsm", "xls"].includes(ext)) {
+          try {
+            toast.info("Analisando Relatório de Vidas...");
+            const buffer = await file.arrayBuffer();
+            const sig = new Uint8Array(buffer.slice(0, 4));
+            if (sig[0] === 0x50 && sig[1] === 0x4b) {
+              const result = await validarRelatorioVidas(buffer);
+              update({
+                relatorio_validacao: result,
+                total_vidas: result.total_vidas,
+                vidas_titulares: result.titulares,
+                vidas_dependentes: result.dependentes,
+              });
+              await supabase
+                .from("implantacoes_contratos" as any)
+                .update({
+                  relatorio_validacao: result as any,
+                  total_vidas: result.total_vidas,
+                  vidas_titulares: result.titulares,
+                  vidas_dependentes: result.dependentes,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", id);
+              qc.invalidateQueries({ queryKey: ["impl", id] });
+              toast.success(`Vidas preenchidas automaticamente: ${result.total_vidas}`);
+            }
+          } catch (err: any) {
+            console.warn("Auto-análise do Relatório de Vidas falhou:", err);
+            toast.warning("Não foi possível analisar automaticamente. Use 'Verificar Layout' na Etapa 5.");
+          }
+        }
+      }
     } catch (e: any) {
       console.error("Erro upload anexo:", e);
       toast.error(e.message || "Falha no upload");
