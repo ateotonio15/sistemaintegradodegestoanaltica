@@ -29,6 +29,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { FaturamentosEnviadosCard } from "@/components/dashboard/FaturamentosEnviadosCard";
+import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 import ExcelJS from "exceljs";
 
 type EmpresaOption = {
