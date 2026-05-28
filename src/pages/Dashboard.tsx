@@ -834,12 +834,32 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* =================== AÇÃO URGENTE =================== */}
-        <div className="flex items-center gap-2 pt-2">
-          <div className="h-6 w-1 rounded-full bg-destructive" />
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Ação Urgente</h3>
-          <div className="flex-1 h-px bg-border" />
-        </div>
+        {/* Resumo por período */}
+        <Card className="rounded-xl shadow-sm">
+          <CardHeader><CardTitle className="text-base font-semibold">Resumo Geral por Período</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {PERIODOS.map((p) => {
+                const items = filteredByResponsavel.filter((m) => m.periodo === p);
+                const done = items.filter((m) => m.status === "Enviado ao financeiro").length;
+                const late = items.filter((m) => m.status === "Fora do prazo").length;
+                const isActiveP = p === filterPeriodo;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setFilterPeriodo(p)}
+                    className={`rounded-xl border p-4 text-center space-y-1.5 transition-all duration-200 ${isActiveP ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20" : "hover:bg-accent hover:shadow-sm border-border/60"}`}
+                  >
+                    <div className="font-semibold text-sm">{p}</div>
+                    <div className="text-xs text-muted-foreground">{items.length} total</div>
+                    {done > 0 && <div className="text-xs text-success font-medium">{done} concluída(s)</div>}
+                    {late > 0 && <div className="text-xs text-destructive font-medium">{late} fora do prazo</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Lista de Empresas no Período (work list) */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
@@ -900,47 +920,6 @@ export default function Dashboard() {
 
         {/* Implantações em Andamento */}
         <ImplantacoesAndamentoCard />
-
-        {/* =================== ACOMPANHAMENTO =================== */}
-        <div className="flex items-center gap-2 pt-4">
-          <div className="h-6 w-1 rounded-full bg-warning" />
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Acompanhamento</h3>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        {/* Resumo por período */}
-        <Card className="rounded-xl shadow-sm">
-          <CardHeader><CardTitle className="text-base font-semibold">Resumo Geral por Período</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              {PERIODOS.map((p) => {
-                const items = filteredByResponsavel.filter((m) => m.periodo === p);
-                const done = items.filter((m) => m.status === "Enviado ao financeiro").length;
-                const late = items.filter((m) => m.status === "Fora do prazo").length;
-                const isActiveP = p === filterPeriodo;
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setFilterPeriodo(p)}
-                    className={`rounded-xl border p-4 text-center space-y-1.5 transition-all duration-200 ${isActiveP ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20" : "hover:bg-accent hover:shadow-sm border-border/60"}`}
-                  >
-                    <div className="font-semibold text-sm">{p}</div>
-                    <div className="text-xs text-muted-foreground">{items.length} total</div>
-                    {done > 0 && <div className="text-xs text-success font-medium">{done} concluída(s)</div>}
-                    {late > 0 && <div className="text-xs text-destructive font-medium">{late} fora do prazo</div>}
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* =================== INFORMATIVO =================== */}
-        <div className="flex items-center gap-2 pt-4">
-          <div className="h-6 w-1 rounded-full bg-info" />
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Informativo</h3>
-          <div className="flex-1 h-px bg-border" />
-        </div>
 
         {/* Contratos com vigência futura — pendentes de documentos */}
         <ContratosAVigenciarCard />
