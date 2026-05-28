@@ -600,7 +600,7 @@ export default function Financeiro() {
   };
 
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
-  const ANALISE_PARSER_VERSION = "7";
+  const ANALISE_PARSER_VERSION = "8";
 
   const runAnalise = async (
     row: FinanceiroRow,
