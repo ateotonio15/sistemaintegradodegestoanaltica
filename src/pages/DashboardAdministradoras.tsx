@@ -441,10 +441,37 @@ function EnvioFinanceiroDialog({
 }) {
   const [movId, setMovId] = useState<string | null>(existingMov?.id ?? null);
   const [saving, setSaving] = useState(false);
+  const [ensuring, setEnsuring] = useState(false);
 
   useEffect(() => {
     setMovId(existingMov?.id ?? null);
   }, [existingMov?.id, empresa?.id]);
+
+  // Auto-cria a movimentação ao abrir o diálogo para permitir anexos imediatos
+  useEffect(() => {
+    if (!empresa || movId || ensuring) return;
+    setEnsuring(true);
+    (async () => {
+      try {
+        const periodo = empresa.periodo_movimentacao || "Mensal";
+        const { data, error } = await supabase
+          .from("movimentacoes")
+          .insert({
+            empresa_id: empresa.id,
+            mes_referencia: mesRef,
+            periodo,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        setMovId(data.id);
+      } catch (err: any) {
+        toast.error("Erro ao preparar anexos: " + err.message);
+      } finally {
+        setEnsuring(false);
+      }
+    })();
+  }, [empresa, movId, mesRef, ensuring]);
 
   const handleSave = async () => {
     if (!empresa) return;
