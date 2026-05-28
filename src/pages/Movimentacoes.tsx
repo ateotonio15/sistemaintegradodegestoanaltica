@@ -528,17 +528,18 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Período</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
                     <TableHead className="font-semibold">Resp. Mov.</TableHead>
-                    <TableHead className="font-semibold">Envio Empresa</TableHead>
+                    {activeTab !== "administradoras" && <TableHead className="font-semibold">Envio Empresa</TableHead>}
                     <TableHead className="font-semibold">Financeiro</TableHead>
                     <TableHead className="font-semibold">Nota Enviada</TableHead>
                     {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                  {(() => { const baseCols = activeTab === "administradoras" ? 9 : 10; const totalCols = canEditDates ? baseCols + 1 : baseCols; return isLoading ? (
+                     <TableRow><TableCell colSpan={totalCols} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 11 : 10} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={totalCols} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
