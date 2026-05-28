@@ -333,11 +333,13 @@ export default function Financeiro() {
     toast.warning(`${cobrancasAbertas.length} cobrança(s) aberta(s) neste mês`);
   }, [cobrancasAbertas.length, mes]);
 
-  // Linhas enriquecidas
-  const allRows: FinanceiroRow[] = useMemo(() => {
-    return financeiroRaw
       .filter((f) => {
         const emp = empresasMap[f.empresa_id];
+        if (emp?.nao_faturado_financeiro) return false;
+        // Oculta empresas desativadas (rescindidas/suspensas/inativas) pelo cadastro
+        return emp ? emp.ativa : true;
+      })
+
         // Oculta empresas desativadas (rescindidas/suspensas/inativas) pelo cadastro
         return emp ? emp.ativa : true;
       })
