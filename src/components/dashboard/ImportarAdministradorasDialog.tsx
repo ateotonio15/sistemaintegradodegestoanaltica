@@ -192,8 +192,14 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
           return { ...p, action: "invalid", error: `Dia corte inválido (${p.data_corte}); use 1, 5, 10 ou 20` };
         }
         let empresaId: string | undefined;
-        if (p.codigo) empresaId = byCodigo.get(p.codigo);
-        if (!empresaId && p.cnpj) empresaId = byCnpj.get(p.cnpj.replace(/\D/g, ""));
+        // Quando há Código Contrato, ele é o identificador único — mesmo CNPJ
+        // pode existir em múltiplos contratos (cada código vira um cadastro).
+        // Só caímos no match por CNPJ quando a linha NÃO tem código informado.
+        if (p.codigo) {
+          empresaId = byCodigo.get(p.codigo);
+        } else if (p.cnpj) {
+          empresaId = byCnpj.get(p.cnpj.replace(/\D/g, ""));
+        }
         return { ...p, empresaId, action: empresaId ? "update" : "create" };
       });
 
