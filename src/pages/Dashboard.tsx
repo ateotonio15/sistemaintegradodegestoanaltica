@@ -979,14 +979,14 @@ export default function Dashboard() {
                 </TableHeader>
                 <TableBody>
                   {listaConcluidas.length === 0 ? (
-                    <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-12">Nenhuma movimentação enviada ao financeiro neste período</TableCell></TableRow>
                   ) : (
                     listaConcluidas.map((m) => {
                       const qtd = anexosCountMap[`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`] ?? 0;
                       return (
                         <TableRow key={m.id} className="hover:bg-accent/50 transition-colors">
                           <TableCell className="font-medium">{m.empresas?.nome ?? "—"}</TableCell>
-                          <TableCell className="text-right font-medium tabular-nums">{(((m.empresas as any)?.vidas) ?? 0).toLocaleString("pt-BR")}</TableCell>
+
                           <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
                           <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
                           <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
