@@ -19,6 +19,8 @@ interface Props {
   required?: boolean;
   /** Callback recebe o número atual de anexos. Útil para o pai bloquear o submit. */
   onCountChange?: (count: number) => void;
+  /** Callback chamado após upload/exclusão para o pai atualizar indicadores dependentes dos anexos. */
+  onAttachmentsChange?: () => void;
 }
 
 const STORAGE_BUCKET = "anexos-movimentacoes";
@@ -29,7 +31,7 @@ function buildPath(empresaId: string, movId: string, fileName: string) {
   return `${empresaId}/${movId}/${crypto.randomUUID()}.${ext}`;
 }
 
-export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCountChange }: Props) {
+export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCountChange, onAttachmentsChange }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -115,6 +117,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         }
       }
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
+      onAttachmentsChange?.();
       toast.success(files.length > 1 ? `${files.length} arquivos enviados` : "Arquivo enviado");
     } catch (err: any) {
       toast.error("Erro no upload: " + err.message);
@@ -146,6 +149,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
       const { error } = await supabase.from("anexos_movimentacao").delete().eq("id", id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
+      onAttachmentsChange?.();
       toast.success("Anexo excluído");
     } catch (err: any) {
       toast.error("Erro ao excluir: " + err.message);
