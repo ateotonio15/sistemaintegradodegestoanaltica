@@ -151,7 +151,7 @@ export async function validarRelatorioVidas(
   if (!ws) throw new Error("Planilha vazia");
 
   let headerRowNumber = 1;
-  let bestMatch: { worksheet: ExcelJS.Worksheet; row: number; vidas: number } | null = null;
+  let bestMatch: { worksheet: NonNullable<typeof ws>; row: number; vidas: number } | null = null;
   for (const sheet of wb.worksheets) {
     for (let r = 1; r <= Math.min(30, sheet.rowCount); r++) {
       const headersProbe: string[] = [];
