@@ -241,6 +241,8 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
           status_empresa: r.status === "Inativa" ? "Inativa" : "Ativa",
           observacoes: r.observacoes || null,
           tipo_contrato: "ADMINISTRADORA",
+          tipo_movimentacao: "Diária",
+          responsavel_contrato: "Márcia Cristina",
           contrato_faixa_etaria: usa_faixa,
         };
 
