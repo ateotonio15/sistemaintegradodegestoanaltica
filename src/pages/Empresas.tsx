@@ -75,9 +75,10 @@ export default function Empresas() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin, role, isViewOnly, isExecutivo, user } = useAuth();
-  const canEdit = !isViewOnly && (isAdmin || role === "comum" || isExecutivo);
-  const canFullEdit = isAdmin || role === "comum";
-  const isComum = role === "comum";
+  const isComumLike = role === "comum" || role === "administradoras";
+  const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo);
+  const canFullEdit = isAdmin || isComumLike;
+  const isComum = isComumLike;
 
   const { data: usuarios = [] } = useQuery({
     queryKey: ["profiles-list"],
