@@ -38,6 +38,7 @@ type Row = {
   data_vigencia: string | null;
   status: string | null;
   origem: "implantacao" | "empresa";
+  tipo_contrato: string | null;
 };
 
 type Anexo = {
