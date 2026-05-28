@@ -76,6 +76,7 @@ export function FinanceiroTable({
   analiseResultados,
   analiseLoading,
   analiseComparacoes,
+  analiseNotasOrfas,
   readOnly = false,
 }: Props) {
   const [anexosDialog, setAnexosDialog] = useState<{
