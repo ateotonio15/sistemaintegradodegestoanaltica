@@ -82,8 +82,20 @@ function normalize(s: string) {
     .toString()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[_\-./]+/g, " ")
+    .replace(/\s+/g, " ")
     .toUpperCase()
     .trim();
+}
+
+function findBeneficiarioColumn(headers: string[]) {
+  const exactNome = headers.findIndex((h) => h === "NOME");
+  if (exactNome >= 0) return exactNome;
+  return headers.findIndex((h) => {
+    if (!h) return false;
+    if (["BENEFICIARIO", "NOME BENEFICIARIO", "NOME DO BENEFICIARIO", "NM BENEFICIARIO"].includes(h)) return true;
+    return h.includes("BENEFICIARIO") && !h.includes("TITULAR") && !h.includes("MAE");
+  });
 }
 
 function cellToString(v: any) {
@@ -135,17 +147,33 @@ export async function validarRelatorioVidas(
 
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
-  const ws = wb.worksheets[0];
+  let ws = wb.worksheets[0];
   if (!ws) throw new Error("Planilha vazia");
 
   let headerRowNumber = 1;
-  for (let r = 1; r <= Math.min(20, ws.rowCount); r++) {
-    const values: string[] = [];
-    ws.getRow(r).eachCell({ includeEmpty: false }, (cell) => values.push(normalize(cellToString(cell.value))));
-    if (values.some((h) => h === "NOME" || h === "BENEFICIARIO")) {
-      headerRowNumber = r;
-      break;
+  let bestMatch: { worksheet: NonNullable<typeof ws>; row: number; vidas: number } | null = null;
+  for (const sheet of wb.worksheets) {
+    for (let r = 1; r <= Math.min(30, sheet.rowCount); r++) {
+      const headersProbe: string[] = [];
+      sheet.getRow(r).eachCell({ includeEmpty: false }, (cell, col) => {
+        headersProbe[col] = normalize(cellToString(cell.value));
+      });
+      const nomeCol = findBeneficiarioColumn(headersProbe);
+      if (nomeCol < 0) continue;
+
+      let vidas = 0;
+      for (let rr = r + 1; rr <= sheet.rowCount; rr++) {
+        const nome = cellToString(sheet.getRow(rr).getCell(nomeCol).value).trim();
+        if (nome) vidas++;
+      }
+      if (!bestMatch || vidas > bestMatch.vidas) {
+        bestMatch = { worksheet: sheet, row: r, vidas };
+      }
     }
+  }
+  if (bestMatch) {
+    ws = bestMatch.worksheet;
+    headerRowNumber = bestMatch.row;
   }
 
   const headerRow = ws.getRow(headerRowNumber);
@@ -189,7 +217,7 @@ export async function validarRelatorioVidas(
 
   const rowCount = ws.rowCount;
   const idxTipo = colIndex["TIPO OPERACAO"];
-  const idxBeneficiario = headers.findIndex((h) => h === "BENEFICIARIO");
+  const idxBeneficiario = findBeneficiarioColumn(headers);
   const idxNome = colIndex["NOME"] ?? (idxBeneficiario >= 0 ? idxBeneficiario : undefined);
 
   for (let r = headerRowNumber + 1; r <= rowCount; r++) {
