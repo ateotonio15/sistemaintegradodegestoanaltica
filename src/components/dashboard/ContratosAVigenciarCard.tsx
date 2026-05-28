@@ -318,11 +318,7 @@ export function ContratosAVigenciarCard() {
                             {r.codigo_contrato}
                           </Badge>
                         )}
-                        {r.tipo_contrato === "ADMINISTRADORA" ? (
-                          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
-                            Administradora
-                          </Badge>
-                        ) : r.origem === "empresa" && (
+                        {r.origem === "empresa" && (
                           <Badge variant="outline" className="text-xs bg-info/10 text-info border-info/30">
                             Nova Empresa
                           </Badge>
