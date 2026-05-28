@@ -948,7 +948,7 @@ export default function Dashboard() {
         {dashboardMode === "implantacao" && <ImplantacoesAndamentoCard />}
 
         {/* Contratos com vigência futura — pendentes de documentos */}
-        <ContratosAVigenciarCard />
+        {dashboardMode === "implantacao" && <ContratosAVigenciarCard />}
 
         {dashboardMode === "movimentacao" && (
         <>
