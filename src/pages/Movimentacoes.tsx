@@ -291,7 +291,25 @@ export default function Movimentacoes() {
   return (
     <>
       <div className="space-y-6">
+        <div className="flex justify-center">
+          <div className="inline-flex items-center gap-1 rounded-full border bg-card p-1 shadow-sm">
+            <button
+              type="button"
+              className="rounded-full bg-primary px-5 py-1.5 text-sm font-medium text-primary-foreground shadow"
+            >
+              Empresas
+            </button>
+            <button
+              type="button"
+              onClick={() => { window.location.href = "/dashboard/administradoras"; }}
+              className="rounded-full px-5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Administradoras
+            </button>
+          </div>
+        </div>
         <FaturamentosEnviadosCard />
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Movimentações</h1>
