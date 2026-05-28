@@ -28,7 +28,6 @@ const CORTE_OPTIONS = [1, 5, 10, 20] as const;
 
 function getPeriodoAdministradora(empresa: Empresa): string {
   if (empresa.data_corte) return periodoDaDataCorte(empresa.data_corte);
-  if (empresa.periodo_movimentacao) return empresa.periodo_movimentacao;
   return "01-05";
 }
 
