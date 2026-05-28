@@ -960,26 +960,18 @@ export default function Financeiro() {
       }
 
       // Pula re-renderização se já está com o mesmo cache key
-      if (!opts.force && cachedRow && (cachedRow as any)._key === mother.key && !row.pagador_id) {
+      if (!opts.force && cachedRow && (cachedRow as any)._key === mother.key) {
         return;
       }
 
-      if (!row.pagador_id) {
-        // Linha-mãe: mostra todos os blocos (1 por CNPJ)
-        const resultadosFull = mother.resultados.slice();
-        Object.defineProperty(resultadosFull, "_key", { value: mother.key, enumerable: false });
-        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultadosFull }));
-        setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: mother.comparacoes }));
-        setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: mother.notasOrfas }));
-      } else {
-        // Linha de pagador/substipulante: filtra para o CNPJ do pagador
-        const filtrado = filtrarPorPagador(mother, row);
-        const resFiltrados = filtrado.resultados.slice();
-        Object.defineProperty(resFiltrados, "_key", { value: mother.key, enumerable: false });
-        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resFiltrados }));
-        setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: filtrado.comparacoes }));
-        setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
-      }
+      // Toda linha = 1 pagador individual. Sempre filtra pelo CNPJ da própria linha.
+      const filtrado = filtrarPorPagador(mother, row);
+      const resFiltrados = filtrado.resultados.slice();
+      Object.defineProperty(resFiltrados, "_key", { value: mother.key, enumerable: false });
+      setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resFiltrados }));
+      setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: filtrado.comparacoes }));
+      setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
+
     } finally {
       setAnaliseLoading((prev) => (prev[rowKey] ? { ...prev, [rowKey]: false } : prev));
     }
