@@ -140,6 +140,7 @@ export default function Dashboard() {
       .channel("dashboard-empresas-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "empresas" }, () => {
         queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
