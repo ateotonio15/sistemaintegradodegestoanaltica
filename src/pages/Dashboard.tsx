@@ -704,6 +704,44 @@ export default function Dashboard() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Corretora</Label>
+                <Select value={filterCorretora} onValueChange={setFilterCorretora}>
+                  <SelectTrigger className="w-[180px] rounded-lg h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {corretoraOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Tipo de Contrato</Label>
+                <Select value={filterTipoContrato} onValueChange={setFilterTipoContrato}>
+                  <SelectTrigger className="w-[170px] rounded-lg h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {tipoContratoOptions.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(filterResponsavel !== "all" || filterCorretora !== "all" || filterTipoContrato !== "all" || searchGlobal) && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-transparent select-none">.</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFilterResponsavel("all");
+                      setFilterCorretora("all");
+                      setFilterTipoContrato("all");
+                      setSearchGlobal("");
+                    }}
+                    className="rounded-lg h-9"
+                  >
+                    Limpar filtros
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
