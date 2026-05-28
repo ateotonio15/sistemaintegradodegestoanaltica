@@ -75,10 +75,13 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id, status_empresa, data_corte")
+        .select("id, nome, codigo_contrato, tipo_movimentacao, periodo_movimentacao, responsavel_contrato, responsavel_user_id, status_empresa, data_corte, tipo_contrato")
         .order("nome");
       if (error) throw error;
-      return data as EmpresaOption[];
+      // Excluir Administradoras (tem dashboard/visualização própria)
+      return (data as (EmpresaOption & { tipo_contrato?: string | null })[]).filter(
+        (e) => (e.tipo_contrato ?? "") !== "ADMINISTRADORA"
+      );
     },
     enabled: !!user,
   });
@@ -88,14 +91,17 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano)")
+        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, tipo_contrato)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as (Movimentacao & { empresas?: { responsavel_contrato: string | null } | null })[];
+      const rows = data as (Movimentacao & { empresas?: { responsavel_contrato: string | null; tipo_contrato?: string | null } | null })[];
+      // Excluir movimentações de Administradoras
+      return rows.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "") !== "ADMINISTRADORA");
     },
     enabled: !!user,
   });
+
 
   // Mapa de "Nota Enviada" do módulo financeiro: (empresa_id|mes|periodo) -> data_envio_nota
   const { data: notasMap = new Map<string, string>() } = useQuery({
