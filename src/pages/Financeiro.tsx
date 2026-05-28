@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +84,15 @@ export default function Financeiro() {
   const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
   const [analiseLoading, setAnaliseLoading] = useState<Record<string, boolean>>({});
   const [analiseNotasOrfas, setAnaliseNotasOrfas] = useState<Record<string, import("@/lib/excel-analysis-utils").NotaOrfa[]>>({});
+  // Cache de análise no nível do contrato (chave = financeiro_movimentacoes.id).
+  // O resultado bruto é compartilhado entre a linha-mãe e todas as linhas de pagadores/substipulantes.
+  const motherAnalysisCache = useRef<Map<string, {
+    key: string;
+    resultados: import("@/lib/excel-analysis-utils").AnaliseResultado[];
+    comparacoes: import("@/lib/excel-analysis-utils").ComparacaoResultado[];
+    notasOrfas: import("@/lib/excel-analysis-utils").NotaOrfa[];
+    temXls: boolean;
+  }>>(new Map());
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [historicoRow, setHistoricoRow] = useState<FinanceiroRow | null>(null);
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
@@ -605,11 +614,20 @@ export default function Financeiro() {
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
   const ANALISE_PARSER_VERSION = "8";
 
-  const runAnalise = async (
+  // Computa a análise no NÍVEL DO CONTRATO (financeiro_movimentacoes.id).
+  // Faz download/parse dos anexos uma única vez por movimentação e devolve
+  // todos os blocos (1 por CNPJ encontrado na planilha). O resultado é cacheado
+  // em motherAnalysisCache para ser reutilizado pelas linhas de pagadores.
+  const computeMotherAnalysis = async (
     row: FinanceiroRow,
     opts: { force?: boolean } = {},
-  ) => {
-    const rowKey = row.rowKey ?? row.id;
+  ): Promise<{
+    key: string;
+    resultados: import("@/lib/excel-analysis-utils").AnaliseResultado[];
+    comparacoes: import("@/lib/excel-analysis-utils").ComparacaoResultado[];
+    notasOrfas: import("@/lib/excel-analysis-utils").NotaOrfa[];
+    temXls: boolean;
+  } | null> => {
     let anexos = (anexosMap[row.id] || []) as Array<{
       mime_type: string | null;
       nome_arquivo: string | null;
@@ -618,7 +636,6 @@ export default function Financeiro() {
     }>;
     const { isXlsAnexo, isPdfAnexo } = await import("@/lib/financeiro-utils");
 
-    // Refetch caso anexos não tenham carregado ainda
     if (anexos.length === 0) {
       await queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
       const fresh = (queryClient.getQueryData(["financeiro-anexos-list", movIds.sort().join(",")]) as any) || {};
@@ -627,149 +644,38 @@ export default function Financeiro() {
 
     const xlsAnexos = anexos.filter((a) => isXlsAnexo(a) && a.storage_path);
     const pdfAnexos = anexos.filter((a) => isPdfAnexo(a) && a.storage_path);
-
     const tipoAnalise = ((row as any).tipo_analise as string) || "normal";
 
-    // Cache-key combina XLS + PDF + tipo + versão do parser.
-    // A partir de v8 a análise é feita por CNPJ (independente de pagador cadastrado).
     const cacheKey =
-      [...xlsAnexos, ...pdfAnexos]
-        .map((a) => a.storage_path)
-        .sort()
-        .join("|") + `::${tipoAnalise}::v${ANALISE_PARSER_VERSION}`;
-    const cached = analiseResultados[rowKey];
-    if (!opts.force && cached && (cached as any)._key === cacheKey) {
-      return;
+      [...xlsAnexos, ...pdfAnexos].map((a) => a.storage_path).sort().join("|") +
+      `::${tipoAnalise}::v${ANALISE_PARSER_VERSION}`;
+
+    if (!opts.force) {
+      const hit = motherAnalysisCache.current.get(row.id);
+      if (hit && hit.key === cacheKey) return hit;
     }
 
     if (xlsAnexos.length === 0) {
-      setAnaliseResultados((prev) => ({ ...prev, [rowKey]: [] }));
-      setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: [] }));
-      setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
-      return;
+      const empty = { key: cacheKey, resultados: [], comparacoes: [], notasOrfas: [], temXls: false };
+      motherAnalysisCache.current.set(row.id, empty);
+      return empty;
     }
 
-    // Linhas de pagador expandido não disparam análise — ela roda na linha-mãe e
-    // o resultado (por CNPJ) já contempla todos os pagadores. Mantemos cache vazio.
-    if (row.pagador_id) {
-      setAnaliseResultados((prev) => ({ ...prev, [rowKey]: [] }));
-      setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: [] }));
-      setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
-      return;
-    }
+    const {
+      analisarExcelFinanceiroPorPagador,
+      analisarExcelFinanceiroPorCnpj,
+      cruzarExcelComPdfs,
+      compararExcelComPdf,
+      compararExcelComPdfSimplificado,
+    } = await import("@/lib/excel-analysis-utils");
+    const { analisarExcelMotoHonda } = await import("@/lib/excel-analysis-moto-honda");
+    const { analisarPdfFinanceiro, analisarPdfFinanceiroSimplificado } = await import(
+      "@/lib/pdf-analysis-utils"
+    );
 
-    setAnaliseLoading((prev) => ({ ...prev, [rowKey]: true }));
-    try {
-      const {
-        analisarExcelFinanceiroPorPagador,
-        analisarExcelFinanceiroPorCnpj,
-        cruzarExcelComPdfs,
-        compararExcelComPdf,
-        compararExcelComPdfSimplificado,
-      } = await import("@/lib/excel-analysis-utils");
-      const { analisarExcelMotoHonda } = await import("@/lib/excel-analysis-moto-honda");
-      const { analisarPdfFinanceiro, analisarPdfFinanceiroSimplificado } = await import(
-        "@/lib/pdf-analysis-utils"
-      );
-
-      // PDFs (análise completa + hash + buffer)
-      const pdfResultados = await Promise.all(
-        pdfAnexos.map(async (a) => {
-          try {
-            const { data, error } = await supabase.storage
-              .from("anexos-financeiro")
-              .download(a.storage_path!);
-            if (error) throw error;
-            const buf = await data.arrayBuffer();
-            const hash = await sha256Hex(buf);
-            const r = await analisarPdfFinanceiro(buf);
-            return { arquivo: a.nome_arquivo || "PDF", buf, hash, ...r };
-          } catch (err: any) {
-            toast.error(`Erro ao analisar PDF ${a.nome_arquivo}: ${err.message || err}`);
-            return null;
-          }
-        }),
-      );
-      const pdfsValidos = pdfResultados.filter((p) => p !== null) as Array<
-        import("@/lib/pdf-analysis-utils").AnalisePdfResultado & {
-          arquivo: string;
-          buf: ArrayBuffer;
-          hash: string;
-        }
-      >;
-
-      const onlyDigitsLocal = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
-
-      // ============ MOTO HONDA: fluxo legado (sem split por CNPJ) ============
-      if (tipoAnalise === "moto_honda") {
-        const resultados = await Promise.all(
-          xlsAnexos.map(async (a) => {
-            try {
-              const { data, error } = await supabase.storage
-                .from("anexos-financeiro")
-                .download(a.storage_path!);
-              if (error) throw error;
-              const buf = await data.arrayBuffer();
-              const hash = await sha256Hex(buf);
-              const r = await analisarExcelMotoHonda(buf);
-              return { pagador: a.nome_arquivo || "Pagador", _hash: hash, _arquivo: a.nome_arquivo, ...r };
-            } catch (err: any) {
-              toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
-              return {
-                pagador: a.nome_arquivo || "Pagador",
-                _hash: null as string | null,
-                _arquivo: a.nome_arquivo,
-                enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
-                apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
-                inclusoes: { quantidade: 0, total: 0 },
-                avisos: [`Falha ao ler arquivo: ${err.message || err}`],
-              };
-            }
-          }),
-        );
-
-        const useSimplificado =
-          pdfsValidos.length > 0 &&
-          pdfsValidos.every((p) => {
-            const semDetalhes =
-              (!p.enfermaria || (p.enfermaria.total === 0 && p.enfermaria.beneficiarios === null)) &&
-              (!p.apartamento || (p.apartamento.total === 0 && p.apartamento.beneficiarios === null));
-            return semDetalhes;
-          });
-
-        let comparacoes: any[] = [];
-        if (pdfsValidos.length === 0) {
-          comparacoes = [];
-        } else if (useSimplificado) {
-          const pdfsSimples = await Promise.all(
-            pdfsValidos.map(async (p) => {
-              const r = await analisarPdfFinanceiroSimplificado(p.buf);
-              return { arquivo: p.arquivo, tomadorCnpj: p.tomadorCnpj, ...r };
-            }),
-          );
-          comparacoes = resultados.map((excel, idx) => {
-            const pdf = pdfsSimples[idx] ?? pdfsSimples[0] ?? null;
-            return compararExcelComPdfSimplificado(excel, pdf);
-          });
-        } else {
-          comparacoes = resultados.map((excel, idx) => {
-            const pdf = pdfsValidos[idx] ?? pdfsValidos[0] ?? null;
-            return compararExcelComPdf(excel, pdf);
-          });
-        }
-
-        Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
-        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados }));
-        setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: comparacoes }));
-        setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
-        return;
-      }
-
-      // ============ FLUXO NORMAL: agrupamento por CNPJ ============
-      const blocosTotais: import("@/lib/excel-analysis-utils").AnalisePorCnpj[] = [];
-      const metaByCnpj = new Map<string, { hashExcel: string | null; arquivo: string | null }>();
-
-      for (const a of xlsAnexos) {
+    // PDFs (análise completa + hash + buffer)
+    const pdfResultados = await Promise.all(
+      pdfAnexos.map(async (a) => {
         try {
           const { data, error } = await supabase.storage
             .from("anexos-financeiro")
@@ -777,101 +683,298 @@ export default function Financeiro() {
           if (error) throw error;
           const buf = await data.arrayBuffer();
           const hash = await sha256Hex(buf);
-          const blocos = await analisarExcelFinanceiroPorCnpj(buf);
-          blocos.forEach((b) => {
-            blocosTotais.push(b);
-            const key = b.cnpj || `__nome::${b.nome}`;
-            if (!metaByCnpj.has(key)) {
-              metaByCnpj.set(key, { hashExcel: hash, arquivo: a.nome_arquivo ?? null });
-            }
-          });
+          const r = await analisarPdfFinanceiro(buf);
+          return { arquivo: a.nome_arquivo || "PDF", buf, hash, ...r };
         } catch (err: any) {
-          toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
+          toast.error(`Erro ao analisar PDF ${a.nome_arquivo}: ${err.message || err}`);
+          return null;
         }
+      }),
+    );
+    const pdfsValidos = pdfResultados.filter((p) => p !== null) as Array<
+      import("@/lib/pdf-analysis-utils").AnalisePdfResultado & {
+        arquivo: string;
+        buf: ArrayBuffer;
+        hash: string;
+      }
+    >;
+
+    const onlyDigitsLocal = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
+
+    // ============ MOTO HONDA: fluxo legado (sem split por CNPJ) ============
+    if (tipoAnalise === "moto_honda") {
+      const resultados = await Promise.all(
+        xlsAnexos.map(async (a) => {
+          try {
+            const { data, error } = await supabase.storage
+              .from("anexos-financeiro")
+              .download(a.storage_path!);
+            if (error) throw error;
+            const buf = await data.arrayBuffer();
+            const hash = await sha256Hex(buf);
+            const r = await analisarExcelMotoHonda(buf);
+            return { pagador: a.nome_arquivo || "Pagador", _hash: hash, _arquivo: a.nome_arquivo, ...r };
+          } catch (err: any) {
+            toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
+            return {
+              pagador: a.nome_arquivo || "Pagador",
+              _hash: null as string | null,
+              _arquivo: a.nome_arquivo,
+              enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
+              apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
+              inclusoes: { quantidade: 0, total: 0 },
+              avisos: [`Falha ao ler arquivo: ${err.message || err}`],
+            };
+          }
+        }),
+      );
+
+      const useSimplificado =
+        pdfsValidos.length > 0 &&
+        pdfsValidos.every((p) => {
+          const semDetalhes =
+            (!p.enfermaria || (p.enfermaria.total === 0 && p.enfermaria.beneficiarios === null)) &&
+            (!p.apartamento || (p.apartamento.total === 0 && p.apartamento.beneficiarios === null));
+          return semDetalhes;
+        });
+
+      let comparacoes: any[] = [];
+      if (pdfsValidos.length === 0) {
+        comparacoes = [];
+      } else if (useSimplificado) {
+        const pdfsSimples = await Promise.all(
+          pdfsValidos.map(async (p) => {
+            const r = await analisarPdfFinanceiroSimplificado(p.buf);
+            return { arquivo: p.arquivo, tomadorCnpj: p.tomadorCnpj, ...r };
+          }),
+        );
+        comparacoes = resultados.map((excel, idx) => {
+          const pdf = pdfsSimples[idx] ?? pdfsSimples[0] ?? null;
+          return compararExcelComPdfSimplificado(excel, pdf);
+        });
+      } else {
+        comparacoes = resultados.map((excel, idx) => {
+          const pdf = pdfsValidos[idx] ?? pdfsValidos[0] ?? null;
+          return compararExcelComPdf(excel, pdf);
+        });
       }
 
-      if (blocosTotais.length === 0) {
-        // Fallback: usa parser legado agregado para não deixar a tela vazia
-        const r = await (async () => {
-          const a = xlsAnexos[0];
-          const { data } = await supabase.storage.from("anexos-financeiro").download(a.storage_path!);
-          const buf = await data!.arrayBuffer();
-          return analisarExcelFinanceiroPorPagador(buf);
-        })().catch(() => null);
-        const resultados = r
-          ? [{ pagador: row.empresa_nome, ...r, _hash: null, _arquivo: xlsAnexos[0]?.nome_arquivo ?? null }]
-          : [];
-        Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
-        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados as any }));
+      const out = {
+        key: cacheKey,
+        resultados: resultados as any,
+        comparacoes: comparacoes as any,
+        notasOrfas: [] as any,
+        temXls: true,
+      };
+      motherAnalysisCache.current.set(row.id, out);
+      return out;
+    }
+
+    // ============ FLUXO NORMAL: agrupamento por CNPJ ============
+    const blocosTotais: import("@/lib/excel-analysis-utils").AnalisePorCnpj[] = [];
+    const metaByCnpj = new Map<string, { hashExcel: string | null; arquivo: string | null }>();
+
+    for (const a of xlsAnexos) {
+      try {
+        const { data, error } = await supabase.storage
+          .from("anexos-financeiro")
+          .download(a.storage_path!);
+        if (error) throw error;
+        const buf = await data.arrayBuffer();
+        const hash = await sha256Hex(buf);
+        const blocos = await analisarExcelFinanceiroPorCnpj(buf);
+        blocos.forEach((b) => {
+          blocosTotais.push(b);
+          const key = b.cnpj || `__nome::${b.nome}`;
+          if (!metaByCnpj.has(key)) {
+            metaByCnpj.set(key, { hashExcel: hash, arquivo: a.nome_arquivo ?? null });
+          }
+        });
+      } catch (err: any) {
+        toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
+      }
+    }
+
+    if (blocosTotais.length === 0) {
+      const r = await (async () => {
+        const a = xlsAnexos[0];
+        const { data } = await supabase.storage.from("anexos-financeiro").download(a.storage_path!);
+        const buf = await data!.arrayBuffer();
+        return analisarExcelFinanceiroPorPagador(buf);
+      })().catch(() => null);
+      const resultados = r
+        ? [{ pagador: row.empresa_nome, ...r, _hash: null, _arquivo: xlsAnexos[0]?.nome_arquivo ?? null } as any]
+        : [];
+      const out = { key: cacheKey, resultados, comparacoes: [], notasOrfas: [], temXls: true };
+      motherAnalysisCache.current.set(row.id, out);
+      return out;
+    }
+
+    const { comparacoes, notasOrfas } = cruzarExcelComPdfs(blocosTotais, pdfsValidos);
+
+    const resultados: import("@/lib/excel-analysis-utils").AnaliseResultado[] = blocosTotais.map(
+      (b) => {
+        const key = b.cnpj || `__nome::${b.nome}`;
+        const meta = metaByCnpj.get(key);
+        const out: any = {
+          pagador: b.nomeExibicao,
+          cnpj: b.cnpj,
+          nomeExibicao: b.nomeExibicao,
+          enfermaria: b.enfermaria,
+          apartamento: b.apartamento,
+          inclusoes: b.inclusoes,
+          avisos: b.avisos,
+          _hash: meta?.hashExcel ?? null,
+          _arquivo: meta?.arquivo ?? null,
+        };
+        if (b.exclusoes) out.exclusoes = b.exclusoes;
+        return out;
+      },
+    );
+
+    const out = { key: cacheKey, resultados, comparacoes, notasOrfas, temXls: true };
+    motherAnalysisCache.current.set(row.id, out);
+
+    // Persistência em background — 1 registro por CNPJ
+    const extraCompleto = { resultados, comparacoes, notasOrfas };
+    Promise.all(
+      resultados.map((r: any, i) => {
+        const cmp = comparacoes[i] ?? null;
+        const cmpAny = cmp as any;
+        const pdfMatch = pdfsValidos.find(
+          (p) => r?.cnpj && onlyDigitsLocal(p.tomadorCnpj) === r.cnpj,
+        );
+        return salvarAnalise({
+          empresa_id: row.empresa_id,
+          financeiro_movimentacao_id: row.id,
+          pagador_id: null,
+          pagador_nome: r?.nomeExibicao ?? r?.pagador ?? null,
+          pagador_cnpj: r?.cnpj ? onlyDigitsLocal(r.cnpj) : null,
+          mes_referencia: row.mes_referencia,
+          periodo: row.periodo,
+          tipo_analise: tipoAnalise,
+          hash_excel: (r?._hash as string | null) ?? null,
+          hash_pdf: pdfMatch?.hash ?? null,
+          nome_arquivo_excel: r?._arquivo ?? null,
+          nome_arquivo_pdf: cmpAny?.arquivoPdf ?? null,
+          resultado: r,
+          comparacao: cmp,
+          resultadoCompletoExtra: i === 0 ? extraCompleto : undefined,
+        });
+      }),
+    ).catch((persistErr) => {
+      console.warn("[financeiro] persist analise falhou:", persistErr);
+    });
+
+    return out;
+  };
+
+  // Filtra os blocos por CNPJ do pagador (ou pelo nome quando não há CNPJ).
+  // Se nenhum bloco corresponder, devolve um placeholder com aviso para o usuário.
+  const filtrarPorPagador = (
+    mother: {
+      resultados: import("@/lib/excel-analysis-utils").AnaliseResultado[];
+      comparacoes: import("@/lib/excel-analysis-utils").ComparacaoResultado[];
+    },
+    row: FinanceiroRow,
+  ): {
+    resultados: import("@/lib/excel-analysis-utils").AnaliseResultado[];
+    comparacoes: import("@/lib/excel-analysis-utils").ComparacaoResultado[];
+  } => {
+    const onlyDigits = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
+    const normTxt = (s: string | null | undefined) =>
+      (s || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+    const cnpjAlvo = onlyDigits(row.empresa_cnpj);
+    const nomeAlvo = normTxt(row.empresa_nome);
+
+    const indices: number[] = [];
+    mother.resultados.forEach((r, i) => {
+      const rcnpj = onlyDigits((r as any).cnpj);
+      if (cnpjAlvo && rcnpj) {
+        if (rcnpj === cnpjAlvo) indices.push(i);
+        return;
+      }
+      // Fallback por nome quando o CNPJ do pagador não foi cadastrado
+      if (!cnpjAlvo && nomeAlvo) {
+        const rnome = normTxt((r as any).pagador || (r as any).nomeExibicao);
+        if (rnome && (rnome === nomeAlvo || rnome.includes(nomeAlvo) || nomeAlvo.includes(rnome))) {
+          indices.push(i);
+        }
+      }
+    });
+
+    if (indices.length === 0) {
+      // Sem bloco correspondente — devolve placeholder informando ao usuário
+      const placeholder: any = {
+        pagador: row.empresa_nome,
+        cnpj: cnpjAlvo || "",
+        nomeExibicao: row.empresa_nome,
+        enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
+        apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
+        inclusoes: { quantidade: 0, total: 0 },
+        avisos: [
+          cnpjAlvo
+            ? `CNPJ ${row.empresa_cnpj} não localizado na planilha do contrato.`
+            : "Pagador sem CNPJ cadastrado — não foi possível casar com a planilha.",
+        ],
+      };
+      return { resultados: [placeholder], comparacoes: [] };
+    }
+
+    return {
+      resultados: indices.map((i) => mother.resultados[i]),
+      comparacoes: indices.map((i) => mother.comparacoes[i]).filter(Boolean) as any,
+    };
+  };
+
+  const runAnalise = async (
+    row: FinanceiroRow,
+    opts: { force?: boolean } = {},
+  ) => {
+    const rowKey = row.rowKey ?? row.id;
+
+    // Cache de tela: evita reset desnecessário
+    const cachedRow = analiseResultados[rowKey];
+
+    setAnaliseLoading((prev) => ({ ...prev, [rowKey]: true }));
+    try {
+      const mother = await computeMotherAnalysis(row, opts);
+      if (!mother) return;
+
+      // Sem Excel anexado em nenhum nível do contrato
+      if (!mother.temXls) {
+        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: [] }));
         setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: [] }));
         setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
         return;
       }
 
-      const { comparacoes, notasOrfas } = cruzarExcelComPdfs(blocosTotais, pdfsValidos);
+      // Pula re-renderização se já está com o mesmo cache key
+      if (!opts.force && cachedRow && (cachedRow as any)._key === mother.key && !row.pagador_id) {
+        return;
+      }
 
-      const resultados: import("@/lib/excel-analysis-utils").AnaliseResultado[] = blocosTotais.map(
-        (b) => {
-          const key = b.cnpj || `__nome::${b.nome}`;
-          const meta = metaByCnpj.get(key);
-          const out: any = {
-            pagador: b.nomeExibicao,
-            cnpj: b.cnpj,
-            nomeExibicao: b.nomeExibicao,
-            enfermaria: b.enfermaria,
-            apartamento: b.apartamento,
-            inclusoes: b.inclusoes,
-            avisos: b.avisos,
-            _hash: meta?.hashExcel ?? null,
-            _arquivo: meta?.arquivo ?? null,
-          };
-          if (b.exclusoes) out.exclusoes = b.exclusoes;
-          return out;
-        },
-      );
-
-      Object.defineProperty(resultados, "_key", { value: cacheKey, enumerable: false });
-      setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultados }));
-      setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: comparacoes }));
-      setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: notasOrfas }));
-
-      // Libera o spinner imediatamente — persistência roda em background.
-      setAnaliseLoading((prev) => ({ ...prev, [rowKey]: false }));
-
-      // Persistência: 1 registro por CNPJ, em paralelo e sem bloquear a UI.
-      const extraCompleto = { resultados, comparacoes, notasOrfas };
-      Promise.all(
-        resultados.map((r: any, i) => {
-          const cmp = comparacoes[i] ?? null;
-          const cmpAny = cmp as any;
-          const pdfMatch = pdfsValidos.find(
-            (p) => r?.cnpj && onlyDigitsLocal(p.tomadorCnpj) === r.cnpj,
-          );
-          return salvarAnalise({
-            empresa_id: row.empresa_id,
-            financeiro_movimentacao_id: row.id,
-            pagador_id: null,
-            pagador_nome: r?.nomeExibicao ?? r?.pagador ?? null,
-            pagador_cnpj: r?.cnpj ? onlyDigitsLocal(r.cnpj) : null,
-            mes_referencia: row.mes_referencia,
-            periodo: row.periodo,
-            tipo_analise: tipoAnalise,
-            hash_excel: (r?._hash as string | null) ?? null,
-            hash_pdf: pdfMatch?.hash ?? null,
-            nome_arquivo_excel: r?._arquivo ?? null,
-            nome_arquivo_pdf: cmpAny?.arquivoPdf ?? null,
-            resultado: r,
-            comparacao: cmp,
-            // Só anexa o payload completo no primeiro registro para não
-            // duplicar JSON pesado em todas as linhas.
-            resultadoCompletoExtra: i === 0 ? extraCompleto : undefined,
-          });
-        }),
-      ).catch((persistErr) => {
-        console.warn("[financeiro] persist analise falhou:", persistErr);
-      });
+      if (!row.pagador_id) {
+        // Linha-mãe: mostra todos os blocos (1 por CNPJ)
+        const resultadosFull = mother.resultados.slice();
+        Object.defineProperty(resultadosFull, "_key", { value: mother.key, enumerable: false });
+        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resultadosFull }));
+        setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: mother.comparacoes }));
+        setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: mother.notasOrfas }));
+      } else {
+        // Linha de pagador/substipulante: filtra para o CNPJ do pagador
+        const filtrado = filtrarPorPagador(mother, row);
+        const resFiltrados = filtrado.resultados.slice();
+        Object.defineProperty(resFiltrados, "_key", { value: mother.key, enumerable: false });
+        setAnaliseResultados((prev) => ({ ...prev, [rowKey]: resFiltrados }));
+        setAnaliseComparacoes((prev) => ({ ...prev, [rowKey]: filtrado.comparacoes }));
+        setAnaliseNotasOrfas((prev) => ({ ...prev, [rowKey]: [] }));
+      }
     } finally {
-      // Garante reset do loading caso o try acima tenha falhado antes do set.
       setAnaliseLoading((prev) => (prev[rowKey] ? { ...prev, [rowKey]: false } : prev));
     }
   };
