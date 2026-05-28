@@ -40,6 +40,8 @@ export default function Dashboard() {
   const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
   const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
   const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
+  const [filterCorretora, setFilterCorretora] = useState<string>("all");
+  const [filterTipoContrato, setFilterTipoContrato] = useState<string>("all");
   const [searchGlobal, setSearchGlobal] = useState("");
   const [showEmpresasAtivasModal, setShowEmpresasAtivasModal] = useState(false);
   const [showNovasEmpresasModal, setShowNovasEmpresasModal] = useState(false);
@@ -158,7 +160,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, vidas)")
+        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, vidas, tipo_contrato)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -490,6 +492,24 @@ export default function Dashboard() {
     return Array.from(set).sort();
   }, [movimentacoes]);
 
+  const corretoraOptions = useMemo(() => {
+    const set = new Set(
+      movimentacoes
+        .map((m) => ((m.empresas as any)?.operadora_plano ?? "").trim())
+        .filter((v): v is string => !!v),
+    );
+    return Array.from(set).sort();
+  }, [movimentacoes]);
+
+  const tipoContratoOptions = useMemo(() => {
+    const set = new Set(
+      movimentacoes
+        .map((m) => ((m.empresas as any)?.tipo_contrato ?? "").trim())
+        .filter((v): v is string => !!v),
+    );
+    return Array.from(set).sort();
+  }, [movimentacoes]);
+
   const activeMovimentacoes = useMemo(() => movimentacoes.filter((m) => (m.empresas as any)?.status_empresa === "Ativa"), [movimentacoes]);
   const withStatus = useMemo(() => activeMovimentacoes.map((m) => ({ ...m, status: calcularStatus(m) })), [activeMovimentacoes]);
 
@@ -497,6 +517,12 @@ export default function Dashboard() {
     let items = withStatus;
     if (filterResponsavel !== "all") {
       items = items.filter((m) => m.responsavel_movimentacao === filterResponsavel);
+    }
+    if (filterCorretora !== "all") {
+      items = items.filter((m) => ((m.empresas as any)?.operadora_plano ?? "").trim() === filterCorretora);
+    }
+    if (filterTipoContrato !== "all") {
+      items = items.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "").trim() === filterTipoContrato);
     }
     // Apply global search
     if (searchGlobal.trim()) {
@@ -509,7 +535,7 @@ export default function Dashboard() {
       });
     }
     return items;
-  }, [withStatus, filterResponsavel, searchGlobal]);
+  }, [withStatus, filterResponsavel, filterCorretora, filterTipoContrato, searchGlobal]);
 
   const periodItems = useMemo(() => {
     return filteredByResponsavel.filter((m) => m.periodo === filterPeriodo);
@@ -678,6 +704,44 @@ export default function Dashboard() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Corretora</Label>
+                <Select value={filterCorretora} onValueChange={setFilterCorretora}>
+                  <SelectTrigger className="w-[180px] rounded-lg h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {corretoraOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Tipo de Contrato</Label>
+                <Select value={filterTipoContrato} onValueChange={setFilterTipoContrato}>
+                  <SelectTrigger className="w-[170px] rounded-lg h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {tipoContratoOptions.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(filterResponsavel !== "all" || filterCorretora !== "all" || filterTipoContrato !== "all" || searchGlobal) && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-transparent select-none">.</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFilterResponsavel("all");
+                      setFilterCorretora("all");
+                      setFilterTipoContrato("all");
+                      setSearchGlobal("");
+                    }}
+                    className="rounded-lg h-9"
+                  >
+                    Limpar filtros
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -770,40 +834,14 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Resumo por período */}
-        <Card className="rounded-xl shadow-sm">
-          <CardHeader><CardTitle className="text-base font-semibold">Resumo Geral por Período</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              {PERIODOS.map((p) => {
-                const items = filteredByResponsavel.filter((m) => m.periodo === p);
-                const done = items.filter((m) => m.status === "Enviado ao financeiro").length;
-                const late = items.filter((m) => m.status === "Fora do prazo").length;
-                const isActiveP = p === filterPeriodo;
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setFilterPeriodo(p)}
-                    className={`rounded-xl border p-4 text-center space-y-1.5 transition-all duration-200 ${isActiveP ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20" : "hover:bg-accent hover:shadow-sm border-border/60"}`}
-                  >
-                    <div className="font-semibold text-sm">{p}</div>
-                    <div className="text-xs text-muted-foreground">{items.length} total</div>
-                    {done > 0 && <div className="text-xs text-success font-medium">{done} concluída(s)</div>}
-                    {late > 0 && <div className="text-xs text-destructive font-medium">{late} fora do prazo</div>}
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        {/* =================== AÇÃO URGENTE =================== */}
+        <div className="flex items-center gap-2 pt-2">
+          <div className="h-6 w-1 rounded-full bg-destructive" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Ação Urgente</h3>
+          <div className="flex-1 h-px bg-border" />
+        </div>
 
-        {/* Contratos com vigência futura — pendentes de documentos */}
-        <ContratosAVigenciarCard />
-
-        {/* Implantações em Andamento (substitui Faturamentos Não Enviados) */}
-        <ImplantacoesAndamentoCard />
-
-        {/* Lista de Empresas no Período */}
+        {/* Lista de Empresas no Período (work list) */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardHeader className="bg-accent/30 border-b">
             <CardTitle className="text-base font-semibold">
@@ -859,6 +897,54 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Implantações em Andamento */}
+        <ImplantacoesAndamentoCard />
+
+        {/* =================== ACOMPANHAMENTO =================== */}
+        <div className="flex items-center gap-2 pt-4">
+          <div className="h-6 w-1 rounded-full bg-warning" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Acompanhamento</h3>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        {/* Resumo por período */}
+        <Card className="rounded-xl shadow-sm">
+          <CardHeader><CardTitle className="text-base font-semibold">Resumo Geral por Período</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {PERIODOS.map((p) => {
+                const items = filteredByResponsavel.filter((m) => m.periodo === p);
+                const done = items.filter((m) => m.status === "Enviado ao financeiro").length;
+                const late = items.filter((m) => m.status === "Fora do prazo").length;
+                const isActiveP = p === filterPeriodo;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setFilterPeriodo(p)}
+                    className={`rounded-xl border p-4 text-center space-y-1.5 transition-all duration-200 ${isActiveP ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20" : "hover:bg-accent hover:shadow-sm border-border/60"}`}
+                  >
+                    <div className="font-semibold text-sm">{p}</div>
+                    <div className="text-xs text-muted-foreground">{items.length} total</div>
+                    {done > 0 && <div className="text-xs text-success font-medium">{done} concluída(s)</div>}
+                    {late > 0 && <div className="text-xs text-destructive font-medium">{late} fora do prazo</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* =================== INFORMATIVO =================== */}
+        <div className="flex items-center gap-2 pt-4">
+          <div className="h-6 w-1 rounded-full bg-info" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Informativo</h3>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        {/* Contratos com vigência futura — pendentes de documentos */}
+        <ContratosAVigenciarCard />
+
 
         {/* Enviadas ao Financeiro */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
