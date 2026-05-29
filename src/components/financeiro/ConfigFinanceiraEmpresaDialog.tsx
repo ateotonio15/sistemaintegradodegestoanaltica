@@ -283,27 +283,13 @@ export function ConfigFinanceiraEmpresaDialog({
                   <Label>
                     Data vencimento <span className="text-destructive">*</span>
                   </Label>
-                  <Select
-                    value={form.data_vencimento_fatura ? String(form.data_vencimento_fatura) : "__none__"}
-                    onValueChange={(v) =>
-                      setForm((f) => ({
-                        ...f,
-                        data_vencimento_fatura: v === "__none__" ? 0 : Number(v),
-                      }))
+                  <DayGridPicker
+                    value={form.data_vencimento_fatura || null}
+                    onChange={(d) =>
+                      setForm((f) => ({ ...f, data_vencimento_fatura: d ?? 0 }))
                     }
-                  >
-                    <SelectTrigger className={errors.data_vencimento_fatura ? "border-destructive" : ""}>
-                      <SelectValue placeholder="Selecione o dia" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      <SelectItem value="__none__">Nenhum</SelectItem>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                        <SelectItem key={d} value={String(d)}>
-                          {String(d).padStart(2, "0")}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    invalid={!!errors.data_vencimento_fatura}
+                  />
                   {errors.data_vencimento_fatura && (
                     <p className="text-xs text-destructive">{errors.data_vencimento_fatura}</p>
                   )}
