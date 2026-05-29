@@ -116,8 +116,52 @@ export function formatNomeComCnpj(nome: unknown, cnpj: unknown): string {
   return sufixo ? `${n} — ${sufixo}` : n;
 }
 
+/**
+ * Varre todas as worksheets do workbook procurando padrões de CNPJ em qualquer
+ * célula string. Constrói um mapa `nomeNormalizado → cnpj14d` usando o texto
+ * que aparece antes do CNPJ na mesma célula (ex.: "GNL BRASIL LOGISTICA S.A 47.548.779/0001-48")
+ * ou, como fallback, a célula imediatamente à esquerda.
+ *
+ * Prioriza a aba cujo nome contenha "resumo".
+ */
+function extrairCnpjsPorNome(wb: ExcelJS.Workbook): Map<string, string> {
+  const mapa = new Map<string, string>();
+  const reCnpj = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/g;
 
-export interface FiltroPagador {
+  const sheets = [...wb.worksheets].sort((a, b) => {
+    const ra = norm(a.name).includes("resumo") ? 0 : 1;
+    const rb = norm(b.name).includes("resumo") ? 0 : 1;
+    return ra - rb;
+  });
+
+  for (const ws of sheets) {
+    ws.eachRow({ includeEmpty: false }, (row) => {
+      const values = (row.values as unknown[]).slice(1);
+      values.forEach((cell, i) => {
+        const s = String(cell ?? "");
+        if (!s) return;
+        let m: RegExpExecArray | null;
+        reCnpj.lastIndex = 0;
+        while ((m = reCnpj.exec(s)) !== null) {
+          const cnpj = normalizarCnpj(m[1]);
+          if (cnpj.length !== 14) continue;
+          // Nome candidato: trecho antes do CNPJ na mesma célula
+          let nome = s.slice(0, m.index).trim();
+          // Limpa prefixos comuns ("EMPRESA :", "Pagador:", etc.)
+          nome = nome.replace(/^(empresa|pagador|razao social|razão social)\s*[:\-]\s*/i, "").trim();
+          // Fallback: célula à esquerda
+          if (!nome && i > 0) nome = String(values[i - 1] ?? "").trim();
+          if (!nome) continue;
+          const key = norm(nome);
+          if (key && !mapa.has(key)) mapa.set(key, cnpj);
+        }
+      });
+    });
+  }
+
+  return mapa;
+}
+
   cnpj?: string | null;
   nome?: string | null;
 }
