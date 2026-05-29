@@ -421,12 +421,15 @@ export function AnexosViewerDialog({
 
     <ConfigFinanceiraEmpresaDialog
       open={configOpen}
-      onOpenChange={setConfigOpen}
-      empresaId={empresaId}
-      empresaNome={empresaNome}
-      movimentacaoId={movimentacaoId}
+      onOpenChange={(v) => {
+        setConfigOpen(v);
+        if (!v) setConfigContext(null);
+      }}
+      empresaId={configContext?.empresaId ?? empresaId}
+      empresaNome={configContext?.empresaNome ?? empresaNome}
+      movimentacaoId={configContext?.movimentacaoId ?? movimentacaoId}
       onSaved={() => {
-        void executarIniciarFaturamento();
+        void executarIniciarFaturamento(configContext);
       }}
     />
     </>
