@@ -36,6 +36,8 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   empresaId: string | null;
   empresaNome: string;
+  /** ID da financeiro_movimentacoes — usado para pré-preencher dados já existentes (dia_emissao, data_vencimento). */
+  movimentacaoId?: string | null;
   /** Disparado após salvar com sucesso — usado para retomar o fluxo de iniciar faturamento. */
   onSaved?: () => void;
   /** Rótulo do botão de salvar (default: "Salvar e iniciar faturamento") */
@@ -49,12 +51,14 @@ export function ConfigFinanceiraEmpresaDialog({
   onOpenChange,
   empresaId,
   empresaNome,
+  movimentacaoId = null,
   onSaved,
   submitLabel = "Salvar e iniciar faturamento",
 }: Props) {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
+  const [pagadoresOpen, setPagadoresOpen] = useState(false);
 
   const { data: empresa, isLoading } = useQuery({
     queryKey: ["empresa-config-financeira", empresaId],
@@ -66,6 +70,21 @@ export function ConfigFinanceiraEmpresaDialog({
           "id, nome, data_emissao_fatura, data_vencimento_fatura, pagamento_via_deposito, tipo_financeiro, exige_po_pc, email_financeiro_cliente, observacao_padrao_financeiro, envio_boleto_com_nota, config_financeira_confirmada",
         )
         .eq("id", empresaId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Busca dados da movimentação atual para usar como fallback (dia_emissao, data_vencimento).
+  const { data: movimentacao } = useQuery({
+    queryKey: ["movimentacao-fallback-config", movimentacaoId],
+    enabled: open && !!movimentacaoId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("id, dia_emissao, data_vencimento, tipo_financeiro")
+        .eq("id", movimentacaoId!)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -86,18 +105,37 @@ export function ConfigFinanceiraEmpresaDialog({
   useEffect(() => {
     if (!empresa) return;
     const e = empresa as any;
+    const m = (movimentacao as any) || null;
+
+    // Fallback: se a empresa não tem dia_emissao, usa o da movimentação.
+    const diaEmissao = e.data_emissao_fatura ?? m?.dia_emissao ?? 0;
+
+    // Fallback: vencimento como dia (1-31) — empresa.data_vencimento_fatura ou dia de movimentacao.data_vencimento.
+    let diaVencimento: number = e.data_vencimento_fatura ?? 0;
+    if (!diaVencimento && m?.data_vencimento) {
+      const match = String(m.data_vencimento).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) diaVencimento = Number(match[3]);
+    }
+
+    // Tipo: empresa > movimentação > primeiro tipo da lista
+    const tipo =
+      e.tipo_financeiro ||
+      m?.tipo_financeiro ||
+      TIPOS_FINANCEIRO[0];
+
     setForm({
-      data_emissao_fatura: e.data_emissao_fatura ?? 0,
+      data_emissao_fatura: diaEmissao,
       forma_pagamento: e.pagamento_via_deposito ? "Depósito" : "DDA",
-      data_vencimento_fatura: e.data_vencimento_fatura ?? 0,
+      data_vencimento_fatura: diaVencimento,
       exige_po_pc: !!e.exige_po_pc,
-      tipo_financeiro: e.tipo_financeiro || TIPOS_FINANCEIRO[0],
+      tipo_financeiro: tipo,
       email_financeiro_cliente: e.email_financeiro_cliente ?? "",
       observacao_padrao_financeiro: e.observacao_padrao_financeiro ?? "",
       envio_boleto_com_nota: !!e.envio_boleto_com_nota,
     });
     setErrors({});
-  }, [empresa]);
+  }, [empresa, movimentacao]);
+
 
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
