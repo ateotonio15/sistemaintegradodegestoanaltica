@@ -22,8 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock, Receipt } from "lucide-react";
+import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock, Receipt, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DayGridPicker } from "@/components/ui/day-grid-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { toISODate, formatDateBR, todayLocalISO as _todayLocalISO } from "@/lib/date-utils";
 import {
   type FinanceiroMovimentacao,
   ACCEPTED_FILE_TYPES,
