@@ -272,22 +272,29 @@ export function ConfigFinanceiraEmpresaDialog({
 
                 <div className="space-y-1.5">
                   <Label>
-                    Dia padrão de vencimento <span className="text-destructive">*</span>
+                    Data vencimento <span className="text-destructive">*</span>
                   </Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={form.data_vencimento_fatura || ""}
-                    onChange={(e) =>
+                  <Select
+                    value={form.data_vencimento_fatura ? String(form.data_vencimento_fatura) : "__none__"}
+                    onValueChange={(v) =>
                       setForm((f) => ({
                         ...f,
-                        data_vencimento_fatura: Number(e.target.value) || 0,
+                        data_vencimento_fatura: v === "__none__" ? 0 : Number(v),
                       }))
                     }
-                    placeholder="Dia (1-31)"
-                    className={errors.data_vencimento_fatura ? "border-destructive" : ""}
-                  />
+                  >
+                    <SelectTrigger className={errors.data_vencimento_fatura ? "border-destructive" : ""}>
+                      <SelectValue placeholder="Selecione o dia" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="__none__">Nenhum</SelectItem>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                        <SelectItem key={d} value={String(d)}>
+                          {String(d).padStart(2, "0")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.data_vencimento_fatura && (
                     <p className="text-xs text-destructive">{errors.data_vencimento_fatura}</p>
                   )}
@@ -312,17 +319,18 @@ export function ConfigFinanceiraEmpresaDialog({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>
-                    Tipo <span className="text-destructive">*</span>
-                  </Label>
+                  <Label>Tipo</Label>
                   <Select
-                    value={form.tipo_financeiro}
-                    onValueChange={(v) => setForm((f) => ({ ...f, tipo_financeiro: v }))}
+                    value={form.tipo_financeiro && form.tipo_financeiro.trim() ? form.tipo_financeiro : "__none__"}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, tipo_financeiro: v === "__none__" ? "" : v }))
+                    }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
+                      <SelectValue placeholder="Nenhum" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__none__">Nenhum</SelectItem>
                       {TIPOS_FINANCEIRO.map((t) => (
                         <SelectItem key={t} value={t}>
                           {t}
