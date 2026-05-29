@@ -439,6 +439,18 @@ export default function Dashboard() {
         (existing || []).map((e) => `${e.empresa_id}__${e.periodo}`)
       );
 
+      const PERIODO_FIM_DIA: Record<string, number> = {
+        "01-05": 5, "05-10": 10, "10-15": 15, "15-20": 20, "20-25": 25, "25-30": 30,
+      };
+      const vigenciaAlcancaPeriodo = (dataImpl: string | null | undefined, periodo: string) => {
+        if (!dataImpl) return true;
+        const [yi, mi, di] = dataImpl.split("-").map(Number);
+        const [yr, mrn] = mesRef.split("-").map(Number);
+        if (yi > yr || (yi === yr && mi > mrn)) return false; // implantação em mês futuro
+        if (yi < yr || (yi === yr && mi < mrn)) return true;  // implantação em mês anterior
+        return di <= (PERIODO_FIM_DIA[periodo] ?? 31);
+      };
+
       const toInsert: TablesInsert<"movimentacoes">[] = [];
       for (const emp of empresasAtivas) {
         let periodo = "01-05";
@@ -447,6 +459,9 @@ export default function Dashboard() {
         } else if (emp.periodo_movimentacao) {
           periodo = emp.periodo_movimentacao;
         }
+
+        // Pula contratos cuja vigência ultrapassa o fim do período no mês de referência
+        if (!vigenciaAlcancaPeriodo(emp.data_implantacao, periodo)) continue;
 
         const key = `${emp.id}__${periodo}`;
         if (!existingSet.has(key)) {
