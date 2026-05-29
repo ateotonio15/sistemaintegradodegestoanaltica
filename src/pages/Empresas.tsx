@@ -73,6 +73,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   tipo_financeiro: "",
   valor_enfermaria_centavos: null,
   valor_apartamento_centavos: null,
+  faixas_etarias: null,
 
 } as any;
 
