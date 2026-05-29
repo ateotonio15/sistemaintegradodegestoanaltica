@@ -244,16 +244,12 @@ export function ConfigFinanceiraEmpresaDialog({
                   <Label>
                     Data de emissão <span className="text-destructive">*</span>
                   </Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={form.data_emissao_fatura || ""}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, data_emissao_fatura: Number(e.target.value) || 0 }))
+                  <DayGridPicker
+                    value={form.data_emissao_fatura || null}
+                    onChange={(d) =>
+                      setForm((f) => ({ ...f, data_emissao_fatura: d ?? 0 }))
                     }
-                    placeholder="Dia (1-31)"
-                    className={errors.data_emissao_fatura ? "border-destructive" : ""}
+                    invalid={!!errors.data_emissao_fatura}
                   />
                   {errors.data_emissao_fatura && (
                     <p className="text-xs text-destructive">{errors.data_emissao_fatura}</p>
