@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { DayGridPicker } from "@/components/ui/day-grid-picker";
 import { AlertTriangle, Info, Loader2, Receipt, Settings2 } from "lucide-react";
 
 import { toast } from "sonner";
