@@ -214,6 +214,21 @@ export default function Empresas() {
       if (payload.tipo_contrato === "ADMINISTRADORA") {
         payload.valor_enfermaria_centavos = null;
         payload.valor_apartamento_centavos = null;
+        payload.faixas_etarias = null;
+      }
+      if (!payload.contrato_faixa_etaria) {
+        payload.faixas_etarias = null;
+      } else if (payload.faixas_etarias && typeof payload.faixas_etarias === "object") {
+        // mantém somente faixas com algum valor preenchido
+        const fe = payload.faixas_etarias as any;
+        const cleanList = (arr: any[]) =>
+          (Array.isArray(arr) ? arr : [])
+            .filter((f) => f && (f.centavos ?? 0) > 0)
+            .map((f) => ({ ini: f.ini, fim: f.fim, centavos: f.centavos }));
+        payload.faixas_etarias = {
+          enfermaria: cleanList(fe.enfermaria ?? []),
+          apartamento: cleanList(fe.apartamento ?? []),
+        };
       }
       if (editingId) {
         const { error } = await supabase.from("empresas").update(payload).eq("id", editingId);
