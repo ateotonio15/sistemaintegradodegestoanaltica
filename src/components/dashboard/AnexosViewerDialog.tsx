@@ -431,6 +431,56 @@ export function AnexosViewerDialog({
         void executarIniciarFaturamento(configContext);
       }}
     />
+
+    <Dialog open={!!avisos} onOpenChange={(v) => !v && setAvisos(null)}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-warning" />
+            Avisos importantes desta empresa
+          </DialogTitle>
+          <DialogDescription>
+            Atenção aos requisitos abaixo antes de prosseguir com o faturamento de{" "}
+            <span className="font-medium text-foreground">{empresaNome}</span>.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          {avisos?.exigePoPc && (
+            <Alert className="border-warning/50 bg-warning/10">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <AlertTitle>PO/PC obrigatório</AlertTitle>
+              <AlertDescription>
+                Antes da emissão da nota fiscal, é necessário enviar o faturamento para
+                validação da empresa.
+              </AlertDescription>
+            </Alert>
+          )}
+          {avisos?.envioBoletoComNota && (
+            <Alert className="border-info/50 bg-info/10">
+              <Receipt className="h-4 w-4 text-info" />
+              <AlertTitle>Boleto junto com a nota</AlertTitle>
+              <AlertDescription>
+                Esta empresa exige envio do boleto junto com a nota fiscal.
+              </AlertDescription>
+            </Alert>
+          )}
+          {avisos?.observacao && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Observação desta empresa</AlertTitle>
+              <AlertDescription className="whitespace-pre-wrap">
+                {avisos.observacao}
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button onClick={() => setAvisos(null)}>Entendi</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
