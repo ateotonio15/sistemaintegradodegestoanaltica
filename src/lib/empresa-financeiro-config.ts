@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 
 export type FormaPagamento = "DDA" | "Depósito";
 
