@@ -319,6 +319,12 @@ export default function Empresas() {
       status_empresa: e.status_empresa ?? "Ativa",
       observacoes: e.observacoes ?? "",
       responsavel_user_id: (e as any).responsavel_user_id ?? null,
+      executiva_user_id: (e as any).executiva_user_id ?? null,
+      prazo: (e as any).prazo ?? "",
+      grupo_contrato: (e as any).grupo_contrato ?? "",
+      telefone_empresa: (e as any).telefone_empresa ?? "",
+      contato_empresa: (e as any).contato_empresa ?? "",
+      contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
       pagamento_via_deposito: (e as any).pagamento_via_deposito ?? false,
       vidas: (e as any).vidas ?? 0,
       tipo_contrato: (e as any).tipo_contrato ?? "EMPRESARIAL",
@@ -328,12 +334,6 @@ export default function Empresas() {
       observacao_padrao_financeiro: (e as any).observacao_padrao_financeiro ?? "",
       regra_prorrogacao: (e as any).regra_prorrogacao ?? "",
       tipo_financeiro: (e as any).tipo_financeiro ?? "",
-    } as any);
-      contato_empresa: (e as any).contato_empresa ?? "",
-      contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
-      pagamento_via_deposito: (e as any).pagamento_via_deposito ?? false,
-      vidas: (e as any).vidas ?? 0,
-      tipo_contrato: (e as any).tipo_contrato ?? "EMPRESARIAL",
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
     setDataVencimentoFatura((e as any).data_vencimento_fatura ?? "");
