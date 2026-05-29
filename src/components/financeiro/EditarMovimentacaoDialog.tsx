@@ -830,7 +830,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                   return (
                   <li
                     key={a.id}
-                    className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
+                    className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
                   >
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="min-w-0 truncate" title={a.nome_arquivo}>
@@ -839,17 +839,6 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                     <span className="text-xs text-muted-foreground shrink-0">
                       {formatBytes(a.tamanho_bytes)}
                     </span>
-                    {isExcel ? (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 text-info hover:text-info"
-                        title="Extrair número de vidas"
-                        onClick={() => handleExtrairVidas(a.storage_path, a.nome_arquivo)}
-                      >
-                        <Users className="h-3.5 w-3.5" />
-                      </Button>
-                    ) : <span />}
                     <Button
                       variant="ghost"
                       size="icon"
