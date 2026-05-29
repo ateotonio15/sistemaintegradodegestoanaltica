@@ -324,6 +324,8 @@ export function HistoricoAnalisesDialog({
             </DialogContent>
           </Dialog>
         )}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
