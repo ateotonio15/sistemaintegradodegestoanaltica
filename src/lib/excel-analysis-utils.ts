@@ -805,9 +805,8 @@ export async function analisarExcelFinanceiroPorCnpj(
     });
 
   // Enriquece blocos sem CNPJ usando o mapa extraído das demais abas (ex.: RESUMO).
-  const cnpjsPorNome = extrairCnpjsPorNome(wb);
-  const cnpjsUnicos = new Set(cnpjsPorNome.values());
-  const cnpjUnicoFallback = cnpjsUnicos.size === 1 ? [...cnpjsUnicos][0] : "";
+  const { porNome: cnpjsPorNome, todos: cnpjsUnicos } = extrairCnpjsDoWorkbook(wb);
+  const cnpjUnicoFallback = cnpjsUnicos.size === 1 ? Array.from(cnpjsUnicos)[0] ?? "" : "";
   if (cnpjsPorNome.size > 0) {
     for (const bloco of blocos) {
       if (bloco.cnpj) continue;
