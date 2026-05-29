@@ -23,6 +23,8 @@ import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import { ValoresFaixaEtariaDialog } from "@/components/empresas/ValoresFaixaEtariaDialog";
 import { ImportarValoresIniciaisDialog } from "@/components/empresas/ImportarValoresIniciaisDialog";
 import ExcelJS from "exceljs";
+import { parseAnexo1 } from "@/lib/anexo1-parser";
+import { Loader2, FileUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -95,6 +97,8 @@ export default function Empresas() {
   const [valoresEmpresa, setValoresEmpresa] = useState<Empresa | null>(null);
   const [importValoresOpen, setImportValoresOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const anexoInputRef = useRef<HTMLInputElement>(null);
+  const [importingAnexo, setImportingAnexo] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin, role, isViewOnly, isExecutivo, user } = useAuth();
@@ -478,14 +482,77 @@ export default function Empresas() {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-4xl max-h-[92vh] p-0 rounded-xl overflow-hidden flex flex-col">
                   <DialogHeader className="px-6 py-4 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 sticky top-0 z-10">
-                    <DialogTitle className="flex items-center gap-2 text-lg">
-                      <Building2 className="h-5 w-5 text-primary" />
-                      {editingId ? "Editar Empresa" : "Nova Empresa"}
-                    </DialogTitle>
-                    <DialogDescription className="text-xs">
-                      Preencha as informações da empresa. Campos com * são obrigatórios.
-                    </DialogDescription>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <DialogTitle className="flex items-center gap-2 text-lg">
+                          <Building2 className="h-5 w-5 text-primary" />
+                          {editingId ? "Editar Empresa" : "Nova Empresa"}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                          Preencha as informações da empresa. Campos com * são obrigatórios.
+                        </DialogDescription>
+                      </div>
+                      {!editingId && (
+                        <>
+                          <input
+                            ref={anexoInputRef}
+                            type="file"
+                            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setImportingAnexo(true);
+                              try {
+                                const data = await parseAnexo1(file);
+                                setForm((prev: any) => ({
+                                  ...prev,
+                                  nome: data.nome ?? prev.nome,
+                                  cnpj: data.cnpj ?? prev.cnpj,
+                                  telefone_empresa: data.telefone ?? prev.telefone_empresa,
+                                  email_empresa: data.email ?? prev.email_empresa,
+                                  contato_empresa: data.responsavel ?? prev.contato_empresa,
+                                  vidas: data.vidas ?? prev.vidas,
+                                  valor_enfermaria_centavos:
+                                    data.valor_enfermaria_reais != null
+                                      ? Math.round(data.valor_enfermaria_reais * 100)
+                                      : prev.valor_enfermaria_centavos,
+                                  valor_apartamento_centavos:
+                                    data.valor_apartamento_reais != null
+                                      ? Math.round(data.valor_apartamento_reais * 100)
+                                      : prev.valor_apartamento_centavos,
+                                }));
+                                if (data.data_implantacao) setDataImplantacao(data.data_implantacao);
+                                if (data.dia_vencimento) setDataVencimentoFatura(data.dia_vencimento);
+                                toast({ title: "Anexo 1 importado", description: "Confira os campos preenchidos automaticamente." });
+                              } catch (err: any) {
+                                console.error(err);
+                                toast({ title: "Erro ao importar Anexo 1", description: err?.message ?? "Falha ao processar o arquivo.", variant: "destructive" });
+                              } finally {
+                                setImportingAnexo(false);
+                                if (anexoInputRef.current) anexoInputRef.current.value = "";
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-lg shrink-0"
+                            disabled={importingAnexo}
+                            onClick={() => anexoInputRef.current?.click()}
+                          >
+                            {importingAnexo ? (
+                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importando...</>
+                            ) : (
+                              <><FileUp className="mr-2 h-4 w-4" />Importar Anexo 1</>
+                            )}
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </DialogHeader>
+
                   <form
                     onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }}
                     className="flex-1 flex flex-col overflow-hidden"
