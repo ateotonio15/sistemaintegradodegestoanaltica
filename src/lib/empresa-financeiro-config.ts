@@ -12,6 +12,7 @@ export interface EmpresaFinanceiroConfig {
   email_financeiro_cliente: string | null;
   observacao_padrao_financeiro: string | null;
   envio_boleto_com_nota: boolean;
+  tem_coparticipacao: boolean;
   config_financeira_confirmada: boolean;
 }
 
@@ -70,6 +71,7 @@ export const configFinanceiraSchema = z.object({
     .optional(),
   observacao_padrao_financeiro: z.string().trim().max(2000).nullable().optional(),
   envio_boleto_com_nota: z.boolean(),
+  tem_coparticipacao: z.boolean(),
 });
 
 export type ConfigFinanceiraFormValues = z.infer<typeof configFinanceiraSchema>;
