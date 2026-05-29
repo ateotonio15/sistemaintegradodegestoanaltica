@@ -23,6 +23,8 @@ import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import { ValoresFaixaEtariaDialog } from "@/components/empresas/ValoresFaixaEtariaDialog";
 import { ImportarValoresIniciaisDialog } from "@/components/empresas/ImportarValoresIniciaisDialog";
 import ExcelJS from "exceljs";
+import { parseAnexo1 } from "@/lib/anexo1-parser";
+import { Loader2, FileUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -95,6 +97,8 @@ export default function Empresas() {
   const [valoresEmpresa, setValoresEmpresa] = useState<Empresa | null>(null);
   const [importValoresOpen, setImportValoresOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const anexoInputRef = useRef<HTMLInputElement>(null);
+  const [importingAnexo, setImportingAnexo] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin, role, isViewOnly, isExecutivo, user } = useAuth();
