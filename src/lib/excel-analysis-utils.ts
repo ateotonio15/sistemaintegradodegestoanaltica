@@ -1019,7 +1019,7 @@ export function cruzarExcelComPdfs(
       cmp.motivoSemPdf = bloco.cnpj
         ? "NF não localizada para este CNPJ"
         : "CNPJ não identificado na planilha";
-      cmp.divergencias = [cmp.motivoSemPdf, ...cmp.divergencias];
+      // Ausência de NF não é divergência — apenas informativo via motivoSemPdf.
     }
     return cmp;
   });
