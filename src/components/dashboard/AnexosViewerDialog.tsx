@@ -7,9 +7,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText, Paperclip, Play, Loader2, CheckCircle2, X } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Download, Eye, FileText, Paperclip, Play, Loader2, CheckCircle2, X, AlertTriangle, Receipt, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
@@ -74,6 +76,11 @@ export function AnexosViewerDialog({
     empresaNome: string;
     movimentacaoId: string;
   } | null>(null);
+  const [avisos, setAvisos] = useState<{
+    exigePoPc: boolean;
+    envioBoletoComNota: boolean;
+    observacao: string | null;
+  } | null>(null);
 
   const executarIniciarFaturamento = async (ctx = configContext) => {
     const targetMovimentacaoId = ctx?.movimentacaoId ?? movimentacaoId;
@@ -104,32 +111,21 @@ export function AnexosViewerDialog({
         const { data: emp } = await supabase
           .from("empresas")
           .select("exige_po_pc, envio_boleto_com_nota, observacao_padrao_financeiro")
-          .eq("id", targetEmpresaId)
-          .maybeSingle();
         const e = emp as any;
-        if (e?.exige_po_pc) {
-          toast.warning(
-            "Esta empresa exige PO/PC. Antes da emissão da nota fiscal, é necessário enviar o faturamento para validação da empresa.",
-            { duration: 8000 },
-          );
-        }
-        if (e?.envio_boleto_com_nota) {
-          toast.warning(
-            "Esta empresa exige envio do boleto junto com a nota fiscal.",
-            { duration: 8000 },
-          );
-        }
-        if (e?.observacao_padrao_financeiro && String(e.observacao_padrao_financeiro).trim()) {
-          toast.info(`Observação desta empresa: ${e.observacao_padrao_financeiro}`, {
-            duration: 10000,
-          });
+        const exigePoPc = !!e?.exige_po_pc;
+        const envioBoletoComNota = !!e?.envio_boleto_com_nota;
+        const observacao =
+          e?.observacao_padrao_financeiro && String(e.observacao_padrao_financeiro).trim()
+            ? String(e.observacao_padrao_financeiro)
+            : null;
+
+        if (exigePoPc || envioBoletoComNota || observacao) {
+          setAvisos({ exigePoPc, envioBoletoComNota, observacao });
         }
       }
 
 
       toast.success("Faturamento iniciado");
-      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
-    } catch (e: any) {
       toast.error("Erro ao iniciar faturamento: " + e.message);
     } finally {
       setIniciando(false);
