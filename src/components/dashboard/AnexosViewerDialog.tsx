@@ -403,15 +403,17 @@ export function AnexosViewerDialog({
         <PreviewArquivoDialog
           open={!!preview}
           onOpenChange={(v) => !v && setPreview(null)}
-          bucket={preview.bucket}
-          storagePath={preview.storage_path}
-          nomeArquivo={preview.nome_arquivo}
-        />
-      )}
-    </Dialog>
-
     <ConfigFinanceiraEmpresaDialog
       open={configOpen}
+      onOpenChange={setConfigOpen}
+      empresaId={empresaId}
+      empresaNome={empresaNome}
+      movimentacaoId={movimentacaoId}
+      onSaved={() => {
+        void executarIniciarFaturamento();
+      }}
+    />
+
       onOpenChange={setConfigOpen}
       empresaId={empresaId}
       empresaNome={empresaNome}
