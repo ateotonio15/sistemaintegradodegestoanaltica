@@ -721,7 +721,7 @@ export default function Empresas() {
                           </span>
                         </div>
                       </div>
-                      {(form as any).tipo_contrato !== "ADMINISTRADORA" && (
+                      {(form as any).tipo_contrato !== "ADMINISTRADORA" && !(form as any).contrato_faixa_etaria && (
                         <>
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">Valor Enfermaria (R$)</Label>
