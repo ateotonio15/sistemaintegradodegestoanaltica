@@ -117,6 +117,9 @@ export function ConfigFinanceiraEmpresaDialog({
     if (!diaVencimento) diaVencimento = e.data_vencimento_fatura ?? 0;
 
     const tipo = e.tipo_financeiro || TIPOS_FINANCEIRO[0];
+
+    setForm({
+      data_emissao_fatura: diaEmissao,
       forma_pagamento: e.pagamento_via_deposito ? "Depósito" : "DDA",
       data_vencimento_fatura: diaVencimento,
       exige_po_pc: !!e.exige_po_pc,
