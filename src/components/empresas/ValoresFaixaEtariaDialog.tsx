@@ -45,10 +45,11 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
         .from("reajustes_anuais")
         .select("*")
         .eq("empresa_id", empresaId!)
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .order("ano", { ascending: false })
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      const reajuste = (reajustes?.[0] ?? null) as Reajuste | null;
+      const todosReajustes = (reajustes ?? []) as Reajuste[];
+      const reajuste = (todosReajustes[0] ?? null) as Reajuste | null;
 
       let faixas: ReajusteFaixa[] = [];
       if (reajuste) {
@@ -69,13 +70,15 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
         .limit(1)
         .maybeSingle();
 
-      return { reajuste, faixas, implantacao: impl ?? null };
+      return { reajuste, todosReajustes, faixas, implantacao: impl ?? null };
     },
   });
 
   const reajuste = data?.reajuste ?? null;
+  const todosReajustes = data?.todosReajustes ?? [];
   const faixas = data?.faixas ?? [];
   const implantacao = data?.implantacao ?? null;
+  const isPorFaixa = !!(empresa as any)?.contrato_faixa_etaria;
 
   // Fallback: usa valores da própria empresa quando não há implantação registrada
   const empresaValorEnf = (empresa as any)?.valor_enfermaria_centavos ?? 0;
