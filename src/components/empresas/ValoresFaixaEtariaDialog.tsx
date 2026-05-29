@@ -175,15 +175,21 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
           <EmptyState empresa={empresa} />
         ) : (
           <Tabs defaultValue="resumo" className="w-full animate-fade-in">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className={cn("grid w-full", isPorFaixa ? "grid-cols-3" : "grid-cols-4")}>
               <TabsTrigger value="resumo">Resumo</TabsTrigger>
-              <TabsTrigger value="enfermaria" disabled={!possuiEnf}>
-                Enfermaria
-              </TabsTrigger>
-              <TabsTrigger value="apartamento" disabled={!possuiApt}>
-                Apartamento
-              </TabsTrigger>
-              <TabsTrigger value="faixa">Faixa Etária</TabsTrigger>
+              {isPorFaixa ? (
+                <TabsTrigger value="faixa">Faixa Etária</TabsTrigger>
+              ) : (
+                <>
+                  <TabsTrigger value="enfermaria" disabled={!possuiEnf}>
+                    Enfermaria
+                  </TabsTrigger>
+                  <TabsTrigger value="apartamento" disabled={!possuiApt}>
+                    Apartamento
+                  </TabsTrigger>
+                </>
+              )}
+              <TabsTrigger value="historico">Histórico de Reajuste</TabsTrigger>
             </TabsList>
 
             <TabsContent value="resumo" className="mt-4 animate-fade-in">
@@ -200,83 +206,97 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
               )}
             </TabsContent>
 
-            <TabsContent value="enfermaria" className="mt-4 animate-fade-in">
-              {possuiEnf ? (
-                <ValoresCard
-                  titulo="Enfermaria"
-                  icon={<BedDouble className="h-4 w-4" />}
-                  atual={reajuste?.valor_antigo_enfermaria_centavos ?? valorEnfBase}
-                  percentual={reajuste?.percentual ?? 0}
-                  reajustado={reajuste?.valor_reajustado_enfermaria_centavos ?? 0}
-                  retroativo={reajuste?.valor_retroativo_enfermaria_centavos ?? 0}
-                  final={reajuste?.valor_final_enfermaria_centavos ?? valorEnfBase}
-                  semReajuste={!reajuste}
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">Modalidade não contratada.</p>
-              )}
-            </TabsContent>
+            {!isPorFaixa && (
+              <>
+                <TabsContent value="enfermaria" className="mt-4 animate-fade-in">
+                  {possuiEnf ? (
+                    <ValoresCard
+                      titulo="Enfermaria"
+                      icon={<BedDouble className="h-4 w-4" />}
+                      atual={reajuste?.valor_antigo_enfermaria_centavos ?? valorEnfBase}
+                      percentual={reajuste?.percentual ?? 0}
+                      reajustado={reajuste?.valor_reajustado_enfermaria_centavos ?? 0}
+                      retroativo={reajuste?.valor_retroativo_enfermaria_centavos ?? 0}
+                      final={reajuste?.valor_final_enfermaria_centavos ?? valorEnfBase}
+                      semReajuste={!reajuste}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Modalidade não contratada.</p>
+                  )}
+                </TabsContent>
 
-            <TabsContent value="apartamento" className="mt-4 animate-fade-in">
-              {possuiApt ? (
-                <ValoresCard
-                  titulo="Apartamento"
-                  icon={<Hotel className="h-4 w-4" />}
-                  atual={reajuste?.valor_antigo_apartamento_centavos ?? valorAptBase}
-                  percentual={reajuste?.percentual ?? 0}
-                  reajustado={reajuste?.valor_reajustado_apartamento_centavos ?? 0}
-                  retroativo={reajuste?.valor_retroativo_apartamento_centavos ?? 0}
-                  final={reajuste?.valor_final_apartamento_centavos ?? valorAptBase}
-                  semReajuste={!reajuste}
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">Modalidade não contratada.</p>
-              )}
-            </TabsContent>
+                <TabsContent value="apartamento" className="mt-4 animate-fade-in">
+                  {possuiApt ? (
+                    <ValoresCard
+                      titulo="Apartamento"
+                      icon={<Hotel className="h-4 w-4" />}
+                      atual={reajuste?.valor_antigo_apartamento_centavos ?? valorAptBase}
+                      percentual={reajuste?.percentual ?? 0}
+                      reajustado={reajuste?.valor_reajustado_apartamento_centavos ?? 0}
+                      retroativo={reajuste?.valor_retroativo_apartamento_centavos ?? 0}
+                      final={reajuste?.valor_final_apartamento_centavos ?? valorAptBase}
+                      semReajuste={!reajuste}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Modalidade não contratada.</p>
+                  )}
+                </TabsContent>
+              </>
+            )}
 
-            <TabsContent value="faixa" className="mt-4 animate-fade-in">
-              {faixasPivot.length === 0 ? (
-                <div className="text-sm text-muted-foreground p-6 text-center rounded-lg border border-dashed whitespace-pre-wrap">
-                  {faixasObservacao
-                    ? faixasObservacao
-                    : !reajuste
-                    ? "Contrato ainda não reajustado — nenhuma tabela de faixa etária registrada."
-                    : "Reajuste por valor único — sem faixa etária."}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-accent/30">
-                        <TableHead className="font-semibold">Faixa</TableHead>
-                        {possuiEnf && (
-                          <TableHead className="font-semibold text-right">Enfermaria</TableHead>
-                        )}
-                        {possuiApt && (
-                          <TableHead className="font-semibold text-right">Apartamento</TableHead>
-                        )}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {faixasPivot.map((row) => (
-                        <TableRow key={`${row.ini}-${row.fim}`} className="hover:bg-accent/40 transition-colors">
-                          <TableCell className="font-medium">{labelFaixa(row.ini, row.fim)}</TableCell>
+            {isPorFaixa && (
+              <TabsContent value="faixa" className="mt-4 animate-fade-in">
+                {faixasPivot.length === 0 ? (
+                  <div className="text-sm text-muted-foreground p-6 text-center rounded-lg border border-dashed whitespace-pre-wrap">
+                    {faixasObservacao
+                      ? faixasObservacao
+                      : !reajuste
+                      ? "Contrato ainda não reajustado — nenhuma tabela de faixa etária registrada."
+                      : "Reajuste por valor único — sem faixa etária."}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-accent/30">
+                          <TableHead className="font-semibold">Faixa</TableHead>
                           {possuiEnf && (
-                            <TableCell className="text-right tabular-nums">
-                              {row.enfCent ? formatCentavosBRL(row.enfCent) : "—"}
-                            </TableCell>
+                            <TableHead className="font-semibold text-right">Enfermaria</TableHead>
                           )}
                           {possuiApt && (
-                            <TableCell className="text-right tabular-nums">
-                              {row.aptCent ? formatCentavosBRL(row.aptCent) : "—"}
-                            </TableCell>
+                            <TableHead className="font-semibold text-right">Apartamento</TableHead>
                           )}
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+                      </TableHeader>
+                      <TableBody>
+                        {faixasPivot.map((row) => (
+                          <TableRow key={`${row.ini}-${row.fim}`} className="hover:bg-accent/40 transition-colors">
+                            <TableCell className="font-medium">{labelFaixa(row.ini, row.fim)}</TableCell>
+                            {possuiEnf && (
+                              <TableCell className="text-right tabular-nums">
+                                {row.enfCent ? formatCentavosBRL(row.enfCent) : "—"}
+                              </TableCell>
+                            )}
+                            {possuiApt && (
+                              <TableCell className="text-right tabular-nums">
+                                {row.aptCent ? formatCentavosBRL(row.aptCent) : "—"}
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </TabsContent>
+            )}
+
+            <TabsContent value="historico" className="mt-4 animate-fade-in">
+              <HistoricoReajustes
+                reajustes={todosReajustes}
+                possuiEnf={possuiEnf}
+                possuiApt={possuiApt}
+              />
             </TabsContent>
           </Tabs>
         )}
