@@ -88,7 +88,15 @@ const COL_TIPO_COBRANCA = [
 ];
 const COL_VALOR = ["valor", "mensalidade", "valor mensalidade", "vlr", "preco", "valor total"];
 const COL_CNPJ = ["cnpj", "cnpj pagador", "cnpj do pagador", "cnpj empresa"];
-const COL_PAGADOR = ["pagador", "nome pagador", "nome do pagador", "razao social", "razão social", "empresa"];
+const COL_PAGADOR = ["pagador", "nome pagador", "nome do pagador", "razao social", "razão social", "empresa", "contratante", "nome empresa", "nome da empresa"];
+
+/** Normalização "agressiva" para casamento de nomes: remove pontuação e colapsa espaços. */
+function normMatch(s: unknown): string {
+  return norm(s)
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 /** Remove tudo que não é dígito (para comparar CNPJs). */
 export function normalizarCnpj(s: unknown): string {
@@ -152,7 +160,7 @@ function extrairCnpjsPorNome(wb: ExcelJS.Workbook): Map<string, string> {
           // Fallback: célula à esquerda
           if (!nome && i > 0) nome = String(values[i - 1] ?? "").trim();
           if (!nome) continue;
-          const key = norm(nome);
+          const key = normMatch(nome);
           if (key && !mapa.has(key)) mapa.set(key, cnpj);
         }
       });
@@ -780,23 +788,28 @@ export async function analisarExcelFinanceiroPorCnpj(
 
   // Enriquece blocos sem CNPJ usando o mapa extraído das demais abas (ex.: RESUMO).
   const cnpjsPorNome = extrairCnpjsPorNome(wb);
+  const cnpjsUnicos = new Set(cnpjsPorNome.values());
+  const cnpjUnicoFallback = cnpjsUnicos.size === 1 ? [...cnpjsUnicos][0] : "";
   if (cnpjsPorNome.size > 0) {
     for (const bloco of blocos) {
       if (bloco.cnpj) continue;
-      const alvo = norm(bloco.nome);
-      if (!alvo) continue;
+      const alvo = normMatch(bloco.nome);
       let achado = "";
-      // 1) igualdade exata
-      if (cnpjsPorNome.has(alvo)) achado = cnpjsPorNome.get(alvo)!;
-      // 2) includes em qualquer direção
-      if (!achado) {
-        for (const [k, v] of cnpjsPorNome) {
-          if (k.includes(alvo) || alvo.includes(k)) {
-            achado = v;
-            break;
+      if (alvo) {
+        // 1) igualdade exata
+        if (cnpjsPorNome.has(alvo)) achado = cnpjsPorNome.get(alvo)!;
+        // 2) includes em qualquer direção
+        if (!achado) {
+          for (const [k, v] of cnpjsPorNome) {
+            if (k.includes(alvo) || alvo.includes(k)) {
+              achado = v;
+              break;
+            }
           }
         }
       }
+      // 3) Fallback: se o workbook tem apenas 1 CNPJ, usa ele.
+      if (!achado && cnpjUnicoFallback) achado = cnpjUnicoFallback;
       if (achado) {
         bloco.cnpj = achado;
         bloco.nomeExibicao = formatNomeComCnpj(bloco.nome, achado);
@@ -806,6 +819,7 @@ export async function analisarExcelFinanceiroPorCnpj(
       }
     }
   }
+
 
   return blocos;
 }
