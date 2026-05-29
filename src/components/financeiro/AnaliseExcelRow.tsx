@@ -45,8 +45,12 @@ function ValorComCheck({
   formatPdf?: (n: number) => string;
 }) {
   if (!validacao) return <>{text}</>;
+  // Sem PDF correspondente, não é divergência — apenas informativo neutro.
+  const semPdf = validacao.pdf === null;
   const icon = validacao.ok ? (
     <CheckCircle2 className="h-3.5 w-3.5 text-success inline-block ml-1" />
+  ) : semPdf ? (
+    <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground inline-block ml-1" />
   ) : (
     <XCircle className="h-3.5 w-3.5 text-destructive inline-block ml-1" />
   );
@@ -55,7 +59,7 @@ function ValorComCheck({
       ? "Valor não encontrado no PDF"
       : `PDF: ${formatPdf ? formatPdf(validacao.pdf) : validacao.pdf}`;
   return (
-    <span className={validacao.ok ? "" : "text-destructive font-medium"}>
+    <span className={validacao.ok || semPdf ? "" : "text-destructive font-medium"}>
       {text}
       <TooltipProvider delayDuration={150}>
         <Tooltip>
