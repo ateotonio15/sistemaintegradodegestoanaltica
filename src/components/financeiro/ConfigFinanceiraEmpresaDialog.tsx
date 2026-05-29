@@ -153,13 +153,14 @@ export function ConfigFinanceiraEmpresaDialog({
     setSaving(true);
     try {
       const v = parsed.data;
+      const tipoNorm = v.tipo_financeiro && v.tipo_financeiro.trim() ? v.tipo_financeiro : null;
       const { error } = await supabase
         .from("empresas")
         .update({
           data_emissao_fatura: v.data_emissao_fatura,
           data_vencimento_fatura: v.data_vencimento_fatura,
           pagamento_via_deposito: v.forma_pagamento === "Depósito",
-          tipo_financeiro: v.tipo_financeiro,
+          tipo_financeiro: tipoNorm,
           exige_po_pc: v.exige_po_pc,
           email_financeiro_cliente: v.email_financeiro_cliente || null,
           observacao_padrao_financeiro: v.observacao_padrao_financeiro || null,
@@ -170,9 +171,29 @@ export function ConfigFinanceiraEmpresaDialog({
         .eq("id", empresaId);
       if (error) throw error;
 
+      // Sincroniza imediatamente a movimentação atual (aba Financeiro)
+      // com o dia de emissão/vencimento informados aqui.
+      if (movimentacaoId) {
+        const m = (movimentacao as any) || null;
+        const mes: string | undefined = m?.mes_referencia
+          || (m?.data_vencimento ? String(m.data_vencimento).slice(0, 7) : undefined);
+        const movPayload: Record<string, unknown> = {
+          dia_emissao: v.data_emissao_fatura,
+        };
+        if (mes && /^\d{4}-\d{2}$/.test(mes)) {
+          movPayload.data_vencimento = `${mes}-${String(v.data_vencimento_fatura).padStart(2, "0")}`;
+        }
+        const { error: mErr } = await supabase
+          .from("financeiro_movimentacoes")
+          .update(movPayload as any)
+          .eq("id", movimentacaoId);
+        if (mErr) console.warn("Falha ao sincronizar movimentação:", mErr.message);
+      }
+
       toast.success("Configurações financeiras salvas");
       qc.invalidateQueries({ queryKey: ["empresas"] });
       qc.invalidateQueries({ queryKey: ["financeiro"] });
+      qc.invalidateQueries({ queryKey: ["financeiro-operacionais-v2"] });
       qc.invalidateQueries({ queryKey: ["empresa-config-financeira", empresaId] });
       onOpenChange(false);
       onSaved?.();
