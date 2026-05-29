@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 import { formatDateBR } from "@/lib/date-utils";
+import { ConfigFinanceiraEmpresaDialog } from "@/components/financeiro/ConfigFinanceiraEmpresaDialog";
+import { validarConfigFinanceira } from "@/lib/empresa-financeiro-config";
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
