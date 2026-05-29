@@ -69,9 +69,16 @@ export function AnexosViewerDialog({
   const [iniciando, setIniciando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
+  const [configContext, setConfigContext] = useState<{
+    empresaId: string;
+    empresaNome: string;
+    movimentacaoId: string;
+  } | null>(null);
 
-  const executarIniciarFaturamento = async () => {
-    if (!movimentacaoId || !user) return;
+  const executarIniciarFaturamento = async (ctx = configContext) => {
+    const targetMovimentacaoId = ctx?.movimentacaoId ?? movimentacaoId;
+    const targetEmpresaId = ctx?.empresaId ?? empresaId;
+    if (!targetMovimentacaoId || !user) return;
     setIniciando(true);
     try {
       // Busca o nome do usuário atual
@@ -89,15 +96,15 @@ export function AnexosViewerDialog({
           faturamento_iniciado_por_nome: nome,
           faturamento_iniciado_em: new Date().toISOString(),
         })
-        .eq("id", movimentacaoId);
+        .eq("id", targetMovimentacaoId);
       if (error) throw error;
 
       // Busca flags da empresa para exibir avisos pós-início.
-      if (empresaId) {
+      if (targetEmpresaId) {
         const { data: emp } = await supabase
           .from("empresas")
           .select("exige_po_pc, envio_boleto_com_nota, observacao_padrao_financeiro")
-          .eq("id", empresaId)
+          .eq("id", targetEmpresaId)
           .maybeSingle();
         const e = emp as any;
         if (e?.exige_po_pc) {
@@ -147,6 +154,8 @@ export function AnexosViewerDialog({
       }
       const validacao = validarConfigFinanceira(emp as any);
       if (!validacao.ok) {
+        const nextContext = { empresaId, empresaNome, movimentacaoId };
+        setConfigContext(nextContext);
         // Fecha o dialog externo antes de abrir o de configurações para evitar
         // problemas de modais Radix aninhados (scroll-lock / pointer-events).
         toast.info(
@@ -412,12 +421,15 @@ export function AnexosViewerDialog({
 
     <ConfigFinanceiraEmpresaDialog
       open={configOpen}
-      onOpenChange={setConfigOpen}
-      empresaId={empresaId}
-      empresaNome={empresaNome}
-      movimentacaoId={movimentacaoId}
+      onOpenChange={(v) => {
+        setConfigOpen(v);
+        if (!v) setConfigContext(null);
+      }}
+      empresaId={configContext?.empresaId ?? empresaId}
+      empresaNome={configContext?.empresaNome ?? empresaNome}
+      movimentacaoId={configContext?.movimentacaoId ?? movimentacaoId}
       onSaved={() => {
-        void executarIniciarFaturamento();
+        void executarIniciarFaturamento(configContext);
       }}
     />
     </>
