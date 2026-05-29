@@ -440,3 +440,74 @@ function ValorLinha({
     </div>
   );
 }
+
+function HistoricoReajustes({
+  reajustes,
+  possuiEnf,
+  possuiApt,
+}: {
+  reajustes: Reajuste[];
+  possuiEnf: boolean;
+  possuiApt: boolean;
+}) {
+  if (!reajustes || reajustes.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground p-6 text-center rounded-lg border border-dashed">
+        Nenhum reajuste registrado para este contrato.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-border overflow-hidden animate-scale-in">
+      <div className="px-4 py-3 bg-accent/30 border-b border-border flex items-center gap-2">
+        <History className="h-4 w-4 text-primary" />
+        <h3 className="font-semibold">Histórico de Reajustes</h3>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-accent/20">
+            <TableHead className="font-semibold">Ano</TableHead>
+            {possuiEnf && (
+              <TableHead className="font-semibold text-right">Valor Antes (Enf.)</TableHead>
+            )}
+            {possuiApt && (
+              <TableHead className="font-semibold text-right">Valor Antes (Apto.)</TableHead>
+            )}
+            <TableHead className="font-semibold text-right">% Aplicada</TableHead>
+            <TableHead className="font-semibold text-right">Data de Aplicação</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {reajustes.map((r) => (
+            <TableRow key={r.id} className="hover:bg-accent/40 transition-colors">
+              <TableCell className="font-medium">{r.ano}</TableCell>
+              {possuiEnf && (
+                <TableCell className="text-right tabular-nums">
+                  {r.valor_antigo_enfermaria_centavos
+                    ? formatCentavosBRL(r.valor_antigo_enfermaria_centavos)
+                    : "—"}
+                </TableCell>
+              )}
+              {possuiApt && (
+                <TableCell className="text-right tabular-nums">
+                  {r.valor_antigo_apartamento_centavos
+                    ? formatCentavosBRL(r.valor_antigo_apartamento_centavos)
+                    : "—"}
+                </TableCell>
+              )}
+              <TableCell className="text-right">
+                <Badge variant="outline" className="rounded-md tabular-nums">
+                  {Number(r.percentual ?? 0).toFixed(2)}%
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatDateBR(r.data_aplicacao) || "—"}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
