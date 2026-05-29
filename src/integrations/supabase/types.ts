@@ -403,6 +403,8 @@ export type Database = {
           tipo_financeiro: string | null
           tipo_movimentacao: string | null
           updated_at: string
+          valor_apartamento_centavos: number | null
+          valor_enfermaria_centavos: number | null
           vidas: number
         }
         Insert: {
@@ -448,6 +450,8 @@ export type Database = {
           tipo_financeiro?: string | null
           tipo_movimentacao?: string | null
           updated_at?: string
+          valor_apartamento_centavos?: number | null
+          valor_enfermaria_centavos?: number | null
           vidas?: number
         }
         Update: {
@@ -493,6 +497,8 @@ export type Database = {
           tipo_financeiro?: string | null
           tipo_movimentacao?: string | null
           updated_at?: string
+          valor_apartamento_centavos?: number | null
+          valor_enfermaria_centavos?: number | null
           vidas?: number
         }
         Relationships: [
