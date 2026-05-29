@@ -172,22 +172,34 @@ export function ConfigFinanceiraEmpresaDialog({
       if (error) throw error;
 
       // Sincroniza imediatamente a movimentação atual (aba Financeiro)
-      // com o dia de emissão/vencimento informados aqui.
+      // com o dia de emissão/vencimento/tipo informados aqui.
       if (movimentacaoId) {
-        const m = (movimentacao as any) || null;
+        let m: any = movimentacao;
+        if (!m) {
+          const { data: fresh } = await supabase
+            .from("financeiro_movimentacoes")
+            .select("id, dia_emissao, data_vencimento, mes_referencia")
+            .eq("id", movimentacaoId)
+            .maybeSingle();
+          m = fresh;
+        }
         const mes: string | undefined = m?.mes_referencia
           || (m?.data_vencimento ? String(m.data_vencimento).slice(0, 7) : undefined);
         const movPayload: Record<string, unknown> = {
           dia_emissao: v.data_emissao_fatura,
+          tipo_cobranca: tipoNorm,
         };
-        if (mes && /^\d{4}-\d{2}$/.test(mes)) {
+        if (mes && /^\d{4}-\d{2}$/.test(mes) && v.data_vencimento_fatura) {
           movPayload.data_vencimento = `${mes}-${String(v.data_vencimento_fatura).padStart(2, "0")}`;
         }
         const { error: mErr } = await supabase
           .from("financeiro_movimentacoes")
           .update(movPayload as any)
           .eq("id", movimentacaoId);
-        if (mErr) console.warn("Falha ao sincronizar movimentação:", mErr.message);
+        if (mErr) {
+          console.warn("Falha ao sincronizar movimentação:", mErr.message);
+          toast.error("Configurações salvas, mas não foi possível sincronizar a aba Financeiro: " + mErr.message);
+        }
       }
 
       toast.success("Configurações financeiras salvas");
