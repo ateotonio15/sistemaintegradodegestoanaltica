@@ -220,7 +220,14 @@ export function AnexosViewerDialog({
         .eq("periodo", periodo);
       const movOpIds = (movsOp ?? []).map((m) => m.id);
 
-      const [anxFinRes, anxOpRes] = await Promise.all([
+      // 3) Anexos da implantação (contratos a vigenciar)
+      const { data: impls } = await supabase
+        .from("implantacoes_contratos")
+        .select("id")
+        .eq("empresa_id", empresaId!);
+      const implIds = (impls ?? []).map((i: any) => i.id);
+
+      const [anxFinRes, anxOpRes, anxImplRes] = await Promise.all([
         movFinIds.length
           ? supabase
               .from("anexos_financeiro")
@@ -235,10 +242,18 @@ export function AnexosViewerDialog({
               .in("movimentacao_id", movOpIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
+        implIds.length
+          ? supabase
+              .from("implantacao_anexos" as any)
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
+              .in("implantacao_id", implIds)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [] as any[], error: null }),
       ]);
 
       if (anxFinRes.error) throw anxFinRes.error;
       if (anxOpRes.error) throw anxOpRes.error;
+      if ((anxImplRes as any).error) throw (anxImplRes as any).error;
 
       const fin: AnexoRow[] = (anxFinRes.data ?? []).map((a: any) => ({
         ...a,
@@ -250,8 +265,14 @@ export function AnexosViewerDialog({
         bucket: BUCKET_OPERACIONAL,
         origem_label: "Cadastro" as const,
       }));
+      const impl: AnexoRow[] = ((anxImplRes as any).data ?? []).map((a: any) => ({
+        ...a,
+        bucket: BUCKET_IMPLANTACAO,
+        origem_label: "Contrato" as const,
+      }));
 
-      const merged = [...fin, ...op].sort(
+      const merged = [...fin, ...op, ...impl].sort(
+
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
