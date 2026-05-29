@@ -70,6 +70,8 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   email_financeiro_cliente: "",
   observacao_padrao_financeiro: "",
   tipo_financeiro: "",
+  valor_enfermaria_centavos: null,
+  valor_apartamento_centavos: null,
 
 } as any;
 
@@ -200,6 +202,16 @@ export default function Empresas() {
       }
       if (typeof payload.tipo_financeiro === "string" && payload.tipo_financeiro.trim() === "") {
         payload.tipo_financeiro = null;
+      }
+      if (payload.valor_enfermaria_centavos === "" || payload.valor_enfermaria_centavos === undefined) {
+        payload.valor_enfermaria_centavos = null;
+      }
+      if (payload.valor_apartamento_centavos === "" || payload.valor_apartamento_centavos === undefined) {
+        payload.valor_apartamento_centavos = null;
+      }
+      if (payload.tipo_contrato === "ADMINISTRADORA") {
+        payload.valor_enfermaria_centavos = null;
+        payload.valor_apartamento_centavos = null;
       }
       if (editingId) {
         const { error } = await supabase.from("empresas").update(payload).eq("id", editingId);
@@ -350,6 +362,8 @@ export default function Empresas() {
       email_financeiro_cliente: (e as any).email_financeiro_cliente ?? "",
       observacao_padrao_financeiro: (e as any).observacao_padrao_financeiro ?? "",
       tipo_financeiro: (e as any).tipo_financeiro ?? "",
+      valor_enfermaria_centavos: (e as any).valor_enfermaria_centavos ?? null,
+      valor_apartamento_centavos: (e as any).valor_apartamento_centavos ?? null,
 
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
@@ -650,6 +664,52 @@ export default function Empresas() {
                           </span>
                         </div>
                       </div>
+                      {(form as any).tipo_contrato !== "ADMINISTRADORA" && (
+                        <>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Valor Enfermaria (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              inputMode="decimal"
+                              placeholder="0,00"
+                              value={
+                                (form as any).valor_enfermaria_centavos != null
+                                  ? ((form as any).valor_enfermaria_centavos / 100).toString()
+                                  : ""
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const cents = v === "" ? null : Math.round(parseFloat(v.replace(",", ".")) * 100);
+                                setForm({ ...form, valor_enfermaria_centavos: Number.isFinite(cents as number) ? cents : null } as any);
+                              }}
+                              className="rounded-lg"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Valor Apartamento (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              inputMode="decimal"
+                              placeholder="0,00"
+                              value={
+                                (form as any).valor_apartamento_centavos != null
+                                  ? ((form as any).valor_apartamento_centavos / 100).toString()
+                                  : ""
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const cents = v === "" ? null : Math.round(parseFloat(v.replace(",", ".")) * 100);
+                                setForm({ ...form, valor_apartamento_centavos: Number.isFinite(cents as number) ? cents : null } as any);
+                              }}
+                              className="rounded-lg"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Configurações Financeiras — somente admin pode visualizar/editar */}
@@ -1017,6 +1077,22 @@ export default function Empresas() {
                       <DetailRow label="Data de Implantação" value={formatDateBR(detailEmpresa.data_implantacao)} />
                       <DetailRow label="Data de Corte" value={detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : null} />
                       <DetailRow label="Prazo (sem carência)" value={(detailEmpresa as any).prazo} />
+                      <DetailRow
+                        label="Valor Enfermaria"
+                        value={
+                          (detailEmpresa as any).valor_enfermaria_centavos != null
+                            ? ((detailEmpresa as any).valor_enfermaria_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                            : null
+                        }
+                      />
+                      <DetailRow
+                        label="Valor Apartamento"
+                        value={
+                          (detailEmpresa as any).valor_apartamento_centavos != null
+                            ? ((detailEmpresa as any).valor_apartamento_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                            : null
+                        }
+                      />
                       {detailEmpresa.status_empresa === "Inativa" && (
                         <DetailRow label="Data de Rescisão" value={formatDateBR((detailEmpresa as any).data_rescisao)} />
                       )}
