@@ -57,9 +57,10 @@ export const configFinanceiraSchema = z.object({
     .min(1, "Mínimo 1")
     .max(31, "Máximo 31"),
   exige_po_pc: z.boolean(),
-  tipo_financeiro: z.enum(TIPOS_FINANCEIRO as unknown as [string, ...string[]], {
-    errorMap: () => ({ message: "Selecione o tipo" }),
-  }),
+  tipo_financeiro: z
+    .string()
+    .nullable()
+    .optional(),
   email_financeiro_cliente: z
     .string()
     .trim()
