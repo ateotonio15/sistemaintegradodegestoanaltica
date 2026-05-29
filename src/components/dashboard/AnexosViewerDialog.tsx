@@ -125,23 +125,36 @@ export function AnexosViewerDialog({
   const handleIniciarFaturamento = async () => {
     if (!movimentacaoId || !user || !empresaId) return;
     // Valida configurações financeiras obrigatórias da empresa antes de iniciar.
-    const { data: emp, error: empErr } = await supabase
-      .from("empresas")
-      .select(
-        "data_emissao_fatura, data_vencimento_fatura, tipo_financeiro, pagamento_via_deposito, exige_po_pc, config_financeira_confirmada",
-      )
-      .eq("id", empresaId)
-      .maybeSingle();
-    if (empErr) {
-      toast.error("Erro ao validar configurações: " + empErr.message);
-      return;
+    setIniciando(true);
+    try {
+      const { data: emp, error: empErr } = await supabase
+        .from("empresas")
+        .select(
+          "data_emissao_fatura, data_vencimento_fatura, tipo_financeiro, pagamento_via_deposito, exige_po_pc, config_financeira_confirmada",
+        )
+        .eq("id", empresaId)
+        .maybeSingle();
+      if (empErr) {
+        toast.error("Erro ao validar configurações: " + empErr.message);
+        return;
+      }
+      const validacao = validarConfigFinanceira(emp as any);
+      if (!validacao.ok) {
+        // Fecha o dialog externo antes de abrir o de configurações para evitar
+        // problemas de modais Radix aninhados (scroll-lock / pointer-events).
+        toast.info(
+          `Preencha as configurações financeiras antes de iniciar: ${validacao.faltantes.join(", ")}`,
+          { duration: 5000 },
+        );
+        onOpenChange(false);
+        // Pequeno atraso garante que a animação de fechar termine antes de abrir o próximo.
+        setTimeout(() => setConfigOpen(true), 150);
+        return;
+      }
+      await executarIniciarFaturamento();
+    } finally {
+      setIniciando(false);
     }
-    const validacao = validarConfigFinanceira(emp as any);
-    if (!validacao.ok) {
-      setConfigOpen(true);
-      return;
-    }
-    await executarIniciarFaturamento();
   };
 
   const handleCancelarFaturamento = async () => {
