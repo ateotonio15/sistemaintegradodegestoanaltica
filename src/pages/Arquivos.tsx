@@ -290,8 +290,47 @@ export default function Arquivos() {
       }
       c.competencias.get(a.competencia)!.arquivos.push(a);
     }
+
+    // Garante que TODAS as empresas apareçam — inclusive as ainda não implantadas
+    // e as que ainda não têm arquivos — para permitir anexar nota/Excel pendentes
+    // diretamente pela aba Arquivos.
+    const filtrosArquivoAtivos =
+      competenciaFilter !== "todas" ||
+      tipoFilter !== "todos" ||
+      usuarioFilter !== "todos";
+    if (!filtrosArquivoAtivos) {
+      const q = search.trim().toLowerCase();
+      for (const e of empresas) {
+        if (empresaFilter !== "todas" && e.id !== empresaFilter) continue;
+        if (contratoFilter !== "todos" && (e.codigo_contrato ?? "") !== contratoFilter) continue;
+        if (q) {
+          const hay = [e.nome, e.codigo_contrato, e.cnpj]
+            .filter(Boolean).join(" ").toLowerCase();
+          if (!hay.includes(q)) continue;
+        }
+        if (empMap.has(e.id)) continue;
+        const contrato = e.codigo_contrato ?? "Sem contrato";
+        const contratos = new Map<string, Contr>();
+        contratos.set(contrato, {
+          contrato,
+          empresaIds: new Set([e.id]),
+          arquivos: [],
+          competencias: new Map(),
+          ultimoUpload: 0,
+        });
+        empMap.set(e.id, {
+          empresaId: e.id,
+          nome: e.nome,
+          contratos,
+          total: 0,
+          ultimoUpload: 0,
+        });
+      }
+    }
+
     return Array.from(empMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [filtered, empresasMap]);
+  }, [filtered, empresasMap, empresas, empresaFilter, contratoFilter, competenciaFilter, tipoFilter, usuarioFilter, search]);
+
 
   const kpis = useMemo(() => {
     const total = arquivos.length;
@@ -551,7 +590,23 @@ export default function Arquivos() {
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-3">
+                                  {compsOrdenadas.length === 0 ? (
+                                    <div className="py-6 text-center text-sm text-muted-foreground space-y-2">
+                                      <p>Nenhum arquivo anexado ainda para este contrato.</p>
+                                      {canEditFinanceiro && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => openUpload(emp.empresaId)}
+                                        >
+                                          <Plus className="h-4 w-4 mr-1" />
+                                          Anexar nota / Excel
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ) : (
                                   <div className="space-y-3 pl-2">
+
                                     {compsOrdenadas.map((comp) => (
                                       <div key={comp.competencia} className="border rounded-md bg-background">
                                         <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 rounded-t-md">
@@ -631,7 +686,9 @@ export default function Arquivos() {
                                       </div>
                                     ))}
                                   </div>
+                                  )}
                                 </AccordionContent>
+
                               </AccordionItem>
                             );
                           })}
