@@ -82,7 +82,7 @@ export function ConfigFinanceiraEmpresaDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
-        .select("id, dia_emissao, data_vencimento")
+        .select("id, dia_emissao, data_vencimento, mes_referencia")
         .eq("id", movimentacaoId!)
         .maybeSingle();
       if (error) throw error;
@@ -95,7 +95,7 @@ export function ConfigFinanceiraEmpresaDialog({
     forma_pagamento: "DDA",
     data_vencimento_fatura: 0,
     exige_po_pc: false,
-    tipo_financeiro: TIPOS_FINANCEIRO[0],
+    tipo_financeiro: "",
     email_financeiro_cliente: "",
     observacao_padrao_financeiro: "",
     envio_boleto_com_nota: false,
@@ -117,7 +117,8 @@ export function ConfigFinanceiraEmpresaDialog({
     }
     if (!diaVencimento) diaVencimento = e.data_vencimento_fatura ?? 0;
 
-    const tipo = e.tipo_financeiro || TIPOS_FINANCEIRO[0];
+    // Nunca aplica valor padrão automático para "Tipo" — campo vazio = "Nenhum".
+    const tipo = e.tipo_financeiro ?? "";
 
     setForm({
       data_emissao_fatura: diaEmissao,
@@ -152,13 +153,14 @@ export function ConfigFinanceiraEmpresaDialog({
     setSaving(true);
     try {
       const v = parsed.data;
+      const tipoNorm = v.tipo_financeiro && v.tipo_financeiro.trim() ? v.tipo_financeiro : null;
       const { error } = await supabase
         .from("empresas")
         .update({
           data_emissao_fatura: v.data_emissao_fatura,
           data_vencimento_fatura: v.data_vencimento_fatura,
           pagamento_via_deposito: v.forma_pagamento === "Depósito",
-          tipo_financeiro: v.tipo_financeiro,
+          tipo_financeiro: tipoNorm,
           exige_po_pc: v.exige_po_pc,
           email_financeiro_cliente: v.email_financeiro_cliente || null,
           observacao_padrao_financeiro: v.observacao_padrao_financeiro || null,
@@ -169,9 +171,29 @@ export function ConfigFinanceiraEmpresaDialog({
         .eq("id", empresaId);
       if (error) throw error;
 
+      // Sincroniza imediatamente a movimentação atual (aba Financeiro)
+      // com o dia de emissão/vencimento informados aqui.
+      if (movimentacaoId) {
+        const m = (movimentacao as any) || null;
+        const mes: string | undefined = m?.mes_referencia
+          || (m?.data_vencimento ? String(m.data_vencimento).slice(0, 7) : undefined);
+        const movPayload: Record<string, unknown> = {
+          dia_emissao: v.data_emissao_fatura,
+        };
+        if (mes && /^\d{4}-\d{2}$/.test(mes)) {
+          movPayload.data_vencimento = `${mes}-${String(v.data_vencimento_fatura).padStart(2, "0")}`;
+        }
+        const { error: mErr } = await supabase
+          .from("financeiro_movimentacoes")
+          .update(movPayload as any)
+          .eq("id", movimentacaoId);
+        if (mErr) console.warn("Falha ao sincronizar movimentação:", mErr.message);
+      }
+
       toast.success("Configurações financeiras salvas");
       qc.invalidateQueries({ queryKey: ["empresas"] });
       qc.invalidateQueries({ queryKey: ["financeiro"] });
+      qc.invalidateQueries({ queryKey: ["financeiro-operacionais-v2"] });
       qc.invalidateQueries({ queryKey: ["empresa-config-financeira", empresaId] });
       onOpenChange(false);
       onSaved?.();
@@ -250,22 +272,29 @@ export function ConfigFinanceiraEmpresaDialog({
 
                 <div className="space-y-1.5">
                   <Label>
-                    Dia padrão de vencimento <span className="text-destructive">*</span>
+                    Data vencimento <span className="text-destructive">*</span>
                   </Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={form.data_vencimento_fatura || ""}
-                    onChange={(e) =>
+                  <Select
+                    value={form.data_vencimento_fatura ? String(form.data_vencimento_fatura) : "__none__"}
+                    onValueChange={(v) =>
                       setForm((f) => ({
                         ...f,
-                        data_vencimento_fatura: Number(e.target.value) || 0,
+                        data_vencimento_fatura: v === "__none__" ? 0 : Number(v),
                       }))
                     }
-                    placeholder="Dia (1-31)"
-                    className={errors.data_vencimento_fatura ? "border-destructive" : ""}
-                  />
+                  >
+                    <SelectTrigger className={errors.data_vencimento_fatura ? "border-destructive" : ""}>
+                      <SelectValue placeholder="Selecione o dia" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="__none__">Nenhum</SelectItem>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                        <SelectItem key={d} value={String(d)}>
+                          {String(d).padStart(2, "0")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.data_vencimento_fatura && (
                     <p className="text-xs text-destructive">{errors.data_vencimento_fatura}</p>
                   )}
@@ -290,17 +319,18 @@ export function ConfigFinanceiraEmpresaDialog({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>
-                    Tipo <span className="text-destructive">*</span>
-                  </Label>
+                  <Label>Tipo</Label>
                   <Select
-                    value={form.tipo_financeiro}
-                    onValueChange={(v) => setForm((f) => ({ ...f, tipo_financeiro: v }))}
+                    value={form.tipo_financeiro && form.tipo_financeiro.trim() ? form.tipo_financeiro : "__none__"}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, tipo_financeiro: v === "__none__" ? "" : v }))
+                    }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
+                      <SelectValue placeholder="Nenhum" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__none__">Nenhum</SelectItem>
                       {TIPOS_FINANCEIRO.map((t) => (
                         <SelectItem key={t} value={t}>
                           {t}

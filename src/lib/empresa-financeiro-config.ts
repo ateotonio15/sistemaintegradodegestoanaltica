@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 
 export type FormaPagamento = "DDA" | "Depósito";
 
@@ -33,8 +32,7 @@ export function validarConfigFinanceira(
     return { ok: false, faltantes: ["Configurações não encontradas"] };
   }
   if (empresa.data_emissao_fatura == null) faltantes.push("Data de emissão");
-  if (empresa.data_vencimento_fatura == null) faltantes.push("Dia padrão de vencimento");
-  if (!empresa.tipo_financeiro) faltantes.push("Tipo");
+  if (empresa.data_vencimento_fatura == null) faltantes.push("Data vencimento");
   if (!empresa.config_financeira_confirmada) {
     // Forma de pagamento e Exige PO/PC têm default no banco — exigimos confirmação explícita uma vez.
     if (!faltantes.includes("Forma de pagamento")) faltantes.push("Forma de pagamento");
@@ -58,9 +56,10 @@ export const configFinanceiraSchema = z.object({
     .min(1, "Mínimo 1")
     .max(31, "Máximo 31"),
   exige_po_pc: z.boolean(),
-  tipo_financeiro: z.enum(TIPOS_FINANCEIRO as unknown as [string, ...string[]], {
-    errorMap: () => ({ message: "Selecione o tipo" }),
-  }),
+  tipo_financeiro: z
+    .string()
+    .nullable()
+    .optional(),
   email_financeiro_cliente: z
     .string()
     .trim()
