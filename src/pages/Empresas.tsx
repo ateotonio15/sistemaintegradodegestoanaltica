@@ -551,6 +551,11 @@ export default function Empresas() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="sm:col-span-2 flex items-center gap-2 pb-1 mt-2 border-b">
+                        <CalendarIcon className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Datas & Faturamento</h3>
+                        <span className="text-xs text-muted-foreground">· Implantação e dias de fatura</span>
+                      </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Data de Implantação *</Label>
                         <Input type="date" value={dataImplantacao} onChange={(e) => setDataImplantacao(e.target.value)} required className="rounded-lg" />
