@@ -162,9 +162,11 @@ function extrairCnpjsPorNome(wb: ExcelJS.Workbook): Map<string, string> {
   return mapa;
 }
 
+export interface FiltroPagador {
   cnpj?: string | null;
   nome?: string | null;
 }
+
 
 function findColumnIndex(header: unknown[], aliases: string[]): number {
   for (let i = 0; i < header.length; i++) {
