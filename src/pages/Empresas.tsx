@@ -476,10 +476,24 @@ export default function Empresas() {
                 <DialogTrigger asChild>
                   <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl">
-                  <DialogHeader><DialogTitle>{editingId ? "Editar Empresa" : "Nova Empresa"}</DialogTitle></DialogHeader>
-                  <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
+                <DialogContent className="sm:max-w-4xl max-h-[92vh] p-0 rounded-xl overflow-hidden flex flex-col">
+                  <DialogHeader className="px-6 py-4 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 sticky top-0 z-10">
+                    <DialogTitle className="flex items-center gap-2 text-lg">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      {editingId ? "Editar Empresa" : "Nova Empresa"}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs">
+                      Preencha as informações da empresa. Campos com * são obrigatórios.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form
+                    onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }}
+                    className="flex-1 flex flex-col overflow-hidden"
+                  >
+                    <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+                    <SectionHeader title="Identificação" subtitle="Dados básicos da empresa e do contrato" />
                     <div className="grid gap-4 sm:grid-cols-2">
+
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Nome *</Label>
                         <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required className="rounded-lg" />
