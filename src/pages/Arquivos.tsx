@@ -686,7 +686,9 @@ export default function Arquivos() {
                                       </div>
                                     ))}
                                   </div>
+                                  )}
                                 </AccordionContent>
+
                               </AccordionItem>
                             );
                           })}
