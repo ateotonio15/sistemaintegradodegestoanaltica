@@ -160,17 +160,9 @@ function extrairCnpjsPorNome(wb: ExcelJS.Workbook): Map<string, string> {
           // Fallback: célula à esquerda
           if (!nome && i > 0) nome = String(values[i - 1] ?? "").trim();
           if (!nome) continue;
-          const key = norm(nome);
-          if (key && !mapa.has(key)) mapa.set(key, cnpj);
           const key = normMatch(nome);
           if (key && !mapa.has(key)) mapa.set(key, cnpj);
         }
-      });
-    });
-  }
-
-  return mapa;
-}
       });
     });
   }
