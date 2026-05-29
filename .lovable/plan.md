@@ -1,52 +1,35 @@
-# Plano
+# Casar CNPJ do pagador pela aba RESUMO
 
-## 1) Exibir "Contratos a Vigenciar" no Dashboard do Financeiro
+## Causa
 
-Hoje o card `ContratosAVigenciarCard` aparece apenas no Dashboard geral. O Financeiro precisa ver os mesmos contratos novos + anexos (Anexo 1, contrato, etc.) para gerar a primeira nota.
+A planilha do contrato (ex.: `FATURAMENTO - GNL BRASIL JUNHO2026.xlsx`) tem 4 abas:
 
-- Reutilizar o componente `ContratosAVigenciarCard` em `src/components/dashboard/DashboardFinanceiro.tsx`, colocando-o numa seção própria (ex.: acima de "Faturamentos Enviados / Vencimento").
-- A RLS atual já permite leitura: a policy `Scoped read impl anexos` em `implantacao_anexos` inclui o role `financeiro`, então o Financeiro consegue ver e baixar os anexos sem novas migrations.
-- No card, o Financeiro **não** deve poder anexar/excluir. A flag `canManage` já é `isAdmin || comum || administradoras || vendas` — o Financeiro entra automaticamente como visualização. Não há mudança necessária.
+- `RELATORIO BENEFICIARIOS` — 1 linha por beneficiário, com `Contrato`, `Contratante`, `Plano`, `Mensalidade`. **Não tem coluna de CNPJ.**
+- `ADESAO`, `EXCLUSAO ` — adesões/exclusões do mês.
+- `RESUMO` — bloco com `Empresa/Módulo`, `Qtd`, `Mensalidade`, `Valor` e a linha do pagador no formato `GNL BRASIL LOGISTICA S.A 47.548.779/0001-48`.
 
-## 2) Não incluir contratos novos na movimentação do mês se a vigência já passou do período
+Hoje `analisarExcelFinanceiroPorCnpj` só lê `wb.worksheets[0]` (a aba de beneficiários). Como ali não há coluna CNPJ, o bloco é criado com `cnpj = ""`, agrupado só por nome. Depois `filtrarPorPagador` busca pelo CNPJ cadastrado, não acha e cai no placeholder "CNPJ ... não localizado na planilha do contrato" / "Nenhuma categoria identificada".
 
-Hoje:
-- `Dashboard.handleGenerateAll` (provisiona `movimentacoes` operacionais) só checa `status_empresa === "Ativa"` — não olha `data_implantacao`.
-- `Financeiro.provisionarMutation` (provisiona `financeiro_movimentacoes`) também não olha `data_implantacao`.
+## O que muda
 
-Regra nova (aplicada nos dois provisionamentos):
-- Para cada empresa com `data_implantacao` definida:
-  - Se `data_implantacao` está **depois** do mês de referência → pula (já é tratado implicitamente, mas explicitar).
-  - Se `data_implantacao` está **dentro** do mês de referência e seu dia é **maior** que o dia final do período da empresa (ex.: vigência 20/05, período `10-15`, fim do período = 15) → pula a geração desse mês. A movimentação só será criada a partir do mês subsequente.
-  - Se `data_implantacao <= dia final do período` no mês de referência → gera normalmente.
-- Para período `Diária` (data_corte): mesma lógica usando o fim do período derivado via `periodoDaDataCorte(emp.data_corte)`.
+Enriquecer os blocos com o CNPJ extraído da aba `RESUMO` (e como fallback `ADESAO`/`EXCLUSAO`), casando pelo nome do pagador. Sem mudar a lógica de classificação de planos nem de inclusões/exclusões — o `Master Empresarial` já é classificado como Enfermaria pelo classificador atual.
 
-Aplicar a checagem:
-- `src/pages/Dashboard.tsx` em `handleGenerateAll` antes do `toInsert.push(...)`.
-- `src/pages/Financeiro.tsx` em `provisionarMutation` antes do `periodos.add(base)` (apenas para o caminho "Ativa" e quando há `data_implantacao`).
+### Em `src/lib/excel-analysis-utils.ts`
 
-## Detalhes técnicos
+1. Adicionar helper `extrairCnpjsPorNome(wb)` que percorre todas as worksheets e:
+   - Faz match do regex `\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b` em qualquer célula string.
+   - Para cada match, pega o trecho antes do CNPJ (mesma célula ou célula vizinha à esquerda) como "nome do pagador" e normaliza com `norm(...)`.
+   - Devolve um `Map<string, string>` de `nomeNormalizado → cnpj14dig`.
+   - Prioriza a aba cujo nome contenha `resumo`.
 
-- Mapa de fim de período (já existe em `DashboardFinanceiro.tsx`):
-  ```ts
-  const PERIODO_FIM = { "01-05":5, "05-10":10, "10-15":15, "15-20":20, "20-25":25, "25-30":30 };
-  ```
-  Centralizar/importar em `src/lib/movimentacao-utils.ts` ou duplicar localmente nos dois arquivos (a versão mínima é duplicar para manter o escopo da mudança).
-- Helper:
-  ```ts
-  function vigenciaDentroDoPeriodo(dataImplantacao, mesRef, periodo) {
-    if (!dataImplantacao) return true;
-    const [yi, mi, di] = dataImplantacao.split("-").map(Number);
-    const [yr, mr] = mesRef.split("-").map(Number);
-    if (yi > yr || (yi === yr && mi > mr)) return false; // implantação em mês futuro
-    if (yi < yr || (yi === yr && mi < mr)) return true;  // implantação em mês anterior
-    return di <= (PERIODO_FIM[periodo] ?? 31);            // mesmo mês: respeita dia
-  }
-  ```
+2. Em `analisarExcelFinanceiroPorCnpj`, após montar `blocos`:
+   - Para cada bloco sem `cnpj`, tentar casar `norm(bloco.nome)` com as chaves do mapa (igualdade, `includes` em qualquer direção). Se casar, preencher `bloco.cnpj` e `bloco.nomeExibicao = formatNomeComCnpj(bloco.nome, cnpj)`.
+   - Remover/atualizar o aviso `"CNPJ não identificado nesta linha — usando apenas o nome."` quando enriquecido.
+
+3. Manter `analisarExcelFinanceiroPorPagador` (filtro por pagador único) inalterado por enquanto — o consumo no fluxo "por CNPJ" passa a funcionar via passo 2.
 
 ## Arquivos afetados
-- `src/components/dashboard/DashboardFinanceiro.tsx` — incluir `<ContratosAVigenciarCard />`.
-- `src/pages/Dashboard.tsx` — filtro de vigência em `handleGenerateAll`.
-- `src/pages/Financeiro.tsx` — filtro de vigência em `provisionarMutation`.
 
-Sem migrations / sem mudanças de RLS.
+- `src/lib/excel-analysis-utils.ts` — novo helper + enriquecimento dos blocos.
+
+Sem mudanças de schema, RLS, UI ou edge functions.
