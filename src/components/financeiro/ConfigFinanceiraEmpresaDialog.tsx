@@ -323,11 +323,23 @@ export function ConfigFinanceiraEmpresaDialog({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>Pagadores vinculados</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Pagadores são gerenciados na tela do Financeiro pelo botão "Pagadores" da
-                    empresa.
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPagadoresOpen(true)}
+                      disabled={!empresaId}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Gerenciar pagadores
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Cadastre, edite ou remova os pagadores desta empresa.
+                    </p>
+                  </div>
                 </div>
+
 
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>E-mail financeiro do cliente</Label>
