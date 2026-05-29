@@ -21,14 +21,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Info, Loader2, Receipt, Settings2, Users } from "lucide-react";
+import { AlertTriangle, Info, Loader2, Receipt, Settings2 } from "lucide-react";
+
 import { toast } from "sonner";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import {
   configFinanceiraSchema,
   type ConfigFinanceiraFormValues,
 } from "@/lib/empresa-financeiro-config";
-import { GerenciarPagadoresDialog } from "@/components/financeiro/GerenciarPagadoresDialog";
 
 
 interface Props {
@@ -58,7 +58,6 @@ export function ConfigFinanceiraEmpresaDialog({
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
-  const [pagadoresOpen, setPagadoresOpen] = useState(false);
 
   const { data: empresa, isLoading } = useQuery({
     queryKey: ["empresa-config-financeira", empresaId],
@@ -415,14 +414,8 @@ export function ConfigFinanceiraEmpresaDialog({
           </form>
         )}
       </DialogContent>
-
-      <GerenciarPagadoresDialog
-        open={pagadoresOpen}
-        onOpenChange={setPagadoresOpen}
-        empresaId={empresaId}
-        empresaNome={empresaNome}
-      />
     </Dialog>
+
   );
 }
 
