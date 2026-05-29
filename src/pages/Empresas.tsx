@@ -203,6 +203,16 @@ export default function Empresas() {
       if (typeof payload.tipo_financeiro === "string" && payload.tipo_financeiro.trim() === "") {
         payload.tipo_financeiro = null;
       }
+      if (payload.valor_enfermaria_centavos === "" || payload.valor_enfermaria_centavos === undefined) {
+        payload.valor_enfermaria_centavos = null;
+      }
+      if (payload.valor_apartamento_centavos === "" || payload.valor_apartamento_centavos === undefined) {
+        payload.valor_apartamento_centavos = null;
+      }
+      if (payload.tipo_contrato === "ADMINISTRADORA") {
+        payload.valor_enfermaria_centavos = null;
+        payload.valor_apartamento_centavos = null;
+      }
       if (editingId) {
         const { error } = await supabase.from("empresas").update(payload).eq("id", editingId);
         if (error) throw error;
