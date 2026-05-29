@@ -366,6 +366,7 @@ export default function Empresas() {
       tipo_financeiro: (e as any).tipo_financeiro ?? "",
       valor_enfermaria_centavos: (e as any).valor_enfermaria_centavos ?? null,
       valor_apartamento_centavos: (e as any).valor_apartamento_centavos ?? null,
+      faixas_etarias: (e as any).faixas_etarias ?? null,
 
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
