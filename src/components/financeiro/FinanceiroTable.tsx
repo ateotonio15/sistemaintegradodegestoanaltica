@@ -63,7 +63,7 @@ interface Props {
   readOnly?: boolean;
 }
 
-const COL_COUNT = 13;
+const COL_COUNT = 14;
 
 export function FinanceiroTable({
   rows,
@@ -101,6 +101,7 @@ export function FinanceiroTable({
             
             <TableHead className="font-semibold text-center">Contrato</TableHead>
             <TableHead className="font-semibold text-center">CNPJ</TableHead>
+            <TableHead className="font-semibold text-center">Número de vidas</TableHead>
             <TableHead className="font-semibold text-center">Período / Corte</TableHead>
             <TableHead className="font-semibold text-center">Responsável</TableHead>
             <TableHead className="font-semibold text-center">Tipo</TableHead>
@@ -178,6 +179,9 @@ export function FinanceiroTable({
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground text-center">
                       {row.empresa_cnpj || "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-center">
+                      {row.empresa_vidas != null ? row.empresa_vidas.toLocaleString("pt-BR") : "—"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap text-center">
                       {row.periodo_corte}
