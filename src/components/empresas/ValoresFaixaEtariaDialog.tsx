@@ -198,6 +198,10 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
                 reajuste={reajuste}
                 possuiEnf={possuiEnf}
                 possuiApt={possuiApt}
+                valorEnfAntes={reajuste?.valor_antigo_enfermaria_centavos ?? valorEnfBase}
+                valorAptAntes={reajuste?.valor_antigo_apartamento_centavos ?? valorAptBase}
+                valorEnfAtual={reajuste?.valor_final_enfermaria_centavos ?? valorEnfBase}
+                valorAptAtual={reajuste?.valor_final_apartamento_centavos ?? valorAptBase}
               />
               {!reajuste && (
                 <p className="text-xs text-muted-foreground mt-3 italic">
