@@ -322,26 +322,6 @@ export function ConfigFinanceiraEmpresaDialog({
               <h3 className="text-sm font-semibold text-foreground">Dados complementares</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Pagadores vinculados</Label>
-                  <div className="flex items-start gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPagadoresOpen(true)}
-                      disabled={!empresaId}
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Gerenciar pagadores
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Cadastre, edite ou remova os pagadores desta empresa.
-                    </p>
-                  </div>
-                </div>
-
-
-                <div className="space-y-1.5 sm:col-span-2">
                   <Label>E-mail financeiro do cliente</Label>
                   <Input
                     type="email"
