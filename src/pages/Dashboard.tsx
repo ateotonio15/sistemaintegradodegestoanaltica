@@ -554,12 +554,17 @@ export default function Dashboard() {
   const pendentes = periodItems.filter((m) => m.status === "Aguardando envio" || m.status === "Fora do prazo").length;
   const concluidas = periodItems.filter((m) => m.status === "Enviado ao financeiro").length;
 
+  const sortByEmpresaNome = <T extends { empresas?: { nome?: string | null } | null }>(arr: T[]) =>
+    [...arr].sort((a, b) =>
+      (a.empresas?.nome ?? "").localeCompare(b.empresas?.nome ?? "", "pt-BR", { sensitivity: "base" }),
+    );
+
   const listaTrabalho = useMemo(() => {
-    return periodItems.filter((m) => m.status !== "Enviado ao financeiro");
+    return sortByEmpresaNome(periodItems.filter((m) => m.status !== "Enviado ao financeiro"));
   }, [periodItems]);
 
   const listaConcluidas = useMemo(() => {
-    return periodItems.filter((m) => m.status === "Enviado ao financeiro");
+    return sortByEmpresaNome(periodItems.filter((m) => m.status === "Enviado ao financeiro"));
   }, [periodItems]);
 
   const concluidasKeys = useMemo(
