@@ -1260,7 +1260,7 @@ export default function Dashboard() {
                     <Input type="date" value={empresaEditForm.data_implantacao} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, data_implantacao: e.target.value })} className="rounded-lg" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Dia Vencimento Fatura (1-31)</Label>
+                    <Label className="text-sm font-medium">Data vencimento (01-31)</Label>
                     <Input type="number" min={1} max={31} value={empresaEditForm.data_vencimento_fatura} onChange={(e) => setEmpresaEditForm({ ...empresaEditForm, data_vencimento_fatura: e.target.value ? Number(e.target.value) : "" })} placeholder="Ex: 10" className="rounded-lg" />
                   </div>
                   <div className="space-y-2">
