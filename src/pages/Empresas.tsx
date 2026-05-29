@@ -352,6 +352,8 @@ export default function Empresas() {
       email_financeiro_cliente: (e as any).email_financeiro_cliente ?? "",
       observacao_padrao_financeiro: (e as any).observacao_padrao_financeiro ?? "",
       tipo_financeiro: (e as any).tipo_financeiro ?? "",
+      valor_enfermaria_centavos: (e as any).valor_enfermaria_centavos ?? null,
+      valor_apartamento_centavos: (e as any).valor_apartamento_centavos ?? null,
 
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
