@@ -77,8 +77,17 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
   const faixas = data?.faixas ?? [];
   const implantacao = data?.implantacao ?? null;
 
-  const implFaixas = (implantacao?.faixas_etarias && typeof implantacao.faixas_etarias === "object"
-    ? implantacao.faixas_etarias as {
+  // Fallback: usa valores da própria empresa quando não há implantação registrada
+  const empresaValorEnf = (empresa as any)?.valor_enfermaria_centavos ?? 0;
+  const empresaValorApt = (empresa as any)?.valor_apartamento_centavos ?? 0;
+  const empresaFaixas = (empresa as any)?.faixas_etarias ?? null;
+
+  const valorEnfBase = implantacao?.valor_enfermaria_centavos ?? empresaValorEnf ?? 0;
+  const valorAptBase = implantacao?.valor_apartamento_centavos ?? empresaValorApt ?? 0;
+  const faixasBase = implantacao?.faixas_etarias ?? empresaFaixas ?? null;
+
+  const implFaixas = (faixasBase && typeof faixasBase === "object"
+    ? faixasBase as {
         enfermaria?: Array<{ centavos: number }>;
         apartamento?: Array<{ centavos: number }>;
       }
@@ -88,10 +97,11 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
 
   const possuiEnf = reajuste
     ? (reajuste.possui_enfermaria ?? false)
-    : ((implantacao?.valor_enfermaria_centavos ?? 0) > 0 || implTemEnfFaixa);
+    : ((valorEnfBase ?? 0) > 0 || implTemEnfFaixa);
   const possuiApt = reajuste
     ? (reajuste.possui_apartamento ?? false)
-    : ((implantacao?.valor_apartamento_centavos ?? 0) > 0 || implTemAptFaixa);
+    : ((valorAptBase ?? 0) > 0 || implTemAptFaixa);
+
 
   // Pivot faixas por (idade_inicial, idade_final) — primeiro tenta reajuste_faixas
   const faixasPivot = (() => {
@@ -107,9 +117,9 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
       map.set(key, row);
     }
 
-    // Fallback: usa faixas_etarias da implantação se não há reajuste
-    if (map.size === 0 && implantacao?.faixas_etarias && typeof implantacao.faixas_etarias === "object") {
-      const fe = implantacao.faixas_etarias as {
+    // Fallback: usa faixas_etarias da implantação/empresa se não há reajuste
+    if (map.size === 0 && faixasBase && typeof faixasBase === "object") {
+      const fe = faixasBase as {
         enfermaria?: Array<{ ini: number; fim: number; centavos: number }>;
         apartamento?: Array<{ ini: number; fim: number; centavos: number }>;
       };
@@ -132,11 +142,12 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
   })();
 
   const faixasObservacao =
-    !reajuste && implantacao?.faixas_etarias && typeof implantacao.faixas_etarias === "object" && !Array.isArray(implantacao.faixas_etarias)
-      ? ((implantacao.faixas_etarias as { observacao?: string }).observacao ?? "")
+    !reajuste && faixasBase && typeof faixasBase === "object" && !Array.isArray(faixasBase)
+      ? ((faixasBase as { observacao?: string }).observacao ?? "")
       : "";
 
-  const semDados = !reajuste && !implantacao;
+  const semDados = !reajuste && !implantacao && valorEnfBase === 0 && valorAptBase === 0 && !implTemEnfFaixa && !implTemAptFaixa;
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -191,11 +202,11 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
                 <ValoresCard
                   titulo="Enfermaria"
                   icon={<BedDouble className="h-4 w-4" />}
-                  atual={reajuste?.valor_antigo_enfermaria_centavos ?? implantacao?.valor_enfermaria_centavos ?? 0}
+                  atual={reajuste?.valor_antigo_enfermaria_centavos ?? valorEnfBase}
                   percentual={reajuste?.percentual ?? 0}
                   reajustado={reajuste?.valor_reajustado_enfermaria_centavos ?? 0}
                   retroativo={reajuste?.valor_retroativo_enfermaria_centavos ?? 0}
-                  final={reajuste?.valor_final_enfermaria_centavos ?? implantacao?.valor_enfermaria_centavos ?? 0}
+                  final={reajuste?.valor_final_enfermaria_centavos ?? valorEnfBase}
                   semReajuste={!reajuste}
                 />
               ) : (
@@ -208,11 +219,11 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
                 <ValoresCard
                   titulo="Apartamento"
                   icon={<Hotel className="h-4 w-4" />}
-                  atual={reajuste?.valor_antigo_apartamento_centavos ?? implantacao?.valor_apartamento_centavos ?? 0}
+                  atual={reajuste?.valor_antigo_apartamento_centavos ?? valorAptBase}
                   percentual={reajuste?.percentual ?? 0}
                   reajustado={reajuste?.valor_reajustado_apartamento_centavos ?? 0}
                   retroativo={reajuste?.valor_retroativo_apartamento_centavos ?? 0}
-                  final={reajuste?.valor_final_apartamento_centavos ?? implantacao?.valor_apartamento_centavos ?? 0}
+                  final={reajuste?.valor_final_apartamento_centavos ?? valorAptBase}
                   semReajuste={!reajuste}
                 />
               ) : (
