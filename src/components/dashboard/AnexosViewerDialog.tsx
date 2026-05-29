@@ -415,6 +415,7 @@ export function AnexosViewerDialog({
       onOpenChange={setConfigOpen}
       empresaId={empresaId}
       empresaNome={empresaNome}
+      movimentacaoId={movimentacaoId}
       onSaved={() => {
         void executarIniciarFaturamento();
       }}
@@ -422,3 +423,4 @@ export function AnexosViewerDialog({
     </>
   );
 }
+
