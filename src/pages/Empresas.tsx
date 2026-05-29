@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet } from "lucide-react";
 import { PERIODOS } from "@/lib/movimentacao-utils";
+import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
