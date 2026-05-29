@@ -680,6 +680,11 @@ export default function Empresas() {
                           </div>
                         </>
                       )}
+                      <div className="sm:col-span-2 flex items-center gap-2 pb-1 mt-2 border-b">
+                        <Wallet className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Configurações & Valores</h3>
+                        <span className="text-xs text-muted-foreground">· Status, faixa etária e valores</span>
+                      </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Status da Empresa</Label>
                         <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>
