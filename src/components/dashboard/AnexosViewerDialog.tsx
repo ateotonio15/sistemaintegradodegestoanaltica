@@ -42,6 +42,7 @@ interface Props {
 
 const BUCKET_FINANCEIRO = "anexos-financeiro";
 const BUCKET_OPERACIONAL = "anexos-movimentacoes";
+const BUCKET_IMPLANTACAO = "anexos-implantacao";
 
 
 type AnexoRow = {
@@ -52,8 +53,9 @@ type AnexoRow = {
   uploaded_by: string | null;
   uploader_nome?: string | null;
   bucket: string;
-  origem_label: "Financeiro" | "Cadastro";
+  origem_label: "Financeiro" | "Cadastro" | "Contrato";
 };
+
 
 export function AnexosViewerDialog({
   open,
