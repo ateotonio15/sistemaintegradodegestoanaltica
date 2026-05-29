@@ -20,6 +20,8 @@ import {
 import { formatBRL } from "@/lib/excel-analysis-utils";
 import { formatMesReferencia } from "@/lib/financeiro-utils";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AnaliseCompetenciaPanel } from "./AnaliseCompetenciaPanel";
 
 interface Props {
   open: boolean;
