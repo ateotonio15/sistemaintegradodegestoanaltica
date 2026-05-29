@@ -187,6 +187,9 @@ export default function Empresas() {
           || usuarios.find((u) => u.user_id === payload.responsavel_user_id);
         payload.responsavel_contrato = selectedUser?.display_name || payload.responsavel_contrato;
       }
+      if (typeof payload.tipo_financeiro === "string" && payload.tipo_financeiro.trim() === "") {
+        payload.tipo_financeiro = null;
+      }
       if (editingId) {
         const { error } = await supabase.from("empresas").update(payload).eq("id", editingId);
         if (error) throw error;
