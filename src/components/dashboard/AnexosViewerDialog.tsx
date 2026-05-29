@@ -68,8 +68,9 @@ export function AnexosViewerDialog({
   const { user } = useAuth();
   const [iniciando, setIniciando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
 
-  const handleIniciarFaturamento = async () => {
+  const executarIniciarFaturamento = async () => {
     if (!movimentacaoId || !user) return;
     setIniciando(true);
     try {
@@ -91,6 +92,27 @@ export function AnexosViewerDialog({
         .eq("id", movimentacaoId);
       if (error) throw error;
 
+      // Busca flags da empresa para exibir avisos pós-início.
+      if (empresaId) {
+        const { data: emp } = await supabase
+          .from("empresas")
+          .select("exige_po_pc, exige_relatorio_antes_nota")
+          .eq("id", empresaId)
+          .maybeSingle();
+        if ((emp as any)?.exige_po_pc) {
+          toast.warning(
+            "Esta empresa exige PO/PC. O faturamento deve ser enviado para validação da empresa antes da emissão da nota.",
+            { duration: 8000 },
+          );
+        }
+        if ((emp as any)?.exige_relatorio_antes_nota) {
+          toast.warning(
+            "Esta empresa exige envio de relatório antes da emissão da nota.",
+            { duration: 8000 },
+          );
+        }
+      }
+
       toast.success("Faturamento iniciado");
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
     } catch (e: any) {
@@ -98,6 +120,28 @@ export function AnexosViewerDialog({
     } finally {
       setIniciando(false);
     }
+  };
+
+  const handleIniciarFaturamento = async () => {
+    if (!movimentacaoId || !user || !empresaId) return;
+    // Valida configurações financeiras obrigatórias da empresa antes de iniciar.
+    const { data: emp, error: empErr } = await supabase
+      .from("empresas")
+      .select(
+        "data_emissao_fatura, data_vencimento_fatura, tipo_financeiro, pagamento_via_deposito, exige_po_pc, config_financeira_confirmada",
+      )
+      .eq("id", empresaId)
+      .maybeSingle();
+    if (empErr) {
+      toast.error("Erro ao validar configurações: " + empErr.message);
+      return;
+    }
+    const validacao = validarConfigFinanceira(emp as any);
+    if (!validacao.ok) {
+      setConfigOpen(true);
+      return;
+    }
+    await executarIniciarFaturamento();
   };
 
   const handleCancelarFaturamento = async () => {
