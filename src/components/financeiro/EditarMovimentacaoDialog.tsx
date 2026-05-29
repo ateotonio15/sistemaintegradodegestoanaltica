@@ -543,15 +543,69 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="data_nota">Data de envio da nota</Label>
-              <Input
-                id="data_nota"
-                type="date"
-                value={dataEnvioNota}
-                max={hoje}
-                onChange={(e) => setDataEnvioNota(e.target.value)}
-                aria-invalid={!!envioNoFuturo || undefined}
-                className={cn(envioNoFuturo && "border-warning focus-visible:ring-warning")}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="data_nota"
+                    type="button"
+                    variant="outline"
+                    aria-invalid={!!envioNoFuturo || undefined}
+                    className={cn(
+                      "w-full justify-start font-normal",
+                      !dataEnvioNota && "text-muted-foreground",
+                      envioNoFuturo && "border-warning focus-visible:ring-warning",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataEnvioNota ? formatDateBR(dataEnvioNota) : "— Não definida —"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    locale={ptBR}
+                    selected={
+                      dataEnvioNota
+                        ? (() => {
+                            const [y, m, d] = dataEnvioNota.split("-").map(Number);
+                            return new Date(y, (m || 1) - 1, d || 1);
+                          })()
+                        : undefined
+                    }
+                    onSelect={(date) => {
+                      if (!date) {
+                        setDataEnvioNota("");
+                        return;
+                      }
+                      const y = date.getFullYear();
+                      const m = String(date.getMonth() + 1).padStart(2, "0");
+                      const d = String(date.getDate()).padStart(2, "0");
+                      setDataEnvioNota(`${y}-${m}-${d}`);
+                    }}
+                    disabled={{ after: new Date() }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                  <div className="flex items-center justify-between border-t p-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDataEnvioNota("")}
+                    >
+                      Limpar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDataEnvioNota(todayLocalISO())}
+                    >
+                      Hoje
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
               {envioNoFuturo ? (
                 <p className="text-[11px] text-warning flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
