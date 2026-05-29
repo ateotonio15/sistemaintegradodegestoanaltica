@@ -363,6 +363,7 @@ export type Database = {
         Row: {
           cnpj: string | null
           codigo_contrato: string | null
+          config_financeira_confirmada: boolean
           contato_empresa: string | null
           contrato_faixa_etaria: boolean
           contrato_suspenso: boolean
@@ -375,18 +376,23 @@ export type Database = {
           data_vencimento_fatura: number | null
           dia_movimentacao: number | null
           email_empresa: string | null
+          email_financeiro_cliente: string | null
           endereco: string | null
           executiva_user_id: string | null
+          exige_po_pc: boolean
+          exige_relatorio_antes_nota: boolean
           grupo_contrato: string | null
           id: string
           motivo_suspensao: string | null
           nao_faturado_financeiro: boolean
           nome: string
+          observacao_padrao_financeiro: string | null
           observacoes: string | null
           operadora_plano: string | null
           pagamento_via_deposito: boolean
           periodo_movimentacao: string | null
           prazo: string | null
+          regra_prorrogacao: string | null
           responsavel_contrato: string | null
           responsavel_user_id: string | null
           status_empresa: string | null
@@ -400,6 +406,7 @@ export type Database = {
         Insert: {
           cnpj?: string | null
           codigo_contrato?: string | null
+          config_financeira_confirmada?: boolean
           contato_empresa?: string | null
           contrato_faixa_etaria?: boolean
           contrato_suspenso?: boolean
@@ -412,18 +419,23 @@ export type Database = {
           data_vencimento_fatura?: number | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
+          email_financeiro_cliente?: string | null
           endereco?: string | null
           executiva_user_id?: string | null
+          exige_po_pc?: boolean
+          exige_relatorio_antes_nota?: boolean
           grupo_contrato?: string | null
           id?: string
           motivo_suspensao?: string | null
           nao_faturado_financeiro?: boolean
           nome: string
+          observacao_padrao_financeiro?: string | null
           observacoes?: string | null
           operadora_plano?: string | null
           pagamento_via_deposito?: boolean
           periodo_movimentacao?: string | null
           prazo?: string | null
+          regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
           status_empresa?: string | null
@@ -437,6 +449,7 @@ export type Database = {
         Update: {
           cnpj?: string | null
           codigo_contrato?: string | null
+          config_financeira_confirmada?: boolean
           contato_empresa?: string | null
           contrato_faixa_etaria?: boolean
           contrato_suspenso?: boolean
@@ -449,18 +462,23 @@ export type Database = {
           data_vencimento_fatura?: number | null
           dia_movimentacao?: number | null
           email_empresa?: string | null
+          email_financeiro_cliente?: string | null
           endereco?: string | null
           executiva_user_id?: string | null
+          exige_po_pc?: boolean
+          exige_relatorio_antes_nota?: boolean
           grupo_contrato?: string | null
           id?: string
           motivo_suspensao?: string | null
           nao_faturado_financeiro?: boolean
           nome?: string
+          observacao_padrao_financeiro?: string | null
           observacoes?: string | null
           operadora_plano?: string | null
           pagamento_via_deposito?: boolean
           periodo_movimentacao?: string | null
           prazo?: string | null
+          regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
           status_empresa?: string | null
