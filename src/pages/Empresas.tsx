@@ -646,6 +646,11 @@ export default function Empresas() {
                       )}
                       {(form as any).tipo_contrato !== "ADMINISTRADORA" && (
                         <>
+                          <div className="sm:col-span-2 flex items-center gap-2 pb-1 mt-2 border-b animate-fade-in">
+                            <Phone className="h-4 w-4 text-primary" />
+                            <h3 className="text-sm font-semibold">Contato</h3>
+                            <span className="text-xs text-muted-foreground">· Canais e responsável</span>
+                          </div>
                           <div className="space-y-2 animate-fade-in">
                             <Label className="text-sm font-medium">E-mail da Empresa</Label>
                             <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
