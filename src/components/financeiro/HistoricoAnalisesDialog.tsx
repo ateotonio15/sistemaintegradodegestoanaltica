@@ -114,9 +114,6 @@ export function HistoricoAnalisesDialog({
           <div className="relative flex-1 min-w-[260px]">
             <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-          <div className="relative flex-1 min-w-[260px]">
-            <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar empresa, contrato, pagador..."
