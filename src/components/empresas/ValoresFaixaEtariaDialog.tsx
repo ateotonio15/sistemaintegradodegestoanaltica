@@ -333,43 +333,138 @@ function ResumoContrato({
   reajuste,
   possuiEnf,
   possuiApt,
+  valorEnfAntes,
+  valorAptAntes,
+  valorEnfAtual,
+  valorAptAtual,
 }: {
   empresa: Empresa | null;
   reajuste: Reajuste | null;
   possuiEnf: boolean;
   possuiApt: boolean;
+  valorEnfAntes: number;
+  valorAptAntes: number;
+  valorEnfAtual: number;
+  valorAptAtual: number;
 }) {
   const modalidade =
     possuiEnf && possuiApt ? "Enfermaria + Apartamento" : possuiEnf ? "Enfermaria" : possuiApt ? "Apartamento" : "—";
+  const percentual = Number(reajuste?.percentual ?? 0);
+  const temReajuste = !!reajuste;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <InfoCard label="Empresa" value={empresa?.nome || "—"} />
-      <InfoCard label="Código do Contrato" value={empresa?.codigo_contrato || "—"} />
-      <InfoCard label="Tipo de Contrato" value={empresa?.tipo_contrato || "—"} />
-      <InfoCard
-        label="Modalidade"
-        value={
-          <span className="flex items-center gap-2">
-            <Layers className="h-3.5 w-3.5 text-primary" />
-            {modalidade}
-          </span>
-        }
-      />
-      <InfoCard label="Ano do Reajuste" value={reajuste ? String(reajuste.ano) : "—"} />
-      <InfoCard label="Mês do Reajuste" value={reajuste ? (nomeMes(reajuste.mes_reajuste) || "—") : "—"} />
-      <InfoCard label="Data de Aplicação" value={reajuste ? (formatDateBR(reajuste.data_aplicacao) || "—") : "—"} />
-      <InfoCard
-        label="Percentual"
-        value={
-          <Badge variant="outline" className="rounded-md">
-            {Number(reajuste?.percentual ?? 0).toFixed(2)}%
-          </Badge>
-        }
-      />
+    <div className="space-y-4">
+      {/* Hero: valores em destaque */}
+      {(possuiEnf || possuiApt) && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {possuiEnf && (
+            <ValorDestaqueCard
+              titulo="Enfermaria"
+              icon={<BedDouble className="h-4 w-4" />}
+              valorAntes={valorEnfAntes}
+              valorAtual={valorEnfAtual}
+              percentual={percentual}
+              temReajuste={temReajuste}
+            />
+          )}
+          {possuiApt && (
+            <ValorDestaqueCard
+              titulo="Apartamento"
+              icon={<Hotel className="h-4 w-4" />}
+              valorAntes={valorAptAntes}
+              valorAtual={valorAptAtual}
+              percentual={percentual}
+              temReajuste={temReajuste}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Dados do contrato */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <InfoCard label="Empresa" value={empresa?.nome || "—"} />
+        <InfoCard label="Código do Contrato" value={empresa?.codigo_contrato || "—"} />
+        <InfoCard label="Tipo de Contrato" value={empresa?.tipo_contrato || "—"} />
+        <InfoCard
+          label="Modalidade"
+          value={
+            <span className="flex items-center gap-2">
+              <Layers className="h-3.5 w-3.5 text-primary" />
+              {modalidade}
+            </span>
+          }
+        />
+        <InfoCard label="Ano do Reajuste" value={reajuste ? String(reajuste.ano) : "—"} />
+        <InfoCard label="Mês do Reajuste" value={reajuste ? (nomeMes(reajuste.mes_reajuste) || "—") : "—"} />
+        <InfoCard label="Data de Aplicação" value={reajuste ? (formatDateBR(reajuste.data_aplicacao) || "—") : "—"} />
+        <InfoCard
+          label="Percentual"
+          value={
+            <Badge variant="outline" className="rounded-md">
+              {percentual.toFixed(2)}%
+            </Badge>
+          }
+        />
+      </div>
     </div>
   );
 }
+
+function ValorDestaqueCard({
+  titulo,
+  icon,
+  valorAntes,
+  valorAtual,
+  percentual,
+  temReajuste,
+}: {
+  titulo: string;
+  icon: React.ReactNode;
+  valorAntes: number;
+  valorAtual: number;
+  percentual: number;
+  temReajuste: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-gradient-to-br from-accent/20 to-accent/5 p-4 transition-all hover:border-primary/40 hover:shadow-md animate-scale-in">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="p-1.5 rounded-md bg-primary/10 text-primary">{icon}</div>
+        <h3 className="font-semibold text-sm">{titulo}</h3>
+        {temReajuste && (
+          <Badge variant="outline" className="ml-auto rounded-md text-[10px] tabular-nums">
+            +{percentual.toFixed(2)}%
+          </Badge>
+        )}
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            {temReajuste ? "Antes do reajuste" : "Valor da implantação"}
+          </span>
+          <span
+            className={cn(
+              "tabular-nums text-sm",
+              temReajuste ? "text-muted-foreground line-through" : "font-semibold"
+            )}
+          >
+            {formatCentavosBRL(valorAntes)}
+          </span>
+        </div>
+        {temReajuste && (
+          <div className="flex items-baseline justify-between pt-2 border-t border-border/60">
+            <span className="text-[10px] text-primary uppercase tracking-wider font-semibold">
+              Valor atual
+            </span>
+            <span className="tabular-nums text-lg font-bold text-primary">
+              {formatCentavosBRL(valorAtual)}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 function InfoCard({ label, value }: { label: string; value: React.ReactNode }) {
   return (
