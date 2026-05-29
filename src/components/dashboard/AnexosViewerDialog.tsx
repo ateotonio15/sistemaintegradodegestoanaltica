@@ -96,22 +96,29 @@ export function AnexosViewerDialog({
       if (empresaId) {
         const { data: emp } = await supabase
           .from("empresas")
-          .select("exige_po_pc, exige_relatorio_antes_nota")
+          .select("exige_po_pc, envio_boleto_com_nota, observacao_padrao_financeiro")
           .eq("id", empresaId)
           .maybeSingle();
-        if ((emp as any)?.exige_po_pc) {
+        const e = emp as any;
+        if (e?.exige_po_pc) {
           toast.warning(
-            "Esta empresa exige PO/PC. O faturamento deve ser enviado para validação da empresa antes da emissão da nota.",
+            "Esta empresa exige PO/PC. Antes da emissão da nota fiscal, é necessário enviar o faturamento para validação da empresa.",
             { duration: 8000 },
           );
         }
-        if ((emp as any)?.exige_relatorio_antes_nota) {
+        if (e?.envio_boleto_com_nota) {
           toast.warning(
-            "Esta empresa exige envio de relatório antes da emissão da nota.",
+            "Esta empresa exige envio do boleto junto com a nota fiscal.",
             { duration: 8000 },
           );
+        }
+        if (e?.observacao_padrao_financeiro && String(e.observacao_padrao_financeiro).trim()) {
+          toast.info(`Observação desta empresa: ${e.observacao_padrao_financeiro}`, {
+            duration: 10000,
+          });
         }
       }
+
 
       toast.success("Faturamento iniciado");
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
