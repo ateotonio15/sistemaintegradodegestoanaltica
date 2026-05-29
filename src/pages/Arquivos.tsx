@@ -590,7 +590,23 @@ export default function Arquivos() {
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-3">
+                                  {compsOrdenadas.length === 0 ? (
+                                    <div className="py-6 text-center text-sm text-muted-foreground space-y-2">
+                                      <p>Nenhum arquivo anexado ainda para este contrato.</p>
+                                      {canEditFinanceiro && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => openUpload(emp.empresaId)}
+                                        >
+                                          <Plus className="h-4 w-4 mr-1" />
+                                          Anexar nota / Excel
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ) : (
                                   <div className="space-y-3 pl-2">
+
                                     {compsOrdenadas.map((comp) => (
                                       <div key={comp.competencia} className="border rounded-md bg-background">
                                         <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 rounded-t-md">
