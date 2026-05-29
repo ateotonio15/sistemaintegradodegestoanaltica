@@ -7,9 +7,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText, Paperclip, Play, Loader2, CheckCircle2, X } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Download, Eye, FileText, Paperclip, Play, Loader2, CheckCircle2, X, AlertTriangle, Receipt, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
@@ -74,6 +76,11 @@ export function AnexosViewerDialog({
     empresaNome: string;
     movimentacaoId: string;
   } | null>(null);
+  const [avisos, setAvisos] = useState<{
+    exigePoPc: boolean;
+    envioBoletoComNota: boolean;
+    observacao: string | null;
+  } | null>(null);
 
   const executarIniciarFaturamento = async (ctx = configContext) => {
     const targetMovimentacaoId = ctx?.movimentacaoId ?? movimentacaoId;
@@ -107,25 +114,17 @@ export function AnexosViewerDialog({
           .eq("id", targetEmpresaId)
           .maybeSingle();
         const e = emp as any;
-        if (e?.exige_po_pc) {
-          toast.warning(
-            "Esta empresa exige PO/PC. Antes da emissão da nota fiscal, é necessário enviar o faturamento para validação da empresa.",
-            { duration: 8000 },
-          );
-        }
-        if (e?.envio_boleto_com_nota) {
-          toast.warning(
-            "Esta empresa exige envio do boleto junto com a nota fiscal.",
-            { duration: 8000 },
-          );
-        }
-        if (e?.observacao_padrao_financeiro && String(e.observacao_padrao_financeiro).trim()) {
-          toast.info(`Observação desta empresa: ${e.observacao_padrao_financeiro}`, {
-            duration: 10000,
-          });
+        const exigePoPc = !!e?.exige_po_pc;
+        const envioBoletoComNota = !!e?.envio_boleto_com_nota;
+        const observacao =
+          e?.observacao_padrao_financeiro && String(e.observacao_padrao_financeiro).trim()
+            ? String(e.observacao_padrao_financeiro)
+            : null;
+
+        if (exigePoPc || envioBoletoComNota || observacao) {
+          setAvisos({ exigePoPc, envioBoletoComNota, observacao });
         }
       }
-
 
       toast.success("Faturamento iniciado");
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
@@ -432,6 +431,56 @@ export function AnexosViewerDialog({
         void executarIniciarFaturamento(configContext);
       }}
     />
+
+    <Dialog open={!!avisos} onOpenChange={(v) => !v && setAvisos(null)}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-warning" />
+            Avisos importantes desta empresa
+          </DialogTitle>
+          <DialogDescription>
+            Atenção aos requisitos abaixo antes de prosseguir com o faturamento de{" "}
+            <span className="font-medium text-foreground">{empresaNome}</span>.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          {avisos?.exigePoPc && (
+            <Alert className="border-warning/50 bg-warning/10">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <AlertTitle>PO/PC obrigatório</AlertTitle>
+              <AlertDescription>
+                Antes da emissão da nota fiscal, é necessário enviar o faturamento para
+                validação da empresa.
+              </AlertDescription>
+            </Alert>
+          )}
+          {avisos?.envioBoletoComNota && (
+            <Alert className="border-info/50 bg-info/10">
+              <Receipt className="h-4 w-4 text-info" />
+              <AlertTitle>Boleto junto com a nota</AlertTitle>
+              <AlertDescription>
+                Esta empresa exige envio do boleto junto com a nota fiscal.
+              </AlertDescription>
+            </Alert>
+          )}
+          {avisos?.observacao && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Observação desta empresa</AlertTitle>
+              <AlertDescription className="whitespace-pre-wrap">
+                {avisos.observacao}
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button onClick={() => setAvisos(null)}>Entendi</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
