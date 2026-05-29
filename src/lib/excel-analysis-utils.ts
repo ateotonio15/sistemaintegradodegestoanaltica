@@ -88,7 +88,15 @@ const COL_TIPO_COBRANCA = [
 ];
 const COL_VALOR = ["valor", "mensalidade", "valor mensalidade", "vlr", "preco", "valor total"];
 const COL_CNPJ = ["cnpj", "cnpj pagador", "cnpj do pagador", "cnpj empresa"];
-const COL_PAGADOR = ["pagador", "nome pagador", "nome do pagador", "razao social", "razão social", "empresa"];
+const COL_PAGADOR = ["pagador", "nome pagador", "nome do pagador", "razao social", "razão social", "empresa", "contratante", "nome empresa", "nome da empresa"];
+
+/** Normalização "agressiva" para casamento de nomes: remove pontuação e colapsa espaços. */
+function normMatch(s: unknown): string {
+  return norm(s)
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 /** Remove tudo que não é dígito (para comparar CNPJs). */
 export function normalizarCnpj(s: unknown): string {
