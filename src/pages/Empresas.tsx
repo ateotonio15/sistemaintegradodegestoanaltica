@@ -52,7 +52,13 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   contato_empresa: "",
   vidas: 0,
   tipo_contrato: "EMPRESARIAL",
-};
+  exige_po_pc: false,
+  exige_relatorio_antes_nota: false,
+  email_financeiro_cliente: "",
+  observacao_padrao_financeiro: "",
+  regra_prorrogacao: "",
+  tipo_financeiro: "",
+} as any;
 
 export default function Empresas() {
   const [search, setSearch] = useState("");
