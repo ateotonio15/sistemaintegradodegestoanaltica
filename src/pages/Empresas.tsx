@@ -1077,6 +1077,22 @@ export default function Empresas() {
                       <DetailRow label="Data de Implantação" value={formatDateBR(detailEmpresa.data_implantacao)} />
                       <DetailRow label="Data de Corte" value={detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : null} />
                       <DetailRow label="Prazo (sem carência)" value={(detailEmpresa as any).prazo} />
+                      <DetailRow
+                        label="Valor Enfermaria"
+                        value={
+                          (detailEmpresa as any).valor_enfermaria_centavos != null
+                            ? ((detailEmpresa as any).valor_enfermaria_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                            : null
+                        }
+                      />
+                      <DetailRow
+                        label="Valor Apartamento"
+                        value={
+                          (detailEmpresa as any).valor_apartamento_centavos != null
+                            ? ((detailEmpresa as any).valor_apartamento_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                            : null
+                        }
+                      />
                       {detailEmpresa.status_empresa === "Inativa" && (
                         <DetailRow label="Data de Rescisão" value={formatDateBR((detailEmpresa as any).data_rescisao)} />
                       )}
