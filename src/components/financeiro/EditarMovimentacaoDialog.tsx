@@ -654,19 +654,11 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="dia_venc">Data de vencimento (dia)</Label>
-              <Select value={diaVencimento} onValueChange={setDiaVencimento}>
-                <SelectTrigger id="dia_venc">
-                  <SelectValue placeholder="Selecione o dia (01–31)" />
-                </SelectTrigger>
-                <SelectContent className="max-h-64">
-                  <SelectItem value="__none__">— Não definido —</SelectItem>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                    <SelectItem key={d} value={String(d)}>
-                      Dia {String(d).padStart(2, "0")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <DayGridPicker
+                value={diaVencimento && diaVencimento !== "__none__" ? Number(diaVencimento) : null}
+                onChange={(d) => setDiaVencimento(d == null ? "__none__" : String(d))}
+                placeholder="Selecione o dia (01–31)"
+              />
               <p className="text-[11px] text-muted-foreground">
                 Apenas o dia (01–31) do vencimento no Financeiro.
               </p>
