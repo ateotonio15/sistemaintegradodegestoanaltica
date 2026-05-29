@@ -634,6 +634,95 @@ export default function Empresas() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Configurações Financeiras */}
+                    <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold">Configurações Financeiras</h3>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Tipo (Financeiro)</Label>
+                          <Select
+                            value={(form as any).tipo_financeiro || ""}
+                            onValueChange={(v) => setForm({ ...form, tipo_financeiro: v } as any)}
+                          >
+                            <SelectTrigger className="rounded-lg">
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TIPOS_FINANCEIRO.map((t) => (
+                                <SelectItem key={t} value={t}>
+                                  {t}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">E-mail financeiro do cliente</Label>
+                          <Input
+                            type="email"
+                            value={(form as any).email_financeiro_cliente ?? ""}
+                            onChange={(e) =>
+                              setForm({ ...form, email_financeiro_cliente: e.target.value } as any)
+                            }
+                            className="rounded-lg"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Exige PO/PC?</Label>
+                          <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                            <Switch
+                              checked={!!(form as any).exige_po_pc}
+                              onCheckedChange={(v) =>
+                                setForm({ ...form, exige_po_pc: v } as any)
+                              }
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              {(form as any).exige_po_pc ? "Sim" : "Não"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Exige relatório antes da nota?</Label>
+                          <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                            <Switch
+                              checked={!!(form as any).exige_relatorio_antes_nota}
+                              onCheckedChange={(v) =>
+                                setForm({ ...form, exige_relatorio_antes_nota: v } as any)
+                              }
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              {(form as any).exige_relatorio_antes_nota ? "Sim" : "Não"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                          <Label className="text-sm font-medium">Observação padrão (financeiro)</Label>
+                          <Textarea
+                            value={(form as any).observacao_padrao_financeiro ?? ""}
+                            onChange={(e) =>
+                              setForm({ ...form, observacao_padrao_financeiro: e.target.value } as any)
+                            }
+                            className="rounded-lg"
+                            rows={2}
+                          />
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                          <Label className="text-sm font-medium">Regra de prorrogação</Label>
+                          <Textarea
+                            value={(form as any).regra_prorrogacao ?? ""}
+                            onChange={(e) =>
+                              setForm({ ...form, regra_prorrogacao: e.target.value } as any)
+                            }
+                            className="rounded-lg"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Observações</Label>
                       <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="rounded-lg" />
