@@ -398,6 +398,7 @@ export type Database = {
           responsavel_user_id: string | null
           status_empresa: string | null
           telefone_empresa: string | null
+          tem_coparticipacao: boolean
           tipo_contrato: string
           tipo_financeiro: string | null
           tipo_movimentacao: string | null
@@ -442,6 +443,7 @@ export type Database = {
           responsavel_user_id?: string | null
           status_empresa?: string | null
           telefone_empresa?: string | null
+          tem_coparticipacao?: boolean
           tipo_contrato?: string
           tipo_financeiro?: string | null
           tipo_movimentacao?: string | null
@@ -486,6 +488,7 @@ export type Database = {
           responsavel_user_id?: string | null
           status_empresa?: string | null
           telefone_empresa?: string | null
+          tem_coparticipacao?: boolean
           tipo_contrato?: string
           tipo_financeiro?: string | null
           tipo_movimentacao?: string | null
