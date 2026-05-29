@@ -435,6 +435,14 @@ export function ConfigFinanceiraEmpresaDialog({
           </form>
         )}
       </DialogContent>
+
+      <GerenciarPagadoresDialog
+        open={pagadoresOpen}
+        onOpenChange={setPagadoresOpen}
+        empresaId={empresaId}
+        empresaNome={empresaNome}
+      />
     </Dialog>
   );
 }
+
