@@ -284,6 +284,7 @@ export function AnexosViewerDialog({
   const [preview, setPreview] = useState<AnexoRow | null>(null);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
