@@ -957,15 +957,26 @@ export default function Empresas() {
                     )}
 
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Observações</Label>
-                      <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="rounded-lg" />
+                    <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Observações</h3>
+                      </div>
+                      <Textarea
+                        value={form.observacoes ?? ""}
+                        onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                        className="rounded-lg bg-background"
+                        rows={3}
+                        placeholder="Notas internas sobre a empresa…"
+                      />
                     </div>
-                    <div className="flex justify-end gap-2">
+                    </div>
+                    <div className="px-6 py-3 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 flex justify-end gap-2">
                       <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
-                      <Button type="submit" disabled={upsert.isPending} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+                      <Button type="submit" disabled={upsert.isPending} className="rounded-lg min-w-[120px]">{upsert.isPending ? "Salvando..." : (editingId ? "Salvar alterações" : "Cadastrar empresa")}</Button>
                     </div>
                   </form>
+
                 </DialogContent>
               </Dialog>
             </div>
