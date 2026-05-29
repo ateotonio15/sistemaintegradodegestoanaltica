@@ -90,12 +90,30 @@ export function HistoricoAnalisesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[1100px] max-h-[88vh] flex flex-col">
+      <DialogContent className="max-w-[1200px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Histórico de Análises — {formatMesReferencia(mes)}</DialogTitle>
         </DialogHeader>
 
+        <Tabs defaultValue="competencia" className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="self-start">
+            <TabsTrigger value="competencia">Análise por Competência</TabsTrigger>
+            <TabsTrigger value="mes">Histórico do mês</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="competencia" className="flex-1 overflow-auto mt-3">
+            <AnaliseCompetenciaPanel
+              mesInicial={mes}
+              canExecute={canManage}
+              canDelete={canManage}
+            />
+          </TabsContent>
+
+          <TabsContent value="mes" className="flex-1 flex flex-col overflow-hidden mt-3 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[260px]">
+            <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
           <div className="relative flex-1 min-w-[260px]">
             <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
