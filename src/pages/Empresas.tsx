@@ -476,10 +476,29 @@ export default function Empresas() {
                 <DialogTrigger asChild>
                   <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl">
-                  <DialogHeader><DialogTitle>{editingId ? "Editar Empresa" : "Nova Empresa"}</DialogTitle></DialogHeader>
-                  <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
+                <DialogContent className="sm:max-w-4xl max-h-[92vh] p-0 rounded-xl overflow-hidden flex flex-col">
+                  <DialogHeader className="px-6 py-4 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 sticky top-0 z-10">
+                    <DialogTitle className="flex items-center gap-2 text-lg">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      {editingId ? "Editar Empresa" : "Nova Empresa"}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs">
+                      Preencha as informações da empresa. Campos com * são obrigatórios.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form
+                    onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }}
+                    className="flex-1 flex flex-col overflow-hidden"
+                  >
+                    <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
                     <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="sm:col-span-2 flex items-center gap-2 pb-1 border-b">
+                        <Users className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Identificação</h3>
+                        <span className="text-xs text-muted-foreground">· Dados básicos da empresa</span>
+                      </div>
+
+
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Nome *</Label>
                         <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required className="rounded-lg" />
@@ -532,6 +551,11 @@ export default function Empresas() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="sm:col-span-2 flex items-center gap-2 pb-1 mt-2 border-b">
+                        <CalendarIcon className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Datas & Faturamento</h3>
+                        <span className="text-xs text-muted-foreground">· Implantação e dias de fatura</span>
+                      </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Data de Implantação *</Label>
                         <Input type="date" value={dataImplantacao} onChange={(e) => setDataImplantacao(e.target.value)} required className="rounded-lg" />
@@ -551,6 +575,11 @@ export default function Empresas() {
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Vidas Ativas</Label>
                         <Input type="number" min={0} value={(form as any).vidas ?? 0} onChange={(e) => setForm({ ...form, vidas: e.target.value ? Number(e.target.value) : 0 } as any)} placeholder="0" className="rounded-lg" />
+                      </div>
+                      <div className="sm:col-span-2 flex items-center gap-2 pb-1 mt-2 border-b">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Contrato & Movimentação</h3>
+                        <span className="text-xs text-muted-foreground">· Tipo, período e corte</span>
                       </div>
                       <div className="space-y-2 sm:col-span-2">
                         <Label className="text-sm font-medium">Tipo de Contrato *</Label>
@@ -617,6 +646,11 @@ export default function Empresas() {
                       )}
                       {(form as any).tipo_contrato !== "ADMINISTRADORA" && (
                         <>
+                          <div className="sm:col-span-2 flex items-center gap-2 pb-1 mt-2 border-b animate-fade-in">
+                            <Phone className="h-4 w-4 text-primary" />
+                            <h3 className="text-sm font-semibold">Contato</h3>
+                            <span className="text-xs text-muted-foreground">· Canais e responsável</span>
+                          </div>
                           <div className="space-y-2 animate-fade-in">
                             <Label className="text-sm font-medium">E-mail da Empresa</Label>
                             <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
@@ -646,6 +680,11 @@ export default function Empresas() {
                           </div>
                         </>
                       )}
+                      <div className="sm:col-span-2 flex items-center gap-2 pb-1 mt-2 border-b">
+                        <Wallet className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Configurações & Valores</h3>
+                        <span className="text-xs text-muted-foreground">· Status, faixa etária e valores</span>
+                      </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Status da Empresa</Label>
                         <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>
@@ -918,15 +957,26 @@ export default function Empresas() {
                     )}
 
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Observações</Label>
-                      <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="rounded-lg" />
+                    <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Observações</h3>
+                      </div>
+                      <Textarea
+                        value={form.observacoes ?? ""}
+                        onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                        className="rounded-lg bg-background"
+                        rows={3}
+                        placeholder="Notas internas sobre a empresa…"
+                      />
                     </div>
-                    <div className="flex justify-end gap-2">
+                    </div>
+                    <div className="px-6 py-3 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 flex justify-end gap-2">
                       <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
-                      <Button type="submit" disabled={upsert.isPending} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+                      <Button type="submit" disabled={upsert.isPending} className="rounded-lg min-w-[120px]">{upsert.isPending ? "Salvando..." : (editingId ? "Salvar alterações" : "Cadastrar empresa")}</Button>
                     </div>
                   </form>
+
                 </DialogContent>
               </Dialog>
             </div>
