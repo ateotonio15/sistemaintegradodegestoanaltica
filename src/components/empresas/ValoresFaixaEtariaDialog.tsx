@@ -117,9 +117,9 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
       map.set(key, row);
     }
 
-    // Fallback: usa faixas_etarias da implantação se não há reajuste
-    if (map.size === 0 && implantacao?.faixas_etarias && typeof implantacao.faixas_etarias === "object") {
-      const fe = implantacao.faixas_etarias as {
+    // Fallback: usa faixas_etarias da implantação/empresa se não há reajuste
+    if (map.size === 0 && faixasBase && typeof faixasBase === "object") {
+      const fe = faixasBase as {
         enfermaria?: Array<{ ini: number; fim: number; centavos: number }>;
         apartamento?: Array<{ ini: number; fim: number; centavos: number }>;
       };
@@ -142,11 +142,12 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
   })();
 
   const faixasObservacao =
-    !reajuste && implantacao?.faixas_etarias && typeof implantacao.faixas_etarias === "object" && !Array.isArray(implantacao.faixas_etarias)
-      ? ((implantacao.faixas_etarias as { observacao?: string }).observacao ?? "")
+    !reajuste && faixasBase && typeof faixasBase === "object" && !Array.isArray(faixasBase)
+      ? ((faixasBase as { observacao?: string }).observacao ?? "")
       : "";
 
-  const semDados = !reajuste && !implantacao;
+  const semDados = !reajuste && !implantacao && valorEnfBase === 0 && valorAptBase === 0 && !implTemEnfFaixa && !implTemAptFaixa;
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
