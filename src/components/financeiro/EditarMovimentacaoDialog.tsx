@@ -29,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toISODate, formatDateBR } from "@/lib/date-utils";
+import { formatDateBR } from "@/lib/date-utils";
 import {
   type FinanceiroMovimentacao,
   ACCEPTED_FILE_TYPES,
