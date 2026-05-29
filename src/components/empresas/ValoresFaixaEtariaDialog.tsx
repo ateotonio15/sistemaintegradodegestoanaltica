@@ -77,8 +77,17 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
   const faixas = data?.faixas ?? [];
   const implantacao = data?.implantacao ?? null;
 
-  const implFaixas = (implantacao?.faixas_etarias && typeof implantacao.faixas_etarias === "object"
-    ? implantacao.faixas_etarias as {
+  // Fallback: usa valores da própria empresa quando não há implantação registrada
+  const empresaValorEnf = (empresa as any)?.valor_enfermaria_centavos ?? 0;
+  const empresaValorApt = (empresa as any)?.valor_apartamento_centavos ?? 0;
+  const empresaFaixas = (empresa as any)?.faixas_etarias ?? null;
+
+  const valorEnfBase = implantacao?.valor_enfermaria_centavos ?? empresaValorEnf ?? 0;
+  const valorAptBase = implantacao?.valor_apartamento_centavos ?? empresaValorApt ?? 0;
+  const faixasBase = implantacao?.faixas_etarias ?? empresaFaixas ?? null;
+
+  const implFaixas = (faixasBase && typeof faixasBase === "object"
+    ? faixasBase as {
         enfermaria?: Array<{ centavos: number }>;
         apartamento?: Array<{ centavos: number }>;
       }
@@ -88,10 +97,11 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
 
   const possuiEnf = reajuste
     ? (reajuste.possui_enfermaria ?? false)
-    : ((implantacao?.valor_enfermaria_centavos ?? 0) > 0 || implTemEnfFaixa);
+    : ((valorEnfBase ?? 0) > 0 || implTemEnfFaixa);
   const possuiApt = reajuste
     ? (reajuste.possui_apartamento ?? false)
-    : ((implantacao?.valor_apartamento_centavos ?? 0) > 0 || implTemAptFaixa);
+    : ((valorAptBase ?? 0) > 0 || implTemAptFaixa);
+
 
   // Pivot faixas por (idade_inicial, idade_final) — primeiro tenta reajuste_faixas
   const faixasPivot = (() => {
