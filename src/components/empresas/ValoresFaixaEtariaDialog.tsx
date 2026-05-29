@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCentavosBRL, labelFaixa, nomeMes } from "@/lib/reajuste-utils";
 import { formatDateBR } from "@/lib/date-utils";
-import { Wallet, BedDouble, Hotel, Layers } from "lucide-react";
+import { Wallet, BedDouble, Hotel, Layers, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Empresa = Tables<"empresas">;
