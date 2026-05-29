@@ -401,16 +401,17 @@ export function AnexosViewerDialog({
           nomeArquivo={preview.nome_arquivo}
         />
       )}
-
-      <ConfigFinanceiraEmpresaDialog
-        open={configOpen}
-        onOpenChange={setConfigOpen}
-        empresaId={empresaId}
-        empresaNome={empresaNome}
-        onSaved={() => {
-          void executarIniciarFaturamento();
-        }}
-      />
     </Dialog>
+
+    <ConfigFinanceiraEmpresaDialog
+      open={configOpen}
+      onOpenChange={setConfigOpen}
+      empresaId={empresaId}
+      empresaNome={empresaNome}
+      onSaved={() => {
+        void executarIniciarFaturamento();
+      }}
+    />
+    </>
   );
 }
