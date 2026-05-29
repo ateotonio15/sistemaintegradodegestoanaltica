@@ -576,6 +576,11 @@ export default function Empresas() {
                         <Label className="text-sm font-medium">Vidas Ativas</Label>
                         <Input type="number" min={0} value={(form as any).vidas ?? 0} onChange={(e) => setForm({ ...form, vidas: e.target.value ? Number(e.target.value) : 0 } as any)} placeholder="0" className="rounded-lg" />
                       </div>
+                      <div className="sm:col-span-2 flex items-center gap-2 pb-1 mt-2 border-b">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Contrato & Movimentação</h3>
+                        <span className="text-xs text-muted-foreground">· Tipo, período e corte</span>
+                      </div>
                       <div className="space-y-2 sm:col-span-2">
                         <Label className="text-sm font-medium">Tipo de Contrato *</Label>
                         <Select
