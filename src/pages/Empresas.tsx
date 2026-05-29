@@ -664,6 +664,52 @@ export default function Empresas() {
                           </span>
                         </div>
                       </div>
+                      {(form as any).tipo_contrato !== "ADMINISTRADORA" && (
+                        <>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Valor Enfermaria (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              inputMode="decimal"
+                              placeholder="0,00"
+                              value={
+                                (form as any).valor_enfermaria_centavos != null
+                                  ? ((form as any).valor_enfermaria_centavos / 100).toString()
+                                  : ""
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const cents = v === "" ? null : Math.round(parseFloat(v.replace(",", ".")) * 100);
+                                setForm({ ...form, valor_enfermaria_centavos: Number.isFinite(cents as number) ? cents : null } as any);
+                              }}
+                              className="rounded-lg"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Valor Apartamento (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              inputMode="decimal"
+                              placeholder="0,00"
+                              value={
+                                (form as any).valor_apartamento_centavos != null
+                                  ? ((form as any).valor_apartamento_centavos / 100).toString()
+                                  : ""
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const cents = v === "" ? null : Math.round(parseFloat(v.replace(",", ".")) * 100);
+                                setForm({ ...form, valor_apartamento_centavos: Number.isFinite(cents as number) ? cents : null } as any);
+                              }}
+                              className="rounded-lg"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Configurações Financeiras — somente admin pode visualizar/editar */}
