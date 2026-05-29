@@ -17,6 +17,7 @@ import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSprea
 import { PERIODOS } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
+import { FAIXAS_ETARIAS, labelFaixa, formatCentavosBRL } from "@/lib/reajuste-utils";
 import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import { ValoresFaixaEtariaDialog } from "@/components/empresas/ValoresFaixaEtariaDialog";
