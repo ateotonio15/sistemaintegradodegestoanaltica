@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, FileWarning, Loader2, Settings2 } from "lucide-react";
+import { AlertTriangle, Info, Loader2, Receipt, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import {
@@ -61,7 +61,7 @@ export function ConfigFinanceiraEmpresaDialog({
       const { data, error } = await supabase
         .from("empresas")
         .select(
-          "id, nome, data_emissao_fatura, data_vencimento_fatura, pagamento_via_deposito, tipo_financeiro, exige_po_pc, email_financeiro_cliente, observacao_padrao_financeiro, regra_prorrogacao, exige_relatorio_antes_nota, config_financeira_confirmada",
+          "id, nome, data_emissao_fatura, data_vencimento_fatura, pagamento_via_deposito, tipo_financeiro, exige_po_pc, email_financeiro_cliente, observacao_padrao_financeiro, envio_boleto_com_nota, config_financeira_confirmada",
         )
         .eq("id", empresaId!)
         .maybeSingle();
@@ -78,8 +78,7 @@ export function ConfigFinanceiraEmpresaDialog({
     tipo_financeiro: TIPOS_FINANCEIRO[0],
     email_financeiro_cliente: "",
     observacao_padrao_financeiro: "",
-    regra_prorrogacao: "",
-    exige_relatorio_antes_nota: false,
+    envio_boleto_com_nota: false,
   });
 
   useEffect(() => {
@@ -93,8 +92,7 @@ export function ConfigFinanceiraEmpresaDialog({
       tipo_financeiro: e.tipo_financeiro || TIPOS_FINANCEIRO[0],
       email_financeiro_cliente: e.email_financeiro_cliente ?? "",
       observacao_padrao_financeiro: e.observacao_padrao_financeiro ?? "",
-      regra_prorrogacao: e.regra_prorrogacao ?? "",
-      exige_relatorio_antes_nota: !!e.exige_relatorio_antes_nota,
+      envio_boleto_com_nota: !!e.envio_boleto_com_nota,
     });
     setErrors({});
   }, [empresa]);
@@ -110,6 +108,7 @@ export function ConfigFinanceiraEmpresaDialog({
         if (key && !next[key]) next[key] = issue.message;
       }
       setErrors(next);
+      toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
     setErrors({});
@@ -126,8 +125,7 @@ export function ConfigFinanceiraEmpresaDialog({
           exige_po_pc: v.exige_po_pc,
           email_financeiro_cliente: v.email_financeiro_cliente || null,
           observacao_padrao_financeiro: v.observacao_padrao_financeiro || null,
-          regra_prorrogacao: v.regra_prorrogacao || null,
-          exige_relatorio_antes_nota: v.exige_relatorio_antes_nota,
+          envio_boleto_com_nota: v.envio_boleto_com_nota,
           config_financeira_confirmada: true,
         } as any)
         .eq("id", empresaId);
@@ -152,10 +150,11 @@ export function ConfigFinanceiraEmpresaDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings2 className="h-4 w-4 text-primary" />
-            Configurações Financeiras da Empresa
+            Confirmar Configurações Financeiras
           </DialogTitle>
           <DialogDescription>
-            Antes de iniciar o faturamento, confirme os dados financeiros obrigatórios desta empresa.
+            Antes de iniciar o faturamento, confirme os dados financeiros obrigatórios desta
+            empresa. As informações salvas serão usadas como padrão nos próximos faturamentos.
             <span className="block mt-1 font-medium text-foreground">{empresaNome}</span>
           </DialogDescription>
         </DialogHeader>
@@ -181,6 +180,7 @@ export function ConfigFinanceiraEmpresaDialog({
                       setForm((f) => ({ ...f, data_emissao_fatura: Number(e.target.value) || 0 }))
                     }
                     placeholder="Dia (1-31)"
+                    className={errors.data_emissao_fatura ? "border-destructive" : ""}
                   />
                   {errors.data_emissao_fatura && (
                     <p className="text-xs text-destructive">{errors.data_emissao_fatura}</p>
@@ -220,9 +220,13 @@ export function ConfigFinanceiraEmpresaDialog({
                     max={31}
                     value={form.data_vencimento_fatura || ""}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, data_vencimento_fatura: Number(e.target.value) || 0 }))
+                      setForm((f) => ({
+                        ...f,
+                        data_vencimento_fatura: Number(e.target.value) || 0,
+                      }))
                     }
                     placeholder="Dia (1-31)"
+                    className={errors.data_vencimento_fatura ? "border-destructive" : ""}
                   />
                   {errors.data_vencimento_fatura && (
                     <p className="text-xs text-destructive">{errors.data_vencimento_fatura}</p>
@@ -278,6 +282,14 @@ export function ConfigFinanceiraEmpresaDialog({
               <h3 className="text-sm font-semibold text-foreground">Dados complementares</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Pagadores vinculados</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Pagadores são gerenciados na tela do Financeiro pelo botão "Pagadores" da
+                    empresa.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label>E-mail financeiro do cliente</Label>
                   <Input
                     type="email"
@@ -304,20 +316,11 @@ export function ConfigFinanceiraEmpresaDialog({
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Regra de prorrogação</Label>
-                  <Textarea
-                    value={form.regra_prorrogacao ?? ""}
-                    onChange={(e) => setForm((f) => ({ ...f, regra_prorrogacao: e.target.value }))}
-                    rows={2}
-                  />
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Exige relatório antes da nota?</Label>
+                  <Label>Envio do boleto junto com a nota</Label>
                   <Select
-                    value={form.exige_relatorio_antes_nota ? "sim" : "nao"}
+                    value={form.envio_boleto_com_nota ? "sim" : "nao"}
                     onValueChange={(v) =>
-                      setForm((f) => ({ ...f, exige_relatorio_antes_nota: v === "sim" }))
+                      setForm((f) => ({ ...f, envio_boleto_com_nota: v === "sim" }))
                     }
                   >
                     <SelectTrigger>
@@ -329,33 +332,36 @@ export function ConfigFinanceiraEmpresaDialog({
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Pagadores vinculados</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Pagadores são gerenciados na tela do Financeiro pelo botão "Pagadores" da empresa.
-                  </p>
-                </div>
               </div>
             </section>
 
             {form.exige_po_pc && (
-              <Alert variant="default" className="border-warning/50 text-warning-foreground bg-warning/10">
+              <Alert className="border-warning/50 bg-warning/10">
                 <AlertTriangle className="h-4 w-4 text-warning" />
                 <AlertTitle>Atenção: PO/PC obrigatório</AlertTitle>
                 <AlertDescription>
-                  Esta empresa exige PO/PC. O faturamento deve ser enviado para validação da
-                  empresa antes da emissão da nota.
+                  Esta empresa exige PO/PC. Antes da emissão da nota fiscal, é necessário enviar
+                  o faturamento para validação da empresa.
                 </AlertDescription>
               </Alert>
             )}
 
-            {form.exige_relatorio_antes_nota && (
-              <Alert variant="default" className="border-info/50 bg-info/10">
-                <FileWarning className="h-4 w-4 text-info" />
-                <AlertTitle>Relatório prévio obrigatório</AlertTitle>
+            {form.envio_boleto_com_nota && (
+              <Alert className="border-info/50 bg-info/10">
+                <Receipt className="h-4 w-4 text-info" />
+                <AlertTitle>Boleto junto com a nota</AlertTitle>
                 <AlertDescription>
-                  Esta empresa exige envio de relatório antes da emissão da nota.
+                  Esta empresa exige envio do boleto junto com a nota fiscal.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {form.observacao_padrao_financeiro && form.observacao_padrao_financeiro.trim() && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Observação desta empresa</AlertTitle>
+                <AlertDescription className="whitespace-pre-wrap">
+                  {form.observacao_padrao_financeiro}
                 </AlertDescription>
               </Alert>
             )}

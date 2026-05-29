@@ -11,8 +11,7 @@ export interface EmpresaFinanceiroConfig {
   exige_po_pc: boolean;
   email_financeiro_cliente: string | null;
   observacao_padrao_financeiro: string | null;
-  regra_prorrogacao: string | null;
-  exige_relatorio_antes_nota: boolean;
+  envio_boleto_com_nota: boolean;
   config_financeira_confirmada: boolean;
 }
 
@@ -36,7 +35,7 @@ export function validarConfigFinanceira(
   if (empresa.data_vencimento_fatura == null) faltantes.push("Dia padrão de vencimento");
   if (!empresa.tipo_financeiro) faltantes.push("Tipo");
   if (!empresa.config_financeira_confirmada) {
-    // Forma de pagamento e Exige PO/PC têm default no banco — exigimos confirmação explícita.
+    // Forma de pagamento e Exige PO/PC têm default no banco — exigimos confirmação explícita uma vez.
     if (!faltantes.includes("Forma de pagamento")) faltantes.push("Forma de pagamento");
     if (!faltantes.includes("Exige PO/PC?")) faltantes.push("Exige PO/PC?");
   }
@@ -61,10 +60,16 @@ export const configFinanceiraSchema = z.object({
   tipo_financeiro: z.enum(TIPOS_FINANCEIRO as unknown as [string, ...string[]], {
     errorMap: () => ({ message: "Selecione o tipo" }),
   }),
-  email_financeiro_cliente: z.string().trim().max(255).email("E-mail inválido").or(z.literal("")).nullable().optional(),
+  email_financeiro_cliente: z
+    .string()
+    .trim()
+    .max(255)
+    .email("E-mail inválido")
+    .or(z.literal(""))
+    .nullable()
+    .optional(),
   observacao_padrao_financeiro: z.string().trim().max(2000).nullable().optional(),
-  regra_prorrogacao: z.string().trim().max(2000).nullable().optional(),
-  exige_relatorio_antes_nota: z.boolean(),
+  envio_boleto_com_nota: z.boolean(),
 });
 
 export type ConfigFinanceiraFormValues = z.infer<typeof configFinanceiraSchema>;
