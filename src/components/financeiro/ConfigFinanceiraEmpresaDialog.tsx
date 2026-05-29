@@ -106,17 +106,16 @@ export function ConfigFinanceiraEmpresaDialog({
     const e = empresa as any;
     const m = (movimentacao as any) || null;
 
-    // Fallback: se a empresa não tem dia_emissao, usa o da movimentação.
-    const diaEmissao = e.data_emissao_fatura ?? m?.dia_emissao ?? 0;
+    // Prioriza valores da aba Financeiro (movimentação) sobre os da empresa.
+    const diaEmissao = m?.dia_emissao ?? e.data_emissao_fatura ?? 0;
 
-    // Fallback: vencimento como dia (1-31) — empresa.data_vencimento_fatura ou dia de movimentacao.data_vencimento.
-    let diaVencimento: number = e.data_vencimento_fatura ?? 0;
-    if (!diaVencimento && m?.data_vencimento) {
+    let diaVencimento = 0;
+    if (m?.data_vencimento) {
       const match = String(m.data_vencimento).match(/^(\d{4})-(\d{2})-(\d{2})/);
       if (match) diaVencimento = Number(match[3]);
     }
+    if (!diaVencimento) diaVencimento = e.data_vencimento_fatura ?? 0;
 
-    // Tipo: empresa > primeiro tipo da lista
     const tipo = e.tipo_financeiro || TIPOS_FINANCEIRO[0];
 
     setForm({
