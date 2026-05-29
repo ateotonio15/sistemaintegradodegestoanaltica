@@ -49,9 +49,25 @@ export interface ComparacaoSimplificada {
   avisosPdf: string[];
 }
 
+/** Converte valores do ExcelJS em texto, incluindo rich text e fórmulas. */
+function cellToText(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+  if (v instanceof Date) return v.toISOString();
+  if (Array.isArray(v)) return v.map(cellToText).join(" ");
+  if (typeof v === "object") {
+    const any = v as any;
+    if (Array.isArray(any.richText)) return any.richText.map((p: any) => cellToText(p?.text)).join("");
+    if ("result" in any && any.result !== undefined && any.result !== null) return cellToText(any.result);
+    if ("text" in any) return cellToText(any.text);
+    if ("formula" in any) return cellToText(any.formula);
+  }
+  return String(v ?? "");
+}
+
 /** Normaliza string: minúsculo, sem acentos, sem espaços nas pontas. */
 function norm(s: unknown): string {
-  return String(s ?? "")
+  return cellToText(s)
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -65,7 +81,7 @@ function toNumber(v: unknown): number {
   if (typeof v === "object" && v !== null && "result" in (v as any)) {
     return toNumber((v as any).result);
   }
-  let s = String(v).trim();
+  let s = cellToText(v).trim();
   // Remove símbolos de moeda e espaços
   s = s.replace(/[R$\s]/g, "");
   // Se tiver vírgula como decimal: "1.234,56" -> "1234.56"
@@ -132,8 +148,9 @@ export function formatNomeComCnpj(nome: unknown, cnpj: unknown): string {
  *
  * Prioriza a aba cujo nome contenha "resumo".
  */
-function extrairCnpjsPorNome(wb: ExcelJS.Workbook): Map<string, string> {
-  const mapa = new Map<string, string>();
+function extrairCnpjsDoWorkbook(wb: ExcelJS.Workbook): { porNome: Map<string, string>; todos: Set<string> } {
+  const porNome = new Map<string, string>();
+  const todos = new Set<string>();
   const reCnpj = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/g;
 
   const sheets = [...wb.worksheets].sort((a, b) => {
@@ -146,28 +163,29 @@ function extrairCnpjsPorNome(wb: ExcelJS.Workbook): Map<string, string> {
     ws.eachRow({ includeEmpty: false }, (row) => {
       const values = (row.values as unknown[]).slice(1);
       values.forEach((cell, i) => {
-        const s = String(cell ?? "");
+        const s = cellToText(cell);
         if (!s) return;
         let m: RegExpExecArray | null;
         reCnpj.lastIndex = 0;
         while ((m = reCnpj.exec(s)) !== null) {
           const cnpj = normalizarCnpj(m[1]);
           if (cnpj.length !== 14) continue;
+          todos.add(cnpj);
           // Nome candidato: trecho antes do CNPJ na mesma célula
           let nome = s.slice(0, m.index).trim();
           // Limpa prefixos comuns ("EMPRESA :", "Pagador:", etc.)
           nome = nome.replace(/^(empresa|pagador|razao social|razão social)\s*[:\-]\s*/i, "").trim();
           // Fallback: célula à esquerda
-          if (!nome && i > 0) nome = String(values[i - 1] ?? "").trim();
+          if (!nome && i > 0) nome = cellToText(values[i - 1]).trim();
           if (!nome) continue;
           const key = normMatch(nome);
-          if (key && !mapa.has(key)) mapa.set(key, cnpj);
+          if (key && !porNome.has(key)) porNome.set(key, cnpj);
         }
       });
     });
   }
 
-  return mapa;
+  return { porNome, todos };
 }
 
 export interface FiltroPagador {
