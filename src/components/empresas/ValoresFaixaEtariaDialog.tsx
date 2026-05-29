@@ -202,11 +202,11 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
                 <ValoresCard
                   titulo="Enfermaria"
                   icon={<BedDouble className="h-4 w-4" />}
-                  atual={reajuste?.valor_antigo_enfermaria_centavos ?? implantacao?.valor_enfermaria_centavos ?? 0}
+                  atual={reajuste?.valor_antigo_enfermaria_centavos ?? valorEnfBase}
                   percentual={reajuste?.percentual ?? 0}
                   reajustado={reajuste?.valor_reajustado_enfermaria_centavos ?? 0}
                   retroativo={reajuste?.valor_retroativo_enfermaria_centavos ?? 0}
-                  final={reajuste?.valor_final_enfermaria_centavos ?? implantacao?.valor_enfermaria_centavos ?? 0}
+                  final={reajuste?.valor_final_enfermaria_centavos ?? valorEnfBase}
                   semReajuste={!reajuste}
                 />
               ) : (
@@ -219,11 +219,11 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
                 <ValoresCard
                   titulo="Apartamento"
                   icon={<Hotel className="h-4 w-4" />}
-                  atual={reajuste?.valor_antigo_apartamento_centavos ?? implantacao?.valor_apartamento_centavos ?? 0}
+                  atual={reajuste?.valor_antigo_apartamento_centavos ?? valorAptBase}
                   percentual={reajuste?.percentual ?? 0}
                   reajustado={reajuste?.valor_reajustado_apartamento_centavos ?? 0}
                   retroativo={reajuste?.valor_retroativo_apartamento_centavos ?? 0}
-                  final={reajuste?.valor_final_apartamento_centavos ?? implantacao?.valor_apartamento_centavos ?? 0}
+                  final={reajuste?.valor_final_apartamento_centavos ?? valorAptBase}
                   semReajuste={!reajuste}
                 />
               ) : (
