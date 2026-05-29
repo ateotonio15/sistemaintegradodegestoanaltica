@@ -111,6 +111,8 @@ export function AnexosViewerDialog({
         const { data: emp } = await supabase
           .from("empresas")
           .select("exige_po_pc, envio_boleto_com_nota, observacao_padrao_financeiro")
+          .eq("id", targetEmpresaId)
+          .maybeSingle();
         const e = emp as any;
         const exigePoPc = !!e?.exige_po_pc;
         const envioBoletoComNota = !!e?.envio_boleto_com_nota;
@@ -124,8 +126,9 @@ export function AnexosViewerDialog({
         }
       }
 
-
       toast.success("Faturamento iniciado");
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+    } catch (e: any) {
       toast.error("Erro ao iniciar faturamento: " + e.message);
     } finally {
       setIniciando(false);
