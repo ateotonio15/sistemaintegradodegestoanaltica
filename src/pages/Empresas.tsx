@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock } from "lucide-react";
 import { PERIODOS } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
@@ -33,6 +33,17 @@ const GRUPO_CONTRATO_OPTIONS = [
   "Compulsória - Titular / Adesão - Dependente",
   "Compulsória - Todos",
 ];
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  const display = value === null || value === undefined || value === "" ? "—" : value;
+  const isEmpty = display === "—";
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{label}</dt>
+      <dd className={cn("text-sm mt-0.5 break-words", isEmpty ? "text-muted-foreground/60" : "font-medium")}>{display}</dd>
+    </div>
+  );
+}
 
 const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | null; executiva_user_id?: string | null } = {
   nome: "",
@@ -940,83 +951,132 @@ export default function Empresas() {
 
         {/* Detail Modal */}
         <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl p-0">
+            <DialogHeader className="sr-only">
               <DialogTitle>Detalhes da Empresa</DialogTitle>
               <DialogDescription>Informações completas da empresa cadastrada.</DialogDescription>
             </DialogHeader>
             {detailEmpresa && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Dados do Contrato</h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Empresa</p><p className="font-medium mt-0.5">{detailEmpresa.nome || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Código do Contrato</p><p className="font-medium mt-0.5">{detailEmpresa.codigo_contrato || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">CNPJ</p><p className="font-medium mt-0.5 font-mono text-sm">{detailEmpresa.cnpj || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Operadora / Corretora</p><p className="font-medium mt-0.5">{detailEmpresa.operadora_plano || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Tipo de Movimentação</p><p className="font-medium mt-0.5">{detailEmpresa.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Período de Movimentação</p><p className="font-medium mt-0.5">{detailEmpresa.periodo_movimentacao || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Implantação</p><p className="font-medium mt-0.5">{formatDateBR(detailEmpresa.data_implantacao) || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Corte</p><p className="font-medium mt-0.5">{detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data vencimento</p><p className="font-medium mt-0.5">{formatDay(detailEmpresa.data_vencimento_fatura)}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Emissão da Fatura</p><p className="font-medium mt-0.5">{formatDay(diaEmissaoMap[detailEmpresa.id] ?? detailEmpresa.data_emissao_fatura)}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">E-mail da Empresa</p><p className="font-medium mt-0.5">{detailEmpresa.email_empresa || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Telefone da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).telefone_empresa || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Contato da Empresa</p><p className="font-medium mt-0.5">{(detailEmpresa as any).contato_empresa || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Prazo (Entrada sem carência)</p><p className="font-medium mt-0.5">{(detailEmpresa as any).prazo || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Grupo de Contrato</p><p className="font-medium mt-0.5">{(detailEmpresa as any).grupo_contrato || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30">
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Status da Empresa</p>
-                      <Badge variant={detailEmpresa.status_empresa === "Ativa" ? "default" : "secondary"} className="mt-1 rounded-md">
-                        {detailEmpresa.status_empresa ?? "Ativa"}
-                      </Badge>
+              <div>
+                {/* Hero header */}
+                <div className="px-6 pt-6 pb-5 border-b bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+                  <div className="flex items-start gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                      <Building2 className="h-6 w-6" />
                     </div>
-                    <div className="p-3 rounded-lg bg-accent/30">
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Contrato por Faixa Etária</p>
-                      <Badge variant={(detailEmpresa as any).contrato_faixa_etaria ? "default" : "outline"} className="mt-1 rounded-md">
-                        {(detailEmpresa as any).contrato_faixa_etaria ? "Sim" : "Não"}
-                      </Badge>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">Detalhes da Empresa</p>
+                      <h2 className="text-xl font-semibold leading-tight mt-0.5 break-words">{detailEmpresa.nome || "—"}</h2>
+                      <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        {detailEmpresa.codigo_contrato && (
+                          <span className="inline-flex items-center gap-1"><FileText className="h-3.5 w-3.5" />Contrato {detailEmpresa.codigo_contrato}</span>
+                        )}
+                        {detailEmpresa.cnpj && (
+                          <>
+                            <span className="opacity-40">•</span>
+                            <span className="font-mono">{detailEmpresa.cnpj}</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-3">
+                        <Badge variant={detailEmpresa.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md">
+                          {detailEmpresa.status_empresa ?? "Ativa"}
+                        </Badge>
+                        {(detailEmpresa as any).contrato_faixa_etaria && (
+                          <Badge variant="outline" className="rounded-md">Faixa Etária</Badge>
+                        )}
+                        {(detailEmpresa as any).contrato_suspenso && (
+                          <Badge variant="destructive" className="rounded-md gap-1"><Ban className="h-3 w-3" />Suspenso</Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className={cn(
-                      "p-3 rounded-lg sm:col-span-2",
-                      (detailEmpresa as any).contrato_suspenso
-                        ? "bg-muted border border-muted-foreground/30"
-                        : "bg-accent/30"
-                    )}>
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Suspensão de Contrato</p>
-                      {(detailEmpresa as any).contrato_suspenso ? (
-                        <div className="mt-1 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Ban className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-semibold">⛔ Suspenso desde {formatDateBR((detailEmpresa as any).data_suspensao)}</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground">Motivo: {(detailEmpresa as any).motivo_suspensao || "—"}</p>
-                        </div>
-                      ) : (
-                        <p className="font-medium mt-0.5 text-muted-foreground">Em vigor</p>
+                  </div>
+                </div>
+
+                <div className="px-6 py-5 space-y-6">
+                  {(detailEmpresa as any).contrato_suspenso && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                      <div className="flex items-center gap-2 text-destructive">
+                        <Ban className="h-4 w-4" />
+                        <span className="text-sm font-semibold">Suspenso desde {formatDateBR((detailEmpresa as any).data_suspensao)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 ml-6">Motivo: {(detailEmpresa as any).motivo_suspensao || "—"}</p>
+                    </div>
+                  )}
+
+                  {/* Contrato */}
+                  <section>
+                    <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+                      <FileText className="h-3.5 w-3.5" /> Contrato
+                    </h3>
+                    <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 border rounded-lg p-4 bg-card">
+                      <DetailRow label="Operadora / Corretora" value={detailEmpresa.operadora_plano} />
+                      <DetailRow label="Grupo de Contrato" value={(detailEmpresa as any).grupo_contrato} />
+                      <DetailRow label="Tipo de Movimentação" value={detailEmpresa.tipo_movimentacao === "Diária" ? "Diário" : "Período"} />
+                      <DetailRow label="Período de Movimentação" value={detailEmpresa.periodo_movimentacao} />
+                      <DetailRow label="Data de Implantação" value={formatDateBR(detailEmpresa.data_implantacao)} />
+                      <DetailRow label="Data de Corte" value={detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : null} />
+                      <DetailRow label="Prazo (sem carência)" value={(detailEmpresa as any).prazo} />
+                      {detailEmpresa.status_empresa === "Inativa" && (
+                        <DetailRow label="Data de Rescisão" value={formatDateBR((detailEmpresa as any).data_rescisao)} />
                       )}
-                    </div>
-                    {detailEmpresa.status_empresa === "Inativa" && (
-                      <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Rescisão do Contrato</p><p className="font-medium mt-0.5">{formatDateBR((detailEmpresa as any).data_rescisao) || "—"}</p></div>
-                    )}
-                  </div>
-                </div>
+                    </dl>
+                  </section>
 
-                <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Responsável</h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Responsável pelo Contrato</p><p className="font-medium mt-0.5">{getResponsavelName(detailEmpresa)}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Executiva Responsável</p><p className="font-medium mt-0.5">{getExecutivaName(detailEmpresa)}</p></div>
-                  </div>
-                </div>
+                  {/* Financeiro */}
+                  <section>
+                    <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+                      <Wallet className="h-3.5 w-3.5" /> Faturamento
+                    </h3>
+                    <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 border rounded-lg p-4 bg-card">
+                      <DetailRow label="Emissão da Fatura" value={formatDay(diaEmissaoMap[detailEmpresa.id] ?? detailEmpresa.data_emissao_fatura)} />
+                      <DetailRow label="Data de Vencimento" value={formatDay(detailEmpresa.data_vencimento_fatura)} />
+                    </dl>
+                  </section>
 
-                <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Informações Operacionais</h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="sm:col-span-2 p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Observações</p><p className="font-medium mt-0.5">{detailEmpresa.observacoes || "—"}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Data de Criação</p><p className="font-medium mt-0.5">{formatDateBR(detailEmpresa.created_at)}</p></div>
-                    <div className="p-3 rounded-lg bg-accent/30"><p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Última Atualização</p><p className="font-medium mt-0.5">{formatDateBR(detailEmpresa.updated_at)}</p></div>
-                  </div>
+                  {/* Contato */}
+                  <section>
+                    <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+                      <Mail className="h-3.5 w-3.5" /> Contato
+                    </h3>
+                    <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 border rounded-lg p-4 bg-card">
+                      <DetailRow label="E-mail" value={detailEmpresa.email_empresa} />
+                      <DetailRow label="Telefone" value={(detailEmpresa as any).telefone_empresa} />
+                      <DetailRow label="Contato" value={(detailEmpresa as any).contato_empresa} />
+                    </dl>
+                  </section>
+
+                  {/* Responsáveis */}
+                  <section>
+                    <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+                      <Users className="h-3.5 w-3.5" /> Responsáveis
+                    </h3>
+                    <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 border rounded-lg p-4 bg-card">
+                      <DetailRow label="Responsável pelo Contrato" value={getResponsavelName(detailEmpresa)} />
+                      <DetailRow label="Executiva Responsável" value={getExecutivaName(detailEmpresa)} />
+                    </dl>
+                  </section>
+
+                  {/* Observações + meta */}
+                  {(detailEmpresa.observacoes || detailEmpresa.created_at || detailEmpresa.updated_at) && (
+                    <section>
+                      <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+                        <Clock className="h-3.5 w-3.5" /> Outras informações
+                      </h3>
+                      <div className="border rounded-lg p-4 bg-card space-y-3">
+                        {detailEmpresa.observacoes && (
+                          <div>
+                            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Observações</p>
+                            <p className="text-sm mt-1 whitespace-pre-wrap">{detailEmpresa.observacoes}</p>
+                          </div>
+                        )}
+                        <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 pt-1 border-t">
+                          <DetailRow label="Criado em" value={formatDateBR(detailEmpresa.created_at)} />
+                          <DetailRow label="Última atualização" value={formatDateBR(detailEmpresa.updated_at)} />
+                        </dl>
+                      </div>
+                    </section>
+                  )}
                 </div>
               </div>
             )}
