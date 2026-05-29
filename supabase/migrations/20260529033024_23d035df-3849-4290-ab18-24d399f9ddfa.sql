@@ -1,0 +1,1 @@
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS tem_coparticipacao boolean NOT NULL DEFAULT false;
