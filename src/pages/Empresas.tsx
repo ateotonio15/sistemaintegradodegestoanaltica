@@ -34,6 +34,17 @@ const GRUPO_CONTRATO_OPTIONS = [
   "Compulsória - Todos",
 ];
 
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  const display = value === null || value === undefined || value === "" ? "—" : value;
+  const isEmpty = display === "—";
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{label}</dt>
+      <dd className={cn("text-sm mt-0.5 break-words", isEmpty ? "text-muted-foreground/60" : "font-medium")}>{display}</dd>
+    </div>
+  );
+}
+
 const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | null; executiva_user_id?: string | null } = {
   nome: "",
   cnpj: "",
