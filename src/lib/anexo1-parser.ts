@@ -1,7 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
-// @ts-expect-error - worker URL
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfWorker;
