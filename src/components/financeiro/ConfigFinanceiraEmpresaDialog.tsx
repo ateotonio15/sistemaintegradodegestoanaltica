@@ -82,7 +82,7 @@ export function ConfigFinanceiraEmpresaDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
-        .select("id, dia_emissao, data_vencimento, tipo_financeiro")
+        .select("id, dia_emissao, data_vencimento")
         .eq("id", movimentacaoId!)
         .maybeSingle();
       if (error) throw error;
@@ -116,11 +116,8 @@ export function ConfigFinanceiraEmpresaDialog({
       if (match) diaVencimento = Number(match[3]);
     }
 
-    // Tipo: empresa > movimentação > primeiro tipo da lista
-    const tipo =
-      e.tipo_financeiro ||
-      m?.tipo_financeiro ||
-      TIPOS_FINANCEIRO[0];
+    // Tipo: empresa > primeiro tipo da lista
+    const tipo = e.tipo_financeiro || TIPOS_FINANCEIRO[0];
 
     setForm({
       data_emissao_fatura: diaEmissao,
