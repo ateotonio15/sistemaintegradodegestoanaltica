@@ -290,8 +290,47 @@ export default function Arquivos() {
       }
       c.competencias.get(a.competencia)!.arquivos.push(a);
     }
+
+    // Garante que TODAS as empresas apareçam — inclusive as ainda não implantadas
+    // e as que ainda não têm arquivos — para permitir anexar nota/Excel pendentes
+    // diretamente pela aba Arquivos.
+    const filtrosArquivoAtivos =
+      competenciaFilter !== "todas" ||
+      tipoFilter !== "todos" ||
+      usuarioFilter !== "todos";
+    if (!filtrosArquivoAtivos) {
+      const q = search.trim().toLowerCase();
+      for (const e of empresas) {
+        if (empresaFilter !== "todas" && e.id !== empresaFilter) continue;
+        if (contratoFilter !== "todos" && (e.codigo_contrato ?? "") !== contratoFilter) continue;
+        if (q) {
+          const hay = [e.nome, e.codigo_contrato, e.cnpj]
+            .filter(Boolean).join(" ").toLowerCase();
+          if (!hay.includes(q)) continue;
+        }
+        if (empMap.has(e.id)) continue;
+        const contrato = e.codigo_contrato ?? "Sem contrato";
+        const contratos = new Map<string, Contr>();
+        contratos.set(contrato, {
+          contrato,
+          empresaIds: new Set([e.id]),
+          arquivos: [],
+          competencias: new Map(),
+          ultimoUpload: 0,
+        });
+        empMap.set(e.id, {
+          empresaId: e.id,
+          nome: e.nome,
+          contratos,
+          total: 0,
+          ultimoUpload: 0,
+        });
+      }
+    }
+
     return Array.from(empMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [filtered, empresasMap]);
+  }, [filtered, empresasMap, empresas, empresaFilter, contratoFilter, competenciaFilter, tipoFilter, usuarioFilter, search]);
+
 
   const kpis = useMemo(() => {
     const total = arquivos.length;
