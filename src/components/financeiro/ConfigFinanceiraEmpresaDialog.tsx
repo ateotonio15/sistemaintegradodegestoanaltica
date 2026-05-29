@@ -95,7 +95,7 @@ export function ConfigFinanceiraEmpresaDialog({
     forma_pagamento: "DDA",
     data_vencimento_fatura: 0,
     exige_po_pc: false,
-    tipo_financeiro: TIPOS_FINANCEIRO[0],
+    tipo_financeiro: "",
     email_financeiro_cliente: "",
     observacao_padrao_financeiro: "",
     envio_boleto_com_nota: false,
@@ -117,7 +117,8 @@ export function ConfigFinanceiraEmpresaDialog({
     }
     if (!diaVencimento) diaVencimento = e.data_vencimento_fatura ?? 0;
 
-    const tipo = e.tipo_financeiro || TIPOS_FINANCEIRO[0];
+    // Nunca aplica valor padrão automático para "Tipo" — campo vazio = "Nenhum".
+    const tipo = e.tipo_financeiro ?? "";
 
     setForm({
       data_emissao_fatura: diaEmissao,
