@@ -490,9 +490,14 @@ export default function Empresas() {
                     onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }}
                     className="flex-1 flex flex-col overflow-hidden"
                   >
-                    <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-                    <SectionHeader title="Identificação" subtitle="Dados básicos da empresa e do contrato" />
+                    <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
                     <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="sm:col-span-2 flex items-center gap-2 pb-1 border-b">
+                        <Users className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Identificação</h3>
+                        <span className="text-xs text-muted-foreground">· Dados básicos da empresa</span>
+                      </div>
+
 
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Nome *</Label>
