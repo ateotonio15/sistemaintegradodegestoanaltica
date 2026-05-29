@@ -514,6 +514,179 @@ export type Database = {
           },
         ]
       }
+      financeiro_analise_execucao_itens: {
+        Row: {
+          comparado: boolean
+          created_at: string
+          diferenca: number | null
+          divergencias: Json
+          empresa_cnpj: string | null
+          empresa_codigo: string | null
+          empresa_id: string
+          empresa_nome: string | null
+          erros: Json
+          excel_encontrado: boolean
+          execucao_id: string
+          financeiro_movimentacao_id: string | null
+          hash_excel: string | null
+          hash_pdf: string | null
+          id: string
+          mes_referencia: string
+          nome_arquivo_excel: string | null
+          nome_arquivo_pdf: string | null
+          pagador_cnpj: string | null
+          pagador_id: string | null
+          pagador_nome: string | null
+          pdf_encontrado: boolean
+          periodo: string
+          proxima_acao: string | null
+          resultado_completo: Json | null
+          status: string
+          valor_excel: number | null
+          valor_pdf: number | null
+        }
+        Insert: {
+          comparado?: boolean
+          created_at?: string
+          diferenca?: number | null
+          divergencias?: Json
+          empresa_cnpj?: string | null
+          empresa_codigo?: string | null
+          empresa_id: string
+          empresa_nome?: string | null
+          erros?: Json
+          excel_encontrado?: boolean
+          execucao_id: string
+          financeiro_movimentacao_id?: string | null
+          hash_excel?: string | null
+          hash_pdf?: string | null
+          id?: string
+          mes_referencia: string
+          nome_arquivo_excel?: string | null
+          nome_arquivo_pdf?: string | null
+          pagador_cnpj?: string | null
+          pagador_id?: string | null
+          pagador_nome?: string | null
+          pdf_encontrado?: boolean
+          periodo: string
+          proxima_acao?: string | null
+          resultado_completo?: Json | null
+          status: string
+          valor_excel?: number | null
+          valor_pdf?: number | null
+        }
+        Update: {
+          comparado?: boolean
+          created_at?: string
+          diferenca?: number | null
+          divergencias?: Json
+          empresa_cnpj?: string | null
+          empresa_codigo?: string | null
+          empresa_id?: string
+          empresa_nome?: string | null
+          erros?: Json
+          excel_encontrado?: boolean
+          execucao_id?: string
+          financeiro_movimentacao_id?: string | null
+          hash_excel?: string | null
+          hash_pdf?: string | null
+          id?: string
+          mes_referencia?: string
+          nome_arquivo_excel?: string | null
+          nome_arquivo_pdf?: string | null
+          pagador_cnpj?: string | null
+          pagador_id?: string | null
+          pagador_nome?: string | null
+          pdf_encontrado?: boolean
+          periodo?: string
+          proxima_acao?: string | null
+          resultado_completo?: Json | null
+          status?: string
+          valor_excel?: number | null
+          valor_pdf?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_analise_execucao_itens_execucao_id_fkey"
+            columns: ["execucao_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_analise_execucoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financeiro_analise_execucoes: {
+        Row: {
+          aguardando_faturamento: number
+          created_at: string
+          divergentes: number
+          erro_leitura: number
+          executado_por: string | null
+          executado_por_nome: string | null
+          finalizada_em: string | null
+          id: string
+          iniciada_em: string
+          mes_referencia: string
+          ok: number
+          periodo: string
+          sem_ambos: number
+          sem_excel: number
+          sem_movimentacao: number
+          sem_pdf: number
+          status: string
+          total: number
+          updated_at: string
+          valor_total_analisado: number
+          valor_total_divergente: number
+        }
+        Insert: {
+          aguardando_faturamento?: number
+          created_at?: string
+          divergentes?: number
+          erro_leitura?: number
+          executado_por?: string | null
+          executado_por_nome?: string | null
+          finalizada_em?: string | null
+          id?: string
+          iniciada_em?: string
+          mes_referencia: string
+          ok?: number
+          periodo: string
+          sem_ambos?: number
+          sem_excel?: number
+          sem_movimentacao?: number
+          sem_pdf?: number
+          status?: string
+          total?: number
+          updated_at?: string
+          valor_total_analisado?: number
+          valor_total_divergente?: number
+        }
+        Update: {
+          aguardando_faturamento?: number
+          created_at?: string
+          divergentes?: number
+          erro_leitura?: number
+          executado_por?: string | null
+          executado_por_nome?: string | null
+          finalizada_em?: string | null
+          id?: string
+          iniciada_em?: string
+          mes_referencia?: string
+          ok?: number
+          periodo?: string
+          sem_ambos?: number
+          sem_excel?: number
+          sem_movimentacao?: number
+          sem_pdf?: number
+          status?: string
+          total?: number
+          updated_at?: string
+          valor_total_analisado?: number
+          valor_total_divergente?: number
+        }
+        Relationships: []
+      }
       financeiro_analises: {
         Row: {
           analisado_por: string | null
