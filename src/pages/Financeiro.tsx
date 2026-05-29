@@ -507,9 +507,21 @@ export default function Financeiro() {
     mutationFn: async () => {
       const { data: empresas, error: empErr } = await supabase
         .from("empresas")
-        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato, nao_faturado_financeiro")
+        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato, nao_faturado_financeiro, data_implantacao")
         .eq("nao_faturado_financeiro", false);
       if (empErr) throw empErr;
+
+      const PERIODO_FIM_DIA: Record<string, number> = {
+        "01-05": 5, "05-10": 10, "10-15": 15, "15-20": 20, "20-25": 25, "25-30": 30,
+      };
+      const vigenciaAlcancaPeriodo = (dataImpl: string | null | undefined, periodo: string) => {
+        if (!dataImpl) return true;
+        const [yi, mi, di] = dataImpl.split("-").map(Number);
+        const [yr, mrn] = mes.split("-").map(Number);
+        if (yi > yr || (yi === yr && mi > mrn)) return false;
+        if (yi < yr || (yi === yr && mi < mrn)) return true;
+        return di <= (PERIODO_FIM_DIA[periodo] ?? 31);
+      };
 
 
       // Movimentações operacionais já existentes no mês (para incluir Inativas com histórico)
@@ -553,7 +565,12 @@ export default function Financeiro() {
           } else if (e.periodo_movimentacao) {
             base = e.periodo_movimentacao;
           }
-          if (base && PERIODOS_VALIDOS.has(base)) periodos.add(base);
+          if (base && PERIODOS_VALIDOS.has(base)) {
+            // Pula contratos novos cuja vigência ultrapassa o fim do período no mês
+            if (vigenciaAlcancaPeriodo((e as any).data_implantacao, base)) {
+              periodos.add(base);
+            }
+          }
         }
 
         // Períodos vindos de movimentações operacionais (ativas ou inativas com histórico)
