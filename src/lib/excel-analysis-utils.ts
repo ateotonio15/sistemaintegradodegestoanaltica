@@ -642,14 +642,152 @@ export function compararExcelComPdfSimplificado(
 // =====================================================================
 
 /**
+ * Tenta interpretar a aba RESUMO no formato:
+ *   linha N:   "Empresa/Módulo" | "Qtd" | "Mensalidade" | "Valor"
+ *   linha N+1: "<NOME EMPRESA> <CNPJ>"      (cabeçalho de bloco)
+ *   linhas seguintes: módulos (Master Empresarial / Master Executivo /
+ *                              Inclusões / Exclusões)
+ *   ...repete para outras empresas, até "Total Geral" / "Contrato:".
+ *
+ * Quando a aba existe e tem pelo menos um bloco com CNPJ, devolve os blocos
+ * direto desta aba (consolidados). Caso contrário, devolve `null` e o caller
+ * cai no parser de beneficiários.
+ */
+function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
+  const ws = wb.worksheets.find((s) => norm(s.name).includes("resumo"));
+  if (!ws) return null;
+
+  const rows: unknown[][] = [];
+  ws.eachRow({ includeEmpty: true }, (row) => {
+    rows.push((row.values as unknown[]).slice(1));
+  });
+
+  let headerIdx = -1;
+  let idxLabel = -1;
+  let idxQtd = -1;
+  let idxMens = -1;
+  let idxValor = -1;
+  for (let i = 0; i < Math.min(15, rows.length); i++) {
+    const r = rows[i] || [];
+    let lbl = -1, qtd = -1, mens = -1, val = -1;
+    for (let c = 0; c < r.length; c++) {
+      const h = norm(r[c]);
+      if (!h) continue;
+      if (lbl < 0 && (h.includes("empresa/modulo") || h.includes("empresa / modulo") || h.includes("modulo"))) lbl = c;
+      else if (qtd < 0 && (h === "qtd" || h.includes("quantidade"))) qtd = c;
+      else if (mens < 0 && h.includes("mensalidade")) mens = c;
+      else if (val < 0 && (h === "valor" || h.includes("valor total"))) val = c;
+    }
+    if (lbl >= 0 && val >= 0) {
+      headerIdx = i; idxLabel = lbl; idxQtd = qtd; idxMens = mens; idxValor = val;
+      break;
+    }
+  }
+  if (headerIdx < 0) return null;
+
+  const reCnpj = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/;
+  type Acc = {
+    cnpj: string; nome: string;
+    enfValores: number[]; enfQtd: number; enfMens: number;
+    aptValores: number[]; aptQtd: number; aptMens: number;
+    incQtd: number; incTotal: number;
+    excQtd: number; excTotal: number;
+  };
+  const blocos: Acc[] = [];
+  let cur: Acc | null = null;
+
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const labelRaw = cellToText(r[idxLabel]).trim();
+    if (!labelRaw) continue;
+    const labelNorm = norm(labelRaw);
+    if (labelNorm.startsWith("total geral") || labelNorm.startsWith("contrato:") || labelNorm.startsWith("contrato ")) break;
+
+    const m = labelRaw.match(reCnpj);
+    if (m) {
+      const cnpj = normalizarCnpj(m[1]);
+      const nome = labelRaw.slice(0, m.index).trim().replace(/[-–—:]\s*$/, "").trim();
+      cur = {
+        cnpj, nome: nome || "Sem nome",
+        enfValores: [], enfQtd: 0, enfMens: 0,
+        aptValores: [], aptQtd: 0, aptMens: 0,
+        incQtd: 0, incTotal: 0,
+        excQtd: 0, excTotal: 0,
+      };
+      blocos.push(cur);
+      continue;
+    }
+    if (!cur) continue;
+
+    const qtdN = idxQtd >= 0 ? Math.round(toNumber(r[idxQtd])) : NaN;
+    const mensN = idxMens >= 0 ? toNumber(r[idxMens]) : NaN;
+    const val = toNumber(r[idxValor]);
+    const valNum = isNaN(val) ? 0 : val;
+    const qtdNum = isNaN(qtdN) ? 0 : qtdN;
+    const mensNum = isNaN(mensN) ? 0 : mensN;
+
+    if (labelNorm.includes("inclus")) {
+      cur.incQtd += qtdNum;
+      cur.incTotal += valNum;
+      continue;
+    }
+    if (labelNorm.includes("exclus")) {
+      cur.excQtd += qtdNum;
+      cur.excTotal += valNum;
+      continue;
+    }
+    const cat = classificarPlano(labelRaw);
+    if (cat === "enfermaria") {
+      cur.enfQtd += qtdNum;
+      cur.enfMens = mensNum || cur.enfMens;
+      cur.enfValores.push(valNum);
+    } else if (cat === "apartamento") {
+      cur.aptQtd += qtdNum;
+      cur.aptMens = mensNum || cur.aptMens;
+      cur.aptValores.push(valNum);
+    }
+  }
+
+  const comCnpj = blocos.filter((b) => b.cnpj.length === 14);
+  if (comCnpj.length === 0) return null;
+
+  return comCnpj.map((g) => {
+    const buildFromResumo = (qtd: number, mens: number, vals: number[]): CategoriaResultado => {
+      const total = vals.reduce((s, v) => s + v, 0);
+      const beneficiarios = qtd || 0;
+      const mensalidade = mens || (beneficiarios > 0 ? total / beneficiarios : 0);
+      return { beneficiarios, mensalidade, total };
+    };
+    const bloco: AnalisePorCnpj = {
+      cnpj: g.cnpj,
+      nome: g.nome,
+      nomeExibicao: formatNomeComCnpj(g.nome, g.cnpj),
+      enfermaria: buildFromResumo(g.enfQtd, g.enfMens, g.enfValores),
+      apartamento: buildFromResumo(g.aptQtd, g.aptMens, g.aptValores),
+      inclusoes: { quantidade: g.incQtd, total: g.incTotal },
+      avisos: ["Dados consolidados extraídos da aba RESUMO."],
+    };
+    if (g.excQtd > 0 || g.excTotal !== 0) {
+      bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
+    }
+    return bloco;
+  });
+}
+
+/**
  * Lê a planilha e devolve um array de blocos, um por CNPJ encontrado.
- * Quando não há coluna de CNPJ, retorna um único bloco agregado (cnpj="").
+ * Preferência:
+ *   1) Aba RESUMO consolidada (Empresa/Módulo | Qtd | Mensalidade | Valor)
+ *   2) Aba de beneficiários (linha-a-linha, legado)
  */
 export async function analisarExcelFinanceiroPorCnpj(
   buffer: ArrayBuffer,
 ): Promise<AnalisePorCnpj[]> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
+
+  const viaResumo = analisarResumoSheet(wb);
+  if (viaResumo && viaResumo.length > 0) return viaResumo;
 
   const ws = wb.worksheets[0];
   if (!ws) return [];
