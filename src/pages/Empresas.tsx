@@ -17,6 +17,7 @@ import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSprea
 import { PERIODOS } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
+import { FAIXAS_ETARIAS, labelFaixa, formatCentavosBRL } from "@/lib/reajuste-utils";
 import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import { ValoresFaixaEtariaDialog } from "@/components/empresas/ValoresFaixaEtariaDialog";
@@ -72,6 +73,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   tipo_financeiro: "",
   valor_enfermaria_centavos: null,
   valor_apartamento_centavos: null,
+  faixas_etarias: null,
 
 } as any;
 
@@ -212,6 +214,21 @@ export default function Empresas() {
       if (payload.tipo_contrato === "ADMINISTRADORA") {
         payload.valor_enfermaria_centavos = null;
         payload.valor_apartamento_centavos = null;
+        payload.faixas_etarias = null;
+      }
+      if (!payload.contrato_faixa_etaria) {
+        payload.faixas_etarias = null;
+      } else if (payload.faixas_etarias && typeof payload.faixas_etarias === "object") {
+        // mantém somente faixas com algum valor preenchido
+        const fe = payload.faixas_etarias as any;
+        const cleanList = (arr: any[]) =>
+          (Array.isArray(arr) ? arr : [])
+            .filter((f) => f && (f.centavos ?? 0) > 0)
+            .map((f) => ({ ini: f.ini, fim: f.fim, centavos: f.centavos }));
+        payload.faixas_etarias = {
+          enfermaria: cleanList(fe.enfermaria ?? []),
+          apartamento: cleanList(fe.apartamento ?? []),
+        };
       }
       if (editingId) {
         const { error } = await supabase.from("empresas").update(payload).eq("id", editingId);
@@ -364,6 +381,7 @@ export default function Empresas() {
       tipo_financeiro: (e as any).tipo_financeiro ?? "",
       valor_enfermaria_centavos: (e as any).valor_enfermaria_centavos ?? null,
       valor_apartamento_centavos: (e as any).valor_apartamento_centavos ?? null,
+      faixas_etarias: (e as any).faixas_etarias ?? null,
 
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
@@ -711,6 +729,97 @@ export default function Empresas() {
                         </>
                       )}
                     </div>
+
+                    {/* Tabela de Faixas Etárias — quando contrato é por faixa */}
+                    {(form as any).contrato_faixa_etaria && (form as any).tipo_contrato !== "ADMINISTRADORA" && (
+                      <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold">Valores por Faixa Etária</h3>
+                          <span className="text-xs text-muted-foreground">
+                            Preencha os valores por faixa de idade (em R$)
+                          </span>
+                        </div>
+                        <div className="rounded-lg border border-border overflow-hidden bg-background">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-accent/30">
+                                <TableHead className="font-semibold">Faixa</TableHead>
+                                <TableHead className="font-semibold text-right">Enfermaria (R$)</TableHead>
+                                <TableHead className="font-semibold text-right">Apartamento (R$)</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {FAIXAS_ETARIAS.map((f) => {
+                                const fe = ((form as any).faixas_etarias ?? {}) as any;
+                                const enfArr: any[] = Array.isArray(fe.enfermaria) ? fe.enfermaria : [];
+                                const aptArr: any[] = Array.isArray(fe.apartamento) ? fe.apartamento : [];
+                                const enfItem = enfArr.find((x) => x.ini === f.idade_inicial && x.fim === f.idade_final);
+                                const aptItem = aptArr.find((x) => x.ini === f.idade_inicial && x.fim === f.idade_final);
+                                const setValor = (mod: "enfermaria" | "apartamento", centavos: number | null) => {
+                                  const current = ((form as any).faixas_etarias ?? {}) as any;
+                                  const list: any[] = Array.isArray(current[mod]) ? [...current[mod]] : [];
+                                  const idx = list.findIndex((x) => x.ini === f.idade_inicial && x.fim === f.idade_final);
+                                  if (centavos == null || centavos === 0) {
+                                    if (idx >= 0) list.splice(idx, 1);
+                                  } else {
+                                    const entry = { ini: f.idade_inicial, fim: f.idade_final, centavos };
+                                    if (idx >= 0) list[idx] = entry; else list.push(entry);
+                                  }
+                                  setForm({
+                                    ...form,
+                                    faixas_etarias: {
+                                      enfermaria: mod === "enfermaria" ? list : (current.enfermaria ?? []),
+                                      apartamento: mod === "apartamento" ? list : (current.apartamento ?? []),
+                                    },
+                                  } as any);
+                                };
+                                const toInput = (c?: number) =>
+                                  c != null && c > 0 ? (c / 100).toString() : "";
+                                const parseInput = (v: string): number | null => {
+                                  if (v === "") return null;
+                                  const n = Math.round(parseFloat(v.replace(",", ".")) * 100);
+                                  return Number.isFinite(n) ? n : null;
+                                };
+                                return (
+                                  <TableRow key={`${f.idade_inicial}-${f.idade_final}`}>
+                                    <TableCell className="font-medium">{labelFaixa(f.idade_inicial, f.idade_final)}</TableCell>
+                                    <TableCell className="text-right">
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        inputMode="decimal"
+                                        placeholder="0,00"
+                                        value={toInput(enfItem?.centavos)}
+                                        onChange={(e) => setValor("enfermaria", parseInput(e.target.value))}
+                                        className="rounded-md h-8 text-right tabular-nums"
+                                      />
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        inputMode="decimal"
+                                        placeholder="0,00"
+                                        value={toInput(aptItem?.centavos)}
+                                        onChange={(e) => setValor("apartamento", parseInput(e.target.value))}
+                                        className="rounded-md h-8 text-right tabular-nums"
+                                      />
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Deixe em branco as faixas não aplicáveis. Esses valores podem ser revistos depois em "Valores e Faixa Etária".
+                        </p>
+                      </div>
+                    )}
+
+
 
                     {/* Configurações Financeiras — somente admin pode visualizar/editar */}
                     {isAdmin && (

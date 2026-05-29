@@ -382,6 +382,7 @@ export type Database = {
           executiva_user_id: string | null
           exige_po_pc: boolean
           exige_relatorio_antes_nota: boolean
+          faixas_etarias: Json | null
           grupo_contrato: string | null
           id: string
           motivo_suspensao: string | null
@@ -429,6 +430,7 @@ export type Database = {
           executiva_user_id?: string | null
           exige_po_pc?: boolean
           exige_relatorio_antes_nota?: boolean
+          faixas_etarias?: Json | null
           grupo_contrato?: string | null
           id?: string
           motivo_suspensao?: string | null
@@ -476,6 +478,7 @@ export type Database = {
           executiva_user_id?: string | null
           exige_po_pc?: boolean
           exige_relatorio_antes_nota?: boolean
+          faixas_etarias?: Json | null
           grupo_contrato?: string | null
           id?: string
           motivo_suspensao?: string | null
