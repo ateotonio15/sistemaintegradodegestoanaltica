@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import mammoth from "mammoth";
-import * as pdfjsLib from "pdfjs-dist";
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfWorker;
 
