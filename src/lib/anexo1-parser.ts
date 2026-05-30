@@ -1,5 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 import mammoth from "mammoth";
+
+// Polyfill ReadableStream async iterator (Safari iOS não suporta nativamente,
+// e o pdf.js v5 depende de `for await ... of stream`).
+if (typeof ReadableStream !== "undefined" &&
+    !(ReadableStream.prototype as any)[Symbol.asyncIterator]) {
+  (ReadableStream.prototype as any)[Symbol.asyncIterator] = function () {
+    const reader = this.getReader();
+    return {
+      next: () => reader.read(),
+      return: (value: any) => { reader.releaseLock(); return { value, done: true }; },
+      [Symbol.asyncIterator]() { return this; },
+    };
+  };
+  (ReadableStream.prototype as any).values =
+    (ReadableStream.prototype as any)[Symbol.asyncIterator];
+}
+
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
