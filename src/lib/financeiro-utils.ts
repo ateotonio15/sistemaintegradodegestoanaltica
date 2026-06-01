@@ -20,6 +20,7 @@ export type TipoFinanceiro = (typeof TIPOS_FINANCEIRO)[number];
 export type StatusFinanceiro =
   | "Nota emitida"
   | "Faturado"
+  | "Aguardando validação"
   | "Enviada"
   | "Em faturamento"
   | "Aguardando nota"
