@@ -51,12 +51,16 @@ function Kpi({
   icon: Icon,
   tone = "default",
   hint,
+  onClick,
+  active,
 }: {
   label: string;
   value: string | number;
   icon: any;
   tone?: "default" | "up" | "down" | "warn";
   hint?: string;
+  onClick?: () => void;
+  active?: boolean;
 }) {
   const toneCls =
     tone === "up"
@@ -66,8 +70,26 @@ function Kpi({
         : tone === "warn"
           ? "text-amber-400 bg-amber-500/10"
           : "text-primary bg-primary/10";
+  const clickable = !!onClick;
   return (
-    <Card className="border-border/60">
+    <Card
+      className={`border-border/60 transition ${
+        clickable ? "cursor-pointer hover:border-primary/60 hover:shadow-sm" : ""
+      } ${active ? "border-primary ring-1 ring-primary/40 bg-primary/5" : ""}`}
+      onClick={onClick}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
+    >
       <CardContent className="p-4 flex items-center gap-3">
         <div className={`h-11 w-11 rounded-xl flex items-center justify-center ${toneCls}`}>
           <Icon className="h-5 w-5" />
@@ -243,8 +265,24 @@ export default function GestaoVidas() {
           icon={kpis.saldo >= 0 ? ArrowUpRight : ArrowDownRight}
           tone={kpis.saldo >= 0 ? "up" : "down"}
         />
-        <Kpi label="Vidas Ativas Empresariais" value={kpis.ativasEmpresarial.toLocaleString("pt-BR")} icon={Users} />
-        <Kpi label="Vidas Ativas Administradoras" value={kpis.ativasAdms.toLocaleString("pt-BR")} icon={Users} />
+        <Kpi
+          label="Vidas Ativas Empresariais"
+          value={kpis.ativasEmpresarial.toLocaleString("pt-BR")}
+          icon={Users}
+          active={tipoContrato === "EMPRESARIAL"}
+          onClick={() =>
+            setTipoContrato(tipoContrato === "EMPRESARIAL" ? "TODOS" : "EMPRESARIAL")
+          }
+        />
+        <Kpi
+          label="Vidas Ativas Administradoras"
+          value={kpis.ativasAdms.toLocaleString("pt-BR")}
+          icon={Users}
+          active={tipoContrato === "ADMINISTRADORA"}
+          onClick={() =>
+            setTipoContrato(tipoContrato === "ADMINISTRADORA" ? "TODOS" : "ADMINISTRADORA")
+          }
+        />
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
