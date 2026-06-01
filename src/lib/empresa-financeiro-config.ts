@@ -13,6 +13,8 @@ export interface EmpresaFinanceiroConfig {
   envio_boleto_com_nota: boolean;
   tem_coparticipacao: boolean;
   config_financeira_confirmada: boolean;
+  periodo_especifico_cobranca: boolean;
+  periodo_cobranca_inicio: string | null;
 }
 
 export interface ValidacaoConfigResult {
