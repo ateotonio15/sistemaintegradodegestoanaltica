@@ -278,6 +278,15 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     return { payload, envioAlterado };
   };
 
+  const TIPOS_FIN_VALIDOS = new Set([
+    "NÃO-PRORATA",
+    "INCLUSÃO",
+    "INCLUSÃO/EXCLUSÃO",
+    "INCLUSÃO/EXCLUSÃO/COPAR",
+    "TAXA ADESÃO",
+    "30 dias",
+  ]);
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!movimentacao) return null;
@@ -288,6 +297,21 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         .update(built.payload as any)
         .eq("id", movimentacao.id);
       if (error) throw error;
+
+      // Sincroniza o Tipo (Financeiro) na empresa quando alterado aqui.
+      // O trigger trg_sync_tipo_cobranca_from_empresa propaga para todas as competências.
+      const novoTipo = tipoTrimmed || null;
+      if (
+        novoTipo &&
+        TIPOS_FIN_VALIDOS.has(novoTipo) &&
+        novoTipo !== (movimentacao.tipo_cobranca || null)
+      ) {
+        await supabase
+          .from("empresas")
+          .update({ tipo_financeiro: novoTipo, updated_at: new Date().toISOString() } as any)
+          .eq("id", movimentacao.empresa_id);
+      }
+
       return built;
     },
     onSuccess: (built) => {
