@@ -117,6 +117,11 @@ export default function GestaoVidas() {
   const [tipoContrato, setTipoContrato] = useState<VidasFilters["tipoContrato"]>("TODOS");
   const [status, setStatus] = useState<string>("TODOS");
   const [search, setSearch] = useState("");
+  const [gerando, setGerando] = useState(false);
+  const [progresso, setProgresso] = useState<{ done: number; total: number } | null>(null);
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const filters: VidasFilters = { mesRef, tipoContrato, status, search };
   const { data, isLoading } = useGestaoVidas(filters);
