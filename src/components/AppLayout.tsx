@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, ChevronDown } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown } from "lucide-react";
 import logoImg from "@/assets/logo-cs-control.png";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,7 @@ const allNavItems = [
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
   { to: "/vidas-samel", label: "Vidas Samel", icon: HeartPulse },
+  { to: "/gestao-vidas", label: "Gestão de Vidas", icon: Activity },
 ];
 
 interface Notificacao {
@@ -114,7 +115,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       : allNavItems;
     return base.filter((item) => {
       if (role === "vendas") {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/executivas", "/implantacao"];
+        const allowed = ["/", "/empresas", "/movimentacoes", "/executivas", "/implantacao", "/gestao-vidas"];
         return allowed.includes(item.to);
       }
       if (isFinanceiro) {
@@ -125,6 +126,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "visualizacao") return false;
       if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "administradoras" && role !== "visualizacao" && role !== "diretora") return false;
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
+      if (item.to === "/gestao-vidas" && !isAdmin && role !== "diretora" && role !== "comum" && role !== "administradoras") return false;
       if (isEnfermeira) {
         const allowed = ["/empresas", "/executivas", "/reajustes"];
         return allowed.includes(item.to);
