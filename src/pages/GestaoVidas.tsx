@@ -150,6 +150,66 @@ export default function GestaoVidas() {
     };
   }, [empresas]);
 
+  // Empresas com layout anexado no mês porém com total_atual = 0 — candidatos a recalcular.
+  const empresasPendentes = useMemo(
+    () => empresas.filter((e) => (e.total_atual || 0) === 0).map((e) => e.id),
+    [empresas],
+  );
+
+  async function gerarVidasPendentes() {
+    if (empresasPendentes.length === 0) return;
+    setGerando(true);
+    setProgresso({ done: 0, total: empresasPendentes.length });
+    try {
+      // Pré-filtra apenas empresas que realmente têm anexo .xlsx/.xlsm/.xls no mês.
+      const { data: movs } = await supabase
+        .from("movimentacoes")
+        .select("id, empresa_id")
+        .in("empresa_id", empresasPendentes)
+        .eq("mes_referencia", mesRef);
+      const movIds = (movs ?? []).map((m: any) => m.id);
+      let comAnexo = new Set<string>();
+      if (movIds.length) {
+        const { data: anexos } = await supabase
+          .from("anexos_movimentacao")
+          .select("movimentacao_id, nome_arquivo")
+          .in("movimentacao_id", movIds);
+        const movToEmpresa = new Map<string, string>((movs ?? []).map((m: any) => [m.id, m.empresa_id]));
+        (anexos ?? []).forEach((a: any) => {
+          const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
+          if (["xlsx", "xlsm", "xls"].includes(ext)) {
+            const eid = movToEmpresa.get(a.movimentacao_id);
+            if (eid) comAnexo.add(eid);
+          }
+        });
+      }
+      const alvo = Array.from(comAnexo);
+      if (alvo.length === 0) {
+        toast({
+          title: "Nada a gerar",
+          description: "Nenhuma das empresas zeradas possui layout Excel anexado neste mês.",
+        });
+        return;
+      }
+      setProgresso({ done: 0, total: alvo.length });
+      await computeEntradasSaidas(alvo, mesRef, (done, total) => setProgresso({ done, total }));
+      await queryClient.invalidateQueries({ queryKey: ["gestao-vidas"] });
+      toast({
+        title: "Vidas geradas",
+        description: `${alvo.length} contrato(s) recalculados para ${mesRef}.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao gerar vidas",
+        description: err?.message ?? String(err),
+        variant: "destructive",
+      });
+    } finally {
+      setGerando(false);
+      setProgresso(null);
+    }
+  }
+
   const top = useMemo(
     () => [...empresas].sort((a, b) => (b.total_atual || 0) - (a.total_atual || 0)).slice(0, 10),
     [empresas],
