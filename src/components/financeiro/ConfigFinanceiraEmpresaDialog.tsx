@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DayGridPicker } from "@/components/ui/day-grid-picker";
-import { AlertTriangle, Info, Loader2, Receipt, Settings2 } from "lucide-react";
+import { AlertTriangle, CalendarRange, Info, Loader2, Receipt, Settings2 } from "lucide-react";
 
 import { toast } from "sonner";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
@@ -30,6 +30,8 @@ import {
   configFinanceiraSchema,
   type ConfigFinanceiraFormValues,
 } from "@/lib/empresa-financeiro-config";
+import { calcularPeriodoCobranca, formatPeriodoCobranca, todayLocalISO } from "@/lib/date-utils";
+import { useAuth } from "@/hooks/useAuth";
 
 
 interface Props {
