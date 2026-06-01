@@ -27,6 +27,7 @@ import { parseAnexo1 } from "@/lib/anexo1-parser";
 import { Loader2, FileUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { IsoDatePicker } from "@/components/ui/iso-date-picker";
 
 type Empresa = Tables<"empresas">;
 
@@ -1026,16 +1027,14 @@ export default function Empresas() {
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                                 <div className="space-y-1.5">
                                   <Label className="text-xs">Data inicial do período</Label>
-                                  <Input
-                                    type="date"
-                                    value={(form as any).periodo_cobranca_inicio ?? ""}
-                                    onChange={(e) =>
+                                  <IsoDatePicker
+                                    value={(form as any).periodo_cobranca_inicio}
+                                    onChange={(v) =>
                                       setForm({
                                         ...form,
-                                        periodo_cobranca_inicio: e.target.value || null,
+                                        periodo_cobranca_inicio: v,
                                       } as any)
                                     }
-                                    className="rounded-lg"
                                   />
                                 </div>
                                 <div className="space-y-1.5">
