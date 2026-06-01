@@ -945,9 +945,9 @@ export default function Dashboard() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                   ) : listaTrabalho.length === 0 ? (
-                    <TableRow><TableCell colSpan={canEditDates ? 9 : 8} className="text-center text-muted-foreground py-12">Nenhuma pendência neste período 🎉</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={canEditDates ? 10 : 9} className="text-center text-muted-foreground py-12">Nenhuma pendência neste período 🎉</TableCell></TableRow>
                   ) : (
                     listaTrabalho.map((m) => (
                       <TableRow key={m.id} className={`transition-colors ${m.status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : "hover:bg-accent/50"}`}>
@@ -956,6 +956,7 @@ export default function Dashboard() {
 
                         <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
                         <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{(m.empresas as any)?.vidas ?? "—"}</TableCell>
                         <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
