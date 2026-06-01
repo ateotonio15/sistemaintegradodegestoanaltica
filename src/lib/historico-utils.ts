@@ -61,7 +61,10 @@ export interface HistoricoOpts {
   incluirDda: boolean;
   /** Quando true, substitui o bloco DDA pelos dados bancários de depósito. */
   pagamentoViaDeposito?: boolean;
+  /** Número fixo de PO da empresa (ex.: PST = 4600004172). Quando preenchido, adiciona linha "PO:XXX" após o vencimento. */
+  poFixo?: string | null;
 }
+
 
 /** Gera o texto do histórico no padrão fixo da empresa. */
 export function gerarHistoricoTexto(
@@ -109,9 +112,15 @@ export function gerarHistoricoTexto(
 
   linhas.push("");
   linhas.push(`Data de Vencimento: ${opts.dataVencimento}.`);
+  if (opts.poFixo && opts.poFixo.trim()) {
+    linhas.push("");
+    linhas.push(`PO:${opts.poFixo.trim()}`);
+  }
   linhas.push("");
 
   if (opts.pagamentoViaDeposito) {
+
+
     linhas.push(
       "OBS.: Dados bancários para depósito: Banco Itaú, Agência: 0071, Conta Corrente: 11663-6.",
     );
