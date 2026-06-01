@@ -412,8 +412,8 @@ export default function Financeiro() {
     const q = busca.trim().toLowerCase();
     const base = allRows.filter((r) => {
       if (filtroPeriodo && r.periodo !== filtroPeriodo) return false;
-      if (filtroStatus !== "all" && r.status !== filtroStatus) return false;
-      if (filtroTipo !== "all" && (r.tipo_cobranca || "") !== filtroTipo) return false;
+      if (filtroStatus.length > 0 && !filtroStatus.includes(r.status)) return false;
+      if (filtroTipo.length > 0 && !filtroTipo.includes(r.tipo_cobranca || "")) return false;
       if (somenteOverdue && (r.dentro_prazo || r.data_envio_nota)) return false;
       return true;
     });
