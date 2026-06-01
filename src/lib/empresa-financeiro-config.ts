@@ -73,6 +73,20 @@ export const configFinanceiraSchema = z.object({
   observacao_padrao_financeiro: z.string().trim().max(2000).nullable().optional(),
   envio_boleto_com_nota: z.boolean(),
   tem_coparticipacao: z.boolean(),
+  periodo_especifico_cobranca: z.boolean(),
+  periodo_cobranca_inicio: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida")
+    .nullable()
+    .optional(),
+}).superRefine((v, ctx) => {
+  if (v.periodo_especifico_cobranca && !v.periodo_cobranca_inicio) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["periodo_cobranca_inicio"],
+      message: "Informe a data inicial do período",
+    });
+  }
 });
 
 export type ConfigFinanceiraFormValues = z.infer<typeof configFinanceiraSchema>;
