@@ -213,7 +213,10 @@ function classificarPlano(plano: string): "enfermaria" | "apartamento" | null {
   if (
     p.includes("master executivo") ||
     p.includes("coletivo executivo master") ||
-    p.includes("apartamento")
+    p.includes("apartamento") ||
+    // Variações abreviadas de "M. Executivo" / "M Executivo" / "M.Executivo"
+    /\bm[\s.\-_]*executivo\b/.test(p) ||
+    /\bexecutivo\b/.test(p)
   ) {
     return "apartamento";
   }
