@@ -265,8 +265,24 @@ export default function GestaoVidas() {
           icon={kpis.saldo >= 0 ? ArrowUpRight : ArrowDownRight}
           tone={kpis.saldo >= 0 ? "up" : "down"}
         />
-        <Kpi label="Vidas Ativas Empresariais" value={kpis.ativasEmpresarial.toLocaleString("pt-BR")} icon={Users} />
-        <Kpi label="Vidas Ativas Administradoras" value={kpis.ativasAdms.toLocaleString("pt-BR")} icon={Users} />
+        <Kpi
+          label="Vidas Ativas Empresariais"
+          value={kpis.ativasEmpresarial.toLocaleString("pt-BR")}
+          icon={Users}
+          active={tipoContrato === "EMPRESARIAL"}
+          onClick={() =>
+            setTipoContrato(tipoContrato === "EMPRESARIAL" ? "TODOS" : "EMPRESARIAL")
+          }
+        />
+        <Kpi
+          label="Vidas Ativas Administradoras"
+          value={kpis.ativasAdms.toLocaleString("pt-BR")}
+          icon={Users}
+          active={tipoContrato === "ADMINISTRADORA"}
+          onClick={() =>
+            setTipoContrato(tipoContrato === "ADMINISTRADORA" ? "TODOS" : "ADMINISTRADORA")
+          }
+        />
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
