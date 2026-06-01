@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { clearSessionNamespace } from "@/hooks/useSessionState";
 import type { User, Session } from "@supabase/supabase-js";
 
 type UserRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras" | null;
@@ -98,7 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void fetchRole(nextUserId);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        clearSessionNamespace("financeiro");
+      }
       setTimeout(() => {
         void applySession(session);
       }, 0);
@@ -112,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchRole]);
 
   const signOut = async () => {
+    clearSessionNamespace("financeiro");
     await supabase.auth.signOut();
   };
 
