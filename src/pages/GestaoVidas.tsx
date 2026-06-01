@@ -248,6 +248,20 @@ export default function GestaoVidas() {
               Excel
             </Button>
           )}
+          {canExport && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={gerarVidasPendentes}
+              disabled={isLoading || gerando || empresasPendentes.length === 0}
+              title="Calcula vidas das empresas com layout anexado mas total zerado no mês"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${gerando ? "animate-spin" : ""}`} />
+              {gerando
+                ? `Gerando ${progresso?.done ?? 0}/${progresso?.total ?? 0}…`
+                : `Gerar vidas pendentes${empresasPendentes.length ? ` (${empresasPendentes.length})` : ""}`}
+            </Button>
+          )}
         </div>
       </div>
 
