@@ -67,18 +67,18 @@ export default function Financeiro() {
   const canViewFinanceiro = canManageFinanceiro || isComum || isViewOnly;
   const queryClient = useQueryClient();
 
-  const [mes, setMes] = useState(getCurrentMesReferencia());
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<string>("all");
-  const [filtroTipo, setFiltroTipo] = useState<string>("all");
-  const [filtroPeriodo, setFiltroPeriodo] = useState<string | null>(null);
-  const [somenteOverdue, setSomenteOverdue] = useState(false);
+  const [mes, setMes] = useSessionState<string>("financeiro:mes", () => getCurrentMesReferencia());
+  const [busca, setBusca] = useSessionState<string>("financeiro:busca", "");
+  const [filtroStatus, setFiltroStatus] = useSessionState<string>("financeiro:filtroStatus", "all");
+  const [filtroTipo, setFiltroTipo] = useSessionState<string>("financeiro:filtroTipo", "all");
+  const [filtroPeriodo, setFiltroPeriodo] = useSessionState<string | null>("financeiro:filtroPeriodo", null);
+  const [somenteOverdue, setSomenteOverdue] = useSessionState<boolean>("financeiro:somenteOverdue", false);
 
   const [editing, setEditing] = useState<FinanceiroMovimentacao | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [cobOpen, setCobOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [expandedRowId, setExpandedRowId] = useSessionState<string | null>("financeiro:expandedRowId", null);
   const [importPagadoresOpen, setImportPagadoresOpen] = useState(false);
   const [analiseResultados, setAnaliseResultados] = useState<Record<string, import("@/lib/excel-analysis-utils").AnaliseResultado[]>>({});
   const [analiseComparacoes, setAnaliseComparacoes] = useState<Record<string, import("@/lib/excel-analysis-utils").ComparacaoResultado[]>>({});
