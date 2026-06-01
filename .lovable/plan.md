@@ -1,62 +1,102 @@
-# Período Específico de Cobrança
+## Nova aba: Gestão de Vidas
 
-## Objetivo
-Permitir que empresas sejam faturadas por um intervalo de 30 dias (ex: 13/05 → 12/06) em vez da competência mensal padrão. O usuário informa apenas a data inicial; o sistema calcula a final como "mesmo dia do mês seguinte − 1 dia". Para meses subsequentes, mantém o mesmo dia inicial, ajustando virada de mês/ano e meses curtos.
+Centro analítico unificado para acompanhar vidas ativas, entradas, saídas e crescimento de contratos — reutilizando 100% das regras já existentes (Relatório de Vidas, Movimentações, Implantações, Entradas/Saídas).
 
-## Banco de dados
-Adicionar em `empresas`:
-- `periodo_especifico_cobranca` (boolean, default false)
-- `periodo_cobranca_inicio` (date, nullable) — data inicial **base** (referência para todos os ciclos)
+---
 
-> Não armazenamos a data final: ela é sempre derivada do dia inicial + 1 mês − 1 dia.
+### 1. Rota e navegação
 
-## Cálculo (nova util em `src/lib/date-utils.ts`)
-```ts
-calcularPeriodoCobranca(dataBase: Date, mesReferencia: string): { inicio: Date; fim: Date }
+- Nova rota `/gestao-vidas` em `src/App.tsx`.
+- Item de menu **"Gestão de Vidas"** em `AppLayout.tsx` (ícone `HeartPulse` ou `Activity`).
+- Acesso por perfil:
+  - **Diretora / Admin** → visão global
+  - **Cadastro (comum)** → só contratos sob sua responsabilidade
+  - **Administradoras** → só contratos vinculados
+  - **Vendas** → só leitura (sem exportar)
+- Bloqueado para Financeiro, Enfermeira, Visualização (a confirmar).
+
+### 2. Estrutura da página (`src/pages/GestaoVidas.tsx`)
+
+```text
+┌─ Header + Filtros rápidos (Hoje | Mês | 3M | 6M | Ano)
+├─ KPIs (6 cards)
+│   Vidas Ativas · Entradas Mês · Saídas Mês · Saldo · Contratos · Administradoras
+├─ Tabs: [Visão Geral] [Empresarial] [Administradoras] [Histórico] [Ranking]
+│
+│ Visão Geral:
+│   - Gráfico Evolução Mensal (barras Entradas vs Saídas)
+│   - Gráfico Linha: Vidas Ativas por Mês
+│   - Top 10 contratos por vidas (barras horizontais)
+│   - Card Crescimento (Entradas − Saídas) + variação %
+│   - Alertas (redução > 10%, aumento > 20%, sem movimentação)
+│
+│ Empresarial / Administradoras:
+│   - Cards resumo (contratos, vidas, entradas, saídas)
+│   - Tabela detalhada por empresa/administradora
+│
+│ Histórico:
+│   - Sub-tabs Entradas / Saídas
+│   - Lista: Nome · CPF · Data · Empresa · Contrato · Tipo (Titular/Dep/Filho/Cônjuge)
+│
+│ Ranking:
+│   - Maior Crescimento / Maior Redução
+└─ Botões Exportar Excel · PDF
 ```
-Regra:
-1. Extrai dia base `D` da `data_inicio`.
-2. Para um `mes_referencia` (YYYY-MM), o início = `D` daquele mês (ajustado se não existir, ex: 31/fev → último dia).
-3. Fim = mesmo dia do mês seguinte − 1 dia. Usar aritmética segura (sem somar 30 dias fixos).
 
-Formatador: `formatPeriodoCobranca(inicio, fim)` → `"13/05/2026 à 12/06/2026"`.
+### 3. Filtros (sidebar/topo)
 
-## Aba Empresas — Configurações Financeiras
-Em `ConfigFinanceiraEmpresaDialog.tsx`, adicionar nova seção **"Período de cobrança"**:
-- Select: "Possui período específico de cobrança?" (Sim/Não)
-- Se Sim: campo `DatePicker` "Data inicial do período" + label readonly "Data final (calculada): DD/MM/AAAA"
-- Validação: se Sim → data inicial obrigatória.
-- Persistir nos campos novos da `empresas`.
-- Atualizar `empresa-financeiro-config.ts` (schema Zod + interface).
-- Permissão: apenas admin pode editar (desabilitar inputs caso não seja admin).
+Mês, Ano, Empresa, Contrato, Administradora, Modalidade (Empresarial/Administradora), Status (Ativa/Suspensa/Rescindida).
 
-## Aba Financeiro
-Em `FinanceiroTable.tsx` (e onde exibe competência), quando a empresa tiver período específico:
-- Exibir `"Período de: 13/05/2026 à 12/06/2026"` no lugar (ou abaixo) da competência.
-- Manter `mes_referencia` no DB intacto — apenas substituir a apresentação.
-- Filtros, ordenação, análise Excel x PDF e exportações continuam usando `mes_referencia`.
+### 4. Origem dos dados (sem nova lógica)
 
-Em `PeriodSummary.tsx` exibir também o período específico quando aplicável (quando todas/uma empresa filtrada tiver período).
+| Indicador | Fonte existente |
+|---|---|
+| Vidas ativas por empresa | `empresas.vidas` + `vidas_historico_administradoras.total_atual` |
+| Entradas/Saídas mensais | `vidas_historico_administradoras` (já calculado por `entradas-saidas-analyzer.ts`) |
+| Titulares/Dependentes/Filhos/Cônjuges | parser existente `layout-cpf-extractor.ts` (estender retorno se já tiver tipo; caso contrário mostrar apenas total) |
+| Contratos e tipo | `empresas` (tipo_contrato, status_empresa, responsavel_user_id, executiva_user_id) |
+| Alertas | calculado em memória a partir do histórico |
 
-## Histórico Financeiro
-Em `src/lib/historico-utils.ts`:
-- Adicionar opt `periodoCobranca?: { inicio: string; fim: string } | null`.
-- Se presente, primeira linha vira `"Período de: 13/05/2026 à 12/06/2026."` em vez de `"Período de: Junho/2026."`.
+### 5. Performance
 
-Em `GerarHistoricoDialog.tsx`:
-- Buscar `periodo_especifico_cobranca`, `periodo_cobranca_inicio` da empresa.
-- Calcular período para o `mes_referencia` da movimentação e passar para `gerarHistoricoTexto`.
+- Hook `useGestaoVidas(filters)` com React Query, cache 5min.
+- Consulta agregada em `vidas_historico_administradoras` (já persiste por empresa/mês — sem reler XLSX).
+- Botão **"Recalcular mês"** (somente Diretora/Admin) que chama `computeEntradasSaidas` existente.
 
-## Não afetar
-- Geração de movimentações, status, anexos, importação Excel, análises, alertas — todos continuam por `mes_referencia`. O período é apenas display + histórico.
+### 6. Visual
 
-## Arquivos alterados
-- migration: `empresas` (+2 colunas)
-- `src/lib/date-utils.ts` (+ helpers)
-- `src/lib/empresa-financeiro-config.ts`
-- `src/lib/historico-utils.ts`
-- `src/components/financeiro/ConfigFinanceiraEmpresaDialog.tsx`
-- `src/components/financeiro/GerarHistoricoDialog.tsx`
-- `src/components/financeiro/FinanceiroTable.tsx`
-- `src/components/financeiro/PeriodSummary.tsx`
-- `src/pages/Financeiro.tsx` (passar empresa data para tabela)
+Dark green enterprise (tokens já existentes em `index.css`), cards com `Card` do shadcn, gráficos via `recharts` (já no projeto), tabelas `DataTable`/shadcn `Table`. Estética Power BI: KPIs grandes no topo, grids 2-col, micro-sparklines nos cards.
+
+### 7. Exportação
+
+- Excel via `xlsx` (já instalado) — aba por seção.
+- PDF via `jspdf` + `jspdf-autotable` (já instalado) — cabeçalho Samel, KPIs e tabelas.
+
+### 8. Arquivos a criar
+
+- `src/pages/GestaoVidas.tsx`
+- `src/components/gestao-vidas/KpiHeader.tsx`
+- `src/components/gestao-vidas/FiltrosGestaoVidas.tsx`
+- `src/components/gestao-vidas/EvolucaoMensalChart.tsx`
+- `src/components/gestao-vidas/VidasAtivasChart.tsx`
+- `src/components/gestao-vidas/TopContratosChart.tsx`
+- `src/components/gestao-vidas/TabelaEmpresas.tsx`
+- `src/components/gestao-vidas/TabelaAdministradoras.tsx`
+- `src/components/gestao-vidas/HistoricoEntradasSaidas.tsx`
+- `src/components/gestao-vidas/RankingCrescimento.tsx`
+- `src/components/gestao-vidas/AlertasVidas.tsx`
+- `src/components/gestao-vidas/ExportarDialog.tsx`
+- `src/hooks/useGestaoVidas.ts`
+- `src/lib/gestao-vidas-utils.ts` (agregações + export Excel/PDF)
+
+### 9. Arquivos a editar
+
+- `src/App.tsx` → rota
+- `src/components/AppLayout.tsx` → item de menu + gating por role
+- `mem://index.md` + nova memória `mem://features/gestao-vidas`
+
+### 10. Pontos a confirmar antes de implementar
+
+1. **Histórico por pessoa (Titular/Dep/Filho/Cônjuge)**: hoje `layout-cpf-extractor` extrai apenas CPFs. Para mostrar nome + tipo precisamos estender o parser (ler colunas Nome e Tipo Dependência do layout). OK estender? Ou começamos só com contagens agregadas?
+2. **Vendas**: realmente vê tudo somente-leitura, ou só contratos que ele criou?
+3. **Recalcular pesado**: ok botão manual em vez de auto-recalcular ao abrir a aba?
