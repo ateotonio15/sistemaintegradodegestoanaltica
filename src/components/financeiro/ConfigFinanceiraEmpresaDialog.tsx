@@ -184,34 +184,38 @@ export function ConfigFinanceiraEmpresaDialog({
         .eq("id", empresaId);
       if (error) throw error;
 
-      // Sincroniza imediatamente a movimentação atual (aba Financeiro)
-      // com o dia de emissão/vencimento/tipo informados aqui.
-      if (movimentacaoId) {
-        let m: any = movimentacao;
-        if (!m) {
-          const { data: fresh } = await supabase
-            .from("financeiro_movimentacoes")
-            .select("id, dia_emissao, data_vencimento, mes_referencia")
-            .eq("id", movimentacaoId)
-            .maybeSingle();
-          m = fresh;
-        }
-        const mes: string | undefined = m?.mes_referencia
-          || (m?.data_vencimento ? String(m.data_vencimento).slice(0, 7) : undefined);
-        const movPayload: Record<string, unknown> = {
-          dia_emissao: v.data_emissao_fatura,
-          tipo_cobranca: tipoNorm,
-        };
-        if (mes && /^\d{4}-\d{2}$/.test(mes) && v.data_vencimento_fatura) {
-          movPayload.data_vencimento = `${mes}-${String(v.data_vencimento_fatura).padStart(2, "0")}`;
-        }
-        const { error: mErr } = await supabase
+      // Sincroniza TODAS as movimentações financeiras desta empresa com os
+      // valores cadastrados (dia_emissao + dia de vencimento da fatura).
+      // O tipo_cobranca é propagado automaticamente pelo trigger
+      // trg_sync_tipo_cobranca_from_empresa quando tipo_financeiro muda.
+      {
+        const { data: movs } = await supabase
           .from("financeiro_movimentacoes")
-          .update(movPayload as any)
-          .eq("id", movimentacaoId);
-        if (mErr) {
-          console.warn("Falha ao sincronizar movimentação:", mErr.message);
-          toast.error("Configurações salvas, mas não foi possível sincronizar a aba Financeiro: " + mErr.message);
+          .select("id, mes_referencia")
+          .eq("empresa_id", empresaId);
+
+        const diaVenc = v.data_vencimento_fatura;
+        const updates = (movs || []).map((m: any) => {
+          const payload: Record<string, unknown> = {
+            dia_emissao: v.data_emissao_fatura,
+          };
+          const mes: string | undefined = m?.mes_referencia;
+          if (mes && /^\d{4}-\d{2}$/.test(mes) && diaVenc) {
+            payload.data_vencimento = `${mes}-${String(diaVenc).padStart(2, "0")}`;
+          }
+          return supabase
+            .from("financeiro_movimentacoes")
+            .update(payload as any)
+            .eq("id", m.id);
+        });
+        const results = await Promise.all(updates);
+        const firstError = results.find((r: any) => r?.error)?.error;
+        if (firstError) {
+          console.warn("Falha ao sincronizar movimentações:", firstError.message);
+          toast.error(
+            "Configurações salvas, mas algumas movimentações não foram sincronizadas: " +
+              firstError.message,
+          );
         }
       }
 
