@@ -1,0 +1,1 @@
+CREATE POLICY "Financeiro update empresas" ON public.empresas FOR UPDATE TO authenticated USING (has_role(auth.uid(), 'financeiro'::app_role)) WITH CHECK (has_role(auth.uid(), 'financeiro'::app_role));
