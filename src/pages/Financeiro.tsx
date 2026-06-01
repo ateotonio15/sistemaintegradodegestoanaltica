@@ -1366,36 +1366,24 @@ export default function Financeiro() {
 
             <div className="space-y-1.5">
               <Label className="text-xs">Status</Label>
-              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
+                selected={filtroStatus}
+                onChange={setFiltroStatus}
+                allLabel="Todos os status"
+                searchPlaceholder="Buscar status..."
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs">Tipo de cobrança</Label>
-              <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {tiposUnicos.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={tiposUnicos.map((t) => ({ value: t, label: t }))}
+                selected={filtroTipo}
+                onChange={setFiltroTipo}
+                allLabel="Todos os tipos"
+                searchPlaceholder="Buscar tipo..."
+              />
             </div>
 
             <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 h-10">
