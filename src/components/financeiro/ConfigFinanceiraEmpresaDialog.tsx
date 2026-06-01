@@ -58,6 +58,7 @@ export function ConfigFinanceiraEmpresaDialog({
   onSaved,
   submitLabel = "Salvar e iniciar faturamento",
 }: Props) {
+  const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
@@ -69,7 +70,7 @@ export function ConfigFinanceiraEmpresaDialog({
       const { data, error } = await supabase
         .from("empresas")
         .select(
-          "id, nome, data_emissao_fatura, data_vencimento_fatura, pagamento_via_deposito, tipo_financeiro, exige_po_pc, email_financeiro_cliente, observacao_padrao_financeiro, envio_boleto_com_nota, tem_coparticipacao, config_financeira_confirmada",
+          "id, nome, data_emissao_fatura, data_vencimento_fatura, pagamento_via_deposito, tipo_financeiro, exige_po_pc, email_financeiro_cliente, observacao_padrao_financeiro, envio_boleto_com_nota, tem_coparticipacao, config_financeira_confirmada, periodo_especifico_cobranca, periodo_cobranca_inicio",
         )
         .eq("id", empresaId!)
         .maybeSingle();
