@@ -206,6 +206,7 @@ export function ConfigFinanceiraEmpresaDialog({
       toast.success("Configurações financeiras salvas");
       qc.invalidateQueries({ queryKey: ["empresas"] });
       qc.invalidateQueries({ queryKey: ["financeiro"] });
+      qc.invalidateQueries({ queryKey: ["financeiro-empresas"] });
       qc.invalidateQueries({ queryKey: ["financeiro-operacionais-v2"] });
       qc.invalidateQueries({ queryKey: ["empresa-config-financeira", empresaId] });
       onOpenChange(false);
