@@ -593,7 +593,15 @@ export default function Financeiro() {
         return { inseridas: 0, total: 0 };
       }
 
-      // Buscar existentes para evitar duplicatas (não há índice único)
+      // Dedup em memória (mesma empresa+período pode entrar duas vezes pela junção de fontes)
+      const linhasMap = new Map<string, typeof linhas[number]>();
+      for (const l of linhas) {
+        const k = `${l.empresa_id}|${l.periodo}`;
+        if (!linhasMap.has(k)) linhasMap.set(k, l);
+      }
+      const linhasDedup = Array.from(linhasMap.values());
+
+      // Buscar existentes para evitar duplicatas
       const { data: existentes, error: exErr } = await supabase
         .from("financeiro_movimentacoes")
         .select("empresa_id, periodo")
@@ -601,14 +609,23 @@ export default function Financeiro() {
       if (exErr) throw exErr;
 
       const chaves = new Set((existentes || []).map((r) => `${r.empresa_id}|${r.periodo}`));
-      const novas = linhas.filter((l) => !chaves.has(`${l.empresa_id}|${l.periodo}`));
+      const novas = linhasDedup.filter((l) => !chaves.has(`${l.empresa_id}|${l.periodo}`));
 
-      if (novas.length === 0) return { inseridas: 0, total: linhas.length };
+      if (novas.length === 0) return { inseridas: 0, total: linhasDedup.length };
 
-      const { error: insErr } = await supabase.from("financeiro_movimentacoes").insert(novas);
-      if (insErr) throw insErr;
+      let inseridas = 0;
+      for (let i = 0; i < novas.length; i += 100) {
+        const batch = novas.slice(i, i + 100);
+        const { data: ins, error: insErr } = await supabase
+          .from("financeiro_movimentacoes")
+          .upsert(batch, { onConflict: "empresa_id,mes_referencia,periodo", ignoreDuplicates: true })
+          .select("id");
+        if (insErr) throw insErr;
+        inseridas += ins?.length ?? 0;
+      }
 
-      return { inseridas: novas.length, total: linhas.length };
+      return { inseridas, total: linhasDedup.length };
+
     },
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
