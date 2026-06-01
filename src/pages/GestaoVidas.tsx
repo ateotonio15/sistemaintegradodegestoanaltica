@@ -2,6 +2,10 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useGestaoVidas, type VidasFilters } from "@/hooks/useGestaoVidas";
 import { exportGestaoVidasExcel } from "@/lib/gestao-vidas-export";
+import { computeEntradasSaidas } from "@/lib/entradas-saidas-analyzer";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +25,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Minus,
+  RefreshCw,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -112,6 +117,11 @@ export default function GestaoVidas() {
   const [tipoContrato, setTipoContrato] = useState<VidasFilters["tipoContrato"]>("TODOS");
   const [status, setStatus] = useState<string>("TODOS");
   const [search, setSearch] = useState("");
+  const [gerando, setGerando] = useState(false);
+  const [progresso, setProgresso] = useState<{ done: number; total: number } | null>(null);
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const filters: VidasFilters = { mesRef, tipoContrato, status, search };
   const { data, isLoading } = useGestaoVidas(filters);
@@ -139,6 +149,66 @@ export default function GestaoVidas() {
       ativasAdms,
     };
   }, [empresas]);
+
+  // Empresas com layout anexado no mês porém com total_atual = 0 — candidatos a recalcular.
+  const empresasPendentes = useMemo(
+    () => empresas.filter((e) => (e.total_atual || 0) === 0).map((e) => e.id),
+    [empresas],
+  );
+
+  async function gerarVidasPendentes() {
+    if (empresasPendentes.length === 0) return;
+    setGerando(true);
+    setProgresso({ done: 0, total: empresasPendentes.length });
+    try {
+      // Pré-filtra apenas empresas que realmente têm anexo .xlsx/.xlsm/.xls no mês.
+      const { data: movs } = await supabase
+        .from("movimentacoes")
+        .select("id, empresa_id")
+        .in("empresa_id", empresasPendentes)
+        .eq("mes_referencia", mesRef);
+      const movIds = (movs ?? []).map((m: any) => m.id);
+      let comAnexo = new Set<string>();
+      if (movIds.length) {
+        const { data: anexos } = await supabase
+          .from("anexos_movimentacao")
+          .select("movimentacao_id, nome_arquivo")
+          .in("movimentacao_id", movIds);
+        const movToEmpresa = new Map<string, string>((movs ?? []).map((m: any) => [m.id, m.empresa_id]));
+        (anexos ?? []).forEach((a: any) => {
+          const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
+          if (["xlsx", "xlsm", "xls"].includes(ext)) {
+            const eid = movToEmpresa.get(a.movimentacao_id);
+            if (eid) comAnexo.add(eid);
+          }
+        });
+      }
+      const alvo = Array.from(comAnexo);
+      if (alvo.length === 0) {
+        toast({
+          title: "Nada a gerar",
+          description: "Nenhuma das empresas zeradas possui layout Excel anexado neste mês.",
+        });
+        return;
+      }
+      setProgresso({ done: 0, total: alvo.length });
+      await computeEntradasSaidas(alvo, mesRef, (done, total) => setProgresso({ done, total }));
+      await queryClient.invalidateQueries({ queryKey: ["gestao-vidas"] });
+      toast({
+        title: "Vidas geradas",
+        description: `${alvo.length} contrato(s) recalculados para ${mesRef}.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao gerar vidas",
+        description: err?.message ?? String(err),
+        variant: "destructive",
+      });
+    } finally {
+      setGerando(false);
+      setProgresso(null);
+    }
+  }
 
   const top = useMemo(
     () => [...empresas].sort((a, b) => (b.total_atual || 0) - (a.total_atual || 0)).slice(0, 10),
@@ -236,6 +306,20 @@ export default function GestaoVidas() {
             >
               <FileDown className="h-4 w-4 mr-1.5" />
               Excel
+            </Button>
+          )}
+          {canExport && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={gerarVidasPendentes}
+              disabled={isLoading || gerando || empresasPendentes.length === 0}
+              title="Calcula vidas das empresas com layout anexado mas total zerado no mês"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${gerando ? "animate-spin" : ""}`} />
+              {gerando
+                ? `Gerando ${progresso?.done ?? 0}/${progresso?.total ?? 0}…`
+                : `Gerar vidas pendentes${empresasPendentes.length ? ` (${empresasPendentes.length})` : ""}`}
             </Button>
           )}
         </div>
