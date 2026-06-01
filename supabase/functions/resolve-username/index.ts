@@ -28,6 +28,13 @@ function isRateLimited(ip: string): boolean {
 
 const GENERIC_ERROR = "Usuário ou senha inválidos";
 
+function invalidCredentialsResponse() {
+  return new Response(JSON.stringify({ ok: false, error: GENERIC_ERROR }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") {
@@ -54,9 +61,7 @@ Deno.serve(async (req) => {
     const password = String(body?.password ?? "");
 
     if (!username || username.length < 2 || username.length > 64 || !password) {
-      return new Response(JSON.stringify({ error: GENERIC_ERROR }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return invalidCredentialsResponse();
     }
 
     const admin = createClient(
@@ -67,14 +72,10 @@ Deno.serve(async (req) => {
     const { data: email, error: rpcErr } = await admin.rpc("get_email_by_username", { _username: username });
     if (rpcErr) {
       console.error("RPC error", rpcErr);
-      return new Response(JSON.stringify({ error: GENERIC_ERROR }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return invalidCredentialsResponse();
     }
     if (!email) {
-      return new Response(JSON.stringify({ error: GENERIC_ERROR }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return invalidCredentialsResponse();
     }
 
     // Use anon client to perform sign-in (returns a session without admin powers).
@@ -88,9 +89,7 @@ Deno.serve(async (req) => {
     });
 
     if (signErr || !signIn?.session) {
-      return new Response(JSON.stringify({ error: GENERIC_ERROR }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return invalidCredentialsResponse();
     }
 
     return new Response(
@@ -104,8 +103,6 @@ Deno.serve(async (req) => {
     );
   } catch (e: any) {
     console.error(e);
-    return new Response(JSON.stringify({ error: GENERIC_ERROR }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return invalidCredentialsResponse();
   }
 });
