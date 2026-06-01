@@ -174,6 +174,10 @@ export function ConfigFinanceiraEmpresaDialog({
           observacao_padrao_financeiro: v.observacao_padrao_financeiro || null,
           envio_boleto_com_nota: v.envio_boleto_com_nota,
           tem_coparticipacao: v.tem_coparticipacao,
+          periodo_especifico_cobranca: v.periodo_especifico_cobranca,
+          periodo_cobranca_inicio: v.periodo_especifico_cobranca
+            ? (v.periodo_cobranca_inicio || null)
+            : null,
           config_financeira_confirmada: true,
         } as any)
         .eq("id", empresaId);
