@@ -19,6 +19,7 @@ import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
 import Implantacao from "./pages/Implantacao";
 import VidasSamel from "./pages/VidasSamel";
+import GestaoVidas from "./pages/GestaoVidas";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -111,6 +112,10 @@ const AppRoutes = () => (
       <Route element={<RoleGate deny={[]} />}>
         <Route path="/vidas-samel" element={<VidasSamel />} />
         <Route path="/reajustes" element={<Reajustes />} />
+      </Route>
+
+      <Route element={<RoleGate allow={["admin", "diretora", "comum", "administradoras", "vendas"]} />}>
+        <Route path="/gestao-vidas" element={<GestaoVidas />} />
       </Route>
 
       <Route element={<RoleGate deny={["financeiro"]} />}>
