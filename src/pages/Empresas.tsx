@@ -76,6 +76,8 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   valor_enfermaria_centavos: null,
   valor_apartamento_centavos: null,
   faixas_etarias: null,
+  periodo_especifico_cobranca: false,
+  periodo_cobranca_inicio: null,
 
 } as any;
 
