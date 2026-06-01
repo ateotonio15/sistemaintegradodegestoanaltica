@@ -54,6 +54,7 @@ import {
 const STATUS_OPTIONS: StatusFinanceiro[] = [
   "Nota emitida",
   "Faturado",
+  "Aguardando validação",
   "Enviada",
   "Em faturamento",
   "Aguardando nota",
@@ -131,7 +132,7 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc")
         .in("id", empresaIds);
       if (error) throw error;
       const map: Record<string, {
@@ -145,6 +146,7 @@ export default function Financeiro() {
         ativa: boolean;
         pagamento_via_deposito: boolean;
         nao_faturado_financeiro: boolean;
+        exige_po_pc: boolean;
       }> = {};
       data.forEach((e: any) => {
         const statusOk = (e.status_empresa ?? "Ativa") === "Ativa";
@@ -160,6 +162,7 @@ export default function Financeiro() {
           ativa,
           pagamento_via_deposito: !!e.pagamento_via_deposito,
           nao_faturado_financeiro: !!e.nao_faturado_financeiro,
+          exige_po_pc: !!e.exige_po_pc,
         };
       });
 
@@ -367,7 +370,7 @@ export default function Financeiro() {
         empresa_cnpj: emp?.cnpj ?? null,
         empresa_vidas: emp?.vidas ?? 0,
         periodo_corte: periodoCorte,
-        status: calcularStatusFinanceiro(f, envioOperacional, anexosParaStatus),
+        status: calcularStatusFinanceiro(f, envioOperacional, anexosParaStatus, !!emp?.exige_po_pc),
         anexos_count: anexosAll.length + (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0),
         enviado_por_nome: uploaderId ? uploaderMap[uploaderId] || null : null,
         faturamento_iniciado_por: (f as any).faturamento_iniciado_por ?? null,

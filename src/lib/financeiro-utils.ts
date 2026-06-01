@@ -20,6 +20,7 @@ export type TipoFinanceiro = (typeof TIPOS_FINANCEIRO)[number];
 export type StatusFinanceiro =
   | "Nota emitida"
   | "Faturado"
+  | "Aguardando validação"
   | "Enviada"
   | "Em faturamento"
   | "Aguardando nota"
@@ -52,11 +53,12 @@ export function isXlsAnexo(a: { mime_type?: string | null; nome_arquivo?: string
  * Prioridade (do mais alto para o mais baixo):
  * 1. **Enviada** — `data_envio_nota` preenchida (estágio final do Financeiro)
  * 2. **Nota emitida** — existe ao menos um anexo PDF
- * 3. **Faturado** — existe ao menos um anexo XLS/planilha (e nenhum PDF)
- * 4. **Em faturamento** — usuário iniciou o faturamento (faturamento_iniciado_em)
- * 5. **Fora do prazo** — `dentro_prazo === false` e sem anexo/nota
- * 6. **Aguardando nota** — operacional já enviou ao financeiro mas ainda sem anexo/nota
- * 7. **Pendente** — nada ainda
+ * 3. **Aguardando validação** — empresa exige PO/PC e há anexo XLS/planilha (e nenhum PDF)
+ * 4. **Faturado** — existe ao menos um anexo XLS/planilha (e nenhum PDF)
+ * 5. **Em faturamento** — usuário iniciou o faturamento (faturamento_iniciado_em)
+ * 6. **Fora do prazo** — `dentro_prazo === false` e sem anexo/nota
+ * 7. **Aguardando nota** — operacional já enviou ao financeiro mas ainda sem anexo/nota
+ * 8. **Pendente** — nada ainda
  */
 export function calcularStatusFinanceiro(
   mov: Pick<FinanceiroMovimentacao, "data_envio_nota" | "dentro_prazo"> & {
@@ -64,12 +66,13 @@ export function calcularStatusFinanceiro(
   },
   envioOperacionalFeito: boolean,
   anexos: Array<{ mime_type?: string | null; nome_arquivo?: string | null }> = [],
+  exigePoPc: boolean = false,
 ): StatusFinanceiro {
   if (mov.data_envio_nota) return "Enviada";
   const temPdf = anexos.some(isPdfAnexo);
   if (temPdf) return "Nota emitida";
   const temXls = anexos.some(isXlsAnexo);
-  if (temXls) return "Faturado";
+  if (temXls) return exigePoPc ? "Aguardando validação" : "Faturado";
   if (mov.faturamento_iniciado_em) return "Em faturamento";
   if (mov.dentro_prazo === false) return "Fora do prazo";
   if (envioOperacionalFeito) return "Aguardando nota";
@@ -82,6 +85,8 @@ export function statusFinanceiroColor(status: StatusFinanceiro): string {
       return "bg-success text-success-foreground";
     case "Faturado":
       return "bg-info text-info-foreground";
+    case "Aguardando validação":
+      return "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-300/60 dark:border-purple-400/30";
     case "Enviada":
       return "bg-success/80 text-success-foreground";
     case "Em faturamento":
