@@ -103,6 +103,8 @@ export default function GestaoVidas() {
     const sai = empresas.reduce((s, e) => s + (e.saidas || 0), 0);
     const empresarial = empresas.filter((e) => e.tipo_contrato === "EMPRESARIAL");
     const adms = empresas.filter((e) => e.tipo_contrato === "ADMINISTRADORA");
+    const ativasEmpresarial = empresarial.reduce((s, e) => s + (e.total_atual || 0), 0);
+    const ativasAdms = adms.reduce((s, e) => s + (e.total_atual || 0), 0);
     return {
       ativas,
       ent,
@@ -111,6 +113,8 @@ export default function GestaoVidas() {
       contratos: empresas.length,
       empresarial,
       adms,
+      ativasEmpresarial,
+      ativasAdms,
     };
   }, [empresas]);
 
