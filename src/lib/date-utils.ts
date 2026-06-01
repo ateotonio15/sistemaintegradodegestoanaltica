@@ -80,3 +80,44 @@ export function todayLocalISO(): string {
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Calcula o intervalo de cobrança de uma empresa que possui período específico
+ * (~30 dias). Recebe a data inicial BASE e o mês de referência (YYYY-MM).
+ * Retorna o intervalo da competência:
+ * - início: mesmo dia da data base no mês de referência (ajustado se mês curto).
+ * - fim: mesmo dia, no mês seguinte, MENOS 1 dia.
+ *
+ * Ex.: base 13/05/2026, mesRef 2026-05 → 13/05/2026 a 12/06/2026.
+ * Ex.: base 13/05/2026, mesRef 2026-06 → 13/06/2026 a 12/07/2026.
+ */
+export function calcularPeriodoCobranca(
+  dataBase: string | Date,
+  mesReferencia: string,
+): { inicio: Date; fim: Date } | null {
+  const base = parseDateSafe(dataBase);
+  if (!base) return null;
+  const m = /^(\d{4})-(\d{2})$/.exec(mesReferencia);
+  if (!m) return null;
+  const anoRef = Number(m[1]);
+  const mesRef0 = Number(m[2]) - 1;
+  const diaBase = base.getDate();
+
+  const ultimoDiaMesRef = new Date(anoRef, mesRef0 + 1, 0).getDate();
+  const diaInicio = Math.min(diaBase, ultimoDiaMesRef);
+  const inicio = new Date(anoRef, mesRef0, diaInicio);
+
+  const mesSeguinte0 = mesRef0 + 1;
+  const ultimoDiaProx = new Date(anoRef, mesSeguinte0 + 1, 0).getDate();
+  const diaProx = Math.min(diaBase, ultimoDiaProx);
+  const mesmoDiaProx = new Date(anoRef, mesSeguinte0, diaProx);
+  const fim = new Date(mesmoDiaProx);
+  fim.setDate(fim.getDate() - 1);
+
+  return { inicio, fim };
+}
+
+/** Formata o intervalo como "DD/MM/AAAA à DD/MM/AAAA". */
+export function formatPeriodoCobranca(inicio: Date, fim: Date): string {
+  return `${inicio.toLocaleDateString("pt-BR")} à ${fim.toLocaleDateString("pt-BR")}`;
+}
