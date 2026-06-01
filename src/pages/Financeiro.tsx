@@ -54,6 +54,7 @@ import {
 const STATUS_OPTIONS: StatusFinanceiro[] = [
   "Nota emitida",
   "Faturado",
+  "Aguardando validação",
   "Enviada",
   "Em faturamento",
   "Aguardando nota",
