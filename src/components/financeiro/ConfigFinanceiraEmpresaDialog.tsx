@@ -136,6 +136,8 @@ export function ConfigFinanceiraEmpresaDialog({
       observacao_padrao_financeiro: e.observacao_padrao_financeiro ?? "",
       envio_boleto_com_nota: !!e.envio_boleto_com_nota,
       tem_coparticipacao: !!e.tem_coparticipacao,
+      periodo_especifico_cobranca: !!e.periodo_especifico_cobranca,
+      periodo_cobranca_inicio: e.periodo_cobranca_inicio ?? null,
     });
     setErrors({});
   }, [empresa, movimentacao]);
