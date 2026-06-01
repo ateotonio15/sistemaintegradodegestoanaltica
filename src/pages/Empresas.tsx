@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock } from "lucide-react";
 import { PERIODOS } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
-import { formatDateBR, formatDay } from "@/lib/date-utils";
+import { formatDateBR, formatDay, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 import { FAIXAS_ETARIAS, labelFaixa, formatCentavosBRL } from "@/lib/reajuste-utils";
 import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
