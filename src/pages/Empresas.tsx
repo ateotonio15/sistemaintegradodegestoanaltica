@@ -388,6 +388,8 @@ export default function Empresas() {
       valor_enfermaria_centavos: (e as any).valor_enfermaria_centavos ?? null,
       valor_apartamento_centavos: (e as any).valor_apartamento_centavos ?? null,
       faixas_etarias: (e as any).faixas_etarias ?? null,
+      periodo_especifico_cobranca: (e as any).periodo_especifico_cobranca ?? false,
+      periodo_cobranca_inicio: (e as any).periodo_cobranca_inicio ?? null,
 
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
