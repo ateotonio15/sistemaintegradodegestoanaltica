@@ -1002,6 +1002,73 @@ export default function Empresas() {
                               </span>
                             </div>
                           </div>
+                          <div className="space-y-2 sm:col-span-2">
+                            <Label className="text-sm font-medium">Período de cobrança</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Marque para empresas faturadas por intervalo específico de 30 dias (ex.: 13/05 à 12/06).
+                            </p>
+                            <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                              <Switch
+                                checked={!!(form as any).periodo_especifico_cobranca}
+                                onCheckedChange={(v) =>
+                                  setForm({
+                                    ...form,
+                                    periodo_especifico_cobranca: v,
+                                    periodo_cobranca_inicio: v ? (form as any).periodo_cobranca_inicio : null,
+                                  } as any)
+                                }
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                {(form as any).periodo_especifico_cobranca ? "Sim" : "Não"}
+                              </span>
+                            </div>
+                            {(form as any).periodo_especifico_cobranca && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Data inicial do período</Label>
+                                  <Input
+                                    type="date"
+                                    value={(form as any).periodo_cobranca_inicio ?? ""}
+                                    onChange={(e) =>
+                                      setForm({
+                                        ...form,
+                                        periodo_cobranca_inicio: e.target.value || null,
+                                      } as any)
+                                    }
+                                    className="rounded-lg"
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">
+                                    Data final (calculada automaticamente)
+                                  </Label>
+                                  {(() => {
+                                    const inicio = (form as any).periodo_cobranca_inicio;
+                                    if (!inicio) {
+                                      return (
+                                        <div className="text-xs text-muted-foreground italic h-10 flex items-center px-3">
+                                          Informe a data inicial.
+                                        </div>
+                                      );
+                                    }
+                                    const intervalo = calcularPeriodoCobranca(inicio, inicio.slice(0, 7));
+                                    if (!intervalo) {
+                                      return (
+                                        <div className="text-xs text-destructive h-10 flex items-center px-3">
+                                          Data inválida.
+                                        </div>
+                                      );
+                                    }
+                                    return (
+                                      <div className="rounded-lg border bg-muted/40 px-3 h-10 flex items-center text-sm font-medium">
+                                        {formatPeriodoCobranca(intervalo.inicio, intervalo.fim)}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">Coparticipação</Label>
                             <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
