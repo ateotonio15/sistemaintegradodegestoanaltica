@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DayGridPicker } from "@/components/ui/day-grid-picker";
-import { AlertTriangle, Info, Loader2, Receipt, Settings2 } from "lucide-react";
+import { AlertTriangle, CalendarRange, Info, Loader2, Receipt, Settings2 } from "lucide-react";
 
 import { toast } from "sonner";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
@@ -30,6 +30,8 @@ import {
   configFinanceiraSchema,
   type ConfigFinanceiraFormValues,
 } from "@/lib/empresa-financeiro-config";
+import { calcularPeriodoCobranca, formatPeriodoCobranca, todayLocalISO } from "@/lib/date-utils";
+import { useAuth } from "@/hooks/useAuth";
 
 
 interface Props {
@@ -56,6 +58,7 @@ export function ConfigFinanceiraEmpresaDialog({
   onSaved,
   submitLabel = "Salvar e iniciar faturamento",
 }: Props) {
+  const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
@@ -67,7 +70,7 @@ export function ConfigFinanceiraEmpresaDialog({
       const { data, error } = await supabase
         .from("empresas")
         .select(
-          "id, nome, data_emissao_fatura, data_vencimento_fatura, pagamento_via_deposito, tipo_financeiro, exige_po_pc, email_financeiro_cliente, observacao_padrao_financeiro, envio_boleto_com_nota, tem_coparticipacao, config_financeira_confirmada",
+          "id, nome, data_emissao_fatura, data_vencimento_fatura, pagamento_via_deposito, tipo_financeiro, exige_po_pc, email_financeiro_cliente, observacao_padrao_financeiro, envio_boleto_com_nota, tem_coparticipacao, config_financeira_confirmada, periodo_especifico_cobranca, periodo_cobranca_inicio",
         )
         .eq("id", empresaId!)
         .maybeSingle();
@@ -101,6 +104,8 @@ export function ConfigFinanceiraEmpresaDialog({
     observacao_padrao_financeiro: "",
     envio_boleto_com_nota: false,
     tem_coparticipacao: false,
+    periodo_especifico_cobranca: false,
+    periodo_cobranca_inicio: null,
   });
 
   useEffect(() => {
@@ -131,6 +136,8 @@ export function ConfigFinanceiraEmpresaDialog({
       observacao_padrao_financeiro: e.observacao_padrao_financeiro ?? "",
       envio_boleto_com_nota: !!e.envio_boleto_com_nota,
       tem_coparticipacao: !!e.tem_coparticipacao,
+      periodo_especifico_cobranca: !!e.periodo_especifico_cobranca,
+      periodo_cobranca_inicio: e.periodo_cobranca_inicio ?? null,
     });
     setErrors({});
   }, [empresa, movimentacao]);
@@ -167,6 +174,10 @@ export function ConfigFinanceiraEmpresaDialog({
           observacao_padrao_financeiro: v.observacao_padrao_financeiro || null,
           envio_boleto_com_nota: v.envio_boleto_com_nota,
           tem_coparticipacao: v.tem_coparticipacao,
+          periodo_especifico_cobranca: v.periodo_especifico_cobranca,
+          periodo_cobranca_inicio: v.periodo_especifico_cobranca
+            ? (v.periodo_cobranca_inicio || null)
+            : null,
           config_financeira_confirmada: true,
         } as any)
         .eq("id", empresaId);
@@ -408,6 +419,92 @@ export function ConfigFinanceiraEmpresaDialog({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            </section>
+
+            {/* Bloco 3: Período de cobrança (intervalo de 30 dias) */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <CalendarRange className="h-4 w-4 text-primary" />
+                Período de cobrança
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Configure empresas faturadas por intervalo específico de 30 dias (ex.: 13/05 à 12/06).
+                {!isAdmin && " Apenas administradores podem alterar esta configuração."}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Possui período específico de cobrança?</Label>
+                  <Select
+                    value={form.periodo_especifico_cobranca ? "sim" : "nao"}
+                    onValueChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        periodo_especifico_cobranca: v === "sim",
+                        periodo_cobranca_inicio: v === "sim" ? f.periodo_cobranca_inicio : null,
+                      }))
+                    }
+                    disabled={!isAdmin}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="nao">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {form.periodo_especifico_cobranca && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label>
+                        Data inicial do período <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="date"
+                        value={form.periodo_cobranca_inicio ?? ""}
+                        max={todayLocalISO().slice(0, 4) + "-12-31"}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, periodo_cobranca_inicio: e.target.value || null }))
+                        }
+                        disabled={!isAdmin}
+                      />
+                      {errors.periodo_cobranca_inicio && (
+                        <p className="text-xs text-destructive">{errors.periodo_cobranca_inicio}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label className="text-muted-foreground">
+                        Data final (calculada automaticamente)
+                      </Label>
+                      {(() => {
+                        if (!form.periodo_cobranca_inicio) {
+                          return (
+                            <p className="text-sm text-muted-foreground italic">
+                              Informe a data inicial para calcular o período.
+                            </p>
+                          );
+                        }
+                        const mesRef = form.periodo_cobranca_inicio.slice(0, 7);
+                        const intervalo = calcularPeriodoCobranca(
+                          form.periodo_cobranca_inicio,
+                          mesRef,
+                        );
+                        if (!intervalo) {
+                          return <p className="text-sm text-destructive">Data inválida.</p>;
+                        }
+                        return (
+                          <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium">
+                            Período: {formatPeriodoCobranca(intervalo.inicio, intervalo.fim)}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 

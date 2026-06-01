@@ -392,6 +392,8 @@ export type Database = {
           observacoes: string | null
           operadora_plano: string | null
           pagamento_via_deposito: boolean
+          periodo_cobranca_inicio: string | null
+          periodo_especifico_cobranca: boolean
           periodo_movimentacao: string | null
           prazo: string | null
           regra_prorrogacao: string | null
@@ -440,6 +442,8 @@ export type Database = {
           observacoes?: string | null
           operadora_plano?: string | null
           pagamento_via_deposito?: boolean
+          periodo_cobranca_inicio?: string | null
+          periodo_especifico_cobranca?: boolean
           periodo_movimentacao?: string | null
           prazo?: string | null
           regra_prorrogacao?: string | null
@@ -488,6 +492,8 @@ export type Database = {
           observacoes?: string | null
           operadora_plano?: string | null
           pagamento_via_deposito?: boolean
+          periodo_cobranca_inicio?: string | null
+          periodo_especifico_cobranca?: boolean
           periodo_movimentacao?: string | null
           prazo?: string | null
           regra_prorrogacao?: string | null

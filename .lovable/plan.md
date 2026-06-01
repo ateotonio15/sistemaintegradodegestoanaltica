@@ -1,62 +1,62 @@
-# Memória temporária de navegação — aba Financeiro
+# Período Específico de Cobrança
 
 ## Objetivo
-Manter, durante a sessão atual, o estado de navegação do usuário na aba **Financeiro** (competência, período, filtros, busca, status, etc.) para que ele volte ao mesmo ponto ao alternar entre abas. Limpar tudo no logout.
+Permitir que empresas sejam faturadas por um intervalo de 30 dias (ex: 13/05 → 12/06) em vez da competência mensal padrão. O usuário informa apenas a data inicial; o sistema calcula a final como "mesmo dia do mês seguinte − 1 dia". Para meses subsequentes, mantém o mesmo dia inicial, ajustando virada de mês/ano e meses curtos.
 
-## Escopo
-- Sem alteração em regras de negócio, queries, anexos, análise, histórico, exportação ou iniciar faturamento.
-- Apenas persistência temporária de estado de UI via `sessionStorage`.
-- Foco principal: `src/pages/Financeiro.tsx`. Mesmo padrão pode ser aplicado depois a outras telas, sem mudar nada agora.
+## Banco de dados
+Adicionar em `empresas`:
+- `periodo_especifico_cobranca` (boolean, default false)
+- `periodo_cobranca_inicio` (date, nullable) — data inicial **base** (referência para todos os ciclos)
 
-## Estados a persistir (Financeiro)
-- `mes` (competência selecionada)
-- `filtroPeriodo`
-- `filtroStatus`
-- `filtroTipo`
-- `somenteOverdue`
-- `busca`
-- `expandedRowId` (linha aberta, se houver)
+> Não armazenamos a data final: ela é sempre derivada do dia inicial + 1 mês − 1 dia.
 
-Estados efêmeros (dialogs abertos, exportando, resultados de análise em memória, edição) **não** serão persistidos.
+## Cálculo (nova util em `src/lib/date-utils.ts`)
+```ts
+calcularPeriodoCobranca(dataBase: Date, mesReferencia: string): { inicio: Date; fim: Date }
+```
+Regra:
+1. Extrai dia base `D` da `data_inicio`.
+2. Para um `mes_referencia` (YYYY-MM), o início = `D` daquele mês (ajustado se não existir, ex: 31/fev → último dia).
+3. Fim = mesmo dia do mês seguinte − 1 dia. Usar aritmética segura (sem somar 30 dias fixos).
 
-## Implementação
+Formatador: `formatPeriodoCobranca(inicio, fim)` → `"13/05/2026 à 12/06/2026"`.
 
-### 1. Hook utilitário `useSessionState`
-Criar `src/hooks/useSessionState.ts`:
-- Assinatura: `useSessionState<T>(key: string, initial: T | (() => T))`.
-- Lê de `sessionStorage` na primeira renderização (lazy init), com `try/catch` e fallback ao valor inicial.
-- Grava em `sessionStorage` (JSON) sempre que o valor muda, com debounce simples via `useEffect`.
-- Comportamento idêntico ao `useState` para não exigir refactor das telas.
+## Aba Empresas — Configurações Financeiras
+Em `ConfigFinanceiraEmpresaDialog.tsx`, adicionar nova seção **"Período de cobrança"**:
+- Select: "Possui período específico de cobrança?" (Sim/Não)
+- Se Sim: campo `DatePicker` "Data inicial do período" + label readonly "Data final (calculada): DD/MM/AAAA"
+- Validação: se Sim → data inicial obrigatória.
+- Persistir nos campos novos da `empresas`.
+- Atualizar `empresa-financeiro-config.ts` (schema Zod + interface).
+- Permissão: apenas admin pode editar (desabilitar inputs caso não seja admin).
 
-### 2. Usar no `Financeiro.tsx`
-Substituir os `useState` listados acima por `useSessionState`, com uma chave única por campo sob um prefixo, por exemplo:
-- `financeiro:mes`
-- `financeiro:filtroPeriodo`
-- `financeiro:filtroStatus`
-- `financeiro:filtroTipo`
-- `financeiro:somenteOverdue`
-- `financeiro:busca`
-- `financeiro:expandedRowId`
+## Aba Financeiro
+Em `FinanceiroTable.tsx` (e onde exibe competência), quando a empresa tiver período específico:
+- Exibir `"Período de: 13/05/2026 à 12/06/2026"` no lugar (ou abaixo) da competência.
+- Manter `mes_referencia` no DB intacto — apenas substituir a apresentação.
+- Filtros, ordenação, análise Excel x PDF e exportações continuam usando `mes_referencia`.
 
-Regra 1 (primeira visita na sessão): se não houver valor salvo, usa o default atual (`getCurrentMesReferencia()`, `"all"`, `null`, `false`, `""`).
+Em `PeriodSummary.tsx` exibir também o período específico quando aplicável (quando todas/uma empresa filtrada tiver período).
 
-Nenhuma outra lógica do arquivo é alterada.
+## Histórico Financeiro
+Em `src/lib/historico-utils.ts`:
+- Adicionar opt `periodoCobranca?: { inicio: string; fim: string } | null`.
+- Se presente, primeira linha vira `"Período de: 13/05/2026 à 12/06/2026."` em vez de `"Período de: Junho/2026."`.
 
-### 3. Limpeza no logout
-Em `src/hooks/useAuth.tsx`, dentro de `signOut` (antes do `supabase.auth.signOut()`), remover todas as chaves com prefixo `financeiro:` do `sessionStorage`. Implementar como helper `clearSessionNamespace("financeiro")` no próprio hook utilitário para reuso futuro.
+Em `GerarHistoricoDialog.tsx`:
+- Buscar `periodo_especifico_cobranca`, `periodo_cobranca_inicio` da empresa.
+- Calcular período para o `mes_referencia` da movimentação e passar para `gerarHistoricoTexto`.
 
-Também limpar quando `onAuthStateChange` emitir `SIGNED_OUT`, como rede de segurança.
+## Não afetar
+- Geração de movimentações, status, anexos, importação Excel, análises, alertas — todos continuam por `mes_referencia`. O período é apenas display + histórico.
 
-### 4. Sessão de navegador
-`sessionStorage` já atende às regras 4 e 5 (limpa ao fechar o navegador / nova sessão), sem código adicional.
-
-## Arquivos afetados
-- `src/hooks/useSessionState.ts` (novo)
-- `src/pages/Financeiro.tsx` (trocar 7 `useState` por `useSessionState`)
-- `src/hooks/useAuth.tsx` (limpar namespace `financeiro:` no logout e em `SIGNED_OUT`)
-
-## Validação
-1. Selecionar maio/2026 + filtro "Fora do prazo" → ir para Empresas → voltar: estado preservado.
-2. Logout → login: volta ao padrão (junho/2026, sem filtros).
-3. Fechar e reabrir o navegador: volta ao padrão.
-4. Funcionalidades existentes (anexos, análise, histórico, exportação, iniciar faturamento) continuam funcionando — só a fonte do estado mudou.
+## Arquivos alterados
+- migration: `empresas` (+2 colunas)
+- `src/lib/date-utils.ts` (+ helpers)
+- `src/lib/empresa-financeiro-config.ts`
+- `src/lib/historico-utils.ts`
+- `src/components/financeiro/ConfigFinanceiraEmpresaDialog.tsx`
+- `src/components/financeiro/GerarHistoricoDialog.tsx`
+- `src/components/financeiro/FinanceiroTable.tsx`
+- `src/components/financeiro/PeriodSummary.tsx`
+- `src/pages/Financeiro.tsx` (passar empresa data para tabela)

@@ -63,6 +63,11 @@ export interface HistoricoOpts {
   pagamentoViaDeposito?: boolean;
   /** Número fixo de PO da empresa (ex.: PST = 4600004172). Quando preenchido, adiciona linha "PO:XXX" após o vencimento. */
   poFixo?: string | null;
+  /**
+   * Quando a empresa possuir período específico de cobrança (intervalo de 30 dias),
+   * substitui a primeira linha do histórico por "Período de: 13/05/2026 à 12/06/2026".
+   */
+  periodoCobrancaLabel?: string | null;
 }
 
 
@@ -72,7 +77,10 @@ export function gerarHistoricoTexto(
   opts: HistoricoOpts,
 ): string {
   const linhas: string[] = [];
-  linhas.push(`Período de: ${opts.competenciaLabel}.`);
+  const cabecalho = opts.periodoCobrancaLabel && opts.periodoCobrancaLabel.trim()
+    ? opts.periodoCobrancaLabel.trim()
+    : opts.competenciaLabel;
+  linhas.push(`Período de: ${cabecalho}.`);
   linhas.push("");
 
   // Agrega categorias somando todos os pagadores

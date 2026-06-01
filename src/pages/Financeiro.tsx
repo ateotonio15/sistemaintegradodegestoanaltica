@@ -28,7 +28,7 @@ import {
 } from "@/lib/financeiro-analise-cache";
 import { HistoricoAnalisesDialog } from "@/components/financeiro/HistoricoAnalisesDialog";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 
 import { KpiCards } from "@/components/financeiro/KpiCards";
 import { StatusChart } from "@/components/financeiro/StatusChart";
@@ -133,7 +133,7 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc, periodo_especifico_cobranca, periodo_cobranca_inicio")
         .in("id", empresaIds);
       if (error) throw error;
       const map: Record<string, {
@@ -148,6 +148,8 @@ export default function Financeiro() {
         pagamento_via_deposito: boolean;
         nao_faturado_financeiro: boolean;
         exige_po_pc: boolean;
+        periodo_especifico_cobranca: boolean;
+        periodo_cobranca_inicio: string | null;
       }> = {};
       data.forEach((e: any) => {
         const statusOk = (e.status_empresa ?? "Ativa") === "Ativa";
@@ -164,6 +166,8 @@ export default function Financeiro() {
           pagamento_via_deposito: !!e.pagamento_via_deposito,
           nao_faturado_financeiro: !!e.nao_faturado_financeiro,
           exige_po_pc: !!e.exige_po_pc,
+          periodo_especifico_cobranca: !!e.periodo_especifico_cobranca,
+          periodo_cobranca_inicio: e.periodo_cobranca_inicio ?? null,
         };
       });
 
@@ -351,14 +355,24 @@ export default function Financeiro() {
       .map((f) => {
       const emp = empresasMap[f.empresa_id];
       const envioOperacional = !!operacionaisMap[`${f.empresa_id}|${f.periodo}`];
-      // "Período / Corte" baseado na configuração da empresa
-      const periodoCorte = emp
-        ? emp.tipo_movimentacao === "Diária" && emp.data_corte
-          ? `Diária — corte dia ${String(emp.data_corte).padStart(2, "0")}`
-          : emp.periodo_movimentacao
-            ? `Fechada — ${emp.periodo_movimentacao}`
-            : "—"
-        : "—";
+      // "Período / Corte" baseado na configuração da empresa.
+      // Quando a empresa possui período específico de cobrança (intervalo de 30 dias),
+      // exibe o intervalo calculado para a competência da movimentação.
+      let periodoCorte: string;
+      if (emp?.periodo_especifico_cobranca && emp.periodo_cobranca_inicio && f.mes_referencia) {
+        const intervalo = calcularPeriodoCobranca(emp.periodo_cobranca_inicio, f.mes_referencia);
+        periodoCorte = intervalo
+          ? `Período de: ${formatPeriodoCobranca(intervalo.inicio, intervalo.fim)}`
+          : "—";
+      } else {
+        periodoCorte = emp
+          ? emp.tipo_movimentacao === "Diária" && emp.data_corte
+            ? `Diária — corte dia ${String(emp.data_corte).padStart(2, "0")}`
+            : emp.periodo_movimentacao
+              ? `Fechada — ${emp.periodo_movimentacao}`
+              : "—"
+          : "—";
+      }
       const uploaderId = pdfUploaderByMov[f.id];
       const anexosAll = anexosMap[f.id] || [];
       // Anexos vindos de Reajuste/Cobrança Retroativa não alteram o status

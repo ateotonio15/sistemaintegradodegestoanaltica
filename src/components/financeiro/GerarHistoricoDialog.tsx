@@ -28,6 +28,7 @@ import {
   gerarHistoricoTexto,
   isoToBR,
 } from "@/lib/historico-utils";
+import { calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 import type { AnaliseResultado } from "@/lib/excel-analysis-utils";
 import type { FinanceiroRow } from "./FinanceiroTable";
 
@@ -70,7 +71,7 @@ export function GerarHistoricoDialog({
       if (!row?.empresa_id) return null;
       const { data, error } = await supabase
         .from("empresas")
-        .select("data_vencimento_fatura, pagamento_via_deposito, codigo_contrato")
+        .select("data_vencimento_fatura, pagamento_via_deposito, codigo_contrato, periodo_especifico_cobranca, periodo_cobranca_inicio")
         .eq("id", row.empresa_id)
         .maybeSingle();
       if (error) throw error;
@@ -108,12 +109,23 @@ export function GerarHistoricoDialog({
     if (!resultados || !competencia) return "";
     const codigo = String((empresaInfo as any)?.codigo_contrato ?? "").trim();
     const poFixo = codigo === "571" ? "4600004172" : null;
+
+    // Período específico de cobrança (intervalo de 30 dias) tem precedência sobre a competência.
+    let periodoCobrancaLabel: string | null = null;
+    const temPeriodoEspecifico = !!(empresaInfo as any)?.periodo_especifico_cobranca;
+    const dataBase = (empresaInfo as any)?.periodo_cobranca_inicio as string | null | undefined;
+    if (temPeriodoEspecifico && dataBase && row?.mes_referencia) {
+      const intervalo = calcularPeriodoCobranca(dataBase, row.mes_referencia);
+      if (intervalo) periodoCobrancaLabel = formatPeriodoCobranca(intervalo.inicio, intervalo.fim);
+    }
+
     return gerarHistoricoTexto(resultados, {
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
       incluirDda: notaEmitida,
       pagamentoViaDeposito: !!(empresaInfo as any)?.pagamento_via_deposito,
       poFixo,
+      periodoCobrancaLabel,
     });
   };
 
