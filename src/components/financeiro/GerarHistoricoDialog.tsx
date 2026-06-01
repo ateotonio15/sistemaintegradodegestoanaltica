@@ -416,7 +416,7 @@ export function GerarHistoricoDialog({
                   type="button"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  Regenerar histórico padrão
+                  Histórico padrão
                 </Button>
                 <Button
                   variant="secondary"
