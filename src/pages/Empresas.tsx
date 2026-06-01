@@ -203,6 +203,10 @@ export default function Empresas() {
       if (dataImplantacao) payload.data_implantacao = dataImplantacao;
       if (dataVencimentoFatura) payload.data_vencimento_fatura = dataVencimentoFatura;
       if (dataEmissaoFatura) payload.data_emissao_fatura = dataEmissaoFatura;
+      // Período específico de cobrança: limpa a data quando flag desativada
+      if (!payload.periodo_especifico_cobranca) {
+        payload.periodo_cobranca_inicio = null;
+      }
       if (payload.responsavel_user_id) {
         const selectedUser = comunUsers.find((u) => u.user_id === payload.responsavel_user_id)
           || usuarios.find((u) => u.user_id === payload.responsavel_user_id);
