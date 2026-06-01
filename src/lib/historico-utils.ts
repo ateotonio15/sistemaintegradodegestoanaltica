@@ -118,6 +118,9 @@ export function gerarHistoricoTexto(
   }
   linhas.push("");
 
+  if (opts.pagamentoViaDeposito) {
+
+
     linhas.push(
       "OBS.: Dados bancários para depósito: Banco Itaú, Agência: 0071, Conta Corrente: 11663-6.",
     );
