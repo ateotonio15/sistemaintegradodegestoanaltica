@@ -28,7 +28,7 @@ import {
 } from "@/lib/financeiro-analise-cache";
 import { HistoricoAnalisesDialog } from "@/components/financeiro/HistoricoAnalisesDialog";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 
 import { KpiCards } from "@/components/financeiro/KpiCards";
 import { StatusChart } from "@/components/financeiro/StatusChart";
