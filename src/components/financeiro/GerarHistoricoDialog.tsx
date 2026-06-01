@@ -70,12 +70,13 @@ export function GerarHistoricoDialog({
       if (!row?.empresa_id) return null;
       const { data, error } = await supabase
         .from("empresas")
-        .select("data_vencimento_fatura, pagamento_via_deposito")
+        .select("data_vencimento_fatura, pagamento_via_deposito, codigo_contrato")
         .eq("id", row.empresa_id)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
+
     enabled: !!row?.empresa_id && open,
   });
 
@@ -105,13 +106,17 @@ export function GerarHistoricoDialog({
 
   const buildTexto = (vencimentoBR: string): string => {
     if (!resultados || !competencia) return "";
+    const codigo = String((empresaInfo as any)?.codigo_contrato ?? "").trim();
+    const poFixo = codigo === "571" ? "4600004172" : null;
     return gerarHistoricoTexto(resultados, {
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
       incluirDda: notaEmitida,
       pagamentoViaDeposito: !!(empresaInfo as any)?.pagamento_via_deposito,
+      poFixo,
     });
   };
+
 
   const irParaPreview = async (prorrogou: boolean) => {
     if (!row || !competencia) {
