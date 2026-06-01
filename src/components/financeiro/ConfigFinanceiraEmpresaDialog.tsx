@@ -422,6 +422,92 @@ export function ConfigFinanceiraEmpresaDialog({
               </div>
             </section>
 
+            {/* Bloco 3: Período de cobrança (intervalo de 30 dias) */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <CalendarRange className="h-4 w-4 text-primary" />
+                Período de cobrança
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Configure empresas faturadas por intervalo específico de 30 dias (ex.: 13/05 à 12/06).
+                {!isAdmin && " Apenas administradores podem alterar esta configuração."}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Possui período específico de cobrança?</Label>
+                  <Select
+                    value={form.periodo_especifico_cobranca ? "sim" : "nao"}
+                    onValueChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        periodo_especifico_cobranca: v === "sim",
+                        periodo_cobranca_inicio: v === "sim" ? f.periodo_cobranca_inicio : null,
+                      }))
+                    }
+                    disabled={!isAdmin}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="nao">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {form.periodo_especifico_cobranca && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label>
+                        Data inicial do período <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="date"
+                        value={form.periodo_cobranca_inicio ?? ""}
+                        max={todayLocalISO().slice(0, 4) + "-12-31"}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, periodo_cobranca_inicio: e.target.value || null }))
+                        }
+                        disabled={!isAdmin}
+                      />
+                      {errors.periodo_cobranca_inicio && (
+                        <p className="text-xs text-destructive">{errors.periodo_cobranca_inicio}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label className="text-muted-foreground">
+                        Data final (calculada automaticamente)
+                      </Label>
+                      {(() => {
+                        if (!form.periodo_cobranca_inicio) {
+                          return (
+                            <p className="text-sm text-muted-foreground italic">
+                              Informe a data inicial para calcular o período.
+                            </p>
+                          );
+                        }
+                        const mesRef = form.periodo_cobranca_inicio.slice(0, 7);
+                        const intervalo = calcularPeriodoCobranca(
+                          form.periodo_cobranca_inicio,
+                          mesRef,
+                        );
+                        if (!intervalo) {
+                          return <p className="text-sm text-destructive">Data inválida.</p>;
+                        }
+                        return (
+                          <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium">
+                            Período: {formatPeriodoCobranca(intervalo.inicio, intervalo.fim)}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+
             {form.exige_po_pc && (
               <Alert className="border-warning/50 bg-warning/10">
                 <AlertTriangle className="h-4 w-4 text-warning" />
