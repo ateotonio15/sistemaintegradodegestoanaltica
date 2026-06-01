@@ -28,6 +28,7 @@ import {
   gerarHistoricoTexto,
   isoToBR,
 } from "@/lib/historico-utils";
+import { calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 import type { AnaliseResultado } from "@/lib/excel-analysis-utils";
 import type { FinanceiroRow } from "./FinanceiroTable";
 
