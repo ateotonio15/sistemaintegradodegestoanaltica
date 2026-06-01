@@ -1,22 +1,62 @@
-Plano para corrigir os novos contratos que não aparecem:
+# Memória temporária de navegação — aba Financeiro
 
-1. **Ajustar a geração do Dashboard**
-   - Trocar a criação de movimentações operacionais para usar deduplicação real por `empresa_id + mês + período`.
-   - Substituir inserção simples por criação tolerante a duplicados, usando a chave única existente.
-   - Evitar que um contrato novo deixe de ser criado porque outro registro duplicado interrompeu o lote.
+## Objetivo
+Manter, durante a sessão atual, o estado de navegação do usuário na aba **Financeiro** (competência, período, filtros, busca, status, etc.) para que ele volte ao mesmo ponto ao alternar entre abas. Limpar tudo no logout.
 
-2. **Ajustar a geração do Financeiro**
-   - Aplicar a mesma proteção contra duplicidade em `financeiro_movimentacoes`.
-   - Garantir que contratos ativos, faturáveis e já vigentes no mês escolhido sejam provisionados corretamente.
-   - Manter a regra atual de vigência: contratos implantados em mês futuro não aparecem antes da implantação; contratos do mês entram no período correspondente quando válido.
+## Escopo
+- Sem alteração em regras de negócio, queries, anexos, análise, histórico, exportação ou iniciar faturamento.
+- Apenas persistência temporária de estado de UI via `sessionStorage`.
+- Foco principal: `src/pages/Financeiro.tsx`. Mesmo padrão pode ser aplicado depois a outras telas, sem mudar nada agora.
 
-3. **Melhorar a atualização da tela**
-   - Invalidar as consultas corretas depois de gerar movimentações para a aba Financeiro recarregar imediatamente.
-   - Preservar filtros, período e busca existentes.
+## Estados a persistir (Financeiro)
+- `mes` (competência selecionada)
+- `filtroPeriodo`
+- `filtroStatus`
+- `filtroTipo`
+- `somenteOverdue`
+- `busca`
+- `expandedRowId` (linha aberta, se houver)
 
-4. **Validar com os contratos recentes**
-   - Conferir contratos como `2527` e os demais recém-cadastrados.
-   - Verificar se aparecem em `Jun/2026` após clicar em **Gerar movimentações**.
+Estados efêmeros (dialogs abertos, exportando, resultados de análise em memória, edição) **não** serão persistidos.
 
-Detalhe técnico:
-- O problema provável é que a geração ainda usa `.insert()` simples em alguns pontos. Quando existe duplicidade ou corrida de dados, o lote falha e os contratos novos não chegam a ser criados. A correção será usar deduplicação em memória + `upsert/ignoreDuplicates` no conflito `empresa_id, mes_referencia, periodo`.
+## Implementação
+
+### 1. Hook utilitário `useSessionState`
+Criar `src/hooks/useSessionState.ts`:
+- Assinatura: `useSessionState<T>(key: string, initial: T | (() => T))`.
+- Lê de `sessionStorage` na primeira renderização (lazy init), com `try/catch` e fallback ao valor inicial.
+- Grava em `sessionStorage` (JSON) sempre que o valor muda, com debounce simples via `useEffect`.
+- Comportamento idêntico ao `useState` para não exigir refactor das telas.
+
+### 2. Usar no `Financeiro.tsx`
+Substituir os `useState` listados acima por `useSessionState`, com uma chave única por campo sob um prefixo, por exemplo:
+- `financeiro:mes`
+- `financeiro:filtroPeriodo`
+- `financeiro:filtroStatus`
+- `financeiro:filtroTipo`
+- `financeiro:somenteOverdue`
+- `financeiro:busca`
+- `financeiro:expandedRowId`
+
+Regra 1 (primeira visita na sessão): se não houver valor salvo, usa o default atual (`getCurrentMesReferencia()`, `"all"`, `null`, `false`, `""`).
+
+Nenhuma outra lógica do arquivo é alterada.
+
+### 3. Limpeza no logout
+Em `src/hooks/useAuth.tsx`, dentro de `signOut` (antes do `supabase.auth.signOut()`), remover todas as chaves com prefixo `financeiro:` do `sessionStorage`. Implementar como helper `clearSessionNamespace("financeiro")` no próprio hook utilitário para reuso futuro.
+
+Também limpar quando `onAuthStateChange` emitir `SIGNED_OUT`, como rede de segurança.
+
+### 4. Sessão de navegador
+`sessionStorage` já atende às regras 4 e 5 (limpa ao fechar o navegador / nova sessão), sem código adicional.
+
+## Arquivos afetados
+- `src/hooks/useSessionState.ts` (novo)
+- `src/pages/Financeiro.tsx` (trocar 7 `useState` por `useSessionState`)
+- `src/hooks/useAuth.tsx` (limpar namespace `financeiro:` no logout e em `SIGNED_OUT`)
+
+## Validação
+1. Selecionar maio/2026 + filtro "Fora do prazo" → ir para Empresas → voltar: estado preservado.
+2. Logout → login: volta ao padrão (junho/2026, sem filtros).
+3. Fechar e reabrir o navegador: volta ao padrão.
+4. Funcionalidades existentes (anexos, análise, histórico, exportação, iniciar faturamento) continuam funcionando — só a fonte do estado mudou.
