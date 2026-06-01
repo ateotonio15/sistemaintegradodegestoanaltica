@@ -355,14 +355,24 @@ export default function Financeiro() {
       .map((f) => {
       const emp = empresasMap[f.empresa_id];
       const envioOperacional = !!operacionaisMap[`${f.empresa_id}|${f.periodo}`];
-      // "Período / Corte" baseado na configuração da empresa
-      const periodoCorte = emp
-        ? emp.tipo_movimentacao === "Diária" && emp.data_corte
-          ? `Diária — corte dia ${String(emp.data_corte).padStart(2, "0")}`
-          : emp.periodo_movimentacao
-            ? `Fechada — ${emp.periodo_movimentacao}`
-            : "—"
-        : "—";
+      // "Período / Corte" baseado na configuração da empresa.
+      // Quando a empresa possui período específico de cobrança (intervalo de 30 dias),
+      // exibe o intervalo calculado para a competência da movimentação.
+      let periodoCorte: string;
+      if (emp?.periodo_especifico_cobranca && emp.periodo_cobranca_inicio && f.mes_referencia) {
+        const intervalo = calcularPeriodoCobranca(emp.periodo_cobranca_inicio, f.mes_referencia);
+        periodoCorte = intervalo
+          ? `Período de: ${formatPeriodoCobranca(intervalo.inicio, intervalo.fim)}`
+          : "—";
+      } else {
+        periodoCorte = emp
+          ? emp.tipo_movimentacao === "Diária" && emp.data_corte
+            ? `Diária — corte dia ${String(emp.data_corte).padStart(2, "0")}`
+            : emp.periodo_movimentacao
+              ? `Fechada — ${emp.periodo_movimentacao}`
+              : "—"
+          : "—";
+      }
       const uploaderId = pdfUploaderByMov[f.id];
       const anexosAll = anexosMap[f.id] || [];
       // Anexos vindos de Reajuste/Cobrança Retroativa não alteram o status
