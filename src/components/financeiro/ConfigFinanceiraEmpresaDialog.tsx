@@ -462,14 +462,13 @@ export function ConfigFinanceiraEmpresaDialog({
                       <Label>
                         Data inicial do período <span className="text-destructive">*</span>
                       </Label>
-                      <Input
-                        type="date"
-                        value={form.periodo_cobranca_inicio ?? ""}
-                        max={todayLocalISO().slice(0, 4) + "-12-31"}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, periodo_cobranca_inicio: e.target.value || null }))
+                      <IsoDatePicker
+                        value={form.periodo_cobranca_inicio}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, periodo_cobranca_inicio: v }))
                         }
                         disabled={!isAdmin}
+                        ariaInvalid={!!errors.periodo_cobranca_inicio}
                       />
                       {errors.periodo_cobranca_inicio && (
                         <p className="text-xs text-destructive">{errors.periodo_cobranca_inicio}</p>
