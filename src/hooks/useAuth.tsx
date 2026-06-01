@@ -99,7 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void fetchRole(nextUserId);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        clearSessionNamespace("financeiro");
+      }
       setTimeout(() => {
         void applySession(session);
       }, 0);
@@ -113,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchRole]);
 
   const signOut = async () => {
+    clearSessionNamespace("financeiro");
     await supabase.auth.signOut();
   };
 
