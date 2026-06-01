@@ -225,7 +225,10 @@ function classificarPlano(plano: string): "enfermaria" | "apartamento" | null {
     p.includes("master empresarial") ||
     p.includes("enfermaria") ||
     // Variações abreviadas: "Enf CE", "Enf. CE", "ENF-CE"
-    /\benf(\b|[\s.\-_])/i.test(p)
+    /\benf(\b|[\s.\-_])/i.test(p) ||
+    // Variações abreviadas de "M. Empresarial" / "M Empresarial" / "M.Empresarial"
+    /\bm[\s.\-_]*empresarial\b/.test(p) ||
+    /\bempresarial\b/.test(p)
   ) {
     return "enfermaria";
   }
