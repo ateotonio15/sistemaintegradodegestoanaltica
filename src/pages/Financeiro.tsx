@@ -71,8 +71,8 @@ export default function Financeiro() {
 
   const [mes, setMes] = useSessionState<string>("financeiro:mes", () => getCurrentMesReferencia());
   const [busca, setBusca] = useSessionState<string>("financeiro:busca", "");
-  const [filtroStatus, setFiltroStatus] = useSessionState<string>("financeiro:filtroStatus", "all");
-  const [filtroTipo, setFiltroTipo] = useSessionState<string>("financeiro:filtroTipo", "all");
+  const [filtroStatus, setFiltroStatus] = useSessionState<string[]>("financeiro:filtroStatusList", []);
+  const [filtroTipo, setFiltroTipo] = useSessionState<string[]>("financeiro:filtroTipoList", []);
   const [filtroPeriodo, setFiltroPeriodo] = useSessionState<string | null>("financeiro:filtroPeriodo", null);
   const [somenteOverdue, setSomenteOverdue] = useSessionState<boolean>("financeiro:somenteOverdue", false);
 
