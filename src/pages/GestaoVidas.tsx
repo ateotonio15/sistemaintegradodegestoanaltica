@@ -161,42 +161,76 @@ export default function GestaoVidas() {
     setGerando(true);
     setProgresso({ done: 0, total: empresasPendentes.length });
     try {
-      // Pré-filtra apenas empresas que realmente têm anexo .xlsx/.xlsm/.xls no mês.
+      // Procura anexos Excel nos últimos 4 meses (mesRef e 3 anteriores) — empresas
+      // pendentes podem ter o layout em meses passados (ex.: arquivo de maio aparecendo
+      // no mês corrente de junho ainda zerado).
+      const [yy, mm] = mesRef.split("-").map(Number);
+      const mesesBusca: string[] = [];
+      for (let i = 0; i < 4; i++) {
+        const d = new Date(yy, mm - 1 - i, 1);
+        mesesBusca.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+      }
+
       const { data: movs } = await supabase
         .from("movimentacoes")
-        .select("id, empresa_id")
+        .select("id, empresa_id, mes_referencia")
         .in("empresa_id", empresasPendentes)
-        .eq("mes_referencia", mesRef);
+        .in("mes_referencia", mesesBusca);
+
       const movIds = (movs ?? []).map((m: any) => m.id);
-      let comAnexo = new Set<string>();
+      // empresa_id -> mes_referencia mais recente com anexo Excel
+      const alvoMap = new Map<string, string>();
       if (movIds.length) {
         const { data: anexos } = await supabase
           .from("anexos_movimentacao")
           .select("movimentacao_id, nome_arquivo")
           .in("movimentacao_id", movIds);
-        const movToEmpresa = new Map<string, string>((movs ?? []).map((m: any) => [m.id, m.empresa_id]));
+        const movInfo = new Map<string, { empresa_id: string; mes: string }>(
+          (movs ?? []).map((m: any) => [m.id, { empresa_id: m.empresa_id, mes: m.mes_referencia }]),
+        );
         (anexos ?? []).forEach((a: any) => {
           const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
-          if (["xlsx", "xlsm", "xls"].includes(ext)) {
-            const eid = movToEmpresa.get(a.movimentacao_id);
-            if (eid) comAnexo.add(eid);
-          }
+          if (!["xlsx", "xlsm", "xls"].includes(ext)) return;
+          const info = movInfo.get(a.movimentacao_id);
+          if (!info) return;
+          const atual = alvoMap.get(info.empresa_id);
+          if (!atual || info.mes > atual) alvoMap.set(info.empresa_id, info.mes);
         });
       }
-      const alvo = Array.from(comAnexo);
-      if (alvo.length === 0) {
+
+      if (alvoMap.size === 0) {
         toast({
           title: "Nada a gerar",
-          description: "Nenhuma das empresas zeradas possui layout Excel anexado neste mês.",
+          description: "Nenhuma empresa pendente possui layout Excel nos últimos 4 meses.",
         });
         return;
       }
-      setProgresso({ done: 0, total: alvo.length });
-      await computeEntradasSaidas(alvo, mesRef, (done, total) => setProgresso({ done, total }));
+
+      // Agrupa por mês de referência para calcular em lote
+      const porMes = new Map<string, string[]>();
+      alvoMap.forEach((mes, empresaId) => {
+        const arr = porMes.get(mes) ?? [];
+        arr.push(empresaId);
+        porMes.set(mes, arr);
+      });
+
+      const total = alvoMap.size;
+      let acumulado = 0;
+      setProgresso({ done: 0, total });
+      for (const [mes, ids] of porMes) {
+        await computeEntradasSaidas(ids, mes, (done) =>
+          setProgresso({ done: acumulado + done, total }),
+        );
+        acumulado += ids.length;
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["gestao-vidas"] });
+      const resumo = Array.from(porMes.entries())
+        .map(([m, ids]) => `${ids.length} em ${m}`)
+        .join(", ");
       toast({
         title: "Vidas geradas",
-        description: `${alvo.length} contrato(s) recalculados para ${mesRef}.`,
+        description: `${total} contrato(s) recalculados (${resumo}).`,
       });
     } catch (err: any) {
       toast({
