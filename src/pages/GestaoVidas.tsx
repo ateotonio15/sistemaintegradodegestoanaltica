@@ -103,6 +103,8 @@ export default function GestaoVidas() {
     const sai = empresas.reduce((s, e) => s + (e.saidas || 0), 0);
     const empresarial = empresas.filter((e) => e.tipo_contrato === "EMPRESARIAL");
     const adms = empresas.filter((e) => e.tipo_contrato === "ADMINISTRADORA");
+    const ativasEmpresarial = empresarial.reduce((s, e) => s + (e.total_atual || 0), 0);
+    const ativasAdms = adms.reduce((s, e) => s + (e.total_atual || 0), 0);
     return {
       ativas,
       ent,
@@ -111,6 +113,8 @@ export default function GestaoVidas() {
       contratos: empresas.length,
       empresarial,
       adms,
+      ativasEmpresarial,
+      ativasAdms,
     };
   }, [empresas]);
 
@@ -229,7 +233,7 @@ export default function GestaoVidas() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-3">
         <Kpi label="Vidas Ativas" value={kpis.ativas.toLocaleString("pt-BR")} icon={Users} />
         <Kpi label="Entradas" value={`+${kpis.ent}`} icon={TrendingUp} tone="up" />
         <Kpi label="Saídas" value={`-${kpis.sai}`} icon={TrendingDown} tone="down" />
@@ -241,6 +245,8 @@ export default function GestaoVidas() {
         />
         <Kpi label="Contratos" value={kpis.contratos} icon={Building2} />
         <Kpi label="Administradoras" value={kpis.adms.length} icon={Building2} />
+        <Kpi label="Vidas Ativas Empresariais" value={kpis.ativasEmpresarial.toLocaleString("pt-BR")} icon={Users} />
+        <Kpi label="Vidas Ativas Administradoras" value={kpis.ativasAdms.toLocaleString("pt-BR")} icon={Users} />
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
