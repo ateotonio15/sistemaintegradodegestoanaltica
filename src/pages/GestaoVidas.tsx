@@ -233,7 +233,7 @@ export default function GestaoVidas() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Kpi label="Vidas Ativas" value={kpis.ativas.toLocaleString("pt-BR")} icon={Users} />
         <Kpi label="Entradas" value={`+${kpis.ent}`} icon={TrendingUp} tone="up" />
         <Kpi label="Saídas" value={`-${kpis.sai}`} icon={TrendingDown} tone="down" />
@@ -243,8 +243,6 @@ export default function GestaoVidas() {
           icon={kpis.saldo >= 0 ? ArrowUpRight : ArrowDownRight}
           tone={kpis.saldo >= 0 ? "up" : "down"}
         />
-        <Kpi label="Contratos" value={kpis.contratos} icon={Building2} />
-        <Kpi label="Administradoras" value={kpis.adms.length} icon={Building2} />
         <Kpi label="Vidas Ativas Empresariais" value={kpis.ativasEmpresarial.toLocaleString("pt-BR")} icon={Users} />
         <Kpi label="Vidas Ativas Administradoras" value={kpis.ativasAdms.toLocaleString("pt-BR")} icon={Users} />
       </div>
