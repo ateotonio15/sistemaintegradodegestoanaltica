@@ -451,7 +451,7 @@ export default function Dashboard() {
         return di <= (PERIODO_FIM_DIA[periodo] ?? 31);
       };
 
-      const toInsert: TablesInsert<"movimentacoes">[] = [];
+      const toInsertMap = new Map<string, TablesInsert<"movimentacoes">>();
       for (const emp of empresasAtivas) {
         let periodo = "01-05";
         if (emp.tipo_movimentacao === "Diária" && emp.data_corte) {
@@ -464,28 +464,34 @@ export default function Dashboard() {
         if (!vigenciaAlcancaPeriodo(emp.data_implantacao, periodo)) continue;
 
         const key = `${emp.id}__${periodo}`;
-        if (!existingSet.has(key)) {
-          toInsert.push({
-            empresa_id: emp.id,
-            mes_referencia: mesRef,
-            periodo,
-            tipo_movimentacao: emp.tipo_movimentacao || "Fechada",
-            responsavel_movimentacao: emp.responsavel_contrato || null,
-          });
-        }
+        if (existingSet.has(key) || toInsertMap.has(key)) continue;
+        toInsertMap.set(key, {
+          empresa_id: emp.id,
+          mes_referencia: mesRef,
+          periodo,
+          tipo_movimentacao: emp.tipo_movimentacao || "Fechada",
+          responsavel_movimentacao: emp.responsavel_contrato || null,
+        });
       }
+      const toInsert = Array.from(toInsertMap.values());
 
       if (toInsert.length === 0) {
         toast({ title: "Todas as empresas já possuem movimentações neste mês." });
       } else {
+        let inseridas = 0;
         for (let i = 0; i < toInsert.length; i += 50) {
           const batch = toInsert.slice(i, i + 50);
-          const { error } = await supabase.from("movimentacoes").insert(batch);
+          const { data: ins, error } = await supabase
+            .from("movimentacoes")
+            .upsert(batch, { onConflict: "empresa_id,mes_referencia,periodo", ignoreDuplicates: true })
+            .select("id");
           if (error) throw error;
+          inseridas += ins?.length ?? 0;
         }
-        toast({ title: `${toInsert.length} movimentações geradas com sucesso!` });
+        toast({ title: `${inseridas} movimentações geradas com sucesso!` });
         handleRefresh();
       }
+
     } catch (err: any) {
       console.error("Erro ao gerar movimentações:", err);
       toast({ title: "Erro ao gerar movimentações", description: err?.message, variant: "destructive" });
