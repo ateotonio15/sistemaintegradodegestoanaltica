@@ -935,6 +935,7 @@ export default function Dashboard() {
 
                     <TableHead className="font-semibold">Movimentação</TableHead>
                     <TableHead className="font-semibold">Resp. Contrato</TableHead>
+                    <TableHead className="font-semibold">Vidas</TableHead>
                     <TableHead className="font-semibold">Período</TableHead>
                     <TableHead className="font-semibold">Envio Empresa</TableHead>
                     <TableHead className="font-semibold">Financeiro</TableHead>
