@@ -104,6 +104,8 @@ export function ConfigFinanceiraEmpresaDialog({
     observacao_padrao_financeiro: "",
     envio_boleto_com_nota: false,
     tem_coparticipacao: false,
+    periodo_especifico_cobranca: false,
+    periodo_cobranca_inicio: null,
   });
 
   useEffect(() => {
