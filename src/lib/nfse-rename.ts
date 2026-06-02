@@ -35,22 +35,38 @@ export async function extrairMetadadosNfse(
 
   const { cnpj: tomadorCnpj, nome: tomadorNome } = extrairTomador(texto);
 
-  // Número da NFS-e. Procura o rótulo e captura o número logo após.
-  // Aceita "Número da NFS-e", "Numero NFSe", "NFS-e Nº", etc.
+  // Número da NFS-e. O PDF.js agrupa rótulos numa linha e valores na seguinte:
+  //   "Número da NFS-e   Competência da NFS-e   Data e Hora ..."
+  //   "7141              02/06/2026             02/06/2026 12:00:55 ..."
+  // Estratégia:
+  //   1) tentar valor logo após o rótulo na mesma linha;
+  //   2) se não houver, pegar o primeiro token 3-8 dígitos da próxima linha
+  //      não-vazia (rejeitando a "Chave de Acesso" que tem 40+ dígitos).
   const t = texto.replace(/\u00a0/g, " ");
   let nfNumero: string | null = null;
-  const padroes: RegExp[] = [
-    /n[uú]?mero\s*d[ao]?\s*nfs[\s\-]?e[^\d]{0,30}(\d{3,10})/i,
-    /nfs[\s\-]?e[^\d]{0,10}n[ºo°\.]?\s*[:\-]?\s*(\d{3,10})/i,
-    /n[ºo°\.]?\s*da\s*nfs[\s\-]?e[^\d]{0,20}(\d{3,10})/i,
-  ];
-  for (const re of padroes) {
-    const m = t.match(re);
-    if (m) {
-      nfNumero = m[1];
-      break;
+  const reLabelNum = /n[uú]mero\s+d[ao]?\s+nfs[\s\-]?e\s*[:\-]?\s*(.*)$/im;
+  const mLabel = t.match(reLabelNum);
+  if (mLabel) {
+    const restoMesmaLinha = (mLabel[1] || "").trim();
+    const mInline = restoMesmaLinha.match(/^(\d{3,8})\b/);
+    if (mInline) {
+      nfNumero = mInline[1];
+    } else {
+      const idxApos = (mLabel.index ?? 0) + mLabel[0].length;
+      const linhas = t.slice(idxApos).split(/\n/);
+      for (const ln of linhas) {
+        const tokens = ln.split(/\s+/).filter(Boolean);
+        for (const tok of tokens) {
+          if (/^\d{3,8}$/.test(tok)) {
+            nfNumero = tok;
+            break;
+          }
+        }
+        if (nfNumero) break;
+      }
     }
   }
+
 
   return {
     nfNumero,
