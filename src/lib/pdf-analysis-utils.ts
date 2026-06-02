@@ -293,20 +293,37 @@ export async function analisarPdfFinanceiro(
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[ \t]+/g, " ");
 
-  const proximaLinhaApos = (re: RegExp): string | null => {
+  /**
+   * Localiza um rótulo (possivelmente no meio de uma linha de cabeçalho) e
+   * retorna a PRÓXIMA linha não vazia DEPOIS da linha onde o rótulo aparece.
+   * Em DANFSe, os cabeçalhos ficam todos em uma linha e os valores na seguinte.
+   * Aceita um número N de linhas-valor a percorrer (default 1).
+   */
+  const linhasAposRotulo = (re: RegExp, qtd = 3): string[] => {
     const m = tLines.match(re);
-    if (!m || m.index == null) return null;
-    const resto = tLines.slice(m.index + m[0].length);
-    const linhas = resto.split("\n").map((l) => l.trim()).filter(Boolean);
-    return linhas[0] ?? null;
+    if (!m || m.index == null) return [];
+    // Avança até o fim da linha onde o rótulo foi encontrado
+    const fimLinha = tLines.indexOf("\n", m.index);
+    if (fimLinha < 0) return [];
+    const resto = tLines.slice(fimLinha + 1);
+    return resto
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .slice(0, qtd);
   };
+
+  const proximaLinhaApos = (re: RegExp): string | null =>
+    linhasAposRotulo(re, 1)[0] ?? null;
 
   const moneysOf = (linha: string): number[] => {
     const out: number[] = [];
-    const re = /r\$\s*([\d.]+,\d{2})/gi;
+    // Aceita valores com ou sem "R$" e com ou sem casas decimais formatadas
+    const re = /r\$\s*([\d.]+,\d{2})|(?:^|\s)(\d{1,3}(?:\.\d{3})*,\d{2})(?=\s|$)/gi;
     let mm: RegExpExecArray | null;
     while ((mm = re.exec(linha)) !== null) {
-      const v = parseValor(mm[1]);
+      const raw = mm[1] ?? mm[2];
+      const v = parseValor(raw);
       if (!isNaN(v)) out.push(v);
     }
     return out;
@@ -319,12 +336,12 @@ export async function analisarPdfFinanceiro(
   let valorLiquido: number | null = null;
   let issqnRetidoVT: number | null = null;
   let valorServicoVT: number | null = null;
-  const linhaVT = proximaLinhaApos(/valor\s+liquido\s+da\s+nfs[\s\-]?e/i);
+  // Junta até 3 linhas após o rótulo — alguns PDFs quebram a linha de valores
+  const linhaVT = linhasAposRotulo(/valor\s+liquido\s+da\s+nfs[\s\-]?e/i, 3).join(" ");
   if (linhaVT) {
     const moneys = moneysOf(linhaVT);
     if (moneys.length >= 1) valorLiquido = moneys[moneys.length - 1];
     if (moneys.length >= 2) valorServicoVT = moneys[0];
-    // ISSQN Retido = Valor Serviço - Valor Líquido (quando há retenção)
     if (valorServicoVT != null && valorLiquido != null) {
       const dif = Number((valorServicoVT - valorLiquido).toFixed(2));
       if (dif > 0.01) issqnRetidoVT = dif;
@@ -338,20 +355,21 @@ export async function analisarPdfFinanceiro(
   }
 
   // ---- Bloco "TRIBUTAÇÃO MUNICIPAL" ----
-  // Ordem típica: Valor Serviço | Desc.Incond | Total Deduções | Cálc.BM
-  //             | BC ISSQN | Alíquota Aplicada | Retenção ISSQN | ISSQN Apurado
   let baseCalculo: number | null = null;
   let totalDeducoes: number | null = null;
   let aliquota: number | null = null;
   let issqnDevido: number | null = null;
-  const linhaTM = proximaLinhaApos(/bc\s+issqn/i);
+  const linhaTM = linhasAposRotulo(/bc\s+issqn/i, 3).join(" ");
   if (linhaTM) {
     const moneys = moneysOf(linhaTM);
-    // Esperado: [Valor Serviço, Total Deduções, BC ISSQN, ISSQN Apurado]
     if (moneys.length >= 4) {
       totalDeducoes = moneys[moneys.length - 3];
       baseCalculo = moneys[moneys.length - 2];
       issqnDevido = moneys[moneys.length - 1];
+    } else if (moneys.length === 3) {
+      // Ex.: [Valor Serviço, BC ISSQN, ISSQN Apurado] (Deduções como "-")
+      baseCalculo = moneys[1];
+      issqnDevido = moneys[2];
     } else {
       if (moneys.length >= 2) baseCalculo = moneys[moneys.length - 2];
       if (moneys.length >= 1) issqnDevido = moneys[moneys.length - 1];
