@@ -845,7 +845,7 @@ export async function analisarExcelFinanceiroPorCnpj(
 
   const allRows: unknown[][] = [];
   ws.eachRow({ includeEmpty: false }, (row) => {
-    if (allRows.length >= 5000) return;
+    if (allRows.length >= 200_000) return;
     const values = (row.values as unknown[]).slice(1);
     allRows.push(values);
   });
