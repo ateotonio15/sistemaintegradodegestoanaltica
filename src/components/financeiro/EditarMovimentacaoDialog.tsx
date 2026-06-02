@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock, Receipt, CalendarIcon, X, Info } from "lucide-react";
 import { useSessionState } from "@/hooks/useSessionState";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { cn } from "@/lib/utils";
 import { DayGridPicker } from "@/components/ui/day-grid-picker";
@@ -115,6 +116,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     onApenas: () => void | Promise<void>;
     pagadores: Pagador[];
   } | null>(null);
+  const [aplicarEnvioATodos, setAplicarEnvioATodos] = useState<boolean>(true);
 
   useEffect(() => {
     if (movimentacao) {
@@ -331,12 +333,33 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
 
       return built;
     },
-    onSuccess: (built) => {
+    onSuccess: async (built) => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dia-emissao-financeiro"] });
       toast.success("Movimentação atualizada");
       // Se contrato tem múltiplos pagadores, pergunta se replica
       if (built && temIrmaos && movimentacao) {
+        // Atalho: usuário marcou "aplicar a todos" — replica direto sem perguntar
+        if (aplicarEnvioATodos) {
+          try {
+            const r = await replicarFinanceiroParaPagadores({
+              empresaIdOrigem: movimentacao.empresa_id,
+              codigoContrato: pagadores[0]?.codigo_contrato,
+              mesReferencia: movimentacao.mes_referencia,
+              periodo: movimentacao.periodo,
+              payload: built.payload,
+            });
+            toast.success(
+              `Replicado para pagadores: ${r.atualizados} atualizado(s), ${r.criados} criado(s)`,
+            );
+            queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+          } catch (e: any) {
+            toast.error("Erro ao replicar: " + e.message);
+          } finally {
+            onOpenChange(false);
+          }
+          return;
+        }
         setReplicaConfirm({
           title: "Aplicar a todos os pagadores?",
           description: `O contrato tem ${pagadores.length} pagadores: ${pagadores.map((p) => p.nome).join(", ")}. Deseja aplicar esta alteração para todos os pagadores do contrato?`,
@@ -695,6 +718,21 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                   Nota marcada como enviada.
                 </p>
               ) : null}
+              {temIrmaos && (
+                <label className="flex items-start gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5 text-[11px] cursor-pointer">
+                  <Checkbox
+                    checked={aplicarEnvioATodos}
+                    onCheckedChange={(v) => setAplicarEnvioATodos(v === true)}
+                    className="mt-0.5"
+                  />
+                  <span className="min-w-0">
+                    <span className="font-medium text-foreground">Aplicar a todos os {pagadores.length} pagadores</span>
+                    <span className="block text-muted-foreground">
+                      Replica esta data (e demais alterações) para todos os pagadores do contrato ao salvar — sem precisar editar um por um.
+                    </span>
+                  </span>
+                </label>
+              )}
             </div>
           </div>
 
