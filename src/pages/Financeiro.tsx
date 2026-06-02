@@ -1622,6 +1622,26 @@ export default function Financeiro() {
               />
             </div>
 
+            <div className="space-y-1.5">
+              <Label className="text-xs">Ordenar por</Label>
+              <Select value={ordenacao} onValueChange={setOrdenacao}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="envio_desc">Envio da nota (mais recente)</SelectItem>
+                  <SelectItem value="envio_asc">Envio da nota (mais antigo)</SelectItem>
+                  <SelectItem value="venc_asc">Vencimento (mais próximo)</SelectItem>
+                  <SelectItem value="venc_desc">Vencimento (mais distante)</SelectItem>
+                  <SelectItem value="empresa_asc">Empresa (A → Z)</SelectItem>
+                  <SelectItem value="empresa_desc">Empresa (Z → A)</SelectItem>
+                  <SelectItem value="vidas_desc">Nº de vidas (maior)</SelectItem>
+                  <SelectItem value="vidas_asc">Nº de vidas (menor)</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
 
           </CardContent>
         </Card>
@@ -1641,7 +1661,7 @@ export default function Financeiro() {
 
         {/* Tabela */}
         <FinanceiroTable
-          rows={filteredRows}
+          rows={sortedRows}
           onEdit={handleEdit}
           onCobranca={handleCobranca}
           isLoading={isLoading}
