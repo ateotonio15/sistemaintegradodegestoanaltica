@@ -732,7 +732,13 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     const labelRaw = cellToText(r[idxLabel]).trim();
     if (!labelRaw) continue;
     const labelNorm = norm(labelRaw);
-    if (labelNorm.startsWith("total geral") || labelNorm.startsWith("contrato:") || labelNorm.startsWith("contrato ")) break;
+    const rowNorms = r.map((cell) => norm(cell)).filter(Boolean);
+    if (
+      labelNorm.startsWith("total geral") ||
+      rowNorms.some((cell) => cell.startsWith("total geral")) ||
+      labelNorm.startsWith("contrato:") ||
+      labelNorm.startsWith("contrato ")
+    ) break;
     // Pula linhas de subtotal/total de bloco (ex.: "TOTAL ENFERMARIA", "SUBTOTAL APARTAMENTO",
     // "TOTAL EMPRESA", "TOTAL CONTRATO"), que repetiriam valores já contabilizados nos módulos.
     if (
@@ -764,6 +770,8 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     const valNum = isNaN(val) ? 0 : val;
     const qtdNum = isNaN(qtdN) ? 0 : qtdN;
     const mensNum = isNaN(mensN) ? 0 : mensN;
+    const hasValor = !isNaN(val) && val !== 0;
+    const hasMensalidade = !isNaN(mensN) && mensN !== 0;
 
     if (labelNorm.includes("inclus")) {
       cur.incQtd += qtdNum;
@@ -776,6 +784,9 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       continue;
     }
     const cat = classificarPlano(labelRaw);
+    // Algumas abas RESUMO repetem os módulos no rodapé antes de "Total Geral"
+    // apenas com a quantidade (ex.: "M.Empresarial 395"), o que duplicava vidas.
+    if (cat && qtdNum > 0 && !hasMensalidade && !hasValor) continue;
     if (cat === "enfermaria") {
       cur.enfQtd += qtdNum;
       cur.enfMens = mensNum || cur.enfMens;
