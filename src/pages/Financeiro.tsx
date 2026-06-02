@@ -1468,6 +1468,42 @@ export default function Financeiro() {
               />
             </div>
 
+            <div className="space-y-1.5">
+              <Label className="text-xs">Anexado por</Label>
+              <Select
+                value={filtroAnexadoPor ?? "__all__"}
+                onValueChange={(v) => setFiltroAnexadoPor(v === "__all__" ? null : v)}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Todos os usuários" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos os usuários</SelectItem>
+                  {anexadoPorOptions.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Tipo de anexo</Label>
+              <Select
+                value={filtroTipoAnexo ?? "__all__"}
+                onValueChange={(v) => setFiltroTipoAnexo(v === "__all__" ? null : v)}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Todos os tipos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos os tipos</SelectItem>
+                  {TIPOS_ANEXO.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 h-10">
               <Label className="text-xs cursor-pointer" htmlFor="overdue">
                 Apenas fora do prazo
