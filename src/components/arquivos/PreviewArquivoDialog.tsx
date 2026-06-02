@@ -324,6 +324,43 @@ export function PreviewArquivoDialog({
                     className="max-w-full max-h-full object-contain"
                   />
                 </div>
+              ) : isExcel && sheets ? (
+                <div className="h-full flex flex-col min-h-0">
+                  {sheets.length > 1 && (
+                    <div className="flex gap-1 px-3 py-2 border-b bg-background overflow-x-auto shrink-0">
+                      {sheets.map((s, i) => (
+                        <Button
+                          key={i}
+                          variant={i === activeSheet ? "default" : "outline"}
+                          size="sm"
+                          className="h-7 text-xs shrink-0"
+                          onClick={() => setActiveSheet(i)}
+                        >
+                          {s.name}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex-1 min-h-0 overflow-auto bg-background">
+                    <table className="text-xs border-collapse">
+                      <tbody>
+                        {sheets[activeSheet]?.rows.map((row, ri) => (
+                          <tr key={ri} className={ri === 0 ? "bg-muted font-medium sticky top-0" : ri % 2 ? "bg-muted/30" : ""}>
+                            <td className="border border-border px-2 py-1 text-muted-foreground text-[10px] sticky left-0 bg-inherit">{ri + 1}</td>
+                            {row.map((cell, ci) => (
+                              <td key={ci} className="border border-border px-2 py-1 whitespace-nowrap max-w-[300px] overflow-hidden text-ellipsis" title={cell}>
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {sheets[activeSheet]?.rows.length === 0 && (
+                      <div className="p-6 text-center text-sm text-muted-foreground">Planilha vazia</div>
+                    )}
+                  </div>
+                </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground p-6 text-center">
                   <AlertCircle className="h-6 w-6" />
