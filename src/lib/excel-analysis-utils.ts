@@ -473,6 +473,8 @@ export interface ComparacaoResultado {
   nfNumero?: string | null;
   /** Valor Líquido da NFS-e conforme PDF casado. */
   valorLiquido?: number | null;
+  /** Tributos extraídos do PDF (parciais). */
+  tributos?: import("./pdf-analysis-utils").PdfTributos | null;
 }
 
 /** Nota fiscal cujo CNPJ do tomador não aparece em nenhum bloco do Excel. */
@@ -1047,6 +1049,7 @@ export function cruzarExcelComPdfs(
     cmp.tomadorNome = pdf?.tomadorNome ?? null;
     cmp.nfNumero = pdf?.nfNumero ?? null;
     cmp.valorLiquido = pdf?.valorLiquido ?? null;
+    cmp.tributos = pdf?.tributos ?? null;
     if (!pdf) {
       cmp.motivoSemPdf = bloco.cnpj
         ? "NF não localizada para este CNPJ"

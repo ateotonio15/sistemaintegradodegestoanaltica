@@ -11,6 +11,23 @@ export interface PdfCategoria {
   total: number;
 }
 
+export interface PdfTributos {
+  /** Base de cálculo (R$). */
+  baseCalculo: number | null;
+  /** Alíquota ISSQN (%) — ex.: 5. */
+  aliquotaIssqn: number | null;
+  /** ISSQN devido (R$). */
+  issqn: number | null;
+  /** Valor retido (ISSQN retido na fonte, R$). */
+  issqnRetido: number | null;
+  /** IBS (R$). */
+  ibs: number | null;
+  /** CBS (R$). */
+  cbs: number | null;
+  /** Outras retenções (R$). */
+  outrasRetencoes: number | null;
+}
+
 export interface AnalisePdfResultado {
   arquivo: string;
   enfermaria: PdfCategoria;
@@ -26,6 +43,8 @@ export interface AnalisePdfResultado {
   tomadorCnpj: string | null;
   /** Nome do TOMADOR do serviço (normalizado), null se não encontrado. */
   tomadorNome: string | null;
+  /** Tributos extraídos da NFS-e (parciais). */
+  tributos: PdfTributos;
   avisos: string[];
 }
 
@@ -161,6 +180,15 @@ export async function analisarPdfFinanceiro(
       nfNumero: null,
       tomadorCnpj: null,
       tomadorNome: null,
+      tributos: {
+        baseCalculo: null,
+        aliquotaIssqn: null,
+        issqn: null,
+        issqnRetido: null,
+        ibs: null,
+        cbs: null,
+        outrasRetencoes: null,
+      },
       avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
     };
   }
@@ -246,12 +274,14 @@ export async function analisarPdfFinanceiro(
     }
   }
 
-  // Valor Líquido da NFS-e — aceita variações de espaçamento
+  // Valor Líquido da NFS-e — aceita variações de espaçamento e label que aparece
+  // antes ou depois do valor (depende do layout das colunas no PDF).
   let valorLiquido: number | null = null;
-  const reValorLiquido = /valor\s*l[ií]?quido\s*da\s*nfs[\s\-]?e\s*r?\$?\s*([\d.,]+)/i;
-  const mVL = t.match(reValorLiquido);
+  const reVL1 = /valor\s*l[ií]?quido(?:\s*d[ao]?\s*(?:nfs[\s\-]?e|nota))?[^\d\-]{0,40}(r?\$?\s*[\d.,]+)/i;
+  const reVL2 = /(r?\$?\s*[\d.,]+)[^\d\-]{0,40}valor\s*l[ií]?quido/i;
+  const mVL = t.match(reVL1) || t.match(reVL2);
   if (mVL) {
-    const v = parseValor(mVL[1]);
+    const v = parseValor(mVL[1].replace(/r?\$?\s*/i, ""));
     if (!isNaN(v) && v > 0) valorLiquido = v;
   }
 
@@ -260,6 +290,28 @@ export async function analisarPdfFinanceiro(
   const reNf = /n[uú]?mero\s*d[ao]?\s*nfs[\s\-]?e[^\d]{0,20}(\d{3,10})/i;
   const mNf = t.match(reNf);
   if (mNf) nfNumero = mNf[1];
+
+  // =====================================================================
+  // Tributos (extração parcial — Fase 1)
+  // Procura por rótulos comuns na NFS-e: Base de Cálculo, Alíquota ISSQN,
+  // ISSQN devido / a recolher, ISSQN retido, IBS, CBS, Outras retenções.
+  // =====================================================================
+  const findMoney = (re: RegExp): number | null => {
+    const m = t.match(re);
+    if (!m) return null;
+    const v = parseValor(m[1]);
+    return isNaN(v) ? null : v;
+  };
+  const tributos: PdfTributos = {
+    baseCalculo: findMoney(/base\s*d[eo]?\s*c[aá]lculo[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
+    aliquotaIssqn: findMoney(/al[ií]quota\s*(?:do\s*)?issqn[^\d\-]{0,20}([\d.,]+)\s*%?/i),
+    issqn: findMoney(/issqn\s*(?:devido|a\s*recolher|calculado)?[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
+    issqnRetido: findMoney(/issqn\s*retido[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i)
+      ?? findMoney(/valor\s*retido[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
+    ibs: findMoney(/\bibs\b[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
+    cbs: findMoney(/\bcbs\b[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
+    outrasRetencoes: findMoney(/outras\s*reten[cç][oõ]es[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
+  };
 
   return {
     enfermaria: enfermaria ?? { ...empty },
@@ -270,6 +322,7 @@ export async function analisarPdfFinanceiro(
     nfNumero,
     tomadorCnpj,
     tomadorNome,
+    tributos,
     avisos,
   };
 }
