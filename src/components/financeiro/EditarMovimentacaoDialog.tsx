@@ -93,7 +93,7 @@ const TIPOS_ANALISE = [
 
 export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, empresaNome }: Props) {
   const queryClient = useQueryClient();
-  const { user, canEditFinanceiro } = useAuth();
+  const { user, canEditFinanceiro, isAdmin } = useAuth();
   const [tipoCobranca, setTipoCobranca] = useState("");
   const [dataEnvioNota, setDataEnvioNota] = useState("");
   const [diaVencimento, setDiaVencimento] = useState<string>("__none__");
