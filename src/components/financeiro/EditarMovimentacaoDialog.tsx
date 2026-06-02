@@ -22,7 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock, Receipt, CalendarIcon } from "lucide-react";
+import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock, Receipt, CalendarIcon, X, Info } from "lucide-react";
+import { useSessionState } from "@/hooks/useSessionState";
+
 import { cn } from "@/lib/utils";
 import { DayGridPicker } from "@/components/ui/day-grid-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
