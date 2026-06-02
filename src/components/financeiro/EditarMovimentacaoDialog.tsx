@@ -180,10 +180,11 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       if (!movimentacao) return null;
       const { data } = await supabase
         .from("empresas")
-        .select("codigo_contrato, pagamento_via_deposito")
+        .select("codigo_contrato, pagamento_via_deposito, exige_po_pc, envio_boleto_com_nota, tem_coparticipacao, observacao_padrao_financeiro")
         .eq("id", movimentacao.empresa_id)
         .maybeSingle();
       return data;
+
     },
     enabled: !!movimentacao && open,
   });
