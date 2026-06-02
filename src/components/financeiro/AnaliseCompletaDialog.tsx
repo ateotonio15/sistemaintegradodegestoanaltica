@@ -237,13 +237,16 @@ export function AnaliseCompletaDialog({
       (temIncExcel ? totalIncExcel : 0) +
       (temExcExcel ? totalExcExcel : 0);
     const totalPdfGeral =
-      (temEnfPdf ? totalEnfPdf : 0) + (temAptPdf ? totalAptPdf : 0) + (temIncPdf ? totalIncPdf : 0);
+      (temEnfPdf ? totalEnfPdf : 0) +
+      (temAptPdf ? totalAptPdf : 0) +
+      (temIncPdf ? totalIncPdf : 0) +
+      (temExcPdf ? totalExcPdf : 0);
 
     categorias.push(
       linha(
         "Total geral",
         temEnfExcel || temAptExcel || temIncExcel || temExcExcel ? totalExcelGeral : null,
-        temEnfPdf || temAptPdf || temIncPdf ? totalPdfGeral : null,
+        temEnfPdf || temAptPdf || temIncPdf || temExcPdf ? totalPdfGeral : null,
       ),
     );
 
@@ -253,7 +256,7 @@ export function AnaliseCompletaDialog({
     else if (!arquivoPdf) docStatus = "Pendente";
 
     // Etapa 2 status (sem PDF => pendente)
-    const cmpsValidas = categorias.filter((c) => c.categoria !== "Exclusões" && c.categoria !== "Total geral");
+    const cmpsValidas = categorias.filter((c) => c.categoria !== "Total geral");
     let cmpStatus: Status = "Não analisado";
     if (!arquivoPdf) cmpStatus = "Pendente";
     else if (cmpsValidas.some((c) => c.status === "Divergente")) cmpStatus = "Divergente";
