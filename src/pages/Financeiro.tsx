@@ -1433,6 +1433,7 @@ export default function Financeiro() {
             >
               <Download className={`h-3.5 w-3.5 ${isExportingAuditoria ? "animate-pulse" : ""}`} />
               {isExportingAuditoria ? "Exportando..." : "Auditoria de anexos"}
+            </Button>
             <Button
               variant="outline"
               size="sm"
