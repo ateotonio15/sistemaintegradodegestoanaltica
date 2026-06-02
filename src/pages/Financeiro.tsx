@@ -75,7 +75,10 @@ export default function Financeiro() {
   const [filtroStatus, setFiltroStatus] = useSessionState<string[]>("financeiro:filtroStatusList", []);
   const [filtroTipo, setFiltroTipo] = useSessionState<string[]>("financeiro:filtroTipoList", []);
   const [filtroPeriodo, setFiltroPeriodo] = useSessionState<string | null>("financeiro:filtroPeriodo", null);
+  const [filtroAnexadoPor, setFiltroAnexadoPor] = useSessionState<string | null>("financeiro:filtroAnexadoPor", null);
+  const [filtroTipoAnexo, setFiltroTipoAnexo] = useSessionState<string | null>("financeiro:filtroTipoAnexo", null);
   const [somenteOverdue, setSomenteOverdue] = useSessionState<boolean>("financeiro:somenteOverdue", false);
+  const [isExportingAuditoria, setIsExportingAuditoria] = useState(false);
 
   const [editing, setEditing] = useState<FinanceiroMovimentacao | null>(null);
   const [editOpen, setEditOpen] = useState(false);
