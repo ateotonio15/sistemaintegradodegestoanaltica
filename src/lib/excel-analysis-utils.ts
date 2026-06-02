@@ -269,10 +269,11 @@ export async function analisarExcelFinanceiroPorPagador(
     };
   }
 
-  // Coletar todas as linhas brutas (até 2000 para evitar travas)
+  // Coletar todas as linhas brutas (limite alto para suportar relatórios grandes)
+  const MAX_ROWS = 200_000;
   const allRows: unknown[][] = [];
   ws.eachRow({ includeEmpty: false }, (row) => {
-    if (allRows.length >= 2000) return;
+    if (allRows.length >= MAX_ROWS) return;
     const values = (row.values as unknown[]).slice(1); // ExcelJS é 1-indexed
     allRows.push(values);
   });
