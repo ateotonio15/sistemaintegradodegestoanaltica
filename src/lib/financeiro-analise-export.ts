@@ -106,8 +106,10 @@ function applyBorders(ws: ExcelJS.Worksheet, range: string) {
   const [a, b] = range.split(":");
   const start = ws.getCell(a);
   const end = ws.getCell(b);
-  for (let r = start.row as number; r <= (end.row as number); r++) {
-    for (let c = start.col as number; c <= (end.col as number); c++) {
+  const sr = Number(start.row), er = Number(end.row);
+  const sc = Number(start.col), ec = Number(end.col);
+  for (let r = sr; r <= er; r++) {
+    for (let c = sc; c <= ec; c++) {
       ws.getCell(r, c).border = thinBorder;
     }
   }
