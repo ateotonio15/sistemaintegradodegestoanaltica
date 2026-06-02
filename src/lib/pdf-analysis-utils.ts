@@ -274,15 +274,91 @@ export async function analisarPdfFinanceiro(
     }
   }
 
-  // Valor Líquido da NFS-e — aceita variações de espaçamento e label que aparece
-  // antes ou depois do valor (depende do layout das colunas no PDF).
+  // ============================================================
+  // Extração estrutural (DANFSe): rótulos e valores ficam em linhas
+  // adjacentes, então precisamos preservar as quebras de linha.
+  // ============================================================
+  const tLines = texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[ \t]+/g, " ");
+
+  const proximaLinhaApos = (re: RegExp): string | null => {
+    const m = tLines.match(re);
+    if (!m || m.index == null) return null;
+    const resto = tLines.slice(m.index + m[0].length);
+    const linhas = resto.split("\n").map((l) => l.trim()).filter(Boolean);
+    return linhas[0] ?? null;
+  };
+
+  const moneysOf = (linha: string): number[] => {
+    const out: number[] = [];
+    const re = /r\$\s*([\d.]+,\d{2})/gi;
+    let mm: RegExpExecArray | null;
+    while ((mm = re.exec(linha)) !== null) {
+      const v = parseValor(mm[1]);
+      if (!isNaN(v)) out.push(v);
+    }
+    return out;
+  };
+
+  // ---- Bloco "VALOR TOTAL DA NFS-E" (Valor Líquido + ISSQN Retido) ----
+  // Ordem dos valores: Valor Serviço | Desc.Cond | Desc.Incond | ISSQN Retido
+  //                  | Total Ret. Federais | PIS/COFINS | Valor Líquido
   let valorLiquido: number | null = null;
-  const reVL1 = /valor\s*l[ií]?quido(?:\s*d[ao]?\s*(?:nfs[\s\-]?e|nota))?[^\d\-]{0,40}(r?\$?\s*[\d.,]+)/i;
-  const reVL2 = /(r?\$?\s*[\d.,]+)[^\d\-]{0,40}valor\s*l[ií]?quido/i;
-  const mVL = t.match(reVL1) || t.match(reVL2);
-  if (mVL) {
-    const v = parseValor(mVL[1].replace(/r?\$?\s*/i, ""));
-    if (!isNaN(v) && v > 0) valorLiquido = v;
+  let issqnRetidoVT: number | null = null;
+  const linhaVT = proximaLinhaApos(/valor\s+liquido\s+da\s+nfs[\s\-]?e/i);
+  if (linhaVT) {
+    const moneys = moneysOf(linhaVT);
+    if (moneys.length >= 1) valorLiquido = moneys[moneys.length - 1];
+    if (moneys.length >= 3) issqnRetidoVT = moneys[moneys.length - 2];
+  }
+
+  // ---- Bloco "TRIBUTAÇÃO MUNICIPAL" (BC ISSQN / Alíquota / ISSQN Apurado) ----
+  // Ordem: Valor Serviço | Desc.Incond | Total Deduções | Cálc.BM
+  //      | BC ISSQN | Alíquota Aplicada | Retenção ISSQN | ISSQN Apurado
+  let baseCalculo: number | null = null;
+  let aliquota: number | null = null;
+  let issqnDevido: number | null = null;
+  const linhaTM = proximaLinhaApos(/bc\s+issqn/i);
+  if (linhaTM) {
+    const moneys = moneysOf(linhaTM);
+    // Esperado: [Valor Serviço, Total Deduções, BC ISSQN, ISSQN Apurado]
+    if (moneys.length >= 2) baseCalculo = moneys[moneys.length - 2];
+    if (moneys.length >= 1) issqnDevido = moneys[moneys.length - 1];
+    const pct = linhaTM.match(/(\d+[,.]\d+)\s*%/);
+    if (pct) aliquota = parseValor(pct[1]);
+  }
+
+  // Fallbacks por rótulo direto (NFS-e de outros municípios)
+  if (baseCalculo == null) {
+    const m = tLines.match(/base\s*de\s*calculo[^\n]{0,40}r\$\s*([\d.]+,\d{2})/i);
+    if (m) baseCalculo = parseValor(m[1]);
+  }
+  if (issqnDevido == null) {
+    const m = tLines.match(/issqn\s*(?:apurado|devido|a\s*recolher)[^\n]{0,40}r\$\s*([\d.]+,\d{2})/i);
+    if (m) issqnDevido = parseValor(m[1]);
+  }
+  if (aliquota == null) {
+    const m = tLines.match(/aliquota\s*(?:aplicada|do\s*issqn|issqn)?[^\n]{0,20}(\d+[,.]\d+)\s*%/i);
+    if (m) aliquota = parseValor(m[1]);
+  }
+
+  // ---- IBS / CBS (linha "INFORMAÇÕES COMPLEMENTARES") ----
+  // Padrão: "IBS: 0,1% com reducao de 60% | R$ 18,33  CBS: 0,9% ... | R$ 165,00"
+  const ibsM = tLines.match(/\bibs\b[^|\n]*?\|\s*r\$\s*([\d.]+,\d{2})/i);
+  const cbsM = tLines.match(/\bcbs\b[^|\n]*?\|\s*r\$\s*([\d.]+,\d{2})/i);
+
+  // ---- Outras retenções (federais) ----
+  // Se a linha "Total das Retenções Federais" mostra "-", consideramos zero.
+  let outrasRetencoes: number | null = null;
+  const mTRF = tLines.match(/total\s+das\s+retencoes\s+federais[^\n]*/i);
+  if (mTRF) {
+    const linha = mTRF[0];
+    const v = linha.match(/r\$\s*([\d.]+,\d{2})/i);
+    if (v) outrasRetencoes = parseValor(v[1]);
+    else if (/\s-\s|\s-$/.test(linha)) outrasRetencoes = 0;
   }
 
   // Número da NF — procura especificamente "Número da NFS-e <NNNN>"
@@ -291,26 +367,14 @@ export async function analisarPdfFinanceiro(
   const mNf = t.match(reNf);
   if (mNf) nfNumero = mNf[1];
 
-  // =====================================================================
-  // Tributos (extração parcial — Fase 1)
-  // Procura por rótulos comuns na NFS-e: Base de Cálculo, Alíquota ISSQN,
-  // ISSQN devido / a recolher, ISSQN retido, IBS, CBS, Outras retenções.
-  // =====================================================================
-  const findMoney = (re: RegExp): number | null => {
-    const m = t.match(re);
-    if (!m) return null;
-    const v = parseValor(m[1]);
-    return isNaN(v) ? null : v;
-  };
   const tributos: PdfTributos = {
-    baseCalculo: findMoney(/base\s*d[eo]?\s*c[aá]lculo[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
-    aliquotaIssqn: findMoney(/al[ií]quota\s*(?:do\s*)?issqn[^\d\-]{0,20}([\d.,]+)\s*%?/i),
-    issqn: findMoney(/issqn\s*(?:devido|a\s*recolher|calculado)?[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
-    issqnRetido: findMoney(/issqn\s*retido[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i)
-      ?? findMoney(/valor\s*retido[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
-    ibs: findMoney(/\bibs\b[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
-    cbs: findMoney(/\bcbs\b[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
-    outrasRetencoes: findMoney(/outras\s*reten[cç][oõ]es[^\d\-]{0,30}(r?\$?\s*[\d.,]+)/i),
+    baseCalculo,
+    aliquotaIssqn: aliquota,
+    issqn: issqnDevido,
+    issqnRetido: issqnRetidoVT,
+    ibs: ibsM ? parseValor(ibsM[1]) : null,
+    cbs: cbsM ? parseValor(cbsM[1]) : null,
+    outrasRetencoes,
   };
 
   return {
