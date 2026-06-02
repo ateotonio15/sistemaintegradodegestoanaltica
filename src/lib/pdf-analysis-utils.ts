@@ -16,6 +16,8 @@ export interface AnalisePdfResultado {
   enfermaria: PdfCategoria;
   apartamento: PdfCategoria;
   inclusoes: { total: number };
+  /** Total de exclusões do histórico (negativo); null se não encontrado. */
+  exclusoes: { total: number | null };
   /** Valor Líquido da NFS-e (extraído do PDF), null se não encontrado. */
   valorLiquido: number | null;
   /** Número da NF (ex: "4601"), null se não encontrado. */
