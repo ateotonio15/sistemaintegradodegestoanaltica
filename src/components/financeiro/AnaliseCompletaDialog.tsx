@@ -156,7 +156,9 @@ export function AnaliseCompletaDialog({
       temIncPdf = false,
       temIncExcel = false;
     let totalExcExcel = 0,
-      temExcExcel = false;
+      totalExcPdf = 0,
+      temExcExcel = false,
+      temExcPdf = false;
 
     res.forEach((r, idx) => {
       const c: any = cmps[idx];
@@ -189,6 +191,10 @@ export function AnaliseCompletaDialog({
           totalIncPdf += Number(c.inclusoes.total.pdf);
           temIncPdf = true;
         }
+        if (c.exclusoes?.total.pdf != null) {
+          totalExcPdf += Number(c.exclusoes.total.pdf);
+          temExcPdf = true;
+        }
       }
     });
 
@@ -219,16 +225,10 @@ export function AnaliseCompletaDialog({
       categorias.push(linha("Apartamento", temAptExcel ? totalAptExcel : null, temAptPdf ? totalAptPdf : null));
     if (temIncExcel || temIncPdf)
       categorias.push(linha("Inclusões", temIncExcel ? totalIncExcel : null, temIncPdf ? totalIncPdf : null));
-    if (temExcExcel) {
-      // Exclusões geralmente não aparecem no histórico — tratamos como atenção informativa.
-      categorias.push({
-        categoria: "Exclusões",
-        excel: totalExcExcel,
-        pdf: null,
-        diferenca: null,
-        status: "Atenção",
-        observacao: "Não comparado no histórico da NFS-e.",
-      });
+    if (temExcExcel || temExcPdf) {
+      categorias.push(
+        linha("Exclusões", temExcExcel ? totalExcExcel : null, temExcPdf ? totalExcPdf : null),
+      );
     }
 
     const totalExcelGeral =
