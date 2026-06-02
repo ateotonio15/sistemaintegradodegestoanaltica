@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import ExcelJS from "exceljs";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,23 @@ import { toast } from "sonner";
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+type SheetData = { name: string; rows: string[][] };
+
+function cellToString(value: any): string {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toLocaleDateString("pt-BR");
+  if (typeof value === "object") {
+    if ("text" in value) return cellToString((value as any).text);
+    if ("result" in value) return cellToString((value as any).result);
+    if ("richText" in value && Array.isArray((value as any).richText)) {
+      return (value as any).richText.map((r: any) => r.text ?? "").join("");
+    }
+    if ("hyperlink" in value) return cellToString((value as any).text ?? (value as any).hyperlink);
+    if ("formula" in value) return cellToString((value as any).result);
+  }
+  return String(value);
+}
 
 interface Props {
   open: boolean;
