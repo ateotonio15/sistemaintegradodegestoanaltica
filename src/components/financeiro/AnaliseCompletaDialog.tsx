@@ -444,6 +444,7 @@ export function AnaliseCompletaDialog({
     if (servStatus === "Divergente") {
       divergList.push("Valor do Serviço da NFS-e não confere com o total do Excel/histórico.");
     }
+    if (divergTrib.length > 0) divergList.push(...divergTrib);
 
     const mensagem =
       statusGeral === "OK"
