@@ -492,19 +492,22 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   };
 
   const handleDownload = async (path: string, nome: string) => {
-    const { data, error } = await supabase.storage
-      .from("anexos-financeiro")
-      .createSignedUrl(path, 60);
-    if (error) {
-      toast.error("Erro ao gerar link: " + error.message);
-      return;
+    try {
+      const { data, error } = await supabase.storage
+        .from("anexos-financeiro")
+        .download(path);
+      if (error || !data) throw error ?? new Error("Falha ao baixar arquivo");
+      const blobUrl = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = nome;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (e: any) {
+      toast.error("Erro ao baixar: " + (e?.message ?? "desconhecido"));
     }
-    const a = document.createElement("a");
-    a.href = data.signedUrl;
-    a.download = nome;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.click();
   };
 
   const handleDelete = async (anexoId: string, path: string) => {
