@@ -1556,39 +1556,26 @@ export default function Financeiro() {
 
             <div className="space-y-1.5">
               <Label className="text-xs">Anexado por</Label>
-              <Select
-                value={filtroAnexadoPor ?? "__all__"}
-                onValueChange={(v) => setFiltroAnexadoPor(v === "__all__" ? null : v)}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Todos os usuários" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos os usuários</SelectItem>
-                  {anexadoPorOptions.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={anexadoPorOptions.map((u) => ({ value: u.id, label: u.nome }))}
+                selected={filtroAnexadoPor ? [filtroAnexadoPor] : []}
+                onChange={(vals) => setFiltroAnexadoPor(vals.length ? vals[vals.length - 1] : null)}
+                allLabel="Todos os usuários"
+                searchPlaceholder="Buscar usuário..."
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs">Tipo de anexo</Label>
-              <Select
-                value={filtroTipoAnexo ?? "__all__"}
-                onValueChange={(v) => setFiltroTipoAnexo(v === "__all__" ? null : v)}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Todos os tipos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos os tipos</SelectItem>
-                  {TIPOS_ANEXO.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={TIPOS_ANEXO.map((t) => ({ value: t, label: t }))}
+                selected={filtroTipoAnexo ? [filtroTipoAnexo] : []}
+                onChange={(vals) => setFiltroTipoAnexo(vals.length ? vals[vals.length - 1] : null)}
+                allLabel="Todos os tipos"
+                searchPlaceholder="Buscar tipo..."
+              />
             </div>
+
 
           </CardContent>
         </Card>
