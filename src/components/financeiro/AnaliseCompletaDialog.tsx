@@ -297,19 +297,37 @@ export function AnaliseCompletaDialog({
       }
     }
 
+    // Etapa 4 — Tributária (parcial)
+    const tribLinhas: ConferenciaServico[] = [];
+    if (tributos) {
+      const push = (origem: string, valor: number | null) =>
+        tribLinhas.push({ origem, valor, status: valor != null ? "OK" : "Pendente" });
+      push("Base de cálculo", tributos.baseCalculo);
+      push("Alíquota ISSQN (%)", tributos.aliquotaIssqn);
+      push("ISSQN devido", tributos.issqn);
+      push("ISSQN retido", tributos.issqnRetido);
+      push("IBS", tributos.ibs);
+      push("CBS", tributos.cbs);
+      push("Outras retenções", tributos.outrasRetencoes);
+    }
+    let tribStatus: Status = "Não analisado";
+    if (!arquivoPdf) tribStatus = "Pendente";
+    else if (tribLinhas.some((l) => l.valor != null)) tribStatus = "OK";
+    else tribStatus = "Atenção";
+
     // Etapa 5 — Resultado
-    const okCount = [docStatus, cmpStatus, servStatus].filter((s) => s === "OK").length;
-    const divCount = [cmpStatus, servStatus].filter((s) => s === "Divergente").length;
-    const alertaCount = [docStatus, cmpStatus, servStatus].filter(
+    const okCount = [docStatus, cmpStatus, servStatus, tribStatus].filter((s) => s === "OK").length;
+    const divCount = [cmpStatus, servStatus, tribStatus].filter((s) => s === "Divergente").length;
+    const alertaCount = [docStatus, cmpStatus, servStatus, tribStatus].filter(
       (s) => s === "Atenção" || s === "Pendente",
     ).length;
 
     let statusGeral: Status;
-    const allStatus: Status[] = [docStatus, cmpStatus, servStatus];
+    const allStatus: Status[] = [docStatus, cmpStatus, servStatus, tribStatus];
     if (allStatus.some((s) => s === "Erro")) statusGeral = "Erro";
     else if (divCount > 0) statusGeral = "Divergente";
     else if (alertaCount > 0) statusGeral = "Atenção";
-    else if (okCount === 3) statusGeral = "OK";
+    else if (okCount === 4) statusGeral = "OK";
     else statusGeral = "Pendente";
 
     const divergList: string[] = [];
