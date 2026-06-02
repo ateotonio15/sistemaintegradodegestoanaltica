@@ -1472,17 +1472,6 @@ export default function Financeiro() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExportAuditoriaAnexos}
-              disabled={isExportingAuditoria || isLoading}
-              className="gap-1.5"
-              title="Exportar auditoria de anexos (quem anexou, quando e qual arquivo)"
-            >
-              <Download className={`h-3.5 w-3.5 ${isExportingAuditoria ? "animate-pulse" : ""}`} />
-              {isExportingAuditoria ? "Exportando..." : "Auditoria de anexos"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
               onClick={() => setHistoricoOpen(true)}
               className="gap-1.5"
               title="Ver histórico de análises Excel × PDF salvas"
