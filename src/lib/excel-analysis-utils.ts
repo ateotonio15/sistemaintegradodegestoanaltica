@@ -465,6 +465,12 @@ export interface ComparacaoResultado {
   motivoSemPdf?: string;
   /** CNPJ do tomador, conforme PDF casado. */
   tomadorCnpj?: string | null;
+  /** Nome do tomador conforme PDF casado. */
+  tomadorNome?: string | null;
+  /** Número da NFS-e conforme PDF casado. */
+  nfNumero?: string | null;
+  /** Valor Líquido da NFS-e conforme PDF casado. */
+  valorLiquido?: number | null;
 }
 
 /** Nota fiscal cujo CNPJ do tomador não aparece em nenhum bloco do Excel. */
