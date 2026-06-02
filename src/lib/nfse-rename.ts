@@ -89,6 +89,7 @@ export function sanitizarNomeArquivo(nome: string): string {
 
 /**
  * Monta o nome final do arquivo no padrão "NF <TOMADOR> <NUMERO>.pdf".
+ * Usa apenas as 3 primeiras palavras do tomador (ex.: "ETERNAL INDUSTRIA COMERCIO").
  * Se faltar tomador ou número, retorna null (caller decide o fallback).
  */
 export function montarNomeArquivoNfse(
@@ -96,10 +97,36 @@ export function montarNomeArquivoNfse(
   nfNumero: string | null,
 ): string | null {
   if (!tomador || !nfNumero) return null;
-  const base = sanitizarNomeArquivo(`NF ${tomador} ${nfNumero}`);
+  const tresPalavras = tomador
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(" ");
+  if (!tresPalavras) return null;
+  const base = sanitizarNomeArquivo(`NF ${tresPalavras} ${nfNumero}`);
   if (!base) return null;
   return `${base}.pdf`;
 }
+
+/**
+ * Decide se o nome de arquivo original "merece" ser renomeado automaticamente.
+ * Só renomeamos quando o nome veio com padrão genérico (chave de acesso XML,
+ * sequência longa de dígitos, UUID, etc.). Se o usuário já enviou no padrão
+ * "NF <nome> <numero>.pdf" ou qualquer nome legível, preservamos.
+ */
+export function deveRenomearPdf(nomeOriginal: string): boolean {
+  const base = nomeOriginal.replace(/\.[^.]+$/, "").trim();
+  if (!base) return true;
+  // Apenas dígitos (ex.: "1302603228...049057") com 15+ chars
+  if (/^\d{15,}$/.test(base)) return true;
+  // Predomínio de dígitos (>=80%) e mínimo 20 chars — chave / hash numérico
+  const digitos = (base.match(/\d/g) || []).length;
+  if (base.length >= 20 && digitos / base.length >= 0.8) return true;
+  // UUID
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(base)) return true;
+  return false;
+}
+
 
 /**
  * Garante unicidade do nome contra uma lista de nomes já existentes.
