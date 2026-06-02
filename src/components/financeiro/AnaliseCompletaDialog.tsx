@@ -285,7 +285,20 @@ export function AnaliseCompletaDialog({
 
     // Etapa 3 — Conferência do Valor do Serviço (apenas valores BRUTOS)
     // Regra: Total Excel = Total histórico NFS-e = Valor do Serviço da NFS-e
-    const valorServicoNf = tributos?.valorServico ?? null;
+    let valorServicoNf: number | null = tributos?.valorServico ?? null;
+    let valorServicoOrigem: string | null = valorServicoNf != null ? "extraído do PDF" : null;
+
+    // Fallback: se Excel == Histórico da NFS-e, usar esse valor como Valor do Serviço.
+    if (
+      valorServicoNf == null &&
+      totalExcelGeral > 0 &&
+      totalPdfGeral > 0 &&
+      Math.abs(totalExcelGeral - totalPdfGeral) < 0.01
+    ) {
+      valorServicoNf = totalExcelGeral;
+      valorServicoOrigem = "calculado por conferência Excel x Histórico";
+    }
+
     const servico: ConferenciaServico[] = [
       {
         origem: "Total do Excel",
@@ -301,6 +314,10 @@ export function AnaliseCompletaDialog({
         origem: "Valor do Serviço da NFS-e",
         valor: valorServicoNf,
         status: valorServicoNf != null ? "OK" : arquivoPdf ? "Atenção" : "Pendente",
+        observacao:
+          valorServicoOrigem && valorServicoOrigem !== "extraído do PDF"
+            ? valorServicoOrigem
+            : undefined,
       },
     ];
 
