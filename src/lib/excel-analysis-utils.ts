@@ -473,6 +473,8 @@ export interface ComparacaoResultado {
   nfNumero?: string | null;
   /** Valor Líquido da NFS-e conforme PDF casado. */
   valorLiquido?: number | null;
+  /** Tributos extraídos do PDF (parciais). */
+  tributos?: import("./pdf-analysis-utils").PdfTributos | null;
 }
 
 /** Nota fiscal cujo CNPJ do tomador não aparece em nenhum bloco do Excel. */
