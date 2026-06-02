@@ -136,12 +136,31 @@ export function AnaliseCompletaDialog({
     const cmps = comparacoes ?? [];
     const primeiroCmp: any = cmps[0];
 
-    const nfNumero = primeiroCmp?.nfNumero ?? null;
-    const tomador = primeiroCmp?.tomadorNome ?? null;
+    let nfNumero: string | null = primeiroCmp?.nfNumero ?? null;
+    let tomador: string | null = primeiroCmp?.tomadorNome ?? null;
     const cnpjTomador = primeiroCmp?.tomadorCnpj ?? empresaCnpj ?? null;
-    const arquivoPdf = primeiroCmp?.arquivoPdf ?? null;
+    const arquivoPdf: string | null = primeiroCmp?.arquivoPdf ?? null;
     const valorLiquido = primeiroCmp?.valorLiquido ?? null;
     const tributos = primeiroCmp?.tributos ?? null;
+
+    // Fallback usando o nome do arquivo (mesma lógica da auto-nomeação):
+    // "NF ALFATEC 7121.pdf" → nº 7121, tomador "ALFATEC".
+    if ((!nfNumero || !tomador) && arquivoPdf) {
+      const base = arquivoPdf.replace(/\.pdf$/i, "").trim();
+      if (!nfNumero) {
+        const nums = base.match(/\d{3,8}/g);
+        if (nums && nums.length > 0) nfNumero = nums[nums.length - 1];
+      }
+      if (!tomador) {
+        const sem = base
+          .replace(/^\s*(nfs?[-\s]?e?|nf|nota\s*fiscal)\b[\s\-_]*/i, "")
+          .replace(/\d{3,8}.*$/, "")
+          .replace(/[_\-]+/g, " ")
+          .replace(/\s{2,}/g, " ")
+          .trim();
+        if (sem) tomador = sem.toUpperCase();
+      }
+    }
 
     // Soma por categoria — agrega todos os pagadores/blocos
     let totalEnfExcel = 0,
