@@ -1590,12 +1590,6 @@ export default function Financeiro() {
               </Select>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 h-10">
-              <Label className="text-xs cursor-pointer" htmlFor="overdue">
-                Apenas fora do prazo
-              </Label>
-              <Switch id="overdue" checked={somenteOverdue} onCheckedChange={setSomenteOverdue} />
-            </div>
           </CardContent>
         </Card>
 
