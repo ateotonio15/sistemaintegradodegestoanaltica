@@ -83,18 +83,31 @@ export function useGestaoVidas(filters: VidasFilters) {
         .in("mes_referencia", meses);
       if (e2) throw e2;
 
+      // Indexa histórico por empresa+mês e também guarda o registro mais recente
+      // (<= mesRef) por empresa, para usar como fallback quando o mês selecionado
+      // ainda não tem cálculo persistido.
       const histByEmpresaMes = new Map<string, any>();
+      const latestByEmpresa = new Map<string, any>();
       (hist ?? []).forEach((h) => {
         histByEmpresaMes.set(`${h.empresa_id}|${h.mes_referencia}`, h);
+        if (h.mes_referencia <= filters.mesRef) {
+          const prev = latestByEmpresa.get(h.empresa_id);
+          if (!prev || h.mes_referencia > prev.mes_referencia) {
+            latestByEmpresa.set(h.empresa_id, h);
+          }
+        }
       });
 
-      // 3) Monta linhas por empresa (mês corrente)
+      // 3) Monta linhas por empresa (mês corrente — com fallback para o último histórico
+      //    conhecido ou para empresas.vidas se nada foi calculado ainda).
       const linhas: EmpresaVidas[] = (empresas ?? []).map((emp: any) => {
         const h = histByEmpresaMes.get(`${emp.id}|${filters.mesRef}`);
+        const latest = latestByEmpresa.get(emp.id);
         const entradas = h?.entradas ?? 0;
         const saidas = h?.saidas ?? 0;
-        const total_atual = h?.total_atual ?? emp.vidas ?? 0;
-        const total_anterior = h?.total_anterior ?? 0;
+        const total_atual =
+          h?.total_atual ?? latest?.total_atual ?? emp.vidas ?? 0;
+        const total_anterior = h?.total_anterior ?? latest?.total_anterior ?? 0;
         return {
           ...emp,
           entradas,
@@ -102,7 +115,7 @@ export function useGestaoVidas(filters: VidasFilters) {
           total_atual,
           total_anterior,
           saldo: entradas - saidas,
-          ultima_atualizacao: h?.calculado_em ?? null,
+          ultima_atualizacao: h?.calculado_em ?? latest?.calculado_em ?? null,
         } as EmpresaVidas;
       });
 
