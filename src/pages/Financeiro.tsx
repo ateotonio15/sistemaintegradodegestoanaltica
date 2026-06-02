@@ -1432,7 +1432,7 @@ export default function Financeiro() {
 
         {/* Filtros da tabela */}
         <Card className="rounded-xl shadow-sm">
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
             <div className="space-y-1.5">
               <Label className="text-xs">Buscar</Label>
               <div className="relative">
