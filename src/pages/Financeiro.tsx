@@ -541,7 +541,7 @@ export default function Financeiro() {
       const hay = `${r.empresa_nome} ${r.empresa_codigo || ""} ${r.empresa_cnpj || ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap]);
+  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap, movIdsMatchAnexoFilters]);
 
   // KPIs
   const kpis = useMemo(() => {
