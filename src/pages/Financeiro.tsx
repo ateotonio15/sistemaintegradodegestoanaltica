@@ -1215,6 +1215,81 @@ export default function Financeiro() {
     }
   };
 
+  const handleExportAuditoriaAnexos = async () => {
+    setIsExportingAuditoria(true);
+    try {
+      const filteredMovIds = new Set(filteredRows.map((r) => r.id));
+      type LinhaAud = {
+        empresa: string; contrato: string; cnpj: string; competencia: string; periodo: string;
+        tipo_anexo: string; nome_arquivo: string; anexado_por: string; data_hora: string; origem: string;
+      };
+      const linhas: LinhaAud[] = [];
+      const empById: Record<string, FinanceiroRow> = {};
+      filteredRows.forEach((r) => { empById[r.id] = r; });
+
+      Object.entries(anexosMap).forEach(([movId, list]) => {
+        if (!filteredMovIds.has(movId)) return;
+        const row = empById[movId];
+        if (!row) return;
+        (list as any[]).forEach((a) => {
+          if (filtroAnexadoPor && a.uploaded_by !== filtroAnexadoPor) return;
+          const tipo = classifyAnexoTipo(a.nome_arquivo, a.mime_type);
+          if (filtroTipoAnexo && tipo !== filtroTipoAnexo) return;
+          linhas.push({
+            empresa: row.empresa_nome,
+            contrato: row.empresa_codigo || "",
+            cnpj: row.empresa_cnpj || "",
+            competencia: formatMesReferencia(row.mes_referencia),
+            periodo: row.periodo || "",
+            tipo_anexo: tipo,
+            nome_arquivo: a.nome_arquivo || "",
+            anexado_por: a.uploaded_by ? (allUploaderMap[a.uploaded_by] || "—") : "—",
+            data_hora: a.created_at ? new Date(a.created_at).toLocaleString("pt-BR") : "",
+            origem: a.origem || "normal",
+          });
+        });
+      });
+
+      if (linhas.length === 0) {
+        toast.warning("Nenhum anexo para auditar com os filtros atuais");
+        return;
+      }
+
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Auditoria de Anexos");
+      ws.columns = [
+        { header: "Empresa", key: "empresa", width: 38 },
+        { header: "Contrato", key: "contrato", width: 14 },
+        { header: "CNPJ", key: "cnpj", width: 20 },
+        { header: "Competência", key: "competencia", width: 14 },
+        { header: "Período", key: "periodo", width: 12 },
+        { header: "Tipo do anexo", key: "tipo_anexo", width: 24 },
+        { header: "Nome do arquivo", key: "nome_arquivo", width: 50 },
+        { header: "Anexado por", key: "anexado_por", width: 28 },
+        { header: "Data/Hora", key: "data_hora", width: 22 },
+        { header: "Origem", key: "origem", width: 14 },
+      ];
+      ws.getRow(1).font = { bold: true };
+      ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 10 } };
+      ws.views = [{ state: "frozen", ySplit: 1 }];
+      linhas.forEach((l) => ws.addRow(l));
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `auditoria-anexos-${mes}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${linhas.length} anexo(s) exportado(s).`);
+    } catch (e: any) {
+      toast.error("Falha ao exportar auditoria: " + (e?.message || e));
+    } finally {
+      setIsExportingAuditoria(false);
+    }
+  };
+
   const handleExport = async () => {
     if (filteredRows.length === 0) {
       toast.warning("Nenhum registro para exportar com os filtros atuais");
