@@ -12,20 +12,26 @@ export interface PdfCategoria {
 }
 
 export interface PdfTributos {
-  /** Base de cálculo (R$). */
+  /** Valor do Serviço bruto da NFS-e (R$) — usado na Etapa 3 (conferência bruta). */
+  valorServico: number | null;
+  /** Base de cálculo do ISSQN (R$). */
   baseCalculo: number | null;
-  /** Alíquota ISSQN (%) — ex.: 5. */
+  /** Total de Deduções/Reduções (R$). */
+  totalDeducoes: number | null;
+  /** Alíquota ISSQN (%) — ex.: 2. */
   aliquotaIssqn: number | null;
-  /** ISSQN devido (R$). */
+  /** ISSQN apurado / devido (R$). */
   issqn: number | null;
-  /** Valor retido (ISSQN retido na fonte, R$). */
+  /** ISSQN retido na fonte (R$). null quando "Não Retido". */
   issqnRetido: number | null;
   /** IBS (R$). */
   ibs: number | null;
   /** CBS (R$). */
   cbs: number | null;
-  /** Outras retenções (R$). */
+  /** Outras retenções federais (R$). */
   outrasRetencoes: number | null;
+  /** Indicador de retenção do ISSQN extraído da nota. */
+  retencaoIssqn: "retido" | "nao_retido" | null;
 }
 
 export interface AnalisePdfResultado {
