@@ -545,6 +545,41 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         </DialogHeader>
 
         <div className="min-w-0 space-y-4">
+          {temAvisos && !notaEmitida && !avisoDismissed && (
+            <div className="relative flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 pr-9 text-xs">
+              <Info className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+              <div className="space-y-1 min-w-0">
+                <p className="font-semibold text-foreground">Observações desta empresa</p>
+                <ul className="space-y-0.5 text-foreground/90 list-disc pl-4">
+                  {envioBoletoComNota && (
+                    <li>Enviar <strong>boleto junto com a nota fiscal</strong>.</li>
+                  )}
+                  {temCoparticipacao && (
+                    <li>Empresa possui <strong>coparticipação</strong> — verifique antes de enviar.</li>
+                  )}
+                  {exigePoPc && (
+                    <li>Exige <strong>PO/PC</strong> para emissão da nota.</li>
+                  )}
+                  {observacaoEmpresa && (
+                    <li className="whitespace-pre-wrap break-words">{observacaoEmpresa}</li>
+                  )}
+                </ul>
+                <p className="text-muted-foreground">
+                  Este aviso some automaticamente quando a nota for marcada como enviada.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAvisoDismissed(true)}
+                className="absolute top-1.5 right-1.5 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Dispensar aviso"
+                title="Dispensar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           {temIrmaos && (
             <div className="flex items-start gap-2 rounded-lg border border-info/30 bg-info/5 px-3 py-2 text-xs">
               <Users className="h-4 w-4 text-info shrink-0 mt-0.5" />
