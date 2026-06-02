@@ -11,6 +11,23 @@ export interface PdfCategoria {
   total: number;
 }
 
+export interface PdfTributos {
+  /** Base de cálculo (R$). */
+  baseCalculo: number | null;
+  /** Alíquota ISSQN (%) — ex.: 5. */
+  aliquotaIssqn: number | null;
+  /** ISSQN devido (R$). */
+  issqn: number | null;
+  /** Valor retido (ISSQN retido na fonte, R$). */
+  issqnRetido: number | null;
+  /** IBS (R$). */
+  ibs: number | null;
+  /** CBS (R$). */
+  cbs: number | null;
+  /** Outras retenções (R$). */
+  outrasRetencoes: number | null;
+}
+
 export interface AnalisePdfResultado {
   arquivo: string;
   enfermaria: PdfCategoria;
@@ -26,6 +43,8 @@ export interface AnalisePdfResultado {
   tomadorCnpj: string | null;
   /** Nome do TOMADOR do serviço (normalizado), null se não encontrado. */
   tomadorNome: string | null;
+  /** Tributos extraídos da NFS-e (parciais). */
+  tributos: PdfTributos;
   avisos: string[];
 }
 
