@@ -333,31 +333,17 @@ export default function Financeiro() {
     return "Outros";
   };
 
-  // IDs de TODOS os uploaders presentes nos anexos (busca global, independente do filtro atual)
-  const { data: allUploaderIds = [] } = useQuery({
-    queryKey: ["financeiro-anexos-uploader-ids"],
-    queryFn: async () => {
-      const ids = new Set<string>();
-      const pageSize = 1000;
-      let from = 0;
-      // Pagina em lotes para evitar o limite default de 1000 do Supabase
-      while (true) {
-        const { data, error } = await supabase
-          .from("anexos_financeiro")
-          .select("uploaded_by")
-          .not("uploaded_by", "is", null)
-          .range(from, from + pageSize - 1);
-        if (error) throw error;
-        (data ?? []).forEach((a: any) => { if (a.uploaded_by) ids.add(a.uploaded_by); });
-        if (!data || data.length < pageSize) break;
-        from += pageSize;
-      }
-      return Array.from(ids);
-    },
-  });
+  // IDs de TODOS os uploaders presentes nos anexos (para nomes nos filtros/export/auditoria)
+  const allUploaderIds = useMemo(() => {
+    const s = new Set<string>();
+    Object.values(anexosMap).forEach((list: any) => {
+      (list as any[]).forEach((a) => { if (a.uploaded_by) s.add(a.uploaded_by); });
+    });
+    return Array.from(s);
+  }, [anexosMap]);
 
   const { data: allUploaderMap = {} } = useQuery({
-    queryKey: ["financeiro-anexos-uploaders", [...allUploaderIds].sort().join(",")],
+    queryKey: ["financeiro-anexos-uploaders", allUploaderIds.sort().join(",")],
     queryFn: async () => {
       if (allUploaderIds.length === 0) return {};
       const { data, error } = await supabase
@@ -371,7 +357,6 @@ export default function Financeiro() {
     },
     enabled: allUploaderIds.length > 0,
   });
-
 
   const anexadoPorOptions = useMemo(() => {
     return allUploaderIds
