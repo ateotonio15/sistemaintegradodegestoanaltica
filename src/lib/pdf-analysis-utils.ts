@@ -16,6 +16,8 @@ export interface AnalisePdfResultado {
   enfermaria: PdfCategoria;
   apartamento: PdfCategoria;
   inclusoes: { total: number };
+  /** Total de exclusões do histórico (negativo); null se não encontrado. */
+  exclusoes: { total: number | null };
   /** Valor Líquido da NFS-e (extraído do PDF), null se não encontrado. */
   valorLiquido: number | null;
   /** Número da NF (ex: "4601"), null se não encontrado. */
@@ -154,6 +156,7 @@ export async function analisarPdfFinanceiro(
       enfermaria: { ...empty },
       apartamento: { ...empty },
       inclusoes: { total: 0 },
+      exclusoes: { total: null },
       valorLiquido: null,
       nfNumero: null,
       tomadorCnpj: null,
@@ -226,6 +229,23 @@ export async function analisarPdfFinanceiro(
   if (!apartamento) avisos.push("Categoria 'Apartamento' não encontrada no PDF.");
   if (!inclusoesEncontradas) avisos.push("Categoria 'Inclusões' não encontrada no PDF.");
 
+  // Exclusões — aceita "(1.935,63)", "-1.935,63" ou "1.935,63" precedido de "exclusão"
+  // Captura o valor + opcional "()" indicando negativo.
+  let exclusoesTotal: number | null = null;
+  const reExc = new RegExp(
+    `exclus(?:ao|oes|ões|o|os|ido|idos|ida|idas)?\\s*[:\\-=]?\\s*(\\()?\\s*(-)?\\s*r?\\$?\\s*(${NUM})\\s*(\\))?`,
+    "i",
+  );
+  const mExc = t.match(reExc);
+  if (mExc) {
+    const v = parseValor(mExc[3]);
+    if (!isNaN(v) && v !== 0) {
+      const negativo = !!mExc[1] || !!mExc[2] || !!mExc[4];
+      exclusoesTotal = negativo ? -Math.abs(v) : -Math.abs(v);
+      // Sempre negativo (exclusão sempre reduz)
+    }
+  }
+
   // Valor Líquido da NFS-e — aceita variações de espaçamento
   let valorLiquido: number | null = null;
   const reValorLiquido = /valor\s*l[ií]?quido\s*da\s*nfs[\s\-]?e\s*r?\$?\s*([\d.,]+)/i;
@@ -245,6 +265,7 @@ export async function analisarPdfFinanceiro(
     enfermaria: enfermaria ?? { ...empty },
     apartamento: apartamento ?? { ...empty },
     inclusoes: { total: inclusoesTotal },
+    exclusoes: { total: exclusoesTotal },
     valorLiquido,
     nfNumero,
     tomadorCnpj,
