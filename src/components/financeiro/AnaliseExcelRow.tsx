@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import {
   XCircle,
   FileText,
   RefreshCw,
+  Maximize2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -19,11 +21,23 @@ import {
   type ComparacaoSimplificada,
   type CampoValidacao,
 } from "@/lib/excel-analysis-utils";
+import { AnaliseCompletaDialog } from "./AnaliseCompletaDialog";
+import { useToast } from "@/hooks/use-toast";
 
 type ComparacaoQualquer = ComparacaoResultado | ComparacaoSimplificada;
 
 function isSimplificada(c: ComparacaoQualquer | null | undefined): c is ComparacaoSimplificada {
   return !!c && "beneficiarios" in c && !("enfermaria" in c);
+}
+
+export interface ContextoAnalise {
+  empresaNome: string;
+  empresaCnpj: string | null;
+  competencia: string;
+  periodo: string;
+  nomeExcel: string | null;
+  temPdf: boolean;
+  usuarioNome?: string | null;
 }
 
 interface Props {
@@ -33,6 +47,7 @@ interface Props {
   comparacoes?: ComparacaoQualquer[] | null;
   onReanalisar?: () => void;
   onGerarHistorico?: () => void;
+  contexto?: ContextoAnalise;
 }
 
 function ValorComCheck({
@@ -75,7 +90,10 @@ function ValorComCheck({
   );
 }
 
-export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico }: Props) {
+export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, contexto }: Props) {
+  const { toast } = useToast();
+  const [analiseCompletaOpen, setAnaliseCompletaOpen] = useState(false);
+
   const temResultados =
     !!resultados &&
     resultados.length > 0 &&
@@ -89,12 +107,45 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
         (r.inclusoes.total ?? 0) > 0 ||
         (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)),
     );
+
+  const handleAnaliseCompleta = () => {
+    if (!contexto?.nomeExcel) {
+      toast({
+        title: "Excel não anexado",
+        description: "Não é possível realizar a análise completa. Anexe o Excel do faturamento.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!contexto.temPdf) {
+      toast({
+        title: "PDF da NFS-e não anexado",
+        description: "Não é possível realizar a análise completa. Anexe o PDF da NFS-e.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setAnaliseCompletaOpen(true);
+  };
+
   return (
     <TableRow className="bg-muted/30 border-l-2 border-l-primary hover:bg-muted/30">
       <TableCell colSpan={colSpan} className="p-0">
         <div className="px-6 py-4 relative">
-          {!isLoading && (onReanalisar || (onGerarHistorico && temResultados)) && (
+          {!isLoading && (onReanalisar || (onGerarHistorico && temResultados) || contexto) && (
             <div className="absolute top-3 right-4 flex gap-2">
+              {contexto && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleAnaliseCompleta}
+                  className="h-7 gap-1.5 text-xs"
+                  title="Abrir análise completa em tela cheia"
+                >
+                  <Maximize2 className="h-3 w-3" />
+                  Análise Completa
+                </Button>
+              )}
               {onGerarHistorico && temResultados && (
                 <Button
                   variant="outline"
@@ -366,6 +417,23 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
           )}
         </div>
       </TableCell>
+      {contexto && (
+        <AnaliseCompletaDialog
+          open={analiseCompletaOpen}
+          onOpenChange={setAnaliseCompletaOpen}
+          empresaNome={contexto.empresaNome}
+          empresaCnpj={contexto.empresaCnpj}
+          competencia={contexto.competencia}
+          periodo={contexto.periodo}
+          isLoading={isLoading}
+          resultados={resultados}
+          comparacoes={comparacoes ?? null}
+          nomeExcel={contexto.nomeExcel}
+          onReanalisar={onReanalisar}
+          onGerarHistorico={onGerarHistorico}
+          usuarioNome={contexto.usuarioNome ?? null}
+        />
+      )}
     </TableRow>
   );
 }

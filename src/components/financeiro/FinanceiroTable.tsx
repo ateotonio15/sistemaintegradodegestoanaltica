@@ -289,6 +289,14 @@ export function FinanceiroTable({
                       comparacoes={analiseComparacoes?.[rowKey] ?? analiseComparacoes?.[row.id] ?? null}
                       onReanalisar={onReanalisar ? () => onReanalisar(row) : undefined}
                       onGerarHistorico={onGerarHistorico ? () => onGerarHistorico(row) : undefined}
+                      contexto={{
+                        empresaNome: row.empresa_nome,
+                        empresaCnpj: row.empresa_cnpj,
+                        competencia: row.mes_referencia,
+                        periodo: row.periodo,
+                        nomeExcel: (analiseResultados[rowKey] ?? analiseResultados[row.id] ?? [])[0]?.pagador ? "Excel anexado" : null,
+                        temPdf: !!(analiseComparacoes?.[rowKey] ?? analiseComparacoes?.[row.id] ?? [])?.some((c: any) => c?.arquivoPdf),
+                      }}
                     />
                   )}
                 </Fragment>
