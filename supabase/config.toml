@@ -1,4 +1,4 @@
 project_id = "gdojlriuewowyomypwzl"
 
-[functions._tmp_sign_urls]
+[functions.tmp-sign-urls]
 verify_jwt = false
