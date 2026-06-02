@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import ExcelJS from "exceljs";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,23 @@ import { toast } from "sonner";
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+type SheetData = { name: string; rows: string[][] };
+
+function cellToString(value: any): string {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toLocaleDateString("pt-BR");
+  if (typeof value === "object") {
+    if ("text" in value) return cellToString((value as any).text);
+    if ("result" in value) return cellToString((value as any).result);
+    if ("richText" in value && Array.isArray((value as any).richText)) {
+      return (value as any).richText.map((r: any) => r.text ?? "").join("");
+    }
+    if ("hyperlink" in value) return cellToString((value as any).text ?? (value as any).hyperlink);
+    if ("formula" in value) return cellToString((value as any).result);
+  }
+  return String(value);
+}
 
 interface Props {
   open: boolean;
@@ -48,6 +66,8 @@ export function PreviewArquivoDialog({
   const [renderingPage, setRenderingPage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sheets, setSheets] = useState<SheetData[] | null>(null);
+  const [activeSheet, setActiveSheet] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase();
@@ -55,6 +75,7 @@ export function PreviewArquivoDialog({
   const isImage =
     ["png", "jpg", "jpeg", "webp", "gif"].includes(ext) ||
     (mimeType ?? "").startsWith("image/");
+  const isExcel = ["xlsx", "xlsm", "xls"].includes(ext);
 
   useEffect(() => {
     if (!open) {
@@ -67,6 +88,8 @@ export function PreviewArquivoDialog({
         return null;
       });
       setPageNumber(1);
+      setSheets(null);
+      setActiveSheet(0);
       setError(null);
       return;
     }
@@ -81,6 +104,8 @@ export function PreviewArquivoDialog({
         return null;
       });
       setPageNumber(1);
+      setSheets(null);
+      setActiveSheet(0);
       try {
         const { data, error: e } = await supabase.storage
           .from(bucket)
@@ -94,6 +119,25 @@ export function PreviewArquivoDialog({
         if (isPdf) {
           const buffer = await blob.arrayBuffer();
           loadedPdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+        } else if (isExcel) {
+          const buffer = await blob.arrayBuffer();
+          const wb = new ExcelJS.Workbook();
+          await wb.xlsx.load(buffer);
+          const parsed: SheetData[] = [];
+          wb.eachSheet((ws) => {
+            const rows: string[][] = [];
+            const maxCol = ws.actualColumnCount || ws.columnCount || 0;
+            ws.eachRow({ includeEmpty: false }, (row) => {
+              const r: string[] = [];
+              for (let c = 1; c <= maxCol; c++) {
+                r.push(cellToString(row.getCell(c).value));
+              }
+              rows.push(r);
+              if (rows.length >= 500) return;
+            });
+            parsed.push({ name: ws.name, rows });
+          });
+          if (!cancelled) setSheets(parsed);
         }
         if (!cancelled) {
           setUrl(createdBlobUrl);
@@ -110,7 +154,7 @@ export function PreviewArquivoDialog({
       loadedPdf?.destroy();
       if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     };
-  }, [open, bucket, storagePath, mimeType, isPdf]);
+  }, [open, bucket, storagePath, mimeType, isPdf, isExcel]);
 
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return;
@@ -279,6 +323,43 @@ export function PreviewArquivoDialog({
                     alt={nomeArquivo}
                     className="max-w-full max-h-full object-contain"
                   />
+                </div>
+              ) : isExcel && sheets ? (
+                <div className="h-full flex flex-col min-h-0">
+                  {sheets.length > 1 && (
+                    <div className="flex gap-1 px-3 py-2 border-b bg-background overflow-x-auto shrink-0">
+                      {sheets.map((s, i) => (
+                        <Button
+                          key={i}
+                          variant={i === activeSheet ? "default" : "outline"}
+                          size="sm"
+                          className="h-7 text-xs shrink-0"
+                          onClick={() => setActiveSheet(i)}
+                        >
+                          {s.name}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex-1 min-h-0 overflow-auto bg-background">
+                    <table className="text-xs border-collapse">
+                      <tbody>
+                        {sheets[activeSheet]?.rows.map((row, ri) => (
+                          <tr key={ri} className={ri === 0 ? "bg-muted font-medium sticky top-0" : ri % 2 ? "bg-muted/30" : ""}>
+                            <td className="border border-border px-2 py-1 text-muted-foreground text-[10px] sticky left-0 bg-inherit">{ri + 1}</td>
+                            {row.map((cell, ci) => (
+                              <td key={ci} className="border border-border px-2 py-1 whitespace-nowrap max-w-[300px] overflow-hidden text-ellipsis" title={cell}>
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {sheets[activeSheet]?.rows.length === 0 && (
+                      <div className="p-6 text-center text-sm text-muted-foreground">Planilha vazia</div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground p-6 text-center">
