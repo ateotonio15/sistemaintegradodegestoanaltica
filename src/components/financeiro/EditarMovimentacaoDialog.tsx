@@ -201,9 +201,23 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   });
 
   const pagamentoViaDeposito = !!(empresaCfg as any)?.pagamento_via_deposito;
+  const exigePoPc = !!(empresaCfg as any)?.exige_po_pc;
+  const envioBoletoComNota = !!(empresaCfg as any)?.envio_boleto_com_nota;
+  const temCoparticipacao = !!(empresaCfg as any)?.tem_coparticipacao;
+  const observacaoEmpresa =
+    ((empresaCfg as any)?.observacao_padrao_financeiro || "").toString().trim() || null;
 
   const irmaos = pagadores.filter((p) => p.id !== movimentacao?.empresa_id);
   const temIrmaos = irmaos.length > 0;
+
+  // Aviso de observações da empresa (boleto, coparticipação, PO/PC, observação livre).
+  // Some quando há algum item e a nota ainda não foi enviada. Pode ser dispensado.
+  const [avisoDismissed, setAvisoDismissed] = useSessionState<boolean>(
+    `financeiro:aviso-obs:${movimentacao?.id ?? "none"}`,
+    false,
+  );
+  const temAvisos = exigePoPc || envioBoletoComNota || temCoparticipacao || !!observacaoEmpresa;
+
 
   // Nome de quem confirmou o boleto DDA
   const { data: confirmadorNome } = useQuery({
