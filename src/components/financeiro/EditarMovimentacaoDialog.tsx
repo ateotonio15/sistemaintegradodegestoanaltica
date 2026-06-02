@@ -22,7 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock, Receipt, CalendarIcon } from "lucide-react";
+import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock, Receipt, CalendarIcon, X, Info } from "lucide-react";
+import { useSessionState } from "@/hooks/useSessionState";
+
 import { cn } from "@/lib/utils";
 import { DayGridPicker } from "@/components/ui/day-grid-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -180,10 +182,11 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       if (!movimentacao) return null;
       const { data } = await supabase
         .from("empresas")
-        .select("codigo_contrato, pagamento_via_deposito")
+        .select("codigo_contrato, pagamento_via_deposito, exige_po_pc, envio_boleto_com_nota, tem_coparticipacao, observacao_padrao_financeiro")
         .eq("id", movimentacao.empresa_id)
         .maybeSingle();
       return data;
+
     },
     enabled: !!movimentacao && open,
   });
@@ -198,9 +201,23 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   });
 
   const pagamentoViaDeposito = !!(empresaCfg as any)?.pagamento_via_deposito;
+  const exigePoPc = !!(empresaCfg as any)?.exige_po_pc;
+  const envioBoletoComNota = !!(empresaCfg as any)?.envio_boleto_com_nota;
+  const temCoparticipacao = !!(empresaCfg as any)?.tem_coparticipacao;
+  const observacaoEmpresa =
+    ((empresaCfg as any)?.observacao_padrao_financeiro || "").toString().trim() || null;
 
   const irmaos = pagadores.filter((p) => p.id !== movimentacao?.empresa_id);
   const temIrmaos = irmaos.length > 0;
+
+  // Aviso de observações da empresa (boleto, coparticipação, PO/PC, observação livre).
+  // Some quando há algum item e a nota ainda não foi enviada. Pode ser dispensado.
+  const [avisoDismissed, setAvisoDismissed] = useSessionState<boolean>(
+    `financeiro:aviso-obs:${movimentacao?.id ?? "none"}`,
+    false,
+  );
+  const temAvisos = exigePoPc || envioBoletoComNota || temCoparticipacao || !!observacaoEmpresa;
+
 
   // Nome de quem confirmou o boleto DDA
   const { data: confirmadorNome } = useQuery({
@@ -528,6 +545,41 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         </DialogHeader>
 
         <div className="min-w-0 space-y-4">
+          {temAvisos && !notaEmitida && !avisoDismissed && (
+            <div className="relative flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 pr-9 text-xs">
+              <Info className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+              <div className="space-y-1 min-w-0">
+                <p className="font-semibold text-foreground">Observações desta empresa</p>
+                <ul className="space-y-0.5 text-foreground/90 list-disc pl-4">
+                  {envioBoletoComNota && (
+                    <li>Enviar <strong>boleto junto com a nota fiscal</strong>.</li>
+                  )}
+                  {temCoparticipacao && (
+                    <li>Empresa possui <strong>coparticipação</strong> — verifique antes de enviar.</li>
+                  )}
+                  {exigePoPc && (
+                    <li>Exige <strong>PO/PC</strong> para emissão da nota.</li>
+                  )}
+                  {observacaoEmpresa && (
+                    <li className="whitespace-pre-wrap break-words">{observacaoEmpresa}</li>
+                  )}
+                </ul>
+                <p className="text-muted-foreground">
+                  Este aviso some automaticamente quando a nota for marcada como enviada.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAvisoDismissed(true)}
+                className="absolute top-1.5 right-1.5 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Dispensar aviso"
+                title="Dispensar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           {temIrmaos && (
             <div className="flex items-start gap-2 rounded-lg border border-info/30 bg-info/5 px-3 py-2 text-xs">
               <Users className="h-4 w-4 text-info shrink-0 mt-0.5" />
