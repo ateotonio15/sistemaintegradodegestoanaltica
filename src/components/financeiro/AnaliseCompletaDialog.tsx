@@ -128,7 +128,7 @@ export function AnaliseCompletaDialog({
   onVerExcel,
   usuarioNome,
 }: Props) {
-  const [openSteps, setOpenSteps] = useState<Record<number, boolean>>({ 1: true, 2: true, 3: true, 5: true });
+  const [openSteps, setOpenSteps] = useState<Record<number, boolean>>({ 1: true, 2: true, 3: true, 4: true, 5: true });
   const toggle = (n: number) => setOpenSteps((p) => ({ ...p, [n]: !p[n] }));
 
   const dados = useMemo(() => {
