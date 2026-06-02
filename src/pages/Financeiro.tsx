@@ -75,7 +75,10 @@ export default function Financeiro() {
   const [filtroStatus, setFiltroStatus] = useSessionState<string[]>("financeiro:filtroStatusList", []);
   const [filtroTipo, setFiltroTipo] = useSessionState<string[]>("financeiro:filtroTipoList", []);
   const [filtroPeriodo, setFiltroPeriodo] = useSessionState<string | null>("financeiro:filtroPeriodo", null);
+  const [filtroAnexadoPor, setFiltroAnexadoPor] = useSessionState<string | null>("financeiro:filtroAnexadoPor", null);
+  const [filtroTipoAnexo, setFiltroTipoAnexo] = useSessionState<string | null>("financeiro:filtroTipoAnexo", null);
   const [somenteOverdue, setSomenteOverdue] = useSessionState<boolean>("financeiro:somenteOverdue", false);
+  const [isExportingAuditoria, setIsExportingAuditoria] = useState(false);
 
   const [editing, setEditing] = useState<FinanceiroMovimentacao | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -317,6 +320,69 @@ export default function Financeiro() {
     enabled: uploaderIds.length > 0,
   });
 
+  // Classificação do tipo de anexo (Excel / PDF NFS-e / Boleto / Comprovante / Outros)
+  const classifyAnexoTipo = (nome: string | null, mime: string | null): string => {
+    const n = (nome || "").toLowerCase();
+    const m = (mime || "").toLowerCase();
+    if (/\.(xlsx|xlsm|xls|csv)$/.test(n) || m.includes("spreadsheet") || m.includes("excel") || m === "text/csv") {
+      return "Excel do faturamento";
+    }
+    if (/boleto/.test(n)) return "Boleto";
+    if (n.endsWith(".pdf") || m === "application/pdf") return "PDF da NFS-e";
+    if (m.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/.test(n)) return "Comprovante";
+    return "Outros";
+  };
+
+  // IDs de TODOS os uploaders presentes nos anexos (para nomes nos filtros/export/auditoria)
+  const allUploaderIds = useMemo(() => {
+    const s = new Set<string>();
+    Object.values(anexosMap).forEach((list: any) => {
+      (list as any[]).forEach((a) => { if (a.uploaded_by) s.add(a.uploaded_by); });
+    });
+    return Array.from(s);
+  }, [anexosMap]);
+
+  const { data: allUploaderMap = {} } = useQuery({
+    queryKey: ["financeiro-anexos-uploaders", allUploaderIds.sort().join(",")],
+    queryFn: async () => {
+      if (allUploaderIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, username")
+        .in("user_id", allUploaderIds);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      data.forEach((p: any) => { map[p.user_id] = p.display_name || p.username || "—"; });
+      return map;
+    },
+    enabled: allUploaderIds.length > 0,
+  });
+
+  const anexadoPorOptions = useMemo(() => {
+    return allUploaderIds
+      .map((id) => ({ id, nome: allUploaderMap[id] || "—" }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [allUploaderIds, allUploaderMap]);
+
+  const TIPOS_ANEXO = ["Excel do faturamento", "PDF da NFS-e", "Boleto", "Comprovante", "Outros"];
+
+  // Conjunto de movIds que casam com os filtros de anexo (Anexado por / Tipo)
+  const movIdsMatchAnexoFilters = useMemo(() => {
+    if (!filtroAnexadoPor && !filtroTipoAnexo) return null;
+    const set = new Set<string>();
+    Object.entries(anexosMap).forEach(([movId, list]) => {
+      const match = (list as any[]).some((a) => {
+        if (filtroAnexadoPor && a.uploaded_by !== filtroAnexadoPor) return false;
+        if (filtroTipoAnexo && classifyAnexoTipo(a.nome_arquivo, a.mime_type) !== filtroTipoAnexo) return false;
+        return true;
+      });
+      if (match) set.add(movId);
+    });
+    return set;
+  }, [anexosMap, filtroAnexadoPor, filtroTipoAnexo]);
+
+
+
   // Cobranças abertas do mês
   const { data: cobrancasAbertas = [] } = useQuery({
     queryKey: ["cobrancas-abertas", mes, movIds.sort().join(",")],
@@ -429,6 +495,7 @@ export default function Financeiro() {
       if (filtroPeriodo && r.periodo !== filtroPeriodo) return false;
       if (filtroStatus.length > 0 && !filtroStatus.includes(r.status)) return false;
       if (filtroTipo.length > 0 && !filtroTipo.includes(r.tipo_cobranca || "")) return false;
+      if (movIdsMatchAnexoFilters && !movIdsMatchAnexoFilters.has(r.id)) return false;
       if (somenteOverdue && (r.dentro_prazo || r.data_envio_nota)) return false;
       return true;
     });
@@ -474,7 +541,7 @@ export default function Financeiro() {
       const hay = `${r.empresa_nome} ${r.empresa_codigo || ""} ${r.empresa_cnpj || ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap]);
+  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap, movIdsMatchAnexoFilters]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -1148,6 +1215,81 @@ export default function Financeiro() {
     }
   };
 
+  const handleExportAuditoriaAnexos = async () => {
+    setIsExportingAuditoria(true);
+    try {
+      const filteredMovIds = new Set(filteredRows.map((r) => r.id));
+      type LinhaAud = {
+        empresa: string; contrato: string; cnpj: string; competencia: string; periodo: string;
+        tipo_anexo: string; nome_arquivo: string; anexado_por: string; data_hora: string; origem: string;
+      };
+      const linhas: LinhaAud[] = [];
+      const empById: Record<string, FinanceiroRow> = {};
+      filteredRows.forEach((r) => { empById[r.id] = r; });
+
+      Object.entries(anexosMap).forEach(([movId, list]) => {
+        if (!filteredMovIds.has(movId)) return;
+        const row = empById[movId];
+        if (!row) return;
+        (list as any[]).forEach((a) => {
+          if (filtroAnexadoPor && a.uploaded_by !== filtroAnexadoPor) return;
+          const tipo = classifyAnexoTipo(a.nome_arquivo, a.mime_type);
+          if (filtroTipoAnexo && tipo !== filtroTipoAnexo) return;
+          linhas.push({
+            empresa: row.empresa_nome,
+            contrato: row.empresa_codigo || "",
+            cnpj: row.empresa_cnpj || "",
+            competencia: formatMesReferencia(row.mes_referencia),
+            periodo: row.periodo || "",
+            tipo_anexo: tipo,
+            nome_arquivo: a.nome_arquivo || "",
+            anexado_por: a.uploaded_by ? (allUploaderMap[a.uploaded_by] || "—") : "—",
+            data_hora: a.created_at ? new Date(a.created_at).toLocaleString("pt-BR") : "",
+            origem: a.origem || "normal",
+          });
+        });
+      });
+
+      if (linhas.length === 0) {
+        toast.warning("Nenhum anexo para auditar com os filtros atuais");
+        return;
+      }
+
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Auditoria de Anexos");
+      ws.columns = [
+        { header: "Empresa", key: "empresa", width: 38 },
+        { header: "Contrato", key: "contrato", width: 14 },
+        { header: "CNPJ", key: "cnpj", width: 20 },
+        { header: "Competência", key: "competencia", width: 14 },
+        { header: "Período", key: "periodo", width: 12 },
+        { header: "Tipo do anexo", key: "tipo_anexo", width: 24 },
+        { header: "Nome do arquivo", key: "nome_arquivo", width: 50 },
+        { header: "Anexado por", key: "anexado_por", width: 28 },
+        { header: "Data/Hora", key: "data_hora", width: 22 },
+        { header: "Origem", key: "origem", width: 14 },
+      ];
+      ws.getRow(1).font = { bold: true };
+      ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 10 } };
+      ws.views = [{ state: "frozen", ySplit: 1 }];
+      linhas.forEach((l) => ws.addRow(l));
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `auditoria-anexos-${mes}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${linhas.length} anexo(s) exportado(s).`);
+    } catch (e: any) {
+      toast.error("Falha ao exportar auditoria: " + (e?.message || e));
+    } finally {
+      setIsExportingAuditoria(false);
+    }
+  };
+
   const handleExport = async () => {
     if (filteredRows.length === 0) {
       toast.warning("Nenhum registro para exportar com os filtros atuais");
@@ -1284,6 +1426,17 @@ export default function Financeiro() {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleExportAuditoriaAnexos}
+              disabled={isExportingAuditoria || isLoading}
+              className="gap-1.5"
+              title="Exportar auditoria de anexos (quem anexou, quando e qual arquivo)"
+            >
+              <Download className={`h-3.5 w-3.5 ${isExportingAuditoria ? "animate-pulse" : ""}`} />
+              {isExportingAuditoria ? "Exportando..." : "Auditoria de anexos"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setHistoricoOpen(true)}
               className="gap-1.5"
               title="Ver histórico de análises Excel × PDF salvas"
@@ -1365,7 +1518,7 @@ export default function Financeiro() {
 
         {/* Filtros da tabela */}
         <Card className="rounded-xl shadow-sm">
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
             <div className="space-y-1.5">
               <Label className="text-xs">Buscar</Label>
               <div className="relative">
@@ -1399,6 +1552,42 @@ export default function Financeiro() {
                 allLabel="Todos os tipos"
                 searchPlaceholder="Buscar tipo..."
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Anexado por</Label>
+              <Select
+                value={filtroAnexadoPor ?? "__all__"}
+                onValueChange={(v) => setFiltroAnexadoPor(v === "__all__" ? null : v)}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Todos os usuários" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos os usuários</SelectItem>
+                  {anexadoPorOptions.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Tipo de anexo</Label>
+              <Select
+                value={filtroTipoAnexo ?? "__all__"}
+                onValueChange={(v) => setFiltroTipoAnexo(v === "__all__" ? null : v)}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Todos os tipos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos os tipos</SelectItem>
+                  {TIPOS_ANEXO.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 h-10">
