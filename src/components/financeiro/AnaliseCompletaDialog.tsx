@@ -666,15 +666,23 @@ function EtapaServico({ linhas }: { linhas: ConferenciaServico[] }) {
           </tr>
         </thead>
         <tbody>
-          {linhas.map((l, i) => (
-            <tr key={i} className="border-t border-border">
-              <td className="px-3 py-2 font-medium">{l.origem}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{l.valor == null ? "—" : formatBRL(l.valor)}</td>
-              <td className="px-3 py-2 text-center">
-                <StatusBadge status={l.status as Status} />
-              </td>
-            </tr>
-          ))}
+          {linhas.map((l, i) => {
+            const formatado =
+              l.valor == null
+                ? "—"
+                : l.unidade === "%"
+                  ? `${l.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`
+                  : formatBRL(l.valor);
+            return (
+              <tr key={i} className="border-t border-border">
+                <td className="px-3 py-2 font-medium">{l.origem}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{formatado}</td>
+                <td className="px-3 py-2 text-center">
+                  <StatusBadge status={l.status as Status} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
