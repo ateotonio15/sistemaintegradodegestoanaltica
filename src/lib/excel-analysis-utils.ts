@@ -776,7 +776,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     const hasValor = !isNaN(val) && val !== 0;
     const hasMensalidade = !isNaN(mensN) && mensN !== 0;
 
-    if (labelNorm.includes("inclus")) {
+    if (labelNorm.includes("inclus") || labelNorm.includes("retroativ")) {
       cur.incQtd += qtdNum;
       cur.incTotal += valNum;
       continue;
