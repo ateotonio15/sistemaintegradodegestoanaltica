@@ -232,7 +232,6 @@ export async function analisarPdfFinanceiro(
   // Exclusões — aceita "(1.935,63)", "-1.935,63" ou "1.935,63" precedido de "exclusão"
   // Captura o valor + opcional "()" indicando negativo.
   let exclusoesTotal: number | null = null;
-  const NUM = String.raw`[\d.,]+`;
   const reExc = new RegExp(
     `exclus(?:ao|oes|ões|o|os|ido|idos|ida|idas)?\\s*[:\\-=]?\\s*(\\()?\\s*(-)?\\s*r?\\$?\\s*(${NUM})\\s*(\\))?`,
     "i",
