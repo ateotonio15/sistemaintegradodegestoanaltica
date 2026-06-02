@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Paperclip, Download, Trash2, Upload, FileText, AlertCircle, CheckCircle2, Users, CalendarClock, Receipt, CalendarIcon, X, Info } from "lucide-react";
 import { useSessionState } from "@/hooks/useSessionState";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { cn } from "@/lib/utils";
 import { DayGridPicker } from "@/components/ui/day-grid-picker";
