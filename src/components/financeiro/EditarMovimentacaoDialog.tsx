@@ -116,6 +116,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     onApenas: () => void | Promise<void>;
     pagadores: Pagador[];
   } | null>(null);
+  const [aplicarEnvioATodos, setAplicarEnvioATodos] = useState<boolean>(true);
 
   useEffect(() => {
     if (movimentacao) {
