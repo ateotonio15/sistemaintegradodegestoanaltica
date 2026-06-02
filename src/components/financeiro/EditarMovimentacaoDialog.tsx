@@ -93,7 +93,7 @@ const TIPOS_ANALISE = [
 
 export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, empresaNome }: Props) {
   const queryClient = useQueryClient();
-  const { user, canEditFinanceiro } = useAuth();
+  const { user, canEditFinanceiro, isAdmin } = useAuth();
   const [tipoCobranca, setTipoCobranca] = useState("");
   const [dataEnvioNota, setDataEnvioNota] = useState("");
   const [diaVencimento, setDiaVencimento] = useState<string>("__none__");
@@ -545,7 +545,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         </DialogHeader>
 
         <div className="min-w-0 space-y-4">
-          {temAvisos && !notaEmitida && !avisoDismissed && (
+          {temAvisos && !dataEnvioNota && !(isAdmin && avisoDismissed) && (
             <div className="relative flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 pr-9 text-xs">
               <Info className="h-4 w-4 text-warning shrink-0 mt-0.5" />
               <div className="space-y-1 min-w-0">
@@ -565,18 +565,21 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                   )}
                 </ul>
                 <p className="text-muted-foreground">
-                  Este aviso some automaticamente quando a nota for marcada como enviada.
+                  Este aviso some automaticamente quando o status for alterado para <strong>Enviada</strong>.
+                  {!isAdmin && " Apenas administradores podem dispensar manualmente."}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setAvisoDismissed(true)}
-                className="absolute top-1.5 right-1.5 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                aria-label="Dispensar aviso"
-                title="Dispensar"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setAvisoDismissed(true)}
+                  className="absolute top-1.5 right-1.5 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  aria-label="Dispensar aviso"
+                  title="Dispensar (admin)"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           )}
 
