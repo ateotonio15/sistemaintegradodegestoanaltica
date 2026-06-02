@@ -255,9 +255,9 @@ export async function analisarPdfFinanceiro(
     if (!isNaN(v) && v > 0) valorLiquido = v;
   }
 
-  // Número da NF — procura "nº NNNN" ou "n NNNN" no texto
+  // Número da NF — procura especificamente "Número da NFS-e <NNNN>"
   let nfNumero: string | null = null;
-  const reNf = /\bn[º°o]?\s*[:.]?\s*(\d{3,8})\b/i;
+  const reNf = /n[uú]?mero\s*d[ao]?\s*nfs[\s\-]?e[^\d]{0,20}(\d{3,10})/i;
   const mNf = t.match(reNf);
   if (mNf) nfNumero = mNf[1];
 
