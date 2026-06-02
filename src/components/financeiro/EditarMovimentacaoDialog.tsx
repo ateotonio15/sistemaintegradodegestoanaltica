@@ -115,6 +115,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [boletoConfirmadoPor, setBoletoConfirmadoPor] = useState<string | null>(null);
   const [boletoConfirmadoEm, setBoletoConfirmadoEm] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [baixandoZip, setBaixandoZip] = useState(false);
   const [replicaConfirm, setReplicaConfirm] = useState<{
     title: string;
     description: string;
