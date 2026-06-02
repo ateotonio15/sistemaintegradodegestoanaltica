@@ -313,6 +313,7 @@ export async function analisarPdfFinanceiro(
     nfNumero,
     tomadorCnpj,
     tomadorNome,
+    tributos,
     avisos,
   };
 }
