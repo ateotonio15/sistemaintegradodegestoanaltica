@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import {
   XCircle,
   FileText,
   RefreshCw,
+  Maximize2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -19,11 +21,23 @@ import {
   type ComparacaoSimplificada,
   type CampoValidacao,
 } from "@/lib/excel-analysis-utils";
+import { AnaliseCompletaDialog } from "./AnaliseCompletaDialog";
+import { useToast } from "@/hooks/use-toast";
 
 type ComparacaoQualquer = ComparacaoResultado | ComparacaoSimplificada;
 
 function isSimplificada(c: ComparacaoQualquer | null | undefined): c is ComparacaoSimplificada {
   return !!c && "beneficiarios" in c && !("enfermaria" in c);
+}
+
+export interface ContextoAnalise {
+  empresaNome: string;
+  empresaCnpj: string | null;
+  competencia: string;
+  periodo: string;
+  nomeExcel: string | null;
+  temPdf: boolean;
+  usuarioNome?: string | null;
 }
 
 interface Props {
@@ -33,6 +47,7 @@ interface Props {
   comparacoes?: ComparacaoQualquer[] | null;
   onReanalisar?: () => void;
   onGerarHistorico?: () => void;
+  contexto?: ContextoAnalise;
 }
 
 function ValorComCheck({
