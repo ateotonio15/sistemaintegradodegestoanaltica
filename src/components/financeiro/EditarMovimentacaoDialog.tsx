@@ -43,6 +43,11 @@ import {
 import { todayLocalISO } from "@/lib/date-utils";
 import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
 import {
+  extrairMetadadosNfse,
+  montarNomeArquivoNfse,
+  gerarNomeUnico,
+} from "@/lib/nfse-rename";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
