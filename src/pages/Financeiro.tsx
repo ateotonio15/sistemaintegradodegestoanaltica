@@ -77,6 +77,7 @@ export default function Financeiro() {
   const [filtroPeriodo, setFiltroPeriodo] = useSessionState<string | null>("financeiro:filtroPeriodo", null);
   const [filtroAnexadoPor, setFiltroAnexadoPor] = useSessionState<string | null>("financeiro:filtroAnexadoPor", null);
   const [filtroTipoAnexo, setFiltroTipoAnexo] = useSessionState<string | null>("financeiro:filtroTipoAnexo", null);
+  const [ordenacao, setOrdenacao] = useSessionState<string>("financeiro:ordenacao", "envio_desc");
   const [somenteOverdue, setSomenteOverdue] = useSessionState<boolean>("financeiro:somenteOverdue", false);
   const [isExportingAuditoria, setIsExportingAuditoria] = useState(false);
 
@@ -542,6 +543,51 @@ export default function Financeiro() {
       return hay.includes(q);
     });
   }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap, movIdsMatchAnexoFilters]);
+
+  // Ordenação aplicada após filtros
+  const sortedRows = useMemo(() => {
+    const arr = [...filteredRows];
+    const cmpStr = (a: string | null | undefined, b: string | null | undefined) =>
+      (a || "").localeCompare(b || "", "pt-BR", { sensitivity: "base" });
+    const cmpDate = (a: string | null | undefined, b: string | null | undefined, dir: 1 | -1) => {
+      const av = a ? new Date(a).getTime() : null;
+      const bv = b ? new Date(b).getTime() : null;
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1; // nulos sempre ao final
+      if (bv === null) return -1;
+      return (av - bv) * dir;
+    };
+    switch (ordenacao) {
+      case "envio_desc":
+        arr.sort((a, b) => cmpDate((a as any).data_envio_nota, (b as any).data_envio_nota, -1));
+        break;
+      case "envio_asc":
+        arr.sort((a, b) => cmpDate((a as any).data_envio_nota, (b as any).data_envio_nota, 1));
+        break;
+      case "venc_asc":
+        arr.sort((a, b) => cmpDate((a as any).data_vencimento, (b as any).data_vencimento, 1));
+        break;
+      case "venc_desc":
+        arr.sort((a, b) => cmpDate((a as any).data_vencimento, (b as any).data_vencimento, -1));
+        break;
+      case "empresa_asc":
+        arr.sort((a, b) => cmpStr(a.empresa_nome, b.empresa_nome));
+        break;
+      case "empresa_desc":
+        arr.sort((a, b) => cmpStr(b.empresa_nome, a.empresa_nome));
+        break;
+      case "vidas_desc":
+        arr.sort((a, b) => (b.empresa_vidas || 0) - (a.empresa_vidas || 0));
+        break;
+      case "vidas_asc":
+        arr.sort((a, b) => (a.empresa_vidas || 0) - (b.empresa_vidas || 0));
+        break;
+      case "status":
+        arr.sort((a, b) => cmpStr(a.status, b.status) || cmpStr(a.empresa_nome, b.empresa_nome));
+        break;
+    }
+    return arr;
+  }, [filteredRows, ordenacao]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -1576,6 +1622,26 @@ export default function Financeiro() {
               />
             </div>
 
+            <div className="space-y-1.5">
+              <Label className="text-xs">Ordenar por</Label>
+              <Select value={ordenacao} onValueChange={setOrdenacao}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="envio_desc">Envio da nota (mais recente)</SelectItem>
+                  <SelectItem value="envio_asc">Envio da nota (mais antigo)</SelectItem>
+                  <SelectItem value="venc_asc">Vencimento (mais próximo)</SelectItem>
+                  <SelectItem value="venc_desc">Vencimento (mais distante)</SelectItem>
+                  <SelectItem value="empresa_asc">Empresa (A → Z)</SelectItem>
+                  <SelectItem value="empresa_desc">Empresa (Z → A)</SelectItem>
+                  <SelectItem value="vidas_desc">Nº de vidas (maior)</SelectItem>
+                  <SelectItem value="vidas_asc">Nº de vidas (menor)</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
 
           </CardContent>
         </Card>
@@ -1595,7 +1661,7 @@ export default function Financeiro() {
 
         {/* Tabela */}
         <FinanceiroTable
-          rows={filteredRows}
+          rows={sortedRows}
           onEdit={handleEdit}
           onCobranca={handleCobranca}
           isLoading={isLoading}
