@@ -364,7 +364,7 @@ export default function Financeiro() {
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   }, [allUploaderIds, allUploaderMap]);
 
-  const TIPOS_ANEXO = ["Excel do faturamento", "PDF da NFS-e", "Boleto", "Comprovante", "Outros"];
+  const TIPOS_ANEXO = ["Excel do faturamento", "PDF da NFS-e"];
 
   // Conjunto de movIds que casam com os filtros de anexo (Anexado por / Tipo)
   const movIdsMatchAnexoFilters = useMemo(() => {
