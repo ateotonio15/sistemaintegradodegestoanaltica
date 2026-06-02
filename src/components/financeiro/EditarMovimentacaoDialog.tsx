@@ -565,6 +565,69 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     }
   };
 
+  const toggleSelecionado = (id: string) => {
+    setSelecionados((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
+
+  const toggleSelecionarTodos = () => {
+    if (selecionados.size === anexos.length && anexos.length > 0) {
+      setSelecionados(new Set());
+    } else {
+      setSelecionados(new Set(anexos.map((a: any) => a.id)));
+    }
+  };
+
+  const handleDownloadSelecionados = async () => {
+    if (selecionados.size === 0) return;
+    const items = (anexos as any[]).filter((a) => selecionados.has(a.id));
+    if (items.length === 1) {
+      await handleDownload(items[0].storage_path, items[0].nome_arquivo);
+      return;
+    }
+    setBaixandoZip(true);
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      const usados = new Set<string>();
+      for (const a of items) {
+        const { data, error } = await supabase.storage
+          .from("anexos-financeiro")
+          .download(a.storage_path);
+        if (error || !data) throw error ?? new Error("Falha ao baixar " + a.nome_arquivo);
+        let nome = a.nome_arquivo as string;
+        if (usados.has(nome.toLowerCase())) {
+          const m = nome.match(/^(.*?)(\.[^.]+)?$/);
+          const base = m?.[1] ?? nome;
+          const ext = m?.[2] ?? "";
+          let i = 2;
+          while (usados.has(`${base} (${i})${ext}`.toLowerCase())) i++;
+          nome = `${base} (${i})${ext}`;
+        }
+        usados.add(nome.toLowerCase());
+        zip.file(nome, data);
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `anexos-${items.length}-arquivos.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`${items.length} arquivos baixados em ZIP`);
+    } catch (e: any) {
+      toast.error("Erro ao gerar ZIP: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setBaixandoZip(false);
+    }
+  };
+
   const handleDelete = async (anexoId: string, path: string) => {
     if (!confirm("Excluir este anexo?")) return;
     try {
