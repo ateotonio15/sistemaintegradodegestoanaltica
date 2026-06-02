@@ -336,12 +336,12 @@ export async function analisarPdfFinanceiro(
   let valorLiquido: number | null = null;
   let issqnRetidoVT: number | null = null;
   let valorServicoVT: number | null = null;
-  const linhaVT = proximaLinhaApos(/valor\s+liquido\s+da\s+nfs[\s\-]?e/i);
+  // Junta até 3 linhas após o rótulo — alguns PDFs quebram a linha de valores
+  const linhaVT = linhasAposRotulo(/valor\s+liquido\s+da\s+nfs[\s\-]?e/i, 3).join(" ");
   if (linhaVT) {
     const moneys = moneysOf(linhaVT);
     if (moneys.length >= 1) valorLiquido = moneys[moneys.length - 1];
     if (moneys.length >= 2) valorServicoVT = moneys[0];
-    // ISSQN Retido = Valor Serviço - Valor Líquido (quando há retenção)
     if (valorServicoVT != null && valorLiquido != null) {
       const dif = Number((valorServicoVT - valorLiquido).toFixed(2));
       if (dif > 0.01) issqnRetidoVT = dif;
@@ -355,20 +355,21 @@ export async function analisarPdfFinanceiro(
   }
 
   // ---- Bloco "TRIBUTAÇÃO MUNICIPAL" ----
-  // Ordem típica: Valor Serviço | Desc.Incond | Total Deduções | Cálc.BM
-  //             | BC ISSQN | Alíquota Aplicada | Retenção ISSQN | ISSQN Apurado
   let baseCalculo: number | null = null;
   let totalDeducoes: number | null = null;
   let aliquota: number | null = null;
   let issqnDevido: number | null = null;
-  const linhaTM = proximaLinhaApos(/bc\s+issqn/i);
+  const linhaTM = linhasAposRotulo(/bc\s+issqn/i, 3).join(" ");
   if (linhaTM) {
     const moneys = moneysOf(linhaTM);
-    // Esperado: [Valor Serviço, Total Deduções, BC ISSQN, ISSQN Apurado]
     if (moneys.length >= 4) {
       totalDeducoes = moneys[moneys.length - 3];
       baseCalculo = moneys[moneys.length - 2];
       issqnDevido = moneys[moneys.length - 1];
+    } else if (moneys.length === 3) {
+      // Ex.: [Valor Serviço, BC ISSQN, ISSQN Apurado] (Deduções como "-")
+      baseCalculo = moneys[1];
+      issqnDevido = moneys[2];
     } else {
       if (moneys.length >= 2) baseCalculo = moneys[moneys.length - 2];
       if (moneys.length >= 1) issqnDevido = moneys[moneys.length - 1];
