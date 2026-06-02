@@ -115,6 +115,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const [boletoConfirmadoPor, setBoletoConfirmadoPor] = useState<string | null>(null);
   const [boletoConfirmadoEm, setBoletoConfirmadoEm] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [baixandoZip, setBaixandoZip] = useState(false);
   const [replicaConfirm, setReplicaConfirm] = useState<{
     title: string;
     description: string;
@@ -563,6 +565,69 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     }
   };
 
+  const toggleSelecionado = (id: string) => {
+    setSelecionados((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
+
+  const toggleSelecionarTodos = () => {
+    if (selecionados.size === anexos.length && anexos.length > 0) {
+      setSelecionados(new Set());
+    } else {
+      setSelecionados(new Set(anexos.map((a: any) => a.id)));
+    }
+  };
+
+  const handleDownloadSelecionados = async () => {
+    if (selecionados.size === 0) return;
+    const items = (anexos as any[]).filter((a) => selecionados.has(a.id));
+    if (items.length === 1) {
+      await handleDownload(items[0].storage_path, items[0].nome_arquivo);
+      return;
+    }
+    setBaixandoZip(true);
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      const usados = new Set<string>();
+      for (const a of items) {
+        const { data, error } = await supabase.storage
+          .from("anexos-financeiro")
+          .download(a.storage_path);
+        if (error || !data) throw error ?? new Error("Falha ao baixar " + a.nome_arquivo);
+        let nome = a.nome_arquivo as string;
+        if (usados.has(nome.toLowerCase())) {
+          const m = nome.match(/^(.*?)(\.[^.]+)?$/);
+          const base = m?.[1] ?? nome;
+          const ext = m?.[2] ?? "";
+          let i = 2;
+          while (usados.has(`${base} (${i})${ext}`.toLowerCase())) i++;
+          nome = `${base} (${i})${ext}`;
+        }
+        usados.add(nome.toLowerCase());
+        zip.file(nome, data);
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `anexos-${items.length}-arquivos.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`${items.length} arquivos baixados em ZIP`);
+    } catch (e: any) {
+      toast.error("Erro ao gerar ZIP: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setBaixandoZip(false);
+    }
+  };
+
   const handleDelete = async (anexoId: string, path: string) => {
     if (!confirm("Excluir este anexo?")) return;
     try {
@@ -970,25 +1035,45 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           </div>
 
           <div className="min-w-0 rounded-lg border border-border p-3 space-y-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Paperclip className="h-4 w-4 text-info" />
                 Anexos ({anexos.length})
+                {selecionados.size > 0 && (
+                  <span className="text-xs font-normal text-muted-foreground">
+                    · {selecionados.size} selecionado{selecionados.size > 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  multiple
-                  className="hidden"
-                  accept={ACCEPTED_FILE_TYPES}
-                  onChange={handleUpload}
-                  disabled={uploading}
-                />
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-                  <Upload className="h-3.5 w-3.5" />
-                  {uploading ? "Enviando..." : "Adicionar"}
-                </span>
-              </label>
+              <div className="flex items-center gap-2">
+                {selecionados.size > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={handleDownloadSelecionados}
+                    disabled={baixandoZip}
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    {baixandoZip ? "Compactando..." : `Baixar (${selecionados.size})`}
+                  </Button>
+                )}
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    accept={ACCEPTED_FILE_TYPES}
+                    onChange={handleUpload}
+                    disabled={uploading}
+                  />
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                    <Upload className="h-3.5 w-3.5" />
+                    {uploading ? "Enviando..." : "Adicionar"}
+                  </span>
+                </label>
+              </div>
             </div>
 
             {anexos.length === 0 ? (
@@ -996,42 +1081,59 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                 Nenhum anexo. Aceita PDF, Excel e CSV.
               </p>
             ) : (
-              <ul className="min-w-0 space-y-1.5">
-                {anexos.map((a) => {
-                  const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
-                  const isExcel = ["xlsx", "xlsm", "xls"].includes(ext);
-                  return (
-                  <li
-                    key={a.id}
-                    className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
-                  >
-                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="min-w-0 truncate" title={a.nome_arquivo}>
-                      {a.nome_arquivo}
-                    </span>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {formatBytes(a.tamanho_bytes)}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0"
-                      onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}
+              <>
+                <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
+                  <Checkbox
+                    id="anexos-select-all"
+                    checked={selecionados.size === anexos.length && anexos.length > 0}
+                    onCheckedChange={toggleSelecionarTodos}
+                  />
+                  <label htmlFor="anexos-select-all" className="cursor-pointer select-none">
+                    Selecionar todos
+                  </label>
+                </div>
+                <ul className="min-w-0 space-y-1.5">
+                  {anexos.map((a) => {
+                    const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
+                    const isExcel = ["xlsx", "xlsm", "xls"].includes(ext);
+                    const isChecked = selecionados.has(a.id);
+                    return (
+                    <li
+                      key={a.id}
+                      className="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
                     >
-                      <Download className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(a.id, a.storage_path)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </li>
-                  );
-                })}
-              </ul>
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={() => toggleSelecionado(a.id)}
+                      />
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="min-w-0 truncate" title={a.nome_arquivo}>
+                        {a.nome_arquivo}
+                      </span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {formatBytes(a.tamanho_bytes)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(a.id, a.storage_path)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </li>
+                    );
+                  })}
+                </ul>
+              </>
             )}
           </div>
 
