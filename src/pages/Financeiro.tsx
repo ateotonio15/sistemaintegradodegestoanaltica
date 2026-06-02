@@ -320,6 +320,69 @@ export default function Financeiro() {
     enabled: uploaderIds.length > 0,
   });
 
+  // Classificação do tipo de anexo (Excel / PDF NFS-e / Boleto / Comprovante / Outros)
+  const classifyAnexoTipo = (nome: string | null, mime: string | null): string => {
+    const n = (nome || "").toLowerCase();
+    const m = (mime || "").toLowerCase();
+    if (/\.(xlsx|xlsm|xls|csv)$/.test(n) || m.includes("spreadsheet") || m.includes("excel") || m === "text/csv") {
+      return "Excel do faturamento";
+    }
+    if (/boleto/.test(n)) return "Boleto";
+    if (n.endsWith(".pdf") || m === "application/pdf") return "PDF da NFS-e";
+    if (m.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/.test(n)) return "Comprovante";
+    return "Outros";
+  };
+
+  // IDs de TODOS os uploaders presentes nos anexos (para nomes nos filtros/export/auditoria)
+  const allUploaderIds = useMemo(() => {
+    const s = new Set<string>();
+    Object.values(anexosMap).forEach((list: any) => {
+      (list as any[]).forEach((a) => { if (a.uploaded_by) s.add(a.uploaded_by); });
+    });
+    return Array.from(s);
+  }, [anexosMap]);
+
+  const { data: allUploaderMap = {} } = useQuery({
+    queryKey: ["financeiro-anexos-uploaders", allUploaderIds.sort().join(",")],
+    queryFn: async () => {
+      if (allUploaderIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, username")
+        .in("user_id", allUploaderIds);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      data.forEach((p: any) => { map[p.user_id] = p.display_name || p.username || "—"; });
+      return map;
+    },
+    enabled: allUploaderIds.length > 0,
+  });
+
+  const anexadoPorOptions = useMemo(() => {
+    return allUploaderIds
+      .map((id) => ({ id, nome: allUploaderMap[id] || "—" }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [allUploaderIds, allUploaderMap]);
+
+  const TIPOS_ANEXO = ["Excel do faturamento", "PDF da NFS-e", "Boleto", "Comprovante", "Outros"];
+
+  // Conjunto de movIds que casam com os filtros de anexo (Anexado por / Tipo)
+  const movIdsMatchAnexoFilters = useMemo(() => {
+    if (!filtroAnexadoPor && !filtroTipoAnexo) return null;
+    const set = new Set<string>();
+    Object.entries(anexosMap).forEach(([movId, list]) => {
+      const match = (list as any[]).some((a) => {
+        if (filtroAnexadoPor && a.uploaded_by !== filtroAnexadoPor) return false;
+        if (filtroTipoAnexo && classifyAnexoTipo(a.nome_arquivo, a.mime_type) !== filtroTipoAnexo) return false;
+        return true;
+      });
+      if (match) set.add(movId);
+    });
+    return set;
+  }, [anexosMap, filtroAnexadoPor, filtroTipoAnexo]);
+
+
+
   // Cobranças abertas do mês
   const { data: cobrancasAbertas = [] } = useQuery({
     queryKey: ["cobrancas-abertas", mes, movIds.sort().join(",")],
