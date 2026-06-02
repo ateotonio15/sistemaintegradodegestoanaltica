@@ -301,7 +301,8 @@ export function AnaliseCompletaDialog({
     ).length;
 
     let statusGeral: Status;
-    if ([docStatus, cmpStatus, servStatus].some((s) => s === "Erro")) statusGeral = "Erro";
+    const allStatus: Status[] = [docStatus, cmpStatus, servStatus];
+    if (allStatus.some((s) => s === "Erro")) statusGeral = "Erro";
     else if (divCount > 0) statusGeral = "Divergente";
     else if (alertaCount > 0) statusGeral = "Atenção";
     else if (okCount === 3) statusGeral = "OK";
