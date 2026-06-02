@@ -99,7 +99,7 @@ export async function analisarExcelMotoHonda(
     }
 
     // Proporcional / Inclusoes
-    if (!achouInclusoes && label.includes("inclus")) {
+    if (!achouInclusoes && (label.includes("inclus") || label.includes("retroativ"))) {
       const tot = toNumber(vals[3]);
       const qtd = toNumber(vals[1]);
       result.inclusoes = {

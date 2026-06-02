@@ -237,7 +237,9 @@ function classificarPlano(plano: string): "enfermaria" | "apartamento" | null {
 
 function isInclusao(tipo: string): boolean {
   const t = norm(tipo);
-  return t.includes("inclusao") || t.includes("inclusão");
+  // Inclusão e Cobrança Retroativa (ex.: "C. RETROATIVA", "Cob. Retroativo")
+  // são tratadas como acréscimos e somadas em Inclusões.
+  return t.includes("inclusao") || t.includes("inclusão") || t.includes("retroativ");
 }
 
 function isExclusao(tipo: string): boolean {
@@ -774,7 +776,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     const hasValor = !isNaN(val) && val !== 0;
     const hasMensalidade = !isNaN(mensN) && mensN !== 0;
 
-    if (labelNorm.includes("inclus")) {
+    if (labelNorm.includes("inclus") || labelNorm.includes("retroativ")) {
       cur.incQtd += qtdNum;
       cur.incTotal += valNum;
       continue;
