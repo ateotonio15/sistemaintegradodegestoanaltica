@@ -126,7 +126,7 @@ function parseValor(raw: string): number {
 }
 
 /** Extrai todo o texto do PDF (em ordem de leitura) como uma única string. */
-async function extrairTextoPdf(buffer: ArrayBuffer): Promise<string> {
+export async function extrairTextoPdf(buffer: ArrayBuffer): Promise<string> {
   // IMPORTANTE: pdf.js DESTRÓI (detaches) o ArrayBuffer após uso.
   // Como o mesmo buffer pode ser passado para análise completa e simplificada,
   // sempre clonamos antes para preservar o original.
