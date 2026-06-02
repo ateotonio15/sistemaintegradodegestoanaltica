@@ -496,7 +496,7 @@ export function AnaliseCompletaDialog({
                     { n: 1, t: "Documentos", s: dados.docStatus },
                     { n: 2, t: "Conferência Excel x Histórico da Nota", s: dados.cmpStatus },
                     { n: 3, t: "Conferência Valor do Serviço", s: dados.servStatus },
-                    { n: 4, t: "Conferência Tributária", s: "Não analisado" as Status },
+                    { n: 4, t: "Conferência Tributária", s: dados.tribStatus },
                     { n: 5, t: "Resultado Final", s: dados.statusGeral },
                   ].map((step) => (
                     <div key={step.n}>
@@ -523,10 +523,14 @@ export function AnaliseCompletaDialog({
                           {step.n === 2 && <EtapaCategorias linhas={dados.categorias} />}
                           {step.n === 3 && <EtapaServico linhas={dados.servico} />}
                           {step.n === 4 && (
-                            <div className="text-sm text-muted-foreground py-4">
-                              Conferência tributária estará disponível na próxima fase (IBS, CBS, ISSQN apurado/retido, valor
-                              líquido).
-                            </div>
+                            dados.tribLinhas.length === 0 ? (
+                              <div className="text-sm text-muted-foreground py-4">
+                                Nenhum dado tributário extraído do PDF. Verifique se o anexo contém as informações de
+                                ISSQN, IBS, CBS e base de cálculo.
+                              </div>
+                            ) : (
+                              <EtapaServico linhas={dados.tribLinhas} />
+                            )
                           )}
                           {step.n === 5 && (
                             <EtapaResultado
