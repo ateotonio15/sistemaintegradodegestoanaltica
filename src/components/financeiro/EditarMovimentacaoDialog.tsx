@@ -718,6 +718,21 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                   Nota marcada como enviada.
                 </p>
               ) : null}
+              {temIrmaos && (
+                <label className="flex items-start gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5 text-[11px] cursor-pointer">
+                  <Checkbox
+                    checked={aplicarEnvioATodos}
+                    onCheckedChange={(v) => setAplicarEnvioATodos(v === true)}
+                    className="mt-0.5"
+                  />
+                  <span className="min-w-0">
+                    <span className="font-medium text-foreground">Aplicar a todos os {pagadores.length} pagadores</span>
+                    <span className="block text-muted-foreground">
+                      Replica esta data (e demais alterações) para todos os pagadores do contrato ao salvar — sem precisar editar um por um.
+                    </span>
+                  </span>
+                </label>
+              )}
             </div>
           </div>
 
