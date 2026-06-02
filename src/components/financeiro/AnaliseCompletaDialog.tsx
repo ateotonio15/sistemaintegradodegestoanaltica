@@ -264,7 +264,9 @@ export function AnaliseCompletaDialog({
     else if (cmpsValidas.every((c) => c.status === "OK") && cmpsValidas.length > 0) cmpStatus = "OK";
     else cmpStatus = "Atenção";
 
-    // Etapa 3 — valor do serviço (usa valor líquido como proxy enquanto não há valor do serviço)
+    // Etapa 3 — Conferência do Valor do Serviço (apenas valores BRUTOS)
+    // Regra: Total Excel = Total histórico NFS-e = Valor do Serviço da NFS-e
+    const valorServicoNf = tributos?.valorServico ?? null;
     const servico: ConferenciaServico[] = [
       {
         origem: "Total do Excel",
@@ -277,16 +279,16 @@ export function AnaliseCompletaDialog({
         status: arquivoPdf ? (totalPdfGeral ? "OK" : "Atenção") : "Pendente",
       },
       {
-        origem: "Valor líquido da NFS-e",
-        valor: valorLiquido,
-        status: valorLiquido != null ? "OK" : "Pendente",
+        origem: "Valor do Serviço da NFS-e",
+        valor: valorServicoNf,
+        status: valorServicoNf != null ? "OK" : arquivoPdf ? "Atenção" : "Pendente",
       },
     ];
 
     let servStatus: Status = "Não analisado";
     if (!arquivoPdf) servStatus = "Pendente";
     else {
-      const valores = [totalExcelGeral, totalPdfGeral, valorLiquido].filter(
+      const valores = [totalExcelGeral, totalPdfGeral, valorServicoNf].filter(
         (v): v is number => v != null && v > 0,
       );
       if (valores.length < 2) servStatus = "Atenção";
@@ -297,32 +299,121 @@ export function AnaliseCompletaDialog({
       }
     }
 
-    // Etapa 4 — Tributária (parcial)
+    // Etapa 4 — Conferência Tributária
     const tribLinhas: ConferenciaServico[] = [];
+    const divergTrib: string[] = [];
     if (tributos) {
+      const valorServ = tributos.valorServico;
+      const retencao = tributos.retencaoIssqn;
+      const issqnDev = tributos.issqn;
+      const issqnRet = tributos.issqnRetido;
+      const baseCalc = tributos.baseCalculo;
+      const totalDed = tributos.totalDeducoes;
+      const aliq = tributos.aliquotaIssqn;
+      const aprox = (a: number, b: number, tol = 0.05) => Math.abs(a - b) <= tol;
+
+      // ISSQN devido
+      let stIssqnDev: Status = issqnDev != null ? "OK" : "Pendente";
+      if (issqnDev != null && baseCalc != null) {
+        // ISSQN Apurado = BC ISSQN x 2%
+        const esperado = Number((baseCalc * 0.02).toFixed(2));
+        if (!aprox(esperado, issqnDev, 0.1)) {
+          stIssqnDev = "Atenção";
+          divergTrib.push(
+            `ISSQN devido esperado ${formatBRL(esperado)} (BC ISSQN × 2%) × encontrado ${formatBRL(issqnDev)}.`,
+          );
+        }
+      }
+
+      // ISSQN Retido — depende do tipo de retenção
+      let stIssqnRet: Status;
+      let retLabelValor: number | null = issqnRet;
+      if (retencao === "retido") {
+        if (issqnRet == null) {
+          stIssqnRet = "Divergente";
+          divergTrib.push("ISSQN consta como 'Retido pelo Tomador', mas o valor retido não foi localizado.");
+        } else if (issqnDev != null && !aprox(issqnRet, issqnDev, 0.05)) {
+          stIssqnRet = "Divergente";
+          divergTrib.push(
+            `ISSQN Retido (${formatBRL(issqnRet)}) deveria ser igual ao ISSQN Apurado (${formatBRL(issqnDev)}).`,
+          );
+        } else {
+          stIssqnRet = "OK";
+        }
+      } else if (retencao === "nao_retido") {
+        stIssqnRet = "OK";
+        retLabelValor = null;
+      } else {
+        stIssqnRet = issqnRet != null ? "OK" : "Pendente";
+      }
+
+      // Valor líquido — depende da retenção
+      let stLiq: Status = valorLiquido != null ? "OK" : "Pendente";
+      if (valorLiquido != null && valorServ != null) {
+        if (retencao === "retido" && issqnRet != null) {
+          const esperado = Number((valorServ - issqnRet).toFixed(2));
+          if (!aprox(esperado, valorLiquido, 0.05)) {
+            stLiq = "Divergente";
+            divergTrib.push(
+              `Valor Líquido (${formatBRL(valorLiquido)}) deveria ser Valor do Serviço − ISSQN Retido = ${formatBRL(esperado)}.`,
+            );
+          }
+        } else if (retencao === "nao_retido") {
+          if (!aprox(valorServ, valorLiquido, 0.05)) {
+            stLiq = "Divergente";
+            divergTrib.push(
+              `ISSQN não retido: Valor Líquido (${formatBRL(valorLiquido)}) deveria ser igual ao Valor do Serviço (${formatBRL(valorServ)}).`,
+            );
+          }
+        }
+      }
+
+      // Base de cálculo (fallback de validação contra Deduções)
+      let stBase: Status = baseCalc != null ? "OK" : "Pendente";
+      if (baseCalc != null && valorServ != null && totalDed != null) {
+        const esperado = Number((valorServ - totalDed).toFixed(2));
+        if (!aprox(esperado, baseCalc, 0.1)) {
+          stBase = "Atenção";
+          divergTrib.push(
+            `BC ISSQN esperada ${formatBRL(esperado)} (Serviço − Deduções) × encontrada ${formatBRL(baseCalc)}.`,
+          );
+        }
+      }
+
       const push = (
         origem: string,
         valor: number | null,
+        status: Status,
         unidade: "BRL" | "%" = "BRL",
-      ) =>
-        tribLinhas.push({
-          origem,
-          valor,
-          unidade,
-          status: valor != null ? "OK" : "Pendente",
-        });
-      push("Base de cálculo", tributos.baseCalculo);
-      push("Alíquota ISSQN (%)", tributos.aliquotaIssqn, "%");
-      push("ISSQN devido", tributos.issqn);
-      push("ISSQN retido", tributos.issqnRetido);
-      push("IBS", tributos.ibs);
-      push("CBS", tributos.cbs);
-      push("Outras retenções", tributos.outrasRetencoes);
+      ) => tribLinhas.push({ origem, valor, status, unidade });
+
+      push("Retenção do ISSQN", null,
+        retencao === "retido" ? "OK" : retencao === "nao_retido" ? "OK" : "Pendente");
+      // Substitui valor por rótulo textual via observação? Usamos linha extra simples:
+      tribLinhas[tribLinhas.length - 1] = {
+        ...tribLinhas[tribLinhas.length - 1],
+        // mostramos o texto no campo "origem" como sufixo
+        origem: `Retenção do ISSQN — ${
+          retencao === "retido" ? "Retido pelo Tomador" : retencao === "nao_retido" ? "Não Retido" : "não identificada"
+        }`,
+      };
+      push("Valor do Serviço", valorServ, valorServ != null ? "OK" : "Pendente");
+      push("Total Deduções/Reduções", totalDed, totalDed != null ? "OK" : "Pendente");
+      push("Base de cálculo (BC ISSQN)", baseCalc, stBase);
+      push("Alíquota ISSQN", aliq, aliq != null ? "OK" : "Pendente", "%");
+      push("ISSQN devido (Apurado)", issqnDev, stIssqnDev);
+      push("ISSQN retido", retLabelValor, stIssqnRet);
+      push("Valor líquido", valorLiquido, stLiq);
+      push("IBS", tributos.ibs, tributos.ibs != null ? "OK" : "Pendente");
+      push("CBS", tributos.cbs, tributos.cbs != null ? "OK" : "Pendente");
+      push("Outras retenções federais", tributos.outrasRetencoes,
+        tributos.outrasRetencoes != null ? "OK" : "Pendente");
     }
     let tribStatus: Status = "Não analisado";
     if (!arquivoPdf) tribStatus = "Pendente";
-    else if (tribLinhas.every((l) => l.valor != null)) tribStatus = "OK";
-    else if (tribLinhas.some((l) => l.valor != null)) tribStatus = "Atenção";
+    else if (tribLinhas.some((l) => l.status === "Divergente")) tribStatus = "Divergente";
+    else if (tribLinhas.some((l) => l.status === "Atenção" || l.status === "Pendente")) tribStatus = "Atenção";
+    else if (tribLinhas.length > 0) tribStatus = "OK";
     else tribStatus = "Pendente";
 
     // Etapa 5 — Resultado
@@ -353,6 +444,7 @@ export function AnaliseCompletaDialog({
     if (servStatus === "Divergente") {
       divergList.push("Valor do Serviço da NFS-e não confere com o total do Excel/histórico.");
     }
+    if (divergTrib.length > 0) divergList.push(...divergTrib);
 
     const mensagem =
       statusGeral === "OK"
