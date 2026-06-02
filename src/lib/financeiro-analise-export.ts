@@ -66,95 +66,333 @@ function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// ===== Design tokens =====
+const COLOR = {
+  brand: "FF0F766E", // teal-700
+  brandDark: "FF134E4A",
+  brandLight: "FFCCFBF1",
+  headerBg: "FF0F172A", // slate-900
+  headerFg: "FFFFFFFF",
+  zebra: "FFF8FAFC",
+  border: "FFE2E8F0",
+  ok: "FF16A34A",
+  okBg: "FFDCFCE7",
+  div: "FFDC2626",
+  divBg: "FFFEE2E2",
+  warn: "FFB45309",
+  warnBg: "FFFEF3C7",
+  neutral: "FF475569",
+  neutralBg: "FFF1F5F9",
+  labelFg: "FF334155",
+};
+
+function statusColors(s: string) {
+  const k = (s || "").toLowerCase();
+  if (k === "ok") return { fg: COLOR.ok, bg: COLOR.okBg };
+  if (k.includes("diverg") || k === "erro") return { fg: COLOR.div, bg: COLOR.divBg };
+  if (k.includes("aten") || k.includes("pend") || k.includes("alerta"))
+    return { fg: COLOR.warn, bg: COLOR.warnBg };
+  return { fg: COLOR.neutral, bg: COLOR.neutralBg };
+}
+
+const thinBorder: Partial<ExcelJS.Borders> = {
+  top: { style: "thin", color: { argb: COLOR.border } },
+  left: { style: "thin", color: { argb: COLOR.border } },
+  right: { style: "thin", color: { argb: COLOR.border } },
+  bottom: { style: "thin", color: { argb: COLOR.border } },
+};
+
+function applyBorders(ws: ExcelJS.Worksheet, range: string) {
+  const [a, b] = range.split(":");
+  const start = ws.getCell(a);
+  const end = ws.getCell(b);
+  const sr = Number(start.row), er = Number(end.row);
+  const sc = Number(start.col), ec = Number(end.col);
+  for (let r = sr; r <= er; r++) {
+    for (let c = sc; c <= ec; c++) {
+      ws.getCell(r, c).border = thinBorder;
+    }
+  }
+}
+
+function setTitle(ws: ExcelJS.Worksheet, text: string, span: number, subtitle?: string) {
+  ws.mergeCells(1, 1, 1, span);
+  const c = ws.getCell(1, 1);
+  c.value = text;
+  c.font = { name: "Calibri", bold: true, size: 16, color: { argb: COLOR.headerFg } };
+  c.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+  c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.brand } };
+  ws.getRow(1).height = 32;
+
+  if (subtitle) {
+    ws.mergeCells(2, 1, 2, span);
+    const s = ws.getCell(2, 1);
+    s.value = subtitle;
+    s.font = { name: "Calibri", italic: true, size: 11, color: { argb: COLOR.headerFg } };
+    s.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+    s.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.brandDark } };
+    ws.getRow(2).height = 20;
+  }
+}
+
+function styleTableHeader(ws: ExcelJS.Worksheet, rowIndex: number, span: number) {
+  const row = ws.getRow(rowIndex);
+  row.height = 22;
+  for (let c = 1; c <= span; c++) {
+    const cell = row.getCell(c);
+    cell.font = { name: "Calibri", bold: true, size: 11, color: { argb: COLOR.headerFg } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.headerBg } };
+    cell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+    cell.border = thinBorder;
+  }
+}
+
+function zebraRows(ws: ExcelJS.Worksheet, firstRow: number, lastRow: number, span: number) {
+  for (let r = firstRow; r <= lastRow; r++) {
+    const isZebra = (r - firstRow) % 2 === 1;
+    for (let c = 1; c <= span; c++) {
+      const cell = ws.getCell(r, c);
+      if (isZebra && !cell.fill) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.zebra } };
+      }
+      cell.border = thinBorder;
+      if (!cell.alignment) cell.alignment = { vertical: "middle", indent: 1 };
+    }
+  }
+}
+
+function paintStatusCell(cell: ExcelJS.Cell) {
+  const v = String(cell.value ?? "");
+  const { fg, bg } = statusColors(v);
+  cell.font = { name: "Calibri", bold: true, size: 11, color: { argb: fg } };
+  cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+  cell.alignment = { vertical: "middle", horizontal: "center" };
+  cell.border = thinBorder;
+}
+
+function addInfoRow(ws: ExcelJS.Worksheet, label: string, value: ExcelJS.CellValue) {
+  const row = ws.addRow([label, value]);
+  row.height = 18;
+  row.getCell(1).font = { bold: true, color: { argb: COLOR.labelFg } };
+  row.getCell(1).alignment = { vertical: "middle", indent: 1 };
+  row.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.neutralBg } };
+  row.getCell(2).alignment = { vertical: "middle", indent: 1 };
+  row.getCell(1).border = thinBorder;
+  row.getCell(2).border = thinBorder;
+  return row;
+}
+
 export async function exportarAnaliseExcel(data: AnaliseCompletaExport) {
   const wb = new ExcelJS.Workbook();
   wb.creator = "CS Control";
+  wb.company = "CS Control";
   wb.created = new Date();
+  const props: any = wb.properties;
+  props.date1904 = false;
 
-  // Resumo
-  const ws = wb.addWorksheet("Resumo");
-  ws.columns = [{ width: 32 }, { width: 50 }];
-  ws.addRow([data.titulo]);
-  ws.getRow(1).font = { bold: true, size: 14 };
-  ws.addRow([]);
-  ws.addRow(["Empresa", data.empresa]);
-  ws.addRow(["CNPJ", data.cnpj || "—"]);
-  ws.addRow(["Competência", data.competencia]);
-  ws.addRow(["Período", data.periodo]);
-  ws.addRow(["NFS-e", data.documentos.nfNumero || "—"]);
-  ws.addRow(["Tomador", data.documentos.tomador || "—"]);
-  ws.addRow(["Status geral", data.statusGeral]);
-  ws.addRow(["Gerado em", data.geradoEm]);
-  ws.addRow(["Gerado por", data.geradoPor || "—"]);
-  ws.addRow([]);
-  ws.addRow(["Total de itens", data.resumo.totalItens]);
-  ws.addRow(["OK", data.resumo.ok]);
-  ws.addRow(["Divergências", data.resumo.divergencias]);
-  ws.addRow(["Alertas", data.resumo.alertas]);
-  ws.addRow([]);
-  ws.addRow(["Mensagem", data.resumo.mensagem]);
+  const moneyFmt = '_-R$ * #,##0.00_-;[Red]-R$ * #,##0.00_-;_-R$ * "-"??_-;_-@_-';
 
-  // Documentos
-  const wsDoc = wb.addWorksheet("Etapa 1 - Documentos");
-  wsDoc.columns = [{ width: 32 }, { width: 60 }];
-  wsDoc.addRow(["Item", "Valor"]).font = { bold: true };
-  wsDoc.addRow(["Excel encontrado", data.documentos.excelEncontrado ? "Sim" : "Não"]);
-  wsDoc.addRow(["PDF encontrado", data.documentos.pdfEncontrado ? "Sim" : "Não"]);
-  wsDoc.addRow(["Nome do Excel", data.documentos.nomeExcel || "—"]);
-  wsDoc.addRow(["Nome do PDF", data.documentos.nomePdf || "—"]);
-  wsDoc.addRow(["NFS-e", data.documentos.nfNumero || "—"]);
-  wsDoc.addRow(["Tomador", data.documentos.tomador || "—"]);
-  wsDoc.addRow(["CNPJ", data.documentos.cnpj || "—"]);
-  wsDoc.addRow(["Status", data.documentos.status]);
+  // ============ Resumo ============
+  const ws = wb.addWorksheet("Resumo", {
+    views: [{ showGridLines: false, state: "frozen", ySplit: 2 }],
+    properties: { defaultRowHeight: 16 },
+  });
+  ws.columns = [{ width: 32 }, { width: 58 }];
+  setTitle(ws, data.titulo, 2, "Conferência Excel × Histórico NFS-e × Tributação");
 
-  // Categorias
-  const wsCat = wb.addWorksheet("Etapa 2 - Excel x Histórico");
-  wsCat.columns = [
-    { header: "Categoria", width: 26 },
-    { header: "Valor no Excel", width: 18 },
-    { header: "Valor no histórico da NFS-e", width: 26 },
-    { header: "Diferença", width: 14 },
-    { header: "Status", width: 14 },
-    { header: "Observação", width: 40 },
+  ws.addRow([]);
+  const sec1 = ws.addRow(["INFORMAÇÕES DA NOTA", ""]);
+  sec1.getCell(1).font = { bold: true, size: 12, color: { argb: COLOR.brandDark } };
+  sec1.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.brandLight } };
+  ws.mergeCells(sec1.number, 1, sec1.number, 2);
+  sec1.getCell(1).alignment = { vertical: "middle", indent: 1 };
+  sec1.height = 22;
+
+  addInfoRow(ws, "Empresa", data.empresa);
+  addInfoRow(ws, "CNPJ", data.cnpj || "—");
+  addInfoRow(ws, "Competência", data.competencia);
+  addInfoRow(ws, "Período", data.periodo);
+  addInfoRow(ws, "NFS-e", data.documentos.nfNumero || "—");
+  addInfoRow(ws, "Tomador", data.documentos.tomador || "—");
+  const stRow = addInfoRow(ws, "Status geral", data.statusGeral);
+  paintStatusCell(stRow.getCell(2));
+  addInfoRow(ws, "Gerado em", data.geradoEm);
+  addInfoRow(ws, "Gerado por", data.geradoPor || "—");
+
+  ws.addRow([]);
+  const sec2 = ws.addRow(["INDICADORES", ""]);
+  sec2.getCell(1).font = { bold: true, size: 12, color: { argb: COLOR.brandDark } };
+  sec2.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.brandLight } };
+  ws.mergeCells(sec2.number, 1, sec2.number, 2);
+  sec2.getCell(1).alignment = { vertical: "middle", indent: 1 };
+  sec2.height = 22;
+
+  const items = [
+    ["Total de itens", data.resumo.totalItens, COLOR.neutral, COLOR.neutralBg],
+    ["OK", data.resumo.ok, COLOR.ok, COLOR.okBg],
+    ["Divergências", data.resumo.divergencias, COLOR.div, COLOR.divBg],
+    ["Alertas", data.resumo.alertas, COLOR.warn, COLOR.warnBg],
+  ] as const;
+  items.forEach(([label, val, fg, bg]) => {
+    const r = addInfoRow(ws, label as string, val as number);
+    r.getCell(2).font = { bold: true, size: 12, color: { argb: fg as string } };
+    r.getCell(2).fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg as string } };
+    r.getCell(2).alignment = { vertical: "middle", horizontal: "center" };
+  });
+
+  ws.addRow([]);
+  const msgRow = ws.addRow(["Mensagem", data.resumo.mensagem]);
+  msgRow.getCell(1).font = { bold: true, color: { argb: COLOR.labelFg } };
+  msgRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.neutralBg } };
+  msgRow.getCell(1).alignment = { vertical: "top", indent: 1 };
+  msgRow.getCell(2).alignment = { vertical: "top", wrapText: true, indent: 1 };
+  msgRow.height = 48;
+  msgRow.getCell(1).border = thinBorder;
+  msgRow.getCell(2).border = thinBorder;
+
+  // ============ Etapa 1 ============
+  const wsDoc = wb.addWorksheet("Etapa 1 - Documentos", {
+    views: [{ showGridLines: false, state: "frozen", ySplit: 4 }],
+  });
+  wsDoc.columns = [{ width: 32 }, { width: 70 }];
+  setTitle(wsDoc, "Etapa 1 — Documentos analisados", 2);
+  wsDoc.addRow([]);
+  wsDoc.addRow(["Item", "Valor"]);
+  styleTableHeader(wsDoc, 4, 2);
+  const docRows: Array<[string, string]> = [
+    ["Excel encontrado", data.documentos.excelEncontrado ? "Sim" : "Não"],
+    ["PDF encontrado", data.documentos.pdfEncontrado ? "Sim" : "Não"],
+    ["Nome do Excel", data.documentos.nomeExcel || "—"],
+    ["Nome do PDF", data.documentos.nomePdf || "—"],
+    ["NFS-e", data.documentos.nfNumero || "—"],
+    ["Tomador", data.documentos.tomador || "—"],
+    ["CNPJ", data.documentos.cnpj || "—"],
+    ["Status", data.documentos.status],
   ];
-  wsCat.getRow(1).font = { bold: true };
+  const docStart = 5;
+  docRows.forEach((d) => wsDoc.addRow(d));
+  zebraRows(wsDoc, docStart, docStart + docRows.length - 1, 2);
+  for (let r = docStart; r < docStart + docRows.length; r++) {
+    wsDoc.getCell(r, 1).font = { bold: true, color: { argb: COLOR.labelFg } };
+  }
+  paintStatusCell(wsDoc.getCell(docStart + docRows.length - 1, 2));
+
+  // ============ Etapa 2 ============
+  const wsCat = wb.addWorksheet("Etapa 2 - Excel x Histórico", {
+    views: [{ showGridLines: false, state: "frozen", ySplit: 4 }],
+  });
+  wsCat.columns = [
+    { width: 30 },
+    { width: 20 },
+    { width: 28 },
+    { width: 16 },
+    { width: 16 },
+    { width: 44 },
+  ];
+  setTitle(wsCat, "Etapa 2 — Conferência Excel × Histórico da NFS-e", 6);
+  wsCat.addRow([]);
+  wsCat.addRow(["Categoria", "Valor no Excel", "Histórico da NFS-e", "Diferença", "Status", "Observação"]);
+  styleTableHeader(wsCat, 4, 6);
+  const catStart = 5;
   data.categorias.forEach((c) => {
-    wsCat.addRow([
+    const row = wsCat.addRow([
       c.categoria,
-      c.excel == null ? "—" : c.excel,
-      c.pdf == null ? "—" : c.pdf,
-      c.diferenca == null ? "—" : c.diferenca,
+      c.excel,
+      c.pdf,
+      c.diferenca,
       c.status,
       c.observacao || "",
     ]);
+    row.getCell(1).font = { bold: true, color: { argb: COLOR.labelFg } };
+    [2, 3, 4].forEach((i) => {
+      const cell = row.getCell(i);
+      if (cell.value == null) cell.value = "—";
+      else cell.numFmt = moneyFmt;
+      cell.alignment = { vertical: "middle", horizontal: "right", indent: 1 };
+    });
+    if (c.diferenca != null && Math.abs(c.diferenca) > 0.01) {
+      row.getCell(4).font = { bold: true, color: { argb: COLOR.div } };
+    } else if (c.diferenca != null) {
+      row.getCell(4).font = { color: { argb: COLOR.ok } };
+    }
+    paintStatusCell(row.getCell(5));
+    row.getCell(6).alignment = { vertical: "middle", wrapText: true, indent: 1 };
   });
+  const catEnd = 4 + data.categorias.length;
+  zebraRows(wsCat, catStart, catEnd, 6);
+  wsCat.autoFilter = { from: { row: 4, column: 1 }, to: { row: catEnd, column: 6 } };
 
-  // Valor do serviço
-  const wsServ = wb.addWorksheet("Etapa 3 - Valor do Serviço");
-  wsServ.columns = [
-    { header: "Origem", width: 36 },
-    { header: "Valor encontrado", width: 22 },
-    { header: "Status", width: 16 },
-  ];
-  wsServ.getRow(1).font = { bold: true };
-  data.servico.forEach((s) =>
-    wsServ.addRow([s.origem, s.valor == null ? "—" : s.valor, s.status]),
-  );
+  // ============ Etapa 3 ============
+  const wsServ = wb.addWorksheet("Etapa 3 - Conferências", {
+    views: [{ showGridLines: false, state: "frozen", ySplit: 4 }],
+  });
+  wsServ.columns = [{ width: 44 }, { width: 22 }, { width: 16 }, { width: 44 }];
+  setTitle(wsServ, "Etapa 3 — Valor do Serviço e Conferência Tributária", 4);
+  wsServ.addRow([]);
+  wsServ.addRow(["Origem / Item", "Valor encontrado", "Status", "Observação"]);
+  styleTableHeader(wsServ, 4, 4);
+  const sStart = 5;
+  data.servico.forEach((s) => {
+    const row = wsServ.addRow([s.origem, s.valor, s.status, s.observacao || ""]);
+    row.getCell(1).font = { bold: true, color: { argb: COLOR.labelFg } };
+    const vCell = row.getCell(2);
+    if (s.valor == null) vCell.value = "—";
+    else if (s.unidade === "%") {
+      vCell.value = s.valor / 100;
+      vCell.numFmt = "0.00%";
+    } else {
+      vCell.numFmt = moneyFmt;
+    }
+    vCell.alignment = { vertical: "middle", horizontal: "right", indent: 1 };
+    paintStatusCell(row.getCell(3));
+    row.getCell(4).alignment = { vertical: "middle", wrapText: true, indent: 1 };
+  });
+  zebraRows(wsServ, sStart, 4 + data.servico.length, 4);
 
-  // Resultado
-  const wsRes = wb.addWorksheet("Etapa 5 - Resultado");
-  wsRes.columns = [{ width: 80 }];
-  wsRes.addRow(["Status geral: " + data.statusGeral]).font = { bold: true };
-  wsRes.addRow([data.resumo.mensagem]);
+  // ============ Resultado ============
+  const wsRes = wb.addWorksheet("Resultado Final", {
+    views: [{ showGridLines: false, state: "frozen", ySplit: 2 }],
+  });
+  wsRes.columns = [{ width: 100 }];
+  setTitle(wsRes, "Resultado Final da Análise", 1);
+  wsRes.addRow([]);
+  const stCell = wsRes.addRow([`Status geral: ${data.statusGeral}`]).getCell(1);
+  stCell.font = { bold: true, size: 13 };
+  paintStatusCell(stCell);
+  stCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+  const msg = wsRes.addRow([data.resumo.mensagem]);
+  msg.getCell(1).alignment = { vertical: "top", wrapText: true, indent: 1 };
+  msg.height = 36;
   wsRes.addRow([]);
   if (data.divergenciasLista.length > 0) {
-    wsRes.addRow(["Divergências encontradas:"]).font = { bold: true };
-    data.divergenciasLista.forEach((d) => wsRes.addRow(["• " + d]));
+    const h = wsRes.addRow(["Divergências encontradas"]);
+    h.getCell(1).font = { bold: true, size: 12, color: { argb: COLOR.div } };
+    h.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.divBg } };
+    h.getCell(1).alignment = { vertical: "middle", indent: 1 };
+    h.height = 22;
+    data.divergenciasLista.forEach((d) => {
+      const r = wsRes.addRow(["•  " + d]);
+      r.getCell(1).alignment = { vertical: "top", wrapText: true, indent: 1 };
+      r.getCell(1).font = { color: { argb: COLOR.labelFg } };
+    });
+  } else {
+    const ok = wsRes.addRow(["Nenhuma divergência identificada. Todos os pontos conferem."]);
+    ok.getCell(1).font = { bold: true, color: { argb: COLOR.ok } };
+    ok.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.okBg } };
+    ok.getCell(1).alignment = { vertical: "middle", indent: 1 };
+    ok.height = 22;
   }
+  wsRes.addRow([]);
+  const foot = wsRes.addRow([
+    `Gerado em ${data.geradoEm}${data.geradoPor ? ` por ${data.geradoPor}` : ""} • CS Control`,
+  ]);
+  foot.getCell(1).font = { italic: true, color: { argb: COLOR.neutral }, size: 10 };
 
   const buf = await wb.xlsx.writeBuffer();
   downloadBlob(
-    new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+    new Blob([buf], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
     `analise-completa-${safeFile(data.empresa)}-${safeFile(data.competencia)}.xlsx`,
   );
 }
