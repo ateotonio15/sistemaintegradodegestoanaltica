@@ -300,10 +300,19 @@ export function AnaliseCompletaDialog({
     // Etapa 4 — Tributária (parcial)
     const tribLinhas: ConferenciaServico[] = [];
     if (tributos) {
-      const push = (origem: string, valor: number | null) =>
-        tribLinhas.push({ origem, valor, status: valor != null ? "OK" : "Pendente" });
+      const push = (
+        origem: string,
+        valor: number | null,
+        unidade: "BRL" | "%" = "BRL",
+      ) =>
+        tribLinhas.push({
+          origem,
+          valor,
+          unidade,
+          status: valor != null ? "OK" : "Pendente",
+        });
       push("Base de cálculo", tributos.baseCalculo);
-      push("Alíquota ISSQN (%)", tributos.aliquotaIssqn);
+      push("Alíquota ISSQN (%)", tributos.aliquotaIssqn, "%");
       push("ISSQN devido", tributos.issqn);
       push("ISSQN retido", tributos.issqnRetido);
       push("IBS", tributos.ibs);
@@ -312,8 +321,9 @@ export function AnaliseCompletaDialog({
     }
     let tribStatus: Status = "Não analisado";
     if (!arquivoPdf) tribStatus = "Pendente";
-    else if (tribLinhas.some((l) => l.valor != null)) tribStatus = "OK";
-    else tribStatus = "Atenção";
+    else if (tribLinhas.every((l) => l.valor != null)) tribStatus = "OK";
+    else if (tribLinhas.some((l) => l.valor != null)) tribStatus = "Atenção";
+    else tribStatus = "Pendente";
 
     // Etapa 5 — Resultado
     const okCount = [docStatus, cmpStatus, servStatus, tribStatus].filter((s) => s === "OK").length;
@@ -656,15 +666,23 @@ function EtapaServico({ linhas }: { linhas: ConferenciaServico[] }) {
           </tr>
         </thead>
         <tbody>
-          {linhas.map((l, i) => (
-            <tr key={i} className="border-t border-border">
-              <td className="px-3 py-2 font-medium">{l.origem}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{l.valor == null ? "—" : formatBRL(l.valor)}</td>
-              <td className="px-3 py-2 text-center">
-                <StatusBadge status={l.status as Status} />
-              </td>
-            </tr>
-          ))}
+          {linhas.map((l, i) => {
+            const formatado =
+              l.valor == null
+                ? "—"
+                : l.unidade === "%"
+                  ? `${l.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`
+                  : formatBRL(l.valor);
+            return (
+              <tr key={i} className="border-t border-border">
+                <td className="px-3 py-2 font-medium">{l.origem}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{formatado}</td>
+                <td className="px-3 py-2 text-center">
+                  <StatusBadge status={l.status as Status} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
