@@ -187,13 +187,16 @@ export async function analisarPdfFinanceiro(
       tomadorCnpj: null,
       tomadorNome: null,
       tributos: {
+        valorServico: null,
         baseCalculo: null,
+        totalDeducoes: null,
         aliquotaIssqn: null,
         issqn: null,
         issqnRetido: null,
         ibs: null,
         cbs: null,
         outrasRetencoes: null,
+        retencaoIssqn: null,
       },
       avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
     };
