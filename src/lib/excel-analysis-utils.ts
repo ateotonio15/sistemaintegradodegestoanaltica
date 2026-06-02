@@ -1027,6 +1027,9 @@ export function cruzarExcelComPdfs(
     cmp.cnpj = bloco.cnpj;
     cmp.nomeExibicao = bloco.nomeExibicao;
     cmp.tomadorCnpj = pdf ? normalizarCnpj(pdf.tomadorCnpj) : null;
+    cmp.tomadorNome = pdf?.tomadorNome ?? null;
+    cmp.nfNumero = pdf?.nfNumero ?? null;
+    cmp.valorLiquido = pdf?.valorLiquido ?? null;
     if (!pdf) {
       cmp.motivoSemPdf = bloco.cnpj
         ? "NF não localizada para este CNPJ"
