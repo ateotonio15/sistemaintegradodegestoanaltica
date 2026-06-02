@@ -585,8 +585,12 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const handleDownloadSelecionados = async () => {
     if (selecionados.size === 0) return;
     const items = (anexos as any[]).filter((a) => selecionados.has(a.id));
-    if (items.length === 1) {
-      await handleDownload(items[0].storage_path, items[0].nome_arquivo);
+    if (items.length <= 10) {
+      for (const a of items) {
+        await handleDownload(a.storage_path, a.nome_arquivo);
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      if (items.length > 1) toast.success(`${items.length} arquivos baixados`);
       return;
     }
     setBaixandoZip(true);
