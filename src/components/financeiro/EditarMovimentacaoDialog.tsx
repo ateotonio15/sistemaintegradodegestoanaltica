@@ -407,10 +407,54 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     setUploading(true);
     let sucessos = 0;
     const erros: string[] = [];
+    // Cache local dos nomes já usados nesta movimentação (para dedupe imediato
+    // entre múltiplos uploads do mesmo lote, antes do refetch).
+    const nomesExistentes: string[] = (anexos ?? []).map((a: any) => a.nome_arquivo);
     try {
       for (const file of files) {
         try {
-          const path = buildStoragePath(movimentacao.empresa_id, movimentacao.id, file.name);
+          const ext = (file.name.split(".").pop() || "").toLowerCase();
+          const isPdf = ext === "pdf" || file.type === "application/pdf";
+          let nomeFinal = file.name;
+          let bufferCache: ArrayBuffer | null = null;
+
+          // Auto-renomeio do PDF (NFS-e) → "NF <TOMADOR> <NUMERO>.pdf"
+          if (isPdf) {
+            try {
+              bufferCache = await file.arrayBuffer();
+              const meta = await extrairMetadadosNfse(bufferCache.slice(0));
+              if (!meta.leituraOk) {
+                toast.warning(
+                  "Não foi possível ler automaticamente este PDF. O arquivo será salvo com o nome original ou poderá ser renomeado manualmente.",
+                );
+              } else {
+                if (!meta.nfNumero) {
+                  toast.warning(
+                    "Não foi possível identificar automaticamente o número da NFS-e. Informe manualmente.",
+                  );
+                }
+                if (!meta.tomadorNome) {
+                  toast.warning(
+                    "Não foi possível identificar automaticamente o tomador da NFS-e. Informe manualmente.",
+                  );
+                }
+                const proposto = montarNomeArquivoNfse(meta.tomadorNome, meta.nfNumero);
+                if (proposto) {
+                  nomeFinal = gerarNomeUnico(proposto, nomesExistentes);
+                  toast.success(
+                    `PDF identificado e renomeado com sucesso.\nTomador: ${meta.tomadorNome}\nNº NFS-e: ${meta.nfNumero}\nArquivo: ${nomeFinal}`,
+                  );
+                }
+              }
+            } catch (errRename) {
+              console.warn("Falha ao renomear PDF da NFS-e:", errRename);
+              toast.warning(
+                "Não foi possível ler automaticamente este PDF. O arquivo será salvo com o nome original ou poderá ser renomeado manualmente.",
+              );
+            }
+          }
+
+          const path = buildStoragePath(movimentacao.empresa_id, movimentacao.id, nomeFinal);
           const { error: upErr } = await supabase.storage
             .from("anexos-financeiro")
             .upload(path, file);
@@ -418,7 +462,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
 
           const { error: insErr } = await supabase.from("anexos_financeiro").insert({
             financeiro_movimentacao_id: movimentacao.id,
-            nome_arquivo: file.name,
+            nome_arquivo: nomeFinal,
             storage_path: path,
             mime_type: file.type,
             tamanho_bytes: file.size,
@@ -426,9 +470,10 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           });
           if (insErr) throw insErr;
 
-          const ext = (file.name.split(".").pop() || "").toLowerCase();
+          nomesExistentes.push(nomeFinal);
+
           if (["xlsx", "xlsm", "xls"].includes(ext)) {
-            const buffer = await file.arrayBuffer();
+            const buffer = bufferCache ?? (await file.arrayBuffer());
             const sig = new Uint8Array(buffer.slice(0, 4));
             if (sig[0] === 0x50 && sig[1] === 0x4b) {
               const result = await validarRelatorioVidas(buffer);
