@@ -1,0 +1,1 @@
+DELETE FROM movimentacoes WHERE id = '802d5fd8-7f70-470b-b654-b5b11cc35eaa';
