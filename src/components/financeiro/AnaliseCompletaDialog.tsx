@@ -141,6 +141,7 @@ export function AnaliseCompletaDialog({
     const cnpjTomador = primeiroCmp?.tomadorCnpj ?? empresaCnpj ?? null;
     const arquivoPdf = primeiroCmp?.arquivoPdf ?? null;
     const valorLiquido = primeiroCmp?.valorLiquido ?? null;
+    const tributos = primeiroCmp?.tributos ?? null;
 
     // Soma por categoria — agrega todos os pagadores/blocos
     let totalEnfExcel = 0,
