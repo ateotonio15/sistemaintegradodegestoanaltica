@@ -854,9 +854,16 @@ function EtapaServico({ linhas }: { linhas: ConferenciaServico[] }) {
                   : formatBRL(l.valor);
             return (
               <tr key={i} className="border-t border-border">
-                <td className="px-3 py-2 font-medium">{l.origem}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatado}</td>
-                <td className="px-3 py-2 text-center">
+                <td className="px-3 py-2 font-medium align-top">
+                  <div>{l.origem}</div>
+                  {l.observacao && (
+                    <div className="text-[11px] font-normal text-muted-foreground mt-0.5 italic">
+                      {l.observacao}
+                    </div>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums align-top">{formatado}</td>
+                <td className="px-3 py-2 text-center align-top">
                   <StatusBadge status={l.status as Status} />
                 </td>
               </tr>
