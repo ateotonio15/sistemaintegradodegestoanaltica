@@ -93,9 +93,17 @@ export function extrairTomador(textoOriginal: string): {
   let nome: string | null = null;
   const limparNome = (raw: string) =>
     raw
+      // corta a partir do primeiro CNPJ formatado encontrado na sequência
+      .replace(/\s+\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}.*$/, "")
+      // corta no início do endereço (Rua/Av./Travessa/Alameda/Estrada/Rodovia/Praça/Quadra)
+      .replace(/\s+(rua|avenida|av\.?|travessa|trav\.?|alameda|estrada|rodovia|pra[çc]a|quadra|conjunto|bloco)\b.*$/i, "")
+      // corta em CEP encontrado no meio
+      .replace(/\s+\d{5}-?\d{3}\b.*$/, "")
+      // corta em rótulos colados na mesma linha
+      .replace(/\s*(e-?mail|endere[çc]o|munic[ií]pio|cep|telefone|cnpj|inscri[çc][aã]o|raz[aã]o|fantasia)\b.*$/i, "")
       .replace(/\s{2,}/g, " ")
-      .replace(/\s*(e-?mail|endere[çc]o|munic[ií]pio|cep|telefone|cnpj|inscri[çc][aã]o|raz[aã]o|fantasia).*$/i, "")
       .trim();
+
 
   const reLabel = /nome\s*\/?\s*nome\s*empresarial\s*[:\-]?\s*(.*)$/im;
   const mLabel = trecho.match(reLabel);
