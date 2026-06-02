@@ -355,8 +355,16 @@ export function AnexosViewerDialog({
                       {a.nome_arquivo}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {formatDateTime(a.created_at)}
-                      {a.uploader_nome ? ` · ${a.uploader_nome}` : ""}
+                      {(() => {
+                        const n = (a.nome_arquivo || "").toLowerCase();
+                        if (/\.(xlsx|xlsm|xls|csv)$/.test(n)) return "Excel do faturamento";
+                        if (/boleto/.test(n)) return "Boleto";
+                        if (n.endsWith(".pdf")) return "PDF da NFS-e";
+                        if (/\.(png|jpe?g|webp|gif)$/.test(n)) return "Comprovante";
+                        return "Outros";
+                      })()}
+                      {` · ${formatDateTime(a.created_at)}`}
+                      {a.uploader_nome ? ` · Anexado por ${a.uploader_nome}` : ""}
                       {` · ${a.origem_label}`}
                     </p>
                   </div>
