@@ -293,20 +293,37 @@ export async function analisarPdfFinanceiro(
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[ \t]+/g, " ");
 
-  const proximaLinhaApos = (re: RegExp): string | null => {
+  /**
+   * Localiza um rótulo (possivelmente no meio de uma linha de cabeçalho) e
+   * retorna a PRÓXIMA linha não vazia DEPOIS da linha onde o rótulo aparece.
+   * Em DANFSe, os cabeçalhos ficam todos em uma linha e os valores na seguinte.
+   * Aceita um número N de linhas-valor a percorrer (default 1).
+   */
+  const linhasAposRotulo = (re: RegExp, qtd = 3): string[] => {
     const m = tLines.match(re);
-    if (!m || m.index == null) return null;
-    const resto = tLines.slice(m.index + m[0].length);
-    const linhas = resto.split("\n").map((l) => l.trim()).filter(Boolean);
-    return linhas[0] ?? null;
+    if (!m || m.index == null) return [];
+    // Avança até o fim da linha onde o rótulo foi encontrado
+    const fimLinha = tLines.indexOf("\n", m.index);
+    if (fimLinha < 0) return [];
+    const resto = tLines.slice(fimLinha + 1);
+    return resto
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .slice(0, qtd);
   };
+
+  const proximaLinhaApos = (re: RegExp): string | null =>
+    linhasAposRotulo(re, 1)[0] ?? null;
 
   const moneysOf = (linha: string): number[] => {
     const out: number[] = [];
-    const re = /r\$\s*([\d.]+,\d{2})/gi;
+    // Aceita valores com ou sem "R$" e com ou sem casas decimais formatadas
+    const re = /r\$\s*([\d.]+,\d{2})|(?:^|\s)(\d{1,3}(?:\.\d{3})*,\d{2})(?=\s|$)/gi;
     let mm: RegExpExecArray | null;
     while ((mm = re.exec(linha)) !== null) {
-      const v = parseValor(mm[1]);
+      const raw = mm[1] ?? mm[2];
+      const v = parseValor(raw);
       if (!isNaN(v)) out.push(v);
     }
     return out;
