@@ -574,12 +574,27 @@ export function compararExcelComPdf(
       );
   }
 
+  // Exclusões — só compara o total (valor sempre negativo)
+  let exclusoes: { total: CampoValidacao } | null = null;
+  if (excel.exclusoes && (excel.exclusoes.quantidade > 0 || excel.exclusoes.total !== 0)) {
+    const pdfTotal = pdf && pdf.exclusoes.total !== null ? pdf.exclusoes.total : null;
+    const c = campo(excel.exclusoes.total, pdfTotal, "money");
+    exclusoes = { total: c };
+    if (pdf && pdfTotal === null)
+      divergencias.push("Valor de exclusões não encontrado no PDF.");
+    else if (pdf && !c.ok)
+      divergencias.push(
+        `Valor de exclusões divergente (Excel ${formatBRL(excel.exclusoes.total)} × PDF ${formatBRL(pdfTotal!)}).`,
+      );
+  }
+
   return {
     pagador: excel.pagador,
     arquivoPdf: pdf?.arquivo ?? null,
     enfermaria,
     apartamento,
     inclusoes,
+    exclusoes,
     divergencias,
     avisosPdf: pdf?.avisos ?? [],
   };
