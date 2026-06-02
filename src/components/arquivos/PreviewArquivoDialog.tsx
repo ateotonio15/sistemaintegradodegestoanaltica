@@ -154,7 +154,7 @@ export function PreviewArquivoDialog({
       loadedPdf?.destroy();
       if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     };
-  }, [open, bucket, storagePath, mimeType, isPdf]);
+  }, [open, bucket, storagePath, mimeType, isPdf, isExcel]);
 
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return;
