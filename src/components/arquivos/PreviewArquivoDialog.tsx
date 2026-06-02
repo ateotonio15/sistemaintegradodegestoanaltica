@@ -66,6 +66,8 @@ export function PreviewArquivoDialog({
   const [renderingPage, setRenderingPage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sheets, setSheets] = useState<SheetData[] | null>(null);
+  const [activeSheet, setActiveSheet] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase();
@@ -73,6 +75,7 @@ export function PreviewArquivoDialog({
   const isImage =
     ["png", "jpg", "jpeg", "webp", "gif"].includes(ext) ||
     (mimeType ?? "").startsWith("image/");
+  const isExcel = ["xlsx", "xlsm", "xls"].includes(ext);
 
   useEffect(() => {
     if (!open) {
@@ -85,6 +88,8 @@ export function PreviewArquivoDialog({
         return null;
       });
       setPageNumber(1);
+      setSheets(null);
+      setActiveSheet(0);
       setError(null);
       return;
     }
@@ -99,6 +104,8 @@ export function PreviewArquivoDialog({
         return null;
       });
       setPageNumber(1);
+      setSheets(null);
+      setActiveSheet(0);
       try {
         const { data, error: e } = await supabase.storage
           .from(bucket)
@@ -112,6 +119,25 @@ export function PreviewArquivoDialog({
         if (isPdf) {
           const buffer = await blob.arrayBuffer();
           loadedPdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+        } else if (isExcel) {
+          const buffer = await blob.arrayBuffer();
+          const wb = new ExcelJS.Workbook();
+          await wb.xlsx.load(buffer);
+          const parsed: SheetData[] = [];
+          wb.eachSheet((ws) => {
+            const rows: string[][] = [];
+            const maxCol = ws.actualColumnCount || ws.columnCount || 0;
+            ws.eachRow({ includeEmpty: false }, (row) => {
+              const r: string[] = [];
+              for (let c = 1; c <= maxCol; c++) {
+                r.push(cellToString(row.getCell(c).value));
+              }
+              rows.push(r);
+              if (rows.length >= 500) return;
+            });
+            parsed.push({ name: ws.name, rows });
+          });
+          if (!cancelled) setSheets(parsed);
         }
         if (!cancelled) {
           setUrl(createdBlobUrl);
