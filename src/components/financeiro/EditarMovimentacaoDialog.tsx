@@ -46,6 +46,7 @@ import {
   extrairMetadadosNfse,
   montarNomeArquivoNfse,
   gerarNomeUnico,
+  deveRenomearPdf,
 } from "@/lib/nfse-rename";
 import {
   AlertDialog,
