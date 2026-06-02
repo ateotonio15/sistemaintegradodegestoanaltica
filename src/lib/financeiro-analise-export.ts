@@ -26,6 +26,7 @@ export interface ConferenciaServico {
   valor: number | null;
   status: string;
   unidade?: "BRL" | "%";
+  observacao?: string;
 }
 
 export interface AnaliseCompletaExport {

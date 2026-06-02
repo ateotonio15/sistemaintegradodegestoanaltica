@@ -136,12 +136,31 @@ export function AnaliseCompletaDialog({
     const cmps = comparacoes ?? [];
     const primeiroCmp: any = cmps[0];
 
-    const nfNumero = primeiroCmp?.nfNumero ?? null;
-    const tomador = primeiroCmp?.tomadorNome ?? null;
+    let nfNumero: string | null = primeiroCmp?.nfNumero ?? null;
+    let tomador: string | null = primeiroCmp?.tomadorNome ?? null;
     const cnpjTomador = primeiroCmp?.tomadorCnpj ?? empresaCnpj ?? null;
-    const arquivoPdf = primeiroCmp?.arquivoPdf ?? null;
+    const arquivoPdf: string | null = primeiroCmp?.arquivoPdf ?? null;
     const valorLiquido = primeiroCmp?.valorLiquido ?? null;
     const tributos = primeiroCmp?.tributos ?? null;
+
+    // Fallback usando o nome do arquivo (mesma lógica da auto-nomeação):
+    // "NF ALFATEC 7121.pdf" → nº 7121, tomador "ALFATEC".
+    if ((!nfNumero || !tomador) && arquivoPdf) {
+      const base = arquivoPdf.replace(/\.pdf$/i, "").trim();
+      if (!nfNumero) {
+        const nums = base.match(/\d{3,8}/g);
+        if (nums && nums.length > 0) nfNumero = nums[nums.length - 1];
+      }
+      if (!tomador) {
+        const sem = base
+          .replace(/^\s*(nfs?[-\s]?e?|nf|nota\s*fiscal)\b[\s\-_]*/i, "")
+          .replace(/\d{3,8}.*$/, "")
+          .replace(/[_\-]+/g, " ")
+          .replace(/\s{2,}/g, " ")
+          .trim();
+        if (sem) tomador = sem.toUpperCase();
+      }
+    }
 
     // Soma por categoria — agrega todos os pagadores/blocos
     let totalEnfExcel = 0,
@@ -266,7 +285,20 @@ export function AnaliseCompletaDialog({
 
     // Etapa 3 — Conferência do Valor do Serviço (apenas valores BRUTOS)
     // Regra: Total Excel = Total histórico NFS-e = Valor do Serviço da NFS-e
-    const valorServicoNf = tributos?.valorServico ?? null;
+    let valorServicoNf: number | null = tributos?.valorServico ?? null;
+    let valorServicoOrigem: string | null = valorServicoNf != null ? "extraído do PDF" : null;
+
+    // Fallback: se Excel == Histórico da NFS-e, usar esse valor como Valor do Serviço.
+    if (
+      valorServicoNf == null &&
+      totalExcelGeral > 0 &&
+      totalPdfGeral > 0 &&
+      Math.abs(totalExcelGeral - totalPdfGeral) < 0.01
+    ) {
+      valorServicoNf = totalExcelGeral;
+      valorServicoOrigem = "calculado por conferência Excel x Histórico";
+    }
+
     const servico: ConferenciaServico[] = [
       {
         origem: "Total do Excel",
@@ -282,6 +314,10 @@ export function AnaliseCompletaDialog({
         origem: "Valor do Serviço da NFS-e",
         valor: valorServicoNf,
         status: valorServicoNf != null ? "OK" : arquivoPdf ? "Atenção" : "Pendente",
+        observacao:
+          valorServicoOrigem && valorServicoOrigem !== "extraído do PDF"
+            ? valorServicoOrigem
+            : undefined,
       },
     ];
 
@@ -303,35 +339,70 @@ export function AnaliseCompletaDialog({
     const tribLinhas: ConferenciaServico[] = [];
     const divergTrib: string[] = [];
     if (tributos) {
-      const valorServ = tributos.valorServico;
       const retencao = tributos.retencaoIssqn;
       const issqnDev = tributos.issqn;
-      const issqnRet = tributos.issqnRetido;
       const baseCalc = tributos.baseCalculo;
-      const totalDed = tributos.totalDeducoes;
       const aliq = tributos.aliquotaIssqn;
       const aprox = (a: number, b: number, tol = 0.05) => Math.abs(a - b) <= tol;
 
-      // ISSQN devido
+      // ---- Valor do Serviço (compartilha fallback da Etapa 3) ----
+      const valorServ = valorServicoNf;
+      const obsServ =
+        valorServicoOrigem && valorServicoOrigem !== "extraído do PDF"
+          ? "Usado por conferência Excel x Histórico"
+          : undefined;
+
+      // ---- Total Deduções/Reduções (com fallback) ----
+      let totalDed: number | null = tributos.totalDeducoes;
+      let obsDed: string | undefined;
+      if (totalDed == null && valorServ != null && baseCalc != null) {
+        totalDed = Number((valorServ - baseCalc).toFixed(2));
+        obsDed = "Calculado por Valor do Serviço − BC ISSQN";
+      }
+
+      // ---- ISSQN Retido (com fallback em cadeia) ----
+      let issqnRet: number | null = tributos.issqnRetido;
+      let obsRet: string | undefined;
+      if (retencao === "retido" && issqnRet == null) {
+        if (valorServ != null && valorLiquido != null) {
+          const calc = Number((valorServ - valorLiquido).toFixed(2));
+          if (calc > 0.01) {
+            issqnRet = calc;
+            obsRet = "Calculado por Valor do Serviço − Valor Líquido";
+          }
+        }
+        if (
+          issqnRet == null &&
+          issqnDev != null &&
+          valorServ != null &&
+          valorLiquido != null &&
+          aprox(valorServ - issqnDev, valorLiquido, 0.1)
+        ) {
+          issqnRet = issqnDev;
+          obsRet = "Inferido a partir do ISSQN Apurado";
+        }
+      }
+
+      // ---- Validações ----
+      // ISSQN devido vs BC × Alíquota (default 2%)
       let stIssqnDev: Status = issqnDev != null ? "OK" : "Pendente";
       if (issqnDev != null && baseCalc != null) {
-        // ISSQN Apurado = BC ISSQN x 2%
-        const esperado = Number((baseCalc * 0.02).toFixed(2));
+        const aliqPct = (aliq ?? 2) / 100;
+        const esperado = Number((baseCalc * aliqPct).toFixed(2));
         if (!aprox(esperado, issqnDev, 0.1)) {
           stIssqnDev = "Atenção";
           divergTrib.push(
-            `ISSQN devido esperado ${formatBRL(esperado)} (BC ISSQN × 2%) × encontrado ${formatBRL(issqnDev)}.`,
+            `ISSQN devido esperado ${formatBRL(esperado)} (BC × ${(aliqPct * 100).toFixed(2)}%) × encontrado ${formatBRL(issqnDev)}.`,
           );
         }
       }
 
-      // ISSQN Retido — depende do tipo de retenção
+      // ISSQN Retido
       let stIssqnRet: Status;
       let retLabelValor: number | null = issqnRet;
       if (retencao === "retido") {
         if (issqnRet == null) {
-          stIssqnRet = "Divergente";
-          divergTrib.push("ISSQN consta como 'Retido pelo Tomador', mas o valor retido não foi localizado.");
+          stIssqnRet = "Pendente";
         } else if (issqnDev != null && !aprox(issqnRet, issqnDev, 0.05)) {
           stIssqnRet = "Divergente";
           divergTrib.push(
@@ -347,7 +418,7 @@ export function AnaliseCompletaDialog({
         stIssqnRet = issqnRet != null ? "OK" : "Pendente";
       }
 
-      // Valor líquido — depende da retenção
+      // Valor líquido
       let stLiq: Status = valorLiquido != null ? "OK" : "Pendente";
       if (valorLiquido != null && valorServ != null) {
         if (retencao === "retido" && issqnRet != null) {
@@ -368,7 +439,7 @@ export function AnaliseCompletaDialog({
         }
       }
 
-      // Base de cálculo (fallback de validação contra Deduções)
+      // Base de cálculo vs (Serviço − Deduções)
       let stBase: Status = baseCalc != null ? "OK" : "Pendente";
       if (baseCalc != null && valorServ != null && totalDed != null) {
         const esperado = Number((valorServ - totalDed).toFixed(2));
@@ -380,34 +451,49 @@ export function AnaliseCompletaDialog({
         }
       }
 
+      // Total Deduções vs Serviço × 80% (apenas informativo)
+      let stDed: Status = totalDed != null ? "OK" : "Pendente";
+      if (totalDed != null && valorServ != null) {
+        const esp80 = Number((valorServ * 0.8).toFixed(2));
+        if (!aprox(totalDed, esp80, Math.max(1, valorServ * 0.005))) {
+          // tolerância 0.5% do valor do serviço — atenção, não divergência
+          stDed = stDed === "OK" ? "Atenção" : stDed;
+        }
+      }
+
       const push = (
         origem: string,
         valor: number | null,
         status: Status,
         unidade: "BRL" | "%" = "BRL",
-      ) => tribLinhas.push({ origem, valor, status, unidade });
+        observacao?: string,
+      ) => tribLinhas.push({ origem, valor, status, unidade, observacao });
 
-      push("Retenção do ISSQN", null,
-        retencao === "retido" ? "OK" : retencao === "nao_retido" ? "OK" : "Pendente");
-      // Substitui valor por rótulo textual via observação? Usamos linha extra simples:
-      tribLinhas[tribLinhas.length - 1] = {
-        ...tribLinhas[tribLinhas.length - 1],
-        // mostramos o texto no campo "origem" como sufixo
-        origem: `Retenção do ISSQN — ${
-          retencao === "retido" ? "Retido pelo Tomador" : retencao === "nao_retido" ? "Não Retido" : "não identificada"
+      push(
+        `Retenção do ISSQN — ${
+          retencao === "retido"
+            ? "Retido pelo Tomador"
+            : retencao === "nao_retido"
+              ? "Não Retido"
+              : "não identificada"
         }`,
-      };
-      push("Valor do Serviço", valorServ, valorServ != null ? "OK" : "Pendente");
-      push("Total Deduções/Reduções", totalDed, totalDed != null ? "OK" : "Pendente");
+        null,
+        retencao ? "OK" : "Pendente",
+      );
+      push("Valor do Serviço", valorServ, valorServ != null ? "OK" : "Pendente", "BRL", obsServ);
+      push("Total Deduções/Reduções", totalDed, stDed, "BRL", obsDed);
       push("Base de cálculo (BC ISSQN)", baseCalc, stBase);
       push("Alíquota ISSQN", aliq, aliq != null ? "OK" : "Pendente", "%");
       push("ISSQN devido (Apurado)", issqnDev, stIssqnDev);
-      push("ISSQN retido", retLabelValor, stIssqnRet);
+      push("ISSQN retido", retLabelValor, stIssqnRet, "BRL", obsRet);
       push("Valor líquido", valorLiquido, stLiq);
       push("IBS", tributos.ibs, tributos.ibs != null ? "OK" : "Pendente");
       push("CBS", tributos.cbs, tributos.cbs != null ? "OK" : "Pendente");
-      push("Outras retenções federais", tributos.outrasRetencoes,
-        tributos.outrasRetencoes != null ? "OK" : "Pendente");
+      push(
+        "Outras retenções federais",
+        tributos.outrasRetencoes,
+        tributos.outrasRetencoes != null ? "OK" : "Pendente",
+      );
     }
     let tribStatus: Status = "Não analisado";
     if (!arquivoPdf) tribStatus = "Pendente";
@@ -415,6 +501,7 @@ export function AnaliseCompletaDialog({
     else if (tribLinhas.some((l) => l.status === "Atenção" || l.status === "Pendente")) tribStatus = "Atenção";
     else if (tribLinhas.length > 0) tribStatus = "OK";
     else tribStatus = "Pendente";
+
 
     // Etapa 5 — Resultado
     const okCount = [docStatus, cmpStatus, servStatus, tribStatus].filter((s) => s === "OK").length;
@@ -767,9 +854,16 @@ function EtapaServico({ linhas }: { linhas: ConferenciaServico[] }) {
                   : formatBRL(l.valor);
             return (
               <tr key={i} className="border-t border-border">
-                <td className="px-3 py-2 font-medium">{l.origem}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatado}</td>
-                <td className="px-3 py-2 text-center">
+                <td className="px-3 py-2 font-medium align-top">
+                  <div>{l.origem}</div>
+                  {l.observacao && (
+                    <div className="text-[11px] font-normal text-muted-foreground mt-0.5 italic">
+                      {l.observacao}
+                    </div>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums align-top">{formatado}</td>
+                <td className="px-3 py-2 text-center align-top">
                   <StatusBadge status={l.status as Status} />
                 </td>
               </tr>
