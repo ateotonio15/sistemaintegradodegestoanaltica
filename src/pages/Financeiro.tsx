@@ -495,6 +495,7 @@ export default function Financeiro() {
       if (filtroPeriodo && r.periodo !== filtroPeriodo) return false;
       if (filtroStatus.length > 0 && !filtroStatus.includes(r.status)) return false;
       if (filtroTipo.length > 0 && !filtroTipo.includes(r.tipo_cobranca || "")) return false;
+      if (movIdsMatchAnexoFilters && !movIdsMatchAnexoFilters.has(r.id)) return false;
       if (somenteOverdue && (r.dentro_prazo || r.data_envio_nota)) return false;
       return true;
     });
