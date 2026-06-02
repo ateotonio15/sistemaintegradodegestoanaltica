@@ -361,6 +361,8 @@ export function AnaliseCompletaDialog({
       valorLiquido,
       categorias,
       servico,
+      tribLinhas,
+      tribStatus,
       docStatus,
       cmpStatus,
       servStatus,
