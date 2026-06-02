@@ -156,6 +156,7 @@ export async function analisarPdfFinanceiro(
       enfermaria: { ...empty },
       apartamento: { ...empty },
       inclusoes: { total: 0 },
+      exclusoes: { total: null },
       valorLiquido: null,
       nfNumero: null,
       tomadorCnpj: null,
