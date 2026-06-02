@@ -46,6 +46,7 @@ import {
   extrairMetadadosNfse,
   montarNomeArquivoNfse,
   gerarNomeUnico,
+  deveRenomearPdf,
 } from "@/lib/nfse-rename";
 import {
   AlertDialog,
@@ -419,7 +420,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           let bufferCache: ArrayBuffer | null = null;
 
           // Auto-renomeio do PDF (NFS-e) → "NF <TOMADOR> <NUMERO>.pdf"
-          if (isPdf) {
+          // Só renomeia quando o nome original é uma chave numérica/UUID.
+          // Se o usuário já enviou no padrão correto, preserva.
+          if (isPdf && deveRenomearPdf(file.name)) {
             try {
               bufferCache = await file.arrayBuffer();
               const meta = await extrairMetadadosNfse(bufferCache.slice(0));
