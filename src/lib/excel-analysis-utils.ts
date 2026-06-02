@@ -455,6 +455,8 @@ export interface ComparacaoResultado {
   enfermaria: ComparacaoCategoria | null;
   apartamento: ComparacaoCategoria | null;
   inclusoes: { total: CampoValidacao } | null;
+  /** Exclusões — comparação Excel × histórico da NFS-e (valor negativo). */
+  exclusoes: { total: CampoValidacao } | null;
   divergencias: string[];
   avisosPdf: string[];
   /** CNPJ (14 dígitos) do bloco analisado, quando disponível. */
