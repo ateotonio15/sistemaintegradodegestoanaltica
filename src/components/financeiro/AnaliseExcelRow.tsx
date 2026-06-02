@@ -90,7 +90,10 @@ function ValorComCheck({
   );
 }
 
-export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico }: Props) {
+export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, contexto }: Props) {
+  const { toast } = useToast();
+  const [analiseCompletaOpen, setAnaliseCompletaOpen] = useState(false);
+
   const temResultados =
     !!resultados &&
     resultados.length > 0 &&
@@ -104,12 +107,45 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
         (r.inclusoes.total ?? 0) > 0 ||
         (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)),
     );
+
+  const handleAnaliseCompleta = () => {
+    if (!contexto?.nomeExcel) {
+      toast({
+        title: "Excel não anexado",
+        description: "Não é possível realizar a análise completa. Anexe o Excel do faturamento.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!contexto.temPdf) {
+      toast({
+        title: "PDF da NFS-e não anexado",
+        description: "Não é possível realizar a análise completa. Anexe o PDF da NFS-e.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setAnaliseCompletaOpen(true);
+  };
+
   return (
     <TableRow className="bg-muted/30 border-l-2 border-l-primary hover:bg-muted/30">
       <TableCell colSpan={colSpan} className="p-0">
         <div className="px-6 py-4 relative">
-          {!isLoading && (onReanalisar || (onGerarHistorico && temResultados)) && (
+          {!isLoading && (onReanalisar || (onGerarHistorico && temResultados) || contexto) && (
             <div className="absolute top-3 right-4 flex gap-2">
+              {contexto && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleAnaliseCompleta}
+                  className="h-7 gap-1.5 text-xs"
+                  title="Abrir análise completa em tela cheia"
+                >
+                  <Maximize2 className="h-3 w-3" />
+                  Análise Completa
+                </Button>
+              )}
               {onGerarHistorico && temResultados && (
                 <Button
                   variant="outline"
