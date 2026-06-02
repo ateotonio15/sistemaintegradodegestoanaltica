@@ -1,7 +1,1 @@
 project_id = "gdojlriuewowyomypwzl"
-
-[functions.create-user]
-verify_jwt = false
-
-[functions.extrair-anexo1]
-verify_jwt = true
