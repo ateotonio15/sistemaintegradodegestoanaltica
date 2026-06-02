@@ -339,6 +339,27 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       toast.success("Movimentação atualizada");
       // Se contrato tem múltiplos pagadores, pergunta se replica
       if (built && temIrmaos && movimentacao) {
+        // Atalho: usuário marcou "aplicar a todos" — replica direto sem perguntar
+        if (aplicarEnvioATodos) {
+          try {
+            const r = await replicarFinanceiroParaPagadores({
+              empresaIdOrigem: movimentacao.empresa_id,
+              codigoContrato: pagadores[0]?.codigo_contrato,
+              mesReferencia: movimentacao.mes_referencia,
+              periodo: movimentacao.periodo,
+              payload: built.payload,
+            });
+            toast.success(
+              `Replicado para pagadores: ${r.atualizados} atualizado(s), ${r.criados} criado(s)`,
+            );
+            queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+          } catch (e: any) {
+            toast.error("Erro ao replicar: " + e.message);
+          } finally {
+            onOpenChange(false);
+          }
+          return;
+        }
         setReplicaConfirm({
           title: "Aplicar a todos os pagadores?",
           description: `O contrato tem ${pagadores.length} pagadores: ${pagadores.map((p) => p.nome).join(", ")}. Deseja aplicar esta alteração para todos os pagadores do contrato?`,
