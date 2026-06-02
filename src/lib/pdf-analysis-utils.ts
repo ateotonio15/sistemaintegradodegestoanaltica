@@ -86,17 +86,39 @@ export function extrairTomador(textoOriginal: string): {
   const mCnpj = trecho.match(reCnpj);
   const cnpj = mCnpj ? soDigitosCnpj(mCnpj[1]) : null;
 
-  // Nome / Nome Empresarial — o valor pode vir na mesma linha ou logo abaixo
+  // Nome / Nome Empresarial — o valor pode vir na MESMA linha ou na linha
+  // imediatamente abaixo. O PDF.js costuma agrupar todos os rótulos da seção
+  // (Nome, Endereço, CNPJ...) em uma linha e os respectivos valores na linha
+  // seguinte. Por isso tentamos primeiro o "valor na próxima linha".
   let nome: string | null = null;
-  const reNome = /nome\s*\/?\s*nome\s*empresarial\s*[:\-]?\s*([^\n\r]+)/i;
-  const mNome = trecho.match(reNome);
-  if (mNome) {
-    nome = mNome[1]
+  const limparNome = (raw: string) =>
+    raw
       .replace(/\s{2,}/g, " ")
-      .replace(/\s*(e-?mail|endere[çc]o|munic[ií]pio|cep|telefone|inscri[çc][aã]o).*$/i, "")
+      .replace(/\s*(e-?mail|endere[çc]o|munic[ií]pio|cep|telefone|cnpj|inscri[çc][aã]o|raz[aã]o|fantasia).*$/i, "")
       .trim();
+
+  const reLabel = /nome\s*\/?\s*nome\s*empresarial\s*[:\-]?\s*(.*)$/im;
+  const mLabel = trecho.match(reLabel);
+  if (mLabel) {
+    const restoMesmaLinha = limparNome(mLabel[1] || "");
+    if (restoMesmaLinha && restoMesmaLinha.length > 2) {
+      nome = restoMesmaLinha;
+    } else {
+      // Pega a próxima linha não-vazia após o rótulo
+      const idxLabel = (mLabel.index ?? 0) + mLabel[0].length;
+      const apos = trecho.slice(idxLabel).split(/\n/);
+      for (const ln of apos) {
+        const v = limparNome(ln);
+        if (v && v.length > 2 && !/^nome\b/i.test(v)) {
+          nome = v;
+          break;
+        }
+      }
+    }
+    if (nome) nome = nome.toUpperCase();
     if (!nome) nome = null;
   }
+
 
   return { cnpj, nome };
 }
