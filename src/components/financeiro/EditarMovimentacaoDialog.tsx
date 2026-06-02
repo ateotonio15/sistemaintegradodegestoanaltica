@@ -333,7 +333,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
 
       return built;
     },
-    onSuccess: (built) => {
+    onSuccess: async (built) => {
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dia-emissao-financeiro"] });
       toast.success("Movimentação atualizada");
