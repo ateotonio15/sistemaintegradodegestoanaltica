@@ -417,6 +417,23 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
           )}
         </div>
       </TableCell>
+      {contexto && (
+        <AnaliseCompletaDialog
+          open={analiseCompletaOpen}
+          onOpenChange={setAnaliseCompletaOpen}
+          empresaNome={contexto.empresaNome}
+          empresaCnpj={contexto.empresaCnpj}
+          competencia={contexto.competencia}
+          periodo={contexto.periodo}
+          isLoading={isLoading}
+          resultados={resultados}
+          comparacoes={comparacoes ?? null}
+          nomeExcel={contexto.nomeExcel}
+          onReanalisar={onReanalisar}
+          onGerarHistorico={onGerarHistorico}
+          usuarioNome={contexto.usuarioNome ?? null}
+        />
+      )}
     </TableRow>
   );
 }
