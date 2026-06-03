@@ -393,8 +393,13 @@ export async function analisarExcelFinanceiroPorPagador(
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
       incQtd += 1;
       if (valorValido) incTotal += valor;
+      if (isRetroativa(String(tipoCell))) {
+        retroQtd += 1;
+        if (valorValido) retroTotal += valor;
+      }
       continue;
     }
+
 
     if (idxPlano < 0) continue;
 
