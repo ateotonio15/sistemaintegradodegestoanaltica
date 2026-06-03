@@ -599,9 +599,12 @@ export function ReajusteCobrancaRetroativa() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-4 w-4 text-primary" />
-              Nova Cobrança Retroativa
+              {editCobId ? "Editar Cobrança Retroativa" : "Nova Cobrança Retroativa"}
             </DialogTitle>
-            <DialogDescription>O PDF será automaticamente anexado ao processo financeiro.</DialogDescription>
+            <DialogDescription>
+              {editCobId ? "Anexar um novo PDF é opcional. Se enviado, substitui o anterior." : "O PDF será automaticamente anexado ao processo financeiro."}
+            </DialogDescription>
+
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
