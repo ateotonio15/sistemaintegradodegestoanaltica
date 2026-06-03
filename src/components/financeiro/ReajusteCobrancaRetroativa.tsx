@@ -709,6 +709,8 @@ function ListaContratos({
   renderRight,
   canManage,
   onDelete,
+  onView,
+  loadingPreviewId,
 }: {
   loading: boolean;
   items: any[];
@@ -718,6 +720,8 @@ function ListaContratos({
   renderRight: (item: any) => React.ReactNode;
   canManage: boolean;
   onDelete: (id: string) => void;
+  onView: (movimentacaoId: string | null) => void;
+  loadingPreviewId: string | null;
 }) {
   if (loading) {
     return <div className="py-6 text-center text-sm text-muted-foreground">Carregando...</div>;
@@ -729,6 +733,7 @@ function ListaContratos({
     <div className="max-h-[260px] overflow-y-auto space-y-2 pr-1">
       {items.map((it) => {
         const emp = empresasMap[it.empresa_id];
+        const isLoading = loadingPreviewId === it.financeiro_movimentacao_id;
         return (
           <div
             key={it.id}
@@ -744,6 +749,20 @@ function ListaContratos({
               </p>
             </div>
             {renderRight(it)}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 shrink-0"
+              onClick={() => onView(it.financeiro_movimentacao_id)}
+              disabled={isLoading || !it.financeiro_movimentacao_id}
+              title="Visualizar PDF"
+            >
+              {isLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Eye className="h-3.5 w-3.5 text-primary" />
+              )}
+            </Button>
             {canManage && (
               <Button
                 size="icon"
