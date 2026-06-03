@@ -1,1 +1,4 @@
 project_id = "gdojlriuewowyomypwzl"
+
+[functions.vidas-operadora-proxy]
+verify_jwt = false
