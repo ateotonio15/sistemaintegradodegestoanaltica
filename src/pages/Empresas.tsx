@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import { ValoresFaixaEtariaDialog } from "@/components/empresas/ValoresFaixaEtariaDialog";
 import { ImportarValoresIniciaisDialog } from "@/components/empresas/ImportarValoresIniciaisDialog";
+import { RecalcularVidasDialog } from "@/components/empresas/RecalcularVidasDialog";
 import ExcelJS from "exceljs";
 import { parseAnexo1 } from "@/lib/anexo1-parser";
 import { Loader2, FileUp } from "lucide-react";
