@@ -117,6 +117,7 @@ const AppRoutes = () => (
 
       <Route element={<RoleGate allow={["admin", "diretora", "comum", "administradoras", "vendas"]} />}>
         <Route path="/gestao-vidas" element={<GestaoVidas />} />
+        <Route path="/vidas-operadora" element={<VidasOperadora />} />
       </Route>
 
       <Route element={<RoleGate deny={["financeiro"]} />}>
