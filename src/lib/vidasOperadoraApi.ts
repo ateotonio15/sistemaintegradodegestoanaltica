@@ -1,5 +1,7 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export const VIDAS_OPERADORA_URL =
-  "https://api-iasam.samel.com.br/vidas-operadora/agrupado";
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vidas-operadora-proxy`;
 
 export interface PorEmpresa { NM_ESTIPULANTE: string; QT_VIDAS: number; }
 export interface PorFaixaEtaria { FAIXA_ETARIA: string; QT_VIDAS: number; }
@@ -16,11 +18,13 @@ export interface VidasOperadoraResponse {
 }
 
 export async function fetchVidasOperadoraAgrupado(): Promise<VidasOperadoraResponse["data"]> {
-  const res = await fetch(VIDAS_OPERADORA_URL, { method: "GET" });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  const json = (await res.json()) as VidasOperadoraResponse;
-  if (!json?.status || !json?.data) throw new Error(json?.message || "Resposta inválida");
-  return json.data;
+  const { data, error } = await supabase.functions.invoke<VidasOperadoraResponse>(
+    "vidas-operadora-proxy",
+    { method: "GET" },
+  );
+  if (error) throw new Error(error.message);
+  if (!data?.status || !data?.data) throw new Error(data?.message || "Resposta inválida");
+  return data.data;
 }
 
 /** Normaliza nome (maiúsculas, sem acento, sem pontuação, espaços únicos). */
