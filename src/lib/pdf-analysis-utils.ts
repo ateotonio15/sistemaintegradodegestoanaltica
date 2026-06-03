@@ -292,9 +292,27 @@ export async function analisarPdfFinanceiro(
     }
   }
 
+  // "Cobrança Retroativa: 388,52" — algumas NFS-e listam separadamente do
+  // valor de "Inclusão". O Excel soma as duas em "Inclusões", então fazemos
+  // o mesmo aqui para evitar divergências falsas.
+  const reRetro = new RegExp(
+    `cobran[çc]a\\s+retroativa\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
+    "i",
+  );
+  const mRetro = t.match(reRetro);
+  if (mRetro) {
+    const v = parseValor(mRetro[1]);
+    if (!isNaN(v) && v > 0) {
+      inclusoesTotal += v;
+      inclusoesEncontradas = true;
+    }
+  }
+
   if (!enfermaria) avisos.push("Categoria 'Enfermaria' não encontrada no PDF.");
   if (!apartamento) avisos.push("Categoria 'Apartamento' não encontrada no PDF.");
   if (!inclusoesEncontradas) avisos.push("Categoria 'Inclusões' não encontrada no PDF.");
+
+
 
   // Exclusões — aceita "(1.935,63)", "-1.935,63" ou "1.935,63" precedido de "exclusão"
   // Captura o valor + opcional "()" indicando negativo.
@@ -583,6 +601,18 @@ export async function analisarPdfFinanceiroSimplificado(
     const v = parseValor(mInc[2]);
     if (!isNaN(v)) incTotal = v;
   }
+
+  // Soma "Cobrança Retroativa" às inclusões (Excel agrega as duas).
+  const reRetroS = new RegExp(
+    `cobran[çc]a\\s+retroativa\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
+    "i",
+  );
+  const mRetroS = t.match(reRetroS);
+  if (mRetroS) {
+    const v = parseValor(mRetroS[1]);
+    if (!isNaN(v) && v > 0) incTotal += v;
+  }
+
 
   // Exclusões: "exclusoes: (6.976,73)" → negativo
   let excQtd: number | null = null;
