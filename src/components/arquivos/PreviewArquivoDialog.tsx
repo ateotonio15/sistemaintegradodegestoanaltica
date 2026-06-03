@@ -285,7 +285,10 @@ export function PreviewArquivoDialog({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => setScale((s) => Math.max(0.6, Number((s - 0.2).toFixed(1))))}
+                  onClick={() => {
+                    setManualZoom(true);
+                    setScale((s) => Math.max(0.6, Number((s - 0.2).toFixed(1))));
+                  }}
                   disabled={scale <= 0.6 || renderingPage}
                   title="Diminuir zoom"
                 >
@@ -295,7 +298,10 @@ export function PreviewArquivoDialog({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => setScale((s) => Math.min(2.4, Number((s + 0.2).toFixed(1))))}
+                  onClick={() => {
+                    setManualZoom(true);
+                    setScale((s) => Math.min(2.4, Number((s + 0.2).toFixed(1))));
+                  }}
                   disabled={scale >= 2.4 || renderingPage}
                   title="Aumentar zoom"
                 >
@@ -348,7 +354,7 @@ export function PreviewArquivoDialog({
           {!loading && !error && url && (
             <>
               {isPdf ? (
-                <div className="relative h-full overflow-auto p-4">
+                <div ref={pdfContainerRef} className="relative h-full overflow-auto bg-background p-4">
                   {renderingPage && (
                     <div className="absolute inset-x-0 top-3 z-10 flex justify-center pointer-events-none">
                       <span className="inline-flex items-center rounded-md border bg-background px-3 py-1 text-xs text-muted-foreground shadow-sm">
@@ -357,8 +363,8 @@ export function PreviewArquivoDialog({
                       </span>
                     </div>
                   )}
-                  <div className="flex min-h-full justify-center">
-                    <canvas ref={canvasRef} className="h-fit max-w-none rounded-sm bg-background shadow-sm" />
+                  <div className="flex min-h-full justify-center pb-6">
+                    <canvas ref={canvasRef} className="h-fit max-w-full rounded-sm bg-background shadow-sm" />
                   </div>
                 </div>
               ) : isImage ? (
