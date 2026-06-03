@@ -321,7 +321,8 @@ export function PreviewArquivoDialog({
                       return;
                     }
                     const safeName = nomeArquivo.replace(/[<>&"]/g, "");
-                    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeName}</title><style>html,body,iframe{margin:0;padding:0;height:100%;width:100%;border:0;background:#222;}</style></head><body><iframe src="${url}"></iframe></body></html>`);
+                    const viewerUrl = isPdf ? `${url}#view=FitH&toolbar=1&navpanes=0&scrollbar=1` : url;
+                    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeName}</title><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#f4f4f5;}iframe{display:block;width:100vw;height:100vh;border:0;background:#f4f4f5;}</style></head><body><iframe src="${viewerUrl}" title="${safeName}"></iframe></body></html>`);
                     win.document.close();
                   } catch (err: any) {
                     toast.error("Erro ao abrir: " + (err?.message ?? "desconhecido"));
