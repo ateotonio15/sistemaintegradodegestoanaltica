@@ -222,18 +222,37 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                   });
                 }
                 if (r.inclusoes.quantidade > 0 || r.inclusoes.total > 0) {
+                  // Subtrai retroativas (que aparecem em linha própria) para
+                  // não duplicar os valores no Total Geral.
+                  const retroQtd = r.retroativas?.quantidade ?? 0;
+                  const retroTot = r.retroativas?.total ?? 0;
+                  const incQtd = r.inclusoes.quantidade - retroQtd;
+                  const incTot = r.inclusoes.total - retroTot;
+                  if (incQtd > 0 || Math.abs(incTot) > 0.001) {
+                    linhas.push({
+                      label: "Inclusões",
+                      beneficiarios: incQtd,
+                      mensalidade: null,
+                      total: incTot,
+                      // Validação cruzada com PDF usa o total agregado (inclusoes),
+                      // então só exibimos o check quando não há retroativas separadas.
+                      validacao:
+                        retroQtd === 0 && retroTot === 0 && cmp?.inclusoes
+                          ? {
+                              beneficiarios: null,
+                              mensalidade: null,
+                              total: cmp.inclusoes.total,
+                            }
+                          : null,
+                    });
+                  }
+                }
+                if (r.retroativas && (r.retroativas.quantidade > 0 || r.retroativas.total !== 0)) {
                   linhas.push({
-                    label: "Inclusões",
-                    beneficiarios: r.inclusoes.quantidade,
+                    label: "Cobrança Retroativa",
+                    beneficiarios: r.retroativas.quantidade,
                     mensalidade: null,
-                    total: r.inclusoes.total,
-                    validacao: cmp?.inclusoes
-                      ? {
-                          beneficiarios: null,
-                          mensalidade: null,
-                          total: cmp.inclusoes.total,
-                        }
-                      : null,
+                    total: r.retroativas.total,
                   });
                 }
                 if (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)) {
@@ -245,6 +264,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     destaqueNegativo: true,
                   });
                 }
+
 
                 const totalGeral = linhas.reduce((s, l) => s + l.total, 0);
 
