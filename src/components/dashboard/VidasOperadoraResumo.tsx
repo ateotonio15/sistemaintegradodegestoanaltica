@@ -20,14 +20,28 @@ export function VidasOperadoraResumo() {
       porClass
         .filter((c) => pred((c.DS_CLASSIFICACAO ?? "").toUpperCase()))
         .reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0);
+
+    const isPlural = (nm: string) => nm.includes("PLURAL");
+    const isPME = (nm: string) => /\bPME\b/.test(nm);
+    const empresasPlural = porEmpresa.filter((e) => isPlural((e.NM_ESTIPULANTE ?? "").toUpperCase()));
+    const empresasPME = porEmpresa.filter((e) => {
+      const nm = (e.NM_ESTIPULANTE ?? "").toUpperCase();
+      return isPME(nm) && !isPlural(nm);
+    });
+    const empresasEmpresarial = porEmpresa.filter((e) => {
+      const nm = (e.NM_ESTIPULANTE ?? "").toUpperCase();
+      return !isPlural(nm) && !isPME(nm);
+    });
+
     return {
       total: porClass.reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0),
       empresas: porEmpresa.length,
       empresarial: sumBy((ds) => ds.includes("EMPRESARIAL") && !ds.includes("PME")),
       pme: sumBy((ds) => ds.includes("PME") && !ds.includes("PLURAL")),
-      plural: porEmpresa
-        .filter((e) => (e.NM_ESTIPULANTE ?? "").toUpperCase().includes("PLURAL"))
-        .reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0),
+      plural: empresasPlural.reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0),
+      qtdEmpresarial: empresasEmpresarial.length,
+      qtdPME: empresasPME.length,
+      qtdPlural: empresasPlural.length,
     };
   }, [data]);
 
@@ -65,9 +79,9 @@ export function VidasOperadoraResumo() {
             <Row icon={<Users className="h-4 w-4 text-primary" />} label="Total de vidas" value={fmt(totals.total)} highlight />
             <Row icon={<Building2 className="h-4 w-4 text-muted-foreground" />} label="Empresas" value={fmt(totals.empresas)} />
             <div className="h-px bg-border my-2" />
-            <Row icon={<Building className="h-4 w-4 text-info" />} label="Empresarial" value={fmt(totals.empresarial)} />
-            <Row icon={<Briefcase className="h-4 w-4 text-warning" />} label="PME" value={fmt(totals.pme)} />
-            <Row icon={<Layers className="h-4 w-4 text-success" />} label="Plural" value={fmt(totals.plural)} />
+            <Row icon={<Building className="h-4 w-4 text-info" />} label={`Empresarial (${fmt(totals.qtdEmpresarial)} emp.)`} value={fmt(totals.empresarial)} />
+            <Row icon={<Briefcase className="h-4 w-4 text-warning" />} label={`PME (${fmt(totals.qtdPME)} emp.)`} value={fmt(totals.pme)} />
+            <Row icon={<Layers className="h-4 w-4 text-success" />} label={`Plural (${fmt(totals.qtdPlural)} emp.)`} value={fmt(totals.plural)} />
           </div>
         )}
       </PopoverContent>
