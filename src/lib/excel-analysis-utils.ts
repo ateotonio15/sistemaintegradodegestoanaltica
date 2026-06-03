@@ -19,7 +19,10 @@ export interface AnaliseResultado {
   nomeExibicao?: string;
   enfermaria: CategoriaResultado;
   apartamento: CategoriaResultado;
+  /** Inclusões — total agregado (inclui retroativas, p/ comparação com PDF). */
   inclusoes: InclusaoResultado;
+  /** Cobrança Retroativa — subset de inclusoes, exibido como linha própria. */
+  retroativas?: InclusaoResultado;
   /** Apenas Análise Moto Honda — total geralmente negativo. */
   exclusoes?: InclusaoResultado;
   avisos: string[];
@@ -33,9 +36,11 @@ export interface AnalisePorCnpj {
   enfermaria: CategoriaResultado;
   apartamento: CategoriaResultado;
   inclusoes: InclusaoResultado;
+  retroativas?: InclusaoResultado;
   exclusoes?: InclusaoResultado;
   avisos: string[];
 }
+
 
 
 /** Validação simplificada (Moto Honda PDF sem detalhamento por categoria). */
@@ -242,10 +247,15 @@ function isInclusao(tipo: string): boolean {
   return t.includes("inclusao") || t.includes("inclusão") || t.includes("retroativ");
 }
 
+function isRetroativa(tipo: string): boolean {
+  return norm(tipo).includes("retroativ");
+}
+
 function isExclusao(tipo: string): boolean {
   const t = norm(tipo);
   return t.includes("exclusao") || t.includes("exclusão") || t.includes("excluido");
 }
+
 
 /**
  * Versão com filtro opcional por pagador (CNPJ prioritário, nome como fallback).
@@ -338,8 +348,11 @@ export async function analisarExcelFinanceiroPorPagador(
   const aptValores: number[] = [];
   let incQtd = 0;
   let incTotal = 0;
+  let retroQtd = 0;
+  let retroTotal = 0;
   let excQtd = 0;
   let excTotal = 0;
+
   let linhasCasadas = 0;
 
   for (let i = headerIdx + 1; i < allRows.length; i++) {
@@ -380,8 +393,13 @@ export async function analisarExcelFinanceiroPorPagador(
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
       incQtd += 1;
       if (valorValido) incTotal += valor;
+      if (isRetroativa(String(tipoCell))) {
+        retroQtd += 1;
+        if (valorValido) retroTotal += valor;
+      }
       continue;
     }
+
 
     if (idxPlano < 0) continue;
 
@@ -412,9 +430,13 @@ export async function analisarExcelFinanceiroPorPagador(
     inclusoes: { quantidade: incQtd, total: incTotal },
     avisos,
   };
+  if (retroQtd > 0 || retroTotal !== 0) {
+    result.retroativas = { quantidade: retroQtd, total: retroTotal };
+  }
   if (excQtd > 0 || excTotal !== 0) {
     result.exclusoes = { quantidade: excQtd, total: excTotal };
   }
+
   return result;
 }
 
@@ -725,8 +747,10 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     enfValores: number[]; enfQtd: number; enfMens: number;
     aptValores: number[]; aptQtd: number; aptMens: number;
     incQtd: number; incTotal: number;
+    retroQtd: number; retroTotal: number;
     excQtd: number; excTotal: number;
   };
+
   const blocos: Acc[] = [];
   let cur: Acc | null = null;
 
@@ -760,11 +784,13 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         enfValores: [], enfQtd: 0, enfMens: 0,
         aptValores: [], aptQtd: 0, aptMens: 0,
         incQtd: 0, incTotal: 0,
+        retroQtd: 0, retroTotal: 0,
         excQtd: 0, excTotal: 0,
       };
       blocos.push(cur);
       continue;
     }
+
     if (!cur) continue;
 
     const qtdN = idxQtd >= 0 ? Math.round(toNumber(r[idxQtd])) : NaN;
@@ -779,8 +805,13 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (labelNorm.includes("inclus") || labelNorm.includes("retroativ")) {
       cur.incQtd += qtdNum;
       cur.incTotal += valNum;
+      if (labelNorm.includes("retroativ")) {
+        cur.retroQtd += qtdNum;
+        cur.retroTotal += valNum;
+      }
       continue;
     }
+
     if (labelNorm.includes("exclus")) {
       cur.excQtd += qtdNum;
       cur.excTotal += valNum;
@@ -820,9 +851,13 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       inclusoes: { quantidade: g.incQtd, total: g.incTotal },
       avisos: ["Dados consolidados extraídos da aba RESUMO."],
     };
+    if (g.retroQtd > 0 || g.retroTotal !== 0) {
+      bloco.retroativas = { quantidade: g.retroQtd, total: g.retroTotal };
+    }
     if (g.excQtd > 0 || g.excTotal !== 0) {
       bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
     }
+
     return bloco;
   });
 }
@@ -898,6 +933,8 @@ export async function analisarExcelFinanceiroPorCnpj(
     aptValores: number[];
     incQtd: number;
     incTotal: number;
+    retroQtd: number;
+    retroTotal: number;
     excQtd: number;
     excTotal: number;
   };
@@ -913,6 +950,8 @@ export async function analisarExcelFinanceiroPorCnpj(
         aptValores: [],
         incQtd: 0,
         incTotal: 0,
+        retroQtd: 0,
+        retroTotal: 0,
         excQtd: 0,
         excTotal: 0,
       };
@@ -922,6 +961,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     }
     return g;
   };
+
 
   for (let i = headerIdx + 1; i < allRows.length; i++) {
     const r = allRows[i];
@@ -948,8 +988,13 @@ export async function analisarExcelFinanceiroPorCnpj(
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
       grp.incQtd += 1;
       if (valorValido) grp.incTotal += valor;
+      if (isRetroativa(String(tipoCell))) {
+        grp.retroQtd += 1;
+        if (valorValido) grp.retroTotal += valor;
+      }
       continue;
     }
+
     if (idxPlano < 0) continue;
     const cat = classificarPlano(String(planoCell));
     if (!cat) continue;
@@ -977,9 +1022,13 @@ export async function analisarExcelFinanceiroPorCnpj(
         inclusoes: { quantidade: g.incQtd, total: g.incTotal },
         avisos,
       };
+      if (g.retroQtd > 0 || g.retroTotal !== 0) {
+        bloco.retroativas = { quantidade: g.retroQtd, total: g.retroTotal };
+      }
       if (g.excQtd > 0 || g.excTotal !== 0) {
         bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
       }
+
       return bloco;
     })
     .filter(
@@ -1061,8 +1110,10 @@ export function cruzarExcelComPdfs(
       enfermaria: bloco.enfermaria,
       apartamento: bloco.apartamento,
       inclusoes: bloco.inclusoes,
+      retroativas: bloco.retroativas,
       exclusoes: bloco.exclusoes,
       avisos: bloco.avisos,
+
     };
     const cmp = compararExcelComPdf(excelResult, pdf);
     cmp.cnpj = bloco.cnpj;
