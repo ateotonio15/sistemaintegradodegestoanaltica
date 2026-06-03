@@ -803,6 +803,7 @@ function ListaContratos({
   renderRight,
   canManage,
   onDelete,
+  onEdit,
   onView,
   loadingPreviewId,
 }: {
@@ -814,6 +815,7 @@ function ListaContratos({
   renderRight: (item: any) => React.ReactNode;
   canManage: boolean;
   onDelete: (id: string) => void;
+  onEdit?: (item: any) => void;
   onView: (movimentacaoId: string | null) => void;
   loadingPreviewId: string | null;
 }) {
@@ -857,6 +859,17 @@ function ListaContratos({
                 <Eye className="h-3.5 w-3.5 text-primary" />
               )}
             </Button>
+            {canManage && onEdit && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 shrink-0"
+                onClick={() => onEdit(it)}
+                title="Editar"
+              >
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            )}
             {canManage && (
               <Button
                 size="icon"
@@ -869,6 +882,7 @@ function ListaContratos({
               </Button>
             )}
           </div>
+
         );
       })}
     </div>
