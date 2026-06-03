@@ -672,6 +672,17 @@ export function ReajusteCobrancaRetroativa() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {previewAnexo && (
+        <PreviewArquivoDialog
+          open={!!previewAnexo}
+          onOpenChange={(o) => { if (!o) setPreviewAnexo(null); }}
+          bucket="anexos-financeiro"
+          storagePath={previewAnexo.path}
+          nomeArquivo={previewAnexo.nome}
+          mimeType={previewAnexo.mime}
+        />
+      )}
     </Card>
   );
 }
