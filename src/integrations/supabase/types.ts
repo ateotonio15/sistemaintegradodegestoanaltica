@@ -234,8 +234,13 @@ export type Database = {
           empresa_id: string
           financeiro_movimentacao_id: string | null
           id: string
+          motivo: string | null
+          status_calc: string
+          tipo_ajuste: string
           updated_at: string
           valor_centavos: number
+          valor_total_calculado_centavos: number | null
+          valor_total_manual_centavos: number | null
         }
         Insert: {
           competencia: string
@@ -245,8 +250,13 @@ export type Database = {
           empresa_id: string
           financeiro_movimentacao_id?: string | null
           id?: string
+          motivo?: string | null
+          status_calc?: string
+          tipo_ajuste?: string
           updated_at?: string
           valor_centavos: number
+          valor_total_calculado_centavos?: number | null
+          valor_total_manual_centavos?: number | null
         }
         Update: {
           competencia?: string
@@ -256,8 +266,13 @@ export type Database = {
           empresa_id?: string
           financeiro_movimentacao_id?: string | null
           id?: string
+          motivo?: string | null
+          status_calc?: string
+          tipo_ajuste?: string
           updated_at?: string
           valor_centavos?: number
+          valor_total_calculado_centavos?: number | null
+          valor_total_manual_centavos?: number | null
         }
         Relationships: [
           {
@@ -272,6 +287,139 @@ export type Database = {
             columns: ["financeiro_movimentacao_id"]
             isOneToOne: false
             referencedRelation: "financeiro_movimentacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobrancas_retroativas_itens: {
+        Row: {
+          alterado_manualmente: boolean
+          beneficiario_nome: string
+          beneficiario_titular: string | null
+          cobranca_retroativa_id: string
+          codigo_beneficiario: string | null
+          created_at: string
+          data_alteracao: string | null
+          data_fim: string
+          data_inicio: string
+          dias_proporcionais: number
+          id: string
+          matricula: string | null
+          mensalidade_centavos: number
+          observacao: string | null
+          plano_modulo: string
+          tipo_beneficiario: string | null
+          tipo_lancamento: string
+          updated_at: string
+          usuario_alteracao_id: string | null
+          usuario_alteracao_nome: string | null
+          valor_calculado_centavos: number
+          valor_final_centavos: number
+        }
+        Insert: {
+          alterado_manualmente?: boolean
+          beneficiario_nome: string
+          beneficiario_titular?: string | null
+          cobranca_retroativa_id: string
+          codigo_beneficiario?: string | null
+          created_at?: string
+          data_alteracao?: string | null
+          data_fim: string
+          data_inicio: string
+          dias_proporcionais?: number
+          id?: string
+          matricula?: string | null
+          mensalidade_centavos: number
+          observacao?: string | null
+          plano_modulo: string
+          tipo_beneficiario?: string | null
+          tipo_lancamento?: string
+          updated_at?: string
+          usuario_alteracao_id?: string | null
+          usuario_alteracao_nome?: string | null
+          valor_calculado_centavos?: number
+          valor_final_centavos?: number
+        }
+        Update: {
+          alterado_manualmente?: boolean
+          beneficiario_nome?: string
+          beneficiario_titular?: string | null
+          cobranca_retroativa_id?: string
+          codigo_beneficiario?: string | null
+          created_at?: string
+          data_alteracao?: string | null
+          data_fim?: string
+          data_inicio?: string
+          dias_proporcionais?: number
+          id?: string
+          matricula?: string | null
+          mensalidade_centavos?: number
+          observacao?: string | null
+          plano_modulo?: string
+          tipo_beneficiario?: string | null
+          tipo_lancamento?: string
+          updated_at?: string
+          usuario_alteracao_id?: string | null
+          usuario_alteracao_nome?: string | null
+          valor_calculado_centavos?: number
+          valor_final_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_retroativas_itens_cobranca_retroativa_id_fkey"
+            columns: ["cobranca_retroativa_id"]
+            isOneToOne: false
+            referencedRelation: "cobrancas_retroativas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobrancas_retroativas_periodos: {
+        Row: {
+          created_at: string
+          data_fim_periodo: string
+          data_inicio_periodo: string
+          dias_cobrados: number
+          dias_mes: number
+          id: string
+          item_id: string
+          mensalidade_centavos: number
+          mes_referencia: string
+          valor_calculado_centavos: number
+          valor_diario_centavos: number
+        }
+        Insert: {
+          created_at?: string
+          data_fim_periodo: string
+          data_inicio_periodo: string
+          dias_cobrados: number
+          dias_mes: number
+          id?: string
+          item_id: string
+          mensalidade_centavos: number
+          mes_referencia: string
+          valor_calculado_centavos: number
+          valor_diario_centavos: number
+        }
+        Update: {
+          created_at?: string
+          data_fim_periodo?: string
+          data_inicio_periodo?: string
+          dias_cobrados?: number
+          dias_mes?: number
+          id?: string
+          item_id?: string
+          mensalidade_centavos?: number
+          mes_referencia?: string
+          valor_calculado_centavos?: number
+          valor_diario_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_retroativas_periodos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "cobrancas_retroativas_itens"
             referencedColumns: ["id"]
           },
         ]
