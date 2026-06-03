@@ -571,6 +571,17 @@ export function ReajusteCobrancaRetroativa() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+            {canManage && isCob && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1"
+                onClick={() => abrirCalculadora()}
+                title="Abrir Calculadora de Cobrança Retroativa"
+              >
+                <Calculator className="h-3.5 w-3.5" /> Calculadora
+              </Button>
+            )}
             {canManage && (
               <Button
                 size="sm"
