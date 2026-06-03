@@ -487,6 +487,9 @@ export default function Empresas() {
                   <FileSpreadsheet className="mr-2 h-4 w-4" />Importar Valores
                 </Button>
               )}
+              {isAdmin && (
+                <Button variant="outline" onClick={() => setRecalcVidasOpen(true)} className="rounded-lg">
+                  <Users className="mr-2 h-4 w-4" />Recalcular Vidas
               <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
                 <DialogTrigger asChild>
                   <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
