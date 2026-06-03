@@ -357,6 +357,7 @@ export function ReajusteCobrancaRetroativa() {
 
 
   // ============ Form Reajuste ============
+  const [editReaId, setEditReaId] = useState<string | null>(null);
   const [reaEmpresa, setReaEmpresa] = useState<string | null>(null);
   const [reaCompet, setReaCompet] = useState<string>(getCurrentMesReferencia());
   const [reaValor, setReaValor] = useState<string>("");
@@ -368,6 +369,7 @@ export function ReajusteCobrancaRetroativa() {
   const [reaSaving, setReaSaving] = useState(false);
 
   const resetRea = () => {
+    setEditReaId(null);
     setReaEmpresa(null);
     setReaValor("");
     setReaParcelas("1");
@@ -376,6 +378,21 @@ export function ReajusteCobrancaRetroativa() {
     setAporteParcelas("1");
     setReaFile(null);
     setReaCompet(getCurrentMesReferencia());
+  };
+
+  const openEditReajuste = (r: any) => {
+    setEditReaId(r.id);
+    setReaEmpresa(r.empresa_id);
+    setReaCompet(r.competencia);
+    setReaValor(((r.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+    setReaParcelas(String(r.parcelas || 1));
+    setPossuiAporte(!!r.possui_aporte);
+    setAporteValor(r.valor_aporte_centavos != null
+      ? ((r.valor_aporte_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })
+      : "");
+    setAporteParcelas(String(r.parcelas_aporte || 1));
+    setReaFile(null);
+    setOpenReaDialog(true);
   };
 
   const reaCents = parseBRLInput(reaValor);
@@ -392,27 +409,52 @@ export function ReajusteCobrancaRetroativa() {
     if (reaParcInt < 1) return toast.error("Parcelas deve ser ≥ 1.");
     if (possuiAporte && (aporteCents <= 0 || aporteParcInt < 1))
       return toast.error("Informe valor e parcelas do aporte.");
-    if (!reaFile) return toast.error("Anexe o PDF do reajuste.");
-    if (reaFile.type && !reaFile.type.includes("pdf"))
+    if (!editReaId && !reaFile) return toast.error("Anexe o PDF do reajuste.");
+    if (reaFile && reaFile.type && !reaFile.type.includes("pdf"))
       return toast.error("Apenas arquivos PDF são aceitos.");
 
     setReaSaving(true);
     try {
-      const movId = await ensureFinanceiroMovimentacao(reaEmpresa, reaCompet);
-      await uploadPdfAnexo(reaFile, reaEmpresa, movId, user?.id);
-      const { error } = await supabase.from("reajustes").insert({
-        empresa_id: reaEmpresa,
-        competencia: reaCompet,
-        valor_centavos: reaCents,
-        parcelas: reaParcInt,
-        possui_aporte: possuiAporte,
-        valor_aporte_centavos: possuiAporte ? aporteCents : null,
-        parcelas_aporte: possuiAporte ? aporteParcInt : null,
-        financeiro_movimentacao_id: movId,
-        created_by: user?.id ?? null,
-      });
-      if (error) throw error;
-      toast.success("Reajuste cadastrado e PDF anexado ao processo.");
+      if (editReaId) {
+        const { error } = await supabase
+          .from("reajustes")
+          .update({
+            empresa_id: reaEmpresa,
+            competencia: reaCompet,
+            valor_centavos: reaCents,
+            parcelas: reaParcInt,
+            possui_aporte: possuiAporte,
+            valor_aporte_centavos: possuiAporte ? aporteCents : null,
+            parcelas_aporte: possuiAporte ? aporteParcInt : null,
+          })
+          .eq("id", editReaId);
+        if (error) throw error;
+        if (reaFile) {
+          const movId = await ensureFinanceiroMovimentacao(reaEmpresa, reaCompet);
+          await uploadPdfAnexo(reaFile, reaEmpresa, movId, user?.id);
+          await supabase
+            .from("reajustes")
+            .update({ financeiro_movimentacao_id: movId })
+            .eq("id", editReaId);
+        }
+        toast.success("Reajuste atualizado.");
+      } else {
+        const movId = await ensureFinanceiroMovimentacao(reaEmpresa, reaCompet);
+        await uploadPdfAnexo(reaFile!, reaEmpresa, movId, user?.id);
+        const { error } = await supabase.from("reajustes").insert({
+          empresa_id: reaEmpresa,
+          competencia: reaCompet,
+          valor_centavos: reaCents,
+          parcelas: reaParcInt,
+          possui_aporte: possuiAporte,
+          valor_aporte_centavos: possuiAporte ? aporteCents : null,
+          parcelas_aporte: possuiAporte ? aporteParcInt : null,
+          financeiro_movimentacao_id: movId,
+          created_by: user?.id ?? null,
+        });
+        if (error) throw error;
+        toast.success("Reajuste cadastrado e PDF anexado ao processo.");
+      }
       resetRea();
       setOpenReaDialog(false);
       queryClient.invalidateQueries({ queryKey: ["reajustes"] });
@@ -424,6 +466,7 @@ export function ReajusteCobrancaRetroativa() {
       setReaSaving(false);
     }
   };
+
 
   const deleteCob = useMutation({
     mutationFn: async (id: string) => {
