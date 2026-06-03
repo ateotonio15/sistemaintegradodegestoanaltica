@@ -824,21 +824,39 @@ export function ReajusteCobrancaRetroativa() {
               <Label className="text-xs">PDF {editReaId ? "(opcional)" : "*"}</Label>
               <FileInput file={reaFile} onChange={setReaFile} />
               {editReaId && editReaMovId && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 w-full"
-                  onClick={() => handleViewPdf(editReaMovId)}
-                  disabled={loadingPreview === editReaMovId}
-                >
-                  {loadingPreview === editReaMovId ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Eye className="h-3.5 w-3.5 text-primary" />
-                  )}
-                  Visualizar PDF anexado
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 flex-1"
+                    onClick={() => handleViewPdf(editReaMovId)}
+                    disabled={loadingPreview === editReaMovId}
+                  >
+                    {loadingPreview === editReaMovId ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Eye className="h-3.5 w-3.5 text-primary" />
+                    )}
+                    Visualizar PDF anexado
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={() => handleRemoveAnexo(editReaMovId, () => setEditReaMovId(null))}
+                    disabled={removingAnexo}
+                    title="Remover anexo"
+                  >
+                    {removingAnexo ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    )}
+                    Remover
+                  </Button>
+                </div>
               )}
             </div>
           </div>
