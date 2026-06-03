@@ -109,6 +109,45 @@ export default function VidasOperadora() {
         </Card>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Empresarial</CardTitle>
+            <Building className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {isLoading ? "..." : totalEmpresarial.toLocaleString("pt-BR")}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Classificação Empresarial</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground">PME</CardTitle>
+            <Briefcase className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {isLoading ? "..." : totalPME.toLocaleString("pt-BR")}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Todas as classificações com PME</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Plural</CardTitle>
+            <Layers className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {isLoading ? "..." : totalPlural.toLocaleString("pt-BR")}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Classificação Plural</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
