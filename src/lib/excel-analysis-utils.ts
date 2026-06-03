@@ -988,8 +988,13 @@ export async function analisarExcelFinanceiroPorCnpj(
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
       grp.incQtd += 1;
       if (valorValido) grp.incTotal += valor;
+      if (isRetroativa(String(tipoCell))) {
+        grp.retroQtd += 1;
+        if (valorValido) grp.retroTotal += valor;
+      }
       continue;
     }
+
     if (idxPlano < 0) continue;
     const cat = classificarPlano(String(planoCell));
     if (!cat) continue;
