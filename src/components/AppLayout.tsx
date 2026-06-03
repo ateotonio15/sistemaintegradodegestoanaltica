@@ -116,7 +116,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       : allNavItems;
     return base.filter((item) => {
       if (role === "vendas") {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/executivas", "/implantacao", "/gestao-vidas"];
+        const allowed = ["/", "/empresas", "/movimentacoes", "/executivas", "/implantacao", "/gestao-vidas", "/vidas-operadora"];
         return allowed.includes(item.to);
       }
       if (isFinanceiro) {
