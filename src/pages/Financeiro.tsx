@@ -1112,12 +1112,31 @@ export default function Financeiro() {
       // achamos bloco com CNPJ exato, devolvemos TODOS os blocos da planilha —
       // assim a análise (Excel + PDF) continua disponível mesmo quando o CNPJ
       // do contrato difere do CNPJ que aparece dentro da planilha/PDF.
+      // Adiciona um aviso explicando a divergência e qual tomador foi usado.
       if (!row.pagador_id && mother.resultados.length > 0) {
+        const fmtCnpj = (d: string) =>
+          d.length === 14
+            ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
+            : d;
+        const resultadosComAviso = mother.resultados.map((r: any) => {
+          const blocoCnpj = onlyDigits(r?.cnpj);
+          const blocoNome = r?.nomeExibicao || r?.pagador || "—";
+          const mesmoCnpj = !!blocoCnpj && !!cnpjAlvo && blocoCnpj === cnpjAlvo;
+          if (mesmoCnpj) return r;
+          const aviso =
+            `Atenção: CNPJ ${blocoCnpj ? fmtCnpj(blocoCnpj) : "(não informado)"} (tomador "${blocoNome}") ` +
+            `pertence a outra empresa — não confere com o CNPJ do contrato ` +
+            `${cnpjAlvo ? fmtCnpj(cnpjAlvo) : "(não cadastrado)"} (${row.empresa_nome}). ` +
+            `A análise foi feita com os dados encontrados na planilha/PDF.`;
+          return { ...r, avisos: [...(r?.avisos || []), aviso] };
+        });
         return {
-          resultados: mother.resultados.slice(),
+          resultados: resultadosComAviso,
           comparacoes: mother.comparacoes.slice(),
         };
       }
+
+
 
       // Sem bloco correspondente — devolve placeholder informando ao usuário
       const placeholder: any = {
