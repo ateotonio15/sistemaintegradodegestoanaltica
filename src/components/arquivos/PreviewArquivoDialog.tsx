@@ -162,6 +162,33 @@ export function PreviewArquivoDialog({
   }, [open, bucket, storagePath, mimeType, isPdf, isExcel]);
 
   useEffect(() => {
+    if (!pdfDoc || !pdfContainerRef.current || manualZoom) return;
+
+    let cancelled = false;
+    const fitToContainer = async () => {
+      try {
+        const page = await pdfDoc.getPage(pageNumber);
+        if (cancelled || !pdfContainerRef.current) return;
+        const viewport = page.getViewport({ scale: 1 });
+        const availableWidth = Math.max(320, pdfContainerRef.current.clientWidth - 48);
+        const fittedScale = Math.max(0.6, Math.min(2.2, availableWidth / viewport.width));
+        setScale(Number(fittedScale.toFixed(2)));
+      } catch {
+        // O erro será tratado pelo renderizador principal do PDF.
+      }
+    };
+
+    fitToContainer();
+    const observer = new ResizeObserver(fitToContainer);
+    observer.observe(pdfContainerRef.current);
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [pdfDoc, pageNumber, manualZoom]);
+
+  useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return;
 
     let cancelled = false;
