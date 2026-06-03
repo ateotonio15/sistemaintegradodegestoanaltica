@@ -747,8 +747,10 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     enfValores: number[]; enfQtd: number; enfMens: number;
     aptValores: number[]; aptQtd: number; aptMens: number;
     incQtd: number; incTotal: number;
+    retroQtd: number; retroTotal: number;
     excQtd: number; excTotal: number;
   };
+
   const blocos: Acc[] = [];
   let cur: Acc | null = null;
 
