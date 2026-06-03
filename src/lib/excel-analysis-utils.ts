@@ -1110,8 +1110,10 @@ export function cruzarExcelComPdfs(
       enfermaria: bloco.enfermaria,
       apartamento: bloco.apartamento,
       inclusoes: bloco.inclusoes,
+      retroativas: bloco.retroativas,
       exclusoes: bloco.exclusoes,
       avisos: bloco.avisos,
+
     };
     const cmp = compararExcelComPdf(excelResult, pdf);
     cmp.cnpj = bloco.cnpj;
