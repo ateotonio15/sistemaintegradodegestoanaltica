@@ -774,6 +774,23 @@ export function ReajusteCobrancaRetroativa() {
             <div className="space-y-1.5">
               <Label className="text-xs">PDF {editReaId ? "(opcional)" : "*"}</Label>
               <FileInput file={reaFile} onChange={setReaFile} />
+              {editReaId && editReaMovId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 w-full"
+                  onClick={() => handleViewPdf(editReaMovId)}
+                  disabled={loadingPreview === editReaMovId}
+                >
+                  {loadingPreview === editReaMovId ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5 text-primary" />
+                  )}
+                  Visualizar PDF anexado
+                </Button>
+              )}
             </div>
           </div>
           <DialogFooter>
