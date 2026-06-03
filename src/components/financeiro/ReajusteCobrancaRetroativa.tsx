@@ -643,7 +643,7 @@ export function ReajusteCobrancaRetroativa() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">PDF *</Label>
+              <Label className="text-xs">PDF {editCobId ? "(opcional)" : "*"}</Label>
               <FileInput file={cobFile} onChange={setCobFile} />
             </div>
           </div>
@@ -651,11 +651,12 @@ export function ReajusteCobrancaRetroativa() {
             <Button variant="ghost" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>Cancelar</Button>
             <Button onClick={submitCobranca} disabled={cobSaving} className="gap-1.5">
               {cobSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              {cobSaving ? "Salvando..." : "Cadastrar"}
+              {cobSaving ? "Salvando..." : editCobId ? "Salvar alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* ============ DIALOG: REAJUSTE ============ */}
       <Dialog open={openReaDialog} onOpenChange={(o) => { setOpenReaDialog(o); if (!o) resetRea(); }}>
