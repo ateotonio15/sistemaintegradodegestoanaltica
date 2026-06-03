@@ -187,6 +187,36 @@ export function ReajusteCobrancaRetroativa() {
   const [tab, setTab] = useState<"cobranca" | "reajuste">("cobranca");
   const [openCobDialog, setOpenCobDialog] = useState(false);
   const [openReaDialog, setOpenReaDialog] = useState(false);
+  const [previewAnexo, setPreviewAnexo] = useState<{ path: string; nome: string; mime: string | null } | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
+
+  const handleViewPdf = async (movimentacaoId: string | null) => {
+    if (!movimentacaoId) {
+      toast.error("Nenhum anexo vinculado a este registro.");
+      return;
+    }
+    setLoadingPreview(movimentacaoId);
+    try {
+      const { data, error } = await supabase
+        .from("anexos_financeiro")
+        .select("nome_arquivo, storage_path, mime_type, created_at, origem")
+        .eq("financeiro_movimentacao_id", movimentacaoId)
+        .eq("origem", "retroativo")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error("PDF não encontrado.");
+        return;
+      }
+      const a = data[0];
+      setPreviewAnexo({ path: a.storage_path, nome: a.nome_arquivo, mime: a.mime_type });
+    } catch (e: any) {
+      toast.error("Erro ao carregar PDF: " + (e?.message || "desconhecido"));
+    } finally {
+      setLoadingPreview(null);
+    }
+  };
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas-rcr"],
