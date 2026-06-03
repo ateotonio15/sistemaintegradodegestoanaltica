@@ -805,8 +805,13 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (labelNorm.includes("inclus") || labelNorm.includes("retroativ")) {
       cur.incQtd += qtdNum;
       cur.incTotal += valNum;
+      if (labelNorm.includes("retroativ")) {
+        cur.retroQtd += qtdNum;
+        cur.retroTotal += valNum;
+      }
       continue;
     }
+
     if (labelNorm.includes("exclus")) {
       cur.excQtd += qtdNum;
       cur.excTotal += valNum;
