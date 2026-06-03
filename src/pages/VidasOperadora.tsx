@@ -27,6 +27,18 @@ export default function VidasOperadora() {
     [data],
   );
 
+  const sumByClassificacao = (predicate: (ds: string) => boolean) =>
+    (data?.porClassificacao ?? [])
+      .filter((c) => predicate((c.DS_CLASSIFICACAO ?? "").toUpperCase()))
+      .reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0);
+
+  const totalEmpresarial = useMemo(
+    () => sumByClassificacao((ds) => ds.includes("EMPRESARIAL") && !ds.includes("PME")),
+    [data],
+  );
+  const totalPME = useMemo(() => sumByClassificacao((ds) => ds.includes("PME")), [data]);
+  const totalPlural = useMemo(() => sumByClassificacao((ds) => ds.includes("PLURAL")), [data]);
+
   const empresasFiltradas = useMemo(() => {
     const list = (data?.porEmpresa ?? []).slice().sort((a, b) => b.QT_VIDAS - a.QT_VIDAS);
     if (!search.trim()) return list;
