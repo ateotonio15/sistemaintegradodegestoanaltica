@@ -20,14 +20,28 @@ export function VidasOperadoraResumo() {
       porClass
         .filter((c) => pred((c.DS_CLASSIFICACAO ?? "").toUpperCase()))
         .reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0);
+
+    const isPlural = (nm: string) => nm.includes("PLURAL");
+    const isPME = (nm: string) => /\bPME\b/.test(nm);
+    const empresasPlural = porEmpresa.filter((e) => isPlural((e.NM_ESTIPULANTE ?? "").toUpperCase()));
+    const empresasPME = porEmpresa.filter((e) => {
+      const nm = (e.NM_ESTIPULANTE ?? "").toUpperCase();
+      return isPME(nm) && !isPlural(nm);
+    });
+    const empresasEmpresarial = porEmpresa.filter((e) => {
+      const nm = (e.NM_ESTIPULANTE ?? "").toUpperCase();
+      return !isPlural(nm) && !isPME(nm);
+    });
+
     return {
       total: porClass.reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0),
       empresas: porEmpresa.length,
       empresarial: sumBy((ds) => ds.includes("EMPRESARIAL") && !ds.includes("PME")),
       pme: sumBy((ds) => ds.includes("PME") && !ds.includes("PLURAL")),
-      plural: porEmpresa
-        .filter((e) => (e.NM_ESTIPULANTE ?? "").toUpperCase().includes("PLURAL"))
-        .reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0),
+      plural: empresasPlural.reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0),
+      qtdEmpresarial: empresasEmpresarial.length,
+      qtdPME: empresasPME.length,
+      qtdPlural: empresasPlural.length,
     };
   }, [data]);
 
