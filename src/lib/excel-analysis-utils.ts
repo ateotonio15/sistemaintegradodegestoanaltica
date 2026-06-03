@@ -933,6 +933,8 @@ export async function analisarExcelFinanceiroPorCnpj(
     aptValores: number[];
     incQtd: number;
     incTotal: number;
+    retroQtd: number;
+    retroTotal: number;
     excQtd: number;
     excTotal: number;
   };
@@ -948,6 +950,8 @@ export async function analisarExcelFinanceiroPorCnpj(
         aptValores: [],
         incQtd: 0,
         incTotal: 0,
+        retroQtd: 0,
+        retroTotal: 0,
         excQtd: 0,
         excTotal: 0,
       };
@@ -957,6 +961,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     }
     return g;
   };
+
 
   for (let i = headerIdx + 1; i < allRows.length; i++) {
     const r = allRows[i];
