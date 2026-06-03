@@ -837,11 +837,27 @@ function ListaContratos({
     <div className="max-h-[260px] overflow-y-auto space-y-2 pr-1">
       {items.map((it) => {
         const emp = empresasMap[it.empresa_id];
-        const isLoading = loadingPreviewId === it.financeiro_movimentacao_id;
+        const clickable = !!onEdit;
         return (
           <div
             key={it.id}
-            className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
+            role={clickable ? "button" : undefined}
+            tabIndex={clickable ? 0 : undefined}
+            onClick={clickable ? () => onEdit!(it) : undefined}
+            onKeyDown={
+              clickable
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onEdit!(it);
+                    }
+                  }
+                : undefined
+            }
+            className={cn(
+              "flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card transition-colors",
+              clickable && "cursor-pointer hover:bg-accent/40"
+            )}
           >
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium truncate text-foreground">
@@ -853,44 +869,21 @@ function ListaContratos({
               </p>
             </div>
             {renderRight(it)}
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 shrink-0"
-              onClick={() => onView(it.financeiro_movimentacao_id)}
-              disabled={isLoading || !it.financeiro_movimentacao_id}
-              title="Visualizar PDF"
-            >
-              {isLoading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Eye className="h-3.5 w-3.5 text-primary" />
-              )}
-            </Button>
-            {canManage && onEdit && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 shrink-0"
-                onClick={() => onEdit(it)}
-                title="Editar"
-              >
-                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            )}
             {canManage && (
               <Button
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7 shrink-0"
-                onClick={() => onDelete(it.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(it.id);
+                }}
                 title="Remover"
               >
                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
               </Button>
             )}
           </div>
-
         );
       })}
     </div>
