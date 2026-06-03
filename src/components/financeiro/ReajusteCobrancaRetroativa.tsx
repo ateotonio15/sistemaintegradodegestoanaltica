@@ -311,6 +311,17 @@ export function ReajusteCobrancaRetroativa() {
   const [cobDescricao, setCobDescricao] = useState("");
   const [cobFile, setCobFile] = useState<File | null>(null);
   const [cobSaving, setCobSaving] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
+  const [calcCobId, setCalcCobId] = useState<string | null>(null);
+  const [calcEmpresaPrefill, setCalcEmpresaPrefill] = useState<string | null>(null);
+  const [calcCompetPrefill, setCalcCompetPrefill] = useState<string | null>(null);
+
+  const abrirCalculadora = (cobranca?: any) => {
+    setCalcCobId(cobranca?.id ?? null);
+    setCalcEmpresaPrefill(cobranca?.empresa_id ?? cobEmpresa ?? null);
+    setCalcCompetPrefill(cobranca?.competencia ?? cobCompet ?? null);
+    setCalcOpen(true);
+  };
 
   const resetCob = () => {
     setEditCobId(null);
