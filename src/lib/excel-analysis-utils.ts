@@ -348,8 +348,11 @@ export async function analisarExcelFinanceiroPorPagador(
   const aptValores: number[] = [];
   let incQtd = 0;
   let incTotal = 0;
+  let retroQtd = 0;
+  let retroTotal = 0;
   let excQtd = 0;
   let excTotal = 0;
+
   let linhasCasadas = 0;
 
   for (let i = headerIdx + 1; i < allRows.length; i++) {
