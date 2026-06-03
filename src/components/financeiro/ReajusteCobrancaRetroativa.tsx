@@ -41,6 +41,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getMesesOptions, formatMesReferencia, getCurrentMesReferencia, PERIODOS_FIN } from "@/lib/financeiro-utils";
+import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
+import { Eye } from "lucide-react";
 
 type EmpresaOption = {
   id: string;
@@ -185,6 +187,36 @@ export function ReajusteCobrancaRetroativa() {
   const [tab, setTab] = useState<"cobranca" | "reajuste">("cobranca");
   const [openCobDialog, setOpenCobDialog] = useState(false);
   const [openReaDialog, setOpenReaDialog] = useState(false);
+  const [previewAnexo, setPreviewAnexo] = useState<{ path: string; nome: string; mime: string | null } | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
+
+  const handleViewPdf = async (movimentacaoId: string | null) => {
+    if (!movimentacaoId) {
+      toast.error("Nenhum anexo vinculado a este registro.");
+      return;
+    }
+    setLoadingPreview(movimentacaoId);
+    try {
+      const { data, error } = await supabase
+        .from("anexos_financeiro")
+        .select("nome_arquivo, storage_path, mime_type, created_at, origem")
+        .eq("financeiro_movimentacao_id", movimentacaoId)
+        .eq("origem", "retroativo")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error("PDF não encontrado.");
+        return;
+      }
+      const a = data[0];
+      setPreviewAnexo({ path: a.storage_path, nome: a.nome_arquivo, mime: a.mime_type });
+    } catch (e: any) {
+      toast.error("Erro ao carregar PDF: " + (e?.message || "desconhecido"));
+    } finally {
+      setLoadingPreview(null);
+    }
+  };
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas-rcr"],
@@ -441,6 +473,8 @@ export function ReajusteCobrancaRetroativa() {
             )}
             canManage={canManage}
             onDelete={(id) => deleteCob.mutate(id)}
+            onView={handleViewPdf}
+            loadingPreviewId={loadingPreview}
           />
         ) : (
           <ListaContratos
@@ -470,6 +504,8 @@ export function ReajusteCobrancaRetroativa() {
             )}
             canManage={canManage}
             onDelete={(id) => deleteRea.mutate(id)}
+            onView={handleViewPdf}
+            loadingPreviewId={loadingPreview}
           />
         )}
       </CardContent>
@@ -636,6 +672,17 @@ export function ReajusteCobrancaRetroativa() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {previewAnexo && (
+        <PreviewArquivoDialog
+          open={!!previewAnexo}
+          onOpenChange={(o) => { if (!o) setPreviewAnexo(null); }}
+          bucket="anexos-financeiro"
+          storagePath={previewAnexo.path}
+          nomeArquivo={previewAnexo.nome}
+          mimeType={previewAnexo.mime}
+        />
+      )}
     </Card>
   );
 }
@@ -673,6 +720,8 @@ function ListaContratos({
   renderRight,
   canManage,
   onDelete,
+  onView,
+  loadingPreviewId,
 }: {
   loading: boolean;
   items: any[];
@@ -682,6 +731,8 @@ function ListaContratos({
   renderRight: (item: any) => React.ReactNode;
   canManage: boolean;
   onDelete: (id: string) => void;
+  onView: (movimentacaoId: string | null) => void;
+  loadingPreviewId: string | null;
 }) {
   if (loading) {
     return <div className="py-6 text-center text-sm text-muted-foreground">Carregando...</div>;
@@ -693,6 +744,7 @@ function ListaContratos({
     <div className="max-h-[260px] overflow-y-auto space-y-2 pr-1">
       {items.map((it) => {
         const emp = empresasMap[it.empresa_id];
+        const isLoading = loadingPreviewId === it.financeiro_movimentacao_id;
         return (
           <div
             key={it.id}
@@ -708,6 +760,20 @@ function ListaContratos({
               </p>
             </div>
             {renderRight(it)}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 shrink-0"
+              onClick={() => onView(it.financeiro_movimentacao_id)}
+              disabled={isLoading || !it.financeiro_movimentacao_id}
+              title="Visualizar PDF"
+            >
+              {isLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Eye className="h-3.5 w-3.5 text-primary" />
+              )}
+            </Button>
             {canManage && (
               <Button
                 size="icon"
