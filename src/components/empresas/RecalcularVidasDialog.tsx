@@ -104,63 +104,79 @@ export function RecalcularVidasDialog({
   };
 
   const runApi = async () => {
-    // 1) fetch API
+    // 1) fetch API e monta múltiplos índices
     const data = await fetchVidasOperadoraAgrupado();
-    const apiMap = new Map<string, number>();
+    const loose = new Map<string, number>();           // normalizeNome
+    const strict = new Map<string, number>();          // normalizeNomeStrict
+    const entries: { loose: string; strict: string; tokens: Set<string>; qt: number }[] = [];
     data.porEmpresa.forEach((e) => {
-      const k = normalizeNome(e.NM_ESTIPULANTE);
-      // soma quando há duplicidade de filiais com mesmo nome normalizado
-      apiMap.set(k, (apiMap.get(k) ?? 0) + (e.QT_VIDAS ?? 0));
+      const l = normalizeNome(e.NM_ESTIPULANTE);
+      const s = normalizeNomeStrict(e.NM_ESTIPULANTE);
+      const qt = e.QT_VIDAS ?? 0;
+      loose.set(l, (loose.get(l) ?? 0) + qt);
+      if (s) strict.set(s, (strict.get(s) ?? 0) + qt);
+      entries.push({ loose: l, strict: s, tokens: tokensSignificativos(e.NM_ESTIPULANTE), qt });
     });
 
-    // 2) todas empresas (vamos atualizar todas onde houver match e o valor mudou)
+    // 2) todas empresas
     const { data: empresas, error } = await supabase
       .from("empresas")
       .select("id, nome, vidas");
     if (error) throw error;
     const lista = empresas ?? [];
 
+    const findMatch = (nome: string): { qt: number; detalhe: string } | null => {
+      const l = normalizeNome(nome);
+      const s = normalizeNomeStrict(nome);
+      // exato (loose)
+      if (loose.has(l)) return { qt: loose.get(l)!, detalhe: "match exato" };
+      // exato (strict)
+      if (s && strict.has(s)) return { qt: strict.get(s)!, detalhe: "match exato (sem sufixos)" };
+      // contém (bidirecional) usando strict, mínimo 8 chars
+      if (s && s.length >= 8) {
+        let best: { qt: number; key: string } | null = null;
+        for (const [k, qt] of strict.entries()) {
+          if (k.length < 8) continue;
+          if (k === s || k.includes(s) || s.includes(k)) {
+            if (!best || k.length > best.key.length) best = { qt, key: k };
+          }
+        }
+        if (best) return { qt: best.qt, detalhe: `match parcial (${best.key})` };
+      }
+      // Jaccard token (≥ 0.7)
+      const tks = tokensSignificativos(nome);
+      if (tks.size >= 2) {
+        let best: { qt: number; score: number; key: string } | null = null;
+        for (const e of entries) {
+          if (e.tokens.size < 2) continue;
+          const sc = jaccard(tks, e.tokens);
+          if (sc >= 0.7 && (!best || sc > best.score)) best = { qt: e.qt, score: sc, key: e.strict || e.loose };
+        }
+        if (best) return { qt: best.qt, detalhe: `similaridade ${(best.score * 100).toFixed(0)}% (${best.key})` };
+      }
+      return null;
+    };
+
     const out: Result[] = [];
     let i = 0;
     for (const emp of lista) {
       i++;
       setProgress(Math.round((i / lista.length) * 100));
-      const k = normalizeNome(emp.nome);
-      const vidasApi = apiMap.get(k);
-      if (vidasApi == null) {
-        // tenta match parcial: nome da API começando com nome da empresa, ou vice-versa
-        let alt: number | undefined;
-        for (const [key, qt] of apiMap.entries()) {
-          if (key.includes(k) && k.length >= 6) { alt = qt; break; }
-        }
-        if (alt == null) {
-          out.push({ empresa_id: emp.id, nome: emp.nome, vidas: null, status: "skip", detalhe: "não encontrado na API" });
-          setResults([...out]); continue;
-        }
-        if ((emp.vidas ?? 0) === alt) {
-          out.push({ empresa_id: emp.id, nome: emp.nome, vidas: alt, status: "skip", detalhe: "já igual (match parcial)" });
-          setResults([...out]); continue;
-        }
-        const { error: uErr } = await supabase.from("empresas")
-          .update({ vidas: alt, updated_at: new Date().toISOString() }).eq("id", emp.id);
-        if (uErr) {
-          out.push({ empresa_id: emp.id, nome: emp.nome, vidas: null, status: "erro", detalhe: uErr.message });
-        } else {
-          out.push({ empresa_id: emp.id, nome: emp.nome, vidas: alt, status: "ok", detalhe: "match parcial" });
-        }
-        setResults([...out]);
-        continue;
+      const m = findMatch(emp.nome);
+      if (!m) {
+        out.push({ empresa_id: emp.id, nome: emp.nome, vidas: null, status: "skip", detalhe: "não encontrado na API" });
+        setResults([...out]); continue;
       }
-      if ((emp.vidas ?? 0) === vidasApi) {
-        out.push({ empresa_id: emp.id, nome: emp.nome, vidas: vidasApi, status: "skip", detalhe: "já igual" });
+      if ((emp.vidas ?? 0) === m.qt) {
+        out.push({ empresa_id: emp.id, nome: emp.nome, vidas: m.qt, status: "skip", detalhe: `já igual · ${m.detalhe}` });
         setResults([...out]); continue;
       }
       const { error: uErr } = await supabase.from("empresas")
-        .update({ vidas: vidasApi, updated_at: new Date().toISOString() }).eq("id", emp.id);
+        .update({ vidas: m.qt, updated_at: new Date().toISOString() }).eq("id", emp.id);
       if (uErr) {
         out.push({ empresa_id: emp.id, nome: emp.nome, vidas: null, status: "erro", detalhe: uErr.message });
       } else {
-        out.push({ empresa_id: emp.id, nome: emp.nome, vidas: vidasApi, status: "ok" });
+        out.push({ empresa_id: emp.id, nome: emp.nome, vidas: m.qt, status: "ok", detalhe: m.detalhe });
       }
       setResults([...out]);
     }
