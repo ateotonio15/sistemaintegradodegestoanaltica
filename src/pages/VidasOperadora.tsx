@@ -152,7 +152,7 @@ export default function VidasOperadora() {
             <div className="text-3xl font-bold">
               {isLoading ? "..." : totalPlural.toLocaleString("pt-BR")}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Classificação Plural</p>
+            <p className="text-xs text-muted-foreground mt-1">Empresas com "Plural" no nome</p>
           </CardContent>
         </Card>
       </div>
