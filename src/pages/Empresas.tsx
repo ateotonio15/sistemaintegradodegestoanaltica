@@ -1548,6 +1548,11 @@ export default function Empresas() {
           onOpenChange={setImportValoresOpen}
         />
 
+        <RecalcularVidasDialog
+          open={recalcVidasOpen}
+          onOpenChange={setRecalcVidasOpen}
+        />
+
       </div>
     </>
   );
