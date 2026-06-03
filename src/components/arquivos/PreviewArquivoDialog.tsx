@@ -68,7 +68,9 @@ export function PreviewArquivoDialog({
   const [error, setError] = useState<string | null>(null);
   const [sheets, setSheets] = useState<SheetData[] | null>(null);
   const [activeSheet, setActiveSheet] = useState(0);
+  const [manualZoom, setManualZoom] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const pdfContainerRef = useRef<HTMLDivElement | null>(null);
 
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase();
   const isPdf = ext === "pdf" || (mimeType ?? "").includes("pdf");
@@ -88,6 +90,8 @@ export function PreviewArquivoDialog({
         return null;
       });
       setPageNumber(1);
+      setScale(1.8);
+      setManualZoom(false);
       setSheets(null);
       setActiveSheet(0);
       setError(null);
@@ -104,6 +108,7 @@ export function PreviewArquivoDialog({
         return null;
       });
       setPageNumber(1);
+      setManualZoom(false);
       setSheets(null);
       setActiveSheet(0);
       try {
