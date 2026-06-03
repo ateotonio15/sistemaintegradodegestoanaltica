@@ -915,6 +915,15 @@ export function ReajusteCobrancaRetroativa() {
           mimeType={previewAnexo.mime}
         />
       )}
+
+      <CalculadoraRetroativaDialog
+        open={calcOpen}
+        onOpenChange={setCalcOpen}
+        empresas={empresas as any}
+        cobrancaId={calcCobId}
+        empresaIdPrefill={calcEmpresaPrefill}
+        competenciaPrefill={calcCompetPrefill}
+      />
     </Card>
   );
 }
