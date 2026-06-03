@@ -271,6 +271,7 @@ export function ReajusteCobrancaRetroativa() {
   });
 
   // ============ Form Cobrança Retroativa ============
+  const [editCobId, setEditCobId] = useState<string | null>(null);
   const [cobEmpresa, setCobEmpresa] = useState<string | null>(null);
   const [cobCompet, setCobCompet] = useState<string>(getCurrentMesReferencia());
   const [cobValor, setCobValor] = useState<string>("");
@@ -279,6 +280,7 @@ export function ReajusteCobrancaRetroativa() {
   const [cobSaving, setCobSaving] = useState(false);
 
   const resetCob = () => {
+    setEditCobId(null);
     setCobEmpresa(null);
     setCobValor("");
     setCobDescricao("");
@@ -286,29 +288,61 @@ export function ReajusteCobrancaRetroativa() {
     setCobCompet(getCurrentMesReferencia());
   };
 
+  const openEditCobranca = (c: any) => {
+    setEditCobId(c.id);
+    setCobEmpresa(c.empresa_id);
+    setCobCompet(c.competencia);
+    setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+    setCobDescricao(c.descricao || "");
+    setCobFile(null);
+    setOpenCobDialog(true);
+  };
+
   const submitCobranca = async () => {
     if (!cobEmpresa) return toast.error("Selecione um contrato.");
     if (!cobCompet) return toast.error("Selecione a competência.");
     const cents = parseBRLInput(cobValor);
     if (cents <= 0) return toast.error("Informe um valor válido.");
-    if (!cobFile) return toast.error("Anexe o PDF da cobrança.");
-    if (cobFile.type && !cobFile.type.includes("pdf"))
+    if (!editCobId && !cobFile) return toast.error("Anexe o PDF da cobrança.");
+    if (cobFile && cobFile.type && !cobFile.type.includes("pdf"))
       return toast.error("Apenas arquivos PDF são aceitos.");
 
     setCobSaving(true);
     try {
-      const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
-      await uploadPdfAnexo(cobFile, cobEmpresa, movId, user?.id);
-      const { error } = await supabase.from("cobrancas_retroativas").insert({
-        empresa_id: cobEmpresa,
-        competencia: cobCompet,
-        valor_centavos: cents,
-        descricao: cobDescricao || null,
-        financeiro_movimentacao_id: movId,
-        created_by: user?.id ?? null,
-      });
-      if (error) throw error;
-      toast.success("Cobrança retroativa cadastrada e PDF anexado ao processo.");
+      if (editCobId) {
+        const { error } = await supabase
+          .from("cobrancas_retroativas")
+          .update({
+            empresa_id: cobEmpresa,
+            competencia: cobCompet,
+            valor_centavos: cents,
+            descricao: cobDescricao || null,
+          })
+          .eq("id", editCobId);
+        if (error) throw error;
+        if (cobFile) {
+          const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
+          await uploadPdfAnexo(cobFile, cobEmpresa, movId, user?.id);
+          await supabase
+            .from("cobrancas_retroativas")
+            .update({ financeiro_movimentacao_id: movId })
+            .eq("id", editCobId);
+        }
+        toast.success("Cobrança atualizada.");
+      } else {
+        const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
+        await uploadPdfAnexo(cobFile!, cobEmpresa, movId, user?.id);
+        const { error } = await supabase.from("cobrancas_retroativas").insert({
+          empresa_id: cobEmpresa,
+          competencia: cobCompet,
+          valor_centavos: cents,
+          descricao: cobDescricao || null,
+          financeiro_movimentacao_id: movId,
+          created_by: user?.id ?? null,
+        });
+        if (error) throw error;
+        toast.success("Cobrança retroativa cadastrada e PDF anexado ao processo.");
+      }
       resetCob();
       setOpenCobDialog(false);
       queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
@@ -320,6 +354,7 @@ export function ReajusteCobrancaRetroativa() {
       setCobSaving(false);
     }
   };
+
 
   // ============ Form Reajuste ============
   const [reaEmpresa, setReaEmpresa] = useState<string | null>(null);
