@@ -68,7 +68,9 @@ export function PreviewArquivoDialog({
   const [error, setError] = useState<string | null>(null);
   const [sheets, setSheets] = useState<SheetData[] | null>(null);
   const [activeSheet, setActiveSheet] = useState(0);
+  const [manualZoom, setManualZoom] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const pdfContainerRef = useRef<HTMLDivElement | null>(null);
 
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase();
   const isPdf = ext === "pdf" || (mimeType ?? "").includes("pdf");
@@ -88,6 +90,8 @@ export function PreviewArquivoDialog({
         return null;
       });
       setPageNumber(1);
+      setScale(1.8);
+      setManualZoom(false);
       setSheets(null);
       setActiveSheet(0);
       setError(null);
@@ -104,6 +108,7 @@ export function PreviewArquivoDialog({
         return null;
       });
       setPageNumber(1);
+      setManualZoom(false);
       setSheets(null);
       setActiveSheet(0);
       try {
@@ -155,6 +160,33 @@ export function PreviewArquivoDialog({
       if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     };
   }, [open, bucket, storagePath, mimeType, isPdf, isExcel]);
+
+  useEffect(() => {
+    if (!pdfDoc || !pdfContainerRef.current || manualZoom) return;
+
+    let cancelled = false;
+    const fitToContainer = async () => {
+      try {
+        const page = await pdfDoc.getPage(pageNumber);
+        if (cancelled || !pdfContainerRef.current) return;
+        const viewport = page.getViewport({ scale: 1 });
+        const availableWidth = Math.max(320, pdfContainerRef.current.clientWidth - 48);
+        const fittedScale = Math.max(0.6, Math.min(2.2, availableWidth / viewport.width));
+        setScale(Number(fittedScale.toFixed(2)));
+      } catch {
+        // O erro será tratado pelo renderizador principal do PDF.
+      }
+    };
+
+    fitToContainer();
+    const observer = new ResizeObserver(fitToContainer);
+    observer.observe(pdfContainerRef.current);
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [pdfDoc, pageNumber, manualZoom]);
 
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return;
@@ -253,7 +285,10 @@ export function PreviewArquivoDialog({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => setScale((s) => Math.max(0.6, Number((s - 0.2).toFixed(1))))}
+                  onClick={() => {
+                    setManualZoom(true);
+                    setScale((s) => Math.max(0.6, Number((s - 0.2).toFixed(1))));
+                  }}
                   disabled={scale <= 0.6 || renderingPage}
                   title="Diminuir zoom"
                 >
@@ -263,7 +298,10 @@ export function PreviewArquivoDialog({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => setScale((s) => Math.min(2.4, Number((s + 0.2).toFixed(1))))}
+                  onClick={() => {
+                    setManualZoom(true);
+                    setScale((s) => Math.min(2.4, Number((s + 0.2).toFixed(1))));
+                  }}
                   disabled={scale >= 2.4 || renderingPage}
                   title="Aumentar zoom"
                 >
@@ -283,7 +321,8 @@ export function PreviewArquivoDialog({
                       return;
                     }
                     const safeName = nomeArquivo.replace(/[<>&"]/g, "");
-                    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeName}</title><style>html,body,iframe{margin:0;padding:0;height:100%;width:100%;border:0;background:#222;}</style></head><body><iframe src="${url}"></iframe></body></html>`);
+                    const viewerUrl = isPdf ? `${url}#view=FitH&toolbar=1&navpanes=0&scrollbar=1` : url;
+                    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeName}</title><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#f4f4f5;}iframe{display:block;width:100vw;height:100vh;border:0;background:#f4f4f5;}</style></head><body><iframe src="${viewerUrl}" title="${safeName}"></iframe></body></html>`);
                     win.document.close();
                   } catch (err: any) {
                     toast.error("Erro ao abrir: " + (err?.message ?? "desconhecido"));
@@ -316,7 +355,7 @@ export function PreviewArquivoDialog({
           {!loading && !error && url && (
             <>
               {isPdf ? (
-                <div className="relative h-full overflow-auto p-4">
+                <div ref={pdfContainerRef} className="relative h-full overflow-auto bg-background p-4">
                   {renderingPage && (
                     <div className="absolute inset-x-0 top-3 z-10 flex justify-center pointer-events-none">
                       <span className="inline-flex items-center rounded-md border bg-background px-3 py-1 text-xs text-muted-foreground shadow-sm">
@@ -325,7 +364,7 @@ export function PreviewArquivoDialog({
                       </span>
                     </div>
                   )}
-                  <div className="flex min-h-full justify-center">
+                  <div className="flex min-h-full justify-center pb-6">
                     <canvas ref={canvasRef} className="h-fit max-w-none rounded-sm bg-background shadow-sm" />
                   </div>
                 </div>
