@@ -23,7 +23,7 @@ export async function fetchVidasOperadoraAgrupado(): Promise<VidasOperadoraRespo
   return json.data;
 }
 
-/** Normaliza para casamento de nomes: maiúsculas, sem acento, sem pontuação, espaços únicos. */
+/** Normaliza nome (maiúsculas, sem acento, sem pontuação, espaços únicos). */
 export function normalizeNome(s: string | null | undefined): string {
   return (s ?? "")
     .toString()
@@ -33,4 +33,33 @@ export function normalizeNome(s: string | null | undefined): string {
     .replace(/[^A-Z0-9 ]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+const STOP_TOKENS = new Set([
+  "SA","S","A","LTDA","EIRELI","ME","EPP","PME","MATRIZ","FILIAL","CIA",
+  "DE","DA","DO","DAS","DOS","E","EM","DI","D","O","AS","OS",
+]);
+
+/** Normalização estrita: remove sufixos jurídicos e stopwords para casamento robusto. */
+export function normalizeNomeStrict(s: string | null | undefined): string {
+  const base = normalizeNome(s);
+  const tokens = base.split(" ").filter((t) => t && !STOP_TOKENS.has(t));
+  return tokens.join(" ");
+}
+
+/** Conjunto de tokens significativos (≥3 chars, sem stopwords). */
+export function tokensSignificativos(s: string | null | undefined): Set<string> {
+  return new Set(
+    normalizeNome(s)
+      .split(" ")
+      .filter((t) => t.length >= 3 && !STOP_TOKENS.has(t)),
+  );
+}
+
+/** Jaccard entre dois conjuntos. */
+export function jaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
+  let inter = 0;
+  a.forEach((x) => { if (b.has(x)) inter++; });
+  return inter / (a.size + b.size - inter);
 }
