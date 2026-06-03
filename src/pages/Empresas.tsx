@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import { ValoresFaixaEtariaDialog } from "@/components/empresas/ValoresFaixaEtariaDialog";
 import { ImportarValoresIniciaisDialog } from "@/components/empresas/ImportarValoresIniciaisDialog";
+import { RecalcularVidasDialog } from "@/components/empresas/RecalcularVidasDialog";
 import ExcelJS from "exceljs";
 import { parseAnexo1 } from "@/lib/anexo1-parser";
 import { Loader2, FileUp } from "lucide-react";
@@ -99,6 +100,7 @@ export default function Empresas() {
   const [suspensaoEmpresa, setSuspensaoEmpresa] = useState<Empresa | null>(null);
   const [valoresEmpresa, setValoresEmpresa] = useState<Empresa | null>(null);
   const [importValoresOpen, setImportValoresOpen] = useState(false);
+  const [recalcVidasOpen, setRecalcVidasOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const anexoInputRef = useRef<HTMLInputElement>(null);
   const [importingAnexo, setImportingAnexo] = useState(false);
@@ -485,7 +487,13 @@ export default function Empresas() {
                   <FileSpreadsheet className="mr-2 h-4 w-4" />Importar Valores
                 </Button>
               )}
+              {isAdmin && (
+                <Button variant="outline" onClick={() => setRecalcVidasOpen(true)} className="rounded-lg">
+                  <Users className="mr-2 h-4 w-4" />Recalcular Vidas
+                </Button>
+              )}
               <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+
                 <DialogTrigger asChild>
                   <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
                 </DialogTrigger>
@@ -1538,6 +1546,11 @@ export default function Empresas() {
         <ImportarValoresIniciaisDialog
           open={importValoresOpen}
           onOpenChange={setImportValoresOpen}
+        />
+
+        <RecalcularVidasDialog
+          open={recalcVidasOpen}
+          onOpenChange={setRecalcVidasOpen}
         />
 
       </div>

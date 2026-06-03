@@ -349,8 +349,8 @@ export async function validarRelatorioVidas(
 
   return {
     verificado_em: new Date().toISOString(),
-    total_linhas: linhas_lidas,
-    total_vidas: linhas_lidas,
+    total_linhas: linhas_validas,
+    total_vidas: linhas_validas,
     titulares,
     dependentes,
     colunas,
