@@ -42,7 +42,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getMesesOptions, formatMesReferencia, getCurrentMesReferencia, PERIODOS_FIN } from "@/lib/financeiro-utils";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
-import { Eye } from "lucide-react";
+import { Eye, Calculator } from "lucide-react";
+import { CalculadoraRetroativaDialog } from "./CalculadoraRetroativaDialog";
 
 type EmpresaOption = {
   id: string;
@@ -310,6 +311,17 @@ export function ReajusteCobrancaRetroativa() {
   const [cobDescricao, setCobDescricao] = useState("");
   const [cobFile, setCobFile] = useState<File | null>(null);
   const [cobSaving, setCobSaving] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
+  const [calcCobId, setCalcCobId] = useState<string | null>(null);
+  const [calcEmpresaPrefill, setCalcEmpresaPrefill] = useState<string | null>(null);
+  const [calcCompetPrefill, setCalcCompetPrefill] = useState<string | null>(null);
+
+  const abrirCalculadora = (cobranca?: any) => {
+    setCalcCobId(cobranca?.id ?? null);
+    setCalcEmpresaPrefill(cobranca?.empresa_id ?? cobEmpresa ?? null);
+    setCalcCompetPrefill(cobranca?.competencia ?? cobCompet ?? null);
+    setCalcOpen(true);
+  };
 
   const resetCob = () => {
     setEditCobId(null);
@@ -559,6 +571,17 @@ export function ReajusteCobrancaRetroativa() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+            {canManage && isCob && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1"
+                onClick={() => abrirCalculadora()}
+                title="Abrir Calculadora de Cobrança Retroativa"
+              >
+                <Calculator className="h-3.5 w-3.5" /> Calculadora
+              </Button>
+            )}
             {canManage && (
               <Button
                 size="sm"
@@ -719,8 +742,19 @@ export function ReajusteCobrancaRetroativa() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>Cancelar</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpenCobDialog(false);
+                abrirCalculadora(editCobId ? { id: editCobId, empresa_id: cobEmpresa, competencia: cobCompet } : undefined);
+              }}
+              disabled={cobSaving}
+              className="gap-1.5"
+            >
+              <Calculator className="h-4 w-4" /> Calcular retroativo
+            </Button>
             <Button onClick={submitCobranca} disabled={cobSaving} className="gap-1.5">
               {cobSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
               {cobSaving ? "Salvando..." : editCobId ? "Salvar alterações" : "Cadastrar"}
@@ -881,6 +915,15 @@ export function ReajusteCobrancaRetroativa() {
           mimeType={previewAnexo.mime}
         />
       )}
+
+      <CalculadoraRetroativaDialog
+        open={calcOpen}
+        onOpenChange={setCalcOpen}
+        empresas={empresas as any}
+        cobrancaId={calcCobId}
+        empresaIdPrefill={calcEmpresaPrefill}
+        competenciaPrefill={calcCompetPrefill}
+      />
     </Card>
   );
 }
