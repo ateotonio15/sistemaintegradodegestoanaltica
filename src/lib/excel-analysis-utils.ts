@@ -430,9 +430,13 @@ export async function analisarExcelFinanceiroPorPagador(
     inclusoes: { quantidade: incQtd, total: incTotal },
     avisos,
   };
+  if (retroQtd > 0 || retroTotal !== 0) {
+    result.retroativas = { quantidade: retroQtd, total: retroTotal };
+  }
   if (excQtd > 0 || excTotal !== 0) {
     result.exclusoes = { quantidade: excQtd, total: excTotal };
   }
+
   return result;
 }
 
