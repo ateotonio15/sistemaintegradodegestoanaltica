@@ -361,6 +361,7 @@ export function ReajusteCobrancaRetroativa() {
 
   // ============ Form Reajuste ============
   const [editReaId, setEditReaId] = useState<string | null>(null);
+  const [editReaMovId, setEditReaMovId] = useState<string | null>(null);
   const [reaEmpresa, setReaEmpresa] = useState<string | null>(null);
   const [reaCompet, setReaCompet] = useState<string>(getCurrentMesReferencia());
   const [reaValor, setReaValor] = useState<string>("");
@@ -373,6 +374,7 @@ export function ReajusteCobrancaRetroativa() {
 
   const resetRea = () => {
     setEditReaId(null);
+    setEditReaMovId(null);
     setReaEmpresa(null);
     setReaValor("");
     setReaParcelas("1");
@@ -385,6 +387,7 @@ export function ReajusteCobrancaRetroativa() {
 
   const openEditReajuste = (r: any) => {
     setEditReaId(r.id);
+    setEditReaMovId(r.financeiro_movimentacao_id ?? null);
     setReaEmpresa(r.empresa_id);
     setReaCompet(r.competencia);
     setReaValor(((r.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
