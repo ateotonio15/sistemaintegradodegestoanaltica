@@ -37,6 +37,7 @@ import {
   Loader2,
   Trash2,
   Plus,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -270,6 +271,7 @@ export function ReajusteCobrancaRetroativa() {
   });
 
   // ============ Form Cobrança Retroativa ============
+  const [editCobId, setEditCobId] = useState<string | null>(null);
   const [cobEmpresa, setCobEmpresa] = useState<string | null>(null);
   const [cobCompet, setCobCompet] = useState<string>(getCurrentMesReferencia());
   const [cobValor, setCobValor] = useState<string>("");
@@ -278,6 +280,7 @@ export function ReajusteCobrancaRetroativa() {
   const [cobSaving, setCobSaving] = useState(false);
 
   const resetCob = () => {
+    setEditCobId(null);
     setCobEmpresa(null);
     setCobValor("");
     setCobDescricao("");
@@ -285,29 +288,61 @@ export function ReajusteCobrancaRetroativa() {
     setCobCompet(getCurrentMesReferencia());
   };
 
+  const openEditCobranca = (c: any) => {
+    setEditCobId(c.id);
+    setCobEmpresa(c.empresa_id);
+    setCobCompet(c.competencia);
+    setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+    setCobDescricao(c.descricao || "");
+    setCobFile(null);
+    setOpenCobDialog(true);
+  };
+
   const submitCobranca = async () => {
     if (!cobEmpresa) return toast.error("Selecione um contrato.");
     if (!cobCompet) return toast.error("Selecione a competência.");
     const cents = parseBRLInput(cobValor);
     if (cents <= 0) return toast.error("Informe um valor válido.");
-    if (!cobFile) return toast.error("Anexe o PDF da cobrança.");
-    if (cobFile.type && !cobFile.type.includes("pdf"))
+    if (!editCobId && !cobFile) return toast.error("Anexe o PDF da cobrança.");
+    if (cobFile && cobFile.type && !cobFile.type.includes("pdf"))
       return toast.error("Apenas arquivos PDF são aceitos.");
 
     setCobSaving(true);
     try {
-      const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
-      await uploadPdfAnexo(cobFile, cobEmpresa, movId, user?.id);
-      const { error } = await supabase.from("cobrancas_retroativas").insert({
-        empresa_id: cobEmpresa,
-        competencia: cobCompet,
-        valor_centavos: cents,
-        descricao: cobDescricao || null,
-        financeiro_movimentacao_id: movId,
-        created_by: user?.id ?? null,
-      });
-      if (error) throw error;
-      toast.success("Cobrança retroativa cadastrada e PDF anexado ao processo.");
+      if (editCobId) {
+        const { error } = await supabase
+          .from("cobrancas_retroativas")
+          .update({
+            empresa_id: cobEmpresa,
+            competencia: cobCompet,
+            valor_centavos: cents,
+            descricao: cobDescricao || null,
+          })
+          .eq("id", editCobId);
+        if (error) throw error;
+        if (cobFile) {
+          const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
+          await uploadPdfAnexo(cobFile, cobEmpresa, movId, user?.id);
+          await supabase
+            .from("cobrancas_retroativas")
+            .update({ financeiro_movimentacao_id: movId })
+            .eq("id", editCobId);
+        }
+        toast.success("Cobrança atualizada.");
+      } else {
+        const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
+        await uploadPdfAnexo(cobFile!, cobEmpresa, movId, user?.id);
+        const { error } = await supabase.from("cobrancas_retroativas").insert({
+          empresa_id: cobEmpresa,
+          competencia: cobCompet,
+          valor_centavos: cents,
+          descricao: cobDescricao || null,
+          financeiro_movimentacao_id: movId,
+          created_by: user?.id ?? null,
+        });
+        if (error) throw error;
+        toast.success("Cobrança retroativa cadastrada e PDF anexado ao processo.");
+      }
       resetCob();
       setOpenCobDialog(false);
       queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
@@ -320,7 +355,9 @@ export function ReajusteCobrancaRetroativa() {
     }
   };
 
+
   // ============ Form Reajuste ============
+  const [editReaId, setEditReaId] = useState<string | null>(null);
   const [reaEmpresa, setReaEmpresa] = useState<string | null>(null);
   const [reaCompet, setReaCompet] = useState<string>(getCurrentMesReferencia());
   const [reaValor, setReaValor] = useState<string>("");
@@ -332,6 +369,7 @@ export function ReajusteCobrancaRetroativa() {
   const [reaSaving, setReaSaving] = useState(false);
 
   const resetRea = () => {
+    setEditReaId(null);
     setReaEmpresa(null);
     setReaValor("");
     setReaParcelas("1");
@@ -340,6 +378,21 @@ export function ReajusteCobrancaRetroativa() {
     setAporteParcelas("1");
     setReaFile(null);
     setReaCompet(getCurrentMesReferencia());
+  };
+
+  const openEditReajuste = (r: any) => {
+    setEditReaId(r.id);
+    setReaEmpresa(r.empresa_id);
+    setReaCompet(r.competencia);
+    setReaValor(((r.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+    setReaParcelas(String(r.parcelas || 1));
+    setPossuiAporte(!!r.possui_aporte);
+    setAporteValor(r.valor_aporte_centavos != null
+      ? ((r.valor_aporte_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })
+      : "");
+    setAporteParcelas(String(r.parcelas_aporte || 1));
+    setReaFile(null);
+    setOpenReaDialog(true);
   };
 
   const reaCents = parseBRLInput(reaValor);
@@ -356,27 +409,52 @@ export function ReajusteCobrancaRetroativa() {
     if (reaParcInt < 1) return toast.error("Parcelas deve ser ≥ 1.");
     if (possuiAporte && (aporteCents <= 0 || aporteParcInt < 1))
       return toast.error("Informe valor e parcelas do aporte.");
-    if (!reaFile) return toast.error("Anexe o PDF do reajuste.");
-    if (reaFile.type && !reaFile.type.includes("pdf"))
+    if (!editReaId && !reaFile) return toast.error("Anexe o PDF do reajuste.");
+    if (reaFile && reaFile.type && !reaFile.type.includes("pdf"))
       return toast.error("Apenas arquivos PDF são aceitos.");
 
     setReaSaving(true);
     try {
-      const movId = await ensureFinanceiroMovimentacao(reaEmpresa, reaCompet);
-      await uploadPdfAnexo(reaFile, reaEmpresa, movId, user?.id);
-      const { error } = await supabase.from("reajustes").insert({
-        empresa_id: reaEmpresa,
-        competencia: reaCompet,
-        valor_centavos: reaCents,
-        parcelas: reaParcInt,
-        possui_aporte: possuiAporte,
-        valor_aporte_centavos: possuiAporte ? aporteCents : null,
-        parcelas_aporte: possuiAporte ? aporteParcInt : null,
-        financeiro_movimentacao_id: movId,
-        created_by: user?.id ?? null,
-      });
-      if (error) throw error;
-      toast.success("Reajuste cadastrado e PDF anexado ao processo.");
+      if (editReaId) {
+        const { error } = await supabase
+          .from("reajustes")
+          .update({
+            empresa_id: reaEmpresa,
+            competencia: reaCompet,
+            valor_centavos: reaCents,
+            parcelas: reaParcInt,
+            possui_aporte: possuiAporte,
+            valor_aporte_centavos: possuiAporte ? aporteCents : null,
+            parcelas_aporte: possuiAporte ? aporteParcInt : null,
+          })
+          .eq("id", editReaId);
+        if (error) throw error;
+        if (reaFile) {
+          const movId = await ensureFinanceiroMovimentacao(reaEmpresa, reaCompet);
+          await uploadPdfAnexo(reaFile, reaEmpresa, movId, user?.id);
+          await supabase
+            .from("reajustes")
+            .update({ financeiro_movimentacao_id: movId })
+            .eq("id", editReaId);
+        }
+        toast.success("Reajuste atualizado.");
+      } else {
+        const movId = await ensureFinanceiroMovimentacao(reaEmpresa, reaCompet);
+        await uploadPdfAnexo(reaFile!, reaEmpresa, movId, user?.id);
+        const { error } = await supabase.from("reajustes").insert({
+          empresa_id: reaEmpresa,
+          competencia: reaCompet,
+          valor_centavos: reaCents,
+          parcelas: reaParcInt,
+          possui_aporte: possuiAporte,
+          valor_aporte_centavos: possuiAporte ? aporteCents : null,
+          parcelas_aporte: possuiAporte ? aporteParcInt : null,
+          financeiro_movimentacao_id: movId,
+          created_by: user?.id ?? null,
+        });
+        if (error) throw error;
+        toast.success("Reajuste cadastrado e PDF anexado ao processo.");
+      }
       resetRea();
       setOpenReaDialog(false);
       queryClient.invalidateQueries({ queryKey: ["reajustes"] });
@@ -388,6 +466,7 @@ export function ReajusteCobrancaRetroativa() {
       setReaSaving(false);
     }
   };
+
 
   const deleteCob = useMutation({
     mutationFn: async (id: string) => {
@@ -473,9 +552,11 @@ export function ReajusteCobrancaRetroativa() {
             )}
             canManage={canManage}
             onDelete={(id) => deleteCob.mutate(id)}
+            onEdit={openEditCobranca}
             onView={handleViewPdf}
             loadingPreviewId={loadingPreview}
           />
+
         ) : (
           <ListaContratos
             loading={loadingRea}
@@ -504,9 +585,11 @@ export function ReajusteCobrancaRetroativa() {
             )}
             canManage={canManage}
             onDelete={(id) => deleteRea.mutate(id)}
+            onEdit={openEditReajuste}
             onView={handleViewPdf}
             loadingPreviewId={loadingPreview}
           />
+
         )}
       </CardContent>
 
@@ -516,9 +599,12 @@ export function ReajusteCobrancaRetroativa() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-4 w-4 text-primary" />
-              Nova Cobrança Retroativa
+              {editCobId ? "Editar Cobrança Retroativa" : "Nova Cobrança Retroativa"}
             </DialogTitle>
-            <DialogDescription>O PDF será automaticamente anexado ao processo financeiro.</DialogDescription>
+            <DialogDescription>
+              {editCobId ? "Anexar um novo PDF é opcional. Se enviado, substitui o anterior." : "O PDF será automaticamente anexado ao processo financeiro."}
+            </DialogDescription>
+
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -557,7 +643,7 @@ export function ReajusteCobrancaRetroativa() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">PDF *</Label>
+              <Label className="text-xs">PDF {editCobId ? "(opcional)" : "*"}</Label>
               <FileInput file={cobFile} onChange={setCobFile} />
             </div>
           </div>
@@ -565,11 +651,12 @@ export function ReajusteCobrancaRetroativa() {
             <Button variant="ghost" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>Cancelar</Button>
             <Button onClick={submitCobranca} disabled={cobSaving} className="gap-1.5">
               {cobSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              {cobSaving ? "Salvando..." : "Cadastrar"}
+              {cobSaving ? "Salvando..." : editCobId ? "Salvar alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* ============ DIALOG: REAJUSTE ============ */}
       <Dialog open={openReaDialog} onOpenChange={(o) => { setOpenReaDialog(o); if (!o) resetRea(); }}>
@@ -577,9 +664,12 @@ export function ReajusteCobrancaRetroativa() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary" />
-              Novo Reajuste
+              {editReaId ? "Editar Reajuste" : "Novo Reajuste"}
             </DialogTitle>
-            <DialogDescription>O PDF será automaticamente anexado ao processo financeiro.</DialogDescription>
+            <DialogDescription>
+              {editReaId ? "Anexar um novo PDF é opcional. Se enviado, substitui o anterior." : "O PDF será automaticamente anexado ao processo financeiro."}
+            </DialogDescription>
+
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -659,7 +749,7 @@ export function ReajusteCobrancaRetroativa() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs">PDF *</Label>
+              <Label className="text-xs">PDF {editReaId ? "(opcional)" : "*"}</Label>
               <FileInput file={reaFile} onChange={setReaFile} />
             </div>
           </div>
@@ -667,10 +757,11 @@ export function ReajusteCobrancaRetroativa() {
             <Button variant="ghost" onClick={() => setOpenReaDialog(false)} disabled={reaSaving}>Cancelar</Button>
             <Button onClick={submitReajuste} disabled={reaSaving} className="gap-1.5">
               {reaSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              {reaSaving ? "Salvando..." : "Cadastrar"}
+              {reaSaving ? "Salvando..." : editReaId ? "Salvar alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
+
       </Dialog>
 
       {previewAnexo && (
@@ -720,6 +811,7 @@ function ListaContratos({
   renderRight,
   canManage,
   onDelete,
+  onEdit,
   onView,
   loadingPreviewId,
 }: {
@@ -731,6 +823,7 @@ function ListaContratos({
   renderRight: (item: any) => React.ReactNode;
   canManage: boolean;
   onDelete: (id: string) => void;
+  onEdit?: (item: any) => void;
   onView: (movimentacaoId: string | null) => void;
   loadingPreviewId: string | null;
 }) {
@@ -774,6 +867,17 @@ function ListaContratos({
                 <Eye className="h-3.5 w-3.5 text-primary" />
               )}
             </Button>
+            {canManage && onEdit && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 shrink-0"
+                onClick={() => onEdit(it)}
+                title="Editar"
+              >
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            )}
             {canManage && (
               <Button
                 size="icon"
@@ -786,6 +890,7 @@ function ListaContratos({
               </Button>
             )}
           </div>
+
         );
       })}
     </div>
