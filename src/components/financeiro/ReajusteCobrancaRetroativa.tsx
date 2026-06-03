@@ -552,9 +552,11 @@ export function ReajusteCobrancaRetroativa() {
             )}
             canManage={canManage}
             onDelete={(id) => deleteCob.mutate(id)}
+            onEdit={openEditCobranca}
             onView={handleViewPdf}
             loadingPreviewId={loadingPreview}
           />
+
         ) : (
           <ListaContratos
             loading={loadingRea}
