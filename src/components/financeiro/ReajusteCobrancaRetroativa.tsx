@@ -272,6 +272,7 @@ export function ReajusteCobrancaRetroativa() {
 
   // ============ Form Cobrança Retroativa ============
   const [editCobId, setEditCobId] = useState<string | null>(null);
+  const [editCobMovId, setEditCobMovId] = useState<string | null>(null);
   const [cobEmpresa, setCobEmpresa] = useState<string | null>(null);
   const [cobCompet, setCobCompet] = useState<string>(getCurrentMesReferencia());
   const [cobValor, setCobValor] = useState<string>("");
@@ -281,6 +282,7 @@ export function ReajusteCobrancaRetroativa() {
 
   const resetCob = () => {
     setEditCobId(null);
+    setEditCobMovId(null);
     setCobEmpresa(null);
     setCobValor("");
     setCobDescricao("");
@@ -290,6 +292,7 @@ export function ReajusteCobrancaRetroativa() {
 
   const openEditCobranca = (c: any) => {
     setEditCobId(c.id);
+    setEditCobMovId(c.financeiro_movimentacao_id ?? null);
     setCobEmpresa(c.empresa_id);
     setCobCompet(c.competencia);
     setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
