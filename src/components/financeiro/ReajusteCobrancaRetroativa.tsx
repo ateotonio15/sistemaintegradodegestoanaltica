@@ -218,6 +218,38 @@ export function ReajusteCobrancaRetroativa() {
     }
   };
 
+  const [removingAnexo, setRemovingAnexo] = useState(false);
+  const handleRemoveAnexo = async (movimentacaoId: string | null, onDone?: () => void) => {
+    if (!movimentacaoId) return;
+    if (!confirm("Remover o PDF anexado deste registro?")) return;
+    setRemovingAnexo(true);
+    try {
+      const { data, error } = await supabase
+        .from("anexos_financeiro")
+        .select("id, storage_path")
+        .eq("financeiro_movimentacao_id", movimentacaoId)
+        .eq("origem", "retroativo");
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const paths = data.map((a: any) => a.storage_path).filter(Boolean);
+        if (paths.length > 0) {
+          await supabase.storage.from("anexos-financeiro").remove(paths);
+        }
+        const ids = data.map((a: any) => a.id);
+        await supabase.from("anexos_financeiro").delete().in("id", ids);
+      }
+      toast.success("Anexo removido.");
+      queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
+      queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
+      queryClient.invalidateQueries({ queryKey: ["reajustes"] });
+      onDone?.();
+    } catch (e: any) {
+      toast.error("Erro ao remover anexo: " + (e?.message || "desconhecido"));
+    } finally {
+      setRemovingAnexo(false);
+    }
+  };
+
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas-rcr"],
     queryFn: async () => {
