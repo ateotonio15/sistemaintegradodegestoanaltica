@@ -749,7 +749,7 @@ export function ReajusteCobrancaRetroativa() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs">PDF *</Label>
+              <Label className="text-xs">PDF {editReaId ? "(opcional)" : "*"}</Label>
               <FileInput file={reaFile} onChange={setReaFile} />
             </div>
           </div>
@@ -757,10 +757,11 @@ export function ReajusteCobrancaRetroativa() {
             <Button variant="ghost" onClick={() => setOpenReaDialog(false)} disabled={reaSaving}>Cancelar</Button>
             <Button onClick={submitReajuste} disabled={reaSaving} className="gap-1.5">
               {reaSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              {reaSaving ? "Salvando..." : "Cadastrar"}
+              {reaSaving ? "Salvando..." : editReaId ? "Salvar alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
+
       </Dialog>
 
       {previewAnexo && (
