@@ -711,6 +711,7 @@ export default function Dashboard() {
           >
             Implantação
           </Button>
+          {isDiretora && <VidasOperadoraResumo />}
         </div>
         </div>
 
