@@ -212,7 +212,9 @@ export function PreviewArquivoDialog({
         canvas.style.height = `${Math.floor(viewport.height)}px`;
 
         context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
-        renderTask = page.render({ canvas, canvasContext: context, viewport });
+        context.fillStyle = "hsl(0 0% 100%)";
+        context.fillRect(0, 0, viewport.width, viewport.height);
+        renderTask = page.render({ canvas, canvasContext: context, viewport, background: "hsl(0 0% 100%)" });
         await renderTask.promise;
       } catch (err: any) {
         if (!cancelled && err?.name !== "RenderingCancelledException") {
@@ -322,7 +324,7 @@ export function PreviewArquivoDialog({
                     }
                     const safeName = nomeArquivo.replace(/[<>&"]/g, "");
                     const viewerUrl = isPdf ? `${url}#view=FitH&toolbar=1&navpanes=0&scrollbar=1` : url;
-                    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeName}</title><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#f4f4f5;}iframe{display:block;width:100vw;height:100vh;border:0;background:#f4f4f5;}</style></head><body><iframe src="${viewerUrl}" title="${safeName}"></iframe></body></html>`);
+                    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeName}</title><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:white;}iframe{display:block;width:100vw;height:100vh;border:0;background:white;}</style></head><body><iframe src="${viewerUrl}" title="${safeName}"></iframe></body></html>`);
                     win.document.close();
                   } catch (err: any) {
                     toast.error("Erro ao abrir: " + (err?.message ?? "desconhecido"));
@@ -339,7 +341,7 @@ export function PreviewArquivoDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 bg-muted/30">
+        <div className="flex-1 min-h-0 bg-card">
           {loading && (
             <div className="h-full flex items-center justify-center text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando...
@@ -355,7 +357,7 @@ export function PreviewArquivoDialog({
           {!loading && !error && url && (
             <>
               {isPdf ? (
-                <div ref={pdfContainerRef} className="relative h-full overflow-auto bg-background p-4">
+                <div ref={pdfContainerRef} className="relative h-full overflow-auto bg-card p-4">
                   {renderingPage && (
                     <div className="absolute inset-x-0 top-3 z-10 flex justify-center pointer-events-none">
                       <span className="inline-flex items-center rounded-md border bg-background px-3 py-1 text-xs text-muted-foreground shadow-sm">
@@ -365,7 +367,7 @@ export function PreviewArquivoDialog({
                     </div>
                   )}
                   <div className="flex min-h-full justify-center pb-6">
-                    <canvas ref={canvasRef} className="h-fit max-w-none rounded-sm bg-background shadow-sm" />
+                    <canvas ref={canvasRef} className="h-fit max-w-none rounded-sm bg-card" />
                   </div>
                 </div>
               ) : isImage ? (
