@@ -20,6 +20,7 @@ import Arquivos from "./pages/Arquivos";
 import Implantacao from "./pages/Implantacao";
 import VidasSamel from "./pages/VidasSamel";
 import GestaoVidas from "./pages/GestaoVidas";
+import VidasOperadora from "./pages/VidasOperadora";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
