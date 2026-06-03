@@ -275,7 +275,17 @@ export function PreviewArquivoDialog({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open(url, "_blank", "noopener")}
+                onClick={async () => {
+                  try {
+                    const { data, error: e } = await supabase.storage
+                      .from(bucket)
+                      .createSignedUrl(storagePath, 60 * 10);
+                    if (e || !data?.signedUrl) throw e ?? new Error("Falha ao gerar link");
+                    window.open(data.signedUrl, "_blank", "noopener");
+                  } catch (err: any) {
+                    toast.error("Erro ao abrir: " + (err?.message ?? "desconhecido"));
+                  }
+                }}
                 title="Abrir em nova aba"
               >
                 <ExternalLink className="h-4 w-4 mr-1.5" /> Nova aba
