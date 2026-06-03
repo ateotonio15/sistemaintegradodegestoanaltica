@@ -79,9 +79,9 @@ export function VidasOperadoraResumo() {
             <Row icon={<Users className="h-4 w-4 text-primary" />} label="Total de vidas" value={fmt(totals.total)} highlight />
             <Row icon={<Building2 className="h-4 w-4 text-muted-foreground" />} label="Empresas" value={fmt(totals.empresas)} />
             <div className="h-px bg-border my-2" />
-            <Row icon={<Building className="h-4 w-4 text-info" />} label="Empresarial" value={fmt(totals.empresarial)} />
-            <Row icon={<Briefcase className="h-4 w-4 text-warning" />} label="PME" value={fmt(totals.pme)} />
-            <Row icon={<Layers className="h-4 w-4 text-success" />} label="Plural" value={fmt(totals.plural)} />
+            <Row icon={<Building className="h-4 w-4 text-info" />} label={`Empresarial (${fmt(totals.qtdEmpresarial)} emp.)`} value={fmt(totals.empresarial)} />
+            <Row icon={<Briefcase className="h-4 w-4 text-warning" />} label={`PME (${fmt(totals.qtdPME)} emp.)`} value={fmt(totals.pme)} />
+            <Row icon={<Layers className="h-4 w-4 text-success" />} label={`Plural (${fmt(totals.qtdPlural)} emp.)`} value={fmt(totals.plural)} />
           </div>
         )}
       </PopoverContent>
