@@ -275,13 +275,16 @@ export function PreviewArquivoDialog({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={async () => {
+                onClick={() => {
                   try {
-                    const { data, error: e } = await supabase.storage
-                      .from(bucket)
-                      .createSignedUrl(storagePath, 60 * 10);
-                    if (e || !data?.signedUrl) throw e ?? new Error("Falha ao gerar link");
-                    window.open(data.signedUrl, "_blank", "noopener");
+                    const win = window.open("", "_blank", "noopener");
+                    if (!win) {
+                      toast.error("Pop-ups bloqueados. Permita pop-ups para este site.");
+                      return;
+                    }
+                    const safeName = nomeArquivo.replace(/[<>&"]/g, "");
+                    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeName}</title><style>html,body,iframe{margin:0;padding:0;height:100%;width:100%;border:0;background:#222;}</style></head><body><iframe src="${url}"></iframe></body></html>`);
+                    win.document.close();
                   } catch (err: any) {
                     toast.error("Erro ao abrir: " + (err?.message ?? "desconhecido"));
                   }
