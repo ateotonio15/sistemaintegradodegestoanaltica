@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Building2, Users, PieChart as PieIcon, RefreshCw } from "lucide-react";
+import { Activity, Building2, Users, PieChart as PieIcon, RefreshCw, Briefcase, Building, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,6 +26,18 @@ export default function VidasOperadora() {
     () => (data?.porClassificacao ?? []).reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0),
     [data],
   );
+
+  const sumByClassificacao = (predicate: (ds: string) => boolean) =>
+    (data?.porClassificacao ?? [])
+      .filter((c) => predicate((c.DS_CLASSIFICACAO ?? "").toUpperCase()))
+      .reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0);
+
+  const totalEmpresarial = useMemo(
+    () => sumByClassificacao((ds) => ds.includes("EMPRESARIAL") && !ds.includes("PME")),
+    [data],
+  );
+  const totalPME = useMemo(() => sumByClassificacao((ds) => ds.includes("PME")), [data]);
+  const totalPlural = useMemo(() => sumByClassificacao((ds) => ds.includes("PLURAL")), [data]);
 
   const empresasFiltradas = useMemo(() => {
     const list = (data?.porEmpresa ?? []).slice().sort((a, b) => b.QT_VIDAS - a.QT_VIDAS);
@@ -93,6 +105,45 @@ export default function VidasOperadora() {
             <div className="text-3xl font-bold">
               {isLoading ? "..." : (data?.porClassificacao.length ?? 0)}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Empresarial</CardTitle>
+            <Building className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {isLoading ? "..." : totalEmpresarial.toLocaleString("pt-BR")}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Classificação Empresarial</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground">PME</CardTitle>
+            <Briefcase className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {isLoading ? "..." : totalPME.toLocaleString("pt-BR")}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Todas as classificações com PME</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Plural</CardTitle>
+            <Layers className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {isLoading ? "..." : totalPlural.toLocaleString("pt-BR")}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Classificação Plural</p>
           </CardContent>
         </Card>
       </div>
