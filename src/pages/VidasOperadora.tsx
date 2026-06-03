@@ -185,24 +185,59 @@ export default function VidasOperadora() {
             <CardTitle className="text-base">Classificação</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data?.porClassificacao ?? []}
-                    dataKey="QT_VIDAS"
-                    nameKey="DS_CLASSIFICACAO"
-                    outerRadius={90}
-                    label={(e: any) => `${e.DS_CLASSIFICACAO}: ${e.QT_VIDAS.toLocaleString("pt-BR")}`}
-                  >
-                    {(data?.porClassificacao ?? []).map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => v.toLocaleString("pt-BR")} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+              <div className="h-72 relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={(data?.porClassificacao ?? []).slice().sort((a, b) => b.QT_VIDAS - a.QT_VIDAS)}
+                      dataKey="QT_VIDAS"
+                      nameKey="DS_CLASSIFICACAO"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={1}
+                      stroke="hsl(var(--background))"
+                      strokeWidth={2}
+                    >
+                      {(data?.porClassificacao ?? []).map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                      formatter={(v: number, name: string) => [`${v.toLocaleString("pt-BR")} vidas`, name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-xs text-muted-foreground">Total</span>
+                  <span className="text-xl font-bold">{totalGeral.toLocaleString("pt-BR")}</span>
+                </div>
+              </div>
+              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-2">
+                {(data?.porClassificacao ?? [])
+                  .slice()
+                  .sort((a, b) => b.QT_VIDAS - a.QT_VIDAS)
+                  .map((c, i) => {
+                    const pct = totalGeral > 0 ? (c.QT_VIDAS / totalGeral) * 100 : 0;
+                    const originalIndex = (data?.porClassificacao ?? []).findIndex((x) => x.DS_CLASSIFICACAO === c.DS_CLASSIFICACAO);
+                    return (
+                      <div key={c.DS_CLASSIFICACAO + i} className="flex items-center gap-2 text-xs">
+                        <span
+                          className="h-3 w-3 rounded-sm shrink-0"
+                          style={{ background: COLORS[originalIndex % COLORS.length] }}
+                        />
+                        <span className="flex-1 truncate" title={c.DS_CLASSIFICACAO}>
+                          {c.DS_CLASSIFICACAO}
+                        </span>
+                        <span className="font-mono font-semibold">{c.QT_VIDAS.toLocaleString("pt-BR")}</span>
+                        <span className="font-mono text-muted-foreground w-12 text-right">
+                          {pct.toFixed(1)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
             </div>
           </CardContent>
         </Card>
