@@ -40,7 +40,13 @@ export default function VidasOperadora() {
     () => sumByClassificacao((ds) => ds.includes("PME") && !ds.includes("PLURAL")),
     [data],
   );
-  const totalPlural = useMemo(() => sumByClassificacao((ds) => ds.includes("PLURAL")), [data]);
+  const totalPlural = useMemo(
+    () =>
+      (data?.porEmpresa ?? [])
+        .filter((e) => (e.NM_ESTIPULANTE ?? "").toUpperCase().includes("PLURAL"))
+        .reduce((a, b) => a + (b.QT_VIDAS ?? 0), 0),
+    [data],
+  );
 
   const empresasFiltradas = useMemo(() => {
     const list = (data?.porEmpresa ?? []).slice().sort((a, b) => b.QT_VIDAS - a.QT_VIDAS);
@@ -146,7 +152,7 @@ export default function VidasOperadora() {
             <div className="text-3xl font-bold">
               {isLoading ? "..." : totalPlural.toLocaleString("pt-BR")}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Classificação Plural</p>
+            <p className="text-xs text-muted-foreground mt-1">Empresas com "Plural" no nome</p>
           </CardContent>
         </Card>
       </div>
