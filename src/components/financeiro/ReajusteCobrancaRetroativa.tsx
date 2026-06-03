@@ -41,6 +41,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getMesesOptions, formatMesReferencia, getCurrentMesReferencia, PERIODOS_FIN } from "@/lib/financeiro-utils";
+import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
+import { Eye } from "lucide-react";
 
 type EmpresaOption = {
   id: string;
