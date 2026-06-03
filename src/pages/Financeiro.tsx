@@ -1013,9 +1013,29 @@ export default function Financeiro() {
     const { comparacoes, notasOrfas } = cruzarExcelComPdfs(blocosTotais, pdfsValidos);
 
     const resultados: import("@/lib/excel-analysis-utils").AnaliseResultado[] = blocosTotais.map(
-      (b) => {
+      (b, i) => {
         const key = b.cnpj || `__nome::${b.nome}`;
         const meta = metaByCnpj.get(key);
+        const cmp: any = comparacoes[i] ?? null;
+        const avisos: string[] = [...(b.avisos || [])];
+
+        // Aviso quando há PDFs anexados, mas nenhum casou com este bloco do Excel
+        // (tomador do PDF diverge do CNPJ do pagador → análise completa fica inviável).
+        if (pdfsValidos.length > 0 && !cmp?.arquivoPdf) {
+          const tomadores = pdfsValidos
+            .map((p) => {
+              const cnpjFmt = p.tomadorCnpj
+                ? `${p.tomadorCnpj.slice(0, 2)}.${p.tomadorCnpj.slice(2, 5)}.${p.tomadorCnpj.slice(5, 8)}/${p.tomadorCnpj.slice(8, 12)}-${p.tomadorCnpj.slice(12)}`
+                : "(sem CNPJ)";
+              return `${p.tomadorNome || p.arquivo} — ${cnpjFmt}`;
+            })
+            .join("; ");
+          avisos.push(
+            `Anexo não confere: o tomador do PDF (${tomadores}) é diferente do pagador do Excel. ` +
+              `Por isso a Análise Completa não pode ser realizada para esta linha.`,
+          );
+        }
+
         const out: any = {
           pagador: b.nomeExibicao,
           cnpj: b.cnpj,
@@ -1023,7 +1043,7 @@ export default function Financeiro() {
           enfermaria: b.enfermaria,
           apartamento: b.apartamento,
           inclusoes: b.inclusoes,
-          avisos: b.avisos,
+          avisos,
           _hash: meta?.hashExcel ?? null,
           _arquivo: meta?.arquivo ?? null,
         };
@@ -1031,6 +1051,7 @@ export default function Financeiro() {
         return out;
       },
     );
+
 
     const out = { key: cacheKey, resultados, comparacoes, notasOrfas, temXls: true };
     motherAnalysisCache.current.set(row.id, out);
