@@ -247,10 +247,15 @@ function isInclusao(tipo: string): boolean {
   return t.includes("inclusao") || t.includes("inclusão") || t.includes("retroativ");
 }
 
+function isRetroativa(tipo: string): boolean {
+  return norm(tipo).includes("retroativ");
+}
+
 function isExclusao(tipo: string): boolean {
   const t = norm(tipo);
   return t.includes("exclusao") || t.includes("exclusão") || t.includes("excluido");
 }
+
 
 /**
  * Versão com filtro opcional por pagador (CNPJ prioritário, nome como fallback).
