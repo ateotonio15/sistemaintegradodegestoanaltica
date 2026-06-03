@@ -742,8 +742,19 @@ export function ReajusteCobrancaRetroativa() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>Cancelar</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpenCobDialog(false);
+                abrirCalculadora(editCobId ? { id: editCobId, empresa_id: cobEmpresa, competencia: cobCompet } : undefined);
+              }}
+              disabled={cobSaving}
+              className="gap-1.5"
+            >
+              <Calculator className="h-4 w-4" /> Calcular retroativo
+            </Button>
             <Button onClick={submitCobranca} disabled={cobSaving} className="gap-1.5">
               {cobSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
               {cobSaving ? "Salvando..." : editCobId ? "Salvar alterações" : "Cadastrar"}
