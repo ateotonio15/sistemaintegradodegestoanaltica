@@ -37,7 +37,6 @@ import {
   Loader2,
   Trash2,
   Plus,
-  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
