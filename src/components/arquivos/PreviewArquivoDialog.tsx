@@ -365,7 +365,7 @@ export function PreviewArquivoDialog({
                     </div>
                   )}
                   <div className="flex min-h-full justify-center pb-6">
-                    <canvas ref={canvasRef} className="h-fit max-w-full rounded-sm bg-background shadow-sm" />
+                    <canvas ref={canvasRef} className="h-fit max-w-none rounded-sm bg-background shadow-sm" />
                   </div>
                 </div>
               ) : isImage ? (
