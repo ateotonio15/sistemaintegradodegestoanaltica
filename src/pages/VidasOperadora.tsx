@@ -36,7 +36,10 @@ export default function VidasOperadora() {
     () => sumByClassificacao((ds) => ds.includes("EMPRESARIAL") && !ds.includes("PME")),
     [data],
   );
-  const totalPME = useMemo(() => sumByClassificacao((ds) => ds.includes("PME")), [data]);
+  const totalPME = useMemo(
+    () => sumByClassificacao((ds) => ds.includes("PME") && !ds.includes("PLURAL")),
+    [data],
+  );
   const totalPlural = useMemo(() => sumByClassificacao((ds) => ds.includes("PLURAL")), [data]);
 
   const empresasFiltradas = useMemo(() => {
