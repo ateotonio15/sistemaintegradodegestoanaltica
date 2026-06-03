@@ -504,6 +504,8 @@ export function ReajusteCobrancaRetroativa() {
             )}
             canManage={canManage}
             onDelete={(id) => deleteRea.mutate(id)}
+            onView={handleViewPdf}
+            loadingPreviewId={loadingPreview}
           />
         )}
       </CardContent>
