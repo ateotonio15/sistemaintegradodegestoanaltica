@@ -37,7 +37,6 @@ import {
   Loader2,
   Trash2,
   Plus,
-  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -272,6 +271,7 @@ export function ReajusteCobrancaRetroativa() {
 
   // ============ Form Cobrança Retroativa ============
   const [editCobId, setEditCobId] = useState<string | null>(null);
+  const [editCobMovId, setEditCobMovId] = useState<string | null>(null);
   const [cobEmpresa, setCobEmpresa] = useState<string | null>(null);
   const [cobCompet, setCobCompet] = useState<string>(getCurrentMesReferencia());
   const [cobValor, setCobValor] = useState<string>("");
@@ -281,6 +281,7 @@ export function ReajusteCobrancaRetroativa() {
 
   const resetCob = () => {
     setEditCobId(null);
+    setEditCobMovId(null);
     setCobEmpresa(null);
     setCobValor("");
     setCobDescricao("");
@@ -290,6 +291,7 @@ export function ReajusteCobrancaRetroativa() {
 
   const openEditCobranca = (c: any) => {
     setEditCobId(c.id);
+    setEditCobMovId(c.financeiro_movimentacao_id ?? null);
     setCobEmpresa(c.empresa_id);
     setCobCompet(c.competencia);
     setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
@@ -358,6 +360,7 @@ export function ReajusteCobrancaRetroativa() {
 
   // ============ Form Reajuste ============
   const [editReaId, setEditReaId] = useState<string | null>(null);
+  const [editReaMovId, setEditReaMovId] = useState<string | null>(null);
   const [reaEmpresa, setReaEmpresa] = useState<string | null>(null);
   const [reaCompet, setReaCompet] = useState<string>(getCurrentMesReferencia());
   const [reaValor, setReaValor] = useState<string>("");
@@ -370,6 +373,7 @@ export function ReajusteCobrancaRetroativa() {
 
   const resetRea = () => {
     setEditReaId(null);
+    setEditReaMovId(null);
     setReaEmpresa(null);
     setReaValor("");
     setReaParcelas("1");
@@ -382,6 +386,7 @@ export function ReajusteCobrancaRetroativa() {
 
   const openEditReajuste = (r: any) => {
     setEditReaId(r.id);
+    setEditReaMovId(r.financeiro_movimentacao_id ?? null);
     setReaEmpresa(r.empresa_id);
     setReaCompet(r.competencia);
     setReaValor(((r.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
@@ -645,6 +650,23 @@ export function ReajusteCobrancaRetroativa() {
             <div className="space-y-1.5">
               <Label className="text-xs">PDF {editCobId ? "(opcional)" : "*"}</Label>
               <FileInput file={cobFile} onChange={setCobFile} />
+              {editCobId && editCobMovId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 w-full"
+                  onClick={() => handleViewPdf(editCobMovId)}
+                  disabled={loadingPreview === editCobMovId}
+                >
+                  {loadingPreview === editCobMovId ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5 text-primary" />
+                  )}
+                  Visualizar PDF anexado
+                </Button>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -751,6 +773,23 @@ export function ReajusteCobrancaRetroativa() {
             <div className="space-y-1.5">
               <Label className="text-xs">PDF {editReaId ? "(opcional)" : "*"}</Label>
               <FileInput file={reaFile} onChange={setReaFile} />
+              {editReaId && editReaMovId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 w-full"
+                  onClick={() => handleViewPdf(editReaMovId)}
+                  disabled={loadingPreview === editReaMovId}
+                >
+                  {loadingPreview === editReaMovId ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5 text-primary" />
+                  )}
+                  Visualizar PDF anexado
+                </Button>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -837,11 +876,27 @@ function ListaContratos({
     <div className="max-h-[260px] overflow-y-auto space-y-2 pr-1">
       {items.map((it) => {
         const emp = empresasMap[it.empresa_id];
-        const isLoading = loadingPreviewId === it.financeiro_movimentacao_id;
+        const clickable = !!onEdit;
         return (
           <div
             key={it.id}
-            className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/40 transition-colors"
+            role={clickable ? "button" : undefined}
+            tabIndex={clickable ? 0 : undefined}
+            onClick={clickable ? () => onEdit!(it) : undefined}
+            onKeyDown={
+              clickable
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onEdit!(it);
+                    }
+                  }
+                : undefined
+            }
+            className={cn(
+              "flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card transition-colors",
+              clickable && "cursor-pointer hover:bg-accent/40"
+            )}
           >
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium truncate text-foreground">
@@ -853,44 +908,21 @@ function ListaContratos({
               </p>
             </div>
             {renderRight(it)}
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 shrink-0"
-              onClick={() => onView(it.financeiro_movimentacao_id)}
-              disabled={isLoading || !it.financeiro_movimentacao_id}
-              title="Visualizar PDF"
-            >
-              {isLoading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Eye className="h-3.5 w-3.5 text-primary" />
-              )}
-            </Button>
-            {canManage && onEdit && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 shrink-0"
-                onClick={() => onEdit(it)}
-                title="Editar"
-              >
-                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            )}
             {canManage && (
               <Button
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7 shrink-0"
-                onClick={() => onDelete(it.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(it.id);
+                }}
                 title="Remover"
               >
                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
               </Button>
             )}
           </div>
-
         );
       })}
     </div>
