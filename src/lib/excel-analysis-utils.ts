@@ -19,7 +19,10 @@ export interface AnaliseResultado {
   nomeExibicao?: string;
   enfermaria: CategoriaResultado;
   apartamento: CategoriaResultado;
+  /** Inclusões — total agregado (inclui retroativas, p/ comparação com PDF). */
   inclusoes: InclusaoResultado;
+  /** Cobrança Retroativa — subset de inclusoes, exibido como linha própria. */
+  retroativas?: InclusaoResultado;
   /** Apenas Análise Moto Honda — total geralmente negativo. */
   exclusoes?: InclusaoResultado;
   avisos: string[];
@@ -33,9 +36,11 @@ export interface AnalisePorCnpj {
   enfermaria: CategoriaResultado;
   apartamento: CategoriaResultado;
   inclusoes: InclusaoResultado;
+  retroativas?: InclusaoResultado;
   exclusoes?: InclusaoResultado;
   avisos: string[];
 }
+
 
 
 /** Validação simplificada (Moto Honda PDF sem detalhamento por categoria). */
