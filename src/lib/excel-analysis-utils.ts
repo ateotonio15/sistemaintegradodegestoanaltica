@@ -1022,9 +1022,13 @@ export async function analisarExcelFinanceiroPorCnpj(
         inclusoes: { quantidade: g.incQtd, total: g.incTotal },
         avisos,
       };
+      if (g.retroQtd > 0 || g.retroTotal !== 0) {
+        bloco.retroativas = { quantidade: g.retroQtd, total: g.retroTotal };
+      }
       if (g.excQtd > 0 || g.excTotal !== 0) {
         bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
       }
+
       return bloco;
     })
     .filter(
