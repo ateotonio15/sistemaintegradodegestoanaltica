@@ -602,6 +602,18 @@ export async function analisarPdfFinanceiroSimplificado(
     if (!isNaN(v)) incTotal = v;
   }
 
+  // Soma "Cobrança Retroativa" às inclusões (Excel agrega as duas).
+  const reRetroS = new RegExp(
+    `cobran[çc]a\\s+retroativa\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
+    "i",
+  );
+  const mRetroS = t.match(reRetroS);
+  if (mRetroS) {
+    const v = parseValor(mRetroS[1]);
+    if (!isNaN(v) && v > 0) incTotal += v;
+  }
+
+
   // Exclusões: "exclusoes: (6.976,73)" → negativo
   let excQtd: number | null = null;
   let excTotal = 0;
