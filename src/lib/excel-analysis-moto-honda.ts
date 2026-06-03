@@ -98,8 +98,8 @@ export async function analisarExcelMotoHonda(
       return;
     }
 
-    // Proporcional / Inclusoes
-    if (!achouInclusoes && (label.includes("inclus") || label.includes("retroativ"))) {
+    // Proporcional / Inclusoes (sem retroativa)
+    if (!achouInclusoes && label.includes("inclus") && !label.includes("retroativ")) {
       const tot = toNumber(vals[3]);
       const qtd = toNumber(vals[1]);
       result.inclusoes = {
@@ -109,6 +109,25 @@ export async function analisarExcelMotoHonda(
       achouInclusoes = true;
       return;
     }
+
+    // Cobrança Retroativa — soma em inclusoes E expõe como linha separada.
+    if (label.includes("retroativ")) {
+      const tot = toNumber(vals[3]);
+      const qtd = toNumber(vals[1]);
+      const qtdN = isNaN(qtd) ? 0 : Math.round(qtd);
+      const totN = isNaN(tot) ? 0 : tot;
+      result.retroativas = {
+        quantidade: (result.retroativas?.quantidade ?? 0) + qtdN,
+        total: (result.retroativas?.total ?? 0) + totN,
+      };
+      result.inclusoes = {
+        quantidade: result.inclusoes.quantidade + qtdN,
+        total: result.inclusoes.total + totN,
+      };
+      return;
+    }
+
+
 
     // Proporcional / Exclusoes
     if (!achouExclusoes && label.includes("exclus")) {
