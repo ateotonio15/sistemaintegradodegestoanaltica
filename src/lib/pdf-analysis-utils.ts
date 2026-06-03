@@ -296,11 +296,10 @@ export async function analisarPdfFinanceiro(
   // valor de "Inclusão". O Excel soma as duas em "Inclusões", então fazemos
   // o mesmo aqui para evitar divergências falsas.
   const reRetro = new RegExp(
-    `cobran[çc]a\\s+retroativa\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
-    "i",
+    `(?:^|[\\s/;|])cobran[çc]a\\s*retroativ[ao]s?\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
+    "gi",
   );
-  const mRetro = t.match(reRetro);
-  if (mRetro) {
+  for (const mRetro of t.matchAll(reRetro)) {
     const v = parseValor(mRetro[1]);
     if (!isNaN(v) && v > 0) {
       inclusoesTotal += v;
@@ -604,11 +603,10 @@ export async function analisarPdfFinanceiroSimplificado(
 
   // Soma "Cobrança Retroativa" às inclusões (Excel agrega as duas).
   const reRetroS = new RegExp(
-    `cobran[çc]a\\s+retroativa\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
-    "i",
+    `(?:^|[\\s/;|])cobran[çc]a\\s*retroativ[ao]s?\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
+    "gi",
   );
-  const mRetroS = t.match(reRetroS);
-  if (mRetroS) {
+  for (const mRetroS of t.matchAll(reRetroS)) {
     const v = parseValor(mRetroS[1]);
     if (!isNaN(v) && v > 0) incTotal += v;
   }
