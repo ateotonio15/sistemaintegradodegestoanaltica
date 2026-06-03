@@ -100,6 +100,7 @@ export default function Empresas() {
   const [suspensaoEmpresa, setSuspensaoEmpresa] = useState<Empresa | null>(null);
   const [valoresEmpresa, setValoresEmpresa] = useState<Empresa | null>(null);
   const [importValoresOpen, setImportValoresOpen] = useState(false);
+  const [recalcVidasOpen, setRecalcVidasOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const anexoInputRef = useRef<HTMLInputElement>(null);
   const [importingAnexo, setImportingAnexo] = useState(false);
