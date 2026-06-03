@@ -42,6 +42,7 @@ const allNavItems = [
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
   { to: "/vidas-samel", label: "Vidas Samel", icon: HeartPulse },
   { to: "/gestao-vidas", label: "Gestão de Vidas", icon: Activity },
+  { to: "/vidas-operadora", label: "Vidas na Operadora", icon: Activity },
 ];
 
 interface Notificacao {
