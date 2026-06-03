@@ -5,7 +5,13 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
-import { fetchVidasOperadoraAgrupado, normalizeNome } from "@/lib/vidasOperadoraApi";
+import {
+  fetchVidasOperadoraAgrupado,
+  normalizeNome,
+  normalizeNomeStrict,
+  tokensSignificativos,
+  jaccard,
+} from "@/lib/vidasOperadoraApi";
 import { toast } from "sonner";
 import { RefreshCw, CheckCircle2, XCircle, FileSpreadsheet, Cloud } from "lucide-react";
 
