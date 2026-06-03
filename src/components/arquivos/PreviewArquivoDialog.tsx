@@ -311,30 +311,6 @@ export function PreviewArquivoDialog({
                 </Button>
               </div>
             )}
-            {url && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  try {
-                    const win = window.open("", "_blank", "noopener");
-                    if (!win) {
-                      toast.error("Pop-ups bloqueados. Permita pop-ups para este site.");
-                      return;
-                    }
-                    const safeName = nomeArquivo.replace(/[<>&"]/g, "");
-                    const viewerUrl = isPdf ? `${url}#view=FitH&toolbar=1&navpanes=0&scrollbar=1` : url;
-                    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeName}</title><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:white;}iframe{display:block;width:100vw;height:100vh;border:0;background:white;}</style></head><body><iframe src="${viewerUrl}" title="${safeName}"></iframe></body></html>`);
-                    win.document.close();
-                  } catch (err: any) {
-                    toast.error("Erro ao abrir: " + (err?.message ?? "desconhecido"));
-                  }
-                }}
-                title="Abrir em nova aba"
-              >
-                <ExternalLink className="h-4 w-4 mr-1.5" /> Nova aba
-              </Button>
-            )}
             <Button variant="outline" size="sm" onClick={handleDownload}>
               <Download className="h-4 w-4 mr-1.5" /> Baixar
             </Button>
