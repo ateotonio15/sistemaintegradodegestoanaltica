@@ -251,27 +251,30 @@ export function RecalcularVidasDialog({
 
         {results.length > 0 && (
           <div className="flex-1 overflow-y-auto border rounded-md divide-y">
-            {results.filter((r) => r.status !== "skip" || r.detalhe?.includes("match")).slice(0, 500).map((r) => (
-              <div key={r.empresa_id} className="px-3 py-2 text-sm flex items-center gap-2">
-                {r.status === "ok" ? (
-                  <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                ) : r.status === "skip" ? (
-                  <XCircle className="h-4 w-4 text-warning shrink-0" />
-                ) : (
-                  <XCircle className="h-4 w-4 text-destructive shrink-0" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{r.nome}</div>
-                  {r.detalhe && <div className="text-xs text-muted-foreground truncate">{r.detalhe}</div>}
+            {results
+              .filter((r) => r.status !== "skip" || !r.detalhe?.startsWith("já igual"))
+              .slice(0, 800)
+              .map((r) => (
+                <div key={r.empresa_id} className="px-3 py-2 text-sm flex items-center gap-2">
+                  {r.status === "ok" ? (
+                    <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                  ) : r.status === "skip" ? (
+                    <XCircle className="h-4 w-4 text-warning shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-destructive shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{r.nome}</div>
+                    {r.detalhe && <div className="text-xs text-muted-foreground truncate">{r.detalhe}</div>}
+                  </div>
+                  {r.vidas != null && (
+                    <div className="text-sm font-mono">{r.vidas.toLocaleString("pt-BR")}</div>
+                  )}
                 </div>
-                {r.vidas != null && (
-                  <div className="text-sm font-mono">{r.vidas.toLocaleString("pt-BR")}</div>
-                )}
-              </div>
-            ))}
-            {results.filter((r) => r.status === "skip" && !r.detalhe?.includes("match")).length > 0 && (
+              ))}
+            {results.filter((r) => r.status === "skip" && r.detalhe?.startsWith("já igual")).length > 0 && (
               <div className="px-3 py-2 text-xs text-muted-foreground italic">
-                + {results.filter((r) => r.status === "skip" && !r.detalhe?.includes("match")).length} empresa(s) sem alteração
+                + {results.filter((r) => r.status === "skip" && r.detalhe?.startsWith("já igual")).length} empresa(s) já com valor correto
               </div>
             )}
           </div>
