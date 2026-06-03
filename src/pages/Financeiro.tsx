@@ -1108,6 +1108,17 @@ export default function Financeiro() {
     });
 
     if (indices.length === 0) {
+      // Quando a linha representa a empresa-mãe (sem pagador específico) e não
+      // achamos bloco com CNPJ exato, devolvemos TODOS os blocos da planilha —
+      // assim a análise (Excel + PDF) continua disponível mesmo quando o CNPJ
+      // do contrato difere do CNPJ que aparece dentro da planilha/PDF.
+      if (!row.pagador_id && mother.resultados.length > 0) {
+        return {
+          resultados: mother.resultados.slice(),
+          comparacoes: mother.comparacoes.slice(),
+        };
+      }
+
       // Sem bloco correspondente — devolve placeholder informando ao usuário
       const placeholder: any = {
         pagador: row.empresa_nome,
@@ -1122,8 +1133,9 @@ export default function Financeiro() {
             : "Pagador sem CNPJ cadastrado — não foi possível casar com a planilha.",
         ],
       };
-      return { resultados: [placeholder], comparacoes: [] };
+      return { resultados: [placeholder], comparacoes: mother.comparacoes.slice() };
     }
+
 
     return {
       resultados: indices.map((i) => mother.resultados[i]),
