@@ -295,7 +295,7 @@ export default function Financeiro() {
           grupo_id: a.grupo_id ?? null,
           compartilhado_grupo: a.compartilhado_grupo ?? null,
           contrato_origem_id: a.contrato_origem_id ?? null,
-          ...(compartilhado ? { _compartilhado_grupo: true } : {}),
+          ...(compartilhado ? { _compartilhado_grupo: true, _origem_mov_id: a.financeiro_movimentacao_id } : {}),
         });
       };
 
