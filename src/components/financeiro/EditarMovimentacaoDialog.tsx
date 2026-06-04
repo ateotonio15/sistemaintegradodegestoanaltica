@@ -218,6 +218,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     enabled: !!movimentacao && open && empresaCfg !== undefined,
   });
 
+  const { data: grupoData } = useGrupoFinanceiro(movimentacao?.empresa_id);
+  const grupoAtivo = grupoData?.grupo ?? null;
+
   const pagamentoViaDeposito = !!(empresaCfg as any)?.pagamento_via_deposito;
   const exigePoPc = !!(empresaCfg as any)?.exige_po_pc;
   const envioBoletoComNota = !!(empresaCfg as any)?.envio_boleto_com_nota;
