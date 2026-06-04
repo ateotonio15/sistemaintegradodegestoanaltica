@@ -37,6 +37,8 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   pagador_id?: string | null;
   boleto_dda?: boolean | null;
   pagamento_via_deposito?: boolean;
+  grupo_nome?: string | null;
+  grupo_id?: string | null;
 };
 
 
