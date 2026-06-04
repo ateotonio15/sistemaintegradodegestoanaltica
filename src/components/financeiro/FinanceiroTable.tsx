@@ -180,7 +180,7 @@ export function FinanceiroTable({
                           )}
                         </div>
                         {row.grupo_nome && (
-                          <GrupoTag empresaId={row.empresa_id} grupoNome={row.grupo_nome} />
+                          <GrupoTag empresaId={row.empresa_id} grupoNome={row.grupo_nome} onVisualizarGrupo={onVisualizarGrupo} />
                         )}
                       </div>
                     </TableCell>
