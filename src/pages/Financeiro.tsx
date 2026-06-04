@@ -902,7 +902,7 @@ export default function Financeiro() {
 
     if (anexos.length === 0) {
       await queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
-      const fresh = (queryClient.getQueryData(["financeiro-anexos-list", movIds.sort().join(",")]) as any) || {};
+      const fresh = (queryClient.getQueryData(["financeiro-anexos-list", movIds.sort().join(","), grupoSignature]) as any) || {};
       anexos = (fresh[row.id] || []) as typeof anexos;
     }
 
