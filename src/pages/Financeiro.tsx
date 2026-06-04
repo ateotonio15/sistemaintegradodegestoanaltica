@@ -554,14 +554,21 @@ export default function Financeiro() {
       // muda o status — evitando "Faturado" indevido para o CNPJ errado.
       const anexosParaStatus = anexosAll.filter((a: any) => {
         if (a.origem === "retroativo") return false;
-        if (!a._compartilhado_grupo) return true;
-        const key = `${a._origem_mov_id}|${a.nome_arquivo}`;
+        const origemId = a._compartilhado_grupo ? a._origem_mov_id : f.id;
+        const key = `${origemId}|${a.nome_arquivo}`;
         const cnpjsDoArquivo = cnpjsPorAnexoOrigem?.get(key);
-        if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return false;
-        for (const c of cnpjsDoArquivo) {
-          if (cnpjsDoContrato.has(c)) return true;
+        if (a._compartilhado_grupo) {
+          // compartilhado: só conta se o CNPJ detectado pertence a este contrato
+          if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return false;
+          for (const c of cnpjsDoArquivo) if (cnpjsDoContrato.has(c)) return true;
+          return false;
         }
-        return false;
+        // próprio: se o CNPJ já foi detectado e NÃO pertence a este contrato, ignora
+        if (cnpjsDoArquivo && cnpjsDoArquivo.size > 0) {
+          for (const c of cnpjsDoArquivo) if (cnpjsDoContrato.has(c)) return true;
+          return false;
+        }
+        return true;
       });
       const temRetroativo = anexosAll.some((a: any) => a.origem === "retroativo");
       return {
@@ -960,16 +967,36 @@ export default function Financeiro() {
       storage_path: string | null;
       created_at: string;
       _compartilhado_grupo?: boolean;
+      _origem_mov_id?: string;
     }>;
-    // Anexos compartilhados pelo grupo NÃO devem ser analisados aqui:
-    // a planilha/PDF pertence ao CNPJ do contrato de origem.
-    anexos = anexos.filter((a) => !a._compartilhado_grupo);
+    // Filtragem por CNPJ:
+    // - Compartilhados pelo grupo: só analisar se o CNPJ detectado no contrato
+    //   de origem pertencer a este contrato (CNPJ próprio ou pagador cadastrado).
+    // - Próprios: se o CNPJ já foi detectado e NÃO pertence a este contrato, ignorar
+    //   (evita analisar planilha de outra empresa do grupo anexada por engano).
+    const cnpjsDoContratoAnalise = cnpjsPorContrato.get(row.id) ?? new Set<string>();
+    const filtrarPorCnpj = (a: typeof anexos[number]) => {
+      const origemId = a._compartilhado_grupo ? a._origem_mov_id : row.id;
+      const key = `${origemId}|${a.nome_arquivo}`;
+      const cnpjsDoArquivo = cnpjsPorAnexoOrigem?.get(key);
+      if (a._compartilhado_grupo) {
+        if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return false;
+        for (const c of cnpjsDoArquivo) if (cnpjsDoContratoAnalise.has(c)) return true;
+        return false;
+      }
+      if (cnpjsDoArquivo && cnpjsDoArquivo.size > 0) {
+        for (const c of cnpjsDoArquivo) if (cnpjsDoContratoAnalise.has(c)) return true;
+        return false;
+      }
+      return true;
+    };
+    anexos = anexos.filter(filtrarPorCnpj);
     const { isXlsAnexo, isPdfAnexo } = await import("@/lib/financeiro-utils");
 
     if (anexos.length === 0) {
       await queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
       const fresh = (queryClient.getQueryData(["financeiro-anexos-list", movIds.sort().join(","), grupoSignature]) as any) || {};
-      anexos = ((fresh[row.id] || []) as typeof anexos).filter((a) => !a._compartilhado_grupo);
+      anexos = ((fresh[row.id] || []) as typeof anexos).filter(filtrarPorCnpj);
     }
 
     const xlsAnexos = anexos.filter((a) => isXlsAnexo(a) && a.storage_path);
