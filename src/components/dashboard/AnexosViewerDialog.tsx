@@ -266,10 +266,8 @@ export function AnexosViewerDialog({
         grupoId
           ? supabase
               .from("anexos_financeiro")
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, grupo_id, contrato_origem_id, financeiro_movimentacao_id, financeiro_movimentacoes!inner(mes_referencia, periodo, empresa_id)")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, grupo_id, contrato_origem_id, financeiro_movimentacao_id")
               .eq("grupo_id", grupoId)
-              .eq("financeiro_movimentacoes.mes_referencia", mesReferencia)
-              .eq("financeiro_movimentacoes.periodo", periodo)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
       ]);
