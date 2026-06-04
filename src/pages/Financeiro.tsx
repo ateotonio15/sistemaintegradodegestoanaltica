@@ -34,6 +34,7 @@ import { KpiCards } from "@/components/financeiro/KpiCards";
 import { StatusChart } from "@/components/financeiro/StatusChart";
 import { PeriodSummary } from "@/components/financeiro/PeriodSummary";
 import { FinanceiroTable, type FinanceiroRow } from "@/components/financeiro/FinanceiroTable";
+import { useEmpresaGrupoMap, useGruposFinanceirosAtivos } from "@/hooks/useGrupoFinanceiro";
 import { EditarMovimentacaoDialog } from "@/components/financeiro/EditarMovimentacaoDialog";
 import { CobrancaDialog } from "@/components/financeiro/CobrancaDialog";
 import { ImportPagadoresDialog } from "@/components/financeiro/ImportPagadoresDialog";
