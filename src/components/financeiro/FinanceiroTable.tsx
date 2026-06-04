@@ -146,40 +146,39 @@ export function FinanceiroTable({
                   >
 
                     <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
-                        {row.cobranca_registrada && (
-                          <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
-                            <Bell className="h-2.5 w-2.5 mr-1" />
-                            Cobrança
-                          </Badge>
-                        )}
-                        {row.retroativo && (
-                          <Badge variant="outline" className="text-info border-info/50 text-[10px] px-1.5 py-0 h-5">
-                            <History className="h-2.5 w-2.5 mr-1" />
-                            Retroativo
-                          </Badge>
-                        )}
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
+                          {row.cobranca_registrada && (
+                            <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
+                              <Bell className="h-2.5 w-2.5 mr-1" />
+                              Cobrança
+                            </Badge>
+                          )}
+                          {row.retroativo && (
+                            <Badge variant="outline" className="text-info border-info/50 text-[10px] px-1.5 py-0 h-5">
+                              <History className="h-2.5 w-2.5 mr-1" />
+                              Retroativo
+                            </Badge>
+                          )}
+                          {(row.status === "Nota emitida" || row.status === "Enviada") && !row.pagamento_via_deposito && (
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[10px] px-1.5 py-0 h-5",
+                                row.boleto_dda
+                                  ? "text-success border-success/50"
+                                  : "text-warning border-warning/50",
+                              )}
+                              title={row.boleto_dda ? "Boleto disponível no DDA" : "Boleto pendente"}
+                            >
+                              <Receipt className="h-2.5 w-2.5 mr-1" />
+                              {row.boleto_dda ? "DDA OK" : "DDA"}
+                            </Badge>
+                          )}
+                        </div>
                         {row.grupo_nome && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5" title="Grupo financeiro">
-                            <Users className="h-2.5 w-2.5 mr-1" />
-                            Grupo: {row.grupo_nome}
-                          </Badge>
-                        )}
-                        {(row.status === "Nota emitida" || row.status === "Enviada") && !row.pagamento_via_deposito && (
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] px-1.5 py-0 h-5",
-                              row.boleto_dda
-                                ? "text-success border-success/50"
-                                : "text-warning border-warning/50",
-                            )}
-                            title={row.boleto_dda ? "Boleto disponível no DDA" : "Boleto pendente"}
-                          >
-                            <Receipt className="h-2.5 w-2.5 mr-1" />
-                            {row.boleto_dda ? "DDA OK" : "DDA"}
-                          </Badge>
+                          <GrupoTag empresaId={row.empresa_id} grupoNome={row.grupo_nome} />
                         )}
                       </div>
                     </TableCell>
