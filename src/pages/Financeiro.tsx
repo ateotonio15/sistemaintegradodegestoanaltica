@@ -500,7 +500,11 @@ export default function Financeiro() {
       const uploaderId = pdfUploaderByMov[f.id];
       const anexosAll = anexosMap[f.id] || [];
       // Anexos vindos de Reajuste/Cobrança Retroativa não alteram o status
-      const anexosParaStatus = anexosAll.filter((a: any) => a.origem !== "retroativo");
+      // Anexos compartilhados pelo grupo NÃO alteram o status do contrato atual
+      // (a planilha/PDF pertence ao CNPJ do contrato de origem)
+      const anexosParaStatus = anexosAll.filter(
+        (a: any) => a.origem !== "retroativo" && !a._compartilhado_grupo,
+      );
       const temRetroativo = anexosAll.some((a: any) => a.origem === "retroativo");
       return {
         ...f,
