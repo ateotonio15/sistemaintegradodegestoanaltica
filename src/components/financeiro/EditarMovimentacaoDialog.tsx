@@ -1313,7 +1313,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       </AlertDialog>
 
       <AlertDialog open={!!grupoConfirm} onOpenChange={(v) => !v && setGrupoConfirm(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-xl w-[calc(100%-2rem)]">
           <AlertDialogHeader>
             <AlertDialogTitle>Aplicar ao grupo {grupoConfirm?.grupoNome}?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1325,8 +1325,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               {" "}para todos os contratos do grupo?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel onClick={() => setGrupoConfirm(null)}>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2 flex-col sm:flex-row sm:justify-end flex-wrap">
+            <AlertDialogCancel className="mt-0" onClick={() => setGrupoConfirm(null)}>Cancelar</AlertDialogCancel>
             <Button variant="outline" onClick={() => grupoConfirm?.onApenas()}>
               Somente este contrato
             </Button>
