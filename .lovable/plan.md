@@ -1,107 +1,81 @@
-# Calculadora de Cobrança Retroativa
+# Grupo Financeiro — Plano de Implementação
 
-Transformar o modal simples atual em uma calculadora profissional que substitui a planilha externa de cálculo proporcional, mantendo todas as funcionalidades existentes (PDF, vínculo com contrato/competência, histórico, análise completa).
+Funcionalidade nova que vincula múltiplos contratos/empresas em um mesmo grupo financeiro, compartilhando ações operacionais (anexos, envio de nota, DDA/depósito e vencimento), mantendo análises, histórico e tipo de cobrança individuais por contrato.
 
-## 1. Banco de dados (nova migration)
+## 1. Banco de Dados (migration)
 
-### Tabela `cobrancas_retroativas_itens` (beneficiários)
-- `cobranca_retroativa_id` (FK → `cobrancas_retroativas`)
-- `beneficiario_nome`, `codigo_beneficiario`, `matricula`
-- `tipo_beneficiario` (titular/conjuge/filho/outro), `beneficiario_titular`
-- `plano_modulo`, `mensalidade_centavos`
-- `data_inicio`, `data_fim`
-- `dias_proporcionais`, `valor_calculado_centavos`, `valor_final_centavos`
-- `tipo_lancamento` (cobranca/devolucao)
-- `observacao`
-- `alterado_manualmente` (bool), `usuario_alteracao_id/nome`, `data_alteracao`
+**Tabela `grupos_financeiros`**
+- `id`, `nome_grupo` (único), `vencimento_compartilhado` (bool), `dia_vencimento` (1-31), `forma_pagamento_compartilhada` (bool), `forma_pagamento` ('DDA' | 'Depósito'), `observacao`, `status` ('Ativo' | 'Inativo')
+- Auditoria: `criado_por_id/nome`, `atualizado_por_id/nome`, `created_at`, `updated_at`
 
-### Tabela `cobrancas_retroativas_periodos` (quebra por mês quando atravessa)
-- `item_id` (FK)
-- `mes_referencia` (YYYY-MM)
-- `data_inicio_periodo`, `data_fim_periodo`
-- `dias_mes`, `dias_cobrados`
-- `mensalidade_centavos`, `valor_diario_centavos`, `valor_calculado_centavos`
+**Tabela `grupos_financeiros_contratos`**
+- `id`, `grupo_id` (FK), `empresa_id` (FK empresas), `codigo_contrato`, `nome_empresa`, `cnpj`, `ativo` (bool)
+- Auditoria: `adicionado_por_id/nome`, `adicionado_em`, `removido_por_id/nome`, `removido_em`
+- Constraint: índice único parcial `(empresa_id) WHERE ativo = true` — garante 1 grupo ativo por empresa.
 
-### Alterações em `cobrancas_retroativas` (tabela existente)
-Adicionar (sem quebrar campos atuais):
-- `motivo` (text)
-- `tipo_ajuste` (cobranca/devolucao)
-- `valor_total_calculado_centavos`, `valor_total_manual_centavos`
-- `status_calc` (rascunho/calculado/aplicado/cancelado) — separado do status atual de aplicação na nota
+**Tabela `grupos_financeiros_auditoria`**
+- `id`, `grupo_id`, `acao`, `descricao`, `contrato_origem_id`, `contratos_impactados` (uuid[]), `usuario_id/nome`, `data_hora`, `dados_anteriores` (jsonb), `dados_novos` (jsonb)
 
-RLS: mesmo padrão da tabela pai (admin + financeiro full; outros via empresa).
-GRANTs para `authenticated` e `service_role`.
+**Alterações em tabelas existentes**
+- `anexos_financeiro`: adicionar `grupo_id uuid null`, `compartilhado_grupo bool default false`, `contrato_origem_id uuid null` (movimentacao financeira original). Não duplica storage — anexos com `grupo_id` são visíveis a todas movimentações do grupo.
 
-## 2. Biblioteca de cálculo (`src/lib/cobranca-retroativa-calc.ts`)
+**Funções RPC (SECURITY DEFINER)**
+- `aplicar_envio_nota_grupo(p_mov_id, p_data_envio, p_aplicar_grupo bool)` — replica `data_envio_nota` para todas movimentações financeiras do mesmo período das empresas do grupo.
+- `aplicar_dda_grupo(p_mov_id, p_boleto_dda bool, p_pagamento_deposito bool)` — replica forma de pagamento em todo o grupo.
+- `aplicar_vencimento_grupo(p_mov_id, p_data_vencimento)` — replica vencimento.
+- `adicionar_contrato_grupo(p_grupo_id, p_empresa_id)` / `remover_contrato_grupo` — com validação de grupo único.
+- Cada RPC registra entrada em `grupos_financeiros_auditoria`.
 
-Funções puras e testáveis:
-- `diasDoMes(ano, mes)` — usa `new Date(ano, mes, 0).getDate()`
-- `quebrarPeriodoPorMes(inicio, fim)` → array `{ mes, inicio, fim, diasMes, diasCobrados }`
-- `calcularItem({ mensalidadeCentavos, inicio, fim, tipo })` →
-  - para cada sub-período: `valorDiario = mensalidade / diasMes`, `valorParcial = valorDiario * diasCobrados`
-  - soma e arredonda em centavos (Math.round em centavos para garantir 2 casas)
-  - se devolução, sinal negativo
-  - retorna `{ valorCalculadoCentavos, periodos[] }`
-- `calcularTotais(itens)` → totais de cobranças, devoluções, líquido
+**RLS**
+- `grupos_financeiros*`: SELECT para admin/financeiro/comum/administradoras/visualizacao/diretora; INSERT/UPDATE/DELETE apenas admin.
+- GRANTs explícitos (anon: nenhum; authenticated: SELECT; admin via policies).
 
-## 3. Componente `CalculadoraRetroativaDialog.tsx` (novo)
+## 2. Frontend — aba Empresas
 
-Dialog `max-w-6xl` com scroll, integrado ao componente atual.
+**Novo componente `GrupoFinanceiroSection.tsx`** dentro do dialog "Editar Empresa":
+- Toggle: "Esta empresa pertence a um grupo financeiro?"
+- Se Sim → Combobox "Selecionar grupo existente" + botão "Criar novo grupo"
+- Dialog "Gerenciar Grupo" (admin-only): nome, vencimento compartilhado (switch + dia), forma de pagamento compartilhada (switch + DDA/Depósito), observação, status. Lista de contratos vinculados com remover, busca para adicionar.
+- Validação: ao adicionar contrato já em outro grupo ativo → toast de erro com a mensagem padrão.
+- Não-admin: read-only (visualização do grupo e contratos).
 
-**Header**: Contrato, Empresa, Competência, Tipo do ajuste, Status (badge).
+## 3. Frontend — aba Financeiro
 
-**Cards resumo** (topo): beneficiários, total cobranças, total devoluções, valor líquido.
+**Tag de grupo na tabela** (`FinanceiroTable.tsx`): badge "Grupo: NOME" ao lado do nome da empresa (após Cobrança/Retroativo/DDA), variant `secondary`.
 
-**Bloco 1 — Dados gerais**: contrato/empresa (combobox existente), competência (select de meses), tipo_ajuste, motivo (select), descrição, upload PDF opcional (reusa storage atual).
+**Filtro "Grupo Financeiro"** em `Financeiro.tsx` (combobox com grupos ativos). Filtra rows cujas empresas pertencem ao grupo selecionado.
 
-**Bloco 2 — Período**: data inicial, data final (com aviso se atravessar mês).
+**Confirmação de envio em grupo** (`EditarMovimentacaoDialog.tsx`):
+- Ao salvar com `data_envio_nota` novo e empresa pertencer a grupo → AlertDialog com 3 opções: "Todos do grupo" / "Somente este contrato" / "Cancelar".
+- "Todos" → chama `aplicar_envio_nota_grupo`.
 
-**Bloco 3 — Beneficiários** (lista editável):
-- Botões: Adicionar, Remover, Duplicar
-- Campos: nome, código, matrícula, tipo, titular, plano/módulo, mensalidade, data início/fim, tipo lançamento
-- Stub de "Importar Excel" (botão desabilitado com tooltip "em breve")
+**Confirmação DDA/depósito em grupo**:
+- Ao marcar DDA/Depósito em contrato do grupo → AlertDialog informando aplicação ao grupo inteiro → chama `aplicar_dda_grupo`.
 
-**Bloco 4 — Tabela de cálculo** (renderizada após "Calcular"):
-- Colunas: beneficiário, código, matrícula, plano, mensalidade, datas, mês ref, dias mês, dias prop, valor diário, valor proporcional, tipo, valor final (editável), observação
-- Linhas verde (cobrança) / vermelha (devolução) / amarela (alterada manualmente)
-- Edição manual do valor final marca flag e captura usuário+data
+**Alteração de vencimento em grupo**:
+- Ao mudar `data_vencimento` em contrato do grupo → AlertDialog com "Aplicar para todos" / "Cancelar" → chama `aplicar_vencimento_grupo`.
 
-**Footer**: Cancelar, Salvar rascunho, Calcular, Salvar cobrança.
+**Anexos compartilhados**:
+- `AnexosViewerDialog`: ao listar anexos, incluir também `anexos_financeiro` com `grupo_id` da empresa atual (via JOIN no `grupo_id` da empresa). Marcar com badge "Compartilhado pelo grupo [NOME]" para anexos com `contrato_origem_id` diferente da movimentação atual.
+- Ao fazer upload em contrato do grupo: gravar `grupo_id` e `compartilhado_grupo = true` automaticamente, mantendo `contrato_origem_id` = movimentação atual. Storage é único (não duplica).
 
-## 4. Integração com `ReajusteCobrancaRetroativa.tsx`
+## 4. Hook utilitário
 
-- Manter o modal simples atual ("Editar Cobrança Retroativa") funcionando — apenas adicionar botão **"Abrir Calculadora"** que abre o novo dialog pré-preenchido com os dados da cobrança.
-- Lista de cobranças retroativas: adicionar ícone/badge indicando que tem itens calculados.
-- Ao salvar pela calculadora: grava `cobrancas_retroativas` (cabeçalho) + `cobrancas_retroativas_itens` + `cobrancas_retroativas_periodos` numa transação (RPC).
+`useGrupoFinanceiro(empresaId)` — retorna `{ grupo, contratos, isLoading }` consultando `grupos_financeiros_contratos` ativos.
 
-## 5. RPC `salvar_cobranca_retroativa_calc` (SECURITY DEFINER)
+## 5. Auditoria automática
 
-Recebe JSON do cabeçalho + itens + períodos, valida permissões (admin/financeiro/responsável), grava tudo atomicamente e retorna o id.
+Triggers nas RPCs gravam em `grupos_financeiros_auditoria` com `dados_anteriores`/`dados_novos`.
 
-## 6. Integração com histórico/faturamento
+## 6. O que NÃO muda
 
-`GerarHistoricoDialog.tsx` e `AnaliseCompletaDialog.tsx`: já leem `cobrancas_retroativas` pelo `valor_centavos` atual. **Atualizar para usar `valor_total_manual_centavos ?? valor_total_calculado_centavos ?? valor_centavos`** (fallback compatível). Sem mudança de schema legado.
+- Tipo de cobrança (`tipo_cobranca`): permanece por contrato, nunca replicado.
+- Análise Excel × PDF, histórico, valores, divergências, cobrança retroativa: 100% individuais.
+- Lógica atual de pagadores do mesmo contrato: intocada.
 
-## 7. Validações (zod no front + checks no RPC)
-- Contrato/competência obrigatórios
-- Data fim ≥ data início
-- Mensalidade > 0
-- Beneficiário com nome e plano
-- Alerta visual quando atravessa mês e quando há valor manual
+## Detalhes técnicos
 
-## 8. Não-objetivos desta entrega
-- Importação real de Excel (apenas estrutura preparada)
-- Geração de relatório PDF próprio (mantém PDF anexado opcional)
-- Exportação Excel da calculadora (pode entrar em iteração futura)
-
-## Arquivos
-
-**Novos**
-- `supabase/migrations/<ts>_calculadora_retroativa.sql`
-- `src/lib/cobranca-retroativa-calc.ts`
-- `src/components/financeiro/CalculadoraRetroativaDialog.tsx`
-
-**Editados**
-- `src/components/financeiro/ReajusteCobrancaRetroativa.tsx` — botão "Abrir Calculadora", indicador de itens
-- `src/components/financeiro/GerarHistoricoDialog.tsx` — fallback de valor
-- `src/components/financeiro/AnaliseCompletaDialog.tsx` — fallback de valor
+- **Compartilhamento de anexos por período**: ações de envio/DDA/vencimento replicam para `financeiro_movimentacoes` com mesmo `(mes_referencia, periodo)` das empresas do grupo (cria registro se ausente).
+- **Performance**: criar índices em `grupos_financeiros_contratos(empresa_id, ativo)` e `anexos_financeiro(grupo_id)`.
+- **Segurança**: todas RPCs validam role admin OU autorização via `empresa_usuarios`/responsável para ações financeiras (envio/DDA/vencimento). Criação/remoção de grupo: admin only.
+- **Cache**: invalidar React Query keys `["financeiro"]`, `["empresas"]`, `["grupos-financeiros"]` após mutações.
