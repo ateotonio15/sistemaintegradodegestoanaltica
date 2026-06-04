@@ -266,7 +266,6 @@ export function GerarHistoricoDialog({
           data_prorrogacao: dataProrrogacao,
           motivo_prorrogacao: motivoProrrogacao,
           observacao_prorrogacao: observacaoProrrogacao || null,
-          data_vencimento: dataProrrogacao,
         })
         .eq("id", row.id);
       if (error) {
