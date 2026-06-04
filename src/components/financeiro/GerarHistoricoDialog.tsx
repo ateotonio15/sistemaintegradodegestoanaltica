@@ -159,12 +159,13 @@ export function GerarHistoricoDialog({
     return gerarHistoricoTexto(resultados, {
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
-      incluirDda: notaEmitida,
+      incluirDda: !!(row as any)?.boleto_dda || notaEmitida,
       pagamentoViaDeposito: !!(empresaInfo as any)?.pagamento_via_deposito,
       poFixo,
       periodoCobrancaLabel: periodoCobrancaInfo?.label ?? null,
     });
   };
+
 
   // Quando carregar dados, se houver histórico salvo, abre direto no preview
   useEffect(() => {
