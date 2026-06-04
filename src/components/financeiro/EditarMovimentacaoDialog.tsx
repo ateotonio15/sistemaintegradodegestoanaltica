@@ -103,6 +103,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const { user, canEditFinanceiro, isAdmin } = useAuth();
   const [tipoCobranca, setTipoCobranca] = useState("");
   const [dataEnvioNota, setDataEnvioNota] = useState("");
+  const [dataEnvioOpen, setDataEnvioOpen] = useState(false);
   const [diaVencimento, setDiaVencimento] = useState<string>("__none__");
   const [diaEmissao, setDiaEmissao] = useState<string>("__none__");
   const [tipoAnalise, setTipoAnalise] = useState<string>("normal");
