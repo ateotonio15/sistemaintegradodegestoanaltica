@@ -295,13 +295,36 @@ export function AnexosViewerDialog({
       // Anexos vindos do grupo (de OUTROS contratos) — deduplicar por storage_path
       const existingPaths = new Set([...fin, ...op, ...impl].map((a) => a.storage_path));
       const grupoRaw = ((anxGrupoRes as any).data ?? []) as any[];
-      const grupoExtras: AnexoRow[] = grupoRaw
-        .filter((a) => !existingPaths.has(a.storage_path) && a?.financeiro_movimentacoes?.empresa_id !== empresaId)
-        .map((a: any) => ({
-          ...a,
-          bucket: BUCKET_FINANCEIRO,
-          origem_label: `Compartilhado pelo grupo${grupoNome ? ` ${grupoNome}` : ""}` as any,
-        }));
+      let grupoExtras: AnexoRow[] = [];
+      if (grupoId && grupoRaw.length) {
+        // Resolve mes_referencia/periodo/empresa_id das movimentações vinculadas em uma só query
+        const movIds = Array.from(
+          new Set(grupoRaw.map((a) => a.financeiro_movimentacao_id).filter(Boolean)),
+        );
+        const { data: movsLink } = movIds.length
+          ? await supabase
+              .from("financeiro_movimentacoes")
+              .select("id, mes_referencia, periodo, empresa_id")
+              .in("id", movIds)
+          : { data: [] as any[] };
+        const movMap = new Map<string, { mes_referencia: string; periodo: string; empresa_id: string }>(
+          ((movsLink as any[]) ?? []).map((m) => [m.id, m]),
+        );
+        grupoExtras = grupoRaw
+          .map((a) => ({ a, mov: movMap.get(a.financeiro_movimentacao_id) }))
+          .filter(({ a, mov }) =>
+            !!mov &&
+            mov.mes_referencia === mesReferencia &&
+            mov.periodo === periodo &&
+            mov.empresa_id !== empresaId &&
+            !existingPaths.has(a.storage_path),
+          )
+          .map(({ a }) => ({
+            ...a,
+            bucket: BUCKET_FINANCEIRO,
+            origem_label: `Compartilhado pelo grupo${grupoNome ? ` ${grupoNome}` : ""}` as any,
+          }));
+      }
 
       const merged = [...fin, ...op, ...impl, ...grupoExtras].sort(
 
