@@ -537,7 +537,15 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             mime_type: file.type,
             tamanho_bytes: file.size,
             uploaded_by: user?.id ?? null,
-          });
+            // Vincula ao grupo financeiro (se houver) para compartilhar com outros contratos
+            ...(grupoAtivo
+              ? {
+                  grupo_id: grupoAtivo.id,
+                  compartilhado_grupo: true,
+                  contrato_origem_id: movimentacao.id,
+                }
+              : {}),
+          } as any);
           if (insErr) throw insErr;
 
           nomesExistentes.push(nomeFinal);
