@@ -202,6 +202,17 @@ export function GerarHistoricoDialog({
     }
   }, [open, savedRecord, pagamentoViaDeposito]);
 
+  useEffect(() => {
+    if (!open || step !== "preview" || pagamentoViaDeposito || !texto || texto.includes(OBS_DDA)) return;
+    const textoCorrigido = garantirObsDda(texto, pagamentoViaDeposito);
+    if (textoCorrigido === texto) return;
+
+    setTexto(textoCorrigido);
+    setTextoOriginalGerado((atual) =>
+      atual === texto ? textoCorrigido : garantirObsDda(atual || textoCorrigido, pagamentoViaDeposito),
+    );
+  }, [open, step, texto, pagamentoViaDeposito]);
+
   const calcularVencimentoBR = (prorrogou: boolean): string | null => {
     if (!competencia) return null;
     if (prorrogou) {
