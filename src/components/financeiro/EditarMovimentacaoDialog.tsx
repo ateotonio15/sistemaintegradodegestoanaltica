@@ -103,6 +103,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   const { user, canEditFinanceiro, isAdmin } = useAuth();
   const [tipoCobranca, setTipoCobranca] = useState("");
   const [dataEnvioNota, setDataEnvioNota] = useState("");
+  const [dataEnvioOpen, setDataEnvioOpen] = useState(false);
   const [diaVencimento, setDiaVencimento] = useState<string>("__none__");
   const [diaEmissao, setDiaEmissao] = useState<string>("__none__");
   const [tipoAnalise, setTipoAnalise] = useState<string>("normal");
@@ -769,7 +770,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="data_nota">Data de envio da nota</Label>
-              <Popover>
+              <Popover open={dataEnvioOpen} onOpenChange={setDataEnvioOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     id="data_nota"
@@ -801,12 +802,14 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                     onSelect={(date) => {
                       if (!date) {
                         setDataEnvioNota("");
+                        setDataEnvioOpen(false);
                         return;
                       }
                       const y = date.getFullYear();
                       const m = String(date.getMonth() + 1).padStart(2, "0");
                       const d = String(date.getDate()).padStart(2, "0");
                       setDataEnvioNota(`${y}-${m}-${d}`);
+                      setDataEnvioOpen(false);
                     }}
                     disabled={{ after: new Date() }}
                     initialFocus
