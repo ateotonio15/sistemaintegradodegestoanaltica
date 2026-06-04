@@ -172,8 +172,10 @@ export function GerarHistoricoDialog({
     return false;
   }, [row]);
 
-  const pagamentoViaDeposito = !!((empresaInfo as any)?.pagamento_via_deposito ?? row?.pagamento_via_deposito ?? false);
-  const deveIncluirObsDda = !pagamentoViaDeposito;
+  const pagamentoViaDepositoConfig = !!((empresaInfo as any)?.pagamento_via_deposito ?? row?.pagamento_via_deposito ?? false);
+  const contratoDda = !!row?.boleto_dda || !pagamentoViaDepositoConfig;
+  const pagamentoViaDepositoHistorico = pagamentoViaDepositoConfig && !contratoDda;
+  const deveIncluirObsDda = contratoDda;
 
   const buildTexto = (vencimentoBR: string): string => {
     if (!resultados || !competencia) return "";
@@ -184,7 +186,7 @@ export function GerarHistoricoDialog({
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
       incluirDda: true,
-      pagamentoViaDeposito,
+      pagamentoViaDeposito: pagamentoViaDepositoHistorico,
       poFixo,
       periodoCobrancaLabel: periodoCobrancaInfo?.label ?? null,
     });
