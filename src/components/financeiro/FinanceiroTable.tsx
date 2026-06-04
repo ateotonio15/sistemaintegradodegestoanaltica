@@ -64,6 +64,7 @@ interface Props {
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
   analiseNotasOrfas?: Record<string, NotaOrfa[]>;
   readOnly?: boolean;
+  onVisualizarGrupo?: (grupoId: string) => void;
 }
 
 const COL_COUNT = 14;
@@ -82,6 +83,7 @@ export function FinanceiroTable({
   analiseComparacoes,
   analiseNotasOrfas,
   readOnly = false,
+  onVisualizarGrupo,
 }: Props) {
   const [anexosDialog, setAnexosDialog] = useState<{
     empresaId: string;
@@ -178,7 +180,7 @@ export function FinanceiroTable({
                           )}
                         </div>
                         {row.grupo_nome && (
-                          <GrupoTag empresaId={row.empresa_id} grupoNome={row.grupo_nome} />
+                          <GrupoTag empresaId={row.empresa_id} grupoNome={row.grupo_nome} onVisualizarGrupo={onVisualizarGrupo} />
                         )}
                       </div>
                     </TableCell>

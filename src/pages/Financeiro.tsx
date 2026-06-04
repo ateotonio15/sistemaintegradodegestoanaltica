@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
-import { Search, Bell, Wallet, RefreshCw, Download, Upload, History } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import {
@@ -1617,7 +1617,28 @@ export default function Financeiro() {
 
         {/* Filtros da tabela */}
         <Card className="rounded-xl shadow-sm">
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
+          {filtroGrupo && (
+            <div className="px-4 pt-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
+                <Users className="h-3 w-3" />
+                <span>
+                  Visualizando grupo:{" "}
+                  <strong>
+                    {(gruposAtivos ?? []).find((g) => g.id === filtroGrupo)?.nome_grupo ?? "—"}
+                  </strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFiltroGrupo(null)}
+                  className="ml-1 rounded-full p-0.5 hover:bg-primary/20"
+                  title="Limpar filtro de grupo"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          )}
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-3 items-end">
             <div className="space-y-1.5">
               <Label className="text-xs">Buscar</Label>
               <div className="relative">
@@ -1675,20 +1696,6 @@ export default function Financeiro() {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Grupo Financeiro</Label>
-              <Select value={filtroGrupo ?? "__all"} onValueChange={(v) => setFiltroGrupo(v === "__all" ? null : v)}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all">Todos os grupos</SelectItem>
-                  {(gruposAtivos ?? []).map((g) => (
-                    <SelectItem key={g.id} value={g.id}>{g.nome_grupo}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs">Ordenar por</Label>
@@ -1741,6 +1748,8 @@ export default function Financeiro() {
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
           readOnly={!canManageFinanceiro}
+          onVisualizarGrupo={(grupoId) => setFiltroGrupo(grupoId)}
+          
           
         />
 
