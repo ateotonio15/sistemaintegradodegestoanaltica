@@ -554,14 +554,21 @@ export default function Financeiro() {
       // muda o status — evitando "Faturado" indevido para o CNPJ errado.
       const anexosParaStatus = anexosAll.filter((a: any) => {
         if (a.origem === "retroativo") return false;
-        if (!a._compartilhado_grupo) return true;
-        const key = `${a._origem_mov_id}|${a.nome_arquivo}`;
+        const origemId = a._compartilhado_grupo ? a._origem_mov_id : f.id;
+        const key = `${origemId}|${a.nome_arquivo}`;
         const cnpjsDoArquivo = cnpjsPorAnexoOrigem?.get(key);
-        if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return false;
-        for (const c of cnpjsDoArquivo) {
-          if (cnpjsDoContrato.has(c)) return true;
+        if (a._compartilhado_grupo) {
+          // compartilhado: só conta se o CNPJ detectado pertence a este contrato
+          if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return false;
+          for (const c of cnpjsDoArquivo) if (cnpjsDoContrato.has(c)) return true;
+          return false;
         }
-        return false;
+        // próprio: se o CNPJ já foi detectado e NÃO pertence a este contrato, ignora
+        if (cnpjsDoArquivo && cnpjsDoArquivo.size > 0) {
+          for (const c of cnpjsDoArquivo) if (cnpjsDoContrato.has(c)) return true;
+          return false;
+        }
+        return true;
       });
       const temRetroativo = anexosAll.some((a: any) => a.origem === "retroativo");
       return {
