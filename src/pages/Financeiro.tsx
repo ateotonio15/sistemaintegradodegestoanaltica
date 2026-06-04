@@ -502,7 +502,14 @@ export default function Financeiro() {
       if (filtroTipo.length > 0 && !filtroTipo.includes(r.tipo_cobranca || "")) return false;
       if (movIdsMatchAnexoFilters && !movIdsMatchAnexoFilters.has(r.id)) return false;
       if (somenteOverdue && (r.dentro_prazo || r.data_envio_nota)) return false;
+      if (filtroGrupo) {
+        const g = empresaGrupoMap?.get(r.empresa_id);
+        if (!g || g.grupo_id !== filtroGrupo) return false;
+      }
       return true;
+    }).map((r) => {
+      const g = empresaGrupoMap?.get(r.empresa_id);
+      return g ? ({ ...r, grupo_nome: g.nome_grupo, grupo_id: g.grupo_id } as any) : r;
     });
 
     // Cada linha = 1 pagador individual (1 CNPJ).
