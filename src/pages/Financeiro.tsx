@@ -980,7 +980,12 @@ export default function Financeiro() {
       const key = `${origemId}|${a.nome_arquivo}`;
       const cnpjsDoArquivo = cnpjsPorAnexoOrigem?.get(key);
       if (a._compartilhado_grupo) {
-        if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return false;
+        // Se ainda não temos o CNPJ detectado (o anexo nunca foi analisado no
+        // contrato de origem, ex.: planilha/PDF da TW anexada à TECWAY), incluir
+        // mesmo assim — o analisador vai detectar o CNPJ pelo conteúdo e a
+        // filtragem por pagador (cruzarExcelComPdfs) só vai vincular ao
+        // pagador correto. Sem isso, o pagador da TW nunca enxerga o anexo.
+        if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return true;
         for (const c of cnpjsDoArquivo) if (cnpjsDoContratoAnalise.has(c)) return true;
         return false;
       }
