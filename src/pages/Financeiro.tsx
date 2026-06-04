@@ -1676,6 +1676,21 @@ export default function Financeiro() {
             </div>
 
             <div className="space-y-1.5">
+              <Label className="text-xs">Grupo Financeiro</Label>
+              <Select value={filtroGrupo ?? "__all"} onValueChange={(v) => setFiltroGrupo(v === "__all" ? null : v)}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todos os grupos</SelectItem>
+                  {(gruposAtivos ?? []).map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.nome_grupo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
               <Label className="text-xs">Ordenar por</Label>
               <Select value={ordenacao} onValueChange={setOrdenacao}>
                 <SelectTrigger className="h-9 text-sm">
