@@ -1748,6 +1748,8 @@ export default function Financeiro() {
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
           readOnly={!canManageFinanceiro}
+          onVisualizarGrupo={(grupoId) => setFiltroGrupo(grupoId)}
+          
           
         />
 
