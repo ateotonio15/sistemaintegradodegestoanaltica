@@ -218,6 +218,11 @@ export function GerarHistoricoDialog({
     );
   }, [open, step, texto, deveIncluirObsDda]);
 
+  const textoFinal = useMemo(
+    () => (deveIncluirObsDda ? garantirObsDda(texto) : texto),
+    [texto, deveIncluirObsDda],
+  );
+
   const calcularVencimentoBR = (prorrogou: boolean): string | null => {
     if (!competencia) return null;
     if (prorrogou) {
@@ -283,7 +288,7 @@ export function GerarHistoricoDialog({
 
   const handleCopiar = async () => {
     try {
-      await navigator.clipboard.writeText(texto);
+      await navigator.clipboard.writeText(textoFinal);
       toast.success("Histórico copiado.");
     } catch {
       toast.error("Não foi possível copiar.");
@@ -291,7 +296,7 @@ export function GerarHistoricoDialog({
   };
 
   const handleSalvar = async () => {
-    if (!row || !texto.trim()) return;
+    if (!row || !textoFinal.trim()) return;
     setSalvando(true);
     try {
       const nome =
@@ -305,7 +310,7 @@ export function GerarHistoricoDialog({
         empresa_id: row.empresa_id,
         competencia: competencia?.label ?? row.mes_referencia ?? "",
         periodo: periodoCobrancaInfo?.label ?? competencia?.label ?? null,
-        texto_historico: texto,
+        texto_historico: textoFinal,
         vencimento_utilizado: null as string | null,
         prorrogado: !!row.possui_prorrogacao,
         motivo_prorrogacao: row.motivo_prorrogacao ?? null,
@@ -321,7 +326,7 @@ export function GerarHistoricoDialog({
       if (error) throw error;
       toast.success("Histórico salvo com sucesso.");
       await refetchSaved();
-      setTextoOriginalGerado(texto);
+      setTextoOriginalGerado(textoFinal);
     } catch (e: any) {
       toast.error("Erro ao salvar histórico: " + (e?.message ?? e));
     } finally {
@@ -338,7 +343,7 @@ export function GerarHistoricoDialog({
     toast.success("Histórico padrão regenerado.");
   };
 
-  const textoAlterado = texto !== textoOriginalGerado;
+  const textoAlterado = textoFinal !== textoOriginalGerado;
   const possuiSalvo = !!savedRecord?.texto_historico;
 
   return (
@@ -429,7 +434,7 @@ export function GerarHistoricoDialog({
                 )}
               </div>
               <Textarea
-                value={texto}
+                value={textoFinal}
                 onChange={(e) => setTexto(e.target.value)}
                 rows={16}
                 className="font-mono text-xs"
@@ -463,7 +468,7 @@ export function GerarHistoricoDialog({
                 <Button
                   variant="secondary"
                   onClick={handleSalvar}
-                  disabled={!texto.trim() || salvando}
+                  disabled={!textoFinal.trim() || salvando}
                   className="gap-1"
                 >
                   <Save className="h-4 w-4" />
