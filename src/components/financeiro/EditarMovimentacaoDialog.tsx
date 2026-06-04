@@ -179,16 +179,63 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     !!envioNoFuturo || prorrogacaoFaltaData || prorrogacaoFaltaMotivo || prorrogacaoFaltaObs;
 
   const { data: anexos = [] } = useQuery({
-    queryKey: ["financeiro-anexos", movimentacao?.id],
+    queryKey: ["financeiro-anexos", movimentacao?.id, movimentacao?.mes_referencia, movimentacao?.periodo],
     queryFn: async () => {
       if (!movimentacao) return [];
-      const { data, error } = await supabase
+      // 1) Anexos próprios desta movimentação
+      const { data: own, error } = await supabase
         .from("anexos_financeiro")
         .select("*")
         .eq("financeiro_movimentacao_id", movimentacao.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      const ownList = (own ?? []) as any[];
+
+      // 2) Anexos compartilhados pelo grupo (outros contratos, mesmo período)
+      const { data: vinc } = await supabase
+        .from("grupos_financeiros_contratos" as any)
+        .select("grupo_id")
+        .eq("empresa_id", movimentacao.empresa_id)
+        .eq("ativo", true)
+        .maybeSingle();
+      const grupoId = (vinc as any)?.grupo_id as string | undefined;
+      if (!grupoId) return ownList;
+
+      const { data: grupoRaw } = await supabase
+        .from("anexos_financeiro")
+        .select("*, financeiro_movimentacao_id")
+        .eq("grupo_id", grupoId)
+        .order("created_at", { ascending: false });
+      const grupoList = (grupoRaw ?? []) as any[];
+      const otherMovIds = Array.from(
+        new Set(
+          grupoList
+            .map((a) => a.financeiro_movimentacao_id)
+            .filter((id) => id && id !== movimentacao.id),
+        ),
+      ) as string[];
+      if (!otherMovIds.length) return ownList;
+
+      const { data: movs } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("id, mes_referencia, periodo, empresa_id")
+        .in("id", otherMovIds);
+      const movMap = new Map(((movs ?? []) as any[]).map((m) => [m.id, m]));
+      const existingPaths = new Set(ownList.map((a) => a.storage_path));
+      const extras = grupoList
+        .filter((a) => {
+          if (a.financeiro_movimentacao_id === movimentacao.id) return false;
+          const m = movMap.get(a.financeiro_movimentacao_id);
+          if (!m) return false;
+          return (
+            m.mes_referencia === movimentacao.mes_referencia &&
+            m.periodo === movimentacao.periodo &&
+            !existingPaths.has(a.storage_path)
+          );
+        })
+        .map((a) => ({ ...a, _compartilhado_grupo: true }));
+
+      return [...ownList, ...extras];
     },
     enabled: !!movimentacao && open,
   });
@@ -1172,10 +1219,11 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                   </label>
                 </div>
                 <ul className="min-w-0 space-y-1.5">
-                  {anexos.map((a) => {
+                  {anexos.map((a: any) => {
                     const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
                     const isExcel = ["xlsx", "xlsm", "xls"].includes(ext);
                     const isChecked = selecionados.has(a.id);
+                    const isShared = !!a._compartilhado_grupo;
                     return (
                     <li
                       key={a.id}
@@ -1184,11 +1232,17 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                       <Checkbox
                         checked={isChecked}
                         onCheckedChange={() => toggleSelecionado(a.id)}
+                        disabled={isShared}
                       />
                       <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="min-w-0 truncate" title={a.nome_arquivo}>
-                        {a.nome_arquivo}
-                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate" title={a.nome_arquivo}>
+                          {a.nome_arquivo}
+                        </div>
+                        {isShared && (
+                          <div className="text-[10px] text-info">Compartilhado pelo grupo</div>
+                        )}
+                      </div>
                       <span className="text-xs text-muted-foreground shrink-0">
                         {formatBytes(a.tamanho_bytes)}
                       </span>
@@ -1203,8 +1257,10 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive disabled:opacity-30"
                         onClick={() => handleDelete(a.id, a.storage_path)}
+                        disabled={isShared}
+                        title={isShared ? "Anexo do grupo — exclua no contrato de origem" : "Excluir"}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
