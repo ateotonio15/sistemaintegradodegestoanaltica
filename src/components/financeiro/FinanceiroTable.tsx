@@ -83,6 +83,7 @@ export function FinanceiroTable({
   analiseComparacoes,
   analiseNotasOrfas,
   readOnly = false,
+  onVisualizarGrupo,
 }: Props) {
   const [anexosDialog, setAnexosDialog] = useState<{
     empresaId: string;
