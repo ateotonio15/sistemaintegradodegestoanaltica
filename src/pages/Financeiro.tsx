@@ -247,14 +247,22 @@ export default function Financeiro() {
 
   // Anexos por movimentação (com tipo para calcular status: PDF > XLS)
   const movIds = useMemo(() => financeiroRaw.map((f) => f.id), [financeiroRaw]);
+  const grupoSignature = useMemo(
+    () =>
+      empresaIds
+        .map((empresaId) => `${empresaId}:${empresaGrupoMap?.get(empresaId)?.grupo_id ?? ""}`)
+        .sort()
+        .join("|"),
+    [empresaIds, empresaGrupoMap],
+  );
 
   const { data: anexosMap = {} } = useQuery({
-    queryKey: ["financeiro-anexos-list", movIds.sort().join(",")],
+    queryKey: ["financeiro-anexos-list", movIds.sort().join(","), grupoSignature],
     queryFn: async () => {
       if (movIds.length === 0) return {};
       const { data, error } = await supabase
         .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, storage_path, uploaded_by, created_at, origem")
+        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, storage_path, uploaded_by, created_at, origem, grupo_id, compartilhado_grupo, contrato_origem_id")
         .in("financeiro_movimentacao_id", movIds)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -267,19 +275,64 @@ export default function Financeiro() {
           uploaded_by: string | null;
           created_at: string;
           origem: string | null;
+          grupo_id?: string | null;
+          compartilhado_grupo?: boolean | null;
+          contrato_origem_id?: string | null;
+          _compartilhado_grupo?: boolean;
         }>
       > = {};
-      data.forEach((a: any) => {
-        if (!map[a.financeiro_movimentacao_id]) map[a.financeiro_movimentacao_id] = [];
-        map[a.financeiro_movimentacao_id].push({
+      const pushAnexo = (movId: string, a: any, compartilhado = false) => {
+        if (!map[movId]) map[movId] = [];
+        const pathKey = a.storage_path || `${a.financeiro_movimentacao_id}:${a.nome_arquivo}`;
+        if (map[movId].some((item) => (item.storage_path || `${a.financeiro_movimentacao_id}:${item.nome_arquivo}`) === pathKey)) return;
+        map[movId].push({
           mime_type: a.mime_type ?? null,
           nome_arquivo: a.nome_arquivo ?? null,
           storage_path: a.storage_path ?? null,
           uploaded_by: a.uploaded_by ?? null,
           created_at: a.created_at,
           origem: a.origem ?? null,
+          grupo_id: a.grupo_id ?? null,
+          compartilhado_grupo: a.compartilhado_grupo ?? null,
+          contrato_origem_id: a.contrato_origem_id ?? null,
+          ...(compartilhado ? { _compartilhado_grupo: true } : {}),
         });
+      };
+
+      data.forEach((a: any) => {
+        pushAnexo(a.financeiro_movimentacao_id, a);
       });
+
+      if (empresaGrupoMap?.size) {
+        const movMeta = new Map(
+          financeiroRaw.map((f) => [
+            f.id,
+            { empresa_id: f.empresa_id, mes_referencia: f.mes_referencia, periodo: f.periodo },
+          ]),
+        );
+        const anexosPorGrupoPeriodo = new Map<string, any[]>();
+
+        data.forEach((a: any) => {
+          const meta = movMeta.get(a.financeiro_movimentacao_id);
+          const grupoId = meta ? empresaGrupoMap.get(meta.empresa_id)?.grupo_id : null;
+          if (!meta || !grupoId) return;
+          const key = `${grupoId}|${meta.mes_referencia}|${meta.periodo}`;
+          const list = anexosPorGrupoPeriodo.get(key) ?? [];
+          list.push(a);
+          anexosPorGrupoPeriodo.set(key, list);
+        });
+
+        financeiroRaw.forEach((f) => {
+          const grupoId = empresaGrupoMap.get(f.empresa_id)?.grupo_id;
+          if (!grupoId) return;
+          const compartilhados = anexosPorGrupoPeriodo.get(`${grupoId}|${f.mes_referencia}|${f.periodo}`) ?? [];
+          compartilhados.forEach((a) => {
+            if (a.financeiro_movimentacao_id === f.id) return;
+            pushAnexo(f.id, a, true);
+          });
+        });
+      }
+
       return map;
     },
     enabled: movIds.length > 0,
