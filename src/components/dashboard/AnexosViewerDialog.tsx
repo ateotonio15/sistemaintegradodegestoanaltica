@@ -294,7 +294,18 @@ export function AnexosViewerDialog({
         origem_label: "Contrato" as const,
       }));
 
-      const merged = [...fin, ...op, ...impl].sort(
+      // Anexos vindos do grupo (de OUTROS contratos) — deduplicar por storage_path
+      const existingPaths = new Set([...fin, ...op, ...impl].map((a) => a.storage_path));
+      const grupoRaw = ((anxGrupoRes as any).data ?? []) as any[];
+      const grupoExtras: AnexoRow[] = grupoRaw
+        .filter((a) => !existingPaths.has(a.storage_path) && a?.financeiro_movimentacoes?.empresa_id !== empresaId)
+        .map((a: any) => ({
+          ...a,
+          bucket: BUCKET_FINANCEIRO,
+          origem_label: `Compartilhado pelo grupo${grupoNome ? ` ${grupoNome}` : ""}` as any,
+        }));
+
+      const merged = [...fin, ...op, ...impl, ...grupoExtras].sort(
 
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
