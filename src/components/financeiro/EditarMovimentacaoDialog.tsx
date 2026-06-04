@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import {
@@ -126,6 +127,12 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     pagadores: Pagador[];
   } | null>(null);
   const [aplicarEnvioATodos, setAplicarEnvioATodos] = useState<boolean>(true);
+  const [grupoConfirm, setGrupoConfirm] = useState<{
+    grupoNome: string;
+    acoes: { envio?: string | null; vencimento?: string | null; dda?: boolean | null };
+    onTodos: () => Promise<void>;
+    onApenas: () => void;
+  } | null>(null);
 
   useEffect(() => {
     if (movimentacao) {
@@ -210,6 +217,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     },
     enabled: !!movimentacao && open && empresaCfg !== undefined,
   });
+
+  const { data: grupoData } = useGrupoFinanceiro(movimentacao?.empresa_id);
+  const grupoAtivo = grupoData?.grupo ?? null;
 
   const pagamentoViaDeposito = !!(empresaCfg as any)?.pagamento_via_deposito;
   const exigePoPc = !!(empresaCfg as any)?.exige_po_pc;
@@ -303,7 +313,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     } else if (!dataEnvioNota) {
       payload.enviado_por_user_id = null;
     }
-    return { payload, envioAlterado };
+    const vencimentoAlterado = (dataVencimentoIso || null) !== (movimentacao.data_vencimento || null);
+    const ddaAlterado = !!boletoDda !== !!movimentacao.boleto_dda;
+    return { payload, envioAlterado, vencimentoAlterado, ddaAlterado, dataVencimentoIso };
   };
 
   const TIPOS_FIN_VALIDOS = new Set([
@@ -399,7 +411,59 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           },
         });
       } else {
-        onOpenChange(false);
+        // Checagem de Grupo Financeiro: se a empresa pertence a um grupo e houve
+        // mudança em envio/vencimento/DDA, perguntar se replica ao grupo inteiro.
+        const b = built as any;
+        if (
+          grupoAtivo &&
+          movimentacao &&
+          (b?.envioAlterado || b?.vencimentoAlterado || b?.ddaAlterado)
+        ) {
+          setGrupoConfirm({
+            grupoNome: grupoAtivo.nome_grupo,
+            acoes: {
+              envio: b?.envioAlterado ? dataEnvioNota : null,
+              vencimento: b?.vencimentoAlterado ? b?.dataVencimentoIso : null,
+              dda: b?.ddaAlterado ? boletoDda : null,
+            },
+            onTodos: async () => {
+              try {
+                if (b?.envioAlterado) {
+                  await supabase.rpc("aplicar_envio_nota_grupo" as any, {
+                    p_mov_id: movimentacao.id,
+                    p_data_envio: dataEnvioNota || null,
+                  });
+                }
+                if (b?.vencimentoAlterado) {
+                  await supabase.rpc("aplicar_vencimento_grupo" as any, {
+                    p_mov_id: movimentacao.id,
+                    p_data_vencimento: b?.dataVencimentoIso || null,
+                  });
+                }
+                if (b?.ddaAlterado) {
+                  await supabase.rpc("aplicar_dda_grupo" as any, {
+                    p_mov_id: movimentacao.id,
+                    p_boleto_dda: !!boletoDda,
+                    p_pagamento_deposito: !!pagamentoViaDeposito,
+                  });
+                }
+                toast.success(`Alterações aplicadas ao grupo ${grupoAtivo.nome_grupo}`);
+                queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+              } catch (e: any) {
+                toast.error("Erro ao aplicar no grupo: " + e.message);
+              } finally {
+                setGrupoConfirm(null);
+                onOpenChange(false);
+              }
+            },
+            onApenas: () => {
+              setGrupoConfirm(null);
+              onOpenChange(false);
+            },
+          });
+        } else {
+          onOpenChange(false);
+        }
       }
     },
     onError: (e: any) => toast.error("Erro ao salvar: " + e.message),
@@ -473,7 +537,15 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             mime_type: file.type,
             tamanho_bytes: file.size,
             uploaded_by: user?.id ?? null,
-          });
+            // Vincula ao grupo financeiro (se houver) para compartilhar com outros contratos
+            ...(grupoAtivo
+              ? {
+                  grupo_id: grupoAtivo.id,
+                  compartilhado_grupo: true,
+                  contrato_origem_id: movimentacao.id,
+                }
+              : {}),
+          } as any);
           if (insErr) throw insErr;
 
           nomesExistentes.push(nomeFinal);
@@ -1179,6 +1251,31 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </Button>
             <AlertDialogAction onClick={() => replicaConfirm?.onTodos()}>
               Aplicar a todos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!grupoConfirm} onOpenChange={(v) => !v && setGrupoConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar ao grupo {grupoConfirm?.grupoNome}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta empresa pertence ao grupo financeiro <strong>{grupoConfirm?.grupoNome}</strong>.
+              Deseja replicar
+              {grupoConfirm?.acoes.envio ? " o envio da nota," : ""}
+              {grupoConfirm?.acoes.vencimento ? " o vencimento," : ""}
+              {grupoConfirm?.acoes.dda != null ? " a confirmação de DDA/Depósito," : ""}
+              {" "}para todos os contratos do grupo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel onClick={() => setGrupoConfirm(null)}>Cancelar</AlertDialogCancel>
+            <Button variant="outline" onClick={() => grupoConfirm?.onApenas()}>
+              Somente este contrato
+            </Button>
+            <AlertDialogAction onClick={() => grupoConfirm?.onTodos()}>
+              Aplicar a todos do grupo
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History, Receipt, Loader2 } from "lucide-react";
+import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History, Receipt, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type FinanceiroMovimentacao,
@@ -37,6 +37,8 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   pagador_id?: string | null;
   boleto_dda?: boolean | null;
   pagamento_via_deposito?: boolean;
+  grupo_nome?: string | null;
+  grupo_id?: string | null;
 };
 
 
@@ -155,6 +157,12 @@ export function FinanceiroTable({
                           <Badge variant="outline" className="text-info border-info/50 text-[10px] px-1.5 py-0 h-5">
                             <History className="h-2.5 w-2.5 mr-1" />
                             Retroativo
+                          </Badge>
+                        )}
+                        {row.grupo_nome && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5" title="Grupo financeiro">
+                            <Users className="h-2.5 w-2.5 mr-1" />
+                            Grupo: {row.grupo_nome}
                           </Badge>
                         )}
                         {(row.status === "Nota emitida" || row.status === "Enviada") && !row.pagamento_via_deposito && (

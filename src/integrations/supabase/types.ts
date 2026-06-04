@@ -103,8 +103,11 @@ export type Database = {
       }
       anexos_financeiro: {
         Row: {
+          compartilhado_grupo: boolean
+          contrato_origem_id: string | null
           created_at: string
           financeiro_movimentacao_id: string
+          grupo_id: string | null
           id: string
           mime_type: string | null
           nome_arquivo: string
@@ -114,8 +117,11 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
+          compartilhado_grupo?: boolean
+          contrato_origem_id?: string | null
           created_at?: string
           financeiro_movimentacao_id: string
+          grupo_id?: string | null
           id?: string
           mime_type?: string | null
           nome_arquivo: string
@@ -125,8 +131,11 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
+          compartilhado_grupo?: boolean
+          contrato_origem_id?: string | null
           created_at?: string
           financeiro_movimentacao_id?: string
+          grupo_id?: string | null
           id?: string
           mime_type?: string | null
           nome_arquivo?: string
@@ -141,6 +150,13 @@ export type Database = {
             columns: ["financeiro_movimentacao_id"]
             isOneToOne: false
             referencedRelation: "financeiro_movimentacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anexos_financeiro_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_financeiros"
             referencedColumns: ["id"]
           },
         ]
@@ -1183,6 +1199,176 @@ export type Database = {
         }
         Relationships: []
       }
+      grupos_financeiros: {
+        Row: {
+          atualizado_por_id: string | null
+          atualizado_por_nome: string | null
+          created_at: string
+          criado_por_id: string | null
+          criado_por_nome: string | null
+          dia_vencimento: number | null
+          forma_pagamento: string | null
+          forma_pagamento_compartilhada: boolean
+          id: string
+          nome_grupo: string
+          observacao: string | null
+          status: string
+          updated_at: string
+          vencimento_compartilhado: boolean
+        }
+        Insert: {
+          atualizado_por_id?: string | null
+          atualizado_por_nome?: string | null
+          created_at?: string
+          criado_por_id?: string | null
+          criado_por_nome?: string | null
+          dia_vencimento?: number | null
+          forma_pagamento?: string | null
+          forma_pagamento_compartilhada?: boolean
+          id?: string
+          nome_grupo: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          vencimento_compartilhado?: boolean
+        }
+        Update: {
+          atualizado_por_id?: string | null
+          atualizado_por_nome?: string | null
+          created_at?: string
+          criado_por_id?: string | null
+          criado_por_nome?: string | null
+          dia_vencimento?: number | null
+          forma_pagamento?: string | null
+          forma_pagamento_compartilhada?: boolean
+          id?: string
+          nome_grupo?: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          vencimento_compartilhado?: boolean
+        }
+        Relationships: []
+      }
+      grupos_financeiros_auditoria: {
+        Row: {
+          acao: string
+          contrato_origem_id: string | null
+          contratos_impactados: string[] | null
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          data_hora: string
+          descricao: string | null
+          grupo_id: string | null
+          id: string
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          acao: string
+          contrato_origem_id?: string | null
+          contratos_impactados?: string[] | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          data_hora?: string
+          descricao?: string | null
+          grupo_id?: string | null
+          id?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          contrato_origem_id?: string | null
+          contratos_impactados?: string[] | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          data_hora?: string
+          descricao?: string | null
+          grupo_id?: string | null
+          id?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grupos_financeiros_auditoria_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_financeiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grupos_financeiros_contratos: {
+        Row: {
+          adicionado_em: string
+          adicionado_por_id: string | null
+          adicionado_por_nome: string | null
+          ativo: boolean
+          cnpj: string | null
+          codigo_contrato: string | null
+          created_at: string
+          empresa_id: string
+          grupo_id: string
+          id: string
+          nome_empresa: string | null
+          removido_em: string | null
+          removido_por_id: string | null
+          removido_por_nome: string | null
+          updated_at: string
+        }
+        Insert: {
+          adicionado_em?: string
+          adicionado_por_id?: string | null
+          adicionado_por_nome?: string | null
+          ativo?: boolean
+          cnpj?: string | null
+          codigo_contrato?: string | null
+          created_at?: string
+          empresa_id: string
+          grupo_id: string
+          id?: string
+          nome_empresa?: string | null
+          removido_em?: string | null
+          removido_por_id?: string | null
+          removido_por_nome?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adicionado_em?: string
+          adicionado_por_id?: string | null
+          adicionado_por_nome?: string | null
+          ativo?: boolean
+          cnpj?: string | null
+          codigo_contrato?: string | null
+          created_at?: string
+          empresa_id?: string
+          grupo_id?: string
+          id?: string
+          nome_empresa?: string | null
+          removido_em?: string | null
+          removido_por_id?: string | null
+          removido_por_nome?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grupos_financeiros_contratos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grupos_financeiros_contratos_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_financeiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historicos_financeiros: {
         Row: {
           competencia: string
@@ -2072,6 +2258,10 @@ export type Database = {
         Args: { _acao: string; _detalhes: Json; _impl: string }
         Returns: undefined
       }
+      adicionar_contrato_grupo: {
+        Args: { p_empresa_id: string; p_grupo_id: string }
+        Returns: string
+      }
       alertar_financeiro_nota: {
         Args: {
           p_empresa_id: string
@@ -2079,6 +2269,22 @@ export type Database = {
           p_periodo: string
         }
         Returns: string
+      }
+      aplicar_dda_grupo: {
+        Args: {
+          p_boleto_dda: boolean
+          p_mov_id: string
+          p_pagamento_deposito: boolean
+        }
+        Returns: number
+      }
+      aplicar_envio_nota_grupo: {
+        Args: { p_data_envio: string; p_mov_id: string }
+        Returns: number
+      }
+      aplicar_vencimento_grupo: {
+        Args: { p_data_vencimento: string; p_mov_id: string }
+        Returns: number
       }
       aprovar_implantacao:
         | { Args: { p_impl: string; p_observacao?: string }; Returns: string }
@@ -2127,6 +2333,10 @@ export type Database = {
       rejeitar_implantacao: {
         Args: { p_impl: string; p_motivo: string }
         Returns: string
+      }
+      remover_contrato_grupo: {
+        Args: { p_vinculo_id: string }
+        Returns: undefined
       }
       solicitar_correcao_implantacao: {
         Args: { p_impl: string; p_motivo: string }

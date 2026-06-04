@@ -34,6 +34,7 @@ import { KpiCards } from "@/components/financeiro/KpiCards";
 import { StatusChart } from "@/components/financeiro/StatusChart";
 import { PeriodSummary } from "@/components/financeiro/PeriodSummary";
 import { FinanceiroTable, type FinanceiroRow } from "@/components/financeiro/FinanceiroTable";
+import { useEmpresaGrupoMap, useGruposFinanceirosAtivos } from "@/hooks/useGrupoFinanceiro";
 import { EditarMovimentacaoDialog } from "@/components/financeiro/EditarMovimentacaoDialog";
 import { CobrancaDialog } from "@/components/financeiro/CobrancaDialog";
 import { ImportPagadoresDialog } from "@/components/financeiro/ImportPagadoresDialog";
@@ -69,6 +70,8 @@ export default function Financeiro() {
   const canManageFinanceiro = isAdmin || isFinanceiro;
   const canViewFinanceiro = canManageFinanceiro || isComum || isViewOnly;
   const queryClient = useQueryClient();
+  const { data: empresaGrupoMap } = useEmpresaGrupoMap();
+  const { data: gruposAtivos } = useGruposFinanceirosAtivos();
 
   const [mes, setMes] = useSessionState<string>("financeiro:mes", () => getCurrentMesReferencia());
   const [busca, setBusca] = useSessionState<string>("financeiro:busca", "");
@@ -77,6 +80,7 @@ export default function Financeiro() {
   const [filtroPeriodo, setFiltroPeriodo] = useSessionState<string | null>("financeiro:filtroPeriodo", null);
   const [filtroAnexadoPor, setFiltroAnexadoPor] = useSessionState<string | null>("financeiro:filtroAnexadoPor", null);
   const [filtroTipoAnexo, setFiltroTipoAnexo] = useSessionState<string | null>("financeiro:filtroTipoAnexo", null);
+  const [filtroGrupo, setFiltroGrupo] = useSessionState<string | null>("financeiro:filtroGrupo", null);
   const [ordenacao, setOrdenacao] = useSessionState<string>("financeiro:ordenacao", "envio_desc");
   const [somenteOverdue, setSomenteOverdue] = useSessionState<boolean>("financeiro:somenteOverdue", false);
   const [isExportingAuditoria, setIsExportingAuditoria] = useState(false);
@@ -498,7 +502,14 @@ export default function Financeiro() {
       if (filtroTipo.length > 0 && !filtroTipo.includes(r.tipo_cobranca || "")) return false;
       if (movIdsMatchAnexoFilters && !movIdsMatchAnexoFilters.has(r.id)) return false;
       if (somenteOverdue && (r.dentro_prazo || r.data_envio_nota)) return false;
+      if (filtroGrupo) {
+        const g = empresaGrupoMap?.get(r.empresa_id);
+        if (!g || g.grupo_id !== filtroGrupo) return false;
+      }
       return true;
+    }).map((r) => {
+      const g = empresaGrupoMap?.get(r.empresa_id);
+      return g ? ({ ...r, grupo_nome: g.nome_grupo, grupo_id: g.grupo_id } as any) : r;
     });
 
     // Cada linha = 1 pagador individual (1 CNPJ).
@@ -542,7 +553,7 @@ export default function Financeiro() {
       const hay = `${r.empresa_nome} ${r.empresa_codigo || ""} ${r.empresa_cnpj || ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap, movIdsMatchAnexoFilters]);
+  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap, movIdsMatchAnexoFilters, filtroGrupo, empresaGrupoMap]);
 
   // Ordenação aplicada após filtros
   const sortedRows = useMemo(() => {
@@ -1662,6 +1673,21 @@ export default function Financeiro() {
                 allLabel="Todos os tipos"
                 searchPlaceholder="Buscar tipo..."
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Grupo Financeiro</Label>
+              <Select value={filtroGrupo ?? "__all"} onValueChange={(v) => setFiltroGrupo(v === "__all" ? null : v)}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todos os grupos</SelectItem>
+                  {(gruposAtivos ?? []).map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.nome_grupo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
