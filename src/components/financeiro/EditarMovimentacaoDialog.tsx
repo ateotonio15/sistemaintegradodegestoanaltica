@@ -1247,6 +1247,31 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!grupoConfirm} onOpenChange={(v) => !v && setGrupoConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar ao grupo {grupoConfirm?.grupoNome}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta empresa pertence ao grupo financeiro <strong>{grupoConfirm?.grupoNome}</strong>.
+              Deseja replicar
+              {grupoConfirm?.acoes.envio ? " o envio da nota," : ""}
+              {grupoConfirm?.acoes.vencimento ? " o vencimento," : ""}
+              {grupoConfirm?.acoes.dda != null ? " a confirmação de DDA/Depósito," : ""}
+              {" "}para todos os contratos do grupo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel onClick={() => setGrupoConfirm(null)}>Cancelar</AlertDialogCancel>
+            <Button variant="outline" onClick={() => grupoConfirm?.onApenas()}>
+              Somente este contrato
+            </Button>
+            <AlertDialogAction onClick={() => grupoConfirm?.onTodos()}>
+              Aplicar a todos do grupo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
