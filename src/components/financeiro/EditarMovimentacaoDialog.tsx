@@ -313,7 +313,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     } else if (!dataEnvioNota) {
       payload.enviado_por_user_id = null;
     }
-    return { payload, envioAlterado };
+    const vencimentoAlterado = (dataVencimentoIso || null) !== (movimentacao.data_vencimento || null);
+    const ddaAlterado = !!boletoDda !== !!movimentacao.boleto_dda;
+    return { payload, envioAlterado, vencimentoAlterado, ddaAlterado, dataVencimentoIso };
   };
 
   const TIPOS_FIN_VALIDOS = new Set([
