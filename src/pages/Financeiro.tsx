@@ -545,12 +545,24 @@ export default function Financeiro() {
       }
       const uploaderId = pdfUploaderByMov[f.id];
       const anexosAll = anexosMap[f.id] || [];
-      // Anexos vindos de Reajuste/Cobrança Retroativa não alteram o status
-      // Anexos compartilhados pelo grupo NÃO alteram o status do contrato atual
-      // (a planilha/PDF pertence ao CNPJ do contrato de origem)
-      const anexosParaStatus = anexosAll.filter(
-        (a: any) => a.origem !== "retroativo" && !a._compartilhado_grupo,
-      );
+      const cnpjsDoContrato = cnpjsPorContrato.get(f.id) ?? new Set<string>();
+      // Anexos vindos de Reajuste/Cobrança Retroativa não alteram o status.
+      // Anexos compartilhados pelo grupo só contam para o status DESTE contrato
+      // se a análise feita no contrato de origem identificou um CNPJ que
+      // pertence a este contrato (CNPJ próprio ou de um pagador cadastrado).
+      // Enquanto a análise não roda, o compartilhado fica apenas visível e não
+      // muda o status — evitando "Faturado" indevido para o CNPJ errado.
+      const anexosParaStatus = anexosAll.filter((a: any) => {
+        if (a.origem === "retroativo") return false;
+        if (!a._compartilhado_grupo) return true;
+        const key = `${a._origem_mov_id}|${a.nome_arquivo}`;
+        const cnpjsDoArquivo = cnpjsPorAnexoOrigem?.get(key);
+        if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return false;
+        for (const c of cnpjsDoArquivo) {
+          if (cnpjsDoContrato.has(c)) return true;
+        }
+        return false;
+      });
       const temRetroativo = anexosAll.some((a: any) => a.origem === "retroativo");
       return {
         ...f,
