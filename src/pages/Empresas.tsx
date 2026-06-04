@@ -29,6 +29,7 @@ import { Loader2, FileUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { IsoDatePicker } from "@/components/ui/iso-date-picker";
+import { GrupoFinanceiroSection } from "@/components/empresas/GrupoFinanceiroSection";
 
 type Empresa = Tables<"empresas">;
 
