@@ -1,18 +1,23 @@
-import { Users } from "lucide-react";
+import { useState } from "react";
+import { Users, Eye } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 
 interface Props {
   empresaId: string;
   grupoNome: string;
+  onVisualizarGrupo?: (grupoId: string) => void;
 }
 
-export function GrupoTag({ empresaId, grupoNome }: Props) {
+export function GrupoTag({ empresaId, grupoNome, onVisualizarGrupo }: Props) {
+  const [open, setOpen] = useState(false);
   const { data, isLoading } = useGrupoFinanceiro(empresaId);
   const contratos = data?.contratos ?? [];
+  const grupoId = data?.grupo?.id;
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -52,6 +57,23 @@ export function GrupoTag({ empresaId, grupoNome }: Props) {
               ))
             )}
           </div>
+          {onVisualizarGrupo && grupoId && contratos.length > 0 && (
+            <div className="border-t border-border pt-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="w-full h-7 text-xs gap-1"
+                onClick={() => {
+                  onVisualizarGrupo(grupoId);
+                  setOpen(false);
+                }}
+              >
+                <Eye className="h-3 w-3" />
+                Visualizar grupo
+              </Button>
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>
