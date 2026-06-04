@@ -140,7 +140,7 @@ export function gerarHistoricoTexto(
       "Decisão judicial conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
     );
   } else {
-    if (opts.incluirDda) {
+    if (opts.incluirDda !== false) {
       linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
       linhas.push("");
     }
