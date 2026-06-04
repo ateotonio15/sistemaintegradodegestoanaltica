@@ -338,6 +338,52 @@ export default function Financeiro() {
     enabled: movIds.length > 0,
   });
 
+  // Helper para comparar CNPJ ignorando máscara
+  const onlyDigits = (s?: string | null) => (s || "").replace(/\D/g, "");
+
+  // CNPJs detectados em cada arquivo analisado (chave: `${origem_mov_id}|${nome_arquivo}`)
+  // Origem = contrato onde o anexo foi originalmente enviado.
+  const { data: cnpjsPorAnexoOrigem } = useQuery({
+    queryKey: ["financeiro-analises-cnpjs", mes, movIds.sort().join(",")],
+    queryFn: async () => {
+      const map = new Map<string, Set<string>>();
+      if (movIds.length === 0) return map;
+      const { data, error } = await supabase
+        .from("financeiro_analises")
+        .select("financeiro_movimentacao_id, nome_arquivo_excel, nome_arquivo_pdf, pagador_cnpj")
+        .in("financeiro_movimentacao_id", movIds);
+      if (error) throw error;
+      (data || []).forEach((r: any) => {
+        const cnpj = onlyDigits(r.pagador_cnpj);
+        if (!cnpj || !r.financeiro_movimentacao_id) return;
+        [r.nome_arquivo_excel, r.nome_arquivo_pdf].forEach((nm: string | null) => {
+          if (!nm) return;
+          const key = `${r.financeiro_movimentacao_id}|${nm}`;
+          if (!map.has(key)) map.set(key, new Set());
+          map.get(key)!.add(cnpj);
+        });
+      });
+      return map;
+    },
+    enabled: movIds.length > 0,
+  });
+
+  // CNPJs reconhecidos para cada contrato (próprio + pagadores cadastrados ativos)
+  const cnpjsPorContrato = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    financeiroRaw.forEach((f) => {
+      const set = new Set<string>();
+      const own = onlyDigits((empresasMap as any)[f.empresa_id]?.cnpj);
+      if (own) set.add(own);
+      ((pagadoresCadastradosMap as any)[f.empresa_id] || []).forEach((p: any) => {
+        const n = onlyDigits(p.cnpj);
+        if (p.ativo !== false && n) set.add(n);
+      });
+      m.set(f.id, set);
+    });
+    return m;
+  }, [financeiroRaw, empresasMap, pagadoresCadastradosMap]);
+
   // Mapa: para cada movimentação, o user_id de quem anexou o PDF mais recente
   const pdfUploaderByMov = useMemo(() => {
     const map: Record<string, string> = {};
