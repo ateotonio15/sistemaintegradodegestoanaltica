@@ -126,6 +126,12 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     pagadores: Pagador[];
   } | null>(null);
   const [aplicarEnvioATodos, setAplicarEnvioATodos] = useState<boolean>(true);
+  const [grupoConfirm, setGrupoConfirm] = useState<{
+    grupoNome: string;
+    acoes: { envio?: string | null; vencimento?: string | null; dda?: boolean | null };
+    onTodos: () => Promise<void>;
+    onApenas: () => void;
+  } | null>(null);
 
   useEffect(() => {
     if (movimentacao) {
