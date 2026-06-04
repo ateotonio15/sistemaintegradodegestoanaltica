@@ -1219,10 +1219,11 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                   </label>
                 </div>
                 <ul className="min-w-0 space-y-1.5">
-                  {anexos.map((a) => {
+                  {anexos.map((a: any) => {
                     const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
                     const isExcel = ["xlsx", "xlsm", "xls"].includes(ext);
                     const isChecked = selecionados.has(a.id);
+                    const isShared = !!a._compartilhado_grupo;
                     return (
                     <li
                       key={a.id}
@@ -1231,11 +1232,17 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                       <Checkbox
                         checked={isChecked}
                         onCheckedChange={() => toggleSelecionado(a.id)}
+                        disabled={isShared}
                       />
                       <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="min-w-0 truncate" title={a.nome_arquivo}>
-                        {a.nome_arquivo}
-                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate" title={a.nome_arquivo}>
+                          {a.nome_arquivo}
+                        </div>
+                        {isShared && (
+                          <div className="text-[10px] text-info">Compartilhado pelo grupo</div>
+                        )}
+                      </div>
                       <span className="text-xs text-muted-foreground shrink-0">
                         {formatBytes(a.tamanho_bytes)}
                       </span>
@@ -1250,8 +1257,10 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive disabled:opacity-30"
                         onClick={() => handleDelete(a.id, a.storage_path)}
+                        disabled={isShared}
+                        title={isShared ? "Anexo do grupo — exclua no contrato de origem" : "Excluir"}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
