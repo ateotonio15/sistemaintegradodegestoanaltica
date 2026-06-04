@@ -1638,7 +1638,7 @@ export default function Financeiro() {
               </div>
             </div>
           )}
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-3 items-end">
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
             <div className="space-y-1.5">
               <Label className="text-xs">Buscar</Label>
               <div className="relative">
