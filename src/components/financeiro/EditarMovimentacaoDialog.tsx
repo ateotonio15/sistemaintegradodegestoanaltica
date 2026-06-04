@@ -769,7 +769,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="data_nota">Data de envio da nota</Label>
-              <Popover>
+              <Popover open={dataEnvioOpen} onOpenChange={setDataEnvioOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     id="data_nota"
