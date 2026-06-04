@@ -64,6 +64,7 @@ interface Props {
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
   analiseNotasOrfas?: Record<string, NotaOrfa[]>;
   readOnly?: boolean;
+  onVisualizarGrupo?: (grupoId: string) => void;
 }
 
 const COL_COUNT = 14;
