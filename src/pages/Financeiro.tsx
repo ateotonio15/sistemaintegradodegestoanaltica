@@ -70,6 +70,8 @@ export default function Financeiro() {
   const canManageFinanceiro = isAdmin || isFinanceiro;
   const canViewFinanceiro = canManageFinanceiro || isComum || isViewOnly;
   const queryClient = useQueryClient();
+  const { data: empresaGrupoMap } = useEmpresaGrupoMap();
+  const { data: gruposAtivos } = useGruposFinanceirosAtivos();
 
   const [mes, setMes] = useSessionState<string>("financeiro:mes", () => getCurrentMesReferencia());
   const [busca, setBusca] = useSessionState<string>("financeiro:busca", "");
