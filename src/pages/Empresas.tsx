@@ -1106,6 +1106,13 @@ export default function Empresas() {
                     )}
 
 
+                    {editingId && (
+                      <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                        <GrupoFinanceiroSection empresaId={editingId} />
+                      </div>
+                    )}
+
+
                     <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-primary" />
