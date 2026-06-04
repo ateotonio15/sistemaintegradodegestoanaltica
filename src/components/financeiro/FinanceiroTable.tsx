@@ -159,6 +159,12 @@ export function FinanceiroTable({
                             Retroativo
                           </Badge>
                         )}
+                        {row.grupo_nome && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5" title="Grupo financeiro">
+                            <Users className="h-2.5 w-2.5 mr-1" />
+                            Grupo: {row.grupo_nome}
+                          </Badge>
+                        )}
                         {(row.status === "Nota emitida" || row.status === "Enviada") && !row.pagamento_via_deposito && (
                           <Badge
                             variant="outline"
