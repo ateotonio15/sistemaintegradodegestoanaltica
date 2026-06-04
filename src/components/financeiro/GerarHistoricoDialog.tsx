@@ -53,8 +53,8 @@ const MOTIVOS_PRORROGACAO = [
 const OBS_DDA = "OBS.: O boleto está disponível no sistema de DDA.";
 const OBS_DEPOSITO_REGEX = /OBS\.: Dados bancários para depósito:[^\n]*/;
 
-const garantirObsDda = (texto: string, pagamentoViaDeposito: boolean): string => {
-  if (pagamentoViaDeposito || !texto.trim()) return texto;
+const garantirObsDda = (texto: string): string => {
+  if (!texto.trim()) return texto;
   if (texto.includes(OBS_DDA)) return texto;
 
   if (OBS_DEPOSITO_REGEX.test(texto)) {
@@ -173,20 +173,23 @@ export function GerarHistoricoDialog({
   }, [row]);
 
   const pagamentoViaDeposito = !!((empresaInfo as any)?.pagamento_via_deposito ?? row?.pagamento_via_deposito ?? false);
+  const deveIncluirObsDda = !pagamentoViaDeposito;
 
   const buildTexto = (vencimentoBR: string): string => {
     if (!resultados || !competencia) return "";
     const codigo = String((empresaInfo as any)?.codigo_contrato ?? "").trim();
     const poFixo = codigo === "571" ? "4600004172" : null;
 
-    return garantirObsDda(gerarHistoricoTexto(resultados, {
+    const textoGerado = gerarHistoricoTexto(resultados, {
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
       incluirDda: true,
       pagamentoViaDeposito,
       poFixo,
       periodoCobrancaLabel: periodoCobrancaInfo?.label ?? null,
-    }), pagamentoViaDeposito);
+    });
+
+    return deveIncluirObsDda ? garantirObsDda(textoGerado) : textoGerado;
   };
 
 
@@ -195,23 +198,23 @@ export function GerarHistoricoDialog({
   useEffect(() => {
     if (!open) return;
     if (savedRecord?.texto_historico) {
-      const textoCarregado = garantirObsDda(savedRecord.texto_historico, pagamentoViaDeposito);
+      const textoCarregado = deveIncluirObsDda ? garantirObsDda(savedRecord.texto_historico) : savedRecord.texto_historico;
       setTexto(textoCarregado);
       setTextoOriginalGerado(textoCarregado);
       setStep("preview");
     }
-  }, [open, savedRecord, pagamentoViaDeposito]);
+  }, [open, savedRecord, deveIncluirObsDda]);
 
   useEffect(() => {
-    if (!open || step !== "preview" || pagamentoViaDeposito || !texto || texto.includes(OBS_DDA)) return;
-    const textoCorrigido = garantirObsDda(texto, pagamentoViaDeposito);
+    if (!open || step !== "preview" || !deveIncluirObsDda || !texto || texto.includes(OBS_DDA)) return;
+    const textoCorrigido = garantirObsDda(texto);
     if (textoCorrigido === texto) return;
 
     setTexto(textoCorrigido);
     setTextoOriginalGerado((atual) =>
-      atual === texto ? textoCorrigido : garantirObsDda(atual || textoCorrigido, pagamentoViaDeposito),
+      atual === texto ? textoCorrigido : garantirObsDda(atual || textoCorrigido),
     );
-  }, [open, step, texto, pagamentoViaDeposito]);
+  }, [open, step, texto, deveIncluirObsDda]);
 
   const calcularVencimentoBR = (prorrogou: boolean): string | null => {
     if (!competencia) return null;
