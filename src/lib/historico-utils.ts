@@ -140,10 +140,8 @@ export function gerarHistoricoTexto(
       "Decisão judicial conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
     );
   } else {
-    if (opts.incluirDda) {
-      linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
-      linhas.push("");
-    }
+    linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
+    linhas.push("");
     linhas.push(
       "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
     );
