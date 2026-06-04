@@ -295,7 +295,7 @@ export default function Financeiro() {
           grupo_id: a.grupo_id ?? null,
           compartilhado_grupo: a.compartilhado_grupo ?? null,
           contrato_origem_id: a.contrato_origem_id ?? null,
-          ...(compartilhado ? { _compartilhado_grupo: true } : {}),
+          ...(compartilhado ? { _compartilhado_grupo: true, _origem_mov_id: a.financeiro_movimentacao_id } : {}),
         });
       };
 
@@ -337,6 +337,52 @@ export default function Financeiro() {
     },
     enabled: movIds.length > 0,
   });
+
+  // Helper para comparar CNPJ ignorando máscara
+  const onlyDigits = (s?: string | null) => (s || "").replace(/\D/g, "");
+
+  // CNPJs detectados em cada arquivo analisado (chave: `${origem_mov_id}|${nome_arquivo}`)
+  // Origem = contrato onde o anexo foi originalmente enviado.
+  const { data: cnpjsPorAnexoOrigem } = useQuery({
+    queryKey: ["financeiro-analises-cnpjs", mes, movIds.sort().join(",")],
+    queryFn: async () => {
+      const map = new Map<string, Set<string>>();
+      if (movIds.length === 0) return map;
+      const { data, error } = await supabase
+        .from("financeiro_analises")
+        .select("financeiro_movimentacao_id, nome_arquivo_excel, nome_arquivo_pdf, pagador_cnpj")
+        .in("financeiro_movimentacao_id", movIds);
+      if (error) throw error;
+      (data || []).forEach((r: any) => {
+        const cnpj = onlyDigits(r.pagador_cnpj);
+        if (!cnpj || !r.financeiro_movimentacao_id) return;
+        [r.nome_arquivo_excel, r.nome_arquivo_pdf].forEach((nm: string | null) => {
+          if (!nm) return;
+          const key = `${r.financeiro_movimentacao_id}|${nm}`;
+          if (!map.has(key)) map.set(key, new Set());
+          map.get(key)!.add(cnpj);
+        });
+      });
+      return map;
+    },
+    enabled: movIds.length > 0,
+  });
+
+  // CNPJs reconhecidos para cada contrato (próprio + pagadores cadastrados ativos)
+  const cnpjsPorContrato = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    financeiroRaw.forEach((f) => {
+      const set = new Set<string>();
+      const own = onlyDigits((empresasMap as any)[f.empresa_id]?.cnpj);
+      if (own) set.add(own);
+      ((pagadoresCadastradosMap as any)[f.empresa_id] || []).forEach((p: any) => {
+        const n = onlyDigits(p.cnpj);
+        if (p.ativo !== false && n) set.add(n);
+      });
+      m.set(f.id, set);
+    });
+    return m;
+  }, [financeiroRaw, empresasMap, pagadoresCadastradosMap]);
 
   // Mapa: para cada movimentação, o user_id de quem anexou o PDF mais recente
   const pdfUploaderByMov = useMemo(() => {
@@ -499,12 +545,24 @@ export default function Financeiro() {
       }
       const uploaderId = pdfUploaderByMov[f.id];
       const anexosAll = anexosMap[f.id] || [];
-      // Anexos vindos de Reajuste/Cobrança Retroativa não alteram o status
-      // Anexos compartilhados pelo grupo NÃO alteram o status do contrato atual
-      // (a planilha/PDF pertence ao CNPJ do contrato de origem)
-      const anexosParaStatus = anexosAll.filter(
-        (a: any) => a.origem !== "retroativo" && !a._compartilhado_grupo,
-      );
+      const cnpjsDoContrato = cnpjsPorContrato.get(f.id) ?? new Set<string>();
+      // Anexos vindos de Reajuste/Cobrança Retroativa não alteram o status.
+      // Anexos compartilhados pelo grupo só contam para o status DESTE contrato
+      // se a análise feita no contrato de origem identificou um CNPJ que
+      // pertence a este contrato (CNPJ próprio ou de um pagador cadastrado).
+      // Enquanto a análise não roda, o compartilhado fica apenas visível e não
+      // muda o status — evitando "Faturado" indevido para o CNPJ errado.
+      const anexosParaStatus = anexosAll.filter((a: any) => {
+        if (a.origem === "retroativo") return false;
+        if (!a._compartilhado_grupo) return true;
+        const key = `${a._origem_mov_id}|${a.nome_arquivo}`;
+        const cnpjsDoArquivo = cnpjsPorAnexoOrigem?.get(key);
+        if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return false;
+        for (const c of cnpjsDoArquivo) {
+          if (cnpjsDoContrato.has(c)) return true;
+        }
+        return false;
+      });
       const temRetroativo = anexosAll.some((a: any) => a.origem === "retroativo");
       return {
         ...f,
@@ -524,7 +582,7 @@ export default function Financeiro() {
       };
     });
 
-  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosMap, pdfUploaderByMov, uploaderMap]);
+  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosMap, pdfUploaderByMov, uploaderMap, cnpjsPorContrato, cnpjsPorAnexoOrigem]);
 
   // Tipos únicos para o filtro
   const tiposUnicos = useMemo(() => {
