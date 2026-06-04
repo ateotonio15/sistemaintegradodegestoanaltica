@@ -901,13 +901,17 @@ export default function Financeiro() {
       nome_arquivo: string | null;
       storage_path: string | null;
       created_at: string;
+      _compartilhado_grupo?: boolean;
     }>;
+    // Anexos compartilhados pelo grupo NÃO devem ser analisados aqui:
+    // a planilha/PDF pertence ao CNPJ do contrato de origem.
+    anexos = anexos.filter((a) => !a._compartilhado_grupo);
     const { isXlsAnexo, isPdfAnexo } = await import("@/lib/financeiro-utils");
 
     if (anexos.length === 0) {
       await queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
       const fresh = (queryClient.getQueryData(["financeiro-anexos-list", movIds.sort().join(","), grupoSignature]) as any) || {};
-      anexos = (fresh[row.id] || []) as typeof anexos;
+      anexos = ((fresh[row.id] || []) as typeof anexos).filter((a) => !a._compartilhado_grupo);
     }
 
     const xlsAnexos = anexos.filter((a) => isXlsAnexo(a) && a.storage_path);
