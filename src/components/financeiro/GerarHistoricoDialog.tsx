@@ -172,11 +172,27 @@ export function GerarHistoricoDialog({
   useEffect(() => {
     if (!open) return;
     if (savedRecord?.texto_historico) {
-      setTexto(savedRecord.texto_historico);
-      setTextoOriginalGerado(savedRecord.texto_historico);
+      let textoCarregado = savedRecord.texto_historico;
+      const ehDda = !(empresaInfo as any)?.pagamento_via_deposito;
+      const obsDda = "OBS.: O boleto está disponível no sistema de DDA.";
+      const obsDeposito = /OBS\.: Dados bancários para depósito:[^\n]*/;
+      if (ehDda) {
+        if (obsDeposito.test(textoCarregado)) {
+          // Substitui OBS de depósito por OBS de DDA
+          textoCarregado = textoCarregado.replace(obsDeposito, obsDda);
+        } else if (!textoCarregado.includes(obsDda)) {
+          // Insere OBS de DDA antes da linha "Dedução de base de cálculo"
+          textoCarregado = textoCarregado.replace(
+            /(Dedução de base de cálculo)/,
+            `${obsDda}\n\n$1`,
+          );
+        }
+      }
+      setTexto(textoCarregado);
+      setTextoOriginalGerado(textoCarregado);
       setStep("preview");
     }
-  }, [open, savedRecord]);
+  }, [open, savedRecord, empresaInfo]);
 
   const calcularVencimentoBR = (prorrogou: boolean): string | null => {
     if (!competencia) return null;
