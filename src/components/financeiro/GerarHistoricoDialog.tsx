@@ -50,6 +50,27 @@ const MOTIVOS_PRORROGACAO = [
   "Outros",
 ] as const;
 
+const OBS_DDA = "OBS.: O boleto está disponível no sistema de DDA.";
+const OBS_DEPOSITO_REGEX = /OBS\.: Dados bancários para depósito:[^\n]*/;
+
+const garantirObsDda = (texto: string, pagamentoViaDeposito: boolean): string => {
+  if (pagamentoViaDeposito || !texto.trim()) return texto;
+  if (texto.includes(OBS_DDA)) return texto;
+
+  if (OBS_DEPOSITO_REGEX.test(texto)) {
+    return texto.replace(OBS_DEPOSITO_REGEX, OBS_DDA);
+  }
+
+  if (/Data de Vencimento:[^\n]*/.test(texto)) {
+    return texto.replace(
+      /(Data de Vencimento:[^\n]*\n)(?:\n)*/,
+      `$1\n${OBS_DDA}\n\n`,
+    );
+  }
+
+  return texto.replace(/(Dedução de base de cálculo)/, `${OBS_DDA}\n\n$1`);
+};
+
 type Step = "prorrogacao" | "preview";
 
 interface Props {
@@ -151,19 +172,21 @@ export function GerarHistoricoDialog({
     return false;
   }, [row]);
 
+  const pagamentoViaDeposito = !!((empresaInfo as any)?.pagamento_via_deposito ?? row?.pagamento_via_deposito ?? false);
+
   const buildTexto = (vencimentoBR: string): string => {
     if (!resultados || !competencia) return "";
     const codigo = String((empresaInfo as any)?.codigo_contrato ?? "").trim();
     const poFixo = codigo === "571" ? "4600004172" : null;
 
-    return gerarHistoricoTexto(resultados, {
+    return garantirObsDda(gerarHistoricoTexto(resultados, {
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
       incluirDda: true,
-      pagamentoViaDeposito: !!(empresaInfo as any)?.pagamento_via_deposito,
+      pagamentoViaDeposito,
       poFixo,
       periodoCobrancaLabel: periodoCobrancaInfo?.label ?? null,
-    });
+    }), pagamentoViaDeposito);
   };
 
 
@@ -172,27 +195,12 @@ export function GerarHistoricoDialog({
   useEffect(() => {
     if (!open) return;
     if (savedRecord?.texto_historico) {
-      let textoCarregado = savedRecord.texto_historico;
-      const ehDda = !(empresaInfo as any)?.pagamento_via_deposito;
-      const obsDda = "OBS.: O boleto está disponível no sistema de DDA.";
-      const obsDeposito = /OBS\.: Dados bancários para depósito:[^\n]*/;
-      if (ehDda) {
-        if (obsDeposito.test(textoCarregado)) {
-          // Substitui OBS de depósito por OBS de DDA
-          textoCarregado = textoCarregado.replace(obsDeposito, obsDda);
-        } else if (!textoCarregado.includes(obsDda)) {
-          // Insere OBS de DDA antes da linha "Dedução de base de cálculo"
-          textoCarregado = textoCarregado.replace(
-            /(Dedução de base de cálculo)/,
-            `${obsDda}\n\n$1`,
-          );
-        }
-      }
+      const textoCarregado = garantirObsDda(savedRecord.texto_historico, pagamentoViaDeposito);
       setTexto(textoCarregado);
       setTextoOriginalGerado(textoCarregado);
       setStep("preview");
     }
-  }, [open, savedRecord, empresaInfo]);
+  }, [open, savedRecord, pagamentoViaDeposito]);
 
   const calcularVencimentoBR = (prorrogou: boolean): string | null => {
     if (!competencia) return null;
