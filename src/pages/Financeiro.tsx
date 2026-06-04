@@ -77,6 +77,7 @@ export default function Financeiro() {
   const [filtroPeriodo, setFiltroPeriodo] = useSessionState<string | null>("financeiro:filtroPeriodo", null);
   const [filtroAnexadoPor, setFiltroAnexadoPor] = useSessionState<string | null>("financeiro:filtroAnexadoPor", null);
   const [filtroTipoAnexo, setFiltroTipoAnexo] = useSessionState<string | null>("financeiro:filtroTipoAnexo", null);
+  const [filtroGrupo, setFiltroGrupo] = useSessionState<string | null>("financeiro:filtroGrupo", null);
   const [ordenacao, setOrdenacao] = useSessionState<string>("financeiro:ordenacao", "envio_desc");
   const [somenteOverdue, setSomenteOverdue] = useSessionState<boolean>("financeiro:somenteOverdue", false);
   const [isExportingAuditoria, setIsExportingAuditoria] = useState(false);
