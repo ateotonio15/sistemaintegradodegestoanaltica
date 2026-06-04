@@ -343,7 +343,7 @@ export function GerarHistoricoDialog({
     toast.success("Histórico padrão regenerado.");
   };
 
-  const textoAlterado = texto !== textoOriginalGerado;
+  const textoAlterado = textoFinal !== textoOriginalGerado;
   const possuiSalvo = !!savedRecord?.texto_historico;
 
   return (
@@ -434,7 +434,7 @@ export function GerarHistoricoDialog({
                 )}
               </div>
               <Textarea
-                value={texto}
+                value={textoFinal}
                 onChange={(e) => setTexto(e.target.value)}
                 rows={16}
                 className="font-mono text-xs"
@@ -468,7 +468,7 @@ export function GerarHistoricoDialog({
                 <Button
                   variant="secondary"
                   onClick={handleSalvar}
-                  disabled={!texto.trim() || salvando}
+                  disabled={!textoFinal.trim() || salvando}
                   className="gap-1"
                 >
                   <Save className="h-4 w-4" />
