@@ -548,15 +548,18 @@ export default function Financeiro() {
       const cnpjsDoContrato = cnpjsPorContrato.get(f.id) ?? new Set<string>();
       // Anexos vindos de Reajuste/Cobrança Retroativa não alteram o status.
       // Anexos compartilhados pelo grupo só contam para o status DESTE contrato
-      // se a análise feita no contrato de origem identificou um CNPJ que
-      // pertence a este contrato (CNPJ próprio ou de um pagador cadastrado).
-      // Enquanto a análise não roda, o compartilhado fica apenas visível e não
-      // muda o status — evitando "Faturado" indevido para o CNPJ errado.
+      // se alguma análise (na origem física do anexo OU neste contrato) identificou
+      // um CNPJ que pertence a este contrato. Isso cobre o caso em que o PDF/Excel
+      // foi anexado na TECWAY, mas analisado corretamente pela linha da TW.
       const anexosParaStatus = anexosAll.filter((a: any) => {
         if (a.origem === "retroativo") return false;
-        const origemId = a._compartilhado_grupo ? a._origem_mov_id : f.id;
-        const key = `${origemId}|${a.nome_arquivo}`;
-        const cnpjsDoArquivo = cnpjsPorAnexoOrigem?.get(key);
+        const cnpjsDoArquivo = new Set<string>();
+        const addCnpjsDetectados = (movId?: string | null) => {
+          if (!movId || !a.nome_arquivo) return;
+          cnpjsPorAnexoOrigem?.get(`${movId}|${a.nome_arquivo}`)?.forEach((c) => cnpjsDoArquivo.add(c));
+        };
+        addCnpjsDetectados(a._compartilhado_grupo ? a._origem_mov_id : f.id);
+        if (a._compartilhado_grupo) addCnpjsDetectados(f.id);
         if (a._compartilhado_grupo) {
           // compartilhado: só conta se o CNPJ detectado pertence a este contrato
           if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return false;
