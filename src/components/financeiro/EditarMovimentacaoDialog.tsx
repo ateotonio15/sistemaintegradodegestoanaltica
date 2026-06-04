@@ -802,12 +802,14 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                     onSelect={(date) => {
                       if (!date) {
                         setDataEnvioNota("");
+                        setDataEnvioOpen(false);
                         return;
                       }
                       const y = date.getFullYear();
                       const m = String(date.getMonth() + 1).padStart(2, "0");
                       const d = String(date.getDate()).padStart(2, "0");
                       setDataEnvioNota(`${y}-${m}-${d}`);
+                      setDataEnvioOpen(false);
                     }}
                     disabled={{ after: new Date() }}
                     initialFocus
