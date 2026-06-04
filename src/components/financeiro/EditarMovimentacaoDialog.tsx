@@ -411,7 +411,59 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           },
         });
       } else {
-        onOpenChange(false);
+        // Checagem de Grupo Financeiro: se a empresa pertence a um grupo e houve
+        // mudança em envio/vencimento/DDA, perguntar se replica ao grupo inteiro.
+        const b = built as any;
+        if (
+          grupoAtivo &&
+          movimentacao &&
+          (b?.envioAlterado || b?.vencimentoAlterado || b?.ddaAlterado)
+        ) {
+          setGrupoConfirm({
+            grupoNome: grupoAtivo.nome_grupo,
+            acoes: {
+              envio: b?.envioAlterado ? dataEnvioNota : null,
+              vencimento: b?.vencimentoAlterado ? b?.dataVencimentoIso : null,
+              dda: b?.ddaAlterado ? boletoDda : null,
+            },
+            onTodos: async () => {
+              try {
+                if (b?.envioAlterado) {
+                  await supabase.rpc("aplicar_envio_nota_grupo" as any, {
+                    p_mov_id: movimentacao.id,
+                    p_data_envio: dataEnvioNota || null,
+                  });
+                }
+                if (b?.vencimentoAlterado) {
+                  await supabase.rpc("aplicar_vencimento_grupo" as any, {
+                    p_mov_id: movimentacao.id,
+                    p_data_vencimento: b?.dataVencimentoIso || null,
+                  });
+                }
+                if (b?.ddaAlterado) {
+                  await supabase.rpc("aplicar_dda_grupo" as any, {
+                    p_mov_id: movimentacao.id,
+                    p_boleto_dda: !!boletoDda,
+                    p_pagamento_deposito: !!pagamentoViaDeposito,
+                  });
+                }
+                toast.success(`Alterações aplicadas ao grupo ${grupoAtivo.nome_grupo}`);
+                queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+              } catch (e: any) {
+                toast.error("Erro ao aplicar no grupo: " + e.message);
+              } finally {
+                setGrupoConfirm(null);
+                onOpenChange(false);
+              }
+            },
+            onApenas: () => {
+              setGrupoConfirm(null);
+              onOpenChange(false);
+            },
+          });
+        } else {
+          onOpenChange(false);
+        }
       }
     },
     onError: (e: any) => toast.error("Erro ao salvar: " + e.message),
