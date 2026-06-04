@@ -202,7 +202,20 @@ export function AnexosViewerDialog({
     queryKey: ["anexos-viewer-merged", empresaId, mesReferencia, periodo],
     enabled: open && !!empresaId,
     queryFn: async () => {
-      // 1) Movimentações financeiras do processo
+      // 0) Verifica se a empresa pertence a um grupo financeiro ativo
+      const { data: vinc } = await supabase
+        .from("grupos_financeiros_contratos" as any)
+        .select("grupo_id, grupos_financeiros(nome_grupo, status)")
+        .eq("empresa_id", empresaId!)
+        .eq("ativo", true)
+        .maybeSingle();
+      const grupoId = (vinc as any)?.grupo_id as string | undefined;
+      const grupoNome =
+        (vinc as any)?.grupos_financeiros?.status === "Ativo"
+          ? ((vinc as any)?.grupos_financeiros?.nome_grupo as string)
+          : null;
+
+      // 1) Movimentações financeiras do processo desta empresa
       const { data: movsFin } = await supabase
         .from("financeiro_movimentacoes")
         .select("id")
@@ -227,11 +240,11 @@ export function AnexosViewerDialog({
         .eq("empresa_id", empresaId!);
       const implIds = (impls ?? []).map((i: any) => i.id);
 
-      const [anxFinRes, anxOpRes, anxImplRes] = await Promise.all([
+      const [anxFinRes, anxOpRes, anxImplRes, anxGrupoRes] = await Promise.all([
         movFinIds.length
           ? supabase
               .from("anexos_financeiro")
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, grupo_id, contrato_origem_id")
               .in("financeiro_movimentacao_id", movFinIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
@@ -247,6 +260,16 @@ export function AnexosViewerDialog({
               .from("implantacao_anexos" as any)
               .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
               .in("implantacao_id", implIds)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [] as any[], error: null }),
+        // 4) Anexos compartilhados pelo grupo (qualquer contrato), do mesmo período
+        grupoId
+          ? supabase
+              .from("anexos_financeiro")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, grupo_id, contrato_origem_id, financeiro_movimentacao_id, financeiro_movimentacoes!inner(mes_referencia, periodo, empresa_id)")
+              .eq("grupo_id", grupoId)
+              .eq("financeiro_movimentacoes.mes_referencia", mesReferencia)
+              .eq("financeiro_movimentacoes.periodo", periodo)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
       ]);
