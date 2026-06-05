@@ -1078,7 +1078,7 @@ export default function Financeiro() {
             const buf = await data.arrayBuffer();
             const hash = await sha256Hex(buf);
             const r = await analisarExcelMotoHonda(buf);
-            return { pagador: a.nome_arquivo || "Pagador", _hash: hash, _arquivo: a.nome_arquivo, ...r };
+            return { pagador: r.nomeTomador || a.nome_arquivo || "Pagador", cnpj: r.cnpj || "", _hash: hash, _arquivo: a.nome_arquivo, ...r };
           } catch (err: any) {
             toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
             return {
