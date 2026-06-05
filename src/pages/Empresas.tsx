@@ -514,7 +514,13 @@ export default function Empresas() {
                   <Users className="mr-2 h-4 w-4" />Recalcular Vidas
                 </Button>
               )}
-              <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => {
+                setDialogOpen(open);
+                if (open && !editingId && !draftEmpresaId) {
+                  setDraftEmpresaId(crypto.randomUUID());
+                }
+                if (!open) resetForm();
+              }}>
 
                 <DialogTrigger asChild>
                   <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
