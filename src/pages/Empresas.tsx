@@ -191,7 +191,18 @@ export default function Empresas() {
         if (error) throw error;
         return;
       }
+      // Validação: ao cadastrar nova empresa exige pelo menos 1 anexo
+      if (!editingId && draftEmpresaId) {
+        const { count } = await supabase
+          .from("implantacao_anexos" as any)
+          .select("id", { count: "exact", head: true })
+          .eq("empresa_id", draftEmpresaId);
+        if (!count || count === 0) {
+          throw new Error("Anexe pelo menos 1 arquivo da implantação antes de salvar.");
+        }
+      }
       const payload: any = { ...values };
+
       if (payload.tipo_contrato === "ADMINISTRADORA") {
         payload.tipo_movimentacao = "Diária";
         payload.periodo_movimentacao = null;
@@ -266,22 +277,19 @@ export default function Empresas() {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
-      if (result?.isNew && result.id) {
-        // Mantém o dialog aberto e entra em modo edição para permitir anexar arquivos
-        setEditingId(result.id);
-        toast({
-          title: "Empresa cadastrada!",
-          description: "Agora você pode anexar os arquivos da implantação abaixo.",
-        });
-      } else {
-        setDialogOpen(false);
-        resetForm();
-        toast({ title: "Empresa atualizada!" });
-      }
-
+      setDialogOpen(false);
+      resetForm();
+      toast({
+        title: result?.isNew ? "Empresa cadastrada!" : "Empresa atualizada!",
+      });
     },
-    onError: () => toast({ title: "Erro ao salvar empresa", variant: "destructive" }),
+    onError: (e: any) =>
+      toast({
+        title: e?.message || "Erro ao salvar empresa",
+        variant: "destructive",
+      }),
   });
+
 
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, newStatus, dataRescisao }: { id: string; newStatus: string; dataRescisao: string | null }) => {
