@@ -70,24 +70,30 @@ export function ContratosAVigenciarCard() {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayIso = today.toISOString().slice(0, 10);
+  // Janela: mantém o contrato listado até 2 dias APÓS a vigência/implantação
+  const limite = new Date(today);
+  limite.setDate(limite.getDate() - 2);
+  const y = limite.getFullYear();
+  const m = String(limite.getMonth() + 1).padStart(2, "0");
+  const d = String(limite.getDate()).padStart(2, "0");
+  const limiteIso = `${y}-${m}-${d}`;
 
   const { data: rows = [], isFetching } = useQuery({
     queryKey: ["contratos-a-vigenciar"],
     queryFn: async () => {
-      // 1) Implantações com vigência futura
+      // 1) Implantações com vigência futura OU implantadas há até 2 dias
       const implP = supabase
         .from("implantacoes_contratos")
         .select("id, empresa_id, nome_empresa, codigo_contrato, total_vidas, data_vigencia, status, tipo_contrato")
-        .gte("data_vigencia", todayIso)
+        .gte("data_vigencia", limiteIso)
         .neq("tipo_contrato", "ADMINISTRADORA")
-        .not("status", "in", '("implantado","rejeitado")');
-      // 2) Empresas "novas": sem data de implantação ou com implantação futura (exclui Administradoras)
+        .neq("status", "rejeitado");
+      // 2) Empresas "novas": sem data de implantação, futura, ou até 2 dias após implantação
       const empP = supabase
         .from("empresas")
         .select("id, nome, codigo_contrato, vidas, data_implantacao, status_empresa, tipo_contrato")
         .neq("tipo_contrato", "ADMINISTRADORA")
-        .or(`data_implantacao.is.null,data_implantacao.gt.${todayIso}`);
+        .or(`data_implantacao.is.null,data_implantacao.gte.${limiteIso}`);
 
       const [implRes, empRes] = await Promise.all([implP, empP]);
       if (implRes.error) throw implRes.error;
