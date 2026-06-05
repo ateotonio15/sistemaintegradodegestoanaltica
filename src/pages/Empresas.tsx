@@ -331,9 +331,12 @@ export default function Empresas() {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-recem-implantados"] });
+      queryClient.invalidateQueries({ queryKey: ["recem-implantados-anexos"] });
       toast({ title: "Empresa excluída!" });
     },
-    onError: () => toast({ title: "Erro ao excluir", variant: "destructive" }),
+    onError: (e: any) =>
+      toast({ title: "Erro ao excluir", description: e?.message, variant: "destructive" }),
   });
 
   const importMutation = useMutation({
