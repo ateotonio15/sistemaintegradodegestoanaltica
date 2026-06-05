@@ -5,11 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ClockAlert, Search, Paperclip, Building2, RefreshCw } from "lucide-react";
+import { ClockAlert, Search, Paperclip, Building2, RefreshCw, FileText, Download } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDateBR } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
+
+const TIPO_LABEL: Record<string, string> = {
+  anexo_1: "Anexo 1",
+  contrato: "Contrato",
+  relatorio_vidas: "Relatório de Vidas",
+  primeira_cobranca: "Relatórios da Primeira Cobrança",
+  complementar: "Complementar",
+};
 
 interface EmpresaRow {
   id: string;
