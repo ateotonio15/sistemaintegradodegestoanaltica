@@ -229,6 +229,10 @@ export default function Movimentacoes() {
     const term = searchTerm.trim().toLowerCase();
     return movimentacoes.filter((m) => {
       if ((m.empresas as any)?.status_empresa === "Inativa") return false;
+      // Esconde contratos recém implantados antes da primeira competência válida
+      const statusImpl = (m.empresas as any)?.status_implantacao;
+      const primComp = (m.empresas as any)?.primeira_competencia_financeira as string | null | undefined;
+      if (statusImpl === "aguardando_primeiro_fechamento" && (!primComp || m.mes_referencia < primComp)) return false;
       if (verSomenteSemEmpresa) return !m.empresas;
       const status = calcularStatus(m);
       if (filterPeriodo !== "all" && m.periodo !== filterPeriodo) return false;
