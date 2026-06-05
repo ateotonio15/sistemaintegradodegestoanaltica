@@ -94,7 +94,7 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, tipo_contrato)")
+        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, tipo_contrato, status_implantacao, primeira_competencia_financeira)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -229,6 +229,10 @@ export default function Movimentacoes() {
     const term = searchTerm.trim().toLowerCase();
     return movimentacoes.filter((m) => {
       if ((m.empresas as any)?.status_empresa === "Inativa") return false;
+      // Esconde contratos recém implantados antes da primeira competência válida
+      const statusImpl = (m.empresas as any)?.status_implantacao;
+      const primComp = (m.empresas as any)?.primeira_competencia_financeira as string | null | undefined;
+      if (statusImpl === "aguardando_primeiro_fechamento" && (!primComp || m.mes_referencia < primComp)) return false;
       if (verSomenteSemEmpresa) return !m.empresas;
       const status = calcularStatus(m);
       if (filterPeriodo !== "all" && m.periodo !== filterPeriodo) return false;

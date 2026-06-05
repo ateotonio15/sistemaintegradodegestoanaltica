@@ -18,6 +18,7 @@ import Financeiro from "./pages/Financeiro";
 import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
 import Implantacao from "./pages/Implantacao";
+import ContratosRecemImplantados from "./pages/ContratosRecemImplantados";
 import VidasSamel from "./pages/VidasSamel";
 import GestaoVidas from "./pages/GestaoVidas";
 import VidasOperadora from "./pages/VidasOperadora";
@@ -126,6 +127,10 @@ const AppRoutes = () => (
 
       <Route element={<RoleGate deny={["financeiro"]} />}>
         <Route path="/implantacao" element={<Implantacao />} />
+      </Route>
+
+      <Route element={<RoleGate allow={["admin", "comum", "administradoras", "financeiro", "diretora"]} />}>
+        <Route path="/contratos-recem-implantados" element={<ContratosRecemImplantados />} />
       </Route>
 
       <Route element={<RoleGate allow={["admin", "financeiro", "comum", "administradoras", "visualizacao", "diretora"]} />}>

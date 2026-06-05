@@ -30,6 +30,7 @@ import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentaca
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImplantacoesAndamentoCard } from "@/components/dashboard/ImplantacoesAndamentoCard";
 import { ContratosAVigenciarCard } from "@/components/dashboard/ContratosAVigenciarCard";
+import { ImplantacoesAguardandoFechamentoCard } from "@/components/dashboard/ImplantacoesAguardandoFechamentoCard";
 import { VidasOperadoraResumo } from "@/components/dashboard/VidasOperadoraResumo";
 import { AlertasContratosAnaliseDiretora } from "@/components/dashboard/AlertasContratosAnaliseDiretora";
 import { AlertasContratosVendas } from "@/components/dashboard/AlertasContratosVendas";
@@ -986,6 +987,10 @@ export default function Dashboard() {
 
         {/* Contratos com vigência futura — pendentes de documentos */}
         {dashboardMode === "implantacao" && <ContratosAVigenciarCard />}
+
+        {/* Contratos recém implantados aguardando primeiro fechamento */}
+        {dashboardMode === "implantacao" && <ImplantacoesAguardandoFechamentoCard />}
+
 
         {dashboardMode === "movimentacao" && (
         <>

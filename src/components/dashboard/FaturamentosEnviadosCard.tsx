@@ -66,20 +66,22 @@ export function FaturamentosEnviadosCard() {
       const { data: empresasData } = await supabase
         .from("empresas")
         .select(
-          "id, responsavel_user_id, status_empresa, data_rescisao, contrato_suspenso, tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao",
+          "id, responsavel_user_id, status_empresa, data_rescisao, contrato_suspenso, tipo_movimentacao, periodo_movimentacao, data_corte, data_implantacao, status_implantacao",
         );
       const todas = (empresasData ?? []) as Array<
         EmpresaConfig & {
           responsavel_user_id: string | null;
           data_rescisao: string | null;
           contrato_suspenso: boolean | null;
+          status_implantacao: string | null;
         }
       >;
       const ativas = todas.filter(
         (e) =>
           (e.status_empresa ?? "Ativa") === "Ativa" &&
           !e.data_rescisao &&
-          !e.contrato_suspenso,
+          !e.contrato_suspenso &&
+          (e.status_implantacao ?? "ativo") !== "aguardando_primeiro_fechamento",
       );
       if (isAdmin) {
         return ativas.map((e) => ({

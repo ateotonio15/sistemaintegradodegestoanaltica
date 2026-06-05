@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert } from "lucide-react";
+import { useAtivarContratosPendentes } from "@/hooks/useAtivarContratosPendentes";
 import logoImg from "@/assets/logo-cs-control.png";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +38,7 @@ const allNavItems = [
   { to: "/executivas", label: "Executivas", icon: UserCheck },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/implantacao", label: "Implantação", icon: FileSignature },
+  { to: "/contratos-recem-implantados", label: "Recém Implantados", icon: ClockAlert },
   { to: "/arquivos", label: "Arquivos", icon: FolderArchive },
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
@@ -74,6 +76,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  useAtivarContratosPendentes();
 
   const SIDEBAR_STORAGE_KEY = "sidebar-collapsed";
 
@@ -120,12 +123,13 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         return allowed.includes(item.to);
       }
       if (isFinanceiro) {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes"];
+        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes", "/contratos-recem-implantados"];
         return allowed.includes(item.to);
       }
       if (item.adminOnly && !isAdmin) return false;
       if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "visualizacao") return false;
       if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "administradoras" && role !== "visualizacao" && role !== "diretora") return false;
+      if (item.to === "/contratos-recem-implantados" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "diretora") return false;
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
       if (item.to === "/gestao-vidas" && !isAdmin && role !== "diretora" && role !== "comum" && role !== "administradoras") return false;
       if (item.to === "/vidas-operadora" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
