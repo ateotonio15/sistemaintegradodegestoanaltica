@@ -1144,7 +1144,23 @@ export default function Empresas() {
                         placeholder="Notas internas sobre a empresa…"
                       />
                     </div>
+
+                    {editingId ? (
+                      <EmpresaAnexosImplantacao empresaId={editingId} />
+                    ) : (
+                      <div className="space-y-2 rounded-xl border border-dashed bg-muted/20 p-4">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-primary" />
+                          Anexos da Implantação
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Cadastre a empresa primeiro para liberar o upload dos arquivos
+                          (Anexo 1, Contrato, Relatório de Vidas, Relatórios da Primeira Cobrança e Complementares).
+                        </p>
+                      </div>
+                    )}
                     </div>
+
                     <div className="px-6 py-3 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 flex justify-end gap-2">
                       <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
                       <Button type="submit" disabled={upsert.isPending} className="rounded-lg min-w-[120px]">{upsert.isPending ? "Salvando..." : (editingId ? "Salvar alterações" : "Cadastrar empresa")}</Button>
