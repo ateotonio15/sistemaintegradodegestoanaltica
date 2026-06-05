@@ -440,6 +440,50 @@ export type Database = {
           },
         ]
       }
+      empresa_implantacao_historico: {
+        Row: {
+          created_at: string
+          data_implantacao: string | null
+          detalhes: Json | null
+          empresa_id: string
+          evento: string
+          id: string
+          primeira_competencia: string | null
+          primeiro_fechamento_em: string | null
+          primeiro_processamento_em: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_implantacao?: string | null
+          detalhes?: Json | null
+          empresa_id: string
+          evento: string
+          id?: string
+          primeira_competencia?: string | null
+          primeiro_fechamento_em?: string | null
+          primeiro_processamento_em?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_implantacao?: string | null
+          detalhes?: Json | null
+          empresa_id?: string
+          evento?: string
+          id?: string
+          primeira_competencia?: string | null
+          primeiro_fechamento_em?: string | null
+          primeiro_processamento_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_implantacao_historico_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa_suspensoes: {
         Row: {
           created_at: string
@@ -560,10 +604,14 @@ export type Database = {
           periodo_especifico_cobranca: boolean
           periodo_movimentacao: string | null
           prazo: string | null
+          primeira_competencia_financeira: string | null
+          primeiro_fechamento_em: string | null
+          primeiro_processamento_financeiro_em: string | null
           regra_prorrogacao: string | null
           responsavel_contrato: string | null
           responsavel_user_id: string | null
           status_empresa: string | null
+          status_implantacao: string
           telefone_empresa: string | null
           tem_coparticipacao: boolean
           tipo_contrato: string
@@ -610,10 +658,14 @@ export type Database = {
           periodo_especifico_cobranca?: boolean
           periodo_movimentacao?: string | null
           prazo?: string | null
+          primeira_competencia_financeira?: string | null
+          primeiro_fechamento_em?: string | null
+          primeiro_processamento_financeiro_em?: string | null
           regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
           status_empresa?: string | null
+          status_implantacao?: string
           telefone_empresa?: string | null
           tem_coparticipacao?: boolean
           tipo_contrato?: string
@@ -660,10 +712,14 @@ export type Database = {
           periodo_especifico_cobranca?: boolean
           periodo_movimentacao?: string | null
           prazo?: string | null
+          primeira_competencia_financeira?: string | null
+          primeiro_fechamento_em?: string | null
+          primeiro_processamento_financeiro_em?: string | null
           regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
           status_empresa?: string | null
+          status_implantacao?: string
           telefone_empresa?: string | null
           tem_coparticipacao?: boolean
           tipo_contrato?: string
@@ -2297,6 +2353,11 @@ export type Database = {
             }
             Returns: string
           }
+      ativar_contratos_pendentes: { Args: never; Returns: number }
+      calcular_primeira_competencia: {
+        Args: { p_empresa_id: string }
+        Returns: string
+      }
       enviar_implantacao_diretoria: {
         Args: { p_impl: string }
         Returns: string
