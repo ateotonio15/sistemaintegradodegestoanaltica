@@ -1,0 +1,1 @@
+ALTER TABLE public.implantacao_anexos ALTER COLUMN implantacao_id DROP NOT NULL;

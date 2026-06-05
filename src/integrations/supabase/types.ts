@@ -1529,7 +1529,7 @@ export type Database = {
           created_at: string
           empresa_id: string | null
           id: string
-          implantacao_id: string
+          implantacao_id: string | null
           mime_type: string | null
           nome_arquivo: string
           storage_path: string
@@ -1541,7 +1541,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string | null
           id?: string
-          implantacao_id: string
+          implantacao_id?: string | null
           mime_type?: string | null
           nome_arquivo: string
           storage_path: string
@@ -1553,7 +1553,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string | null
           id?: string
-          implantacao_id?: string
+          implantacao_id?: string | null
           mime_type?: string | null
           nome_arquivo?: string
           storage_path?: string
