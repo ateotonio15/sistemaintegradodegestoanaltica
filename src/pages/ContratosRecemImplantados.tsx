@@ -65,6 +65,42 @@ export default function ContratosRecemImplantados() {
     },
   });
 
+  const empresaIds = useMemo(() => empresas.map((e) => e.id), [empresas]);
+
+  const { data: anexosImpl = [] } = useQuery<any[]>({
+    queryKey: ["recem-implantados-anexos", empresaIds],
+    enabled: !!user && empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("implantacao_anexos" as any)
+        .select("id, empresa_id, tipo, nome_arquivo, storage_path, mime_type, created_at")
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+  });
+
+  const anexosPorEmpresa = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const a of anexosImpl) {
+      const arr = map.get(a.empresa_id) ?? [];
+      arr.push(a);
+      map.set(a.empresa_id, arr);
+    }
+    return map;
+  }, [anexosImpl]);
+
+  const handleDownloadAnexo = async (a: any) => {
+    const { data: signed, error } = await supabase.storage
+      .from("anexos-implantacao")
+      .createSignedUrl(a.storage_path, 60);
+    if (error || !signed?.signedUrl) {
+      toast.error("Não foi possível abrir o arquivo");
+      return;
+    }
+    window.open(signed.signedUrl, "_blank");
+  };
+
   const filtered = useMemo(() => {
     const t = search.trim().toLowerCase();
     if (!t) return empresas;
