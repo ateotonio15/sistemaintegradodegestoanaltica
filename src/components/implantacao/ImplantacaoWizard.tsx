@@ -472,7 +472,7 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                     <input
                       type="file"
                       className="hidden"
-                      multiple={tipo === "complementar"}
+                      multiple={tipo === "complementar" || tipo === "primeira_cobranca"}
                       onChange={async (e) => {
                         const files = Array.from(e.target.files || []);
                         for (const f of files) {
