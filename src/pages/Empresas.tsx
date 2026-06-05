@@ -30,6 +30,7 @@ import { Loader2, FileUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IsoDatePicker } from "@/components/ui/iso-date-picker";
 import { GrupoFinanceiroSection } from "@/components/empresas/GrupoFinanceiroSection";
+import { EmpresaAnexosImplantacao } from "@/components/empresas/EmpresaAnexosImplantacao";
 
 type Empresa = Tables<"empresas">;
 
@@ -247,18 +248,34 @@ export default function Empresas() {
       if (editingId) {
         const { error } = await supabase.from("empresas").update(payload).eq("id", editingId);
         if (error) throw error;
+        return { id: editingId, isNew: false };
       } else {
-        const { error } = await supabase.from("empresas").insert(payload);
+        const { data: inserted, error } = await supabase
+          .from("empresas")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
+        return { id: inserted!.id as string, isNew: true };
       }
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
-      setDialogOpen(false);
-      resetForm();
-      toast({ title: editingId ? "Empresa atualizada!" : "Empresa cadastrada!" });
+      if (result?.isNew && result.id) {
+        // Mantém o dialog aberto e entra em modo edição para permitir anexar arquivos
+        setEditingId(result.id);
+        toast({
+          title: "Empresa cadastrada!",
+          description: "Agora você pode anexar os arquivos da implantação abaixo.",
+        });
+      } else {
+        setDialogOpen(false);
+        resetForm();
+        toast({ title: "Empresa atualizada!" });
+      }
+
     },
     onError: () => toast({ title: "Erro ao salvar empresa", variant: "destructive" }),
   });
@@ -1127,7 +1144,23 @@ export default function Empresas() {
                         placeholder="Notas internas sobre a empresa…"
                       />
                     </div>
+
+                    {editingId ? (
+                      <EmpresaAnexosImplantacao empresaId={editingId} />
+                    ) : (
+                      <div className="space-y-2 rounded-xl border border-dashed bg-muted/20 p-4">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-primary" />
+                          Anexos da Implantação
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Cadastre a empresa primeiro para liberar o upload dos arquivos
+                          (Anexo 1, Contrato, Relatório de Vidas, Relatórios da Primeira Cobrança e Complementares).
+                        </p>
+                      </div>
+                    )}
                     </div>
+
                     <div className="px-6 py-3 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 flex justify-end gap-2">
                       <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
                       <Button type="submit" disabled={upsert.isPending} className="rounded-lg min-w-[120px]">{upsert.isPending ? "Salvando..." : (editingId ? "Salvar alterações" : "Cadastrar empresa")}</Button>
