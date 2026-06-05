@@ -988,6 +988,10 @@ export default function Dashboard() {
         {/* Contratos com vigência futura — pendentes de documentos */}
         {dashboardMode === "implantacao" && <ContratosAVigenciarCard />}
 
+        {/* Contratos recém implantados aguardando primeiro fechamento */}
+        {dashboardMode === "implantacao" && <ImplantacoesAguardandoFechamentoCard />}
+
+
         {dashboardMode === "movimentacao" && (
         <>
         {/* Enviadas ao Financeiro */}
