@@ -209,14 +209,8 @@ export default function ContratosRecemImplantados() {
         <UploadArquivoDialog
           open={!!uploadEmpresa}
           onOpenChange={(o) => !o && setUploadEmpresa(null)}
-          empresaId={uploadEmpresa.id}
-          empresaNome={uploadEmpresa.nome}
-          competencia={uploadEmpresa.primeira_competencia_financeira ?? undefined}
-          categoriaPadrao="Outros"
-          onSuccess={() => {
-            toast.success("Arquivo anexado");
-            setUploadEmpresa(null);
-          }}
+          defaultEmpresaId={uploadEmpresa.id}
+          defaultCompetencia={uploadEmpresa.primeira_competencia_financeira ?? undefined}
         />
       )}
     </div>
