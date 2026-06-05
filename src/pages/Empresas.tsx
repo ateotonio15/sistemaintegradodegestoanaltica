@@ -262,7 +262,7 @@ export default function Empresas() {
         if (error) throw error;
         return { id: editingId, isNew: false };
       } else {
-        const insertPayload: any = { ...payload };
+        const insertPayload: any = { ...payload, status_implantacao: "aguardando_primeiro_fechamento" };
         if (draftEmpresaId) insertPayload.id = draftEmpresaId;
         const { data: inserted, error } = await supabase
           .from("empresas")
@@ -270,7 +270,20 @@ export default function Empresas() {
           .select("id")
           .single();
         if (error) throw error;
-        return { id: inserted!.id as string, isNew: true };
+        const newId = inserted!.id as string;
+        try {
+          const { data: comp } = await supabase.rpc("calcular_primeira_competencia" as any, { p_empresa_id: newId });
+          if (comp) {
+            await supabase.from("empresas").update({ primeira_competencia_financeira: comp } as any).eq("id", newId);
+            const nowComp = new Date().toISOString().slice(0, 7);
+            if ((comp as string) <= nowComp) {
+              await supabase.from("empresas").update({ status_implantacao: "ativo" } as any).eq("id", newId);
+            }
+          }
+        } catch (err) {
+          console.warn("Falha ao calcular primeira competência", err);
+        }
+        return { id: newId, isNew: true };
       }
     },
     onSuccess: (result: any) => {
