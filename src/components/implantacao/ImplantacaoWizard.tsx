@@ -271,7 +271,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   );
 
   // ----- validations per step -----
-  const tiposObrigatorios = ["anexo_1", "contrato", "relatorio_vidas", "complementar"];
+  const tiposObrigatorios = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
   const todosAnexosOk = tiposObrigatorios.every((t) => anexos.some((a: any) => a.tipo === t));
   const validacao: ValidacaoResultado | null = data?.relatorio_validacao || null;
 
