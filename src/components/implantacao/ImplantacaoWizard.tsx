@@ -41,6 +41,7 @@ const TIPO_LABEL: Record<string, string> = {
   anexo_1: "Anexo 1",
   contrato: "Contrato",
   relatorio_vidas: "Relatório de Vidas",
+  primeira_cobranca: "Relatórios da Primeira Cobrança",
   complementar: "Complementar",
 };
 
