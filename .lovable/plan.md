@@ -1,81 +1,94 @@
-# Grupo Financeiro — Plano de Implementação
+# Fluxo Pós-Implantação: "Contrato Recém Implantado"
 
-Funcionalidade nova que vincula múltiplos contratos/empresas em um mesmo grupo financeiro, compartilhando ações operacionais (anexos, envio de nota, DDA/depósito e vencimento), mantendo análises, histórico e tipo de cobrança individuais por contrato.
+Cria fase intermediária entre Implantação e Movimentação, evitando que contratos recém implantados entrem indevidamente em faturamentos/movimentações antes da primeira competência válida.
 
-## 1. Banco de Dados (migration)
+## 1. Banco de dados (migração)
 
-**Tabela `grupos_financeiros`**
-- `id`, `nome_grupo` (único), `vencimento_compartilhado` (bool), `dia_vencimento` (1-31), `forma_pagamento_compartilhada` (bool), `forma_pagamento` ('DDA' | 'Depósito'), `observacao`, `status` ('Ativo' | 'Inativo')
-- Auditoria: `criado_por_id/nome`, `atualizado_por_id/nome`, `created_at`, `updated_at`
+**Em `empresas`:**
+- `status_implantacao text` — valores: `aguardando_primeiro_fechamento` | `ativo` (default `ativo` p/ retrocompat).
+- `primeira_competencia_financeira text` (`YYYY-MM`) — calculada automaticamente.
+- `primeiro_fechamento_em timestamptz` — preenchido quando ativa.
+- `primeiro_processamento_financeiro_em timestamptz`.
 
-**Tabela `grupos_financeiros_contratos`**
-- `id`, `grupo_id` (FK), `empresa_id` (FK empresas), `codigo_contrato`, `nome_empresa`, `cnpj`, `ativo` (bool)
-- Auditoria: `adicionado_por_id/nome`, `adicionado_em`, `removido_por_id/nome`, `removido_em`
-- Constraint: índice único parcial `(empresa_id) WHERE ativo = true` — garante 1 grupo ativo por empresa.
+**Função `calcular_primeira_competencia(empresa_id)`** — SECURITY DEFINER:
+- Lê `data_implantacao`, `tipo_contrato`, `tipo_movimentacao`, `periodo_movimentacao`, `dia_movimentacao`, `data_corte`.
+- Determina o dia/janela de corte do mês da implantação.
+- Se `data_implantacao` ≤ dia de corte do mês corrente → primeira competência = mês corrente.
+- Caso contrário → mês seguinte.
+- Retorna `YYYY-MM`.
 
-**Tabela `grupos_financeiros_auditoria`**
-- `id`, `grupo_id`, `acao`, `descricao`, `contrato_origem_id`, `contratos_impactados` (uuid[]), `usuario_id/nome`, `data_hora`, `dados_anteriores` (jsonb), `dados_novos` (jsonb)
+**Função `ativar_contrato_recem_implantado(empresa_id)`** — SECURITY DEFINER:
+- Só age se `status_implantacao = 'aguardando_primeiro_fechamento'` e mês atual ≥ `primeira_competencia_financeira`.
+- Define `status_implantacao = 'ativo'`, registra timestamps de histórico, gera alerta tipo `primeiro_fechamento_disponivel` para Financeiro.
 
-**Alterações em tabelas existentes**
-- `anexos_financeiro`: adicionar `grupo_id uuid null`, `compartilhado_grupo bool default false`, `contrato_origem_id uuid null` (movimentacao financeira original). Não duplica storage — anexos com `grupo_id` são visíveis a todas movimentações do grupo.
+**Trigger de ativação automática:**
+- Cron job diário (pg_cron já habilitado) chamando função `ativar_contratos_pendentes()` que itera empresas em `aguardando_primeiro_fechamento` cuja competência chegou.
+- Adicionalmente, ao abrir o Dashboard, frontend chama RPC `ativar_contratos_pendentes()` como fallback.
 
-**Funções RPC (SECURITY DEFINER)**
-- `aplicar_envio_nota_grupo(p_mov_id, p_data_envio, p_aplicar_grupo bool)` — replica `data_envio_nota` para todas movimentações financeiras do mesmo período das empresas do grupo.
-- `aplicar_dda_grupo(p_mov_id, p_boleto_dda bool, p_pagamento_deposito bool)` — replica forma de pagamento em todo o grupo.
-- `aplicar_vencimento_grupo(p_mov_id, p_data_vencimento)` — replica vencimento.
-- `adicionar_contrato_grupo(p_grupo_id, p_empresa_id)` / `remover_contrato_grupo` — com validação de grupo único.
-- Cada RPC registra entrada em `grupos_financeiros_auditoria`.
+**Ajuste `finalizar_implantacao_cadastro`:**
+- Após criar/atualizar empresa, definir `status_implantacao = 'aguardando_primeiro_fechamento'` e gravar `primeira_competencia_financeira` via `calcular_primeira_competencia`.
+- **NÃO** criar movimentação imediata (hoje já não cria; manter).
+- Inserir alertas: para Cadastro (`contrato_aguardando_fechamento`) e para Financeiro (`contrato_disponivel_primeiro_fechamento` — só dispara ao ativar).
 
-**RLS**
-- `grupos_financeiros*`: SELECT para admin/financeiro/comum/administradoras/visualizacao/diretora; INSERT/UPDATE/DELETE apenas admin.
-- GRANTs explícitos (anon: nenhum; authenticated: SELECT; admin via policies).
+**Histórico** (nova tabela `empresa_implantacao_historico`):
+- `empresa_id`, `data_implantacao`, `primeira_competencia`, `primeiro_fechamento_em`, `primeiro_processamento_em`, timestamps. Grants padrão + RLS para Cadastro/Financeiro/Diretora/Admin.
 
-## 2. Frontend — aba Empresas
+## 2. Regras de exclusão nas movimentações/faturamentos
 
-**Novo componente `GrupoFinanceiroSection.tsx`** dentro do dialog "Editar Empresa":
-- Toggle: "Esta empresa pertence a um grupo financeiro?"
-- Se Sim → Combobox "Selecionar grupo existente" + botão "Criar novo grupo"
-- Dialog "Gerenciar Grupo" (admin-only): nome, vencimento compartilhado (switch + dia), forma de pagamento compartilhada (switch + DDA/Depósito), observação, status. Lista de contratos vinculados com remover, busca para adicionar.
-- Validação: ao adicionar contrato já em outro grupo ativo → toast de erro com a mensagem padrão.
-- Não-admin: read-only (visualização do grupo e contratos).
+Em todas as queries de:
+- `Movimentacoes.tsx`, `FaturamentosEnviadosCard`, `FaturamentosEnviadoFinanceiro`, `ContratosAVigenciarCard`, dashboards de pendências.
 
-## 3. Frontend — aba Financeiro
+Adicionar filtro: empresa só aparece se `status_implantacao = 'ativo'` **OU** se `mes_referencia >= primeira_competencia_financeira`.
 
-**Tag de grupo na tabela** (`FinanceiroTable.tsx`): badge "Grupo: NOME" ao lado do nome da empresa (após Cobrança/Retroativo/DDA), variant `secondary`.
+Também ajustar provisionamento automático de movimentações para pular empresas em `aguardando_primeiro_fechamento`.
 
-**Filtro "Grupo Financeiro"** em `Financeiro.tsx` (combobox com grupos ativos). Filtra rows cujas empresas pertencem ao grupo selecionado.
+## 3. Nova seção "Contratos Recém Implantados"
 
-**Confirmação de envio em grupo** (`EditarMovimentacaoDialog.tsx`):
-- Ao salvar com `data_envio_nota` novo e empresa pertencer a grupo → AlertDialog com 3 opções: "Todos do grupo" / "Somente este contrato" / "Cancelar".
-- "Todos" → chama `aplicar_envio_nota_grupo`.
+Nova página `src/pages/ContratosRecemImplantados.tsx` + rota `/contratos-recem-implantados`.
 
-**Confirmação DDA/depósito em grupo**:
-- Ao marcar DDA/Depósito em contrato do grupo → AlertDialog informando aplicação ao grupo inteiro → chama `aplicar_dda_grupo`.
+Acesso: Admin, Cadastro (comum/administradoras), Financeiro, Diretora.
 
-**Alteração de vencimento em grupo**:
-- Ao mudar `data_vencimento` em contrato do grupo → AlertDialog com "Aplicar para todos" / "Cancelar" → chama `aplicar_vencimento_grupo`.
+Tabela com colunas: Empresa, Contrato, Data Implantação, Data Vigência, Tipo Movimentação, Período, Vidas, Responsável, Próximo Fechamento, Anexos.
 
-**Anexos compartilhados**:
-- `AnexosViewerDialog`: ao listar anexos, incluir também `anexos_financeiro` com `grupo_id` da empresa atual (via JOIN no `grupo_id` da empresa). Marcar com badge "Compartilhado pelo grupo [NOME]" para anexos com `contrato_origem_id` diferente da movimentação atual.
-- Ao fazer upload em contrato do grupo: gravar `grupo_id` e `compartilhado_grupo = true` automaticamente, mantendo `contrato_origem_id` = movimentação atual. Storage é único (não duplica).
+Ações:
+- **Cadastro**: anexar relatório implantação, relatório vidas, documentos finais, conferências (reusar bucket `implantacao-anexos` com nova categoria `pos_implantacao`).
+- **Financeiro**: visualização read-only de contrato, anexos, vidas, dados de implantação. Sem botões de "enviar ao financeiro" / "registrar nota".
+- **Diretora**: read-only.
 
-## 4. Hook utilitário
+Item de menu na sidebar (`AppLayout.tsx`) com badge contando empresas pendentes.
 
-`useGrupoFinanceiro(empresaId)` — retorna `{ grupo, contratos, isLoading }` consultando `grupos_financeiros_contratos` ativos.
+## 4. Cards de dashboard
 
-## 5. Auditoria automática
+**Dashboard Cadastro** (`src/pages/Dashboard.tsx`): novo card `ImplantacoesAguardandoFechamentoCard` com:
+- Total de contratos
+- Total de vidas
+- Data do próximo fechamento mais próximo
+- Click → `/contratos-recem-implantados`
 
-Triggers nas RPCs gravam em `grupos_financeiros_auditoria` com `dados_anteriores`/`dados_novos`.
+**Dashboard Financeiro** (`DashboardFinanceiro.tsx`): novo card `ContratosAguardandoPrimeiroFechamentoCard` listando empresa, vidas, período, data prevista.
 
-## 6. O que NÃO muda
+## 5. Alertas
 
-- Tipo de cobrança (`tipo_cobranca`): permanece por contrato, nunca replicado.
-- Análise Excel × PDF, histórico, valores, divergências, cobrança retroativa: 100% individuais.
-- Lógica atual de pagadores do mesmo contrato: intocada.
+Reutilizar `alertas_financeiro` com novos `tipo`:
+- `contrato_aguardando_fechamento` (destinatário: Cadastro responsável)
+- `primeiro_fechamento_disponivel` (destinatário: Financeiro) — disparado na ativação automática
 
-## Detalhes técnicos
+## 6. Frontend ajustes auxiliares
 
-- **Compartilhamento de anexos por período**: ações de envio/DDA/vencimento replicam para `financeiro_movimentacoes` com mesmo `(mes_referencia, periodo)` das empresas do grupo (cria registro se ausente).
-- **Performance**: criar índices em `grupos_financeiros_contratos(empresa_id, ativo)` e `anexos_financeiro(grupo_id)`.
-- **Segurança**: todas RPCs validam role admin OU autorização via `empresa_usuarios`/responsável para ações financeiras (envio/DDA/vencimento). Criação/remoção de grupo: admin only.
-- **Cache**: invalidar React Query keys `["financeiro"]`, `["empresas"]`, `["grupos-financeiros"]` após mutações.
+- `src/lib/movimentacao-utils.ts`: helper `isEmpresaAtivaParaCompetencia(empresa, mesRef)` reusado em filtros.
+- Tipos: regenerar via Supabase (automático).
+- Hook leve `useAtivarContratosPendentes()` chamado uma vez no mount do `AppLayout` (RPC noop se nada).
+
+## Detalhes técnicos resumidos
+
+- Migration única com: ALTER TABLE empresas (3 colunas), CREATE TABLE histórico + GRANTs + RLS, 3 funções SECURITY DEFINER, cron diário às 03:00 UTC, ajuste em `finalizar_implantacao_cadastro`.
+- Backfill: empresas existentes ficam com `status_implantacao = 'ativo'` (não impacta fluxo atual).
+- Sem mudança em RLS de movimentações; apenas filtros no frontend + guard no provisionamento.
+- Sem nova dependência npm.
+
+## Fora de escopo
+
+- Notificações por e-mail (sistema atual usa alertas in-app).
+- Edição/cancelamento manual do status `aguardando_primeiro_fechamento` (será apenas via ativação automática, conforme item 12).
+
+Confirma esse plano para eu implementar?
