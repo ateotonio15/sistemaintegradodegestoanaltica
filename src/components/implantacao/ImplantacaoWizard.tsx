@@ -443,7 +443,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
 
 // ============= STEP 1 =============
 function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOnly }: any) {
-  const tipos = ["anexo_1", "contrato", "relatorio_vidas", "complementar"];
+  const tipos = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
   return (
     <div className="space-y-4">
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm">
