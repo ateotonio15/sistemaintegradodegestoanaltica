@@ -1155,19 +1155,8 @@ export default function Empresas() {
                       />
                     </div>
 
-                    {editingId ? (
-                      <EmpresaAnexosImplantacao empresaId={editingId} />
-                    ) : (
-                      <div className="space-y-2 rounded-xl border border-dashed bg-muted/20 p-4">
-                        <h3 className="text-sm font-semibold flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-primary" />
-                          Anexos da Implantação
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Cadastre a empresa primeiro para liberar o upload dos arquivos
-                          (Anexo 1, Contrato, Relatório de Vidas, Relatórios da Primeira Cobrança e Complementares).
-                        </p>
-                      </div>
+                    {(editingId || draftEmpresaId) && (
+                      <EmpresaAnexosImplantacao empresaId={(editingId || draftEmpresaId)!} />
                     )}
                     </div>
 
