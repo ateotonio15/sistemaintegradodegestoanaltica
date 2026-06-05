@@ -129,6 +129,10 @@ const AppRoutes = () => (
         <Route path="/implantacao" element={<Implantacao />} />
       </Route>
 
+      <Route element={<RoleGate allow={["admin", "comum", "administradoras", "financeiro", "diretora"]} />}>
+        <Route path="/contratos-recem-implantados" element={<ContratosRecemImplantados />} />
+      </Route>
+
       <Route element={<RoleGate allow={["admin", "financeiro", "comum", "administradoras", "visualizacao", "diretora"]} />}>
         <Route path="/financeiro" element={<Financeiro />} />
       </Route>
