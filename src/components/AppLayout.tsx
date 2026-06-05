@@ -122,12 +122,13 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         return allowed.includes(item.to);
       }
       if (isFinanceiro) {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes"];
+        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes", "/contratos-recem-implantados"];
         return allowed.includes(item.to);
       }
       if (item.adminOnly && !isAdmin) return false;
       if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "visualizacao") return false;
       if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "administradoras" && role !== "visualizacao" && role !== "diretora") return false;
+      if (item.to === "/contratos-recem-implantados" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "diretora") return false;
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
       if (item.to === "/gestao-vidas" && !isAdmin && role !== "diretora" && role !== "comum" && role !== "administradoras") return false;
       if (item.to === "/vidas-operadora" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
