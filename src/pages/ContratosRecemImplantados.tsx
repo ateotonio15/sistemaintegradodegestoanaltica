@@ -5,11 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ClockAlert, Search, Paperclip, Building2, RefreshCw } from "lucide-react";
+import { ClockAlert, Search, Paperclip, Building2, RefreshCw, FileText, Download } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDateBR } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
+
+const TIPO_LABEL: Record<string, string> = {
+  anexo_1: "Anexo 1",
+  contrato: "Contrato",
+  relatorio_vidas: "Relatório de Vidas",
+  primeira_cobranca: "Relatórios da Primeira Cobrança",
+  complementar: "Complementar",
+};
 
 interface EmpresaRow {
   id: string;
@@ -56,6 +64,42 @@ export default function ContratosRecemImplantados() {
       return (data ?? []) as EmpresaRow[];
     },
   });
+
+  const empresaIds = useMemo(() => empresas.map((e) => e.id), [empresas]);
+
+  const { data: anexosImpl = [] } = useQuery<any[]>({
+    queryKey: ["recem-implantados-anexos", empresaIds],
+    enabled: !!user && empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("implantacao_anexos" as any)
+        .select("id, empresa_id, tipo, nome_arquivo, storage_path, mime_type, created_at")
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+  });
+
+  const anexosPorEmpresa = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const a of anexosImpl) {
+      const arr = map.get(a.empresa_id) ?? [];
+      arr.push(a);
+      map.set(a.empresa_id, arr);
+    }
+    return map;
+  }, [anexosImpl]);
+
+  const handleDownloadAnexo = async (a: any) => {
+    const { data: signed, error } = await supabase.storage
+      .from("anexos-implantacao")
+      .createSignedUrl(a.storage_path, 60);
+    if (error || !signed?.signedUrl) {
+      toast.error("Não foi possível abrir o arquivo");
+      return;
+    }
+    window.open(signed.signedUrl, "_blank");
+  };
 
   const filtered = useMemo(() => {
     const t = search.trim().toLowerCase();
@@ -184,6 +228,58 @@ export default function ContratosRecemImplantados() {
                   Vidas: <span className="text-foreground font-medium">{e.vidas ?? 0}</span>
                 </p>
                 <p className="text-muted-foreground">Responsável: {e.responsavel_contrato ?? "—"}</p>
+
+                {(() => {
+                  const lista = anexosPorEmpresa.get(e.id) ?? [];
+                  if (lista.length === 0) {
+                    return (
+                      <div className="pt-2 mt-2 border-t">
+                        <p className="text-xs text-muted-foreground italic">
+                          Nenhum anexo enviado pelo Cadastro.
+                        </p>
+                      </div>
+                    );
+                  }
+                  const porTipo = lista.reduce<Record<string, any[]>>((acc, a) => {
+                    (acc[a.tipo] ||= []).push(a);
+                    return acc;
+                  }, {});
+                  return (
+                    <div className="pt-2 mt-2 border-t space-y-2">
+                      <p className="text-xs font-medium text-foreground flex items-center gap-1">
+                        <FileText className="h-3.5 w-3.5" />
+                        Anexos do Cadastro ({lista.length})
+                      </p>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        {Object.entries(porTipo).map(([tipo, arr]) => (
+                          <div key={tipo} className="space-y-1">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                              {TIPO_LABEL[tipo] ?? tipo}
+                            </p>
+                            {arr.map((a) => (
+                              <div
+                                key={a.id}
+                                className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs"
+                              >
+                                <span className="truncate flex-1 mr-2">{a.nome_arquivo}</span>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6 shrink-0"
+                                  onClick={() => handleDownloadAnexo(a)}
+                                  title="Baixar"
+                                >
+                                  <Download className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="pt-2 mt-2 border-t flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
                     Próximo fechamento: <span className="text-foreground font-medium">{formatCompetencia(e.primeira_competencia_financeira)}</span>

@@ -41,6 +41,7 @@ const TIPO_LABEL: Record<string, string> = {
   anexo_1: "Anexo 1",
   contrato: "Contrato",
   relatorio_vidas: "Relatório de Vidas",
+  primeira_cobranca: "Relatórios da Primeira Cobrança",
   complementar: "Complementar",
 };
 
@@ -270,7 +271,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   );
 
   // ----- validations per step -----
-  const tiposObrigatorios = ["anexo_1", "contrato", "relatorio_vidas", "complementar"];
+  const tiposObrigatorios = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
   const todosAnexosOk = tiposObrigatorios.every((t) => anexos.some((a: any) => a.tipo === t));
   const validacao: ValidacaoResultado | null = data?.relatorio_validacao || null;
 
@@ -442,7 +443,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
 
 // ============= STEP 1 =============
 function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOnly }: any) {
-  const tipos = ["anexo_1", "contrato", "relatorio_vidas", "complementar"];
+  const tipos = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
   return (
     <div className="space-y-4">
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm">
@@ -471,7 +472,7 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                     <input
                       type="file"
                       className="hidden"
-                      multiple={tipo === "complementar"}
+                      multiple={tipo === "complementar" || tipo === "primeira_cobranca"}
                       onChange={async (e) => {
                         const files = Array.from(e.target.files || []);
                         for (const f of files) {
@@ -484,7 +485,7 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                     <Button asChild size="sm" variant="outline">
                       <span>
                         <Upload className="h-3 w-3 mr-1" />
-                        {tipo === "complementar" ? "Anexar (vários)" : "Anexar"}
+                        {tipo === "complementar" || tipo === "primeira_cobranca" ? "Anexar (vários)" : "Anexar"}
                       </span>
                     </Button>
                   </label>
