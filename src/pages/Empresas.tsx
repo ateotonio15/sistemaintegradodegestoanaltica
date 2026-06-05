@@ -247,18 +247,34 @@ export default function Empresas() {
       if (editingId) {
         const { error } = await supabase.from("empresas").update(payload).eq("id", editingId);
         if (error) throw error;
+        return { id: editingId, isNew: false };
       } else {
-        const { error } = await supabase.from("empresas").insert(payload);
+        const { data: inserted, error } = await supabase
+          .from("empresas")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
+        return { id: inserted!.id as string, isNew: true };
       }
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
-      setDialogOpen(false);
-      resetForm();
-      toast({ title: editingId ? "Empresa atualizada!" : "Empresa cadastrada!" });
+      if (result?.isNew && result.id) {
+        // Mantém o dialog aberto e entra em modo edição para permitir anexar arquivos
+        setEditingId(result.id);
+        toast({
+          title: "Empresa cadastrada!",
+          description: "Agora você pode anexar os arquivos da implantação abaixo.",
+        });
+      } else {
+        setDialogOpen(false);
+        resetForm();
+        toast({ title: "Empresa atualizada!" });
+      }
+
     },
     onError: () => toast({ title: "Erro ao salvar empresa", variant: "destructive" }),
   });
