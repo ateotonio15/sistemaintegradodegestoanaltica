@@ -95,6 +95,7 @@ export default function Empresas() {
   const [rescisaoDate, setRescisaoDate] = useState("");
   const [showRescisaoInput, setShowRescisaoInput] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftEmpresaId, setDraftEmpresaId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [dataImplantacao, setDataImplantacao] = useState("");
   const [dataVencimentoFatura, setDataVencimentoFatura] = useState<number | "">("");
@@ -250,9 +251,11 @@ export default function Empresas() {
         if (error) throw error;
         return { id: editingId, isNew: false };
       } else {
+        const insertPayload: any = { ...payload };
+        if (draftEmpresaId) insertPayload.id = draftEmpresaId;
         const { data: inserted, error } = await supabase
           .from("empresas")
-          .insert(payload)
+          .insert(insertPayload)
           .select("id")
           .single();
         if (error) throw error;
@@ -374,6 +377,7 @@ export default function Empresas() {
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setDraftEmpresaId(null);
     setDataImplantacao("");
     setDataVencimentoFatura("");
     setDataEmissaoFatura("");
@@ -510,7 +514,13 @@ export default function Empresas() {
                   <Users className="mr-2 h-4 w-4" />Recalcular Vidas
                 </Button>
               )}
-              <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => {
+                setDialogOpen(open);
+                if (open && !editingId && !draftEmpresaId) {
+                  setDraftEmpresaId(crypto.randomUUID());
+                }
+                if (!open) resetForm();
+              }}>
 
                 <DialogTrigger asChild>
                   <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
@@ -1145,19 +1155,8 @@ export default function Empresas() {
                       />
                     </div>
 
-                    {editingId ? (
-                      <EmpresaAnexosImplantacao empresaId={editingId} />
-                    ) : (
-                      <div className="space-y-2 rounded-xl border border-dashed bg-muted/20 p-4">
-                        <h3 className="text-sm font-semibold flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-primary" />
-                          Anexos da Implantação
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Cadastre a empresa primeiro para liberar o upload dos arquivos
-                          (Anexo 1, Contrato, Relatório de Vidas, Relatórios da Primeira Cobrança e Complementares).
-                        </p>
-                      </div>
+                    {(editingId || draftEmpresaId) && (
+                      <EmpresaAnexosImplantacao empresaId={(editingId || draftEmpresaId)!} />
                     )}
                     </div>
 
