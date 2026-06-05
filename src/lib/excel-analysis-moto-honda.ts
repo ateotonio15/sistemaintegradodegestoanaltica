@@ -33,12 +33,12 @@ function toNumber(v: unknown): number {
  */
 export async function analisarExcelMotoHonda(
   buffer: ArrayBuffer,
-): Promise<Omit<AnaliseResultado, "pagador">> {
+): Promise<Omit<AnaliseResultado, "pagador"> & { cnpj?: string; nomeTomador?: string }> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
 
   const empty = { beneficiarios: 0, mensalidade: 0, total: 0 };
-  const result: Omit<AnaliseResultado, "pagador"> = {
+  const result: Omit<AnaliseResultado, "pagador"> & { cnpj?: string; nomeTomador?: string } = {
     enfermaria: { ...empty },
     apartamento: { ...empty },
     inclusoes: { quantidade: 0, total: 0 },
@@ -53,6 +53,28 @@ export async function analisarExcelMotoHonda(
     );
     return result;
   }
+
+  // Procura CNPJ em qualquer célula da aba RESUMO. Aceita separadores ., /, - ou espaço
+  // (ex.: "MOTO HONDA DA AMAZONIA LTDA 04.337.168/0001.48").
+  const cnpjRe = /(\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/.\s]?\d{4}[-.\s]?\d{2})/;
+  ws.eachRow({ includeEmpty: false }, (row) => {
+    if (result.cnpj) return;
+    const vals = (row.values as unknown[]).slice(1);
+    for (const v of vals) {
+      const s = String(v ?? "").trim();
+      if (!s) continue;
+      const m = s.match(cnpjRe);
+      if (m) {
+        const digits = m[1].replace(/\D/g, "");
+        if (digits.length === 14) {
+          result.cnpj = digits;
+          const antes = s.slice(0, s.indexOf(m[1])).trim().replace(/[-–—:]+$/, "").trim();
+          if (antes) result.nomeTomador = antes;
+          break;
+        }
+      }
+    }
+  });
 
   let achouEmpresarial = false;
   let achouExecutivo = false;
