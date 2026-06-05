@@ -104,9 +104,14 @@ export async function analisarExcelMotoHonda(
     }
 
     // M.Executivo → Apartamento
+    // Alguns pagadores (ex.: HONDA COMPONENTES) trazem como
+    // "Beneficiários agregados acima de 59 anos".
     if (
       !achouExecutivo &&
-      (label === "m.executivo" || label.startsWith("m.executivo") || label.includes("m.executivo"))
+      (label === "m.executivo" ||
+        label.startsWith("m.executivo") ||
+        label.includes("m.executivo") ||
+        (label.includes("agregado") && label.includes("59")))
     ) {
       const qtd = toNumber(vals[1]);
       const mens = toNumber(vals[2]);
