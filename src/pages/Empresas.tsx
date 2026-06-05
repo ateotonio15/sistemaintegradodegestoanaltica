@@ -375,6 +375,7 @@ export default function Empresas() {
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setDraftEmpresaId(null);
     setDataImplantacao("");
     setDataVencimentoFatura("");
     setDataEmissaoFatura("");
