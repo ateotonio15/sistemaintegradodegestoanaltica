@@ -76,6 +76,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  useAtivarContratosPendentes();
 
   const SIDEBAR_STORAGE_KEY = "sidebar-collapsed";
 
