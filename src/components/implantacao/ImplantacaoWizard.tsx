@@ -485,7 +485,7 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                     <Button asChild size="sm" variant="outline">
                       <span>
                         <Upload className="h-3 w-3 mr-1" />
-                        {tipo === "complementar" ? "Anexar (vários)" : "Anexar"}
+                        {tipo === "complementar" || tipo === "primeira_cobranca" ? "Anexar (vários)" : "Anexar"}
                       </span>
                     </Button>
                   </label>
