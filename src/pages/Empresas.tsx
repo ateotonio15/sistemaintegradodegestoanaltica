@@ -251,9 +251,11 @@ export default function Empresas() {
         if (error) throw error;
         return { id: editingId, isNew: false };
       } else {
+        const insertPayload: any = { ...payload };
+        if (draftEmpresaId) insertPayload.id = draftEmpresaId;
         const { data: inserted, error } = await supabase
           .from("empresas")
-          .insert(payload)
+          .insert(insertPayload)
           .select("id")
           .single();
         if (error) throw error;
