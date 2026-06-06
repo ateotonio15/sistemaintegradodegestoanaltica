@@ -36,6 +36,7 @@ import { AlertasContratosAnaliseDiretora } from "@/components/dashboard/AlertasC
 import { AlertasContratosVendas } from "@/components/dashboard/AlertasContratosVendas";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
+import { ResponsaveisEmFeriasCard } from "@/components/dashboard/ResponsaveisEmFeriasCard";
 
 
 export default function Dashboard() {
