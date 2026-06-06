@@ -1130,6 +1130,7 @@ export type Database = {
           responsavel: string | null
           tipo_analise: string
           tipo_cobranca: string | null
+          tipo_lancamento: string
           updated_at: string
         }
         Insert: {
@@ -1159,6 +1160,7 @@ export type Database = {
           responsavel?: string | null
           tipo_analise?: string
           tipo_cobranca?: string | null
+          tipo_lancamento?: string
           updated_at?: string
         }
         Update: {
@@ -1188,6 +1190,7 @@ export type Database = {
           responsavel?: string | null
           tipo_analise?: string
           tipo_cobranca?: string | null
+          tipo_lancamento?: string
           updated_at?: string
         }
         Relationships: []
@@ -2314,6 +2317,10 @@ export type Database = {
         Args: { _acao: string; _detalhes: Json; _impl: string }
         Returns: undefined
       }
+      _periodo_para_empresa: {
+        Args: { p_empresa: Database["public"]["Tables"]["empresas"]["Row"] }
+        Returns: string
+      }
       adicionar_contrato_grupo: {
         Args: { p_empresa_id: string; p_grupo_id: string }
         Returns: string
@@ -2374,6 +2381,10 @@ export type Database = {
       finalizar_implantacao_cadastro: {
         Args: { p_impl: string }
         Returns: string
+      }
+      gerar_primeira_cobranca_financeira: {
+        Args: { p_empresa_id: string }
+        Returns: number
       }
       get_comum_users_empresa_count: {
         Args: never
