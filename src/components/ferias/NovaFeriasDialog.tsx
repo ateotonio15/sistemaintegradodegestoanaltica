@@ -29,6 +29,7 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
   const [dataFim, setDataFim] = useState("");
   const [atribuicoes, setAtribuicoes] = useState<Atribuicao[]>([]);
   const [destinosBase, setDestinosBase] = useState<Workload[]>([]);
+  const [previewUserId, setPreviewUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
