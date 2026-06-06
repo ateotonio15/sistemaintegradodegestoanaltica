@@ -296,14 +296,12 @@ export default function Movimentacoes() {
   };
 
   const handleExportFerias = async () => {
-    // Busca férias ativas (em_andamento ou aguardando_retorno_contratos) e suas redistribuições
-    const hoje = new Date().toISOString().slice(0, 10);
+    // Busca férias não encerradas (programada, em_andamento ou aguardando_retorno_contratos)
     const { data: ferias, error: fErr } = await supabase
       .from("ferias_cadastro")
       .select("id, responsavel_original_user_id, responsavel_original_nome, data_inicio, data_fim, status")
-      .lte("data_inicio", hoje)
-      .gte("data_fim", hoje)
-      .in("status", ["em_andamento", "programada", "aguardando_retorno_contratos"]);
+      .in("status", ["em_andamento", "programada", "aguardando_retorno_contratos"])
+      .order("data_inicio", { ascending: false });
     if (fErr) {
       toast({ title: "Erro ao buscar férias: " + fErr.message, variant: "destructive" });
       return;
