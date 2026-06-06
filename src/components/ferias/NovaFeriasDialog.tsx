@@ -188,23 +188,28 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
                 </div>
               </Card>
             )}
-            {selectedUser && workload.filter((u) => u.user_id !== userId).length > 0 && (
+            {selectedUser && destinos.length > 0 && (
               <Card className="p-4">
-                <p className="text-sm font-semibold mb-3">Demais responsáveis do Cadastro ({workload.filter((u) => u.user_id !== userId).length})</p>
+                <p className="text-sm font-semibold mb-3">Demais responsáveis do Cadastro ({destinos.length})</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {workload.filter((u) => u.user_id !== userId).map((u) => {
-                    const total = workload.filter((x) => x.user_id !== userId).length;
-                    const cota = total > 0 ? Math.ceil(selectedUser.empresas / total) : 0;
+                  {destinos.map((u) => {
+                    const lista = previewDistribuicao.get(u.user_id) ?? [];
                     return (
-                      <div key={u.user_id} className="border rounded-md p-3 bg-muted/20">
+                      <button
+                        type="button"
+                        key={u.user_id}
+                        onClick={() => setPreviewUserId(u.user_id)}
+                        className="border rounded-md p-3 bg-muted/20 text-left hover:bg-muted/40 hover:border-primary/50 transition-colors"
+                      >
                         <p className="text-sm font-medium truncate">{u.display_name}</p>
                         <p className="text-xs text-muted-foreground mt-1">Carga atual: {u.empresas}</p>
-                        <p className="text-xs text-primary mt-0.5">Receberá ~{cota} empresas</p>
-                      </div>
+                        <p className="text-xs text-primary mt-0.5 font-semibold">Receberá {lista.length} empresas</p>
+                        <p className="text-[10px] text-muted-foreground mt-1 underline">Ver lista</p>
+                      </button>
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-3">Estimativa balanceada. A divisão exata é calculada na simulação (passo 2) e pode ser ajustada manualmente.</p>
+                <p className="text-[11px] text-muted-foreground mt-3">Pré-visualização (rodízio). A divisão final é gerada na simulação (passo 2) e pode ser ajustada manualmente.</p>
               </Card>
             )}
           </div>
