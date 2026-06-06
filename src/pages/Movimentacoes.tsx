@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Download, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Search, Plane } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   type Movimentacao,
@@ -295,6 +295,92 @@ export default function Movimentacoes() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportFerias = async () => {
+    // Busca férias ativas (em_andamento ou aguardando_retorno_contratos) e suas redistribuições
+    const hoje = new Date().toISOString().slice(0, 10);
+    const { data: ferias, error: fErr } = await supabase
+      .from("ferias_cadastro")
+      .select("id, responsavel_original_user_id, responsavel_original_nome, data_inicio, data_fim, status")
+      .lte("data_inicio", hoje)
+      .gte("data_fim", hoje)
+      .in("status", ["em_andamento", "programada", "aguardando_retorno_contratos"]);
+    if (fErr) {
+      toast({ title: "Erro ao buscar férias: " + fErr.message, variant: "destructive" });
+      return;
+    }
+
+    const feriasIds = (ferias ?? []).map((f) => f.id);
+    let redistribuicoes: any[] = [];
+    if (feriasIds.length) {
+      const { data: emp, error: eErr } = await supabase
+        .from("ferias_cadastro_empresas")
+        .select("empresa_id, responsavel_temporario_nome, ferias_id")
+        .in("ferias_id", feriasIds);
+      if (eErr) {
+        toast({ title: "Erro ao buscar redistribuição: " + eErr.message, variant: "destructive" });
+        return;
+      }
+      redistribuicoes = emp ?? [];
+    }
+    // Mapa empresa_id -> { responsavel_temporario_nome, original_nome, periodo }
+    const feriasMap = new Map<string, { temp: string; original: string; periodo: string }>();
+    const feriasById = new Map((ferias ?? []).map((f) => [f.id, f]));
+    for (const r of redistribuicoes) {
+      const f = feriasById.get(r.ferias_id);
+      if (!f) continue;
+      feriasMap.set(r.empresa_id, {
+        temp: r.responsavel_temporario_nome ?? "",
+        original: f.responsavel_original_nome ?? "",
+        periodo: `${formatDateBR(f.data_inicio)} a ${formatDateBR(f.data_fim)}`,
+      });
+    }
+
+    // Filtra movimentações cuja empresa está em férias
+    const rowsFerias = filtered.filter((m) => feriasMap.has(m.empresa_id));
+    if (rowsFerias.length === 0) {
+      toast({ title: "Nenhuma empresa em férias no período filtrado." });
+      return;
+    }
+
+    const rows = rowsFerias.map((m) => {
+      const status = calcularStatus(m);
+      const tipo = (m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao) === "Diária" ? "Diário" : "Período";
+      const info = feriasMap.get(m.empresa_id)!;
+      return {
+        "Contrato": m.empresas?.codigo_contrato ?? "",
+        "CNPJ": m.empresas?.cnpj ?? "",
+        "Empresa": m.empresas?.nome ?? "",
+        "Resp. Original (Férias)": info.original,
+        "Resp. Temporário": info.temp,
+        "Período Férias": info.periodo,
+        "Tipo": tipo,
+        "Período Movimentação": formatPeriodoEmpresa(m.empresas as any),
+        "Envio Empresa": m.data_envio_empresa ?? "",
+        "Envio Financeiro": m.data_envio_financeiro ?? "",
+        "Status": status,
+        "Corretora": m.empresas?.operadora_plano ?? "",
+      };
+    });
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Férias");
+    const headers = Object.keys(rows[0]);
+    const headerRow = ws.addRow(headers);
+    headerRow.font = { bold: true };
+    headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE0F2FE" } };
+    rows.forEach((r) => ws.addRow(headers.map((h) => (r as any)[h])));
+    ws.columns.forEach((c) => { c.width = 22; });
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `movimentacoes_ferias_${filterMes}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `Exportado: ${rows.length} movimentação(ões) em férias` });
+  };
+
   const selectedEmpresa = empresas.find((e) => e.id === form.empresa_id);
   const isFechada = (form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao) === "Fechada";
 
@@ -344,6 +430,9 @@ export default function Movimentacoes() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExportExcel} className="rounded-lg">
               <Download className="mr-2 h-4 w-4" />Exportar Excel
+            </Button>
+            <Button variant="outline" onClick={handleExportFerias} className="rounded-lg">
+              <Plane className="mr-2 h-4 w-4" />Exportar Férias
             </Button>
             {canEditDates && (
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
