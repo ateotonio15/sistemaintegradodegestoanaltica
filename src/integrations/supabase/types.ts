@@ -740,6 +740,107 @@ export type Database = {
           },
         ]
       }
+      ferias_cadastro: {
+        Row: {
+          created_at: string
+          criado_por_nome: string | null
+          criado_por_user_id: string | null
+          data_fim: string
+          data_inicio: string
+          encerrada_em: string | null
+          id: string
+          iniciada_em: string | null
+          observacao: string | null
+          responsavel_original_nome: string
+          responsavel_original_user_id: string
+          status: Database["public"]["Enums"]["ferias_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por_nome?: string | null
+          criado_por_user_id?: string | null
+          data_fim: string
+          data_inicio: string
+          encerrada_em?: string | null
+          id?: string
+          iniciada_em?: string | null
+          observacao?: string | null
+          responsavel_original_nome: string
+          responsavel_original_user_id: string
+          status?: Database["public"]["Enums"]["ferias_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por_nome?: string | null
+          criado_por_user_id?: string | null
+          data_fim?: string
+          data_inicio?: string
+          encerrada_em?: string | null
+          id?: string
+          iniciada_em?: string | null
+          observacao?: string | null
+          responsavel_original_nome?: string
+          responsavel_original_user_id?: string
+          status?: Database["public"]["Enums"]["ferias_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ferias_cadastro_empresas: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          ferias_id: string
+          id: string
+          motivo_retencao: string | null
+          redistribuida_em: string | null
+          responsavel_original_user_id: string
+          responsavel_temporario_nome: string | null
+          responsavel_temporario_user_id: string
+          retornada_em: string | null
+          status: Database["public"]["Enums"]["ferias_empresa_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          ferias_id: string
+          id?: string
+          motivo_retencao?: string | null
+          redistribuida_em?: string | null
+          responsavel_original_user_id: string
+          responsavel_temporario_nome?: string | null
+          responsavel_temporario_user_id: string
+          retornada_em?: string | null
+          status?: Database["public"]["Enums"]["ferias_empresa_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          ferias_id?: string
+          id?: string
+          motivo_retencao?: string | null
+          redistribuida_em?: string | null
+          responsavel_original_user_id?: string
+          responsavel_temporario_nome?: string | null
+          responsavel_temporario_user_id?: string
+          retornada_em?: string | null
+          status?: Database["public"]["Enums"]["ferias_empresa_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ferias_cadastro_empresas_ferias_id_fkey"
+            columns: ["ferias_id"]
+            isOneToOne: false
+            referencedRelation: "ferias_cadastro"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financeiro_analise_execucao_itens: {
         Row: {
           comparado: boolean
@@ -2345,6 +2446,7 @@ export type Database = {
         Args: { p_data_envio: string; p_mov_id: string }
         Returns: number
       }
+      aplicar_ferias_programadas: { Args: never; Returns: number }
       aplicar_vencimento_grupo: {
         Args: { p_data_vencimento: string; p_mov_id: string }
         Returns: number
@@ -2363,6 +2465,16 @@ export type Database = {
       ativar_contratos_pendentes: { Args: never; Returns: number }
       calcular_primeira_competencia: {
         Args: { p_empresa_id: string }
+        Returns: string
+      }
+      criar_ferias_cadastro: {
+        Args: {
+          p_atribuicoes: Json
+          p_data_fim: string
+          p_data_inicio: string
+          p_nome: string
+          p_user_id: string
+        }
         Returns: string
       }
       enviar_implantacao_diretoria: {
@@ -2386,6 +2498,15 @@ export type Database = {
         Args: { p_empresa_id: string }
         Returns: number
       }
+      get_cadastro_workload: {
+        Args: never
+        Returns: {
+          display_name: string
+          empresas: number
+          implantacoes: number
+          user_id: string
+        }[]
+      }
       get_comum_users_empresa_count: {
         Args: never
         Returns: {
@@ -2402,6 +2523,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      processar_retorno_ferias: { Args: never; Returns: number }
       rejeitar_implantacao: {
         Args: { p_impl: string; p_motivo: string }
         Returns: string
@@ -2410,11 +2532,19 @@ export type Database = {
         Args: { p_vinculo_id: string }
         Returns: undefined
       }
+      simular_redistribuicao_ferias: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       solicitar_correcao_implantacao: {
         Args: { p_impl: string; p_motivo: string }
         Returns: string
       }
       solicitar_reajuste: { Args: { p_empresa_id: string }; Returns: string }
+      tem_movimentacao_pendente: {
+        Args: { p_empresa_id: string }
+        Returns: boolean
+      }
       vincular_empresas_por_responsavel: { Args: never; Returns: undefined }
     }
     Enums: {
@@ -2428,6 +2558,16 @@ export type Database = {
         | "diretora"
         | "vendas"
         | "administradoras"
+      ferias_empresa_status:
+        | "pendente_inicio"
+        | "redistribuida"
+        | "aguardando_fechamento"
+        | "retornada"
+      ferias_status:
+        | "programada"
+        | "em_andamento"
+        | "encerrada"
+        | "aguardando_retorno_contratos"
       implantacao_status:
         | "em_implantacao"
         | "aguardando_documentos"
@@ -2577,6 +2717,18 @@ export const Constants = {
         "diretora",
         "vendas",
         "administradoras",
+      ],
+      ferias_empresa_status: [
+        "pendente_inicio",
+        "redistribuida",
+        "aguardando_fechamento",
+        "retornada",
+      ],
+      ferias_status: [
+        "programada",
+        "em_andamento",
+        "encerrada",
+        "aguardando_retorno_contratos",
       ],
       implantacao_status: [
         "em_implantacao",
