@@ -314,7 +314,7 @@ export default function Movimentacoes() {
     if (feriasIds.length) {
       const { data: emp, error: eErr } = await supabase
         .from("ferias_cadastro_empresas")
-        .select("empresa_id, responsavel_original_user_id, responsavel_original_nome:responsavel_original_user_id, responsavel_temporario_user_id, responsavel_temporario_nome, ferias_id, status")
+        .select("empresa_id, responsavel_temporario_nome, ferias_id")
         .in("ferias_id", feriasIds);
       if (eErr) {
         toast({ title: "Erro ao buscar redistribuição: " + eErr.message, variant: "destructive" });
