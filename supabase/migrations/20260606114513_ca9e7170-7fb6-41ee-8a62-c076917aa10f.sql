@@ -1,0 +1,1 @@
+ALTER FUNCTION public._periodo_para_empresa(public.empresas) SET search_path = public;
