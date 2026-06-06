@@ -989,6 +989,8 @@ export default function Dashboard() {
 
         <ResponsaveisEmFeriasCard />
 
+        <FeriasSection />
+
 
         {/* Contratos recém implantados aguardando primeiro fechamento */}
         {dashboardMode === "implantacao" && <ImplantacoesAguardandoFechamentoCard />}
