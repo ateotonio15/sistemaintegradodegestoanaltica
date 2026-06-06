@@ -178,6 +178,16 @@ export function FinanceiroTable({
                               {row.boleto_dda ? "DDA OK" : "DDA"}
                             </Badge>
                           )}
+                          {(row as any).tipo_lancamento === "primeira_mensalidade" && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-primary/50 text-primary">
+                              Primeira Mensalidade
+                            </Badge>
+                          )}
+                          {(row as any).tipo_lancamento === "fechamento_periodo" && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-info/50 text-info">
+                              Fechamento do Período
+                            </Badge>
+                          )}
                         </div>
                         {row.grupo_nome && (
                           <GrupoTag empresaId={row.empresa_id} grupoNome={row.grupo_nome} onVisualizarGrupo={onVisualizarGrupo} />
