@@ -20,6 +20,9 @@ type Atribuicao = { empresa_id: string; empresa_nome: string; responsavel_temp_i
 export function NovaFeriasDialog({ open, onClose }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { user, isAdmin, isDiretora, isComum } = useAuth();
+  // Comum (cadastro) só pode marcar férias para si mesmo
+  const lockToSelf = isComum && !isAdmin && !isDiretora;
   const [step, setStep] = useState(1);
   const [userId, setUserId] = useState<string>("");
   const [dataInicio, setDataInicio] = useState("");
@@ -45,6 +48,13 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
     },
     enabled: open,
   });
+
+  // Auto-seleciona o próprio usuário quando travado
+  useEffect(() => {
+    if (open && lockToSelf && user?.id && !userId) {
+      setUserId(user.id);
+    }
+  }, [open, lockToSelf, user?.id, userId]);
 
   const selectedUser = workload.find((u) => u.user_id === userId);
 
