@@ -431,6 +431,9 @@ export default function Movimentacoes() {
             <Button variant="outline" onClick={handleExportExcel} className="rounded-lg">
               <Download className="mr-2 h-4 w-4" />Exportar Excel
             </Button>
+            <Button variant="outline" onClick={handleExportFerias} className="rounded-lg">
+              <Plane className="mr-2 h-4 w-4" />Exportar Férias
+            </Button>
             {canEditDates && (
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
               {canEdit && <DialogTrigger asChild>
