@@ -36,8 +36,7 @@ import { AlertasContratosAnaliseDiretora } from "@/components/dashboard/AlertasC
 import { AlertasContratosVendas } from "@/components/dashboard/AlertasContratosVendas";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
-import { ResponsaveisEmFeriasCard } from "@/components/dashboard/ResponsaveisEmFeriasCard";
-import { FeriasSection } from "@/components/ferias/FeriasSection";
+import { FeriasButton } from "@/components/ferias/FeriasButton";
 
 
 export default function Dashboard() {
@@ -695,6 +694,7 @@ export default function Dashboard() {
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
+            <FeriasButton />
         </div>
 
         {/* Modo do Dashboard */}
@@ -987,9 +987,8 @@ export default function Dashboard() {
         {/* Implantações em Andamento */}
         {dashboardMode === "implantacao" && <ImplantacoesAndamentoCard />}
 
-        <ResponsaveisEmFeriasCard />
 
-        <FeriasSection />
+
 
 
         {/* Contratos recém implantados aguardando primeiro fechamento */}
