@@ -2467,6 +2467,7 @@ export type Database = {
         Args: { p_empresa_id: string }
         Returns: string
       }
+      cancelar_ferias_cadastro: { Args: { p_ferias_id: string }; Returns: Json }
       criar_ferias_cadastro: {
         Args: {
           p_atribuicoes: Json
