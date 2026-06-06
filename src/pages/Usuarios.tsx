@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, Wallet, Building2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
+import { FeriasSection } from "@/components/ferias/FeriasSection";
 
 type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras";
 
@@ -337,6 +338,8 @@ export default function Usuarios() {
             </DialogContent>
           </Dialog>}
         </div>
+
+        <FeriasSection />
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

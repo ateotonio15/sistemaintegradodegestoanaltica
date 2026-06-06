@@ -1,94 +1,77 @@
-# Fluxo Pós-Implantação: "Contrato Recém Implantado"
+## ETAPA 54 — Gestão de Férias (Cadastro)
 
-Cria fase intermediária entre Implantação e Movimentação, evitando que contratos recém implantados entrem indevidamente em faturamentos/movimentações antes da primeira competência válida.
+Módulo completo para redistribuir empresas de um responsável Cadastro durante férias, com retorno automático.
 
-## 1. Banco de dados (migração)
+### 1. Banco de Dados (migration)
 
-**Em `empresas`:**
-- `status_implantacao text` — valores: `aguardando_primeiro_fechamento` | `ativo` (default `ativo` p/ retrocompat).
-- `primeira_competencia_financeira text` (`YYYY-MM`) — calculada automaticamente.
-- `primeiro_fechamento_em timestamptz` — preenchido quando ativa.
-- `primeiro_processamento_financeiro_em timestamptz`.
+**Tabela `ferias_cadastro`** (cabeçalho da férias):
+- `id`, `responsavel_original_user_id`, `responsavel_original_nome`
+- `data_inicio`, `data_fim`
+- `status` enum: `programada`, `em_andamento`, `encerrada`, `aguardando_retorno_contratos`
+- `criado_por_user_id`, `criado_por_nome`, `created_at`, `updated_at`
+- `iniciada_em`, `encerrada_em`
 
-**Função `calcular_primeira_competencia(empresa_id)`** — SECURITY DEFINER:
-- Lê `data_implantacao`, `tipo_contrato`, `tipo_movimentacao`, `periodo_movimentacao`, `dia_movimentacao`, `data_corte`.
-- Determina o dia/janela de corte do mês da implantação.
-- Se `data_implantacao` ≤ dia de corte do mês corrente → primeira competência = mês corrente.
-- Caso contrário → mês seguinte.
-- Retorna `YYYY-MM`.
+**Tabela `ferias_cadastro_empresas`** (redistribuição linha-a-linha — esta é o histórico):
+- `id`, `ferias_id` (FK), `empresa_id`
+- `responsavel_original_user_id`, `responsavel_temporario_user_id`
+- `responsavel_temporario_nome`
+- `redistribuida_em`, `retornada_em`
+- `status` enum: `pendente_inicio`, `redistribuida`, `aguardando_fechamento`, `retornada`
+- `motivo_retencao` text (quando ficou retida por movimentação aberta)
 
-**Função `ativar_contrato_recem_implantado(empresa_id)`** — SECURITY DEFINER:
-- Só age se `status_implantacao = 'aguardando_primeiro_fechamento'` e mês atual ≥ `primeira_competencia_financeira`.
-- Define `status_implantacao = 'ativo'`, registra timestamps de histórico, gera alerta tipo `primeiro_fechamento_disponivel` para Financeiro.
+RLS: SELECT para todos autenticados; INSERT/UPDATE/DELETE apenas `admin` e `diretora`. GRANTs corretos.
 
-**Trigger de ativação automática:**
-- Cron job diário (pg_cron já habilitado) chamando função `ativar_contratos_pendentes()` que itera empresas em `aguardando_primeiro_fechamento` cuja competência chegou.
-- Adicionalmente, ao abrir o Dashboard, frontend chama RPC `ativar_contratos_pendentes()` como fallback.
+**Funções RPC (SECURITY DEFINER, search_path = public):**
+- `get_cadastro_workload()` → retorna user_id, nome, empresas, contratos_ativos, implantacoes (para o modal).
+- `simular_redistribuicao_ferias(p_user_id, p_data_inicio, p_data_fim)` → retorna jsonb com `{antes:[...], depois:[...], atribuicoes:[{empresa_id, nome, responsavel_temp_id, responsavel_temp_nome}]}` usando algoritmo guloso (atribui empresa ao destino com menor carga ponderada).
+- `criar_ferias_cadastro(p_user_id, p_data_inicio, p_data_fim, p_atribuicoes jsonb)` → cria registros e, se `data_inicio <= hoje`, executa redistribuição imediata; cria notificações.
+- `aplicar_ferias_programadas()` → cron diário: marca `em_andamento`, troca `empresas.responsavel_user_id` (salvando original), notifica.
+- `processar_retorno_ferias()` → cron diário: para cada férias com `data_fim < hoje`, para cada empresa redistribuída verifica `tem_movimentacao_pendente(empresa_id)` (sem `data_envio_financeiro` no período atual). Se não tem, devolve ao original; se tem, mantém e marca `aguardando_fechamento`. Atualiza status do cabeçalho.
+- `tem_movimentacao_pendente(empresa_id)` helper.
+- Trigger em `movimentacoes` (após UPDATE de `data_envio_financeiro`): se a empresa está em `aguardando_fechamento` e não há mais pendência, devolve ao responsável original automaticamente.
 
-**Ajuste `finalizar_implantacao_cadastro`:**
-- Após criar/atualizar empresa, definir `status_implantacao = 'aguardando_primeiro_fechamento'` e gravar `primeira_competencia_financeira` via `calcular_primeira_competencia`.
-- **NÃO** criar movimentação imediata (hoje já não cria; manter).
-- Inserir alertas: para Cadastro (`contrato_aguardando_fechamento`) e para Financeiro (`contrato_disponivel_primeiro_fechamento` — só dispara ao ativar).
+**Notificações:** inserir em `notificacoes` existente com tipos `ferias_iniciada` / `ferias_retorno`.
 
-**Histórico** (nova tabela `empresa_implantacao_historico`):
-- `empresa_id`, `data_implantacao`, `primeira_competencia`, `primeiro_fechamento_em`, `primeiro_processamento_em`, timestamps. Grants padrão + RLS para Cadastro/Financeiro/Diretora/Admin.
+**Cron (pg_cron + pg_net):** job diário 06:00 chamando edge function `ferias-cron` que invoca as duas funções acima. *(Ou direto via cron.schedule SQL).*
 
-## 2. Regras de exclusão nas movimentações/faturamentos
+### 2. Frontend
 
-Em todas as queries de:
-- `Movimentacoes.tsx`, `FaturamentosEnviadosCard`, `FaturamentosEnviadoFinanceiro`, `ContratosAVigenciarCard`, dashboards de pendências.
+**Página/seção:** Adicionar na página `/usuarios` (Usuarios.tsx) uma aba/seção "Gestão de Férias" visível para todos, com botão **Férias** apenas para `admin`/`diretora`.
 
-Adicionar filtro: empresa só aparece se `status_implantacao = 'ativo'` **OU** se `mes_referencia >= primeira_competencia_financeira`.
+**Componentes novos:**
+- `src/components/ferias/FeriasCard.tsx` — lista férias ativas/programadas/encerradas.
+- `src/components/ferias/NovaFeriasDialog.tsx` — 3 steps:
+  1. Selecionar responsável + período (mostra contadores).
+  2. **Simulador** — tabela Responsável | Antes | Depois (chamando `simular_redistribuicao_ferias`).
+  3. Edição manual — lista empresas com `<Select>` para mudar responsável temporário; mostra resumo recalculado.
+  4. Confirmar → `criar_ferias_cadastro`.
+- `src/components/dashboard/ResponsaveisEmFeriasCard.tsx` — card no Dashboard (perfis cadastro/admin/diretora) listando férias em andamento com nome, período, redistribuídas, pendentes de devolução.
+- Badge **Responsável Temporário** em `Empresas.tsx` (tooltip com original, temporário, período).
 
-Também ajustar provisionamento automático de movimentações para pular empresas em `aguardando_primeiro_fechamento`.
+### 3. Permissões
 
-## 3. Nova seção "Contratos Recém Implantados"
+- Botão Férias e ações: `isAdmin || isDiretora`.
+- Visualização: todos os perfis do Cadastro (comum, administradoras), admin, diretora.
 
-Nova página `src/pages/ContratosRecemImplantados.tsx` + rota `/contratos-recem-implantados`.
+### 4. Pontos técnicos
 
-Acesso: Admin, Cadastro (comum/administradoras), Financeiro, Diretora.
+- Algoritmo de balanceamento: ordena destinos por `(empresas + 0.5*implantacoes)` e atribui cada empresa do responsável de férias ao destino de menor carga, atualizando carga incrementalmente (min-heap simples em SQL via loop PL/pgSQL).
+- "Movimentação pendente" = registro em `movimentacoes` do período atual sem `data_envio_financeiro` OU `financeiro_movimentacoes` sem `data_envio_nota`.
+- Mantemos `responsavel_user_id` na empresa atualizado durante férias; o "original" vive em `ferias_cadastro_empresas`.
 
-Tabela com colunas: Empresa, Contrato, Data Implantação, Data Vigência, Tipo Movimentação, Período, Vidas, Responsável, Próximo Fechamento, Anexos.
+### 5. Arquivos
 
-Ações:
-- **Cadastro**: anexar relatório implantação, relatório vidas, documentos finais, conferências (reusar bucket `implantacao-anexos` com nova categoria `pos_implantacao`).
-- **Financeiro**: visualização read-only de contrato, anexos, vidas, dados de implantação. Sem botões de "enviar ao financeiro" / "registrar nota".
-- **Diretora**: read-only.
+Migration:
+- `supabase/migrations/<ts>_ferias_cadastro.sql` (tabelas, enums, RLS, GRANTs, RPCs, trigger).
 
-Item de menu na sidebar (`AppLayout.tsx`) com badge contando empresas pendentes.
+Cron job: inserir via `supabase--insert` após migration aprovada.
 
-## 4. Cards de dashboard
-
-**Dashboard Cadastro** (`src/pages/Dashboard.tsx`): novo card `ImplantacoesAguardandoFechamentoCard` com:
-- Total de contratos
-- Total de vidas
-- Data do próximo fechamento mais próximo
-- Click → `/contratos-recem-implantados`
-
-**Dashboard Financeiro** (`DashboardFinanceiro.tsx`): novo card `ContratosAguardandoPrimeiroFechamentoCard` listando empresa, vidas, período, data prevista.
-
-## 5. Alertas
-
-Reutilizar `alertas_financeiro` com novos `tipo`:
-- `contrato_aguardando_fechamento` (destinatário: Cadastro responsável)
-- `primeiro_fechamento_disponivel` (destinatário: Financeiro) — disparado na ativação automática
-
-## 6. Frontend ajustes auxiliares
-
-- `src/lib/movimentacao-utils.ts`: helper `isEmpresaAtivaParaCompetencia(empresa, mesRef)` reusado em filtros.
-- Tipos: regenerar via Supabase (automático).
-- Hook leve `useAtivarContratosPendentes()` chamado uma vez no mount do `AppLayout` (RPC noop se nada).
-
-## Detalhes técnicos resumidos
-
-- Migration única com: ALTER TABLE empresas (3 colunas), CREATE TABLE histórico + GRANTs + RLS, 3 funções SECURITY DEFINER, cron diário às 03:00 UTC, ajuste em `finalizar_implantacao_cadastro`.
-- Backfill: empresas existentes ficam com `status_implantacao = 'ativo'` (não impacta fluxo atual).
-- Sem mudança em RLS de movimentações; apenas filtros no frontend + guard no provisionamento.
-- Sem nova dependência npm.
-
-## Fora de escopo
-
-- Notificações por e-mail (sistema atual usa alertas in-app).
-- Edição/cancelamento manual do status `aguardando_primeiro_fechamento` (será apenas via ativação automática, conforme item 12).
-
-Confirma esse plano para eu implementar?
+Frontend:
+- `src/components/ferias/FeriasCard.tsx`
+- `src/components/ferias/NovaFeriasDialog.tsx`
+- `src/components/dashboard/ResponsaveisEmFeriasCard.tsx`
+- `src/hooks/useFerias.ts`
+- editar `src/pages/Usuarios.tsx` (adicionar seção)
+- editar `src/pages/Empresas.tsx` (badge Responsável Temporário)
+- editar `src/pages/Dashboard.tsx` (adicionar card)
+- atualizar `mem://index.md` + nova memory `mem://features/ferias-cadastro`.
