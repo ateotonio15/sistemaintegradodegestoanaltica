@@ -119,17 +119,22 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
         {step === 1 && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Responsável *</Label>
-              <Select value={userId} onValueChange={setUserId}>
+              <Label className="flex items-center gap-2">
+                Responsável * {lockToSelf && <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" />Apenas você</Badge>}
+              </Label>
+              <Select value={userId} onValueChange={setUserId} disabled={lockToSelf}>
                 <SelectTrigger><SelectValue placeholder="Selecione um responsável do Cadastro" /></SelectTrigger>
                 <SelectContent>
-                  {workload.map((u) => (
+                  {workload.filter((u) => !lockToSelf || u.user_id === user?.id).map((u) => (
                     <SelectItem key={u.user_id} value={u.user_id}>
                       {u.display_name} — {u.empresas} empresas · {u.implantacoes} impl.
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {lockToSelf && (
+                <p className="text-xs text-muted-foreground">Suas empresas serão distribuídas entre os demais responsáveis do Cadastro.</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -143,11 +148,31 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
             </div>
             {selectedUser && (
               <Card className="p-4 bg-muted/30">
+                <p className="text-xs font-medium mb-2 text-muted-foreground">Você ({selectedUser.display_name})</p>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div><p className="text-2xl font-bold">{selectedUser.empresas}</p><p className="text-xs text-muted-foreground">Empresas</p></div>
                   <div><p className="text-2xl font-bold">{selectedUser.empresas}</p><p className="text-xs text-muted-foreground">Contratos ativos</p></div>
                   <div><p className="text-2xl font-bold">{selectedUser.implantacoes}</p><p className="text-xs text-muted-foreground">Em implantação</p></div>
                 </div>
+              </Card>
+            )}
+            {selectedUser && workload.filter((u) => u.user_id !== userId).length > 0 && (
+              <Card className="p-4">
+                <p className="text-sm font-semibold mb-3">Demais responsáveis do Cadastro ({workload.filter((u) => u.user_id !== userId).length})</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {workload.filter((u) => u.user_id !== userId).map((u) => {
+                    const total = workload.filter((x) => x.user_id !== userId).length;
+                    const cota = total > 0 ? Math.ceil(selectedUser.empresas / total) : 0;
+                    return (
+                      <div key={u.user_id} className="border rounded-md p-3 bg-muted/20">
+                        <p className="text-sm font-medium truncate">{u.display_name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Carga atual: {u.empresas}</p>
+                        <p className="text-xs text-primary mt-0.5">Receberá ~{cota} empresas</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-3">Estimativa balanceada. A divisão exata é calculada na simulação (passo 2) e pode ser ajustada manualmente.</p>
               </Card>
             )}
           </div>
