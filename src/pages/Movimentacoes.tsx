@@ -352,8 +352,8 @@ export default function Movimentacoes() {
         "Resp. Temporário": info.temp,
         "Período Férias": info.periodo,
         "Tipo": tipo,
-        "Período Movimentação": (m.empresas?.tipo_movimentacao === "Diária" && m.empresas?.data_corte)
-          ? `Dia ${String(m.empresas.data_corte).padStart(2, "0")}`
+        "Período Movimentação": ((m.empresas as any)?.tipo_movimentacao === "Diária" && (m.empresas as any)?.data_corte)
+          ? `Dia ${String((m.empresas as any).data_corte).padStart(2, "0")}`
           : formatPeriodoEmpresa(m.empresas as any),
         "Envio Empresa": m.data_envio_empresa ?? "",
         "Envio Financeiro": m.data_envio_financeiro ?? "",
