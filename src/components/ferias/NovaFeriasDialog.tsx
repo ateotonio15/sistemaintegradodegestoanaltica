@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, ArrowLeft, ArrowRight, Plane, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Plane, CheckCircle2, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props { open: boolean; onClose: () => void; }
 type Workload = { user_id: string; display_name: string; empresas: number; implantacoes: number };
