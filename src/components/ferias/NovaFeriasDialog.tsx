@@ -29,6 +29,7 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
   const [dataFim, setDataFim] = useState("");
   const [atribuicoes, setAtribuicoes] = useState<Atribuicao[]>([]);
   const [destinosBase, setDestinosBase] = useState<Workload[]>([]);
+  const [previewUserId, setPreviewUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -57,6 +58,37 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
   }, [open, lockToSelf, user?.id, userId]);
 
   const selectedUser = workload.find((u) => u.user_id === userId);
+  const destinos = useMemo(() => workload.filter((u) => u.user_id !== userId).sort((a, b) => a.display_name.localeCompare(b.display_name)), [workload, userId]);
+
+  // Empresas da pessoa selecionada (para preview de distribuição no passo 1)
+  const { data: empresasUsuario = [] } = useQuery({
+    queryKey: ["ferias-empresas-usuario", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome")
+        .eq("responsavel_user_id", userId)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    enabled: open && !!userId,
+  });
+
+  // Distribuição prévia round-robin (apenas visualização no passo 1)
+  const previewDistribuicao = useMemo(() => {
+    const map = new Map<string, { id: string; nome: string }[]>();
+    destinos.forEach((d) => map.set(d.user_id, []));
+    if (destinos.length === 0) return map;
+    empresasUsuario.forEach((e, i) => {
+      const dest = destinos[i % destinos.length];
+      map.get(dest.user_id)?.push(e);
+    });
+    return map;
+  }, [empresasUsuario, destinos]);
+
+  const previewUser = destinos.find((d) => d.user_id === previewUserId);
+  const previewEmpresas = previewUserId ? previewDistribuicao.get(previewUserId) ?? [] : [];
 
   const simular = useMutation({
     mutationFn: async () => {
@@ -156,23 +188,28 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
                 </div>
               </Card>
             )}
-            {selectedUser && workload.filter((u) => u.user_id !== userId).length > 0 && (
+            {selectedUser && destinos.length > 0 && (
               <Card className="p-4">
-                <p className="text-sm font-semibold mb-3">Demais responsáveis do Cadastro ({workload.filter((u) => u.user_id !== userId).length})</p>
+                <p className="text-sm font-semibold mb-3">Demais responsáveis do Cadastro ({destinos.length})</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {workload.filter((u) => u.user_id !== userId).map((u) => {
-                    const total = workload.filter((x) => x.user_id !== userId).length;
-                    const cota = total > 0 ? Math.ceil(selectedUser.empresas / total) : 0;
+                  {destinos.map((u) => {
+                    const lista = previewDistribuicao.get(u.user_id) ?? [];
                     return (
-                      <div key={u.user_id} className="border rounded-md p-3 bg-muted/20">
+                      <button
+                        type="button"
+                        key={u.user_id}
+                        onClick={() => setPreviewUserId(u.user_id)}
+                        className="border rounded-md p-3 bg-muted/20 text-left hover:bg-muted/40 hover:border-primary/50 transition-colors"
+                      >
                         <p className="text-sm font-medium truncate">{u.display_name}</p>
                         <p className="text-xs text-muted-foreground mt-1">Carga atual: {u.empresas}</p>
-                        <p className="text-xs text-primary mt-0.5">Receberá ~{cota} empresas</p>
-                      </div>
+                        <p className="text-xs text-primary mt-0.5 font-semibold">Receberá {lista.length} empresas</p>
+                        <p className="text-[10px] text-muted-foreground mt-1 underline">Ver lista</p>
+                      </button>
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-3">Estimativa balanceada. A divisão exata é calculada na simulação (passo 2) e pode ser ajustada manualmente.</p>
+                <p className="text-[11px] text-muted-foreground mt-3">Pré-visualização (rodízio). A divisão final é gerada na simulação (passo 2) e pode ser ajustada manualmente.</p>
               </Card>
             )}
           </div>
@@ -255,6 +292,32 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
             </Button>
           )}
         </DialogFooter>
+
+        <Dialog open={!!previewUserId} onOpenChange={(v) => !v && setPreviewUserId(null)}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Empresas para {previewUser?.display_name}</DialogTitle>
+              <DialogDescription>
+                {previewEmpresas.length} empresa(s) seriam transferidas (pré-visualização por rodízio).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="border rounded-md max-h-[55vh] overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableRow><TableHead className="w-12">#</TableHead><TableHead>Empresa</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {previewEmpresas.map((e, i) => (
+                    <TableRow key={e.id}><TableCell className="text-muted-foreground">{i + 1}</TableCell><TableCell>{e.nome}</TableCell></TableRow>
+                  ))}
+                  {previewEmpresas.length === 0 && (
+                    <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground py-6">Nenhuma empresa.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
