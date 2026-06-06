@@ -694,6 +694,7 @@ export default function Dashboard() {
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
+            <FeriasButton />
         </div>
 
         {/* Modo do Dashboard */}
