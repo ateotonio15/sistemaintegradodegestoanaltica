@@ -58,6 +58,37 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
   }, [open, lockToSelf, user?.id, userId]);
 
   const selectedUser = workload.find((u) => u.user_id === userId);
+  const destinos = useMemo(() => workload.filter((u) => u.user_id !== userId).sort((a, b) => a.display_name.localeCompare(b.display_name)), [workload, userId]);
+
+  // Empresas da pessoa selecionada (para preview de distribuição no passo 1)
+  const { data: empresasUsuario = [] } = useQuery({
+    queryKey: ["ferias-empresas-usuario", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome")
+        .eq("responsavel_user_id", userId)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    enabled: open && !!userId,
+  });
+
+  // Distribuição prévia round-robin (apenas visualização no passo 1)
+  const previewDistribuicao = useMemo(() => {
+    const map = new Map<string, { id: string; nome: string }[]>();
+    destinos.forEach((d) => map.set(d.user_id, []));
+    if (destinos.length === 0) return map;
+    empresasUsuario.forEach((e, i) => {
+      const dest = destinos[i % destinos.length];
+      map.get(dest.user_id)?.push(e);
+    });
+    return map;
+  }, [empresasUsuario, destinos]);
+
+  const previewUser = destinos.find((d) => d.user_id === previewUserId);
+  const previewEmpresas = previewUserId ? previewDistribuicao.get(previewUserId) ?? [] : [];
 
   const simular = useMutation({
     mutationFn: async () => {
