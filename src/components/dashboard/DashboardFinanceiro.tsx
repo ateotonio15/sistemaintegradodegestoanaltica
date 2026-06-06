@@ -396,8 +396,6 @@ export function DashboardFinanceiro() {
         </Card>
       </div>
 
-      {/* Contratos a Vigenciar — anexos para gerar a 1ª nota */}
-      <ContratosAVigenciarCard />
 
       {/* Contratos recém implantados aguardando primeiro fechamento */}
       <ImplantacoesAguardandoFechamentoCard />
