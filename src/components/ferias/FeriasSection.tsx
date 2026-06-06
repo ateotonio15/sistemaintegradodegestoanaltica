@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plane, Plus } from "lucide-react";
+import { Plane, Plus, X, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { NovaFeriasDialog } from "./NovaFeriasDialog";
 import { formatDateBR } from "@/lib/date-utils";
+import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const statusLabel: Record<string, { label: string; cls: string }> = {
   programada: { label: "Programada", cls: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
