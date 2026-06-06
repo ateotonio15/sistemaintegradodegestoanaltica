@@ -292,6 +292,32 @@ export function NovaFeriasDialog({ open, onClose }: Props) {
             </Button>
           )}
         </DialogFooter>
+
+        <Dialog open={!!previewUserId} onOpenChange={(v) => !v && setPreviewUserId(null)}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Empresas para {previewUser?.display_name}</DialogTitle>
+              <DialogDescription>
+                {previewEmpresas.length} empresa(s) seriam transferidas (pré-visualização por rodízio).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="border rounded-md max-h-[55vh] overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableRow><TableHead className="w-12">#</TableHead><TableHead>Empresa</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {previewEmpresas.map((e, i) => (
+                    <TableRow key={e.id}><TableCell className="text-muted-foreground">{i + 1}</TableCell><TableCell>{e.nome}</TableCell></TableRow>
+                  ))}
+                  {previewEmpresas.length === 0 && (
+                    <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground py-6">Nenhuma empresa.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
