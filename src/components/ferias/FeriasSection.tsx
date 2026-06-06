@@ -19,9 +19,11 @@ const statusLabel: Record<string, { label: string; cls: string }> = {
 };
 
 export function FeriasSection() {
-  const { isAdmin, isDiretora, isComum } = useAuth();
+  const { user, isAdmin, isDiretora, isComum } = useAuth();
   const podeCriar = isAdmin || isDiretora || isComum;
   const [open, setOpen] = useState(false);
+  const qc = useQueryClient();
+  const { toast } = useToast();
 
   const { data: ferias = [] } = useQuery({
     queryKey: ["ferias-list"],
@@ -33,6 +35,21 @@ export function FeriasSection() {
       if (error) throw error;
       return data as any[];
     },
+  });
+
+  const cancelar = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.rpc("cancelar_ferias_cadastro" as any, { p_ferias_id: id });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast({ title: "Férias canceladas", description: `${data?.revertidas ?? 0} empresa(s) devolvida(s) ao responsável original.` });
+      qc.invalidateQueries({ queryKey: ["ferias-list"] });
+      qc.invalidateQueries({ queryKey: ["cadastro-workload"] });
+      qc.invalidateQueries({ queryKey: ["empresas"] });
+    },
+    onError: (e: any) => toast({ title: "Erro ao cancelar", description: e.message, variant: "destructive" }),
   });
 
   return (
