@@ -985,8 +985,6 @@ export default function Dashboard() {
         {/* Implantações em Andamento */}
         {dashboardMode === "implantacao" && <ImplantacoesAndamentoCard />}
 
-        {/* Contratos com vigência futura — pendentes de documentos */}
-        {dashboardMode === "implantacao" && <ContratosAVigenciarCard />}
 
         {/* Contratos recém implantados aguardando primeiro fechamento */}
         {dashboardMode === "implantacao" && <ImplantacoesAguardandoFechamentoCard />}
