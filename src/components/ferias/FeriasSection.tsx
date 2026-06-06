@@ -17,8 +17,8 @@ const statusLabel: Record<string, { label: string; cls: string }> = {
 };
 
 export function FeriasSection() {
-  const { isAdmin, isDiretora } = useAuth();
-  const podeCriar = isAdmin || isDiretora;
+  const { isAdmin, isDiretora, isComum } = useAuth();
+  const podeCriar = isAdmin || isDiretora || isComum;
   const [open, setOpen] = useState(false);
 
   const { data: ferias = [] } = useQuery({

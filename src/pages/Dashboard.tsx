@@ -37,6 +37,7 @@ import { AlertasContratosVendas } from "@/components/dashboard/AlertasContratosV
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
 import { ResponsaveisEmFeriasCard } from "@/components/dashboard/ResponsaveisEmFeriasCard";
+import { FeriasSection } from "@/components/ferias/FeriasSection";
 
 
 export default function Dashboard() {
@@ -987,6 +988,8 @@ export default function Dashboard() {
         {dashboardMode === "implantacao" && <ImplantacoesAndamentoCard />}
 
         <ResponsaveisEmFeriasCard />
+
+        <FeriasSection />
 
 
         {/* Contratos recém implantados aguardando primeiro fechamento */}
