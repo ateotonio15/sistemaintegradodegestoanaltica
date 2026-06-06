@@ -72,15 +72,40 @@ export function FeriasSection() {
                 const s = statusLabel[f.status] ?? { label: f.status, cls: "" };
                 const emps = (f.ferias_cadastro_empresas ?? []) as { status: string }[];
                 const pendentes = emps.filter((e) => e.status !== "retornada").length;
+                const podeCancelar = f.status !== "encerrada" && (isAdmin || isDiretora || (isComum && f.responsavel_original_user_id === user?.id));
                 return (
-                  <div key={f.id} className="flex items-center justify-between border rounded-lg p-3">
-                    <div>
+                  <div key={f.id} className="flex items-center justify-between border rounded-lg p-3 gap-3">
+                    <div className="min-w-0 flex-1">
                       <p className="font-medium">{f.responsavel_original_nome}</p>
                       <p className="text-xs text-muted-foreground">
                         {formatDateBR(f.data_inicio)} → {formatDateBR(f.data_fim)} · {emps.length} empresas · {pendentes} pendentes
                       </p>
                     </div>
-                    <Badge variant="outline" className={s.cls}>{s.label}</Badge>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className={s.cls}>{s.label}</Badge>
+                      {podeCancelar && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" disabled={cancelar.isPending}>
+                              {cancelar.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5 mr-1" />}
+                              Cancelar
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Cancelar férias?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Todas as empresas redistribuídas serão devolvidas ao responsável original ({f.responsavel_original_nome}) e o registro será encerrado. Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Voltar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => cancelar.mutate(f.id)} className="bg-destructive hover:bg-destructive/90">Confirmar cancelamento</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
                   </div>
                 );
               })}
