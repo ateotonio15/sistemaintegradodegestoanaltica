@@ -885,7 +885,7 @@ function KpiBox({ label, value, color }: { label: string; value: number; color: 
 }
 
 // ============= STEP 6 =============
-function Step6Revisao({ data, anexos }: any) {
+function Step6Revisao({ data, anexos, hideValores }: any) {
   const Row = ({ k, v }: { k: string; v: any }) => (
     <div className="flex justify-between text-sm py-1 border-b last:border-0">
       <span className="text-muted-foreground">{k}</span>
