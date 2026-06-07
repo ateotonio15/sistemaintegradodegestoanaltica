@@ -36,6 +36,8 @@ import { AlertasContratosAnaliseDiretora } from "@/components/dashboard/AlertasC
 import { AlertasContratosVendas } from "@/components/dashboard/AlertasContratosVendas";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
+import { AlertaReajustesParaAprovar } from "@/components/reajustes/AlertaReajustesParaAprovar";
+
 import { FeriasButton } from "@/components/ferias/FeriasButton";
 
 
@@ -670,6 +672,9 @@ export default function Dashboard() {
         {isVendas && <AlertasContratosVendas />}
         
         {role === "visualizacao" && <AlertaReajustesPendentes />}
+        <AlertaReajustesParaConfirmar />
+        <AlertaReajustesParaAprovar />
+
 
         {/* Page Header */}
         <div className="flex items-center justify-between">
