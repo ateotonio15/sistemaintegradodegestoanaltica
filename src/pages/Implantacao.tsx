@@ -14,6 +14,7 @@ import { FileSignature, Plus, Search, FileText, Clock, Trash2 } from "lucide-rea
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
+import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
 
 const STATUS_LABEL: Record<string, string> = {
   em_implantacao: "Em implantação",
@@ -32,7 +33,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function Implantacao() {
-  const { isAdmin, isVendas, role } = useAuth();
+  const { isAdmin, isVendas, isDiretora, role } = useAuth();
   const queryClient = useQueryClient();
   const canEdit = isAdmin || role === "comum" || role === "administradoras";
   const canDelete = isAdmin || isVendas;
@@ -247,7 +248,16 @@ export default function Implantacao() {
           </div>
         )}
 
-        {openId && (
+        {openId && isDiretora ? (
+          <AnaliseImplantacaoDialog
+            implantacaoId={openId}
+            open={!!openId}
+            onClose={() => {
+              setOpenId(null);
+              queryClient.invalidateQueries({ queryKey: ["implantacoes"] });
+            }}
+          />
+        ) : openId ? (
           <ImplantacaoWizard
             id={openId}
             open={!!openId}
@@ -257,7 +267,7 @@ export default function Implantacao() {
             }}
             readOnly={!canEdit}
           />
-        )}
+        ) : null}
 
         <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
           <AlertDialogContent>
