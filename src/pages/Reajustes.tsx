@@ -486,15 +486,35 @@ export default function Reajustes() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {(isPendenteConfirm || isSolicitado) && podeLiberar(empresa) && !isSolicitado && (
+                        <div className="flex items-center justify-end gap-1 flex-wrap">
+                          {/* Cadastro: registrou valores → enviar à Diretora */}
+                          {statusFluxo === "pendente_confirmacao" && podeLiberar(empresa) && (
                             <Button
                               size="sm"
-                              variant="default"
-                              onClick={() => setConfirmLiberar({ id: reajuste.id, empresa: empresa.nome, temRetro })}
-                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => setConfirmEnviar({ id: reajuste.id, empresa: empresa.nome })}
+                              className="bg-blue-600 hover:bg-blue-700"
                             >
-                              <Check className="h-3 w-3 mr-1" /> Liberar
+                              <Send className="h-3 w-3 mr-1" /> Enviar à Diretora
+                            </Button>
+                          )}
+                          {/* Diretora: analisar */}
+                          {(statusFluxo === "aguardando_aprovacao" || statusFluxo === "aprovado") && (isDiretora || isAdmin) && (
+                            <Button
+                              size="sm"
+                              onClick={() => { setAprovarTarget({ reajuste, empresaNome: empresa.nome }); setAprovarOpen(true); }}
+                              className="bg-orange-600 hover:bg-orange-700"
+                            >
+                              <Gavel className="h-3 w-3 mr-1" /> {statusFluxo === "aprovado" ? "Liberar" : "Analisar"}
+                            </Button>
+                          )}
+                          {/* Financeiro: aplicar retroativo */}
+                          {statusFluxo === "liberado_financeiro" && (isFinanceiro || isAdmin) && (
+                            <Button
+                              size="sm"
+                              onClick={() => { setRetroTarget({ reajuste, empresaNome: empresa.nome }); setRetroOpen(true); }}
+                              className="bg-purple-600 hover:bg-purple-700"
+                            >
+                              <DollarSign className="h-3 w-3 mr-1" /> Aplicar Retroativo
                             </Button>
                           )}
                           {isSolicitado && (isAdmin || isComum) && (
@@ -502,9 +522,16 @@ export default function Reajustes() {
                               <Pencil className="h-3 w-3 mr-1" /> Registrar Valores
                             </Button>
                           )}
+                          {/* Cadastro: rejeitado → corrigir */}
+                          {statusFluxo === "rejeitado" && (isAdmin || isComum) && podeLiberar(empresa) && (
+                            <Button size="sm" variant="default" onClick={() => openEdit(reajuste)} className="bg-yellow-600 hover:bg-yellow-700">
+                              <Pencil className="h-3 w-3 mr-1" /> Corrigir
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" title="Histórico" onClick={() => { setHistoricoEmpresa({ id: empresa.id, nome: empresa.nome }); setHistoricoOpen(true); }}>
                             <History className="h-4 w-4" />
                           </Button>
+
                           {canCriar && reajuste && !isSolicitado && (
                             <>
                               <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(reajuste)}>
