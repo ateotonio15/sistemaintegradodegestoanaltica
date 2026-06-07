@@ -110,6 +110,10 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     },
   });
 
+  const anexosVisiveis = isCadastroView
+    ? (anexos as any[]).filter((a: any) => ANEXOS_CADASTRO.includes(a.tipo))
+    : anexos;
+
   useEffect(() => {
     if (impl) {
       setData(impl);
