@@ -293,10 +293,15 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
 
   const goNext = async () => {
     if (!valid[step]) { toast.error("Preencha os campos obrigatórios"); return; }
-    const next = Math.min(6, step + 1);
+    let next = Math.min(6, step + 1);
+    if (isCadastroView && next === 4) next = 5;
     if (await save({ etapa_atual: next })) setStep(next);
   };
-  const goBack = () => setStep((s) => Math.max(1, s - 1));
+  const goBack = () => setStep((s) => {
+    let prev = Math.max(1, s - 1);
+    if (isCadastroView && prev === 4) prev = 3;
+    return prev;
+  });
 
   const handleEnviarAnalise = async () => {
     const ok = await save({ status: "em_analise_diretoria", etapa_atual: 6, motivo_correcao: null });
