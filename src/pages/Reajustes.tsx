@@ -217,6 +217,61 @@ export default function Reajustes() {
     onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao liberar", variant: "destructive" }),
   });
 
+  const enviarDiretoraMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("confirmar_reajuste_cadastro" as any, { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Enviado à Diretoria", description: "Diretora foi notificada para aprovação." });
+      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
+      qc.invalidateQueries({ queryKey: ["reajustes-aprovar-count"] });
+      setConfirmEnviar(null);
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e?.message, variant: "destructive" }),
+  });
+
+  function handleExportExcel() {
+    const data = rows.map(({ empresa, reajuste, status }) => ({
+      empresa: empresa.nome,
+      contrato: empresa.codigo_contrato,
+      cnpj: (empresa as any).cnpj,
+      responsavel: empresa.responsavel_contrato,
+      ano: parseInt(filterAno, 10),
+      mesReajuste: getMesReajuste(empresa.data_implantacao),
+      dataAplicacao: reajuste?.data_aplicacao,
+      percentual: reajuste?.percentual,
+      valorAtual: reajuste?.valor_antigo_centavos,
+      valorReajustado: reajuste?.valor_reajustado_centavos,
+      retroativo: reajuste?.valor_retroativo_centavos,
+      mesesRetro: reajuste?.meses_retroativos,
+      valorFinal: reajuste?.valor_final_centavos,
+      status: reajuste?.status_reajuste || status,
+    }));
+    exportReajustesExcel(data, `reajustes-${filterAno}.xlsx`);
+  }
+
+  function handleExportPDF() {
+    const data = rows.map(({ empresa, reajuste, status }) => ({
+      empresa: empresa.nome,
+      contrato: empresa.codigo_contrato,
+      cnpj: (empresa as any).cnpj,
+      responsavel: empresa.responsavel_contrato,
+      ano: parseInt(filterAno, 10),
+      mesReajuste: getMesReajuste(empresa.data_implantacao),
+      dataAplicacao: reajuste?.data_aplicacao,
+      percentual: reajuste?.percentual,
+      valorAtual: reajuste?.valor_antigo_centavos,
+      valorReajustado: reajuste?.valor_reajustado_centavos,
+      retroativo: reajuste?.valor_retroativo_centavos,
+      mesesRetro: reajuste?.meses_retroativos,
+      valorFinal: reajuste?.valor_final_centavos,
+      status: reajuste?.status_reajuste || status,
+    }));
+    exportReajustesPDF(data, `Reajustes ${filterAno}`);
+  }
+
+
   const podeLiberar = (empresa: any) =>
     isAdmin || (isComum && (empresa.responsavel_user_id === user?.id || minhasEmpresasSet.has(empresa.id)));
 
