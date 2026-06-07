@@ -48,6 +48,12 @@ export default function Reajustes() {
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
   const [solicitarOpen, setSolicitarOpen] = useState(false);
   const [solicitarEmpresa, setSolicitarEmpresa] = useState<any>(null);
+  const [aprovarOpen, setAprovarOpen] = useState(false);
+  const [aprovarTarget, setAprovarTarget] = useState<{ reajuste: any; empresaNome: string } | null>(null);
+  const [retroOpen, setRetroOpen] = useState(false);
+  const [retroTarget, setRetroTarget] = useState<{ reajuste: any; empresaNome: string } | null>(null);
+  const [confirmEnviar, setConfirmEnviar] = useState<{ id: string; empresa: string } | null>(null);
+
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
