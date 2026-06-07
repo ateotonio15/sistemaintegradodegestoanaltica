@@ -298,11 +298,20 @@ export default function Reajustes() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Controle anual de reajustes dos contratos</p>
           </div>
-          {canCriar && (
-            <Button onClick={() => openNew()}>
-              <Plus className="h-4 w-4 mr-2" /> Novo Reajuste
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleExportExcel}>
+              <Download className="h-4 w-4 mr-2" /> Excel
             </Button>
-          )}
+            <Button variant="outline" onClick={handleExportPDF}>
+              <Download className="h-4 w-4 mr-2" /> PDF
+            </Button>
+            {canCriar && (
+              <Button onClick={() => openNew()}>
+                <Plus className="h-4 w-4 mr-2" /> Novo Reajuste
+              </Button>
+            )}
+          </div>
+
         </div>
 
         {/* KPIs */}
