@@ -418,7 +418,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
           {step === 3 && <Step3Contrato data={data} update={update} readOnly={readOnly} isAdmin={isAdmin} />}
           {step === 4 && <Step4Comissao data={data} update={update} readOnly={readOnly} />}
           {step === 5 && <Step5Vidas data={data} update={update} readOnly={readOnly} relAnexo={ultimoRelVidas} />}
-          {step === 6 && <Step6Revisao data={data} anexos={anexos} />}
+          {step === 6 && <Step6Revisao data={data} anexos={anexosVisiveis} hideValores={isCadastroView} />}
         </div>
 
         <div className="flex items-center justify-between border-t pt-4">
