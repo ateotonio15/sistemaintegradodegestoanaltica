@@ -658,7 +658,42 @@ export default function Reajustes() {
       </AlertDialog>
 
 
+      <AprovarReajusteDialog
+        open={aprovarOpen}
+        onOpenChange={setAprovarOpen}
+        reajuste={aprovarTarget?.reajuste || null}
+        empresaNome={aprovarTarget?.empresaNome}
+      />
+
+      <AplicarRetroativoDialog
+        open={retroOpen}
+        onOpenChange={setRetroOpen}
+        reajuste={retroTarget?.reajuste || null}
+        empresaNome={retroTarget?.empresaNome}
+      />
+
+      <AlertDialog open={!!confirmEnviar} onOpenChange={(o) => !o && setConfirmEnviar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar à Diretoria?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os valores de <strong>{confirmEnviar?.empresa}</strong> serão enviados para análise e aprovação da Diretoria.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmEnviar && enviarDiretoraMutation.mutate(confirmEnviar.id)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Enviar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!confirmLiberar} onOpenChange={(o) => !o && setConfirmLiberar(null)}>
+
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Liberar reajuste?</AlertDialogTitle>
