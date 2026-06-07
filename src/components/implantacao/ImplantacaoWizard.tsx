@@ -76,6 +76,12 @@ function brFromCents(c: number | null | undefined): string {
 export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const qc = useQueryClient();
   const { isAdmin, isComum, isVendas, isDiretora } = useAuth();
+  const isCadastroView = isComum && !isAdmin;
+  const VISIBLE_STEPS = isCadastroView ? STEPS.filter((s) => s.n !== 4) : STEPS;
+  const ANEXOS_CADASTRO = ["anexo_1", "relatorio_vidas"];
+  const anexosVisiveis = isCadastroView
+    ? (anexos as any[]).filter((a) => ANEXOS_CADASTRO.includes(a.tipo))
+    : anexos;
   const [data, setData] = useState<any>(null);
   const [step, setStep] = useState(1);
   const [extracting, setExtracting] = useState(false);
