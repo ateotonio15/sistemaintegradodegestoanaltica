@@ -7,28 +7,32 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check, ChevronRight, ChevronDown, BedDouble, Hotel } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check, ChevronRight, ChevronDown, BedDouble, Hotel, Send, Gavel, DollarSign, Download } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReajusteDialog } from "@/components/reajustes/ReajusteDialog";
 import { ReajusteHistoricoDialog } from "@/components/reajustes/ReajusteHistoricoDialog";
 import { SolicitarReajusteDialog } from "@/components/reajustes/SolicitarReajusteDialog";
+import { AprovarReajusteDialog } from "@/components/reajustes/AprovarReajusteDialog";
+import { AplicarRetroativoDialog } from "@/components/reajustes/AplicarRetroativoDialog";
 import {
   formatCentavosBRL, getStatusReajusteEmpresa, statusReajusteColor, type StatusReajuste,
   labelStatusReajusteFluxo, corStatusReajusteFluxo, getMesReajuste, nomeMes,
 } from "@/lib/reajuste-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { exportReajustesExcel, exportReajustesPDF } from "@/lib/reajustes-export";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 export default function Reajustes() {
-  const { user, isAdmin, isViewOnly, isComum } = useAuth();
+  const { user, isAdmin, isViewOnly, isComum, isDiretora, isFinanceiro } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const canCriar = isAdmin || isComum;
   const podeSolicitar = isAdmin || isViewOnly;
+
 
   const anoAtual = new Date().getFullYear();
   const [filterAno, setFilterAno] = useState<string>(String(anoAtual));
@@ -44,6 +48,12 @@ export default function Reajustes() {
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
   const [solicitarOpen, setSolicitarOpen] = useState(false);
   const [solicitarEmpresa, setSolicitarEmpresa] = useState<any>(null);
+  const [aprovarOpen, setAprovarOpen] = useState(false);
+  const [aprovarTarget, setAprovarTarget] = useState<{ reajuste: any; empresaNome: string } | null>(null);
+  const [retroOpen, setRetroOpen] = useState(false);
+  const [retroTarget, setRetroTarget] = useState<{ reajuste: any; empresaNome: string } | null>(null);
+  const [confirmEnviar, setConfirmEnviar] = useState<{ id: string; empresa: string } | null>(null);
+
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
@@ -207,6 +217,61 @@ export default function Reajustes() {
     onError: (e: any) => toast({ title: "Erro", description: e?.message || "Erro ao liberar", variant: "destructive" }),
   });
 
+  const enviarDiretoraMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("confirmar_reajuste_cadastro" as any, { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Enviado à Diretoria", description: "Diretora foi notificada para aprovação." });
+      qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
+      qc.invalidateQueries({ queryKey: ["reajustes-aprovar-count"] });
+      setConfirmEnviar(null);
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e?.message, variant: "destructive" }),
+  });
+
+  function handleExportExcel() {
+    const data = rows.map(({ empresa, reajuste, status }) => ({
+      empresa: empresa.nome,
+      contrato: empresa.codigo_contrato,
+      cnpj: (empresa as any).cnpj,
+      responsavel: empresa.responsavel_contrato,
+      ano: parseInt(filterAno, 10),
+      mesReajuste: getMesReajuste(empresa.data_implantacao),
+      dataAplicacao: reajuste?.data_aplicacao,
+      percentual: reajuste?.percentual,
+      valorAtual: reajuste?.valor_antigo_centavos,
+      valorReajustado: reajuste?.valor_reajustado_centavos,
+      retroativo: reajuste?.valor_retroativo_centavos,
+      mesesRetro: reajuste?.meses_retroativos,
+      valorFinal: reajuste?.valor_final_centavos,
+      status: reajuste?.status_reajuste || status,
+    }));
+    exportReajustesExcel(data, `reajustes-${filterAno}.xlsx`);
+  }
+
+  function handleExportPDF() {
+    const data = rows.map(({ empresa, reajuste, status }) => ({
+      empresa: empresa.nome,
+      contrato: empresa.codigo_contrato,
+      cnpj: (empresa as any).cnpj,
+      responsavel: empresa.responsavel_contrato,
+      ano: parseInt(filterAno, 10),
+      mesReajuste: getMesReajuste(empresa.data_implantacao),
+      dataAplicacao: reajuste?.data_aplicacao,
+      percentual: reajuste?.percentual,
+      valorAtual: reajuste?.valor_antigo_centavos,
+      valorReajustado: reajuste?.valor_reajustado_centavos,
+      retroativo: reajuste?.valor_retroativo_centavos,
+      mesesRetro: reajuste?.meses_retroativos,
+      valorFinal: reajuste?.valor_final_centavos,
+      status: reajuste?.status_reajuste || status,
+    }));
+    exportReajustesPDF(data, `Reajustes ${filterAno}`);
+  }
+
+
   const podeLiberar = (empresa: any) =>
     isAdmin || (isComum && (empresa.responsavel_user_id === user?.id || minhasEmpresasSet.has(empresa.id)));
 
@@ -233,11 +298,20 @@ export default function Reajustes() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Controle anual de reajustes dos contratos</p>
           </div>
-          {canCriar && (
-            <Button onClick={() => openNew()}>
-              <Plus className="h-4 w-4 mr-2" /> Novo Reajuste
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleExportExcel}>
+              <Download className="h-4 w-4 mr-2" /> Excel
             </Button>
-          )}
+            <Button variant="outline" onClick={handleExportPDF}>
+              <Download className="h-4 w-4 mr-2" /> PDF
+            </Button>
+            {canCriar && (
+              <Button onClick={() => openNew()}>
+                <Plus className="h-4 w-4 mr-2" /> Novo Reajuste
+              </Button>
+            )}
+          </div>
+
         </div>
 
         {/* KPIs */}
@@ -412,15 +486,35 @@ export default function Reajustes() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {(isPendenteConfirm || isSolicitado) && podeLiberar(empresa) && !isSolicitado && (
+                        <div className="flex items-center justify-end gap-1 flex-wrap">
+                          {/* Cadastro: registrou valores → enviar à Diretora */}
+                          {statusFluxo === "pendente_confirmacao" && podeLiberar(empresa) && (
                             <Button
                               size="sm"
-                              variant="default"
-                              onClick={() => setConfirmLiberar({ id: reajuste.id, empresa: empresa.nome, temRetro })}
-                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => setConfirmEnviar({ id: reajuste.id, empresa: empresa.nome })}
+                              className="bg-blue-600 hover:bg-blue-700"
                             >
-                              <Check className="h-3 w-3 mr-1" /> Liberar
+                              <Send className="h-3 w-3 mr-1" /> Enviar à Diretora
+                            </Button>
+                          )}
+                          {/* Diretora: analisar */}
+                          {(statusFluxo === "aguardando_aprovacao" || statusFluxo === "aprovado") && (isDiretora || isAdmin) && (
+                            <Button
+                              size="sm"
+                              onClick={() => { setAprovarTarget({ reajuste, empresaNome: empresa.nome }); setAprovarOpen(true); }}
+                              className="bg-orange-600 hover:bg-orange-700"
+                            >
+                              <Gavel className="h-3 w-3 mr-1" /> {statusFluxo === "aprovado" ? "Liberar" : "Analisar"}
+                            </Button>
+                          )}
+                          {/* Financeiro: aplicar retroativo */}
+                          {statusFluxo === "liberado_financeiro" && (isFinanceiro || isAdmin) && (
+                            <Button
+                              size="sm"
+                              onClick={() => { setRetroTarget({ reajuste, empresaNome: empresa.nome }); setRetroOpen(true); }}
+                              className="bg-purple-600 hover:bg-purple-700"
+                            >
+                              <DollarSign className="h-3 w-3 mr-1" /> Aplicar Retroativo
                             </Button>
                           )}
                           {isSolicitado && (isAdmin || isComum) && (
@@ -428,9 +522,16 @@ export default function Reajustes() {
                               <Pencil className="h-3 w-3 mr-1" /> Registrar Valores
                             </Button>
                           )}
+                          {/* Cadastro: rejeitado → corrigir */}
+                          {statusFluxo === "rejeitado" && (isAdmin || isComum) && podeLiberar(empresa) && (
+                            <Button size="sm" variant="default" onClick={() => openEdit(reajuste)} className="bg-yellow-600 hover:bg-yellow-700">
+                              <Pencil className="h-3 w-3 mr-1" /> Corrigir
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" title="Histórico" onClick={() => { setHistoricoEmpresa({ id: empresa.id, nome: empresa.nome }); setHistoricoOpen(true); }}>
                             <History className="h-4 w-4" />
                           </Button>
+
                           {canCriar && reajuste && !isSolicitado && (
                             <>
                               <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(reajuste)}>
@@ -557,7 +658,42 @@ export default function Reajustes() {
       </AlertDialog>
 
 
+      <AprovarReajusteDialog
+        open={aprovarOpen}
+        onOpenChange={setAprovarOpen}
+        reajuste={aprovarTarget?.reajuste || null}
+        empresaNome={aprovarTarget?.empresaNome}
+      />
+
+      <AplicarRetroativoDialog
+        open={retroOpen}
+        onOpenChange={setRetroOpen}
+        reajuste={retroTarget?.reajuste || null}
+        empresaNome={retroTarget?.empresaNome}
+      />
+
+      <AlertDialog open={!!confirmEnviar} onOpenChange={(o) => !o && setConfirmEnviar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar à Diretoria?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os valores de <strong>{confirmEnviar?.empresa}</strong> serão enviados para análise e aprovação da Diretoria.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmEnviar && enviarDiretoraMutation.mutate(confirmEnviar.id)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Enviar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!confirmLiberar} onOpenChange={(o) => !o && setConfirmLiberar(null)}>
+
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Liberar reajuste?</AlertDialogTitle>

@@ -22,6 +22,8 @@ import { formatDateBR } from "@/lib/date-utils";
 import { FaturamentosEnviadoFinanceiro } from "./FaturamentosEnviadoFinanceiro";
 import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
+import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroativosParaCobrar";
+
 
 import { ImplantacoesAguardandoFechamentoCard } from "./ImplantacoesAguardandoFechamentoCard";
 import { calcularStatusFinanceiro, getCurrentMesReferencia, formatMesReferencia, PERIODOS_FIN } from "@/lib/financeiro-utils";
@@ -263,8 +265,10 @@ export function DashboardFinanceiro() {
 
   return (
     <div className="space-y-6">
+      <AlertaRetroativosParaCobrar />
       <AlertasVencimentoFinanceiro />
       <FaturamentosEnviadoFinanceiro />
+
 
       {cobrancasMinhas.length > 0 && (
         <Card className="rounded-xl border-warning/40 bg-warning/10 shadow-sm">

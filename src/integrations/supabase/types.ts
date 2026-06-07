@@ -64,6 +64,7 @@ export type Database = {
           created_at: string
           criado_por_nome: string | null
           criado_por_user_id: string | null
+          destinatario_role: string | null
           destinatario_user_id: string | null
           empresa_id: string
           empresa_nome: string
@@ -71,12 +72,14 @@ export type Database = {
           id: string
           reajuste_id: string
           status: string
+          tipo: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           criado_por_nome?: string | null
           criado_por_user_id?: string | null
+          destinatario_role?: string | null
           destinatario_user_id?: string | null
           empresa_id: string
           empresa_nome: string
@@ -84,12 +87,14 @@ export type Database = {
           id?: string
           reajuste_id: string
           status?: string
+          tipo?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           criado_por_nome?: string | null
           criado_por_user_id?: string | null
+          destinatario_role?: string | null
           destinatario_user_id?: string | null
           empresa_id?: string
           empresa_nome?: string
@@ -97,6 +102,7 @@ export type Database = {
           id?: string
           reajuste_id?: string
           status?: string
+          tipo?: string
           updated_at?: string
         }
         Relationships: []
@@ -2174,6 +2180,9 @@ export type Database = {
       reajustes_anuais: {
         Row: {
           ano: number
+          aprovado_em: string | null
+          aprovado_por_nome: string | null
+          aprovado_por_user_id: string | null
           competencia: string | null
           confirmado_por: string | null
           confirmado_por_nome: string | null
@@ -2187,12 +2196,19 @@ export type Database = {
           liberado_por_nome: string | null
           mes_reajuste: number | null
           meses_retroativos: number
+          motivo_rejeicao: string | null
           observacao: string | null
           percentual: number | null
           percentual_unico_apartamento: boolean
           percentual_unico_enfermaria: boolean
           possui_apartamento: boolean
           possui_enfermaria: boolean
+          rejeitado_em: string | null
+          rejeitado_por_nome: string | null
+          rejeitado_por_user_id: string | null
+          retroativo_aplicado_em: string | null
+          retroativo_aplicado_por_nome: string | null
+          retroativo_aplicado_por_user_id: string | null
           status: string
           status_reajuste: string
           updated_at: string
@@ -2215,6 +2231,9 @@ export type Database = {
         }
         Insert: {
           ano: number
+          aprovado_em?: string | null
+          aprovado_por_nome?: string | null
+          aprovado_por_user_id?: string | null
           competencia?: string | null
           confirmado_por?: string | null
           confirmado_por_nome?: string | null
@@ -2228,12 +2247,19 @@ export type Database = {
           liberado_por_nome?: string | null
           mes_reajuste?: number | null
           meses_retroativos?: number
+          motivo_rejeicao?: string | null
           observacao?: string | null
           percentual?: number | null
           percentual_unico_apartamento?: boolean
           percentual_unico_enfermaria?: boolean
           possui_apartamento?: boolean
           possui_enfermaria?: boolean
+          rejeitado_em?: string | null
+          rejeitado_por_nome?: string | null
+          rejeitado_por_user_id?: string | null
+          retroativo_aplicado_em?: string | null
+          retroativo_aplicado_por_nome?: string | null
+          retroativo_aplicado_por_user_id?: string | null
           status?: string
           status_reajuste?: string
           updated_at?: string
@@ -2256,6 +2282,9 @@ export type Database = {
         }
         Update: {
           ano?: number
+          aprovado_em?: string | null
+          aprovado_por_nome?: string | null
+          aprovado_por_user_id?: string | null
           competencia?: string | null
           confirmado_por?: string | null
           confirmado_por_nome?: string | null
@@ -2269,12 +2298,19 @@ export type Database = {
           liberado_por_nome?: string | null
           mes_reajuste?: number | null
           meses_retroativos?: number
+          motivo_rejeicao?: string | null
           observacao?: string | null
           percentual?: number | null
           percentual_unico_apartamento?: boolean
           percentual_unico_enfermaria?: boolean
           possui_apartamento?: boolean
           possui_enfermaria?: boolean
+          rejeitado_em?: string | null
+          rejeitado_por_nome?: string | null
+          rejeitado_por_user_id?: string | null
+          retroativo_aplicado_em?: string | null
+          retroativo_aplicado_por_nome?: string | null
+          retroativo_aplicado_por_user_id?: string | null
           status?: string
           status_reajuste?: string
           updated_at?: string
@@ -2296,6 +2332,50 @@ export type Database = {
           valor_retroativo_enfermaria_centavos?: number
         }
         Relationships: []
+      }
+      reajustes_historico: {
+        Row: {
+          created_at: string
+          dados: Json | null
+          empresa_id: string
+          evento: string
+          id: string
+          observacao: string | null
+          reajuste_id: string
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          dados?: Json | null
+          empresa_id: string
+          evento: string
+          id?: string
+          observacao?: string | null
+          reajuste_id: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          dados?: Json | null
+          empresa_id?: string
+          evento?: string
+          id?: string
+          observacao?: string | null
+          reajuste_id?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reajustes_historico_reajuste_id_fkey"
+            columns: ["reajuste_id"]
+            isOneToOne: false
+            referencedRelation: "reajustes_anuais"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       saude_agendamentos: {
         Row: {
@@ -2414,8 +2494,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _criar_alerta_reajuste_role: {
+        Args: { p_reajuste: string; p_role: string; p_tipo: string }
+        Returns: undefined
+      }
       _log_impl: {
         Args: { _acao: string; _detalhes: Json; _impl: string }
+        Returns: undefined
+      }
+      _log_reajuste: {
+        Args: {
+          p_dados?: Json
+          p_evento: string
+          p_obs?: string
+          p_reajuste: string
+        }
         Returns: undefined
       }
       _periodo_para_empresa: {
@@ -2447,6 +2540,10 @@ export type Database = {
         Returns: number
       }
       aplicar_ferias_programadas: { Args: never; Returns: number }
+      aplicar_retroativo_reajuste: {
+        Args: { p_id: string; p_obs?: string }
+        Returns: undefined
+      }
       aplicar_vencimento_grupo: {
         Args: { p_data_vencimento: string; p_mov_id: string }
         Returns: number
@@ -2462,12 +2559,20 @@ export type Database = {
             }
             Returns: string
           }
+      aprovar_reajuste: {
+        Args: { p_id: string; p_obs?: string }
+        Returns: undefined
+      }
       ativar_contratos_pendentes: { Args: never; Returns: number }
       calcular_primeira_competencia: {
         Args: { p_empresa_id: string }
         Returns: string
       }
       cancelar_ferias_cadastro: { Args: { p_ferias_id: string }; Returns: Json }
+      confirmar_reajuste_cadastro: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       criar_ferias_cadastro: {
         Args: {
           p_atribuicoes: Json
@@ -2524,10 +2629,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      liberar_reajuste_financeiro: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       processar_retorno_ferias: { Args: never; Returns: number }
       rejeitar_implantacao: {
         Args: { p_impl: string; p_motivo: string }
         Returns: string
+      }
+      rejeitar_reajuste: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
       }
       remover_contrato_grupo: {
         Args: { p_vinculo_id: string }

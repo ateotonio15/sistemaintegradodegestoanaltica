@@ -1,77 +1,93 @@
-## ETAPA 54 — Gestão de Férias (Cadastro)
+# Módulo Enterprise de Reajustes Anuais
 
-Módulo completo para redistribuir empresas de um responsável Cadastro durante férias, com retorno automático.
+## Visão geral
+Evoluir o módulo já existente (`/reajustes`, tabelas `reajustes_anuais`, `reajuste_faixas`, RPC `solicitar_reajuste`, alertas, triggers) para o padrão Enterprise pedido, sem duplicar dados de Empresas/Implantação/Financeiro/Movimentações.
 
-### 1. Banco de Dados (migration)
+O sistema já possui boa parte da base: fluxo de solicitação, faixas etárias, separação Enfermaria/Apartamento, cálculo automático via trigger, alertas no dashboard. A entrega consolida o que falta: aprovação/rejeição pela Diretora, liberação para o Financeiro, status "Retroativo Aplicado", timeline completa, filtros avançados e exportação.
 
-**Tabela `ferias_cadastro`** (cabeçalho da férias):
-- `id`, `responsavel_original_user_id`, `responsavel_original_nome`
-- `data_inicio`, `data_fim`
-- `status` enum: `programada`, `em_andamento`, `encerrada`, `aguardando_retorno_contratos`
-- `criado_por_user_id`, `criado_por_nome`, `created_at`, `updated_at`
-- `iniciada_em`, `encerrada_em`
+## Banco de dados (migração única)
 
-**Tabela `ferias_cadastro_empresas`** (redistribuição linha-a-linha — esta é o histórico):
-- `id`, `ferias_id` (FK), `empresa_id`
-- `responsavel_original_user_id`, `responsavel_temporario_user_id`
-- `responsavel_temporario_nome`
-- `redistribuida_em`, `retornada_em`
-- `status` enum: `pendente_inicio`, `redistribuida`, `aguardando_fechamento`, `retornada`
-- `motivo_retencao` text (quando ficou retida por movimentação aberta)
+### 1. Tabela `reajustes_anuais` — ajustes
+Reutiliza a tabela atual. Adicionar apenas o que falta:
+- `ano smallint` (preenchido por trigger a partir de `data_aplicacao`)
+- `UNIQUE (empresa_id, ano)` (substitui a unique atual em `empresa_id, mes_reajuste, valor_antigo_centavos`)
+- Expandir enum `status_reajuste` com: `aguardando_aprovacao`, `aprovado`, `rejeitado`, `liberado_financeiro`, `retroativo_aplicado` (mantendo os atuais `solicitado`, `pendente_confirmacao`, `reajustado`)
+- Colunas de fluxo: `aprovado_por_user_id/nome/em`, `rejeitado_por_user_id/nome/em`, `motivo_rejeicao text`, `liberado_por_user_id/nome/em`, `retroativo_aplicado_por_user_id/nome/em`
 
-RLS: SELECT para todos autenticados; INSERT/UPDATE/DELETE apenas `admin` e `diretora`. GRANTs corretos.
+### 2. Tabela `reajustes_historico` (nova, append-only)
+Para a timeline auditável:
+- `id`, `reajuste_id`, `empresa_id`, `evento` (solicitado/confirmado/aprovado/rejeitado/liberado/retroativo_aplicado/editado), `usuario_id`, `usuario_nome`, `observacao`, `dados jsonb`, `created_at`
+- GRANTs: SELECT/INSERT para `authenticated`, ALL para `service_role`; RLS: leitura para usuários ligados à empresa, escrita só via funções `SECURITY DEFINER`
 
-**Funções RPC (SECURITY DEFINER, search_path = public):**
-- `get_cadastro_workload()` → retorna user_id, nome, empresas, contratos_ativos, implantacoes (para o modal).
-- `simular_redistribuicao_ferias(p_user_id, p_data_inicio, p_data_fim)` → retorna jsonb com `{antes:[...], depois:[...], atribuicoes:[{empresa_id, nome, responsavel_temp_id, responsavel_temp_nome}]}` usando algoritmo guloso (atribui empresa ao destino com menor carga ponderada).
-- `criar_ferias_cadastro(p_user_id, p_data_inicio, p_data_fim, p_atribuicoes jsonb)` → cria registros e, se `data_inicio <= hoje`, executa redistribuição imediata; cria notificações.
-- `aplicar_ferias_programadas()` → cron diário: marca `em_andamento`, troca `empresas.responsavel_user_id` (salvando original), notifica.
-- `processar_retorno_ferias()` → cron diário: para cada férias com `data_fim < hoje`, para cada empresa redistribuída verifica `tem_movimentacao_pendente(empresa_id)` (sem `data_envio_financeiro` no período atual). Se não tem, devolve ao original; se tem, mantém e marca `aguardando_fechamento`. Atualiza status do cabeçalho.
-- `tem_movimentacao_pendente(empresa_id)` helper.
-- Trigger em `movimentacoes` (após UPDATE de `data_envio_financeiro`): se a empresa está em `aguardando_fechamento` e não há mais pendência, devolve ao responsável original automaticamente.
+### 3. Faixas etárias
+Mantém `reajuste_faixas` já existente (10 faixas configuráveis). Sem alteração estrutural.
 
-**Notificações:** inserir em `notificacoes` existente com tipos `ferias_iniciada` / `ferias_retorno`.
+### 4. RPCs (`SECURITY DEFINER`)
+- `solicitar_reajuste` — já existe, ajustar para gravar histórico
+- `confirmar_reajuste(p_id)` — Cadastro confirma valores → status `aguardando_aprovacao`
+- `aprovar_reajuste(p_id, p_obs)` — Diretora aprova → status `aprovado`
+- `rejeitar_reajuste(p_id, p_motivo)` — Diretora rejeita → status `rejeitado` + motivo + alerta para Cadastro/Visualização
+- `liberar_reajuste_financeiro(p_id)` — Diretora libera → status `liberado_financeiro` + alerta para Financeiro
+- `aplicar_retroativo(p_id)` — Financeiro marca → status `retroativo_aplicado`
+Toda RPC: valida role via `has_role`, grava em `reajustes_historico`, atualiza/cria registros em `alertas_reajuste`.
 
-**Cron (pg_cron + pg_net):** job diário 06:00 chamando edge function `ferias-cron` que invoca as duas funções acima. *(Ou direto via cron.schedule SQL).*
+### 5. Triggers
+- Manter `trg_reajuste_calc_campos` (cálculos automáticos)
+- Manter `trg_criar_alerta_reajuste` e `trg_finalizar_alerta_reajuste` — expandir para os novos status (criar alertas por destinatário/role correto)
+- Novo trigger: ao inserir/atualizar `reajustes_anuais`, derivar `ano` automaticamente de `data_aplicacao`
 
-### 2. Frontend
+## Frontend
 
-**Página/seção:** Adicionar na página `/usuarios` (Usuarios.tsx) uma aba/seção "Gestão de Férias" visível para todos, com botão **Férias** apenas para `admin`/`diretora`.
+### Página `/reajustes` (refatorar a existente)
+- KPIs: Total, Reajustados, Pendentes, Atrasados, Aguardando Aprovação, Liberados, Retroativos Aplicados
+- Filtros: Ano, Mês, Empresa, Contrato, CNPJ, Responsável, Status (combobox com busca, mesmo padrão do Financeiro)
+- Tabela: empresa, contrato, mês oficial, status (badge colorido por `corStatusReajusteFluxo`), valor final, ações contextuais por role
+- Botão "Solicitar Reajuste" — abre `SolicitarReajusteDialog` (já existe)
+- Botão "Exportar" → Excel (xlsx) e PDF (jsPDF + autotable, mesmo padrão do `gestao-vidas-export`)
 
-**Componentes novos:**
-- `src/components/ferias/FeriasCard.tsx` — lista férias ativas/programadas/encerradas.
-- `src/components/ferias/NovaFeriasDialog.tsx` — 3 steps:
-  1. Selecionar responsável + período (mostra contadores).
-  2. **Simulador** — tabela Responsável | Antes | Depois (chamando `simular_redistribuicao_ferias`).
-  3. Edição manual — lista empresas com `<Select>` para mudar responsável temporário; mostra resumo recalculado.
-  4. Confirmar → `criar_ferias_cadastro`.
-- `src/components/dashboard/ResponsaveisEmFeriasCard.tsx` — card no Dashboard (perfis cadastro/admin/diretora) listando férias em andamento com nome, período, redistribuídas, pendentes de devolução.
-- Badge **Responsável Temporário** em `Empresas.tsx` (tooltip com original, temporário, período).
+### Diálogos
+- `SolicitarReajusteDialog` — já existe, reutilizar. Ajustar para gravar histórico via RPC.
+- `ReajusteDialog` (Cadastro confirma valores) — já existe; adicionar botão "Confirmar e enviar à Diretora"
+- `AprovarReajusteDialog` (novo, Diretora): mostra valores Enf/Apt separados, faixas etárias, percentual, retroativo. Ações: Aprovar / Rejeitar (com motivo obrigatório) / Liberar para Financeiro
+- `AplicarRetroativoDialog` (novo, Financeiro): exibe valor retroativo + valor final, confirma aplicação
+- `ReajusteHistoricoDialog` — já existe; preencher com dados de `reajustes_historico` (timeline com ícone por evento, usuário, data/hora, observação, motivo de rejeição destacado)
 
-### 3. Permissões
+### Cards de alerta no Dashboard
+- `AlertaReajustesPendentes` — já existe (Visualização: empresas sem reajuste no ano)
+- `AlertaReajustesParaConfirmar` — já existe (Cadastro)
+- `AlertaReajustesParaAprovar` (novo, Diretora)
+- `AlertaRetroativosParaCobrar` (novo, Financeiro, no `DashboardFinanceiro`)
+Todos filtram automaticamente por status atual e somem quando a etapa é concluída.
 
-- Botão Férias e ações: `isAdmin || isDiretora`.
-- Visualização: todos os perfis do Cadastro (comum, administradoras), admin, diretora.
+### Permissões (frontend + RLS espelhada)
+| Ação | Visualização | Cadastro | Diretora | Financeiro | Admin |
+|---|---|---|---|---|---|
+| Solicitar | ✅ | ✅ | ✅ | — | ✅ |
+| Editar valores | — | ✅ (antes de aprovar) | — | — | ✅ |
+| Confirmar | — | ✅ | — | — | ✅ |
+| Aprovar/Rejeitar/Liberar | — | — | ✅ | — | ✅ |
+| Aplicar retroativo | — | — | — | ✅ | ✅ |
+| Ver histórico | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-### 4. Pontos técnicos
+### Cálculos (`src/lib/reajuste-utils.ts`)
+Mantém utils atuais. Adicionar apenas:
+- helper `proximoStatus(status)` para o fluxo
+- helper `podeExecutarAcao(role, status, acao)` centralizando permissões
 
-- Algoritmo de balanceamento: ordena destinos por `(empresas + 0.5*implantacoes)` e atribui cada empresa do responsável de férias ao destino de menor carga, atualizando carga incrementalmente (min-heap simples em SQL via loop PL/pgSQL).
-- "Movimentação pendente" = registro em `movimentacoes` do período atual sem `data_envio_financeiro` OU `financeiro_movimentacoes` sem `data_envio_nota`.
-- Mantemos `responsavel_user_id` na empresa atualizado durante férias; o "original" vive em `ferias_cadastro_empresas`.
+## Regras importantes preservadas
+- Mês oficial: **sempre** derivado de `empresas.data_implantacao` (já implementado em `getMesReajuste` + trigger)
+- Enfermaria e Apartamento calculados **individualmente**, nunca somados automaticamente (já implementado)
+- Faixas etárias com 10 faixas fixas (já implementado em `FAIXAS_ETARIAS`)
+- Reutiliza `empresas`, `profiles`, `user_roles`, `alertas_reajuste` — zero duplicação
+- Histórico append-only — nunca excluir
 
-### 5. Arquivos
+## Entregáveis
+1. Migração SQL (tabelas, enums, RPCs, triggers, RLS, GRANTs)
+2. Refactor `src/pages/Reajustes.tsx` (filtros + exportação + ações por role)
+3. Novos diálogos: `AprovarReajusteDialog`, `AplicarRetroativoDialog`
+4. Atualização `ReajusteHistoricoDialog` para usar `reajustes_historico`
+5. Novos cards: `AlertaReajustesParaAprovar`, `AlertaRetroativosParaCobrar`
+6. Utilitário de export Excel/PDF de reajustes
+7. Atualização de memórias do projeto com o novo fluxo
 
-Migration:
-- `supabase/migrations/<ts>_ferias_cadastro.sql` (tabelas, enums, RLS, GRANTs, RPCs, trigger).
-
-Cron job: inserir via `supabase--insert` após migration aprovada.
-
-Frontend:
-- `src/components/ferias/FeriasCard.tsx`
-- `src/components/ferias/NovaFeriasDialog.tsx`
-- `src/components/dashboard/ResponsaveisEmFeriasCard.tsx`
-- `src/hooks/useFerias.ts`
-- editar `src/pages/Usuarios.tsx` (adicionar seção)
-- editar `src/pages/Empresas.tsx` (badge Responsável Temporário)
-- editar `src/pages/Dashboard.tsx` (adicionar card)
-- atualizar `mem://index.md` + nova memory `mem://features/ferias-cadastro`.
+Posso seguir?
