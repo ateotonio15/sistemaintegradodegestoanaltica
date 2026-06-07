@@ -76,9 +76,6 @@ function brFromCents(c: number | null | undefined): string {
 export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const qc = useQueryClient();
   const { isAdmin, isComum, isVendas, isDiretora } = useAuth();
-  const isCadastroView = isComum && !isAdmin;
-  const VISIBLE_STEPS = isCadastroView ? STEPS.filter((s) => s.n !== 4) : STEPS;
-  const ANEXOS_CADASTRO = ["anexo_1", "relatorio_vidas"];
   const [data, setData] = useState<any>(null);
   const [step, setStep] = useState(1);
   const [extracting, setExtracting] = useState(false);
@@ -109,10 +106,6 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
       return data as any[];
     },
   });
-
-  const anexosVisiveis = isCadastroView
-    ? (anexos as any[]).filter((a: any) => ANEXOS_CADASTRO.includes(a.tipo))
-    : anexos;
 
   useEffect(() => {
     if (impl) {
@@ -293,15 +286,10 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
 
   const goNext = async () => {
     if (!valid[step]) { toast.error("Preencha os campos obrigatórios"); return; }
-    let next = Math.min(6, step + 1);
-    if (isCadastroView && next === 4) next = 5;
+    const next = Math.min(6, step + 1);
     if (await save({ etapa_atual: next })) setStep(next);
   };
-  const goBack = () => setStep((s) => {
-    let prev = Math.max(1, s - 1);
-    if (isCadastroView && prev === 4) prev = 3;
-    return prev;
-  });
+  const goBack = () => setStep((s) => Math.max(1, s - 1));
 
   const handleEnviarAnalise = async () => {
     const ok = await save({ status: "em_analise_diretoria", etapa_atual: 6, motivo_correcao: null });
@@ -363,7 +351,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
 
         {/* Progress bar */}
         <div className="flex items-center justify-between gap-2 py-2 overflow-x-auto">
-          {VISIBLE_STEPS.map((s, i) => {
+          {STEPS.map((s, i) => {
             const done = step > s.n;
             const active = step === s.n;
             return (
@@ -386,7 +374,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
                     {s.label}
                   </span>
                 </div>
-                {i < VISIBLE_STEPS.length - 1 && (
+                {i < STEPS.length - 1 && (
                   <div className={cn("h-0.5 flex-1", done ? "bg-green-500" : "bg-muted")} />
                 )}
               </div>
@@ -397,7 +385,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
         <div className="min-h-[400px] py-4">
           {step === 1 && (
             <Step1Upload
-              anexos={anexosVisiveis}
+              anexos={anexos}
               onUpload={handleUpload}
               onDelete={handleDeleteAnexo}
               onDownload={handleDownload}
@@ -418,7 +406,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
           {step === 3 && <Step3Contrato data={data} update={update} readOnly={readOnly} isAdmin={isAdmin} />}
           {step === 4 && <Step4Comissao data={data} update={update} readOnly={readOnly} />}
           {step === 5 && <Step5Vidas data={data} update={update} readOnly={readOnly} relAnexo={ultimoRelVidas} />}
-          {step === 6 && <Step6Revisao data={data} anexos={anexosVisiveis} hideValores={isCadastroView} />}
+          {step === 6 && <Step6Revisao data={data} anexos={anexos} />}
         </div>
 
         <div className="flex items-center justify-between border-t pt-4">
@@ -885,7 +873,7 @@ function KpiBox({ label, value, color }: { label: string; value: number; color: 
 }
 
 // ============= STEP 6 =============
-function Step6Revisao({ data, anexos, hideValores }: any) {
+function Step6Revisao({ data, anexos }: any) {
   const Row = ({ k, v }: { k: string; v: any }) => (
     <div className="flex justify-between text-sm py-1 border-b last:border-0">
       <span className="text-muted-foreground">{k}</span>
@@ -913,15 +901,13 @@ function Step6Revisao({ data, anexos, hideValores }: any) {
         <Row k="Acomodação" v={data.acomodacao} />
         <Row k="Corretora" v={data.corretora} />
       </CardContent></Card>
-      {!hideValores && (
-        <Card><CardContent className="p-4">
-          <h4 className="font-semibold mb-2 flex items-center gap-2"><DollarSign className="h-4 w-4" /> Valores & Comissão</h4>
-          <Row k="Enfermaria" v={`R$ ${brFromCents(data.valor_enfermaria_centavos)}`} />
-          <Row k="Apartamento" v={`R$ ${brFromCents(data.valor_apartamento_centavos)}`} />
-          <Row k="% Agenciamento" v={`${data.percentual_agenciamento || 0}%`} />
-          <Row k="% Vitalício" v={`${data.percentual_vitalicio || 0}%`} />
-        </CardContent></Card>
-      )}
+      <Card><CardContent className="p-4">
+        <h4 className="font-semibold mb-2 flex items-center gap-2"><DollarSign className="h-4 w-4" /> Valores & Comissão</h4>
+        <Row k="Enfermaria" v={`R$ ${brFromCents(data.valor_enfermaria_centavos)}`} />
+        <Row k="Apartamento" v={`R$ ${brFromCents(data.valor_apartamento_centavos)}`} />
+        <Row k="% Agenciamento" v={`${data.percentual_agenciamento || 0}%`} />
+        <Row k="% Vitalício" v={`${data.percentual_vitalicio || 0}%`} />
+      </CardContent></Card>
       <Card><CardContent className="p-4">
         <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Vidas Ativas & Documentos</h4>
         <Row k="Total Vidas Ativas" v={data.total_vidas} />
