@@ -913,13 +913,15 @@ function Step6Revisao({ data, anexos, hideValores }: any) {
         <Row k="Acomodação" v={data.acomodacao} />
         <Row k="Corretora" v={data.corretora} />
       </CardContent></Card>
-      <Card><CardContent className="p-4">
-        <h4 className="font-semibold mb-2 flex items-center gap-2"><DollarSign className="h-4 w-4" /> Valores & Comissão</h4>
-        <Row k="Enfermaria" v={`R$ ${brFromCents(data.valor_enfermaria_centavos)}`} />
-        <Row k="Apartamento" v={`R$ ${brFromCents(data.valor_apartamento_centavos)}`} />
-        <Row k="% Agenciamento" v={`${data.percentual_agenciamento || 0}%`} />
-        <Row k="% Vitalício" v={`${data.percentual_vitalicio || 0}%`} />
-      </CardContent></Card>
+      {!hideValores && (
+        <Card><CardContent className="p-4">
+          <h4 className="font-semibold mb-2 flex items-center gap-2"><DollarSign className="h-4 w-4" /> Valores & Comissão</h4>
+          <Row k="Enfermaria" v={`R$ ${brFromCents(data.valor_enfermaria_centavos)}`} />
+          <Row k="Apartamento" v={`R$ ${brFromCents(data.valor_apartamento_centavos)}`} />
+          <Row k="% Agenciamento" v={`${data.percentual_agenciamento || 0}%`} />
+          <Row k="% Vitalício" v={`${data.percentual_vitalicio || 0}%`} />
+        </CardContent></Card>
+      )}
       <Card><CardContent className="p-4">
         <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Vidas Ativas & Documentos</h4>
         <Row k="Total Vidas Ativas" v={data.total_vidas} />
