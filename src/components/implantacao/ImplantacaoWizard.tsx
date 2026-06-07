@@ -363,7 +363,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
 
         {/* Progress bar */}
         <div className="flex items-center justify-between gap-2 py-2 overflow-x-auto">
-          {STEPS.map((s, i) => {
+          {VISIBLE_STEPS.map((s, i) => {
             const done = step > s.n;
             const active = step === s.n;
             return (
@@ -386,7 +386,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
                     {s.label}
                   </span>
                 </div>
-                {i < STEPS.length - 1 && (
+                {i < VISIBLE_STEPS.length - 1 && (
                   <div className={cn("h-0.5 flex-1", done ? "bg-green-500" : "bg-muted")} />
                 )}
               </div>
