@@ -178,34 +178,45 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
 
             {/* Anexos */}
             <div>
-              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2"><Paperclip className="h-4 w-4" /> Documentos ({(readOnly ? anexos.filter((a: any) => {
-                const tipo = String(a.tipo || "").toLowerCase();
-                const nome = String(a.nome_arquivo || "").toLowerCase();
-                if (tipo === "anexo_1" || tipo === "relatorio_vidas") return true;
-                if (nome.includes("cartao") && nome.includes("cnpj")) return true;
-                if (nome.includes("cartão") && nome.includes("cnpj")) return true;
-                return false;
-              }) : anexos).length})</h4>
               {(() => {
-                const visiveis = readOnly ? anexos.filter((a: any) => {
+                const isAnexoCadastro = (a: any) => {
                   const tipo = String(a.tipo || "").toLowerCase();
                   const nome = String(a.nome_arquivo || "").toLowerCase();
                   if (tipo === "anexo_1" || tipo === "relatorio_vidas") return true;
-                  if ((nome.includes("cartao") || nome.includes("cartão")) && nome.includes("cnpj")) return true;
+                  if (nome.includes("anexo") && nome.includes("1")) return true;
+                  if (nome.includes("layout") && nome.includes("vida")) return true;
+                  if ((nome.includes("relatorio") || nome.includes("relatório")) && nome.includes("vida")) return true;
                   return false;
-                }) : anexos;
-                if (visiveis.length === 0) return <p className="text-sm text-muted-foreground">Sem anexos.</p>;
+                };
+                const visiveis = readOnly ? anexos.filter(isAnexoCadastro) : anexos;
                 return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {visiveis.map((a: any) => (
-                      <button key={a.id} onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}
-                        className="flex items-center gap-2 text-left text-sm p-2 rounded-lg border hover:bg-accent transition-colors">
-                        <FileText className="h-4 w-4 text-primary shrink-0" />
-                        <span className="truncate flex-1">{a.nome_arquivo}</span>
-                        <Badge variant="secondary" className="text-[10px]">{a.tipo}</Badge>
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      {readOnly ? "Documentos para importação" : "Documentos enviados pelo Vendas"} ({visiveis.length})
+                    </h4>
+                    {readOnly && (
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Você visualiza apenas o Anexo 1 e o Layout de Vidas necessários para a importação.
+                      </p>
+                    )}
+                    {visiveis.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        {readOnly ? "Sem Anexo 1 ou Layout de Vidas anexado." : "Sem anexos."}
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {visiveis.map((a: any) => (
+                          <button key={a.id} onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}
+                            className="flex items-center gap-2 text-left text-sm p-2 rounded-lg border hover:bg-accent transition-colors">
+                            <FileText className="h-4 w-4 text-primary shrink-0" />
+                            <span className="truncate flex-1">{a.nome_arquivo}</span>
+                            {a.tipo && <Badge variant="secondary" className="text-[10px]">{a.tipo}</Badge>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 );
               })()}
             </div>
