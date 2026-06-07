@@ -7,28 +7,32 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check, ChevronRight, ChevronDown, BedDouble, Hotel } from "lucide-react";
+import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, CheckCircle2, Clock, Check, ChevronRight, ChevronDown, BedDouble, Hotel, Send, Gavel, DollarSign, Download } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReajusteDialog } from "@/components/reajustes/ReajusteDialog";
 import { ReajusteHistoricoDialog } from "@/components/reajustes/ReajusteHistoricoDialog";
 import { SolicitarReajusteDialog } from "@/components/reajustes/SolicitarReajusteDialog";
+import { AprovarReajusteDialog } from "@/components/reajustes/AprovarReajusteDialog";
+import { AplicarRetroativoDialog } from "@/components/reajustes/AplicarRetroativoDialog";
 import {
   formatCentavosBRL, getStatusReajusteEmpresa, statusReajusteColor, type StatusReajuste,
   labelStatusReajusteFluxo, corStatusReajusteFluxo, getMesReajuste, nomeMes,
 } from "@/lib/reajuste-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { exportReajustesExcel, exportReajustesPDF } from "@/lib/reajustes-export";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 export default function Reajustes() {
-  const { user, isAdmin, isViewOnly, isComum } = useAuth();
+  const { user, isAdmin, isViewOnly, isComum, isDiretora, isFinanceiro } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const canCriar = isAdmin || isComum;
   const podeSolicitar = isAdmin || isViewOnly;
+
 
   const anoAtual = new Date().getFullYear();
   const [filterAno, setFilterAno] = useState<string>(String(anoAtual));
