@@ -397,7 +397,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
         <div className="min-h-[400px] py-4">
           {step === 1 && (
             <Step1Upload
-              anexos={anexos}
+              anexos={anexosVisiveis}
               onUpload={handleUpload}
               onDelete={handleDeleteAnexo}
               onDownload={handleDownload}
