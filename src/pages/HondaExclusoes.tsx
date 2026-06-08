@@ -251,8 +251,30 @@ export default function HondaExclusoes() {
         {/* FUTURAS */}
         <TabsContent value="futuras">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-base">Exclusões Futuras</CardTitle>
+              {futuras.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={async () => {
+                    if (!confirm(`Concluir todas as ${futuras.length} exclusões futuras?`)) return;
+                    const ids = futuras.map((f) => f.id);
+                    const { error } = await supabase
+                      .from("honda_exclusoes" as any)
+                      .update({ concluido: true })
+                      .in("id", ids);
+                    if (error) {
+                      toast({ title: "Erro", description: error.message, variant: "destructive" });
+                      return;
+                    }
+                    toast({ title: "Concluído", description: `${ids.length} exclusões marcadas como concluídas.` });
+                    qc.invalidateQueries({ queryKey: ["honda-exclusoes"] });
+                  }}
+                >
+                  <Check className="h-3 w-3 mr-1" /> Concluir todos
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
@@ -279,6 +301,7 @@ export default function HondaExclusoes() {
             </CardContent>
           </Card>
         </TabsContent>
+
 
         {/* HOJE */}
         <TabsContent value="hoje">
