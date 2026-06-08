@@ -294,7 +294,7 @@ export default function HondaExclusoes() {
                 </TableHeader>
                 <TableBody>
                   {futuras.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Nenhuma exclusão futura.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Nenhuma exclusão futura.</TableCell></TableRow>
                   )}
                   {futuras.map((r) => (
                     <Linha key={r.id} item={r} showMoto onToggle={toggleConcluido} />
@@ -328,7 +328,7 @@ export default function HondaExclusoes() {
                 </TableHeader>
                 <TableBody>
                   {hoje.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Nenhuma exclusão para hoje.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Nenhuma exclusão para hoje.</TableCell></TableRow>
                   )}
                   {hoje.map((r) => <Linha key={r.id} item={r} showMoto onToggle={toggleConcluido} />)}
                 </TableBody>
@@ -401,10 +401,10 @@ export default function HondaExclusoes() {
                 </TableHeader>
                 <TableBody>
                   {isLoading && (
-                    <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>
                   )}
                   {!isLoading && filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
                   )}
                   {filtered.map((r) => <Linha key={r.id} item={r} />)}
                 </TableBody>
