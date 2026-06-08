@@ -1586,6 +1586,51 @@ export type Database = {
         }
         Relationships: []
       }
+      honda_exclusoes: {
+        Row: {
+          concluido: boolean
+          cpf: string
+          created_at: string
+          data_demissao: string
+          id: string
+          importado_em: string
+          importado_por: string | null
+          motivo: string | null
+          nome_beneficiario: string
+          sequencia: string | null
+          tipo_operacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          concluido?: boolean
+          cpf: string
+          created_at?: string
+          data_demissao: string
+          id?: string
+          importado_em?: string
+          importado_por?: string | null
+          motivo?: string | null
+          nome_beneficiario: string
+          sequencia?: string | null
+          tipo_operacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          concluido?: boolean
+          cpf?: string
+          created_at?: string
+          data_demissao?: string
+          id?: string
+          importado_em?: string
+          importado_por?: string | null
+          motivo?: string | null
+          nome_beneficiario?: string
+          sequencia?: string | null
+          tipo_operacao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       implantacao_alertas: {
         Row: {
           created_at: string
@@ -2567,6 +2612,10 @@ export type Database = {
       calcular_primeira_competencia: {
         Args: { p_empresa_id: string }
         Returns: string
+      }
+      can_access_honda_exclusoes: {
+        Args: { _user_id: string }
+        Returns: boolean
       }
       cancelar_ferias_cadastro: { Args: { p_ferias_id: string }; Returns: Json }
       confirmar_reajuste_cadastro: {
