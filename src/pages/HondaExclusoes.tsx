@@ -84,11 +84,11 @@ export default function HondaExclusoes() {
   const qc = useQueryClient();
   const { toast } = useToast();
 
-  if (checking) return <div className="p-6 text-muted-foreground">Carregando...</div>;
-  if (!canAccess) return <Navigate to="/" replace />;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   const kpi = useMemo(() => {
     let programadas = 0, mes = 0, semana = 0, amanha = 0, vencidas = 0;
@@ -109,7 +109,7 @@ export default function HondaExclusoes() {
       if (!r.concluido && dt < today) vencidas++;
     }
     return { programadas, mes, semana, amanha, vencidas };
-  }, [rows]);
+  }, [rows, today]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -137,6 +137,9 @@ export default function HondaExclusoes() {
     () => Array.from(new Set(rows.map((r) => Number(r.data_demissao.split("-")[0])))).sort((a, b) => b - a),
     [rows],
   );
+
+  if (checking) return <div className="p-6 text-muted-foreground">Carregando...</div>;
+  if (!canAccess) return <Navigate to="/" replace />;
 
   const futuras = rows.filter((r) => !r.concluido && getDiasRestantes(r) >= 0);
   const hoje = rows.filter((r) => getDiasRestantes(r) === 0);
