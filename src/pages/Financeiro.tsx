@@ -535,13 +535,14 @@ export default function Financeiro() {
           ? `Período de: ${formatPeriodoCobranca(intervalo.inicio, intervalo.fim)}`
           : "—";
       } else {
+        const sub = f.periodo || "—";
         periodoCorte = emp
-          ? emp.tipo_movimentacao === "Diária" && emp.data_corte
-            ? `Diária — corte dia ${String(emp.data_corte).padStart(2, "0")}`
-            : emp.periodo_movimentacao
-              ? `Fechada — ${emp.periodo_movimentacao}`
-              : "—"
-          : "—";
+          ? emp.tipo_movimentacao === "Diária"
+            ? `Diária — ${sub}`
+            : emp.tipo_movimentacao === "Fechada"
+              ? `Fechada — ${sub}`
+              : `— ${sub}`
+          : `— ${sub}`;
       }
       const uploaderId = pdfUploaderByMov[f.id];
       const anexosAll = anexosMap[f.id] || [];
