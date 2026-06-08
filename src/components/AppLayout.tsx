@@ -119,7 +119,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           ...allNavItems.slice(1),
         ]
       : allNavItems;
-    return base.filter((item) => {
+    const filtered = base.filter((item) => {
       if (role === "vendas") {
         const allowed = ["/", "/empresas", "/movimentacoes", "/executivas", "/implantacao", "/gestao-vidas", "/vidas-operadora"];
         return allowed.includes(item.to);
@@ -141,7 +141,11 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       }
       return true;
     });
-  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren]);
+    if (canAccessHonda) {
+      filtered.push({ to: "/honda-exclusoes", label: "Honda Exclusões", icon: Bike });
+    }
+    return filtered;
+  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren, canAccessHonda]);
 
   const isDashChildActive = dashChildren.some((c) => location.pathname === c.to);
   const [dashOpen, setDashOpen] = useState<boolean>(isDashChildActive);
