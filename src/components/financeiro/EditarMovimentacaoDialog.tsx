@@ -804,7 +804,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[92vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Editar movimentação</DialogTitle>
           <DialogDescription className="max-w-full break-words">
