@@ -48,6 +48,7 @@ function Linha({ item, showMoto, onToggle }: RowProps) {
   const status = getHondaStatus(item);
   return (
     <TableRow>
+      <TableCell className="font-mono text-xs text-muted-foreground">{item.sequencia || "—"}</TableCell>
       <TableCell className="font-medium">{item.nome_beneficiario}</TableCell>
       <TableCell className="font-mono text-xs">{formatCpf(item.cpf)}</TableCell>
       <TableCell>{formatDateBR(item.data_demissao)}</TableCell>
@@ -210,6 +211,7 @@ export default function HondaExclusoes() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Sequência</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>CPF</TableHead>
                       <TableHead>Data</TableHead>
@@ -280,6 +282,7 @@ export default function HondaExclusoes() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Sequência</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>CPF</TableHead>
                     <TableHead>Data</TableHead>
@@ -291,7 +294,7 @@ export default function HondaExclusoes() {
                 </TableHeader>
                 <TableBody>
                   {futuras.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Nenhuma exclusão futura.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Nenhuma exclusão futura.</TableCell></TableRow>
                   )}
                   {futuras.map((r) => (
                     <Linha key={r.id} item={r} showMoto onToggle={toggleConcluido} />
@@ -313,6 +316,7 @@ export default function HondaExclusoes() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Sequência</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>CPF</TableHead>
                     <TableHead>Data</TableHead>
@@ -324,7 +328,7 @@ export default function HondaExclusoes() {
                 </TableHeader>
                 <TableBody>
                   {hoje.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Nenhuma exclusão para hoje.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Nenhuma exclusão para hoje.</TableCell></TableRow>
                   )}
                   {hoje.map((r) => <Linha key={r.id} item={r} showMoto onToggle={toggleConcluido} />)}
                 </TableBody>
@@ -386,6 +390,7 @@ export default function HondaExclusoes() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Sequência</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>CPF</TableHead>
                     <TableHead>Data Demissão</TableHead>
@@ -396,10 +401,10 @@ export default function HondaExclusoes() {
                 </TableHeader>
                 <TableBody>
                   {isLoading && (
-                    <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>
                   )}
                   {!isLoading && filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
                   )}
                   {filtered.map((r) => <Linha key={r.id} item={r} />)}
                 </TableBody>
