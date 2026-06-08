@@ -525,25 +525,15 @@ export default function Financeiro() {
       .map((f) => {
       const emp = empresasMap[f.empresa_id];
       const envioOperacional = !!operacionaisMap[`${f.empresa_id}|${f.periodo}`];
-      // "Período / Corte" baseado na configuração da empresa.
-      // Quando a empresa possui período específico de cobrança (intervalo de 30 dias),
-      // exibe o intervalo calculado para a competência da movimentação.
-      let periodoCorte: string;
-      if (emp?.periodo_especifico_cobranca && emp.periodo_cobranca_inicio && f.mes_referencia) {
-        const intervalo = calcularPeriodoCobranca(emp.periodo_cobranca_inicio, f.mes_referencia);
-        periodoCorte = intervalo
-          ? `Período de: ${formatPeriodoCobranca(intervalo.inicio, intervalo.fim)}`
-          : "—";
-      } else {
-        const sub = f.periodo || "—";
-        periodoCorte = emp
-          ? emp.tipo_movimentacao === "Diária"
-            ? `Diária — ${sub}`
-            : emp.tipo_movimentacao === "Fechada"
-              ? `Fechada — ${sub}`
-              : `— ${sub}`
-          : `— ${sub}`;
-      }
+      // "Período / Corte" sempre usa o subperíodo padrão da movimentação.
+      const sub = f.periodo || "—";
+      const periodoCorte = emp
+        ? emp.tipo_movimentacao === "Diária"
+          ? `Diária — ${sub}`
+          : emp.tipo_movimentacao === "Fechada"
+            ? `Fechada — ${sub}`
+            : `— ${sub}`
+        : `— ${sub}`;
       const uploaderId = pdfUploaderByMov[f.id];
       const anexosAll = anexosMap[f.id] || [];
       const cnpjsDoContrato = cnpjsPorContrato.get(f.id) ?? new Set<string>();
