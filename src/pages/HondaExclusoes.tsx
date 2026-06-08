@@ -385,8 +385,6 @@ export default function HondaExclusoes() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <ImportarHondaDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }
