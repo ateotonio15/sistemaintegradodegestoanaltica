@@ -1,31 +1,102 @@
-## Objetivo
-Na aba **Financeiro**, fazer a coluna **Período / Corte** sempre exibir o tipo da empresa (Diária ou Fechada) seguido do sub-período da linha (`01-05`, `05-10`, `10-15`, `15-20`, `20-25`, `25-30`), como no exemplo enviado: `Fechada — 01-05`.
+## Módulo Honda Exclusões
 
-Isso também resolve o efeito visual de "duplicidade" do contrato 2150, porque cada linha passará a mostrar seu próprio sub-período (uma `Diária — 15-20` e outra `Diária — 20-25`), deixando claro que são períodos distintos.
+Novo módulo dedicado ao acompanhamento antecipado de desligamentos programados de beneficiários da empresa Honda, restrito ao responsável Honda, Diretora e Admin.
 
-## O que muda
+### 1. Banco de dados (Lovable Cloud)
 
-Arquivo: `src/pages/Financeiro.tsx` (bloco que monta `periodoCorte`, linhas ~528-545).
+Nova tabela `honda_exclusoes`:
+- `nome_beneficiario` (text)
+- `cpf` (text, 11 dígitos)
+- `data_demissao` (date)
+- `motivo` (text)
+- `tipo_operacao` (text)
+- `sequencia` (text)
+- `importado_por` (uuid → auth.users)
+- `importado_em` (timestamptz default now())
+- `concluido` (boolean default false) — marcação manual ou automática pós-data
+- standard `id`, `created_at`, `updated_at`
 
-Hoje:
-- Diária → `Diária — corte dia 25`
-- Fechada → `Fechada — 01-05`
-- Período específico de cobrança (30 dias) → `Período de: 05/06/2026 à 04/07/2026`
+RLS:
+- SELECT/INSERT/UPDATE permitidos para `admin`, `diretora` e para o responsável vinculado à empresa Honda (via `empresa_usuarios` + lookup da empresa cujo nome contém "HONDA").
+- DELETE bloqueado para todos exceto `admin` (preservação de histórico).
+- GRANT a `authenticated` e `service_role`.
 
-Depois:
-- Diária → `Diária — {f.periodo}` (ex.: `Diária — 20-25`)
-- Fechada → `Fechada — {f.periodo}` (ex.: `Fechada — 01-05`)
-- Empresa sem tipo configurado → `— {f.periodo}` (mostra ao menos o sub-período)
-- Período específico de cobrança (regra atual mantida, pois é intervalo de 30 dias e não usa sub-períodos)
+Função SECURITY DEFINER `can_access_honda_exclusoes(_user_id uuid)` retornando boolean, usada nas policies e no frontend (via RPC) para liberar/ocultar a aba.
 
-A fonte do sub-período é o campo `periodo` da própria movimentação financeira (`f.periodo`), que já existe na linha.
+### 2. Permissões e navegação
 
-## Onde NÃO mexer
-- Lógica de provisionamento (`provisionarMutation`) permanece igual.
-- Demais colunas e filtros permanecem iguais.
-- Exportação CSV (linha 1582) continua exportando a mesma string já formatada.
+- `useAuth` ganha flag derivada `canAccessHondaExclusoes` que consulta `can_access_honda_exclusoes` via RPC (cacheado em React Query).
+- `AppLayout` / sidebar mostra item "Honda Exclusões" (ícone 🏍️ Bike do lucide) somente se `canAccessHondaExclusoes`.
+- `RoleGate` customizado para a rota `/honda-exclusoes` baseado nessa flag (admin, diretora ou responsável Honda).
 
-## Critério de aceite
-- Contrato 2150 / ROYAL MAX (2026-06) passa a exibir duas linhas com rótulos distintos: `Diária — 15-20` e `Diária — 20-25`.
-- Empresas Fechadas exibem `Fechada — 01-05` (ou o sub-período correspondente).
-- Empresas com período específico de cobrança continuam mostrando o intervalo de 30 dias.
+### 3. Estrutura da página `/honda-exclusoes`
+
+Página `src/pages/HondaExclusoes.tsx` com `Tabs` shadcn:
+- **Dashboard** — KPI cards: Programadas, Mês, Semana, Amanhã, Vencidas (não concluídas). Pequeno gráfico de barras por mês.
+- **Importação** — botão "Importar Arquivo" abrindo dialog que aceita `.xlsx` e `.csv`. Parser dedicado em `src/lib/honda-exclusoes-import.ts` lendo as 6 colunas; valida CPF (11 dígitos) e Data Demissão; pula linhas inválidas/vazias e exibe relatório de erros antes de confirmar o insert em lote.
+- **Exclusões Futuras** — tabela de registros com `data_demissao >= hoje` e não concluídos.
+- **Exclusões do Dia** — tabela com `data_demissao = hoje`.
+- **Histórico** — tabela completa com filtros (Mês, Ano, Status, Motivo, CPF, Nome) e busca rápida CPF/Nome.
+
+Colunas padrão: Nome, CPF, Data Demissão, Motivo, Dias Restantes, Status.
+
+Status calculado em runtime:
+- `Concluído` se `concluido = true` ou data passou e foi marcada.
+- `Hoje` se data = hoje.
+- `Amanhã` se data = hoje+1.
+- `Atrasado` se data < hoje e não concluído.
+- `Programado` caso contrário.
+
+### 4. Alertas automáticos
+
+- Hook `useHondaAlertas` consulta exclusões com `data_demissao` entre hoje e amanhã (inclusive) e não concluídas.
+- Alerta aparece a partir de D-1 00:00 e permanece visível até 23:59 da data de demissão (filtro no client por horário local).
+- Banner global no topo do Dashboard do responsável Honda (e admin/diretora) com lista resumida (Nome, CPF, Data, Motivo).
+- Card "Exclusões Honda" no `Dashboard` (e `DashboardFinanceiro` quando aplicável) mostrando contadores Amanhã / Hoje / Atrasadas com link para a aba.
+
+### 5. Animação Honda (moto)
+
+Componente `HondaMotoProgress` (CSS/Tailwind puro, sem libs):
+- Linha horizontal com 🏍️ avançando em direção a 📍.
+- Posição calculada por `diasRestantes`: mais perto do destino conforme a data se aproxima (ex.: 100% em D-0, 75% em D-1, etc.).
+- Animação suave (`transition-all duration-700`) e respeitando `prefers-reduced-motion`.
+- Exibido no header da aba e ao lado de cada linha "Amanhã/Hoje" das tabelas. Cores derivadas dos tokens existentes (dark green/primary), compatível com tema escuro.
+
+### 6. Integrações
+
+- Link para empresa Honda em `Empresas` (badge "Honda Exclusões" quando há programadas).
+- Card resumo no `Dashboard`.
+- Lançamento opcional em `Movimentações` é deixado de fora (apenas leitura cruzada — sem exclusão automática).
+- `Gestão de Vidas`: contador de exclusões Honda futuras exibido no painel da Honda.
+
+### 7. Arquivos a criar/editar
+
+Novos:
+- `supabase/migrations/<timestamp>_honda_exclusoes.sql` (tabela + RLS + função `can_access_honda_exclusoes`).
+- `src/pages/HondaExclusoes.tsx`
+- `src/components/honda/ImportarHondaDialog.tsx`
+- `src/components/honda/HondaMotoProgress.tsx`
+- `src/components/honda/HondaAlertasBanner.tsx`
+- `src/components/honda/HondaExclusoesCard.tsx` (card para dashboards)
+- `src/hooks/useHondaExclusoes.ts`
+- `src/hooks/useHondaAlertas.ts`
+- `src/lib/honda-exclusoes-import.ts` (parser xlsx + csv, valida CPF/data)
+
+Editados:
+- `src/App.tsx` — rota `/honda-exclusoes` com gate por flag.
+- `src/components/AppLayout.tsx` — item de menu condicional.
+- `src/hooks/useAuth.tsx` — flag `canAccessHondaExclusoes`.
+- `src/pages/Dashboard.tsx` (e dashboards relevantes) — incorpora `HondaAlertasBanner` e `HondaExclusoesCard`.
+
+### 8. Garantias
+
+- Nenhuma exclusão automática de beneficiários — módulo é apenas informativo.
+- Histórico não é apagado (sem DELETE no client).
+- Aba e dados ocultos para perfis sem permissão (RLS + gate de rota + sidebar condicional).
+- Alertas só somem após 23:59 local da data de demissão.
+- Importações ficam registradas com `importado_por` e `importado_em`.
+
+### Pergunta antes de implementar
+
+1. Qual é a empresa exata que representa a "Honda" no cadastro (nome ou contrato) para vincular o responsável? Posso usar `ILIKE '%HONDA%'` na tabela `empresas` ou prefere um contrato específico (ex.: contrato Honda Componentes vs Moto Honda)?
+2. O "Responsável da empresa Honda" deve ser todo usuário ligado via `empresa_usuarios` à empresa Honda, ou somente o usuário marcado como responsável principal/executivo?

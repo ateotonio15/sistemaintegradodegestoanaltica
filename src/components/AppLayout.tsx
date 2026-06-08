@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert, Bike } from "lucide-react";
+import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
 import { useAtivarContratosPendentes } from "@/hooks/useAtivarContratosPendentes";
 import logoImg from "@/assets/logo-cs-control.png";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +31,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { SuspensaoBanner } from "@/components/empresas/SuspensaoBanner";
 import { CobrancaBanner } from "@/components/financeiro/CobrancaBanner";
+import { HondaAlertasBanner } from "@/components/honda/HondaAlertasBanner";
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -77,6 +79,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   useAtivarContratosPendentes();
+  const { data: canAccessHonda } = useCanAccessHonda();
 
   const SIDEBAR_STORAGE_KEY = "sidebar-collapsed";
 
@@ -117,7 +120,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           ...allNavItems.slice(1),
         ]
       : allNavItems;
-    return base.filter((item) => {
+    const filtered = base.filter((item) => {
       if (role === "vendas") {
         const allowed = ["/", "/empresas", "/movimentacoes", "/executivas", "/implantacao", "/gestao-vidas", "/vidas-operadora"];
         return allowed.includes(item.to);
@@ -139,7 +142,11 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       }
       return true;
     });
-  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren]);
+    if (canAccessHonda) {
+      filtered.push({ to: "/honda-exclusoes", label: "Honda Exclusões", icon: Bike });
+    }
+    return filtered;
+  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren, canAccessHonda]);
 
   const isDashChildActive = dashChildren.some((c) => location.pathname === c.to);
   const [dashOpen, setDashOpen] = useState<boolean>(isDashChildActive);
@@ -658,7 +665,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 space-y-4">
           <SuspensaoBanner />
-          
+          {canAccessHonda && location.pathname !== "/honda-exclusoes" && <HondaAlertasBanner />}
           {children ?? <Outlet />}
         </main>
       </div>
