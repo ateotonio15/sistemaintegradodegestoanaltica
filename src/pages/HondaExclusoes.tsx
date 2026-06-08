@@ -316,6 +316,7 @@ export default function HondaExclusoes() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Sequência</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>CPF</TableHead>
                     <TableHead>Data</TableHead>
