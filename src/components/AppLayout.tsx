@@ -31,6 +31,8 @@ import {
 import { format, parseISO } from "date-fns";
 import { SuspensaoBanner } from "@/components/empresas/SuspensaoBanner";
 import { CobrancaBanner } from "@/components/financeiro/CobrancaBanner";
+import { HondaAlertasBanner } from "@/components/honda/HondaAlertasBanner";
+import { HondaExclusoesCard } from "@/components/honda/HondaExclusoesCard";
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
