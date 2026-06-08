@@ -22,6 +22,7 @@ import ContratosRecemImplantados from "./pages/ContratosRecemImplantados";
 import VidasSamel from "./pages/VidasSamel";
 import GestaoVidas from "./pages/GestaoVidas";
 import VidasOperadora from "./pages/VidasOperadora";
+import HondaExclusoes from "./pages/HondaExclusoes";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
