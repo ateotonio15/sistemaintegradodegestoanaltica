@@ -666,7 +666,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 space-y-4">
           <SuspensaoBanner />
-          
+          {canAccessHonda && location.pathname !== "/honda-exclusoes" && <HondaAlertasBanner />}
           {children ?? <Outlet />}
         </main>
       </div>
