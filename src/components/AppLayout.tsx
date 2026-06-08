@@ -78,6 +78,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   useAtivarContratosPendentes();
+  const { data: canAccessHonda } = useCanAccessHonda();
 
   const SIDEBAR_STORAGE_KEY = "sidebar-collapsed";
 
