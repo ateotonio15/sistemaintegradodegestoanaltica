@@ -939,8 +939,14 @@ export async function analisarExcelFinanceiroPorCnpj(
     excTotal: number;
   };
   const grupos = new Map<string, Acc>();
+  const ehCnpjPlaceholder = (c: string) => !c || c.length !== 14 || /0{6,}$/.test(c);
   const getGrupo = (cnpj: string, nome: string): Acc => {
-    const key = cnpj || `__nome::${norm(nome)}`;
+    // Chave preferencial: nome normalizado. Alguns pagadores aparecem com
+    // CNPJs diferentes em linhas de Exclusão (placeholder tipo "...0000000"),
+    // o que criava um bloco órfão só para as exclusões. Agrupar por nome
+    // consolida tudo no mesmo pagador.
+    const nomeKey = norm(nome);
+    const key = nomeKey ? `__nome::${nomeKey}` : cnpj || "__sem_id__";
     let g = grupos.get(key);
     if (!g) {
       g = {
@@ -956,8 +962,12 @@ export async function analisarExcelFinanceiroPorCnpj(
         excTotal: 0,
       };
       grupos.set(key, g);
-    } else if (!g.nome && nome) {
-      g.nome = nome;
+    } else {
+      if (!g.nome && nome) g.nome = nome;
+      // Mantém o "melhor" CNPJ: prefere o que não é placeholder de zeros.
+      if (ehCnpjPlaceholder(g.cnpj) && !ehCnpjPlaceholder(cnpj)) {
+        g.cnpj = cnpj;
+      }
     }
     return g;
   };
