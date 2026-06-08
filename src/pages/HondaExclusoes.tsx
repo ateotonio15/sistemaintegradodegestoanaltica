@@ -162,13 +162,21 @@ export default function HondaExclusoes() {
         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
           <Bike className="h-5 w-5 text-primary" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-semibold tracking-tight">Honda Exclusões</h1>
           <p className="text-sm text-muted-foreground">
             Acompanhamento de desligamentos programados de beneficiários Honda.
           </p>
         </div>
+        <Button onClick={() => setImportOpen(true)} className="gap-2">
+          <Upload className="h-4 w-4" />
+          Importar Arquivo
+        </Button>
       </div>
+
+      <ImportarHondaDialog open={importOpen} onOpenChange={setImportOpen} />
+
+      
 
       
 
