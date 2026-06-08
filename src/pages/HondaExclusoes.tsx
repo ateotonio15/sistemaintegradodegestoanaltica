@@ -170,7 +170,7 @@ export default function HondaExclusoes() {
         </div>
       </div>
 
-      <HondaAlertasBanner />
+      
 
       <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList className="grid grid-cols-5 w-full max-w-2xl">
