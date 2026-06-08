@@ -146,6 +146,8 @@ const AppRoutes = () => (
         <Route path="/usuarios" element={<Usuarios />} />
       </Route>
 
+      <Route path="/honda-exclusoes" element={<HondaExclusoes />} />
+
       <Route path="*" element={<NotFound />} />
     </Route>
   </Routes>
