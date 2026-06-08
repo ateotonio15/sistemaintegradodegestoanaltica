@@ -48,6 +48,7 @@ function Linha({ item, showMoto, onToggle }: RowProps) {
   const status = getHondaStatus(item);
   return (
     <TableRow>
+      <TableCell className="font-mono text-xs text-muted-foreground">{item.sequencia || "—"}</TableCell>
       <TableCell className="font-medium">{item.nome_beneficiario}</TableCell>
       <TableCell className="font-mono text-xs">{formatCpf(item.cpf)}</TableCell>
       <TableCell>{formatDateBR(item.data_demissao)}</TableCell>
