@@ -95,7 +95,7 @@ export default function Empresas() {
   const [rescisaoDate, setRescisaoDate] = useState("");
   const [showRescisaoInput, setShowRescisaoInput] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [grupoEmpresa, setGrupoEmpresa] = useState<{ id: string; nome: string } | null>(null);
+  
   const [draftEmpresaId, setDraftEmpresaId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [dataImplantacao, setDataImplantacao] = useState("");
@@ -523,21 +523,25 @@ export default function Empresas() {
               {isExecutivo ? `Você possui ${filtered.length} empresa(s) vinculada(s)` : `${filtered.length} empresa(s) ${showInativas ? "inativas" : "ativas"}`}
             </p>
           </div>
-          {canFullEdit && (
+          {(canEdit && !isExecutivo) && (
             <div className="flex gap-2">
-              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="rounded-lg">
-                <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
-              </Button>
-              {isAdmin && (
-                <Button variant="outline" onClick={() => setImportValoresOpen(true)} className="rounded-lg">
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />Importar Valores
-                </Button>
-              )}
-              {isAdmin && (
-                <Button variant="outline" onClick={() => setRecalcVidasOpen(true)} className="rounded-lg">
-                  <Users className="mr-2 h-4 w-4" />Recalcular Vidas
-                </Button>
+              {canFullEdit && (
+                <>
+                  <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+                  <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="rounded-lg">
+                    <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
+                  </Button>
+                  {isAdmin && (
+                    <Button variant="outline" onClick={() => setImportValoresOpen(true)} className="rounded-lg">
+                      <FileSpreadsheet className="mr-2 h-4 w-4" />Importar Valores
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button variant="outline" onClick={() => setRecalcVidasOpen(true)} className="rounded-lg">
+                      <Users className="mr-2 h-4 w-4" />Recalcular Vidas
+                    </Button>
+                  )}
+                </>
               )}
               <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => {
                 setDialogOpen(open);
@@ -547,9 +551,11 @@ export default function Empresas() {
                 if (!open) resetForm();
               }}>
 
-                <DialogTrigger asChild>
-                  <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
-                </DialogTrigger>
+                {canFullEdit && (
+                  <DialogTrigger asChild>
+                    <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
+                  </DialogTrigger>
+                )}
                 <DialogContent className="sm:max-w-4xl max-h-[92vh] p-0 rounded-xl overflow-hidden flex flex-col">
                   <DialogHeader className="px-6 py-4 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 sticky top-0 z-10">
                     <div className="flex items-start justify-between gap-3">
@@ -1367,9 +1373,6 @@ export default function Empresas() {
                               {canEdit && (
                                 <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10" title="Editar"><Pencil className="h-4 w-4 text-primary" /></Button>
                               )}
-                              {isFinanceiro && (
-                                <Button variant="ghost" size="icon" onClick={() => setGrupoEmpresa({ id: e.id, nome: e.nome })} className="rounded-lg hover:bg-primary/10" title="Grupo Financeiro"><Users className="h-4 w-4 text-primary" /></Button>
-                              )}
                               {canFullEdit && (
                                 <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10" title="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                               )}
@@ -1385,20 +1388,8 @@ export default function Empresas() {
           </CardContent>
         </Card>
 
-        {/* Grupo Financeiro Modal (acesso rápido para Financeiro) */}
-        <Dialog open={!!grupoEmpresa} onOpenChange={(open) => { if (!open) setGrupoEmpresa(null); }}>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl">
-            <DialogHeader>
-              <DialogTitle>Grupo Financeiro</DialogTitle>
-              <DialogDescription>{grupoEmpresa?.nome}</DialogDescription>
-            </DialogHeader>
-            {grupoEmpresa && (
-              <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
-                <GrupoFinanceiroSection empresaId={grupoEmpresa.id} />
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+
+
 
         {/* Detail Modal */}
         <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
