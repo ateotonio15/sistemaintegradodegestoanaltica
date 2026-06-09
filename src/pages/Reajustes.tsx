@@ -556,7 +556,7 @@ export default function Reajustes() {
                             </Button>
                           )}
                           {isSolicitado && (isAdmin || isDiretora) && (
-                            <Button size="sm" variant="default" onClick={() => openEdit(reajuste)} className="bg-blue-600 hover:bg-blue-700">
+                            <Button size="sm" variant="default" onClick={() => { setSolicitarEmpresa(empresa); setSolicitarOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
                               <Pencil className="h-3 w-3 mr-1" /> Registrar Valores
                             </Button>
                           )}
