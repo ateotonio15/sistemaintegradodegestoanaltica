@@ -80,10 +80,14 @@ export function AprovarReajusteDialog({ open, onOpenChange, reajuste, empresaNom
   const aptFinal = reajuste.valor_final_apartamento_centavos || 0;
   const totalRetro = reajuste.valor_retroativo_centavos || 0;
   const totalFinal = reajuste.valor_final_centavos || 0;
+  const pctNum = Number(reajuste.percentual || 0);
   const podeLiberar = reajuste.status_reajuste === "aprovado";
   const podeDecidir = reajuste.status_reajuste === "aguardando_aprovacao";
   const semDados =
-    enfAtual === 0 && aptAtual === 0 && totalFinal === 0 && faixas.length === 0;
+    pctNum === 0 && enfAtual === 0 && aptAtual === 0 && totalFinal === 0 && faixas.length === 0;
+  const fmtDateTime = (d?: string | null) =>
+    d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
+  const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") : "—");
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { setModoRejeicao(false); setMotivo(""); setObs(""); } onOpenChange(o); }}>
