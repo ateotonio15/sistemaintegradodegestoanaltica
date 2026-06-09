@@ -365,6 +365,8 @@ export async function analisarExcelFinanceiroPorPagador(
   let retroTotal = 0;
   let excQtd = 0;
   let excTotal = 0;
+  let devQtd = 0;
+  let devTotal = 0;
 
   let linhasCasadas = 0;
 
