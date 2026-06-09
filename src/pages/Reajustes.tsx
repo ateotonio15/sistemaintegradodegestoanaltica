@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Reajustes() {
-  const { user, isAdmin, isViewOnly, isComum, isDiretora, isFinanceiro } = useAuth();
+  const { user, isAdmin, isComum, isDiretora, isFinanceiro } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const canCriar = isAdmin || isDiretora;
