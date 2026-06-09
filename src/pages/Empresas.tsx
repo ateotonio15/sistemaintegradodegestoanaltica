@@ -1385,14 +1385,24 @@ export default function Empresas() {
           </CardContent>
         </Card>
 
+        {/* Grupo Financeiro Modal (acesso rápido para Financeiro) */}
+        <Dialog open={!!grupoEmpresa} onOpenChange={(open) => { if (!open) setGrupoEmpresa(null); }}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl">
+            <DialogHeader>
+              <DialogTitle>Grupo Financeiro</DialogTitle>
+              <DialogDescription>{grupoEmpresa?.nome}</DialogDescription>
+            </DialogHeader>
+            {grupoEmpresa && (
+              <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                <GrupoFinanceiroSection empresaId={grupoEmpresa.id} />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Detail Modal */}
         <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl p-0">
-            <DialogHeader className="sr-only">
-              <DialogTitle>Detalhes da Empresa</DialogTitle>
-              <DialogDescription>Informações completas da empresa cadastrada.</DialogDescription>
-            </DialogHeader>
-            {detailEmpresa && (
               <div>
                 {/* Hero header */}
                 <div className="px-6 pt-6 pb-5 border-b bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
