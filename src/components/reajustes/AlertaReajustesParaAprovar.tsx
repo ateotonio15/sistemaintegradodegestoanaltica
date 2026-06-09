@@ -38,7 +38,7 @@ export function AlertaReajustesParaAprovar() {
       <Bell className="h-5 w-5 text-orange-600 dark:text-orange-400 shrink-0" />
       <div className="flex-1 text-sm">
         <span className="font-semibold text-orange-700 dark:text-orange-300">Reajustes aguardando aprovação</span>
-        <span className="text-muted-foreground ml-2">— {count} {count === 1 ? "pedido" : "pedidos"} para análise da Diretoria</span>
+        <span className="text-muted-foreground ml-2">— {count} {count === 1 ? "pedido" : "pedidos"} para análise do Cadastro</span>
       </div>
       <span className="text-xs text-orange-700 dark:text-orange-300 font-medium">Analisar →</span>
     </Link>
