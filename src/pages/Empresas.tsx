@@ -112,7 +112,7 @@ export default function Empresas() {
   const queryClient = useQueryClient();
   const { isAdmin, role, isViewOnly, isExecutivo, isFinanceiro, user } = useAuth();
   const isComumLike = role === "comum" || role === "administradoras";
-  const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo);
+  const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo || isFinanceiro);
   const canFullEdit = isAdmin || isComumLike;
   const isComum = isComumLike;
 
@@ -997,12 +997,12 @@ export default function Empresas() {
 
 
 
-                    {/* Configurações Financeiras — somente admin pode visualizar/editar */}
-                    {isAdmin && (
+                    {/* Configurações Financeiras — admin e financeiro */}
+                    {(isAdmin || isFinanceiro) && (
                       <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
                         <div className="flex items-center gap-2">
                           <h3 className="text-sm font-semibold">Configurações Financeiras</h3>
-                          <span className="text-xs text-muted-foreground">(somente admin)</span>
+                          <span className="text-xs text-muted-foreground">(admin e financeiro)</span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-2">
