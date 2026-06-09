@@ -126,8 +126,8 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                     <div className="font-medium">{r.mes_reajuste ? `${meses[r.mes_reajuste]}/${r.ano}` : `—/${r.ano}`}</div>
                   </div>
                   <div className="rounded-md border bg-muted/30 p-2">
-                    <div className="text-muted-foreground">Data de aplicação</div>
-                    <div className="font-medium">{fmtDate(r.data_aplicacao)}</div>
+                    <div className="text-muted-foreground">Aplicado no contrato (Cadastro)</div>
+                    <div className="font-medium">{fmtDate(r.retroativo_aplicado_em || r.data_confirmacao)}</div>
                   </div>
                   <div className="rounded-md border bg-muted/30 p-2">
                     <div className="text-muted-foreground">Competência cobrança</div>
