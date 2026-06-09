@@ -285,3 +285,15 @@ function Row({ label, v, bold }: { label: string; v: string; bold?: boolean }) {
     </div>
   );
 }
+
+function Field({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="rounded-md border bg-background/60 p-2">
+      <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+        <Icon className="h-3 w-3" />
+        <span>{label}</span>
+      </div>
+      <div className="font-medium">{value}</div>
+    </div>
+  );
+}
