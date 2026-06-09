@@ -565,6 +565,10 @@ export function obterDivergenciasNotaFiscal(
     const calculado = Number((valorServico - valorLiquido).toFixed(2));
     if (calculado > 0.01) issqnRet = calculado;
   }
+  // Se ainda sem ISSQN Retido mas existe Apurado, assume igualdade (retido pelo tomador).
+  if (tributos.retencaoIssqn === "retido" && issqnRet == null && issqnDev != null) {
+    issqnRet = issqnDev;
+  }
 
   if (tributos.retencaoIssqn === "retido" && issqnRet != null && issqnDev != null && !aprox(issqnRet, issqnDev)) {
     divergencias.push(
