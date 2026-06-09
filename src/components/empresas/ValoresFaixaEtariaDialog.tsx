@@ -467,7 +467,7 @@ function ValorDestaqueCard({
       <div className="space-y-2">
         <div className="flex items-baseline justify-between">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-            {temReajuste ? "Antes do reajuste" : "Valor da implantação"}
+            {labelValor ?? (temReajuste ? "Antes do reajuste" : "Valor da implantação")}
           </span>
           <span
             className={cn(
