@@ -42,7 +42,17 @@ export function calcularMesesRetroativos(mesReajuste: number | null, dataAplicac
   if (!mesReajuste || !dataAplicacao) return 0;
   const m = String(dataAplicacao).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return 0;
+  const anoAplic = parseInt(m[1], 10);
   const mesAplic = parseInt(m[2], 10);
+  // Regra: se a aplicação cai no mesmo mês do reajuste oficial,
+  // cobra-se o retroativo do mês de reajuste até hoje (mês atual).
+  if (mesAplic === mesReajuste) {
+    const hoje = new Date();
+    const mesHoje = hoje.getMonth() + 1;
+    const anoHoje = hoje.getFullYear();
+    const diffHoje = (anoHoje - anoAplic) * 12 + (mesHoje - mesReajuste);
+    return diffHoje > 0 ? diffHoje : 0;
+  }
   const diff = mesAplic - mesReajuste;
   return diff > 0 ? diff : 0;
 }
