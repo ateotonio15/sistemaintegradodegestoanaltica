@@ -85,6 +85,36 @@ export default function Reajustes() {
     },
   });
 
+  // Foca um contrato específico vindo de alerta (?empresa=ID) ou filtra por fluxo (?fluxo=...)
+  useEffect(() => {
+    if (focusFluxo && didFocusRef.current !== `f:${focusFluxo}`) {
+      setFilterStatus("all");
+      setFilterMes("all");
+      setSearch("");
+      didFocusRef.current = `f:${focusFluxo}`;
+    }
+    if (!focusEmpresaId) return;
+    if (didFocusRef.current === focusEmpresaId) return;
+    if (!empresas.length) return;
+    const emp = empresas.find((e: any) => e.id === focusEmpresaId);
+    if (!emp) return;
+    didFocusRef.current = focusEmpresaId;
+    setFilterStatus("all");
+    setFilterMes("all");
+    setSearch(emp.codigo_contrato || emp.nome);
+    setExpandedIds((prev) => new Set(prev).add(emp.id));
+    setHighlightId(emp.id);
+    setTimeout(() => {
+      rowRefs.current[emp.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 200);
+    setTimeout(() => setHighlightId(null), 3500);
+    // Limpa query params para não refocar em navegações futuras
+    const next = new URLSearchParams(searchParams);
+    next.delete("empresa");
+    next.delete("fluxo");
+    setSearchParams(next, { replace: true });
+  }, [focusEmpresaId, focusFluxo, empresas, searchParams, setSearchParams]);
+
   const { data: implantacoesValores = [] } = useQuery({
     queryKey: ["reajustes-implantacoes-valores"],
     queryFn: async () => {
