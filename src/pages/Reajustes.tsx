@@ -223,7 +223,7 @@ export default function Reajustes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Enviado à Diretoria", description: "Diretora foi notificada para aprovação." });
+      toast({ title: "Enviado ao Cadastro", description: "Cadastro foi notificado para análise e aprovação." });
       qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
       qc.invalidateQueries({ queryKey: ["reajustes-aprovar-count"] });
       setConfirmEnviar(null);
