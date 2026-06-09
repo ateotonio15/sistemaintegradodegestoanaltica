@@ -892,6 +892,9 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (g.excQtd > 0 || g.excTotal !== 0) {
       bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
     }
+    if (g.devQtd > 0 || g.devTotal !== 0) {
+      bloco.devolucoes = { quantidade: g.devQtd, total: g.devTotal };
+    }
 
     return bloco;
   });
