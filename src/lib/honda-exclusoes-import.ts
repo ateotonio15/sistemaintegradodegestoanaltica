@@ -81,7 +81,7 @@ function resolveHeader(h: string): keyof HondaImportRow | null {
   const n = norm(h);
   if (HEADER_MAP[n]) return HEADER_MAP[n];
   if (!n) return null;
-  if (n.includes("sequenc") || n === "seq" || n === "seq." || n === "n" || n === "no" || n === "nº" || n === "numero" || n.startsWith("n sequenc") || n.startsWith("no sequenc")) return "sequencia";
+  if (n.includes("sequenc") || n.includes("seguenc") || n.startsWith("nr ") || n === "nr" || n === "seq" || n === "seq." || n === "n" || n === "no" || n === "nº" || n === "numero" || n.startsWith("n sequenc") || n.startsWith("no sequenc")) return "sequencia";
   if (n.includes("beneficiar")) return "nome_beneficiario";
   if (n.includes("cpf")) return "cpf";
   if (n.includes("demiss")) return "data_demissao";
