@@ -205,7 +205,50 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
   const mesReajuste = useMemo(() => getMesReajuste(empresaSel?.data_implantacao || null), [empresaSel]);
   const mesesRetro = useMemo(() => calcularMesesRetroativos(mesReajuste, dataAplicacao), [mesReajuste, dataAplicacao]);
 
-  // Totais por modalidade (faixa OU valor único)
+  // Pré-popula com valores da Empresa (fallback Implantação) quando ainda não há valores carregados
+  useEffect(() => {
+    if (!open || !empresaId) return;
+    const src = {
+      enf: Number(empresaValores?.valor_enfermaria_centavos) || Number(implantacaoValores?.valor_enfermaria_centavos) || 0,
+      apt: Number(empresaValores?.valor_apartamento_centavos) || Number(implantacaoValores?.valor_apartamento_centavos) || 0,
+      fx: empresaValores?.faixas_etarias || implantacaoValores?.faixas_etarias,
+      usaFx: !!empresaValores?.contrato_faixa_etaria,
+    };
+    const fxEnfArr: any[] = src.fx && Array.isArray(src.fx.enfermaria) ? src.fx.enfermaria : [];
+    const fxAptArr: any[] = src.fx && Array.isArray(src.fx.apartamento) ? src.fx.apartamento : [];
+    const sumFx = (arr: any[]) => arr.reduce((s, f) => s + (Number(f?.centavos) || 0), 0);
+    const temFxEnf = sumFx(fxEnfArr) > 0;
+    const temFxApt = sumFx(fxAptArr) > 0;
+
+    // Só preenche se ainda não houver valor cadastrado no formulário
+    if (!valorEnf && src.enf > 0 && !usaFaixaEnf) {
+      setValorEnf((src.enf / 100).toFixed(2).replace(".", ","));
+    }
+    if (!valorApt && src.apt > 0 && !usaFaixaApt) {
+      setValorApt((src.apt / 100).toFixed(2).replace(".", ","));
+    }
+    if (src.usaFx && temFxEnf && faixasEnf.every((f) => !f.valor_atual_centavos)) {
+      const base = criarFaixasIniciais();
+      for (const f of fxEnfArr) {
+        const idx = base.findIndex((b) => b.idade_inicial === f.ini && b.idade_final === f.fim);
+        if (idx >= 0) base[idx].valor_atual_centavos = Number(f.centavos) || 0;
+      }
+      setFaixasEnf(base);
+      setUsaFaixaEnf(true);
+    }
+    if (src.usaFx && temFxApt && faixasApt.every((f) => !f.valor_atual_centavos)) {
+      const base = criarFaixasIniciais();
+      for (const f of fxAptArr) {
+        const idx = base.findIndex((b) => b.idade_inicial === f.ini && b.idade_final === f.fim);
+        if (idx >= 0) base[idx].valor_atual_centavos = Number(f.centavos) || 0;
+      }
+      setFaixasApt(base);
+      setUsaFaixaApt(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, empresaId, empresaValores, implantacaoValores]);
+
+
   const enfTotais = useMemo(() => {
     if (possuiEnf && usaFaixaEnf) return somarFaixas(faixasEnf);
     const va = possuiEnf ? reaisToCentavos(valorEnf) : 0;
