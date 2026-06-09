@@ -1373,9 +1373,6 @@ export default function Empresas() {
                               {canEdit && (
                                 <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10" title="Editar"><Pencil className="h-4 w-4 text-primary" /></Button>
                               )}
-                              {isFinanceiro && (
-                                <Button variant="ghost" size="icon" onClick={() => setGrupoEmpresa({ id: e.id, nome: e.nome })} className="rounded-lg hover:bg-primary/10" title="Grupo Financeiro"><Users className="h-4 w-4 text-primary" /></Button>
-                              )}
                               {canFullEdit && (
                                 <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10" title="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                               )}
