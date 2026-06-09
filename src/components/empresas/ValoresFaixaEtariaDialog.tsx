@@ -193,19 +193,41 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
             </TabsList>
 
             <TabsContent value="resumo" className="mt-4 animate-fade-in">
-              <ResumoContrato
-                empresa={empresa}
-                reajuste={reajuste}
-                possuiEnf={possuiEnf}
-                possuiApt={possuiApt}
-                valorEnfAntes={reajuste?.valor_antigo_enfermaria_centavos ?? valorEnfBase}
-                valorAptAntes={reajuste?.valor_antigo_apartamento_centavos ?? valorAptBase}
-                valorEnfAtual={reajuste?.valor_final_enfermaria_centavos ?? valorEnfBase}
-                valorAptAtual={reajuste?.valor_final_apartamento_centavos ?? valorAptBase}
-              />
+              {(() => {
+                const primeiraFaixa = faixasPivot[0];
+                const enfResumo = isPorFaixa
+                  ? (primeiraFaixa?.enfCent ?? 0)
+                  : (reajuste?.valor_final_enfermaria_centavos ?? valorEnfBase);
+                const aptResumo = isPorFaixa
+                  ? (primeiraFaixa?.aptCent ?? 0)
+                  : (reajuste?.valor_final_apartamento_centavos ?? valorAptBase);
+                const enfAntes = isPorFaixa
+                  ? (primeiraFaixa?.enfCent ?? 0)
+                  : (reajuste?.valor_antigo_enfermaria_centavos ?? valorEnfBase);
+                const aptAntes = isPorFaixa
+                  ? (primeiraFaixa?.aptCent ?? 0)
+                  : (reajuste?.valor_antigo_apartamento_centavos ?? valorAptBase);
+                return (
+                  <ResumoContrato
+                    empresa={empresa}
+                    reajuste={reajuste}
+                    possuiEnf={possuiEnf}
+                    possuiApt={possuiApt}
+                    valorEnfAntes={enfAntes}
+                    valorAptAntes={aptAntes}
+                    valorEnfAtual={enfResumo}
+                    valorAptAtual={aptResumo}
+                    labelValor={isPorFaixa && primeiraFaixa
+                      ? `1ª Faixa (${labelFaixa(primeiraFaixa.ini, primeiraFaixa.fim)})`
+                      : undefined}
+                  />
+                );
+              })()}
               {!reajuste && (
                 <p className="text-xs text-muted-foreground mt-3 italic">
-                  Contrato ainda não reajustado — exibindo valores originais da implantação.
+                  {isPorFaixa
+                    ? "Contrato por faixa etária — exibindo valores da primeira faixa. Veja a aba Faixa Etária para detalhes."
+                    : "Contrato ainda não reajustado — exibindo valores originais da implantação."}
                 </p>
               )}
             </TabsContent>
@@ -337,6 +359,7 @@ function ResumoContrato({
   valorAptAntes,
   valorEnfAtual,
   valorAptAtual,
+  labelValor,
 }: {
   empresa: Empresa | null;
   reajuste: Reajuste | null;
@@ -346,6 +369,7 @@ function ResumoContrato({
   valorAptAntes: number;
   valorEnfAtual: number;
   valorAptAtual: number;
+  labelValor?: string;
 }) {
   const modalidade =
     possuiEnf && possuiApt ? "Enfermaria + Apartamento" : possuiEnf ? "Enfermaria" : possuiApt ? "Apartamento" : "—";
@@ -365,6 +389,7 @@ function ResumoContrato({
               valorAtual={valorEnfAtual}
               percentual={percentual}
               temReajuste={temReajuste}
+              labelValor={labelValor}
             />
           )}
           {possuiApt && (
@@ -375,6 +400,7 @@ function ResumoContrato({
               valorAtual={valorAptAtual}
               percentual={percentual}
               temReajuste={temReajuste}
+              labelValor={labelValor}
             />
           )}
         </div>
@@ -417,6 +443,7 @@ function ValorDestaqueCard({
   valorAtual,
   percentual,
   temReajuste,
+  labelValor,
 }: {
   titulo: string;
   icon: React.ReactNode;
@@ -424,6 +451,7 @@ function ValorDestaqueCard({
   valorAtual: number;
   percentual: number;
   temReajuste: boolean;
+  labelValor?: string;
 }) {
   return (
     <div className="rounded-xl border border-border bg-gradient-to-br from-accent/20 to-accent/5 p-4 transition-all hover:border-primary/40 hover:shadow-md animate-scale-in">
@@ -439,7 +467,7 @@ function ValorDestaqueCard({
       <div className="space-y-2">
         <div className="flex items-baseline justify-between">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-            {temReajuste ? "Antes do reajuste" : "Valor da implantação"}
+            {labelValor ?? (temReajuste ? "Antes do reajuste" : "Valor da implantação")}
           </span>
           <span
             className={cn(
