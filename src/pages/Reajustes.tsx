@@ -693,6 +693,7 @@ export default function Reajustes() {
         open={solicitarOpen}
         onOpenChange={setSolicitarOpen}
         empresa={solicitarEmpresa}
+        existingReajusteId={solicitarExistingId}
       />
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
