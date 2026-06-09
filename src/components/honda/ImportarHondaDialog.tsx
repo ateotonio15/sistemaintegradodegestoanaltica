@@ -49,22 +49,30 @@ export function ImportarHondaDialog({ open, onOpenChange }: Props) {
     if (!result || result.valid.length === 0 || !user) return;
     setImporting(true);
     try {
-      // Fetch existing records to dedupe by CPF + data_demissao
       const { data: existing, error: fetchErr } = await supabase
         .from("honda_exclusoes" as any)
-        .select("cpf, data_demissao");
+        .select("id, tipo_operacao, sequencia, nome_beneficiario, cpf, data_demissao, motivo");
       if (fetchErr) throw fetchErr;
-      const dedupSet = new Set<string>(
-        (existing as any[] ?? []).map((e) => `${(e.cpf || "").replace(/\D/g, "")}|${e.data_demissao}`),
+      const existingByCpf = new Map<string, any>(
+        (existing as any[] ?? []).map((e) => [(e.cpf || "").replace(/\D/g, "").padStart(11, "0"), e]),
       );
-      const novos = result.valid.filter(
-        (r) => !dedupSet.has(`${r.cpf}|${r.data_demissao}`),
-      );
-      const duplicados = result.valid.length - novos.length;
-      if (novos.length === 0) {
+      const novos = result.valid.filter((r) => !existingByCpf.has(r.cpf));
+      const atualizacoes = result.valid
+        .filter((r) => existingByCpf.has(r.cpf))
+        .map((r) => {
+          const current = existingByCpf.get(r.cpf);
+          const changes: Record<string, string | null> = {};
+          (["tipo_operacao", "sequencia", "nome_beneficiario", "data_demissao", "motivo"] as const).forEach((key) => {
+            if ((r[key] ?? null) !== (current[key] ?? null)) changes[key] = r[key] ?? null;
+          });
+          return { id: current.id, changes };
+        })
+        .filter((u) => Object.keys(u.changes).length > 0);
+      const iguais = result.valid.length - novos.length - atualizacoes.length;
+      if (novos.length === 0 && atualizacoes.length === 0) {
         toast({
-          title: "Nenhum registro novo",
-          description: `${duplicados} já programado(s). Nada a importar.`,
+          title: "Nenhuma alteração encontrada",
+          description: `${iguais} registro(s) já programado(s) e sem divergência.`,
         });
         setImporting(false);
         return;
@@ -76,9 +84,16 @@ export function ImportarHondaDialog({ open, onOpenChange }: Props) {
         const { error } = await supabase.from("honda_exclusoes" as any).insert(slice as any);
         if (error) throw error;
       }
+      for (const atualizacao of atualizacoes) {
+        const { error } = await supabase
+          .from("honda_exclusoes" as any)
+          .update(atualizacao.changes as any)
+          .eq("id", atualizacao.id);
+        if (error) throw error;
+      }
       toast({
         title: "Importação concluída",
-        description: `${rows.length} novo(s) importado(s)${duplicados ? `, ${duplicados} já programado(s) ignorado(s)` : ""}.`,
+        description: `${rows.length} novo(s) importado(s), ${atualizacoes.length} atualizado(s)${iguais ? `, ${iguais} sem alteração` : ""}.`,
       });
       qc.invalidateQueries({ queryKey: ["honda-exclusoes"] });
       onOpenChange(false);
