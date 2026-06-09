@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,6 +65,13 @@ export default function Reajustes() {
     });
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusEmpresaId = searchParams.get("empresa");
+  const focusFluxo = searchParams.get("fluxo");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+  const didFocusRef = useRef<string | null>(null);
+
   const { data: empresas = [] } = useQuery({
     queryKey: ["reajustes-empresas-ativas"],
     queryFn: async () => {
@@ -76,6 +84,36 @@ export default function Reajustes() {
       return data as any[];
     },
   });
+
+  // Foca um contrato específico vindo de alerta (?empresa=ID) ou filtra por fluxo (?fluxo=...)
+  useEffect(() => {
+    if (focusFluxo && didFocusRef.current !== `f:${focusFluxo}`) {
+      setFilterStatus("all");
+      setFilterMes("all");
+      setSearch("");
+      didFocusRef.current = `f:${focusFluxo}`;
+    }
+    if (!focusEmpresaId) return;
+    if (didFocusRef.current === focusEmpresaId) return;
+    if (!empresas.length) return;
+    const emp = empresas.find((e: any) => e.id === focusEmpresaId);
+    if (!emp) return;
+    didFocusRef.current = focusEmpresaId;
+    setFilterStatus("all");
+    setFilterMes("all");
+    setSearch(emp.codigo_contrato || emp.nome);
+    setExpandedIds((prev) => new Set(prev).add(emp.id));
+    setHighlightId(emp.id);
+    setTimeout(() => {
+      rowRefs.current[emp.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 200);
+    setTimeout(() => setHighlightId(null), 3500);
+    // Limpa query params para não refocar em navegações futuras
+    const next = new URLSearchParams(searchParams);
+    next.delete("empresa");
+    next.delete("fluxo");
+    setSearchParams(next, { replace: true });
+  }, [focusEmpresaId, focusFluxo, empresas, searchParams, setSearchParams]);
 
   const { data: implantacoesValores = [] } = useQuery({
     queryKey: ["reajustes-implantacoes-valores"],
@@ -459,7 +497,11 @@ export default function Reajustes() {
                     const resumoLabel = usarEnf ? "Enfermaria" : usarApt ? "Apartamento" : null;
                     return (
                     <>
-                    <TableRow key={empresa.id}>
+                    <TableRow
+                      key={empresa.id}
+                      ref={(el) => { rowRefs.current[empresa.id] = el; }}
+                      className={highlightId === empresa.id ? "ring-2 ring-orange-500 bg-orange-500/10 animate-pulse" : undefined}
+                    >
                       <TableCell className="w-10 p-2">
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toggleExpand(empresa.id)} title={isExpanded ? "Recolher" : "Ver detalhes"}>
                           {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
