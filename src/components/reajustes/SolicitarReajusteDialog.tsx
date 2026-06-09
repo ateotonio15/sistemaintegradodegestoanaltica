@@ -65,6 +65,8 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
     setPctUnicoApt(true);
     setFaixasEnf(criarFaixasIniciais());
     setFaixasApt(criarFaixasIniciais());
+    setIndexador("IPCA");
+    setSinistralidade("");
   }, [open]);
 
   const pctNum = useMemo(() => {
