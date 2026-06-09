@@ -27,11 +27,11 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Reajustes() {
-  const { user, isAdmin, isViewOnly, isComum, isDiretora, isFinanceiro } = useAuth();
+  const { user, isAdmin, isComum, isDiretora, isFinanceiro } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const canCriar = isAdmin || isComum;
-  const podeSolicitar = isAdmin || isViewOnly;
+  const canCriar = isAdmin || isDiretora;
+  const podeSolicitar = isAdmin || isDiretora;
 
 
   const anoAtual = new Date().getFullYear();
@@ -223,7 +223,7 @@ export default function Reajustes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Enviado à Diretoria", description: "Diretora foi notificada para aprovação." });
+      toast({ title: "Enviado ao Cadastro", description: "Cadastro foi notificado para análise e aprovação." });
       qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
       qc.invalidateQueries({ queryKey: ["reajustes-aprovar-count"] });
       setConfirmEnviar(null);
@@ -273,7 +273,7 @@ export default function Reajustes() {
 
 
   const podeLiberar = (empresa: any) =>
-    isAdmin || (isComum && (empresa.responsavel_user_id === user?.id || minhasEmpresasSet.has(empresa.id)));
+    isAdmin || isDiretora || (isComum && (empresa.responsavel_user_id === user?.id || minhasEmpresasSet.has(empresa.id)));
 
   const openNew = (empresaId?: string) => {
     setEditing(null);
@@ -487,18 +487,18 @@ export default function Reajustes() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1 flex-wrap">
-                          {/* Cadastro: registrou valores → enviar à Diretora */}
-                          {statusFluxo === "pendente_confirmacao" && podeLiberar(empresa) && (
+                          {/* Diretora: registrou valores → enviar ao Cadastro */}
+                          {statusFluxo === "pendente_confirmacao" && (isAdmin || isDiretora) && (
                             <Button
                               size="sm"
                               onClick={() => setConfirmEnviar({ id: reajuste.id, empresa: empresa.nome })}
                               className="bg-blue-600 hover:bg-blue-700"
                             >
-                              <Send className="h-3 w-3 mr-1" /> Enviar à Diretora
+                              <Send className="h-3 w-3 mr-1" /> Enviar ao Cadastro
                             </Button>
                           )}
-                          {/* Diretora: analisar */}
-                          {(statusFluxo === "aguardando_aprovacao" || statusFluxo === "aprovado") && (isDiretora || isAdmin) && (
+                          {/* Cadastro: analisar / aprovar */}
+                          {(statusFluxo === "aguardando_aprovacao" || statusFluxo === "aprovado") && (isComum || isAdmin) && (
                             <Button
                               size="sm"
                               onClick={() => { setAprovarTarget({ reajuste, empresaNome: empresa.nome }); setAprovarOpen(true); }}
@@ -517,13 +517,13 @@ export default function Reajustes() {
                               <DollarSign className="h-3 w-3 mr-1" /> Aplicar Retroativo
                             </Button>
                           )}
-                          {isSolicitado && (isAdmin || isComum) && (
+                          {isSolicitado && (isAdmin || isDiretora) && (
                             <Button size="sm" variant="default" onClick={() => openEdit(reajuste)} className="bg-blue-600 hover:bg-blue-700">
                               <Pencil className="h-3 w-3 mr-1" /> Registrar Valores
                             </Button>
                           )}
-                          {/* Cadastro: rejeitado → corrigir */}
-                          {statusFluxo === "rejeitado" && (isAdmin || isComum) && podeLiberar(empresa) && (
+                          {/* Diretora: rejeitado → corrigir */}
+                          {statusFluxo === "rejeitado" && (isAdmin || isDiretora) && (
                             <Button size="sm" variant="default" onClick={() => openEdit(reajuste)} className="bg-yellow-600 hover:bg-yellow-700">
                               <Pencil className="h-3 w-3 mr-1" /> Corrigir
                             </Button>
@@ -547,12 +547,7 @@ export default function Reajustes() {
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           )}
-                          {canCriar && !reajuste && (
-                            <Button size="sm" variant="outline" onClick={() => openNew(empresa.id)}>
-                              <Plus className="h-3 w-3 mr-1" /> Registrar
-                            </Button>
-                          )}
-                          {podeSolicitar && !reajuste && !isAdmin && (
+                          {podeSolicitar && !reajuste && (
                             <Button
                               size="sm"
                               variant="outline"

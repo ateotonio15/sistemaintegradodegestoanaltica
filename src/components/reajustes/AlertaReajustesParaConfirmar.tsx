@@ -6,20 +6,19 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 
 export function AlertaReajustesParaConfirmar() {
-  const { user, isComum, isAdmin } = useAuth();
+  const { user, isDiretora, isAdmin } = useAuth();
   const qc = useQueryClient();
 
   const { data: count = 0 } = useQuery({
-    queryKey: ["alertas-reajuste-count", user?.id, isComum, isAdmin],
+    queryKey: ["alertas-reajuste-count", user?.id, isDiretora, isAdmin],
     queryFn: async () => {
       if (!user?.id) return 0;
-      let q = supabase
+      if (!isDiretora && !isAdmin) return 0;
+      const { count: c } = await supabase
         .from("alertas_reajuste")
         .select("id", { count: "exact", head: true })
-        .eq("status", "Pendente");
-      if (isComum) q = q.eq("destinatario_user_id", user.id);
-      else if (!isAdmin) return 0;
-      const { count: c } = await q;
+        .eq("status", "Pendente")
+        .eq("destinatario_role", "diretora");
       return c || 0;
     },
     enabled: !!user?.id,
@@ -45,10 +44,10 @@ export function AlertaReajustesParaConfirmar() {
       <Bell className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
       <div className="flex-1 text-sm">
         <span className="font-semibold text-yellow-700 dark:text-yellow-300">
-          Reajustes aguardando análise/liberação
+          Reajustes rejeitados para correção
         </span>
         <span className="text-muted-foreground ml-2">
-          — {count} {count === 1 ? "pendência" : "pendências"} na aba Reajuste
+          — {count} {count === 1 ? "pendência" : "pendências"} para a Diretoria revisar
         </span>
       </div>
       <span className="text-xs text-yellow-700 dark:text-yellow-300 font-medium">Ver detalhes →</span>

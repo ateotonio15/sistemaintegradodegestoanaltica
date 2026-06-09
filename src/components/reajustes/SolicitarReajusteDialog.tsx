@@ -163,13 +163,18 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
         const { error: insErr } = await supabase.from("reajuste_faixas" as any).insert(rows);
         if (insErr) throw insErr;
       }
+
+      // Avança automaticamente para "aguardando_aprovacao" e notifica o Cadastro
+      const { error: confErr } = await supabase.rpc("confirmar_reajuste_cadastro" as any, { p_id: reajusteId });
+      if (confErr) throw confErr;
     },
     onSuccess: () => {
-      toast({ title: "Solicitação enviada", description: "Cadastro responsável foi notificado." });
+      toast({ title: "Solicitação enviada", description: "Cadastro responsável foi notificado para análise e aprovação." });
       qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
       qc.invalidateQueries({ queryKey: ["reajustes-pendentes-list"] });
       qc.invalidateQueries({ queryKey: ["reajustes-pendentes-count"] });
       qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
+      qc.invalidateQueries({ queryKey: ["reajustes-aprovar-count"] });
       onOpenChange(false);
     },
     onError: (e: any) =>
