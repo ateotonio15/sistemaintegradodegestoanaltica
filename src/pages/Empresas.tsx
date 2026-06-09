@@ -1403,6 +1403,11 @@ export default function Empresas() {
         {/* Detail Modal */}
         <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl p-0">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Detalhes da Empresa</DialogTitle>
+              <DialogDescription>Informações completas da empresa cadastrada.</DialogDescription>
+            </DialogHeader>
+            {detailEmpresa && (
               <div>
                 {/* Hero header */}
                 <div className="px-6 pt-6 pb-5 border-b bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
