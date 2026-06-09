@@ -1530,8 +1530,14 @@ export default function Empresas() {
                         )}
                         <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 pt-1 border-t">
                           <DetailRow label="Criado em" value={formatDateBR(detailEmpresa.created_at)} />
-                          <DetailRow label="Última atualização" value={formatDateBR(detailEmpresa.updated_at)} />
+                          <DetailRow label="Última atualização" value={
+                            (detailEmpresa as any).ultima_alteracao_em
+                              ? `${formatDateBR((detailEmpresa as any).ultima_alteracao_em)} ${new Date((detailEmpresa as any).ultima_alteracao_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+                              : formatDateBR(detailEmpresa.updated_at)
+                          } />
+                          <DetailRow label="Alterado por" value={(detailEmpresa as any).ultima_alteracao_nome || "—"} />
                         </dl>
+
                       </div>
                     </section>
                   )}
