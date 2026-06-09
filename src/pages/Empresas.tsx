@@ -95,6 +95,7 @@ export default function Empresas() {
   const [rescisaoDate, setRescisaoDate] = useState("");
   const [showRescisaoInput, setShowRescisaoInput] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [grupoEmpresa, setGrupoEmpresa] = useState<{ id: string; nome: string } | null>(null);
   const [draftEmpresaId, setDraftEmpresaId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [dataImplantacao, setDataImplantacao] = useState("");
