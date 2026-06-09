@@ -840,11 +840,18 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       continue;
     }
 
+    if (labelNorm.includes("devolu")) {
+      cur.devQtd += qtdNum;
+      cur.devTotal += valNum;
+      continue;
+    }
+
     if (labelNorm.includes("exclus")) {
       cur.excQtd += qtdNum;
       cur.excTotal += valNum;
       continue;
     }
+
     const cat = classificarPlano(labelRaw);
     // Algumas abas RESUMO repetem os módulos no rodapé antes de "Total Geral"
     // apenas com a quantidade (ex.: "M.Empresarial 395"), o que duplicava vidas.
