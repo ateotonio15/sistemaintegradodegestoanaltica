@@ -35,6 +35,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   empresa: Empresa | null;
+  existingReajusteId?: string | null;
 }
 
 export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) {
