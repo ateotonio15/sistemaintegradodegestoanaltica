@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, XCircle, Send, BedDouble, Hotel, AlertTriangle, Users } from "lucide-react";
+import { CheckCircle2, XCircle, Send, BedDouble, Hotel, AlertTriangle, Users, FileText, Calendar, TrendingUp, Activity, User } from "lucide-react";
 import { formatCentavosBRL, nomeMes, labelFaixa } from "@/lib/reajuste-utils";
 
 interface Props {
@@ -80,10 +80,14 @@ export function AprovarReajusteDialog({ open, onOpenChange, reajuste, empresaNom
   const aptFinal = reajuste.valor_final_apartamento_centavos || 0;
   const totalRetro = reajuste.valor_retroativo_centavos || 0;
   const totalFinal = reajuste.valor_final_centavos || 0;
+  const pctNum = Number(reajuste.percentual || 0);
   const podeLiberar = reajuste.status_reajuste === "aprovado";
   const podeDecidir = reajuste.status_reajuste === "aguardando_aprovacao";
   const semDados =
-    enfAtual === 0 && aptAtual === 0 && totalFinal === 0 && faixas.length === 0;
+    pctNum === 0 && enfAtual === 0 && aptAtual === 0 && totalFinal === 0 && faixas.length === 0;
+  const fmtDateTime = (d?: string | null) =>
+    d ? new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
+  const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") : "—");
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { setModoRejeicao(false); setMotivo(""); setObs(""); } onOpenChange(o); }}>
@@ -96,14 +100,53 @@ export function AprovarReajusteDialog({ open, onOpenChange, reajuste, empresaNom
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
+          {/* Dados preenchidos pela Diretora na solicitação */}
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <div className="flex items-center gap-2 font-medium text-sm">
+              <FileText className="h-4 w-4 text-primary" /> Dados da Solicitação
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+              <Field icon={TrendingUp} label="Percentual" value={`${pctNum.toFixed(2).replace(".", ",")}%`} />
+              <Field icon={Calendar} label="Mês oficial" value={nomeMes(reajuste.mes_reajuste)} />
+              <Field icon={Calendar} label="Data de aplicação" value={fmtDate(reajuste.data_aplicacao)} />
+              <Field icon={Activity} label="Indexador" value={reajuste.indexador_financeiro || "—"} />
+              <Field
+                icon={Activity}
+                label="Sinistralidade"
+                value={
+                  reajuste.sinistralidade_percentual != null
+                    ? `${Number(reajuste.sinistralidade_percentual).toFixed(2).replace(".", ",")}%`
+                    : "—"
+                }
+              />
+              <Field icon={User} label="Solicitado por" value={reajuste.usuario_nome || "—"} />
+              <Field icon={Calendar} label="Enviado ao Cadastro" value={fmtDateTime(reajuste.data_confirmacao)} />
+              <Field
+                icon={Users}
+                label="Modalidades"
+                value={
+                  [reajuste.possui_enfermaria && "Enfermaria", reajuste.possui_apartamento && "Apartamento"]
+                    .filter(Boolean)
+                    .join(" + ") || "—"
+                }
+              />
+            </div>
+            {reajuste.observacao && (
+              <div className="rounded-md border bg-background/60 p-2 text-xs mt-1">
+                <div className="text-muted-foreground mb-0.5">Observação da Diretora</div>
+                <div>{reajuste.observacao}</div>
+              </div>
+            )}
+          </div>
+
           {semDados && podeDecidir && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
               <div>
                 <div className="font-medium text-amber-700 dark:text-amber-300">Nenhum valor registrado</div>
                 <div className="text-muted-foreground mt-1">
-                  O Cadastro ainda não preencheu os valores deste reajuste. Rejeite com um motivo
-                  para que o Cadastro registre os valores e reenvie para sua análise.
+                  A Diretora ainda não preencheu os valores deste reajuste. Rejeite com um motivo
+                  para que a solicitação seja corrigida e reenviada.
                 </div>
               </div>
             </div>
@@ -145,24 +188,24 @@ export function AprovarReajusteDialog({ open, onOpenChange, reajuste, empresaNom
             </div>
           )}
 
-          {(enfAtual > 0 || aptAtual > 0) && (
+          {(reajuste.possui_enfermaria || reajuste.possui_apartamento) && (
             <div className="grid md:grid-cols-2 gap-3">
-              {enfAtual > 0 && (
+              {reajuste.possui_enfermaria && (
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1.5">
                   <div className="flex items-center gap-2 font-medium text-sm"><BedDouble className="h-4 w-4 text-emerald-600" /> Enfermaria</div>
-                  <Row label="Atual" v={formatCentavosBRL(enfAtual)} />
-                  <Row label="Reajustado" v={formatCentavosBRL(reajuste.valor_reajustado_enfermaria_centavos)} />
+                  <Row label="Valor anterior" v={formatCentavosBRL(enfAtual)} />
+                  <Row label="Valor novo (reajustado)" v={formatCentavosBRL(reajuste.valor_reajustado_enfermaria_centavos)} />
                   <Row label="Retroativo" v={formatCentavosBRL(reajuste.valor_retroativo_enfermaria_centavos)} />
-                  <Row label="Final" v={formatCentavosBRL(enfFinal)} bold />
+                  <Row label="Valor final" v={formatCentavosBRL(enfFinal)} bold />
                 </div>
               )}
-              {aptAtual > 0 && (
+              {reajuste.possui_apartamento && (
                 <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 space-y-1.5">
                   <div className="flex items-center gap-2 font-medium text-sm"><Hotel className="h-4 w-4 text-blue-600" /> Apartamento</div>
-                  <Row label="Atual" v={formatCentavosBRL(aptAtual)} />
-                  <Row label="Reajustado" v={formatCentavosBRL(reajuste.valor_reajustado_apartamento_centavos)} />
+                  <Row label="Valor anterior" v={formatCentavosBRL(aptAtual)} />
+                  <Row label="Valor novo (reajustado)" v={formatCentavosBRL(reajuste.valor_reajustado_apartamento_centavos)} />
                   <Row label="Retroativo" v={formatCentavosBRL(reajuste.valor_retroativo_apartamento_centavos)} />
-                  <Row label="Final" v={formatCentavosBRL(aptFinal)} bold />
+                  <Row label="Valor final" v={formatCentavosBRL(aptFinal)} bold />
                 </div>
               )}
             </div>
@@ -239,6 +282,18 @@ function Row({ label, v, bold }: { label: string; v: string; bold?: boolean }) {
     <div className="flex justify-between text-xs">
       <span className="text-muted-foreground">{label}</span>
       <span className={bold ? "font-bold text-primary" : "font-medium"}>{v}</span>
+    </div>
+  );
+}
+
+function Field({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="rounded-md border bg-background/60 p-2">
+      <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+        <Icon className="h-3 w-3" />
+        <span>{label}</span>
+      </div>
+      <div className="font-medium">{value}</div>
     </div>
   );
 }
