@@ -362,7 +362,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     }
     const vencimentoAlterado = (dataVencimentoIso || null) !== (movimentacao.data_vencimento || null);
     const ddaAlterado = !!boletoDda !== !!movimentacao.boleto_dda;
-    return { payload, envioAlterado, vencimentoAlterado, ddaAlterado, dataVencimentoIso };
+    const novoDiaEmissao = diaEmissao === "__none__" ? null : Number(diaEmissao);
+    const diaEmissaoAlterado = (novoDiaEmissao ?? null) !== (movimentacao.dia_emissao ?? null);
+    return { payload, envioAlterado, vencimentoAlterado, ddaAlterado, diaEmissaoAlterado, novoDiaEmissao, dataVencimentoIso };
   };
 
   const TIPOS_FIN_VALIDOS = new Set([
