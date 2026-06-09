@@ -30,7 +30,7 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
       if (!empresaId) return [];
       const { data } = await supabase
         .from("reajustes_anuais")
-        .select("id, ano, percentual, status_reajuste, motivo_rejeicao")
+        .select("*")
         .eq("empresa_id", empresaId)
         .order("ano", { ascending: false });
       return (data as any[]) || [];
