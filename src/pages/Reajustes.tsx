@@ -48,6 +48,7 @@ export default function Reajustes() {
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
   const [solicitarOpen, setSolicitarOpen] = useState(false);
   const [solicitarEmpresa, setSolicitarEmpresa] = useState<any>(null);
+  const [solicitarExistingId, setSolicitarExistingId] = useState<string | null>(null);
   const [aprovarOpen, setAprovarOpen] = useState(false);
   const [aprovarTarget, setAprovarTarget] = useState<{ reajuste: any; empresaNome: string } | null>(null);
   const [retroOpen, setRetroOpen] = useState(false);
