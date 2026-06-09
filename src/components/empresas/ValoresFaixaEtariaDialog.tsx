@@ -443,6 +443,7 @@ function ValorDestaqueCard({
   valorAtual,
   percentual,
   temReajuste,
+  labelValor,
 }: {
   titulo: string;
   icon: React.ReactNode;
@@ -450,6 +451,7 @@ function ValorDestaqueCard({
   valorAtual: number;
   percentual: number;
   temReajuste: boolean;
+  labelValor?: string;
 }) {
   return (
     <div className="rounded-xl border border-border bg-gradient-to-br from-accent/20 to-accent/5 p-4 transition-all hover:border-primary/40 hover:shadow-md animate-scale-in">
