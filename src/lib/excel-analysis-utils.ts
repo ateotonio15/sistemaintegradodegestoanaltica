@@ -1032,11 +1032,17 @@ export async function analisarExcelFinanceiroPorCnpj(
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
 
+    if (idxTipo >= 0 && isDevolucao(String(tipoCell))) {
+      grp.devQtd += 1;
+      grp.devTotal += valorNum > 0 ? -valorNum : valorNum;
+      continue;
+    }
     if (idxTipo >= 0 && isExclusao(String(tipoCell))) {
       grp.excQtd += 1;
       grp.excTotal += valorNum > 0 ? -valorNum : valorNum;
       continue;
     }
+
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
       grp.incQtd += 1;
       if (valorValido) grp.incTotal += valor;
