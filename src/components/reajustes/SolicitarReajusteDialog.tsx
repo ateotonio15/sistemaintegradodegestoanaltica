@@ -194,18 +194,21 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto backdrop-blur-xl bg-background/95 border-primary/20 shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Solicitar Reajuste
-          </DialogTitle>
-          <DialogDescription>
-            Preencha os dados abaixo. O cálculo é feito em tempo real e o pedido será enviado ao Cadastro responsável.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto backdrop-blur-xl bg-background/95 border-primary/20 shadow-2xl p-0">
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-xl border-b px-6 py-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Solicitar Reajuste
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Preencha em etapas. O cálculo é feito em tempo real e o pedido será enviado ao Cadastro responsável.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="grid gap-4 py-2">
+        <div className="px-6 py-4 space-y-5">
+          {/* Empresa */}
           <div className="rounded-xl border bg-gradient-to-br from-primary/5 to-transparent p-4">
             <div className="font-semibold text-base">{empresa?.nome || "—"}</div>
             <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
@@ -215,88 +218,108 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
             </div>
           </div>
 
-          <ModalidadesPicker
-            possuiEnf={possuiEnf}
-            possuiApt={possuiApt}
-            onEnf={setPossuiEnf}
-            onApt={setPossuiApt}
-          />
+          {/* 1. Modalidades */}
+          <Section number={1} title="Modalidades do Contrato" required>
+            <ModalidadesPicker
+              possuiEnf={possuiEnf}
+              possuiApt={possuiApt}
+              onEnf={setPossuiEnf}
+              onApt={setPossuiApt}
+            />
+          </Section>
 
-          <div className="grid gap-3">
-            {possuiEnf && (
-              <div className="grid gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 animate-fade-in">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="flex items-center gap-2 text-sm">
-                    <BedDouble className="h-4 w-4 text-emerald-600" /> Enfermaria
-                  </Label>
-                  <label className="flex items-center gap-2 text-xs cursor-pointer">
-                    <Switch checked={usaFaixaEnf} onCheckedChange={setUsaFaixaEnf} />
-                    <Users className="h-3.5 w-3.5" />
-                    <span>Contrato com Faixa Etária</span>
-                  </label>
-                </div>
-                {!usaFaixaEnf ? (
-                  <div className="grid gap-1.5">
-                    <Label className="text-xs">Valor Atual (R$) <span className="text-destructive">*</span></Label>
-                    <Input inputMode="decimal" placeholder="0,00" value={valorEnf} onChange={(e) => setValorEnf(e.target.value)} />
+          {/* 2. Valores Atuais */}
+          {(possuiEnf || possuiApt) && (
+            <Section number={2} title="Valores Atuais" required>
+              <div className={`grid gap-3 ${possuiEnf && possuiApt ? "md:grid-cols-2" : ""}`}>
+                {possuiEnf && (
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="flex items-center gap-2 text-sm font-medium">
+                        <BedDouble className="h-4 w-4 text-emerald-600" /> Enfermaria
+                      </Label>
+                      <label className="flex items-center gap-2 text-xs cursor-pointer">
+                        <Switch checked={usaFaixaEnf} onCheckedChange={setUsaFaixaEnf} />
+                        <Users className="h-3.5 w-3.5" />
+                        <span>Faixa Etária</span>
+                      </label>
+                    </div>
+                    {!usaFaixaEnf ? (
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Valor Atual (R$) <span className="text-destructive">*</span></Label>
+                        <Input inputMode="decimal" placeholder="0,00" value={valorEnf} onChange={(e) => setValorEnf(e.target.value)} />
+                      </div>
+                    ) : (
+                      <ReajusteFaixaEtariaTable
+                        modalidade="enfermaria"
+                        faixas={faixasEnf}
+                        onChange={setFaixasEnf}
+                        percentualGlobal={pctNum}
+                        percentualUnico={pctUnicoEnf}
+                        onPercentualUnicoChange={setPctUnicoEnf}
+                        mesesRetro={mesesRetro}
+                      />
+                    )}
                   </div>
-                ) : (
-                  <ReajusteFaixaEtariaTable
-                    modalidade="enfermaria"
-                    faixas={faixasEnf}
-                    onChange={setFaixasEnf}
-                    percentualGlobal={pctNum}
-                    percentualUnico={pctUnicoEnf}
-                    onPercentualUnicoChange={setPctUnicoEnf}
-                    mesesRetro={mesesRetro}
-                  />
+                )}
+                {possuiApt && (
+                  <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="flex items-center gap-2 text-sm font-medium">
+                        <Hotel className="h-4 w-4 text-blue-600" /> Apartamento
+                      </Label>
+                      <label className="flex items-center gap-2 text-xs cursor-pointer">
+                        <Switch checked={usaFaixaApt} onCheckedChange={setUsaFaixaApt} />
+                        <Users className="h-3.5 w-3.5" />
+                        <span>Faixa Etária</span>
+                      </label>
+                    </div>
+                    {!usaFaixaApt ? (
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Valor Atual (R$) <span className="text-destructive">*</span></Label>
+                        <Input inputMode="decimal" placeholder="0,00" value={valorApt} onChange={(e) => setValorApt(e.target.value)} />
+                      </div>
+                    ) : (
+                      <ReajusteFaixaEtariaTable
+                        modalidade="apartamento"
+                        faixas={faixasApt}
+                        onChange={setFaixasApt}
+                        percentualGlobal={pctNum}
+                        percentualUnico={pctUnicoApt}
+                        onPercentualUnicoChange={setPctUnicoApt}
+                        mesesRetro={mesesRetro}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-            {possuiApt && (
-              <div className="grid gap-3 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 animate-fade-in">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="flex items-center gap-2 text-sm">
-                    <Hotel className="h-4 w-4 text-blue-600" /> Apartamento
-                  </Label>
-                  <label className="flex items-center gap-2 text-xs cursor-pointer">
-                    <Switch checked={usaFaixaApt} onCheckedChange={setUsaFaixaApt} />
-                    <Users className="h-3.5 w-3.5" />
-                    <span>Contrato com Faixa Etária</span>
-                  </label>
-                </div>
-                {!usaFaixaApt ? (
-                  <div className="grid gap-1.5">
-                    <Label className="text-xs">Valor Atual (R$) <span className="text-destructive">*</span></Label>
-                    <Input inputMode="decimal" placeholder="0,00" value={valorApt} onChange={(e) => setValorApt(e.target.value)} />
-                  </div>
-                ) : (
-                  <ReajusteFaixaEtariaTable
-                    modalidade="apartamento"
-                    faixas={faixasApt}
-                    onChange={setFaixasApt}
-                    percentualGlobal={pctNum}
-                    percentualUnico={pctUnicoApt}
-                    onPercentualUnicoChange={setPctUnicoApt}
-                    mesesRetro={mesesRetro}
-                  />
-                )}
-              </div>
-            )}
+            </Section>
+          )}
+
+          {/* 3. Parâmetros do Reajuste */}
+          <Section number={3} title="Parâmetros do Reajuste" required>
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="grid gap-2">
-                <Label className="flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5" /> Percentual (%) <span className="text-destructive">*</span></Label>
+              <div className="grid gap-1.5">
+                <Label className="flex items-center gap-1 text-sm"><TrendingUp className="h-3.5 w-3.5" /> Percentual (%) <span className="text-destructive">*</span></Label>
                 <Input inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
               </div>
-              <div className="grid gap-2">
-                <Label>Previsão de aplicação</Label>
+              <div className="grid gap-1.5">
+                <Label className="text-sm">Previsão de aplicação</Label>
                 <Input type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
               </div>
             </div>
+          </Section>
 
-            {isDiretora && (
-              <div className="grid gap-3 md:grid-cols-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 animate-fade-in">
-                <div className="grid gap-2">
+          {/* 4. Análise da Diretora */}
+          {isDiretora && (
+            <Section
+              number={4}
+              title="Análise da Diretora"
+              accent="amber"
+              badge="Exclusivo Diretora"
+            >
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-1.5">
                   <Label className="flex items-center gap-1 text-sm"><LineChart className="h-3.5 w-3.5" /> Indexador Financeiro</Label>
                   <Select value={indexador} onValueChange={setIndexador}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -308,54 +331,93 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
+                <div className="grid gap-1.5">
                   <Label className="flex items-center gap-1 text-sm"><Activity className="h-3.5 w-3.5" /> Sinistralidade (%)</Label>
                   <Input inputMode="decimal" placeholder="0,00" value={sinistralidade} onChange={(e) => setSinistralidade(e.target.value)} />
                 </div>
-                <div className="md:col-span-2 text-[11px] text-muted-foreground">Visível apenas para a Diretora.</div>
               </div>
-            )}
-          </div>
+            </Section>
+          )}
 
-
+          {/* Resumo */}
           {(possuiEnf || possuiApt) && (
-            <div className="rounded-lg border bg-muted/40 p-3 grid grid-cols-3 gap-3 text-sm animate-fade-in">
-              <div>
-                <div className="text-xs text-muted-foreground">Reajustado total</div>
-                <div className="font-semibold">{formatCentavosBRL(valorReajustadoCent)}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Retroativo total</div>
-                <div className="font-semibold">{formatCentavosBRL(retroativoCent)}</div>
-                <Badge variant="outline" className="text-[10px] mt-1">{mesesRetro} {mesesRetro === 1 ? "mês" : "meses"}</Badge>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Valor Final total</div>
-                <div className="font-bold text-primary">{formatCentavosBRL(valorFinalCent)}</div>
+            <div className="rounded-xl border bg-gradient-to-br from-primary/10 via-muted/40 to-transparent p-4 animate-fade-in">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-3">Resumo do Cálculo</div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Reajustado total</div>
+                  <div className="font-semibold text-base">{formatCentavosBRL(valorReajustadoCent)}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Retroativo total</div>
+                  <div className="font-semibold text-base">{formatCentavosBRL(retroativoCent)}</div>
+                  <Badge variant="outline" className="text-[10px] mt-1">{mesesRetro} {mesesRetro === 1 ? "mês" : "meses"}</Badge>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Valor Final total</div>
+                  <div className="font-bold text-lg text-primary">{formatCentavosBRL(valorFinalCent)}</div>
+                </div>
               </div>
             </div>
           )}
 
-          <div className="grid gap-2">
-            <Label>Observação</Label>
+          {/* Observação */}
+          <Section number={isDiretora ? 5 : 4} title="Observação" optional>
             <Textarea
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
-              placeholder="Opcional"
+              placeholder="Detalhes adicionais (opcional)"
               rows={2}
             />
-          </div>
+          </Section>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={() => mutation.mutate()} disabled={!podeEnviar || mutation.isPending}>
-            {mutation.isPending ? "Enviando..." : "Enviar para Cadastro"}
-          </Button>
-        </DialogFooter>
+        <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur-xl border-t px-6 py-3">
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => mutation.mutate()} disabled={!podeEnviar || mutation.isPending}>
+              {mutation.isPending ? "Enviando..." : "Enviar para Cadastro"}
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
+
+function Section({
+  number, title, children, required, optional, accent, badge,
+}: {
+  number: number;
+  title: string;
+  children: React.ReactNode;
+  required?: boolean;
+  optional?: boolean;
+  accent?: "amber";
+  badge?: string;
+}) {
+  const accentBorder = accent === "amber" ? "border-amber-500/40 bg-amber-500/5" : "border-border";
+  const numBg = accent === "amber" ? "bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-primary/15 text-primary";
+  return (
+    <section className={`rounded-xl border ${accentBorder} p-4 space-y-3`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${numBg}`}>{number}</span>
+          <h3 className="text-sm font-semibold tracking-tight">
+            {title} {required && <span className="text-destructive">*</span>}
+            {optional && <span className="text-[11px] font-normal text-muted-foreground ml-1">(opcional)</span>}
+          </h3>
+        </div>
+        {badge && (
+          <Badge variant="outline" className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40">
+            {badge}
+          </Badge>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
