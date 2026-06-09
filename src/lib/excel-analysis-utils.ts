@@ -690,15 +690,19 @@ export function compararExcelComPdf(
 
   // Devoluções — só compara o total (valor sempre negativo)
   let devolucoes: { total: CampoValidacao } | null = null;
-  if (excel.devolucoes && (excel.devolucoes.quantidade > 0 || excel.devolucoes.total !== 0)) {
-    const pdfTotal = pdf && pdf.devolucoes.total !== null ? pdf.devolucoes.total : null;
-    const c = campo(excel.devolucoes.total, pdfTotal, "money");
+  const excelTemDevolucao = !!excel.devolucoes && (excel.devolucoes.quantidade > 0 || excel.devolucoes.total !== 0);
+  const pdfDevolucaoTotal = pdf && pdf.devolucoes.total !== null ? pdf.devolucoes.total : null;
+  if (excelTemDevolucao || pdfDevolucaoTotal !== null) {
+    const excelTotal = excel.devolucoes?.total ?? 0;
+    const c = campo(excelTotal, pdfDevolucaoTotal, "money");
     devolucoes = { total: c };
-    if (pdf && pdfTotal === null)
+    if (pdf && excelTemDevolucao && pdfDevolucaoTotal === null)
       divergencias.push("Valor de devolução não encontrado no PDF.");
+    else if (pdf && !excelTemDevolucao && pdfDevolucaoTotal !== null)
+      divergencias.push(`Devolução encontrada no PDF (${formatBRL(pdfDevolucaoTotal)}), mas não encontrada no Excel.`);
     else if (pdf && !c.ok)
       divergencias.push(
-        `Valor de devolução divergente (Excel ${formatBRL(excel.devolucoes.total)} × PDF ${formatBRL(pdfTotal!)}).`,
+        `Valor de devolução divergente (Excel ${formatBRL(excelTotal)} × PDF ${formatBRL(pdfDevolucaoTotal!)}).`,
       );
   }
 
