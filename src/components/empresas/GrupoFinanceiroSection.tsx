@@ -193,7 +193,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
             </Select>
           </div>
 
-          {efetivoPertence === "sim" && isAdmin && (
+          {efetivoPertence === "sim" && podeGerenciar && (
             <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
               <div className="flex gap-2">
                 <Button
@@ -251,7 +251,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
             </div>
           )}
 
-          {efetivoPertence === "sim" && !isAdmin && (
+          {efetivoPertence === "sim" && !podeGerenciar && (
             <div className="text-xs text-muted-foreground rounded-lg border p-3">
               Apenas administradores podem criar ou vincular grupos financeiros.
             </div>
