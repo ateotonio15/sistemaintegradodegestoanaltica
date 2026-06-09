@@ -56,6 +56,13 @@ export default function Reajustes() {
   const [retroTarget, setRetroTarget] = useState<{ reajuste: any; empresaNome: string } | null>(null);
   const [confirmEnviar, setConfirmEnviar] = useState<{ id: string; empresa: string } | null>(null);
 
+  const openSolicitar = (empresa: any, reajuste?: any | null) => {
+    setSolicitarEmpresa(empresa);
+    setSolicitarExistingId(reajuste?.id || null);
+    setEditing(reajuste || null);
+    setSolicitarOpen(true);
+  };
+
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
@@ -599,7 +606,7 @@ export default function Reajustes() {
                             </Button>
                           )}
                           {isSolicitado && (isAdmin || isDiretora) && (
-                            <Button size="sm" variant="default" onClick={() => { setSolicitarEmpresa(empresa); setSolicitarExistingId(reajuste.id); setSolicitarOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+                            <Button size="sm" variant="default" onClick={() => openSolicitar(empresa, reajuste)} className="bg-blue-600 hover:bg-blue-700">
                               <Pencil className="h-3 w-3 mr-1" /> Registrar Valores
                             </Button>
                           )}
@@ -615,7 +622,7 @@ export default function Reajustes() {
 
                           {canCriar && reajuste && !isSolicitado && (
                             <>
-                              <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(reajuste)}>
+                              <Button size="icon" variant="ghost" title="Editar" onClick={() => openSolicitar(empresa, reajuste)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <Button size="icon" variant="ghost" title="Excluir" onClick={() => setConfirmDelete(reajuste.id)}>
@@ -632,7 +639,7 @@ export default function Reajustes() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => { setSolicitarEmpresa(empresa); setSolicitarExistingId(null); setSolicitarOpen(true); }}
+                              onClick={() => openSolicitar(empresa, null)}
                             >
                               <Plus className="h-3 w-3 mr-1" />
                               Solicitar Reajuste
@@ -733,9 +740,10 @@ export default function Reajustes() {
 
       <SolicitarReajusteDialog
         open={solicitarOpen}
-        onOpenChange={setSolicitarOpen}
+        onOpenChange={(v) => { setSolicitarOpen(v); if (!v) { setSolicitarExistingId(null); setEditing(null); } }}
         empresa={solicitarEmpresa}
         existingReajusteId={solicitarExistingId}
+        existingReajuste={editing}
       />
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
