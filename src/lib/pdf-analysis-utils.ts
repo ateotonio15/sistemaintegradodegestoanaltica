@@ -377,28 +377,61 @@ export async function analisarPdfFinanceiro(
   };
 
   // ---- Bloco "VALOR TOTAL DA NFS-E" ----
-  // Cabeçalhos típicos (DANFSe): Valor do Serviço | Desc.Cond | Desc.Incond
-  //                            | ISSQN Retido | Total Ret. Federais | PIS/COFINS | Valor Líquido
-  // Em notas reais, células zeradas aparecem como "-" e somem da linha.
+  // Estrutura típica DANFSe (em colunas):
+  //   Header1: Valor do Serviço | Desc.Cond | Desc.Incond | ISSQN Retido
+  //   Row1:    R$ X,XX          | -         | -           | R$ Y,YY
+  //   Header2: Total Ret. Federais | PIS/COFINS | Valor Líquido da NFS-e
+  //   Row2:    -                   | -          | R$ Z,ZZ
+  // Lemos várias linhas após "VALOR TOTAL DA NFS-E" e mapeamos por posição.
   let valorLiquido: number | null = null;
   let issqnRetidoVT: number | null = null;
   let valorServicoVT: number | null = null;
-  // Junta até 3 linhas após o rótulo — alguns PDFs quebram a linha de valores
-  const linhaVT = linhasAposRotulo(/valor\s+liquido\s+da\s+nfs[\s\-]?e/i, 3).join(" ");
-  if (linhaVT) {
-    const moneys = moneysOf(linhaVT);
-    if (moneys.length >= 1) valorLiquido = moneys[moneys.length - 1];
-    if (moneys.length >= 2) valorServicoVT = moneys[0];
+  const linhasVT = linhasAposRotulo(/valor\s+total\s+da\s+nfs[\s\-]?e/i, 8);
+  if (linhasVT.length) {
+    // Concatena tudo até encontrar próxima seção ("TOTAIS APROXIMADOS" ou outro cabeçalho em CAIXA ALTA)
+    const corte = linhasVT.findIndex((l) =>
+      /^(totais\s+aproximados|tributacao|tributação|informacoes|informações|outras\s+informacoes)/i.test(l),
+    );
+    const usar = (corte > 0 ? linhasVT.slice(0, corte) : linhasVT).join(" ");
+    const moneys = moneysOf(usar);
+    // Ordem esperada após filtrar "-": [Valor Serviço, ISSQN Retido, Valor Líquido]
+    if (moneys.length >= 3) {
+      valorServicoVT = moneys[0];
+      issqnRetidoVT = moneys[1];
+      valorLiquido = moneys[moneys.length - 1];
+    } else if (moneys.length === 2) {
+      // [Valor Serviço, Valor Líquido] — ISSQN Retido como "-" (não retido)
+      valorServicoVT = moneys[0];
+      valorLiquido = moneys[1];
+    } else if (moneys.length === 1) {
+      valorLiquido = moneys[0];
+    }
+    // Validação cruzada: se temos Serviço e Líquido mas ISSQN Retido parece estranho,
+    // recalcula via subtração (mais confiável que ordem dos campos)
     if (valorServicoVT != null && valorLiquido != null) {
       const dif = Number((valorServicoVT - valorLiquido).toFixed(2));
-      if (dif > 0.01) issqnRetidoVT = dif;
+      if (dif > 0.01) {
+        // Se ISSQN Retido lido difere muito do calculado, prefere o calculado
+        if (issqnRetidoVT == null || Math.abs(issqnRetidoVT - dif) > 0.05) {
+          issqnRetidoVT = dif;
+        }
+      } else if (dif <= 0.01) {
+        // Serviço == Líquido → não há retenção
+        issqnRetidoVT = null;
+      }
     }
   }
 
-  // Fallback adicional para "ISSQN Retido" — buscar rótulo explícito (permite quebra de linha)
+  // Fallback adicional para "ISSQN Retido" — buscar no bloco "VALOR TOTAL DA NFS-E"
+  // procurando o rótulo "ISSQN Retido" seguido do MENOR valor próximo (último da linha de valores)
   if (issqnRetidoVT == null) {
-    const mRet = t.match(/issqn\s+retido[\s\S]{0,60}?r\$\s*([\d.]+,\d{2})/i);
-    if (mRet) issqnRetidoVT = parseValor(mRet[1]);
+    // Procura "ISSQN Retido" e captura o ÚLTIMO R$ até a próxima quebra dupla ou rótulo
+    const idx = t.search(/issqn\s+retido/i);
+    if (idx >= 0) {
+      const janela = t.slice(idx, idx + 200);
+      const moneys = moneysOf(janela);
+      if (moneys.length > 0) issqnRetidoVT = moneys[moneys.length - 1];
+    }
   }
 
   // ---- Bloco "TRIBUTAÇÃO MUNICIPAL" ----
