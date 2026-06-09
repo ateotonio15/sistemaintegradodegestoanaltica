@@ -1273,9 +1273,18 @@ export default function Empresas() {
             </Button>
           )}
           <Button
+            variant="outline"
+            onClick={exportarInativasExcel}
+            className="rounded-lg ml-auto"
+            title="Exportar contratos inativados para Excel"
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Relatório de Inativos
+          </Button>
+          <Button
             variant={showInativas ? "default" : "outline"}
             onClick={() => setShowInativas(!showInativas)}
-            className="rounded-lg ml-auto"
+            className="rounded-lg"
           >
             {showInativas ? "Ver Ativas" : "Ver Inativas"}
           </Button>
