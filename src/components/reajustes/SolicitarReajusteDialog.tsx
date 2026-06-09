@@ -293,7 +293,30 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
                 <Input type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
               </div>
             </div>
+
+            {isDiretora && (
+              <div className="grid gap-3 md:grid-cols-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 animate-fade-in">
+                <div className="grid gap-2">
+                  <Label className="flex items-center gap-1 text-sm"><LineChart className="h-3.5 w-3.5" /> Indexador Financeiro</Label>
+                  <Select value={indexador} onValueChange={setIndexador}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IPCA">IPCA</SelectItem>
+                      <SelectItem value="IGPM">IGPM</SelectItem>
+                      <SelectItem value="ANS">ANS</SelectItem>
+                      <SelectItem value="Outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label className="flex items-center gap-1 text-sm"><Activity className="h-3.5 w-3.5" /> Sinistralidade (%)</Label>
+                  <Input inputMode="decimal" placeholder="0,00" value={sinistralidade} onChange={(e) => setSinistralidade(e.target.value)} />
+                </div>
+                <div className="md:col-span-2 text-[11px] text-muted-foreground">Visível apenas para a Diretora.</div>
+              </div>
+            )}
           </div>
+
 
           {(possuiEnf || possuiApt) && (
             <div className="rounded-lg border bg-muted/40 p-3 grid grid-cols-3 gap-3 text-sm animate-fade-in">
