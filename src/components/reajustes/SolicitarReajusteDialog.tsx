@@ -132,6 +132,10 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
           usa_faixa_etaria_apartamento: possuiApt && usaFaixaApt,
           percentual_unico_enfermaria: pctUnicoEnf,
           percentual_unico_apartamento: pctUnicoApt,
+          ...(isDiretora ? {
+            indexador_financeiro: indexador || null,
+            sinistralidade_percentual: sinistralidade ? parseFloat(String(sinistralidade).replace(",", ".")) : null,
+          } : {}),
         } as any)
         .eq("id", reajusteId);
       if (upErr) throw upErr;
