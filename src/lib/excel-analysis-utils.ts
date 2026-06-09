@@ -691,7 +691,7 @@ export function compararExcelComPdf(
   // Devoluções — só compara o total (valor sempre negativo)
   let devolucoes: { total: CampoValidacao } | null = null;
   const excelTemDevolucao = !!excel.devolucoes && (excel.devolucoes.quantidade > 0 || excel.devolucoes.total !== 0);
-  const pdfDevolucaoTotal = pdf && pdf.devolucoes.total !== null ? pdf.devolucoes.total : null;
+  const pdfDevolucaoTotal = pdf && pdf.devolucoes?.total !== null && pdf.devolucoes?.total !== undefined ? pdf.devolucoes.total : null;
   if (excelTemDevolucao || pdfDevolucaoTotal !== null) {
     const excelTotal = excel.devolucoes?.total ?? 0;
     const c = campo(excelTotal, pdfDevolucaoTotal, "money");
