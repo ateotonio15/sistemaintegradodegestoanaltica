@@ -60,6 +60,20 @@ export function AprovarReajusteDialog({ open, onOpenChange, reajuste, empresaNom
 
   if (!reajuste) return null;
 
+  const { data: faixas = [] } = useQuery({
+    queryKey: ["reajuste-faixas-aprovar", reajuste.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reajuste_faixas" as any)
+        .select("*")
+        .eq("reajuste_id", reajuste.id)
+        .order("idade_inicial");
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    enabled: !!reajuste.id && open,
+  });
+
   const enfAtual = reajuste.valor_antigo_enfermaria_centavos || 0;
   const enfFinal = reajuste.valor_final_enfermaria_centavos || 0;
   const aptAtual = reajuste.valor_antigo_apartamento_centavos || 0;
@@ -68,6 +82,8 @@ export function AprovarReajusteDialog({ open, onOpenChange, reajuste, empresaNom
   const totalFinal = reajuste.valor_final_centavos || 0;
   const podeLiberar = reajuste.status_reajuste === "aprovado";
   const podeDecidir = reajuste.status_reajuste === "aguardando_aprovacao";
+  const semDados =
+    enfAtual === 0 && aptAtual === 0 && totalFinal === 0 && faixas.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { setModoRejeicao(false); setMotivo(""); setObs(""); } onOpenChange(o); }}>
