@@ -1086,6 +1086,9 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (g.excQtd > 0 || g.excTotal !== 0) {
         bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
       }
+      if (g.devQtd > 0 || g.devTotal !== 0) {
+        bloco.devolucoes = { quantidade: g.devQtd, total: g.devTotal };
+      }
 
       return bloco;
     })
@@ -1094,7 +1097,8 @@ export async function analisarExcelFinanceiroPorCnpj(
         b.enfermaria.beneficiarios > 0 ||
         b.apartamento.beneficiarios > 0 ||
         b.inclusoes.quantidade > 0 ||
-        (b.exclusoes && b.exclusoes.quantidade > 0),
+        (b.exclusoes && b.exclusoes.quantidade > 0) ||
+        (b.devolucoes && b.devolucoes.quantidade > 0),
     )
     .sort((a, b) => {
       const ta = a.enfermaria.total + a.apartamento.total + a.inclusoes.total;
