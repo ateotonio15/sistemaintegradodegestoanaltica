@@ -523,21 +523,25 @@ export default function Empresas() {
               {isExecutivo ? `Você possui ${filtered.length} empresa(s) vinculada(s)` : `${filtered.length} empresa(s) ${showInativas ? "inativas" : "ativas"}`}
             </p>
           </div>
-          {canFullEdit && (
+          {(canEdit && !isExecutivo) && (
             <div className="flex gap-2">
-              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="rounded-lg">
-                <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
-              </Button>
-              {isAdmin && (
-                <Button variant="outline" onClick={() => setImportValoresOpen(true)} className="rounded-lg">
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />Importar Valores
-                </Button>
-              )}
-              {isAdmin && (
-                <Button variant="outline" onClick={() => setRecalcVidasOpen(true)} className="rounded-lg">
-                  <Users className="mr-2 h-4 w-4" />Recalcular Vidas
-                </Button>
+              {canFullEdit && (
+                <>
+                  <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+                  <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="rounded-lg">
+                    <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
+                  </Button>
+                  {isAdmin && (
+                    <Button variant="outline" onClick={() => setImportValoresOpen(true)} className="rounded-lg">
+                      <FileSpreadsheet className="mr-2 h-4 w-4" />Importar Valores
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button variant="outline" onClick={() => setRecalcVidasOpen(true)} className="rounded-lg">
+                      <Users className="mr-2 h-4 w-4" />Recalcular Vidas
+                    </Button>
+                  )}
+                </>
               )}
               <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => {
                 setDialogOpen(open);
@@ -547,9 +551,11 @@ export default function Empresas() {
                 if (!open) resetForm();
               }}>
 
-                <DialogTrigger asChild>
-                  <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
-                </DialogTrigger>
+                {canFullEdit && (
+                  <DialogTrigger asChild>
+                    <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Empresa</Button>
+                  </DialogTrigger>
+                )}
                 <DialogContent className="sm:max-w-4xl max-h-[92vh] p-0 rounded-xl overflow-hidden flex flex-col">
                   <DialogHeader className="px-6 py-4 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 sticky top-0 z-10">
                     <div className="flex items-start justify-between gap-3">
