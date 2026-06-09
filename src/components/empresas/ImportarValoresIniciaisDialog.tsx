@@ -130,13 +130,43 @@ export function ImportarValoresIniciaisDialog({ open, onOpenChange }: Props) {
     }
   };
 
-  const downloadTemplate = () => {
-    const link = document.createElement("a");
-    link.href = "/template_valores_iniciais.xlsx";
-    link.download = "template_valores_iniciais.xlsx";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadTemplate = async () => {
+    try {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Valores Iniciais");
+      const header = [
+        "Código Contrato", "Nome", "Percentual Reajuste (%)", "Valor Enfermaria", "Valor Apartamento",
+        ...FAIXAS.map(([, , label]) => `ENF ${label}`),
+        ...FAIXAS.map(([, , label]) => `APT ${label}`),
+      ];
+
+      ws.addRow(header);
+      ws.getRow(1).font = { bold: true };
+      ws.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
+      ws.columns = header.map((h) => ({ width: Math.max(14, Math.min(28, h.length + 4)) }));
+      ws.addRow([
+        "9999", "EMPRESA EXEMPLO", 0, 0, 0,
+        ...FAIXAS.map(() => 0),
+        ...FAIXAS.map(() => 0),
+      ]);
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "template_valores_iniciais.xlsx";
+      link.rel = "noopener";
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 1000);
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message ?? "Não foi possível baixar o template", variant: "destructive" });
+    }
   };
 
   const handleSave = async () => {
