@@ -47,6 +47,8 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
   const [pctUnicoApt, setPctUnicoApt] = useState(true);
   const [faixasEnf, setFaixasEnf] = useState<FaixaEtariaItem[]>(() => criarFaixasIniciais());
   const [faixasApt, setFaixasApt] = useState<FaixaEtariaItem[]>(() => criarFaixasIniciais());
+  const [indexador, setIndexador] = useState<string>("IPCA");
+  const [sinistralidade, setSinistralidade] = useState<string>("");
 
   useEffect(() => {
     if (!open) return;
