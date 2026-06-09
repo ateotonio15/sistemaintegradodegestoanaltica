@@ -109,7 +109,7 @@ export default function Empresas() {
   const [importingAnexo, setImportingAnexo] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin, role, isViewOnly, isExecutivo, user } = useAuth();
+  const { isAdmin, role, isViewOnly, isExecutivo, isFinanceiro, user } = useAuth();
   const isComumLike = role === "comum" || role === "administradoras";
   const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo);
   const canFullEdit = isAdmin || isComumLike;
