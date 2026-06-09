@@ -38,7 +38,7 @@ interface Props {
   existingReajusteId?: string | null;
 }
 
-export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) {
+export function SolicitarReajusteDialog({ open, onOpenChange, empresa, existingReajusteId }: Props) {
   const { toast } = useToast();
   const { isDiretora } = useAuth();
   const qc = useQueryClient();
