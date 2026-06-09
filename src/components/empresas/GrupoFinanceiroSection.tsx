@@ -19,7 +19,8 @@ interface Props {
 }
 
 export function GrupoFinanceiroSection({ empresaId }: Props) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isFinanceiro } = useAuth();
+  const podeGerenciar = isAdmin || isFinanceiro;
   const qc = useQueryClient();
   const { data, isLoading } = useGrupoFinanceiro(empresaId);
   const { data: gruposAtivos } = useGruposFinanceirosAtivos();
