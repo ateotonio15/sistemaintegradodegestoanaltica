@@ -36,9 +36,20 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   empresa: Empresa | null;
   existingReajusteId?: string | null;
+  existingReajuste?: any | null;
 }
 
-export function SolicitarReajusteDialog({ open, onOpenChange, empresa, existingReajusteId }: Props) {
+const centavosToInput = (value?: number | null) => {
+  const centavos = Number(value) || 0;
+  return centavos > 0 ? (centavos / 100).toFixed(2).replace(".", ",") : "";
+};
+
+const decimalToInput = (value: unknown) => {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? String(value).replace(".", ",") : "";
+};
+
+export function SolicitarReajusteDialog({ open, onOpenChange, empresa, existingReajusteId, existingReajuste }: Props) {
   const { toast } = useToast();
   const { isDiretora } = useAuth();
   const qc = useQueryClient();
@@ -74,8 +85,67 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa, existingR
     },
   });
 
+  const { data: existingReajusteDb } = useQuery({
+    queryKey: ["solicitar-reajuste-existing", existingReajusteId],
+    enabled: !!existingReajusteId && open && !existingReajuste,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reajustes_anuais")
+        .select("*")
+        .eq("id", existingReajusteId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
+  const reajusteAtual = existingReajuste || existingReajusteDb || null;
+
+  const { data: faixasDb } = useQuery({
+    queryKey: ["solicitar-reajuste-faixas", existingReajusteId],
+    enabled: !!existingReajusteId && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reajuste_faixas" as any)
+        .select("*")
+        .eq("reajuste_id", existingReajusteId!);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
+    if (existingReajusteId && !reajusteAtual) return;
+
+    if (reajusteAtual) {
+      const enfCent = Number(reajusteAtual.valor_antigo_enfermaria_centavos) || 0;
+      const aptCent = Number(reajusteAtual.valor_antigo_apartamento_centavos) || 0;
+      const hasEnf = typeof reajusteAtual.possui_enfermaria === "boolean"
+        ? reajusteAtual.possui_enfermaria
+        : enfCent > 0 || (enfCent === 0 && aptCent === 0);
+      const hasApt = typeof reajusteAtual.possui_apartamento === "boolean"
+        ? reajusteAtual.possui_apartamento
+        : aptCent > 0;
+
+      setPossuiEnf(hasEnf);
+      setPossuiApt(hasApt);
+      setValorEnf(centavosToInput(enfCent));
+      setValorApt(centavosToInput(aptCent));
+      setPercentual(decimalToInput(reajusteAtual.percentual));
+      setDataAplicacao(reajusteAtual.data_aplicacao || new Date().toISOString().slice(0, 10));
+      setObservacao(reajusteAtual.observacao || "");
+      setUsaFaixaEnf(!!reajusteAtual.usa_faixa_etaria_enfermaria);
+      setUsaFaixaApt(!!reajusteAtual.usa_faixa_etaria_apartamento);
+      setPctUnicoEnf(reajusteAtual.percentual_unico_enfermaria !== false);
+      setPctUnicoApt(reajusteAtual.percentual_unico_apartamento !== false);
+      setFaixasEnf(criarFaixasIniciais());
+      setFaixasApt(criarFaixasIniciais());
+      setIndexador(reajusteAtual.indexador_financeiro || "IPCA");
+      setSinistralidade(decimalToInput(reajusteAtual.sinistralidade_percentual));
+      return;
+    }
+
     // Pré-popular: usa valores da empresa, com fallback para implantação
     const empEnf = Number((empresa as any)?.valor_enfermaria_centavos) || Number((implantacao as any)?.valor_enfermaria_centavos) || 0;
     const empApt = Number((empresa as any)?.valor_apartamento_centavos) || Number((implantacao as any)?.valor_apartamento_centavos) || 0;
@@ -126,7 +196,31 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa, existingR
     setFaixasApt(baseApt);
     setIndexador("IPCA");
     setSinistralidade("");
-  }, [open, empresa, implantacao]);
+  }, [open, empresa, implantacao, existingReajusteId, reajusteAtual]);
+
+  useEffect(() => {
+    if (!open || !existingReajusteId || !reajusteAtual || !faixasDb) return;
+    const baseEnf = criarFaixasIniciais();
+    const baseApt = criarFaixasIniciais();
+
+    for (const faixa of faixasDb) {
+      const base = faixa.modalidade === "apartamento" ? baseApt : baseEnf;
+      const idx = base.findIndex((f) => f.idade_inicial === faixa.idade_inicial && f.idade_final === faixa.idade_final);
+      if (idx >= 0) {
+        base[idx] = {
+          ...base[idx],
+          valor_atual_centavos: Number(faixa.valor_atual_centavos) || 0,
+          percentual: Number(faixa.percentual) || 0,
+          valor_reajustado_centavos: Number(faixa.valor_reajustado_centavos) || 0,
+          valor_retroativo_centavos: Number(faixa.valor_retroativo_centavos) || 0,
+          valor_final_centavos: Number(faixa.valor_final_centavos) || 0,
+        };
+      }
+    }
+
+    setFaixasEnf(baseEnf);
+    setFaixasApt(baseApt);
+  }, [open, existingReajusteId, reajusteAtual, faixasDb]);
 
   const pctNum = useMemo(() => {
     const n = parseFloat(String(percentual).replace(",", "."));
@@ -265,10 +359,10 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa, existingR
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Sparkles className="h-5 w-5 text-primary" />
-              Solicitar Reajuste
+              {existingReajusteId ? "Editar Solicitação de Reajuste" : "Solicitar Reajuste"}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Preencha em etapas. O cálculo é feito em tempo real e o pedido será enviado ao Cadastro responsável.
+              {existingReajusteId ? "Confira os dados preenchidos e ajuste somente o que estiver incorreto." : "Preencha em etapas. O cálculo é feito em tempo real e o pedido será enviado ao Cadastro responsável."}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -444,7 +538,7 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa, existingR
               Cancelar
             </Button>
             <Button onClick={() => mutation.mutate()} disabled={!podeEnviar || mutation.isPending}>
-              {mutation.isPending ? "Enviando..." : "Enviar para Cadastro"}
+              {mutation.isPending ? "Enviando..." : existingReajusteId ? "Salvar e reenviar" : "Enviar para Cadastro"}
             </Button>
           </DialogFooter>
         </div>
