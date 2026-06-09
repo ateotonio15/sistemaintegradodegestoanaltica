@@ -403,13 +403,10 @@ function Section({
   return (
     <section className={`rounded-xl border ${accentBorder} p-4 space-y-3`}>
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${numBg}`}>{number}</span>
-          <h3 className="text-sm font-semibold tracking-tight">
-            {title} {required && <span className="text-destructive">*</span>}
-            {optional && <span className="text-[11px] font-normal text-muted-foreground ml-1">(opcional)</span>}
-          </h3>
-        </div>
+        <h3 className="text-sm font-semibold tracking-tight">
+          {title} {required && <span className="text-destructive">*</span>}
+          {optional && <span className="text-[11px] font-normal text-muted-foreground ml-1">(opcional)</span>}
+        </h3>
         {badge && (
           <Badge variant="outline" className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40">
             {badge}
