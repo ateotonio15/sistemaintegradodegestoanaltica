@@ -9,26 +9,27 @@ export function AlertaReajustesParaConfirmar() {
   const { user, isDiretora, isAdmin } = useAuth();
   const qc = useQueryClient();
 
-  const { data: count = 0 } = useQuery({
-    queryKey: ["alertas-reajuste-count", user?.id, isDiretora, isAdmin],
+  const { data: rows = [] } = useQuery({
+    queryKey: ["alertas-reajuste-list", user?.id, isDiretora, isAdmin],
     queryFn: async () => {
-      if (!user?.id) return 0;
-      if (!isDiretora && !isAdmin) return 0;
-      const { count: c } = await supabase
+      if (!user?.id) return [] as Array<{ reajuste_id: string | null; empresa_id: string | null }>;
+      if (!isDiretora && !isAdmin) return [];
+      const { data } = await supabase
         .from("alertas_reajuste")
-        .select("id", { count: "exact", head: true })
+        .select("reajuste_id,empresa_id")
         .eq("status", "Pendente")
         .eq("destinatario_role", "diretora");
-      return c || 0;
+      return (data || []) as Array<{ reajuste_id: string | null; empresa_id: string | null }>;
     },
     enabled: !!user?.id,
   });
+  const count = rows.length;
 
   useEffect(() => {
     const ch = supabase
       .channel("alertas-reajuste-banner")
       .on("postgres_changes", { event: "*", schema: "public", table: "alertas_reajuste" }, () => {
-        qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
+        qc.invalidateQueries({ queryKey: ["alertas-reajuste-list"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -36,9 +37,14 @@ export function AlertaReajustesParaConfirmar() {
 
   if (!count) return null;
 
+  const first = rows[0];
+  const to = count === 1 && first?.empresa_id
+    ? `/reajustes?empresa=${first.empresa_id}`
+    : "/reajustes";
+
   return (
     <Link
-      to="/reajustes"
+      to={to}
       className="flex items-center gap-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 mb-4 hover:bg-yellow-500/15 transition-colors"
     >
       <Bell className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
