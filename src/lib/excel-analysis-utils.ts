@@ -975,6 +975,8 @@ export async function analisarExcelFinanceiroPorCnpj(
     retroTotal: number;
     excQtd: number;
     excTotal: number;
+    devQtd: number;
+    devTotal: number;
   };
   const grupos = new Map<string, Acc>();
   const ehCnpjPlaceholder = (c: string) => !c || c.length !== 14 || /0{6,}$/.test(c);
