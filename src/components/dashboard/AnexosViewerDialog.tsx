@@ -98,14 +98,11 @@ export function AnexosViewerDialog({
         .maybeSingle();
       const nome = prof?.display_name || prof?.username || user.email || "Usuário";
 
-      const { error } = await supabase
-        .from("financeiro_movimentacoes")
-        .update({
-          faturamento_iniciado_por: user.id,
-          faturamento_iniciado_por_nome: nome,
-          faturamento_iniciado_em: new Date().toISOString(),
-        })
-        .eq("id", targetMovimentacaoId);
+      // Replica para todos do grupo financeiro (se houver). Quando não há grupo,
+      // a RPC atualiza apenas a movimentação alvo.
+      const { error } = await supabase.rpc("aplicar_iniciar_faturamento_grupo" as any, {
+        p_mov_id: targetMovimentacaoId,
+      });
       if (error) throw error;
 
       // Busca flags da empresa para exibir avisos pós-início.
