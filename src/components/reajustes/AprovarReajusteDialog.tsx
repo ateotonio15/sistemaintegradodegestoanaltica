@@ -96,26 +96,77 @@ export function AprovarReajusteDialog({ open, onOpenChange, reajuste, empresaNom
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
-          <div className="grid md:grid-cols-2 gap-3">
-            {enfAtual > 0 && (
-              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1.5">
-                <div className="flex items-center gap-2 font-medium text-sm"><BedDouble className="h-4 w-4 text-emerald-600" /> Enfermaria</div>
-                <Row label="Atual" v={formatCentavosBRL(enfAtual)} />
-                <Row label="Reajustado" v={formatCentavosBRL(reajuste.valor_reajustado_enfermaria_centavos)} />
-                <Row label="Retroativo" v={formatCentavosBRL(reajuste.valor_retroativo_enfermaria_centavos)} />
-                <Row label="Final" v={formatCentavosBRL(enfFinal)} bold />
+          {semDados && podeDecidir && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <div className="font-medium text-amber-700 dark:text-amber-300">Nenhum valor registrado</div>
+                <div className="text-muted-foreground mt-1">
+                  O Cadastro ainda não preencheu os valores deste reajuste. Rejeite com um motivo
+                  para que o Cadastro registre os valores e reenvie para sua análise.
+                </div>
               </div>
-            )}
-            {aptAtual > 0 && (
-              <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 space-y-1.5">
-                <div className="flex items-center gap-2 font-medium text-sm"><Hotel className="h-4 w-4 text-blue-600" /> Apartamento</div>
-                <Row label="Atual" v={formatCentavosBRL(aptAtual)} />
-                <Row label="Reajustado" v={formatCentavosBRL(reajuste.valor_reajustado_apartamento_centavos)} />
-                <Row label="Retroativo" v={formatCentavosBRL(reajuste.valor_retroativo_apartamento_centavos)} />
-                <Row label="Final" v={formatCentavosBRL(aptFinal)} bold />
+            </div>
+          )}
+
+          {faixas.length > 0 && (
+            <div className="rounded-lg border border-violet-500/30 bg-violet-500/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 font-medium text-sm">
+                <Users className="h-4 w-4 text-violet-600" /> Faixas Etárias
               </div>
-            )}
-          </div>
+              <div className="overflow-x-auto rounded border bg-background/60 max-h-[300px] overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/60 sticky top-0">
+                    <tr>
+                      <th className="text-left p-2">Faixa</th>
+                      <th className="text-left p-2">Modalidade</th>
+                      <th className="text-right p-2">Atual</th>
+                      <th className="text-right p-2">%</th>
+                      <th className="text-right p-2">Reajustado</th>
+                      <th className="text-right p-2">Retroativo</th>
+                      <th className="text-right p-2">Final</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {faixas.map((f: any) => (
+                      <tr key={f.id} className="border-t">
+                        <td className="p-2">{labelFaixa(f.idade_inicial, f.idade_final)}</td>
+                        <td className="p-2 capitalize">{f.modalidade || "—"}</td>
+                        <td className="p-2 text-right">{formatCentavosBRL(f.valor_atual_centavos)}</td>
+                        <td className="p-2 text-right">{Number(f.percentual || 0).toFixed(2).replace(".",",")}%</td>
+                        <td className="p-2 text-right">{formatCentavosBRL(f.valor_reajustado_centavos)}</td>
+                        <td className="p-2 text-right">{formatCentavosBRL(f.valor_retroativo_centavos)}</td>
+                        <td className="p-2 text-right font-semibold text-primary">{formatCentavosBRL(f.valor_final_centavos)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {(enfAtual > 0 || aptAtual > 0) && (
+            <div className="grid md:grid-cols-2 gap-3">
+              {enfAtual > 0 && (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1.5">
+                  <div className="flex items-center gap-2 font-medium text-sm"><BedDouble className="h-4 w-4 text-emerald-600" /> Enfermaria</div>
+                  <Row label="Atual" v={formatCentavosBRL(enfAtual)} />
+                  <Row label="Reajustado" v={formatCentavosBRL(reajuste.valor_reajustado_enfermaria_centavos)} />
+                  <Row label="Retroativo" v={formatCentavosBRL(reajuste.valor_retroativo_enfermaria_centavos)} />
+                  <Row label="Final" v={formatCentavosBRL(enfFinal)} bold />
+                </div>
+              )}
+              {aptAtual > 0 && (
+                <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 space-y-1.5">
+                  <div className="flex items-center gap-2 font-medium text-sm"><Hotel className="h-4 w-4 text-blue-600" /> Apartamento</div>
+                  <Row label="Atual" v={formatCentavosBRL(aptAtual)} />
+                  <Row label="Reajustado" v={formatCentavosBRL(reajuste.valor_reajustado_apartamento_centavos)} />
+                  <Row label="Retroativo" v={formatCentavosBRL(reajuste.valor_retroativo_apartamento_centavos)} />
+                  <Row label="Final" v={formatCentavosBRL(aptFinal)} bold />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="rounded-lg border bg-muted/40 p-3 grid grid-cols-3 gap-3 text-sm">
             <div><div className="text-xs text-muted-foreground">Meses retroativos</div><div className="font-semibold">{reajuste.meses_retroativos || 0}</div></div>
