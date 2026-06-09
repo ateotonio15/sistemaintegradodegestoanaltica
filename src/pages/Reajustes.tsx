@@ -612,7 +612,7 @@ export default function Reajustes() {
                           )}
                           {/* Diretora: rejeitado → corrigir */}
                           {statusFluxo === "rejeitado" && (isAdmin || isDiretora) && (
-                            <Button size="sm" variant="default" onClick={() => openEdit(reajuste)} className="bg-yellow-600 hover:bg-yellow-700">
+                            <Button size="sm" variant="default" onClick={() => openSolicitar(empresa, reajuste)} className="bg-yellow-600 hover:bg-yellow-700">
                               <Pencil className="h-3 w-3 mr-1" /> Corrigir
                             </Button>
                           )}
