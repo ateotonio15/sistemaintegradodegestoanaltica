@@ -124,7 +124,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
                 )}
               </div>
             </div>
-            {isAdmin && (
+            {podeGerenciar && (
               <Button variant="outline" size="sm" onClick={() => setEditarOpen(true)}>
                 Gerenciar grupo
               </Button>
@@ -144,7 +144,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
                       {c.codigo_contrato ?? "—"} · {c.cnpj ?? "—"}
                     </div>
                   </div>
-                  {isAdmin && c.empresa_id !== empresaId && (
+                  {podeGerenciar && c.empresa_id !== empresaId && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -160,7 +160,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
             </ul>
           </div>
 
-          {isAdmin && (
+          {podeGerenciar && (
             <Button
               variant="outline"
               size="sm"
