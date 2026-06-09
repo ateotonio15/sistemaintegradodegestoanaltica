@@ -599,14 +599,31 @@ export default function Reajustes() {
                       </TableCell>
                     </TableRow>
                     {isExpanded && (() => {
+                      // Fallback Valor Atual: Reajuste -> Empresa -> Implantação (inclusive faixas etárias somadas)
+                      const impl = implantacaoPorEmpresa[empresa.id] || {};
+                      const sumFaixa = (arr: any) => Array.isArray(arr) ? arr.reduce((s: number, f: any) => s + (Number(f?.centavos) || 0), 0) : 0;
+                      const feEmp = (empresa as any).faixas_etarias;
+                      const feImpl = impl.faixas_etarias;
+                      const enfFallback =
+                        (empresa as any).valor_enfermaria_centavos ||
+                        (feEmp && typeof feEmp === "object" ? sumFaixa(feEmp.enfermaria) : 0) ||
+                        impl.valor_enfermaria_centavos ||
+                        (feImpl && typeof feImpl === "object" ? sumFaixa(feImpl.enfermaria) : 0) ||
+                        0;
+                      const aptFallback =
+                        (empresa as any).valor_apartamento_centavos ||
+                        (feEmp && typeof feEmp === "object" ? sumFaixa(feEmp.apartamento) : 0) ||
+                        impl.valor_apartamento_centavos ||
+                        (feImpl && typeof feImpl === "object" ? sumFaixa(feImpl.apartamento) : 0) ||
+                        0;
                       const enfDados = {
-                        valorAtual: reajuste?.valor_antigo_enfermaria_centavos || 0,
+                        valorAtual: (reajuste?.valor_antigo_enfermaria_centavos || 0) || enfFallback,
                         valorReajustado: reajuste?.valor_reajustado_enfermaria_centavos || 0,
                         retroativo: reajuste?.valor_retroativo_enfermaria_centavos || 0,
                         valorFinal: reajuste?.valor_final_enfermaria_centavos || 0,
                       };
                       const aptDados = {
-                        valorAtual: reajuste?.valor_antigo_apartamento_centavos || 0,
+                        valorAtual: (reajuste?.valor_antigo_apartamento_centavos || 0) || aptFallback,
                         valorReajustado: reajuste?.valor_reajustado_apartamento_centavos || 0,
                         retroativo: reajuste?.valor_retroativo_apartamento_centavos || 0,
                         valorFinal: reajuste?.valor_final_apartamento_centavos || 0,
