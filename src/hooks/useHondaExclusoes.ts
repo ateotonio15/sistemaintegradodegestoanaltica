@@ -30,7 +30,8 @@ export function useHondaExclusoes() {
       return (data as any) ?? [];
     },
     enabled: !!user,
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 }
 
