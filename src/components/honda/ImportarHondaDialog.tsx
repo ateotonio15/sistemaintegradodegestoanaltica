@@ -49,15 +49,37 @@ export function ImportarHondaDialog({ open, onOpenChange }: Props) {
     if (!result || result.valid.length === 0 || !user) return;
     setImporting(true);
     try {
-      const rows = result.valid.map((r) => ({ ...r, importado_por: user.id }));
-      // chunk inserts
+      // Fetch existing records to dedupe by CPF + data_demissao
+      const { data: existing, error: fetchErr } = await supabase
+        .from("honda_exclusoes" as any)
+        .select("cpf, data_demissao");
+      if (fetchErr) throw fetchErr;
+      const dedupSet = new Set<string>(
+        (existing as any[] ?? []).map((e) => `${(e.cpf || "").replace(/\D/g, "")}|${e.data_demissao}`),
+      );
+      const novos = result.valid.filter(
+        (r) => !dedupSet.has(`${r.cpf}|${r.data_demissao}`),
+      );
+      const duplicados = result.valid.length - novos.length;
+      if (novos.length === 0) {
+        toast({
+          title: "Nenhum registro novo",
+          description: `${duplicados} já programado(s). Nada a importar.`,
+        });
+        setImporting(false);
+        return;
+      }
+      const rows = novos.map((r) => ({ ...r, importado_por: user.id }));
       const chunk = 200;
       for (let i = 0; i < rows.length; i += chunk) {
         const slice = rows.slice(i, i + chunk);
         const { error } = await supabase.from("honda_exclusoes" as any).insert(slice as any);
         if (error) throw error;
       }
-      toast({ title: "Importação concluída", description: `${rows.length} registro(s) importado(s).` });
+      toast({
+        title: "Importação concluída",
+        description: `${rows.length} novo(s) importado(s)${duplicados ? `, ${duplicados} já programado(s) ignorado(s)` : ""}.`,
+      });
       qc.invalidateQueries({ queryKey: ["honda-exclusoes"] });
       onOpenChange(false);
       reset();
