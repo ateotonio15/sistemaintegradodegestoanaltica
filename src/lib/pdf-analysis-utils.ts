@@ -395,9 +395,9 @@ export async function analisarPdfFinanceiro(
     }
   }
 
-  // Fallback adicional para "ISSQN Retido" — buscar rótulo explícito
+  // Fallback adicional para "ISSQN Retido" — buscar rótulo explícito (permite quebra de linha)
   if (issqnRetidoVT == null) {
-    const mRet = tLines.match(/issqn\s+retido[^\n]{0,40}r\$\s*([\d.]+,\d{2})/i);
+    const mRet = t.match(/issqn\s+retido[\s\S]{0,60}?r\$\s*([\d.]+,\d{2})/i);
     if (mRet) issqnRetidoVT = parseValor(mRet[1]);
   }
 
@@ -443,10 +443,10 @@ export async function analisarPdfFinanceiro(
     if (m) totalDeducoes = parseValor(m[1]);
   }
 
-  // Valor do Serviço (bruto) — usado na Etapa 3
+  // Valor do Serviço (bruto) — usado na Etapa 3 (permite quebra de linha entre rótulo e valor)
   let valorServico: number | null = valorServicoVT;
   if (valorServico == null) {
-    const m = tLines.match(/valor\s+(?:do\s+)?servic[oõ]s?[^\n]{0,40}r\$\s*([\d.]+,\d{2})/i);
+    const m = t.match(/valor\s+(?:do\s+)?servic[oõ]s?[\s\S]{0,60}?r\$\s*([\d.]+,\d{2})/i);
     if (m) valorServico = parseValor(m[1]);
   }
 
