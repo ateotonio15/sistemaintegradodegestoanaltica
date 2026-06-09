@@ -61,22 +61,57 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
 
   useEffect(() => {
     if (!open) return;
-    setPossuiEnf(true);
-    setPossuiApt(false);
-    setValorEnf("");
-    setValorApt("");
+    // Pré-popular a partir dos valores cadastrados da empresa
+    const empEnf = Number((empresa as any)?.valor_enfermaria_centavos) || 0;
+    const empApt = Number((empresa as any)?.valor_apartamento_centavos) || 0;
+    const empFaixas = (empresa as any)?.faixas_etarias as any;
+    const usaFx = !!(empresa as any)?.contrato_faixa_etaria;
+
+    const fxEnfArr: Array<{ ini: number; fim: number; centavos: number }> =
+      empFaixas && typeof empFaixas === "object" && Array.isArray(empFaixas.enfermaria) ? empFaixas.enfermaria : [];
+    const fxAptArr: Array<{ ini: number; fim: number; centavos: number }> =
+      empFaixas && typeof empFaixas === "object" && Array.isArray(empFaixas.apartamento) ? empFaixas.apartamento : [];
+    const sumFx = (arr: any[]) => arr.reduce((s, f) => s + (Number(f?.centavos) || 0), 0);
+    const temFxEnf = sumFx(fxEnfArr) > 0;
+    const temFxApt = sumFx(fxAptArr) > 0;
+
+    const hasEnf = empEnf > 0 || temFxEnf;
+    const hasApt = empApt > 0 || temFxApt;
+
+    setPossuiEnf(hasEnf || (!hasEnf && !hasApt)); // default Enfermaria se nada
+    setPossuiApt(hasApt);
+    setValorEnf(empEnf > 0 ? (empEnf / 100).toFixed(2).replace(".", ",") : "");
+    setValorApt(empApt > 0 ? (empApt / 100).toFixed(2).replace(".", ",") : "");
     setPercentual("");
     setDataAplicacao(new Date().toISOString().slice(0, 10));
     setObservacao("");
-    setUsaFaixaEnf(false);
-    setUsaFaixaApt(false);
+
+    const useFxEnf = usaFx && temFxEnf;
+    const useFxApt = usaFx && temFxApt;
+    setUsaFaixaEnf(useFxEnf);
+    setUsaFaixaApt(useFxApt);
     setPctUnicoEnf(true);
     setPctUnicoApt(true);
-    setFaixasEnf(criarFaixasIniciais());
-    setFaixasApt(criarFaixasIniciais());
+
+    const baseEnf = criarFaixasIniciais();
+    if (useFxEnf) {
+      for (const f of fxEnfArr) {
+        const idx = baseEnf.findIndex((b) => b.idade_inicial === f.ini && b.idade_final === f.fim);
+        if (idx >= 0) baseEnf[idx].valor_atual_centavos = Number(f.centavos) || 0;
+      }
+    }
+    const baseApt = criarFaixasIniciais();
+    if (useFxApt) {
+      for (const f of fxAptArr) {
+        const idx = baseApt.findIndex((b) => b.idade_inicial === f.ini && b.idade_final === f.fim);
+        if (idx >= 0) baseApt[idx].valor_atual_centavos = Number(f.centavos) || 0;
+      }
+    }
+    setFaixasEnf(baseEnf);
+    setFaixasApt(baseApt);
     setIndexador("IPCA");
     setSinistralidade("");
-  }, [open]);
+  }, [open, empresa]);
 
   const pctNum = useMemo(() => {
     const n = parseFloat(String(percentual).replace(",", "."));
