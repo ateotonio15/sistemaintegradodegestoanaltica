@@ -474,25 +474,27 @@ export default function Reajustes() {
                             <span>{formatCentavosBRL(resumoAtual)}</span>
                             {resumoLabel && <Badge variant="outline" className="text-[10px] px-1 py-0">{resumoLabel}</Badge>}
                           </div>
-                        ) : (() => {
-                          const ve = (empresa as any).valor_enfermaria_centavos || 0;
-                          const va = (empresa as any).valor_apartamento_centavos || 0;
-                          const fe = (empresa as any).faixas_etarias as any;
-                          const sumFaixa = (arr: any[]) => Array.isArray(arr) ? arr.reduce((s, f) => s + (Number(f?.centavos) || 0), 0) : 0;
-                          const feEnf = fe && typeof fe === "object" ? sumFaixa(fe.enfermaria) : 0;
-                          const feApt = fe && typeof fe === "object" ? sumFaixa(fe.apartamento) : 0;
-                          const enfTot = ve || feEnf;
-                          const aptTot = va || feApt;
-                          const useEnf = enfTot > 0;
-                          const useApt = !useEnf && aptTot > 0;
-                          if (!useEnf && !useApt) return "—";
-                          return (
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">{formatCentavosBRL(useEnf ? enfTot : aptTot)}</span>
-                              <Badge variant="outline" className="text-[10px] px-1 py-0">{useEnf ? "Enfermaria" : "Apartamento"}</Badge>
-                            </div>
-                          );
-                        })()}
+                         ) : (() => {
+                           const impl = implantacaoPorEmpresa[empresa.id] || {};
+                           const ve = (empresa as any).valor_enfermaria_centavos || impl.valor_enfermaria_centavos || 0;
+                           const va = (empresa as any).valor_apartamento_centavos || impl.valor_apartamento_centavos || 0;
+                           const fe = (empresa as any).faixas_etarias || impl.faixas_etarias;
+                           const sumFaixa = (arr: any[]) => Array.isArray(arr) ? arr.reduce((s, f) => s + (Number(f?.centavos) || 0), 0) : 0;
+                           const feEnf = fe && typeof fe === "object" ? sumFaixa(fe.enfermaria) : 0;
+                           const feApt = fe && typeof fe === "object" ? sumFaixa(fe.apartamento) : 0;
+                           const enfTot = ve || feEnf;
+                           const aptTot = va || feApt;
+                           const useEnf = enfTot > 0;
+                           const useApt = !useEnf && aptTot > 0;
+                           if (!useEnf && !useApt) return "—";
+                           return (
+                             <div className="flex items-center gap-2">
+                               <span className="text-muted-foreground">{formatCentavosBRL(useEnf ? enfTot : aptTot)}</span>
+                               <Badge variant="outline" className="text-[10px] px-1 py-0">{useEnf ? "Enfermaria" : "Apartamento"}</Badge>
+                             </div>
+                           );
+                         })()}
+
                       </TableCell>
                       <TableCell>{temValores ? `${Number(reajuste.percentual).toFixed(2).replace(".", ",")}%` : "—"}</TableCell>
                       <TableCell className="font-semibold">{temValores ? formatCentavosBRL(resumoReaj) : "—"}</TableCell>
