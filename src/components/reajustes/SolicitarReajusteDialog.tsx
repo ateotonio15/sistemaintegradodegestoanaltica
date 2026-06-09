@@ -30,6 +30,7 @@ interface Props {
 
 export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) {
   const { toast } = useToast();
+  const { isDiretora } = useAuth();
   const qc = useQueryClient();
 
   const [possuiEnf, setPossuiEnf] = useState(true);
