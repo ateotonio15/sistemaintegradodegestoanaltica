@@ -48,6 +48,7 @@ export default function Reajustes() {
   const [confirmLiberar, setConfirmLiberar] = useState<{ id: string; empresa: string; temRetro: boolean } | null>(null);
   const [solicitarOpen, setSolicitarOpen] = useState(false);
   const [solicitarEmpresa, setSolicitarEmpresa] = useState<any>(null);
+  const [solicitarExistingId, setSolicitarExistingId] = useState<string | null>(null);
   const [aprovarOpen, setAprovarOpen] = useState(false);
   const [aprovarTarget, setAprovarTarget] = useState<{ reajuste: any; empresaNome: string } | null>(null);
   const [retroOpen, setRetroOpen] = useState(false);
@@ -556,7 +557,7 @@ export default function Reajustes() {
                             </Button>
                           )}
                           {isSolicitado && (isAdmin || isDiretora) && (
-                            <Button size="sm" variant="default" onClick={() => { setSolicitarEmpresa(empresa); setSolicitarOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+                            <Button size="sm" variant="default" onClick={() => { setSolicitarEmpresa(empresa); setSolicitarExistingId(reajuste.id); setSolicitarOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
                               <Pencil className="h-3 w-3 mr-1" /> Registrar Valores
                             </Button>
                           )}
@@ -589,7 +590,7 @@ export default function Reajustes() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => { setSolicitarEmpresa(empresa); setSolicitarOpen(true); }}
+                              onClick={() => { setSolicitarEmpresa(empresa); setSolicitarExistingId(null); setSolicitarOpen(true); }}
                             >
                               <Plus className="h-3 w-3 mr-1" />
                               Solicitar Reajuste
@@ -692,6 +693,7 @@ export default function Reajustes() {
         open={solicitarOpen}
         onOpenChange={setSolicitarOpen}
         empresa={solicitarEmpresa}
+        existingReajusteId={solicitarExistingId}
       />
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>

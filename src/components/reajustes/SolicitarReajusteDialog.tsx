@@ -35,9 +35,10 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   empresa: Empresa | null;
+  existingReajusteId?: string | null;
 }
 
-export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) {
+export function SolicitarReajusteDialog({ open, onOpenChange, empresa, existingReajusteId }: Props) {
   const { toast } = useToast();
   const { isDiretora } = useAuth();
   const qc = useQueryClient();
@@ -169,11 +170,18 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
       if (possuiApt && aptTotais.valor_atual_centavos <= 0) throw new Error("Informe o Valor Atual do Apartamento");
       if (pctNum <= 0) throw new Error("Preencha o percentual de reajuste.");
 
-      const { data: novoId, error: rpcErr } = await supabase.rpc("solicitar_reajuste", {
-        p_empresa_id: empresa.id,
-      } as any);
-      if (rpcErr) throw rpcErr;
-      const reajusteId = novoId as unknown as string;
+      let reajusteId: string;
+      if (existingReajusteId) {
+        reajusteId = existingReajusteId;
+        // Limpa faixas anteriores para reinserir
+        await supabase.from("reajuste_faixas" as any).delete().eq("reajuste_id", reajusteId);
+      } else {
+        const { data: novoId, error: rpcErr } = await supabase.rpc("solicitar_reajuste", {
+          p_empresa_id: empresa.id,
+        } as any);
+        if (rpcErr) throw rpcErr;
+        reajusteId = novoId as unknown as string;
+      }
 
       const { error: upErr } = await supabase
         .from("reajustes_anuais")
