@@ -590,7 +590,7 @@ export default function Reajustes() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => { setSolicitarEmpresa(empresa); setSolicitarOpen(true); }}
+                              onClick={() => { setSolicitarEmpresa(empresa); setSolicitarExistingId(null); setSolicitarOpen(true); }}
                             >
                               <Plus className="h-3 w-3 mr-1" />
                               Solicitar Reajuste
