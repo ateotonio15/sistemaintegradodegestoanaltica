@@ -76,6 +76,24 @@ export default function Reajustes() {
     },
   });
 
+  const { data: implantacoesValores = [] } = useQuery({
+    queryKey: ["reajustes-implantacoes-valores"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("implantacoes_contratos")
+        .select("empresa_id,valor_enfermaria_centavos,valor_apartamento_centavos,faixas_etarias");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+  const implantacaoPorEmpresa = useMemo(() => {
+    const map: Record<string, any> = {};
+    for (const i of implantacoesValores) if (i.empresa_id) map[i.empresa_id] = i;
+    return map;
+  }, [implantacoesValores]);
+
+
+
   const { data: minhasEmpresas = [] } = useQuery({
     queryKey: ["minhas-empresas-comum", user?.id],
     enabled: !!user?.id && isComum,
