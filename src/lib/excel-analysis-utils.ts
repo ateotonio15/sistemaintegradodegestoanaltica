@@ -25,6 +25,8 @@ export interface AnaliseResultado {
   retroativas?: InclusaoResultado;
   /** Apenas Análise Moto Honda — total geralmente negativo. */
   exclusoes?: InclusaoResultado;
+  /** Devoluções — categoria própria com valor negativo (crédito). */
+  devolucoes?: InclusaoResultado;
   avisos: string[];
 }
 
@@ -38,6 +40,7 @@ export interface AnalisePorCnpj {
   inclusoes: InclusaoResultado;
   retroativas?: InclusaoResultado;
   exclusoes?: InclusaoResultado;
+  devolucoes?: InclusaoResultado;
   avisos: string[];
 }
 
