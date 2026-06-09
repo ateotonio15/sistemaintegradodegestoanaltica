@@ -813,6 +813,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         incQtd: 0, incTotal: 0,
         retroQtd: 0, retroTotal: 0,
         excQtd: 0, excTotal: 0,
+        devQtd: 0, devTotal: 0,
       };
       blocos.push(cur);
       continue;
