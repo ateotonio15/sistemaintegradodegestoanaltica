@@ -19,7 +19,8 @@ interface Props {
 }
 
 export function GrupoFinanceiroSection({ empresaId }: Props) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isFinanceiro } = useAuth();
+  const podeGerenciar = isAdmin || isFinanceiro;
   const qc = useQueryClient();
   const { data, isLoading } = useGrupoFinanceiro(empresaId);
   const { data: gruposAtivos } = useGruposFinanceirosAtivos();
@@ -123,7 +124,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
                 )}
               </div>
             </div>
-            {isAdmin && (
+            {podeGerenciar && (
               <Button variant="outline" size="sm" onClick={() => setEditarOpen(true)}>
                 Gerenciar grupo
               </Button>
@@ -143,7 +144,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
                       {c.codigo_contrato ?? "—"} · {c.cnpj ?? "—"}
                     </div>
                   </div>
-                  {isAdmin && c.empresa_id !== empresaId && (
+                  {podeGerenciar && c.empresa_id !== empresaId && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -159,7 +160,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
             </ul>
           </div>
 
-          {isAdmin && (
+          {podeGerenciar && (
             <Button
               variant="outline"
               size="sm"
@@ -192,7 +193,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
             </Select>
           </div>
 
-          {efetivoPertence === "sim" && isAdmin && (
+          {efetivoPertence === "sim" && podeGerenciar && (
             <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
               <div className="flex gap-2">
                 <Button
@@ -250,7 +251,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
             </div>
           )}
 
-          {efetivoPertence === "sim" && !isAdmin && (
+          {efetivoPertence === "sim" && !podeGerenciar && (
             <div className="text-xs text-muted-foreground rounded-lg border p-3">
               Apenas administradores podem criar ou vincular grupos financeiros.
             </div>
