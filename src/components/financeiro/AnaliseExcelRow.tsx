@@ -264,6 +264,15 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     destaqueNegativo: true,
                   });
                 }
+                if (r.devolucoes && (r.devolucoes.quantidade > 0 || r.devolucoes.total !== 0)) {
+                  linhas.push({
+                    label: "Devolução",
+                    beneficiarios: r.devolucoes.quantidade,
+                    mensalidade: null,
+                    total: r.devolucoes.total,
+                    destaqueNegativo: true,
+                  });
+                }
 
 
                 const totalGeral = linhas.reduce((s, l) => s + l.total, 0);
