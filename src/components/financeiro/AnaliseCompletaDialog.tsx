@@ -179,6 +179,10 @@ export function AnaliseCompletaDialog({
       totalExcPdf = 0,
       temExcExcel = false,
       temExcPdf = false;
+    let totalDevExcel = 0,
+      totalDevPdf = 0,
+      temDevExcel = false,
+      temDevPdf = false;
 
     res.forEach((r, idx) => {
       const c: any = cmps[idx];
@@ -198,6 +202,10 @@ export function AnaliseCompletaDialog({
         totalExcExcel += r.exclusoes.total;
         temExcExcel = true;
       }
+      if (r.devolucoes && r.devolucoes.total) {
+        totalDevExcel += r.devolucoes.total;
+        temDevExcel = true;
+      }
       if (c && !isSimplificada(c)) {
         if (c.enfermaria?.total.pdf != null) {
           totalEnfPdf += Number(c.enfermaria.total.pdf);
@@ -214,6 +222,10 @@ export function AnaliseCompletaDialog({
         if (c.exclusoes?.total.pdf != null) {
           totalExcPdf += Number(c.exclusoes.total.pdf);
           temExcPdf = true;
+        }
+        if (c.devolucoes?.total.pdf != null) {
+          totalDevPdf += Number(c.devolucoes.total.pdf);
+          temDevPdf = true;
         }
       }
     });
@@ -250,23 +262,30 @@ export function AnaliseCompletaDialog({
         linha("Exclusões", temExcExcel ? totalExcExcel : null, temExcPdf ? totalExcPdf : null),
       );
     }
+    if (temDevExcel || temDevPdf) {
+      categorias.push(
+        linha("Devolução", temDevExcel ? totalDevExcel : null, temDevPdf ? totalDevPdf : null),
+      );
+    }
 
     const totalExcelGeral =
       (temEnfExcel ? totalEnfExcel : 0) +
       (temAptExcel ? totalAptExcel : 0) +
       (temIncExcel ? totalIncExcel : 0) +
-      (temExcExcel ? totalExcExcel : 0);
+      (temExcExcel ? totalExcExcel : 0) +
+      (temDevExcel ? totalDevExcel : 0);
     const totalPdfGeral =
       (temEnfPdf ? totalEnfPdf : 0) +
       (temAptPdf ? totalAptPdf : 0) +
       (temIncPdf ? totalIncPdf : 0) +
-      (temExcPdf ? totalExcPdf : 0);
+      (temExcPdf ? totalExcPdf : 0) +
+      (temDevPdf ? totalDevPdf : 0);
 
     categorias.push(
       linha(
         "Total geral",
-        temEnfExcel || temAptExcel || temIncExcel || temExcExcel ? totalExcelGeral : null,
-        temEnfPdf || temAptPdf || temIncPdf || temExcPdf ? totalPdfGeral : null,
+        temEnfExcel || temAptExcel || temIncExcel || temExcExcel || temDevExcel ? totalExcelGeral : null,
+        temEnfPdf || temAptPdf || temIncPdf || temExcPdf || temDevPdf ? totalPdfGeral : null,
       ),
     );
 

@@ -41,6 +41,8 @@ export interface AnalisePdfResultado {
   inclusoes: { total: number };
   /** Total de exclusões do histórico (negativo); null se não encontrado. */
   exclusoes: { total: number | null };
+  /** Total de devoluções do histórico (negativo); null se não encontrado. */
+  devolucoes: { total: number | null };
   /** Valor Líquido da NFS-e (extraído do PDF), null se não encontrado. */
   valorLiquido: number | null;
   /** Número da NF (ex: "4601"), null se não encontrado. */
@@ -212,6 +214,7 @@ export async function analisarPdfFinanceiro(
       apartamento: { ...empty },
       inclusoes: { total: 0 },
       exclusoes: { total: null },
+      devolucoes: { total: null },
       valorLiquido: null,
       nfNumero: null,
       tomadorCnpj: null,
@@ -327,6 +330,20 @@ export async function analisarPdfFinanceiro(
       const negativo = !!mExc[1] || !!mExc[2] || !!mExc[4];
       exclusoesTotal = negativo ? -Math.abs(v) : -Math.abs(v);
       // Sempre negativo (exclusão sempre reduz)
+    }
+  }
+
+  // Devoluções — linha própria no histórico da NFS-e, sempre reduz o total.
+  let devolucoesTotal: number | null = null;
+  const reDev = new RegExp(
+    `devolu(?:cao|coes|ido|idos|ida|idas)?\\s*[:\\-=]?\\s*(\\()?\\s*(-)?\\s*r?\\$?\\s*(${NUM})\\s*(\\))?`,
+    "i",
+  );
+  const mDev = t.match(reDev);
+  if (mDev) {
+    const v = parseValor(mDev[3]);
+    if (!isNaN(v) && v !== 0) {
+      devolucoesTotal = -Math.abs(v);
     }
   }
 
@@ -528,6 +545,7 @@ export async function analisarPdfFinanceiro(
     apartamento: apartamento ?? { ...empty },
     inclusoes: { total: inclusoesTotal },
     exclusoes: { total: exclusoesTotal },
+    devolucoes: { total: devolucoesTotal },
     valorLiquido,
     nfNumero,
     tomadorCnpj,

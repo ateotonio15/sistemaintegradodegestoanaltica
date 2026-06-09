@@ -507,6 +507,8 @@ export interface ComparacaoResultado {
   inclusoes: { total: CampoValidacao } | null;
   /** Exclusões — comparação Excel × histórico da NFS-e (valor negativo). */
   exclusoes: { total: CampoValidacao } | null;
+  /** Devoluções — comparação Excel × histórico da NFS-e (valor negativo). */
+  devolucoes: { total: CampoValidacao } | null;
   divergencias: string[];
   avisosPdf: string[];
   /** CNPJ (14 dígitos) do bloco analisado, quando disponível. */
@@ -686,6 +688,24 @@ export function compararExcelComPdf(
       );
   }
 
+  // Devoluções — só compara o total (valor sempre negativo)
+  let devolucoes: { total: CampoValidacao } | null = null;
+  const excelTemDevolucao = !!excel.devolucoes && (excel.devolucoes.quantidade > 0 || excel.devolucoes.total !== 0);
+  const pdfDevolucaoTotal = pdf && pdf.devolucoes?.total !== null && pdf.devolucoes?.total !== undefined ? pdf.devolucoes.total : null;
+  if (excelTemDevolucao || pdfDevolucaoTotal !== null) {
+    const excelTotal = excel.devolucoes?.total ?? 0;
+    const c = campo(excelTotal, pdfDevolucaoTotal, "money");
+    devolucoes = { total: c };
+    if (pdf && excelTemDevolucao && pdfDevolucaoTotal === null)
+      divergencias.push("Valor de devolução não encontrado no PDF.");
+    else if (pdf && !excelTemDevolucao && pdfDevolucaoTotal !== null)
+      divergencias.push(`Devolução encontrada no PDF (${formatBRL(pdfDevolucaoTotal)}), mas não encontrada no Excel.`);
+    else if (pdf && !c.ok)
+      divergencias.push(
+        `Valor de devolução divergente (Excel ${formatBRL(excelTotal)} × PDF ${formatBRL(pdfDevolucaoTotal!)}).`,
+      );
+  }
+
   divergencias.push(...obterDivergenciasNotaFiscal(pdf));
 
   return {
@@ -695,6 +715,7 @@ export function compararExcelComPdf(
     apartamento,
     inclusoes,
     exclusoes,
+    devolucoes,
     divergencias,
     avisosPdf: pdf?.avisos ?? [],
     valorLiquido: pdf?.valorLiquido ?? null,
