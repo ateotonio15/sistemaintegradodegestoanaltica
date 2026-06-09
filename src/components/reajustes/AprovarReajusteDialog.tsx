@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, XCircle, Send, BedDouble, Hotel, AlertTriangle, Users } from "lucide-react";
+import { CheckCircle2, XCircle, Send, BedDouble, Hotel, AlertTriangle, Users, FileText, Calendar, TrendingUp, Activity, User } from "lucide-react";
 import { formatCentavosBRL, nomeMes, labelFaixa } from "@/lib/reajuste-utils";
 
 interface Props {
