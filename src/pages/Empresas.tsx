@@ -499,6 +499,73 @@ export default function Empresas() {
       );
   }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter]);
 
+  async function exportarInativasExcel() {
+    const inativas = empresas
+      .filter((e) => e.status_empresa === "Inativa")
+      .sort((a, b) => {
+        const da = (a as any).data_rescisao || "";
+        const db = (b as any).data_rescisao || "";
+        return db.localeCompare(da);
+      });
+
+    if (inativas.length === 0) {
+      toast({ title: "Sem dados", description: "Nenhum contrato inativado encontrado.", variant: "destructive" });
+      return;
+    }
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Contratos Inativos");
+    ws.columns = [
+      { header: "Nome", key: "nome", width: 38 },
+      { header: "Cód. Contrato", key: "codigo_contrato", width: 16 },
+      { header: "CNPJ", key: "cnpj", width: 20 },
+      { header: "Resp. Contrato", key: "responsavel_contrato", width: 24 },
+      { header: "Corretora / Operadora", key: "operadora_plano", width: 24 },
+      { header: "Tipo Contrato", key: "tipo_contrato", width: 16 },
+      { header: "Vidas", key: "vidas", width: 10 },
+      { header: "Data Implantação", key: "data_implantacao", width: 16 },
+      { header: "Data Rescisão", key: "data_rescisao", width: 16 },
+      { header: "E-mail Empresa", key: "email_empresa", width: 28 },
+      { header: "Telefone", key: "telefone_empresa", width: 16 },
+      { header: "Contato", key: "contato_empresa", width: 22 },
+      { header: "Observações", key: "observacoes", width: 40 },
+    ];
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } } as any;
+
+    inativas.forEach((e: any) => {
+      ws.addRow({
+        nome: e.nome ?? "",
+        codigo_contrato: e.codigo_contrato ?? "",
+        cnpj: e.cnpj ?? "",
+        responsavel_contrato: e.responsavel_contrato ?? "",
+        operadora_plano: e.operadora_plano ?? "",
+        tipo_contrato: e.tipo_contrato ?? "",
+        vidas: e.vidas ?? 0,
+        data_implantacao: formatDateBR(e.data_implantacao),
+        data_rescisao: formatDateBR(e.data_rescisao),
+        email_empresa: e.email_empresa ?? "",
+        telefone_empresa: e.telefone_empresa ?? "",
+        contato_empresa: e.contato_empresa ?? "",
+        observacoes: e.observacoes ?? "",
+      });
+    });
+
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columns.length } };
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const hoje = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `contratos-inativos-${hoje}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast({ title: "Relatório gerado", description: `${inativas.length} contrato(s) inativo(s) exportado(s).` });
+  }
+
   return (
     <>
       <div className="space-y-6">
