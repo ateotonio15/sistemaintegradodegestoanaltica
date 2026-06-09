@@ -65,6 +65,13 @@ export default function Reajustes() {
     });
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusEmpresaId = searchParams.get("empresa");
+  const focusFluxo = searchParams.get("fluxo");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+  const didFocusRef = useRef<string | null>(null);
+
   const { data: empresas = [] } = useQuery({
     queryKey: ["reajustes-empresas-ativas"],
     queryFn: async () => {
