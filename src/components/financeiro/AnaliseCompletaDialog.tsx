@@ -361,11 +361,14 @@ export function AnaliseCompletaDialog({
       }
 
       // ---- ISSQN Retido (com fallback em cadeia) ----
+      // IMPORTANTE: só usar subtração Serviço − Líquido quando o Valor do Serviço veio do PDF.
+      // Se veio do Excel (fallback da Etapa 3), a subtração produz um valor falso.
+      const valorServDoPdf = valorServicoOrigem === "extraído do PDF" ? valorServ : null;
       let issqnRet: number | null = tributos.issqnRetido;
       let obsRet: string | undefined;
       if (retencao === "retido" && issqnRet == null) {
-        if (valorServ != null && valorLiquido != null) {
-          const calc = Number((valorServ - valorLiquido).toFixed(2));
+        if (valorServDoPdf != null && valorLiquido != null) {
+          const calc = Number((valorServDoPdf - valorLiquido).toFixed(2));
           if (calc > 0.01) {
             issqnRet = calc;
             obsRet = "Calculado por Valor do Serviço − Valor Líquido";
@@ -374,10 +377,16 @@ export function AnaliseCompletaDialog({
         if (
           issqnRet == null &&
           issqnDev != null &&
-          valorServ != null &&
+          valorServDoPdf != null &&
           valorLiquido != null &&
-          aprox(valorServ - issqnDev, valorLiquido, 0.1)
+          aprox(valorServDoPdf - issqnDev, valorLiquido, 0.1)
         ) {
+          issqnRet = issqnDev;
+          obsRet = "Inferido a partir do ISSQN Apurado";
+        }
+        // Último fallback: se temos ISSQN Apurado e nenhum Valor do Serviço do PDF disponível,
+        // assumir Retido = Apurado (regra "Retido pelo Tomador" implica igualdade).
+        if (issqnRet == null && issqnDev != null && valorServDoPdf == null) {
           issqnRet = issqnDev;
           obsRet = "Inferido a partir do ISSQN Apurado";
         }
