@@ -220,10 +220,25 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
     }
     setSaving(true);
     let okCount = 0, errCount = 0;
+    const errors: string[] = [];
     try {
       for (const r of valid) {
-        const usa_faixa = r.enfFaixas.some((x) => x > 0) || r.aptFaixas.some((x) => x > 0);
-        const payload = {
+        const temEnf = r.enfFaixas.some((x) => x > 0);
+        const temApt = r.aptFaixas.some((x) => x > 0);
+        const usa_faixa = temEnf || temApt;
+
+        const enfArr = FAIXAS.map(([ini, fim, label], i) => ({ ini, fim, label, centavos: r.enfFaixas[i] }));
+        const aptArr = FAIXAS.map(([ini, fim, label], i) => ({ ini, fim, label, centavos: r.aptFaixas[i] }));
+        const faixas_etarias_json = usa_faixa ? {
+          origem: "importacao_administradoras",
+          enfermaria: enfArr,
+          apartamento: aptArr,
+        } : null;
+
+        const totalEnfCent = r.enfFaixas.reduce((a, b) => a + b, 0);
+        const totalAptCent = r.aptFaixas.reduce((a, b) => a + b, 0);
+
+        const payload: any = {
           nome: r.nome,
           cnpj: r.cnpj || null,
           codigo_contrato: r.codigo || null,
@@ -244,28 +259,22 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
           tipo_movimentacao: "Diária",
           responsavel_contrato: "Márcia Cristina",
           contrato_faixa_etaria: usa_faixa,
+          faixas_etarias: faixas_etarias_json,
+          valor_enfermaria_centavos: totalEnfCent || null,
+          valor_apartamento_centavos: totalAptCent || null,
         };
 
         let empresaId = r.empresaId;
         if (empresaId) {
           const { error } = await supabase.from("empresas").update(payload).eq("id", empresaId);
-          if (error) { errCount++; continue; }
+          if (error) { errCount++; errors.push(`${r.nome}: ${error.message}`); continue; }
         } else {
           const { data: created, error } = await supabase.from("empresas").insert(payload).select("id").single();
-          if (error || !created) { errCount++; continue; }
+          if (error || !created) { errCount++; errors.push(`${r.nome}: ${error?.message || "falha ao criar"}`); continue; }
           empresaId = created.id;
         }
 
-        // Faixas etárias → implantacoes_contratos
         if (usa_faixa) {
-          const enfArr = FAIXAS.map(([ini, fim, label], i) => ({ ini, fim, label, centavos: r.enfFaixas[i] }));
-          const aptArr = FAIXAS.map(([ini, fim, label], i) => ({ ini, fim, label, centavos: r.aptFaixas[i] }));
-          const faixas_etarias = {
-            origem: "importacao_administradoras",
-            enfermaria: enfArr,
-            apartamento: aptArr,
-          };
-
           const { data: existing } = await supabase
             .from("implantacoes_contratos")
             .select("id")
@@ -275,7 +284,7 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
             .maybeSingle();
 
           if (existing?.id) {
-            await supabase.from("implantacoes_contratos").update({ faixas_etarias: faixas_etarias as any }).eq("id", existing.id);
+            await supabase.from("implantacoes_contratos").update({ faixas_etarias: faixas_etarias_json as any }).eq("id", existing.id);
           } else {
             await supabase.from("implantacoes_contratos").insert({
               empresa_id: empresaId,
@@ -284,11 +293,10 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
               status: "implantado",
               etapa_atual: 99,
               progresso: 100,
-              faixas_etarias: faixas_etarias as any,
+              faixas_etarias: faixas_etarias_json as any,
             });
           }
 
-          // Reajuste opcional
           if (r.percentual > 0) {
             const ano = new Date().getFullYear();
             const { data: reajUp } = await supabase
@@ -301,10 +309,10 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
                 data_aplicacao: new Date().toISOString().slice(0, 10),
                 status: "Reajustado",
                 status_reajuste: "confirmado",
-                possui_enfermaria: r.enfFaixas.some((x) => x > 0),
-                possui_apartamento: r.aptFaixas.some((x) => x > 0),
-                usa_faixa_etaria_enfermaria: r.enfFaixas.some((x) => x > 0),
-                usa_faixa_etaria_apartamento: r.aptFaixas.some((x) => x > 0),
+                possui_enfermaria: temEnf,
+                possui_apartamento: temApt,
+                usa_faixa_etaria_enfermaria: temEnf,
+                usa_faixa_etaria_apartamento: temApt,
                 percentual_unico_enfermaria: false,
                 percentual_unico_apartamento: false,
                 observacao: "Importado via planilha de Administradoras",
@@ -335,9 +343,11 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
 
       qc.invalidateQueries({ queryKey: ["empresas-administradoras"] });
       qc.invalidateQueries({ queryKey: ["empresas"] });
+      qc.invalidateQueries({ queryKey: ["empresa-valores"] });
       toast({
         title: "Importação concluída",
-        description: `${okCount} registro(s) salvo(s)${errCount > 0 ? ` · ${errCount} erro(s)` : ""}`,
+        description: `${okCount} registro(s) salvo(s)${errCount > 0 ? ` · ${errCount} erro(s): ${errors.slice(0, 3).join(" | ")}` : ""}`,
+        variant: errCount > 0 ? "destructive" : "default",
       });
       reset();
       onOpenChange(false);
