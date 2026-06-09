@@ -25,6 +25,8 @@ export interface AnaliseResultado {
   retroativas?: InclusaoResultado;
   /** Apenas Análise Moto Honda — total geralmente negativo. */
   exclusoes?: InclusaoResultado;
+  /** Devoluções — categoria própria com valor negativo (crédito). */
+  devolucoes?: InclusaoResultado;
   avisos: string[];
 }
 
@@ -38,6 +40,7 @@ export interface AnalisePorCnpj {
   inclusoes: InclusaoResultado;
   retroativas?: InclusaoResultado;
   exclusoes?: InclusaoResultado;
+  devolucoes?: InclusaoResultado;
   avisos: string[];
 }
 
@@ -253,16 +256,18 @@ function isRetroativa(tipo: string): boolean {
 
 function isExclusao(tipo: string): boolean {
   const t = norm(tipo);
-  // "Devolução" também é tratada como exclusão (valor negativo / crédito).
   return (
     t.includes("exclusao") ||
     t.includes("exclusão") ||
-    t.includes("excluido") ||
-    t.includes("devolucao") ||
-    t.includes("devolução") ||
-    t.includes("devolvido")
+    t.includes("excluido")
   );
 }
+
+function isDevolucao(tipo: string): boolean {
+  const t = norm(tipo);
+  return t.includes("devolucao") || t.includes("devolução") || t.includes("devolvido");
+}
+
 
 
 /**
@@ -360,6 +365,8 @@ export async function analisarExcelFinanceiroPorPagador(
   let retroTotal = 0;
   let excQtd = 0;
   let excTotal = 0;
+  let devQtd = 0;
+  let devTotal = 0;
 
   let linhasCasadas = 0;
 
@@ -392,11 +399,18 @@ export async function analisarExcelFinanceiroPorPagador(
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
 
+    if (idxTipo >= 0 && isDevolucao(String(tipoCell))) {
+      devQtd += 1;
+      devTotal += valorNum > 0 ? -valorNum : valorNum;
+      continue;
+    }
+
     if (idxTipo >= 0 && isExclusao(String(tipoCell))) {
       excQtd += 1;
       excTotal += valorNum > 0 ? -valorNum : valorNum;
       continue;
     }
+
 
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
       incQtd += 1;
@@ -443,6 +457,9 @@ export async function analisarExcelFinanceiroPorPagador(
   }
   if (excQtd > 0 || excTotal !== 0) {
     result.exclusoes = { quantidade: excQtd, total: excTotal };
+  }
+  if (devQtd > 0 || devTotal !== 0) {
+    result.devolucoes = { quantidade: devQtd, total: devTotal };
   }
 
   return result;
@@ -757,7 +774,9 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     incQtd: number; incTotal: number;
     retroQtd: number; retroTotal: number;
     excQtd: number; excTotal: number;
+    devQtd: number; devTotal: number;
   };
+
 
   const blocos: Acc[] = [];
   let cur: Acc | null = null;
@@ -794,6 +813,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         incQtd: 0, incTotal: 0,
         retroQtd: 0, retroTotal: 0,
         excQtd: 0, excTotal: 0,
+        devQtd: 0, devTotal: 0,
       };
       blocos.push(cur);
       continue;
@@ -820,11 +840,18 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       continue;
     }
 
+    if (labelNorm.includes("devolu")) {
+      cur.devQtd += qtdNum;
+      cur.devTotal += valNum;
+      continue;
+    }
+
     if (labelNorm.includes("exclus")) {
       cur.excQtd += qtdNum;
       cur.excTotal += valNum;
       continue;
     }
+
     const cat = classificarPlano(labelRaw);
     // Algumas abas RESUMO repetem os módulos no rodapé antes de "Total Geral"
     // apenas com a quantidade (ex.: "M.Empresarial 395"), o que duplicava vidas.
@@ -864,6 +891,9 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     }
     if (g.excQtd > 0 || g.excTotal !== 0) {
       bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
+    }
+    if (g.devQtd > 0 || g.devTotal !== 0) {
+      bloco.devolucoes = { quantidade: g.devQtd, total: g.devTotal };
     }
 
     return bloco;
@@ -945,6 +975,8 @@ export async function analisarExcelFinanceiroPorCnpj(
     retroTotal: number;
     excQtd: number;
     excTotal: number;
+    devQtd: number;
+    devTotal: number;
   };
   const grupos = new Map<string, Acc>();
   const ehCnpjPlaceholder = (c: string) => !c || c.length !== 14 || /0{6,}$/.test(c);
@@ -968,6 +1000,8 @@ export async function analisarExcelFinanceiroPorCnpj(
         retroTotal: 0,
         excQtd: 0,
         excTotal: 0,
+        devQtd: 0,
+        devTotal: 0,
       };
       grupos.set(key, g);
     } else {
@@ -998,11 +1032,17 @@ export async function analisarExcelFinanceiroPorCnpj(
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
 
+    if (idxTipo >= 0 && isDevolucao(String(tipoCell))) {
+      grp.devQtd += 1;
+      grp.devTotal += valorNum > 0 ? -valorNum : valorNum;
+      continue;
+    }
     if (idxTipo >= 0 && isExclusao(String(tipoCell))) {
       grp.excQtd += 1;
       grp.excTotal += valorNum > 0 ? -valorNum : valorNum;
       continue;
     }
+
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
       grp.incQtd += 1;
       if (valorValido) grp.incTotal += valor;
@@ -1046,6 +1086,9 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (g.excQtd > 0 || g.excTotal !== 0) {
         bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
       }
+      if (g.devQtd > 0 || g.devTotal !== 0) {
+        bloco.devolucoes = { quantidade: g.devQtd, total: g.devTotal };
+      }
 
       return bloco;
     })
@@ -1054,7 +1097,8 @@ export async function analisarExcelFinanceiroPorCnpj(
         b.enfermaria.beneficiarios > 0 ||
         b.apartamento.beneficiarios > 0 ||
         b.inclusoes.quantidade > 0 ||
-        (b.exclusoes && b.exclusoes.quantidade > 0),
+        (b.exclusoes && b.exclusoes.quantidade > 0) ||
+        (b.devolucoes && b.devolucoes.quantidade > 0),
     )
     .sort((a, b) => {
       const ta = a.enfermaria.total + a.apartamento.total + a.inclusoes.total;
@@ -1130,6 +1174,7 @@ export function cruzarExcelComPdfs(
       inclusoes: bloco.inclusoes,
       retroativas: bloco.retroativas,
       exclusoes: bloco.exclusoes,
+      devolucoes: bloco.devolucoes,
       avisos: bloco.avisos,
 
     };

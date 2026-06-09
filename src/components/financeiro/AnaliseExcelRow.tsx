@@ -105,7 +105,8 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
         r.apartamento.total > 0 ||
         r.inclusoes.quantidade > 0 ||
         (r.inclusoes.total ?? 0) > 0 ||
-        (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)),
+        (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)) ||
+        (r.devolucoes && (r.devolucoes.quantidade > 0 || r.devolucoes.total !== 0)),
     );
 
   const handleAnaliseCompleta = () => {
@@ -261,6 +262,15 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     beneficiarios: r.exclusoes.quantidade,
                     mensalidade: null,
                     total: r.exclusoes.total,
+                    destaqueNegativo: true,
+                  });
+                }
+                if (r.devolucoes && (r.devolucoes.quantidade > 0 || r.devolucoes.total !== 0)) {
+                  linhas.push({
+                    label: "Devolução",
+                    beneficiarios: r.devolucoes.quantidade,
+                    mensalidade: null,
+                    total: r.devolucoes.total,
                     destaqueNegativo: true,
                   });
                 }
