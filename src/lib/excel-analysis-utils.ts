@@ -548,6 +548,48 @@ function campo(excel: number, pdf: number | null, kind: "money" | "int"): CampoV
   return { excel, pdf, ok };
 }
 
+export function obterDivergenciasNotaFiscal(
+  dados: Pick<AnalisePdfResultado, "valorLiquido" | "tributos"> | null | undefined,
+): string[] {
+  const tributos = dados?.tributos;
+  if (!tributos) return [];
+
+  const divergencias: string[] = [];
+  const aprox = (a: number, b: number, tol = 0.05) => Math.abs(a - b) <= tol;
+  const valorServico = tributos.valorServico;
+  const valorLiquido = dados?.valorLiquido ?? null;
+  const issqnDev = tributos.issqn;
+  let issqnRet = tributos.issqnRetido;
+
+  if (tributos.retencaoIssqn === "retido" && issqnRet == null && valorServico != null && valorLiquido != null) {
+    const calculado = Number((valorServico - valorLiquido).toFixed(2));
+    if (calculado > 0.01) issqnRet = calculado;
+  }
+
+  if (tributos.retencaoIssqn === "retido" && issqnRet != null && issqnDev != null && !aprox(issqnRet, issqnDev)) {
+    divergencias.push(
+      `ISSQN Retido (${formatBRL(issqnRet)}) deveria ser igual ao ISSQN Apurado (${formatBRL(issqnDev)}).`,
+    );
+  }
+
+  if (valorLiquido != null && valorServico != null) {
+    if (tributos.retencaoIssqn === "retido" && issqnRet != null) {
+      const esperado = Number((valorServico - issqnRet).toFixed(2));
+      if (!aprox(esperado, valorLiquido)) {
+        divergencias.push(
+          `Valor Líquido (${formatBRL(valorLiquido)}) deveria ser Valor do Serviço − ISSQN Retido = ${formatBRL(esperado)}.`,
+        );
+      }
+    } else if (tributos.retencaoIssqn === "nao_retido" && !aprox(valorServico, valorLiquido)) {
+      divergencias.push(
+        `ISSQN não retido: Valor Líquido (${formatBRL(valorLiquido)}) deveria ser igual ao Valor do Serviço (${formatBRL(valorServico)}).`,
+      );
+    }
+  }
+
+  return divergencias;
+}
+
 export function compararExcelComPdf(
   excel: AnaliseResultado,
   pdf: AnalisePdfResultado | null,
@@ -640,6 +682,8 @@ export function compararExcelComPdf(
       );
   }
 
+  divergencias.push(...obterDivergenciasNotaFiscal(pdf));
+
   return {
     pagador: excel.pagador,
     arquivoPdf: pdf?.arquivo ?? null,
@@ -649,6 +693,8 @@ export function compararExcelComPdf(
     exclusoes,
     divergencias,
     avisosPdf: pdf?.avisos ?? [],
+    valorLiquido: pdf?.valorLiquido ?? null,
+    tributos: pdf?.tributos ?? null,
   };
 }
 

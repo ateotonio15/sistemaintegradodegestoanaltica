@@ -124,6 +124,15 @@ export function extrairDivergencias(
 ): DivergenciaSerial[] {
   const out: DivergenciaSerial[] = [];
   if (!comparacao) return out;
+  if (comparacao.divergencias?.length) {
+    return Array.from(new Set(comparacao.divergencias)).map((mensagem) => ({
+      campo: "Nota fiscal",
+      valor_excel: null,
+      valor_pdf: null,
+      diferenca: null,
+      mensagem,
+    }));
+  }
 
   if (isSimplificada(comparacao)) {
     pushIfDiverge(out, "Total de beneficiários", comparacao.beneficiarios, false);
