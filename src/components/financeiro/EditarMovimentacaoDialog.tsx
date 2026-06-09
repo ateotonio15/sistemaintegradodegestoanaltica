@@ -407,85 +407,39 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dia-emissao-financeiro"] });
       toast.success("Movimentação atualizada");
+
+      // Replicação Grupo Financeiro (vencimento + dia de emissão) — sempre ocorre
+      // quando há grupo ativo, INDEPENDENTE de a empresa ter pagadores irmãos.
+      const b = built as any;
+      if (b && grupoAtivo && movimentacao) {
+        try {
+          if (b.vencimentoAlterado) {
+            await supabase.rpc("aplicar_vencimento_grupo" as any, {
+              p_mov_id: movimentacao.id,
+              p_data_vencimento: b.dataVencimentoIso || null,
+            });
+          }
+          if (b.diaEmissaoAlterado) {
+            await supabase.rpc("aplicar_dia_emissao_grupo" as any, {
+              p_mov_id: movimentacao.id,
+              p_dia_emissao: b.novoDiaEmissao,
+            });
+          }
+          if (b.vencimentoAlterado || b.diaEmissaoAlterado) {
+            toast.success(`Vencimento/Dia de emissão replicados ao grupo ${grupoAtivo.nome_grupo}`);
+            queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+          }
+        } catch (e: any) {
+          toast.error("Erro ao replicar ao grupo: " + e.message);
+        }
+      }
+
       // Se contrato tem múltiplos pagadores, pergunta se replica
       if (built && temIrmaos && movimentacao) {
-        // Atalho: usuário marcou "aplicar a todos" — replica direto sem perguntar
-        if (aplicarEnvioATodos) {
-          try {
-            const r = await replicarFinanceiroParaPagadores({
-              empresaIdOrigem: movimentacao.empresa_id,
-              codigoContrato: pagadores[0]?.codigo_contrato,
-              mesReferencia: movimentacao.mes_referencia,
-              periodo: movimentacao.periodo,
-              payload: built.payload,
-            });
-            toast.success(
-              `Replicado para pagadores: ${r.atualizados} atualizado(s), ${r.criados} criado(s)`,
-            );
-            queryClient.invalidateQueries({ queryKey: ["financeiro"] });
-          } catch (e: any) {
-            toast.error("Erro ao replicar: " + e.message);
-          } finally {
-            onOpenChange(false);
-          }
-          return;
-        }
-        setReplicaConfirm({
-          title: "Aplicar a todos os pagadores?",
-          description: `O contrato tem ${pagadores.length} pagadores: ${pagadores.map((p) => p.nome).join(", ")}. Deseja aplicar esta alteração para todos os pagadores do contrato?`,
-          pagadores,
-          onTodos: async () => {
-            try {
-              const r = await replicarFinanceiroParaPagadores({
-                empresaIdOrigem: movimentacao.empresa_id,
-                codigoContrato: pagadores[0]?.codigo_contrato,
-                mesReferencia: movimentacao.mes_referencia,
-                periodo: movimentacao.periodo,
-                payload: built.payload,
-              });
-              toast.success(
-                `Replicado: ${r.atualizados} atualizado(s), ${r.criados} criado(s)`,
-              );
-              queryClient.invalidateQueries({ queryKey: ["financeiro"] });
-            } catch (e: any) {
-              toast.error("Erro ao replicar: " + e.message);
-            } finally {
-              setReplicaConfirm(null);
-              onOpenChange(false);
-            }
-          },
-          onApenas: () => {
-            setReplicaConfirm(null);
-            onOpenChange(false);
-          },
-        });
+...
       } else {
-        // Checagem de Grupo Financeiro.
-        const b = built as any;
+        // Checagem de Grupo Financeiro (envio de nota e DDA — exigem confirmação).
         if (grupoAtivo && movimentacao) {
-          // Vencimento e Dia de emissão SEMPRE replicam para todo o grupo (sem perguntar).
-          try {
-            if (b?.vencimentoAlterado) {
-              await supabase.rpc("aplicar_vencimento_grupo" as any, {
-                p_mov_id: movimentacao.id,
-                p_data_vencimento: b?.dataVencimentoIso || null,
-              });
-            }
-            if (b?.diaEmissaoAlterado) {
-              await supabase.rpc("aplicar_dia_emissao_grupo" as any, {
-                p_mov_id: movimentacao.id,
-                p_dia_emissao: b?.novoDiaEmissao,
-              });
-            }
-            if (b?.vencimentoAlterado || b?.diaEmissaoAlterado) {
-              toast.success(`Vencimento/Dia de emissão replicados ao grupo ${grupoAtivo.nome_grupo}`);
-              queryClient.invalidateQueries({ queryKey: ["financeiro"] });
-            }
-          } catch (e: any) {
-            toast.error("Erro ao replicar ao grupo: " + e.message);
-          }
-
-          // Envio de nota / DDA continuam exigindo confirmação.
           if (b?.envioAlterado || b?.ddaAlterado) {
             setGrupoConfirm({
               grupoNome: grupoAtivo.nome_grupo,
