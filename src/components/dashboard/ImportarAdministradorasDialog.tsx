@@ -142,15 +142,19 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
       ws.addRow(exemplo);
 
       const buffer = await wb.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const blob = new Blob([buffer], { type: "application/octet-stream" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = "template_administradoras.xlsx";
+      link.rel = "noopener";
+      link.style.display = "none";
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 1000);
     } catch (err: any) {
       toast({ title: "Erro", description: err.message ?? "Não foi possível baixar o template", variant: "destructive" });
     }
