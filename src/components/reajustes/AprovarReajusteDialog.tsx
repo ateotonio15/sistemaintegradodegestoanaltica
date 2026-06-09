@@ -188,24 +188,24 @@ export function AprovarReajusteDialog({ open, onOpenChange, reajuste, empresaNom
             </div>
           )}
 
-          {(enfAtual > 0 || aptAtual > 0) && (
+          {(reajuste.possui_enfermaria || reajuste.possui_apartamento) && (
             <div className="grid md:grid-cols-2 gap-3">
-              {enfAtual > 0 && (
+              {reajuste.possui_enfermaria && (
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1.5">
                   <div className="flex items-center gap-2 font-medium text-sm"><BedDouble className="h-4 w-4 text-emerald-600" /> Enfermaria</div>
-                  <Row label="Atual" v={formatCentavosBRL(enfAtual)} />
-                  <Row label="Reajustado" v={formatCentavosBRL(reajuste.valor_reajustado_enfermaria_centavos)} />
+                  <Row label="Valor anterior" v={formatCentavosBRL(enfAtual)} />
+                  <Row label="Valor novo (reajustado)" v={formatCentavosBRL(reajuste.valor_reajustado_enfermaria_centavos)} />
                   <Row label="Retroativo" v={formatCentavosBRL(reajuste.valor_retroativo_enfermaria_centavos)} />
-                  <Row label="Final" v={formatCentavosBRL(enfFinal)} bold />
+                  <Row label="Valor final" v={formatCentavosBRL(enfFinal)} bold />
                 </div>
               )}
-              {aptAtual > 0 && (
+              {reajuste.possui_apartamento && (
                 <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 space-y-1.5">
                   <div className="flex items-center gap-2 font-medium text-sm"><Hotel className="h-4 w-4 text-blue-600" /> Apartamento</div>
-                  <Row label="Atual" v={formatCentavosBRL(aptAtual)} />
-                  <Row label="Reajustado" v={formatCentavosBRL(reajuste.valor_reajustado_apartamento_centavos)} />
+                  <Row label="Valor anterior" v={formatCentavosBRL(aptAtual)} />
+                  <Row label="Valor novo (reajustado)" v={formatCentavosBRL(reajuste.valor_reajustado_apartamento_centavos)} />
                   <Row label="Retroativo" v={formatCentavosBRL(reajuste.valor_retroativo_apartamento_centavos)} />
-                  <Row label="Final" v={formatCentavosBRL(aptFinal)} bold />
+                  <Row label="Valor final" v={formatCentavosBRL(aptFinal)} bold />
                 </div>
               )}
             </div>
