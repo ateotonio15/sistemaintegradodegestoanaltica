@@ -30,8 +30,8 @@ export default function Reajustes() {
   const { user, isAdmin, isViewOnly, isComum, isDiretora, isFinanceiro } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const canCriar = isAdmin || isComum;
-  const podeSolicitar = isAdmin || isViewOnly;
+  const canCriar = isAdmin || isDiretora;
+  const podeSolicitar = isAdmin || isDiretora;
 
 
   const anoAtual = new Date().getFullYear();
