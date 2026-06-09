@@ -176,14 +176,9 @@ export function AnexosViewerDialog({
     if (!confirm("Deseja realmente cancelar o faturamento em andamento?")) return;
     setCancelando(true);
     try {
-      const { error } = await supabase
-        .from("financeiro_movimentacoes")
-        .update({
-          faturamento_iniciado_por: null,
-          faturamento_iniciado_por_nome: null,
-          faturamento_iniciado_em: null,
-        })
-        .eq("id", movimentacaoId);
+      const { error } = await supabase.rpc("aplicar_cancelar_faturamento_grupo" as any, {
+        p_mov_id: movimentacaoId,
+      });
       if (error) throw error;
       toast.success("Faturamento cancelado");
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
