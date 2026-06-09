@@ -1000,6 +1000,8 @@ export async function analisarExcelFinanceiroPorCnpj(
         retroTotal: 0,
         excQtd: 0,
         excTotal: 0,
+        devQtd: 0,
+        devTotal: 0,
       };
       grupos.set(key, g);
     } else {
