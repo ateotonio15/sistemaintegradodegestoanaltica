@@ -125,7 +125,7 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
     setFaixasApt(baseApt);
     setIndexador("IPCA");
     setSinistralidade("");
-  }, [open, empresa]);
+  }, [open, empresa, implantacao]);
 
   const pctNum = useMemo(() => {
     const n = parseFloat(String(percentual).replace(",", "."));
