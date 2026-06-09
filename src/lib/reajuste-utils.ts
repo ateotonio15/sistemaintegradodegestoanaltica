@@ -189,8 +189,9 @@ export function corStatusReajusteFluxo(s: StatusReajusteFluxo | string | null | 
   if (s === "liberado" || s === "liberado_financeiro") return "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30";
   if (s === "retroativo_aplicado") return "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30";
   if (s === "rejeitado") return "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
-  if (s === "aguardando_aprovacao") return "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30";
-  if (s === "solicitado") return "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30";
+  if (s === "aguardando_aprovacao" || s === "pendente_confirmacao" || s === "solicitado") {
+    return "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30";
+  }
   return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
 }
 
