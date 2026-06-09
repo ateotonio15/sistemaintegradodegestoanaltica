@@ -95,6 +95,7 @@ export default function Empresas() {
   const [rescisaoDate, setRescisaoDate] = useState("");
   const [showRescisaoInput, setShowRescisaoInput] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [grupoEmpresa, setGrupoEmpresa] = useState<{ id: string; nome: string } | null>(null);
   const [draftEmpresaId, setDraftEmpresaId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [dataImplantacao, setDataImplantacao] = useState("");
@@ -109,7 +110,7 @@ export default function Empresas() {
   const [importingAnexo, setImportingAnexo] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin, role, isViewOnly, isExecutivo, user } = useAuth();
+  const { isAdmin, role, isViewOnly, isExecutivo, isFinanceiro, user } = useAuth();
   const isComumLike = role === "comum" || role === "administradoras";
   const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo);
   const canFullEdit = isAdmin || isComumLike;
@@ -1366,6 +1367,9 @@ export default function Empresas() {
                               {canEdit && (
                                 <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10" title="Editar"><Pencil className="h-4 w-4 text-primary" /></Button>
                               )}
+                              {isFinanceiro && (
+                                <Button variant="ghost" size="icon" onClick={() => setGrupoEmpresa({ id: e.id, nome: e.nome })} className="rounded-lg hover:bg-primary/10" title="Grupo Financeiro"><Users className="h-4 w-4 text-primary" /></Button>
+                              )}
                               {canFullEdit && (
                                 <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(e.id)} className="rounded-lg hover:bg-destructive/10" title="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                               )}
@@ -1380,6 +1384,21 @@ export default function Empresas() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Grupo Financeiro Modal (acesso rápido para Financeiro) */}
+        <Dialog open={!!grupoEmpresa} onOpenChange={(open) => { if (!open) setGrupoEmpresa(null); }}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl">
+            <DialogHeader>
+              <DialogTitle>Grupo Financeiro</DialogTitle>
+              <DialogDescription>{grupoEmpresa?.nome}</DialogDescription>
+            </DialogHeader>
+            {grupoEmpresa && (
+              <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                <GrupoFinanceiroSection empresaId={grupoEmpresa.id} />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Detail Modal */}
         <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
