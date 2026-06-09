@@ -623,6 +623,9 @@ export type Database = {
           tipo_contrato: string
           tipo_financeiro: string | null
           tipo_movimentacao: string | null
+          ultima_alteracao_em: string | null
+          ultima_alteracao_nome: string | null
+          ultima_alteracao_user_id: string | null
           updated_at: string
           valor_apartamento_centavos: number | null
           valor_enfermaria_centavos: number | null
@@ -677,6 +680,9 @@ export type Database = {
           tipo_contrato?: string
           tipo_financeiro?: string | null
           tipo_movimentacao?: string | null
+          ultima_alteracao_em?: string | null
+          ultima_alteracao_nome?: string | null
+          ultima_alteracao_user_id?: string | null
           updated_at?: string
           valor_apartamento_centavos?: number | null
           valor_enfermaria_centavos?: number | null
@@ -731,6 +737,9 @@ export type Database = {
           tipo_contrato?: string
           tipo_financeiro?: string | null
           tipo_movimentacao?: string | null
+          ultima_alteracao_em?: string | null
+          ultima_alteracao_nome?: string | null
+          ultima_alteracao_user_id?: string | null
           updated_at?: string
           valor_apartamento_centavos?: number | null
           valor_enfermaria_centavos?: number | null
