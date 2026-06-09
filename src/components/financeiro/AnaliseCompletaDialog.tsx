@@ -299,6 +299,15 @@ export function AnaliseCompletaDialog({
       valorServicoOrigem = "calculado por conferência Excel x Histórico";
     }
 
+    // Diferença Excel x NFS-e (positiva = NF menor que Excel → provável devolução abatida)
+    const aproxServ = (a: number, b: number) => Math.abs(a - b) < 0.01;
+    const excelIgualHistorico =
+      totalExcelGeral > 0 && totalPdfGeral > 0 && aproxServ(totalExcelGeral, totalPdfGeral);
+    const difExcelNf =
+      valorServicoNf != null && totalExcelGeral > 0
+        ? Number((totalExcelGeral - valorServicoNf).toFixed(2))
+        : null;
+
     const servico: ConferenciaServico[] = [
       {
         origem: "Total do Excel",
@@ -317,7 +326,9 @@ export function AnaliseCompletaDialog({
         observacao:
           valorServicoOrigem && valorServicoOrigem !== "extraído do PDF"
             ? valorServicoOrigem
-            : undefined,
+            : difExcelNf != null && difExcelNf > 0.01 && excelIgualHistorico
+              ? `Diferença de ${formatBRL(difExcelNf)} em relação ao Excel — provável devolução abatida na NF`
+              : undefined,
       },
     ];
 
@@ -328,7 +339,16 @@ export function AnaliseCompletaDialog({
         (v): v is number => v != null && v > 0,
       );
       if (valores.length < 2) servStatus = "Atenção";
-      else {
+      else if (excelIgualHistorico) {
+        // Excel == Histórico NFS-e: conferência principal OK.
+        // Valor do Serviço da NFS-e menor que o Excel é aceitável (devoluções).
+        // Apenas marca divergência se a NF for MAIOR que o Excel.
+        if (valorServicoNf != null && valorServicoNf - totalExcelGeral > 0.01) {
+          servStatus = "Divergente";
+        } else {
+          servStatus = "OK";
+        }
+      } else {
         const max = Math.max(...valores);
         const min = Math.min(...valores);
         servStatus = max - min < 0.01 ? "OK" : "Divergente";
