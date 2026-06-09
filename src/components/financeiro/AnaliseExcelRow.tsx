@@ -16,6 +16,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   formatBRL,
+  obterDivergenciasNotaFiscal,
   type AnaliseResultado,
   type ComparacaoResultado,
   type ComparacaoSimplificada,
@@ -190,6 +191,17 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                 const simplificada = isSimplificada(cmpRaw);
                 const cmp = !simplificada ? (cmpRaw as ComparacaoResultado | null) : null;
                 const cmpSimples = simplificada ? (cmpRaw as ComparacaoSimplificada) : null;
+                const divergenciasPreview = Array.from(
+                  new Set([
+                    ...(cmpRaw?.divergencias ?? []),
+                    ...(!simplificada
+                      ? obterDivergenciasNotaFiscal({
+                          valorLiquido: (cmpRaw as any)?.valorLiquido ?? null,
+                          tributos: (cmpRaw as any)?.tributos ?? null,
+                        })
+                      : []),
+                  ]),
+                );
 
                 const linhas: Array<{
                   label: string;
@@ -418,7 +430,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                       </div>
                     )}
 
-                    {cmpRaw && cmpRaw.divergencias.length > 0 && (
+                    {cmpRaw && divergenciasPreview.length > 0 && (
                       <Alert className="mt-3 border-destructive/50 bg-destructive/10 py-2">
                         <XCircle className="h-3.5 w-3.5 text-destructive" />
                         <AlertTitle className="text-xs font-semibold text-destructive">
@@ -426,7 +438,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                         </AlertTitle>
                         <AlertDescription>
                           <ul className="list-disc ml-4 text-xs text-foreground/80 space-y-0.5 mt-1">
-                            {cmpRaw.divergencias.map((d, i) => (
+                            {divergenciasPreview.map((d, i) => (
                               <li key={i}>{d}</li>
                             ))}
                           </ul>
@@ -434,7 +446,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                       </Alert>
                     )}
 
-                    {cmpRaw && cmpRaw.divergencias.length === 0 && cmpRaw.arquivoPdf && (
+                    {cmpRaw && divergenciasPreview.length === 0 && cmpRaw.arquivoPdf && (
                       <div className="mt-3 flex items-center gap-2 text-xs text-success">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Todos os valores conferem com o PDF.
