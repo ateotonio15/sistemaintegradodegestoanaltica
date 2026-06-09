@@ -253,7 +253,15 @@ function isRetroativa(tipo: string): boolean {
 
 function isExclusao(tipo: string): boolean {
   const t = norm(tipo);
-  return t.includes("exclusao") || t.includes("exclusão") || t.includes("excluido");
+  // "Devolução" também é tratada como exclusão (valor negativo / crédito).
+  return (
+    t.includes("exclusao") ||
+    t.includes("exclusão") ||
+    t.includes("excluido") ||
+    t.includes("devolucao") ||
+    t.includes("devolução") ||
+    t.includes("devolvido")
+  );
 }
 
 
