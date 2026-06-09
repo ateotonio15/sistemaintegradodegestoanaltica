@@ -111,9 +111,38 @@ export function ImportarAdministradorasDialog({ open, onOpenChange }: Props) {
 
   const downloadTemplate = async () => {
     try {
-      const res = await fetch("/template_administradoras.xlsx");
-      if (!res.ok) throw new Error("Falha ao baixar template");
-      const blob = await res.blob();
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Administradoras");
+
+      const headerBase = [
+        "Nome", "CNPJ", "Código Contrato", "Operadora", "Vidas",
+        "Data Corte (1/5/10/20)", "Dia Movimentação", "Dia Emissão", "Dia Vencimento",
+        "Email", "Telefone", "Contato", "Endereço",
+        "Data Implantação (DD/MM/AAAA)", "Status", "Percentual Reajuste (%)", "Observações",
+      ];
+      const enfHeaders = FAIXAS.map(([, , label]) => `ENF ${label}`);
+      const aptHeaders = FAIXAS.map(([, , label]) => `APT ${label}`);
+      const header = [...headerBase, ...enfHeaders, ...aptHeaders];
+
+      ws.addRow(header);
+      const headerRow = ws.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { vertical: "middle", horizontal: "center" };
+      ws.columns = header.map((h) => ({ width: Math.max(14, Math.min(28, h.length + 4)) }));
+
+      // Linha exemplo
+      const exemplo = [
+        "ADMINISTRADORA EXEMPLO LTDA", "00.000.000/0001-00", "9999", "OPERADORA EXEMPLO", 100,
+        5, 5, 5, 10,
+        "contato@exemplo.com", "(11) 99999-9999", "Fulano", "Rua Exemplo, 123",
+        "01/01/2025", "Ativa", 0, "",
+        ...FAIXAS.map(() => 0),
+        ...FAIXAS.map(() => 0),
+      ];
+      ws.addRow(exemplo);
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
