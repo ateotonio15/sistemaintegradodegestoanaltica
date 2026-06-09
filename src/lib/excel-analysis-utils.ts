@@ -458,6 +458,9 @@ export async function analisarExcelFinanceiroPorPagador(
   if (excQtd > 0 || excTotal !== 0) {
     result.exclusoes = { quantidade: excQtd, total: excTotal };
   }
+  if (devQtd > 0 || devTotal !== 0) {
+    result.devolucoes = { quantidade: devQtd, total: devTotal };
+  }
 
   return result;
 }
