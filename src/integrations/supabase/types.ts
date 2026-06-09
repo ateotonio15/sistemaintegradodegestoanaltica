@@ -2581,6 +2581,10 @@ export type Database = {
         }
         Returns: string
       }
+      aplicar_cancelar_faturamento_grupo: {
+        Args: { p_mov_id: string }
+        Returns: number
+      }
       aplicar_dda_grupo: {
         Args: {
           p_boleto_dda: boolean
@@ -2589,11 +2593,19 @@ export type Database = {
         }
         Returns: number
       }
+      aplicar_dia_emissao_grupo: {
+        Args: { p_dia_emissao: number; p_mov_id: string }
+        Returns: number
+      }
       aplicar_envio_nota_grupo: {
         Args: { p_data_envio: string; p_mov_id: string }
         Returns: number
       }
       aplicar_ferias_programadas: { Args: never; Returns: number }
+      aplicar_iniciar_faturamento_grupo: {
+        Args: { p_mov_id: string }
+        Returns: number
+      }
       aplicar_retroativo_reajuste: {
         Args: { p_id: string; p_obs?: string }
         Returns: undefined

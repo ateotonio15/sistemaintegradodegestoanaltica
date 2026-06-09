@@ -362,7 +362,9 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     }
     const vencimentoAlterado = (dataVencimentoIso || null) !== (movimentacao.data_vencimento || null);
     const ddaAlterado = !!boletoDda !== !!movimentacao.boleto_dda;
-    return { payload, envioAlterado, vencimentoAlterado, ddaAlterado, dataVencimentoIso };
+    const novoDiaEmissao = diaEmissao === "__none__" ? null : Number(diaEmissao);
+    const diaEmissaoAlterado = (novoDiaEmissao ?? null) !== (movimentacao.dia_emissao ?? null);
+    return { payload, envioAlterado, vencimentoAlterado, ddaAlterado, diaEmissaoAlterado, novoDiaEmissao, dataVencimentoIso };
   };
 
   const TIPOS_FIN_VALIDOS = new Set([
@@ -458,56 +460,72 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           },
         });
       } else {
-        // Checagem de Grupo Financeiro: se a empresa pertence a um grupo e houve
-        // mudança em envio/vencimento/DDA, perguntar se replica ao grupo inteiro.
+        // Checagem de Grupo Financeiro.
         const b = built as any;
-        if (
-          grupoAtivo &&
-          movimentacao &&
-          (b?.envioAlterado || b?.vencimentoAlterado || b?.ddaAlterado)
-        ) {
-          setGrupoConfirm({
-            grupoNome: grupoAtivo.nome_grupo,
-            acoes: {
-              envio: b?.envioAlterado ? dataEnvioNota : null,
-              vencimento: b?.vencimentoAlterado ? b?.dataVencimentoIso : null,
-              dda: b?.ddaAlterado ? boletoDda : null,
-            },
-            onTodos: async () => {
-              try {
-                if (b?.envioAlterado) {
-                  await supabase.rpc("aplicar_envio_nota_grupo" as any, {
-                    p_mov_id: movimentacao.id,
-                    p_data_envio: dataEnvioNota || null,
-                  });
+        if (grupoAtivo && movimentacao) {
+          // Vencimento e Dia de emissão SEMPRE replicam para todo o grupo (sem perguntar).
+          try {
+            if (b?.vencimentoAlterado) {
+              await supabase.rpc("aplicar_vencimento_grupo" as any, {
+                p_mov_id: movimentacao.id,
+                p_data_vencimento: b?.dataVencimentoIso || null,
+              });
+            }
+            if (b?.diaEmissaoAlterado) {
+              await supabase.rpc("aplicar_dia_emissao_grupo" as any, {
+                p_mov_id: movimentacao.id,
+                p_dia_emissao: b?.novoDiaEmissao,
+              });
+            }
+            if (b?.vencimentoAlterado || b?.diaEmissaoAlterado) {
+              toast.success(`Vencimento/Dia de emissão replicados ao grupo ${grupoAtivo.nome_grupo}`);
+              queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+            }
+          } catch (e: any) {
+            toast.error("Erro ao replicar ao grupo: " + e.message);
+          }
+
+          // Envio de nota / DDA continuam exigindo confirmação.
+          if (b?.envioAlterado || b?.ddaAlterado) {
+            setGrupoConfirm({
+              grupoNome: grupoAtivo.nome_grupo,
+              acoes: {
+                envio: b?.envioAlterado ? dataEnvioNota : null,
+                vencimento: null,
+                dda: b?.ddaAlterado ? boletoDda : null,
+              },
+              onTodos: async () => {
+                try {
+                  if (b?.envioAlterado) {
+                    await supabase.rpc("aplicar_envio_nota_grupo" as any, {
+                      p_mov_id: movimentacao.id,
+                      p_data_envio: dataEnvioNota || null,
+                    });
+                  }
+                  if (b?.ddaAlterado) {
+                    await supabase.rpc("aplicar_dda_grupo" as any, {
+                      p_mov_id: movimentacao.id,
+                      p_boleto_dda: !!boletoDda,
+                      p_pagamento_deposito: !!pagamentoViaDeposito,
+                    });
+                  }
+                  toast.success(`Alterações aplicadas ao grupo ${grupoAtivo.nome_grupo}`);
+                  queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+                } catch (e: any) {
+                  toast.error("Erro ao aplicar no grupo: " + e.message);
+                } finally {
+                  setGrupoConfirm(null);
+                  onOpenChange(false);
                 }
-                if (b?.vencimentoAlterado) {
-                  await supabase.rpc("aplicar_vencimento_grupo" as any, {
-                    p_mov_id: movimentacao.id,
-                    p_data_vencimento: b?.dataVencimentoIso || null,
-                  });
-                }
-                if (b?.ddaAlterado) {
-                  await supabase.rpc("aplicar_dda_grupo" as any, {
-                    p_mov_id: movimentacao.id,
-                    p_boleto_dda: !!boletoDda,
-                    p_pagamento_deposito: !!pagamentoViaDeposito,
-                  });
-                }
-                toast.success(`Alterações aplicadas ao grupo ${grupoAtivo.nome_grupo}`);
-                queryClient.invalidateQueries({ queryKey: ["financeiro"] });
-              } catch (e: any) {
-                toast.error("Erro ao aplicar no grupo: " + e.message);
-              } finally {
+              },
+              onApenas: () => {
                 setGrupoConfirm(null);
                 onOpenChange(false);
-              }
-            },
-            onApenas: () => {
-              setGrupoConfirm(null);
-              onOpenChange(false);
-            },
-          });
+              },
+            });
+          } else {
+            onOpenChange(false);
+          }
         } else {
           onOpenChange(false);
         }
