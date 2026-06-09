@@ -124,7 +124,15 @@ export function extrairDivergencias(
 ): DivergenciaSerial[] {
   const out: DivergenciaSerial[] = [];
   if (!comparacao) return out;
-  const mensagensExistentes = new Set<string>();
+  if (comparacao.divergencias?.length) {
+    return Array.from(new Set(comparacao.divergencias)).map((mensagem) => ({
+      campo: "Nota fiscal",
+      valor_excel: null,
+      valor_pdf: null,
+      diferenca: null,
+      mensagem,
+    }));
+  }
 
   if (isSimplificada(comparacao)) {
     pushIfDiverge(out, "Total de beneficiários", comparacao.beneficiarios, false);
@@ -145,17 +153,6 @@ export function extrairDivergencias(
   }
   if (comparacao.inclusoes) {
     pushIfDiverge(out, "Inclusões — total", comparacao.inclusoes.total, true);
-  }
-  for (const mensagem of comparacao.divergencias || []) {
-    if (mensagensExistentes.has(mensagem)) continue;
-    out.push({
-      campo: "Nota fiscal",
-      valor_excel: null,
-      valor_pdf: null,
-      diferenca: null,
-      mensagem,
-    });
-    mensagensExistentes.add(mensagem);
   }
   return out;
 }
