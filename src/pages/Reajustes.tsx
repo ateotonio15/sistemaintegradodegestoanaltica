@@ -497,7 +497,11 @@ export default function Reajustes() {
                     const resumoLabel = usarEnf ? "Enfermaria" : usarApt ? "Apartamento" : null;
                     return (
                     <>
-                    <TableRow key={empresa.id}>
+                    <TableRow
+                      key={empresa.id}
+                      ref={(el) => { rowRefs.current[empresa.id] = el; }}
+                      className={highlightId === empresa.id ? "ring-2 ring-orange-500 bg-orange-500/10 animate-pulse" : undefined}
+                    >
                       <TableCell className="w-10 p-2">
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toggleExpand(empresa.id)} title={isExpanded ? "Recolher" : "Ver detalhes"}>
                           {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
