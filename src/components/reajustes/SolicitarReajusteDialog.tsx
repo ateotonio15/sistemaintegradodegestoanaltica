@@ -59,12 +59,26 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
   const [indexador, setIndexador] = useState<string>("IPCA");
   const [sinistralidade, setSinistralidade] = useState<string>("");
 
+  // Fallback: busca valores da implantação quando empresa não tem valores cadastrados
+  const { data: implantacao } = useQuery({
+    queryKey: ["implantacao-contrato-reajuste", empresa?.id],
+    enabled: !!empresa?.id && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("implantacoes_contratos")
+        .select("valor_enfermaria_centavos,valor_apartamento_centavos,faixas_etarias")
+        .eq("empresa_id", empresa!.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
-    // Pré-popular a partir dos valores cadastrados da empresa
-    const empEnf = Number((empresa as any)?.valor_enfermaria_centavos) || 0;
-    const empApt = Number((empresa as any)?.valor_apartamento_centavos) || 0;
-    const empFaixas = (empresa as any)?.faixas_etarias as any;
+    // Pré-popular: usa valores da empresa, com fallback para implantação
+    const empEnf = Number((empresa as any)?.valor_enfermaria_centavos) || Number((implantacao as any)?.valor_enfermaria_centavos) || 0;
+    const empApt = Number((empresa as any)?.valor_apartamento_centavos) || Number((implantacao as any)?.valor_apartamento_centavos) || 0;
+    const empFaixas = (empresa as any)?.faixas_etarias || (implantacao as any)?.faixas_etarias;
     const usaFx = !!(empresa as any)?.contrato_faixa_etaria;
 
     const fxEnfArr: Array<{ ini: number; fim: number; centavos: number }> =
