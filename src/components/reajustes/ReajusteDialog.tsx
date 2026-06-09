@@ -88,6 +88,32 @@ export function ReajusteDialog({ open, onOpenChange, empresas, editing, defaultE
     },
   });
 
+  // Fallback: valores cadastrados na Empresa, com fallback para Implantação
+  const { data: empresaValores } = useQuery({
+    queryKey: ["reajuste-empresa-valores", empresaId],
+    enabled: !!empresaId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("empresas")
+        .select("valor_enfermaria_centavos,valor_apartamento_centavos,faixas_etarias,contrato_faixa_etaria")
+        .eq("id", empresaId)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+  const { data: implantacaoValores } = useQuery({
+    queryKey: ["reajuste-implantacao-valores", empresaId],
+    enabled: !!empresaId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("implantacoes_contratos")
+        .select("valor_enfermaria_centavos,valor_apartamento_centavos,faixas_etarias")
+        .eq("empresa_id", empresaId)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
     if (editing) {
