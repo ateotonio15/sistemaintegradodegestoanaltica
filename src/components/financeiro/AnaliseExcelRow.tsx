@@ -105,7 +105,8 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
         r.apartamento.total > 0 ||
         r.inclusoes.quantidade > 0 ||
         (r.inclusoes.total ?? 0) > 0 ||
-        (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)),
+        (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)) ||
+        (r.devolucoes && (r.devolucoes.quantidade > 0 || r.devolucoes.total !== 0)),
     );
 
   const handleAnaliseCompleta = () => {
