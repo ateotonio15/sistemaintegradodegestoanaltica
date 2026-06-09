@@ -359,6 +359,7 @@ function ResumoContrato({
   valorAptAntes,
   valorEnfAtual,
   valorAptAtual,
+  labelValor,
 }: {
   empresa: Empresa | null;
   reajuste: Reajuste | null;
@@ -368,6 +369,7 @@ function ResumoContrato({
   valorAptAntes: number;
   valorEnfAtual: number;
   valorAptAtual: number;
+  labelValor?: string;
 }) {
   const modalidade =
     possuiEnf && possuiApt ? "Enfermaria + Apartamento" : possuiEnf ? "Enfermaria" : possuiApt ? "Apartamento" : "—";
@@ -387,6 +389,7 @@ function ResumoContrato({
               valorAtual={valorEnfAtual}
               percentual={percentual}
               temReajuste={temReajuste}
+              labelValor={labelValor}
             />
           )}
           {possuiApt && (
@@ -397,6 +400,7 @@ function ResumoContrato({
               valorAtual={valorAptAtual}
               percentual={percentual}
               temReajuste={temReajuste}
+              labelValor={labelValor}
             />
           )}
         </div>
