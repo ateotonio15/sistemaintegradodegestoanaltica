@@ -42,10 +42,10 @@ export function AlertaReajustesPendentes() {
   const mesAtual = new Date().getMonth() + 1;
   const [expanded, setExpanded] = useState(true);
   const [filterMes, setFilterMes] = useState<string>("all");
-  const { user, isViewOnly, isAdmin, isComum } = useAuth();
+  const { user, isAdmin, isComum, isDiretora } = useAuth();
   const [empresaSelecionada, setEmpresaSelecionada] = useState<EmpresaRow | null>(null);
 
-  const podeSolicitar = isViewOnly || isAdmin;
+  const podeSolicitar = isDiretora || isAdmin;
 
   const { data: minhasEmpresas = [] } = useQuery({
     queryKey: ["alerta-reaj-minhas-empresas", user?.id],
