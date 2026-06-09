@@ -20,7 +20,16 @@ import {
   criarFaixasIniciais, somarFaixas, type FaixaEtariaItem,
 } from "@/lib/reajuste-utils";
 
-interface Empresa { id: string; nome: string; codigo_contrato?: string | null; data_implantacao?: string | null }
+interface Empresa {
+  id: string;
+  nome: string;
+  codigo_contrato?: string | null;
+  data_implantacao?: string | null;
+  valor_enfermaria_centavos?: number | null;
+  valor_apartamento_centavos?: number | null;
+  faixas_etarias?: any;
+  contrato_faixa_etaria?: boolean | null;
+}
 
 interface Props {
   open: boolean;
