@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { BedDouble, Hotel, Sparkles, TrendingUp, Calendar, Users } from "lucide-react";
+import { BedDouble, Hotel, Sparkles, TrendingUp, Calendar, Users, LineChart, Activity } from "lucide-react";
 import { ModalidadesPicker } from "./ReajusteDialog";
 import { ReajusteFaixaEtariaTable } from "./ReajusteFaixaEtariaTable";
 import {
@@ -28,6 +30,7 @@ interface Props {
 
 export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) {
   const { toast } = useToast();
+  const { isDiretora } = useAuth();
   const qc = useQueryClient();
 
   const [possuiEnf, setPossuiEnf] = useState(true);
@@ -44,6 +47,8 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
   const [pctUnicoApt, setPctUnicoApt] = useState(true);
   const [faixasEnf, setFaixasEnf] = useState<FaixaEtariaItem[]>(() => criarFaixasIniciais());
   const [faixasApt, setFaixasApt] = useState<FaixaEtariaItem[]>(() => criarFaixasIniciais());
+  const [indexador, setIndexador] = useState<string>("IPCA");
+  const [sinistralidade, setSinistralidade] = useState<string>("");
 
   useEffect(() => {
     if (!open) return;
@@ -60,6 +65,8 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
     setPctUnicoApt(true);
     setFaixasEnf(criarFaixasIniciais());
     setFaixasApt(criarFaixasIniciais());
+    setIndexador("IPCA");
+    setSinistralidade("");
   }, [open]);
 
   const pctNum = useMemo(() => {
@@ -125,6 +132,10 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
           usa_faixa_etaria_apartamento: possuiApt && usaFaixaApt,
           percentual_unico_enfermaria: pctUnicoEnf,
           percentual_unico_apartamento: pctUnicoApt,
+          ...(isDiretora ? {
+            indexador_financeiro: indexador || null,
+            sinistralidade_percentual: sinistralidade ? parseFloat(String(sinistralidade).replace(",", ".")) : null,
+          } : {}),
         } as any)
         .eq("id", reajusteId);
       if (upErr) throw upErr;
@@ -282,7 +293,30 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa }: Props) 
                 <Input type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
               </div>
             </div>
+
+            {isDiretora && (
+              <div className="grid gap-3 md:grid-cols-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 animate-fade-in">
+                <div className="grid gap-2">
+                  <Label className="flex items-center gap-1 text-sm"><LineChart className="h-3.5 w-3.5" /> Indexador Financeiro</Label>
+                  <Select value={indexador} onValueChange={setIndexador}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IPCA">IPCA</SelectItem>
+                      <SelectItem value="IGPM">IGPM</SelectItem>
+                      <SelectItem value="ANS">ANS</SelectItem>
+                      <SelectItem value="Outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label className="flex items-center gap-1 text-sm"><Activity className="h-3.5 w-3.5" /> Sinistralidade (%)</Label>
+                  <Input inputMode="decimal" placeholder="0,00" value={sinistralidade} onChange={(e) => setSinistralidade(e.target.value)} />
+                </div>
+                <div className="md:col-span-2 text-[11px] text-muted-foreground">Visível apenas para a Diretora.</div>
+              </div>
+            )}
           </div>
+
 
           {(possuiEnf || possuiApt) && (
             <div className="rounded-lg border bg-muted/40 p-3 grid grid-cols-3 gap-3 text-sm animate-fade-in">

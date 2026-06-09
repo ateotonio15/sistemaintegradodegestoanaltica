@@ -1,0 +1,1 @@
+ALTER TABLE public.reajustes_anuais ADD COLUMN IF NOT EXISTS indexador_financeiro text, ADD COLUMN IF NOT EXISTS sinistralidade_percentual numeric;

@@ -2246,6 +2246,7 @@ export type Database = {
           data_liberacao: string | null
           empresa_id: string
           id: string
+          indexador_financeiro: string | null
           liberado_por: string | null
           liberado_por_nome: string | null
           mes_reajuste: number | null
@@ -2263,6 +2264,7 @@ export type Database = {
           retroativo_aplicado_em: string | null
           retroativo_aplicado_por_nome: string | null
           retroativo_aplicado_por_user_id: string | null
+          sinistralidade_percentual: number | null
           status: string
           status_reajuste: string
           updated_at: string
@@ -2297,6 +2299,7 @@ export type Database = {
           data_liberacao?: string | null
           empresa_id: string
           id?: string
+          indexador_financeiro?: string | null
           liberado_por?: string | null
           liberado_por_nome?: string | null
           mes_reajuste?: number | null
@@ -2314,6 +2317,7 @@ export type Database = {
           retroativo_aplicado_em?: string | null
           retroativo_aplicado_por_nome?: string | null
           retroativo_aplicado_por_user_id?: string | null
+          sinistralidade_percentual?: number | null
           status?: string
           status_reajuste?: string
           updated_at?: string
@@ -2348,6 +2352,7 @@ export type Database = {
           data_liberacao?: string | null
           empresa_id?: string
           id?: string
+          indexador_financeiro?: string | null
           liberado_por?: string | null
           liberado_por_nome?: string | null
           mes_reajuste?: number | null
@@ -2365,6 +2370,7 @@ export type Database = {
           retroativo_aplicado_em?: string | null
           retroativo_aplicado_por_nome?: string | null
           retroativo_aplicado_por_user_id?: string | null
+          sinistralidade_percentual?: number | null
           status?: string
           status_reajuste?: string
           updated_at?: string
