@@ -1174,6 +1174,7 @@ export function cruzarExcelComPdfs(
       inclusoes: bloco.inclusoes,
       retroativas: bloco.retroativas,
       exclusoes: bloco.exclusoes,
+      devolucoes: bloco.devolucoes,
       avisos: bloco.avisos,
 
     };
