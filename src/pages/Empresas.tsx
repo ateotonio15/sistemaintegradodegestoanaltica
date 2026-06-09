@@ -112,7 +112,7 @@ export default function Empresas() {
   const queryClient = useQueryClient();
   const { isAdmin, role, isViewOnly, isExecutivo, isFinanceiro, user } = useAuth();
   const isComumLike = role === "comum" || role === "administradoras";
-  const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo);
+  const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo || isFinanceiro);
   const canFullEdit = isAdmin || isComumLike;
   const isComum = isComumLike;
 
