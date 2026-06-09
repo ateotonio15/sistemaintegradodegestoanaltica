@@ -193,30 +193,6 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                   </div>
                 )}
 
-                <div className="relative pl-6 border-l border-border space-y-3">
-                  {evs.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">Sem eventos registrados.</div>
-                  ) : (
-                    evs.map((ev: any) => {
-                      const meta = eventoMeta[ev.evento] || { label: ev.evento, icon: Clock, color: "text-muted-foreground" };
-                      const Icon = meta.icon;
-                      return (
-                        <div key={ev.id} className="relative">
-                          <div className={`absolute -left-[27px] top-1 h-4 w-4 rounded-full bg-background border-2 border-current flex items-center justify-center ${meta.color}`}>
-                            <Icon className="h-2.5 w-2.5" />
-                          </div>
-                          <div className="text-sm font-medium">{meta.label}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {ev.usuario_nome || "—"} · {new Date(ev.created_at).toLocaleString("pt-BR")}
-                          </div>
-                          {ev.observacao && (
-                            <div className="text-xs text-muted-foreground mt-1 italic">"{ev.observacao}"</div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
               </div>
             );
           })}
