@@ -100,14 +100,53 @@ export function AprovarReajusteDialog({ open, onOpenChange, reajuste, empresaNom
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
+          {/* Dados preenchidos pela Diretora na solicitação */}
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <div className="flex items-center gap-2 font-medium text-sm">
+              <FileText className="h-4 w-4 text-primary" /> Dados da Solicitação
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+              <Field icon={TrendingUp} label="Percentual" value={`${pctNum.toFixed(2).replace(".", ",")}%`} />
+              <Field icon={Calendar} label="Mês oficial" value={nomeMes(reajuste.mes_reajuste)} />
+              <Field icon={Calendar} label="Data de aplicação" value={fmtDate(reajuste.data_aplicacao)} />
+              <Field icon={Activity} label="Indexador" value={reajuste.indexador_financeiro || "—"} />
+              <Field
+                icon={Activity}
+                label="Sinistralidade"
+                value={
+                  reajuste.sinistralidade_percentual != null
+                    ? `${Number(reajuste.sinistralidade_percentual).toFixed(2).replace(".", ",")}%`
+                    : "—"
+                }
+              />
+              <Field icon={User} label="Solicitado por" value={reajuste.usuario_nome || "—"} />
+              <Field icon={Calendar} label="Enviado ao Cadastro" value={fmtDateTime(reajuste.data_confirmacao)} />
+              <Field
+                icon={Users}
+                label="Modalidades"
+                value={
+                  [reajuste.possui_enfermaria && "Enfermaria", reajuste.possui_apartamento && "Apartamento"]
+                    .filter(Boolean)
+                    .join(" + ") || "—"
+                }
+              />
+            </div>
+            {reajuste.observacao && (
+              <div className="rounded-md border bg-background/60 p-2 text-xs mt-1">
+                <div className="text-muted-foreground mb-0.5">Observação da Diretora</div>
+                <div>{reajuste.observacao}</div>
+              </div>
+            )}
+          </div>
+
           {semDados && podeDecidir && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
               <div>
                 <div className="font-medium text-amber-700 dark:text-amber-300">Nenhum valor registrado</div>
                 <div className="text-muted-foreground mt-1">
-                  O Cadastro ainda não preencheu os valores deste reajuste. Rejeite com um motivo
-                  para que o Cadastro registre os valores e reenvie para sua análise.
+                  A Diretora ainda não preencheu os valores deste reajuste. Rejeite com um motivo
+                  para que a solicitação seja corrigida e reenviada.
                 </div>
               </div>
             </div>
