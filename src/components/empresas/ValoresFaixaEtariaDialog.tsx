@@ -193,19 +193,41 @@ export function ValoresFaixaEtariaDialog({ empresa, open, onOpenChange }: Props)
             </TabsList>
 
             <TabsContent value="resumo" className="mt-4 animate-fade-in">
-              <ResumoContrato
-                empresa={empresa}
-                reajuste={reajuste}
-                possuiEnf={possuiEnf}
-                possuiApt={possuiApt}
-                valorEnfAntes={reajuste?.valor_antigo_enfermaria_centavos ?? valorEnfBase}
-                valorAptAntes={reajuste?.valor_antigo_apartamento_centavos ?? valorAptBase}
-                valorEnfAtual={reajuste?.valor_final_enfermaria_centavos ?? valorEnfBase}
-                valorAptAtual={reajuste?.valor_final_apartamento_centavos ?? valorAptBase}
-              />
+              {(() => {
+                const primeiraFaixa = faixasPivot[0];
+                const enfResumo = isPorFaixa
+                  ? (primeiraFaixa?.enfCent ?? 0)
+                  : (reajuste?.valor_final_enfermaria_centavos ?? valorEnfBase);
+                const aptResumo = isPorFaixa
+                  ? (primeiraFaixa?.aptCent ?? 0)
+                  : (reajuste?.valor_final_apartamento_centavos ?? valorAptBase);
+                const enfAntes = isPorFaixa
+                  ? (primeiraFaixa?.enfCent ?? 0)
+                  : (reajuste?.valor_antigo_enfermaria_centavos ?? valorEnfBase);
+                const aptAntes = isPorFaixa
+                  ? (primeiraFaixa?.aptCent ?? 0)
+                  : (reajuste?.valor_antigo_apartamento_centavos ?? valorAptBase);
+                return (
+                  <ResumoContrato
+                    empresa={empresa}
+                    reajuste={reajuste}
+                    possuiEnf={possuiEnf}
+                    possuiApt={possuiApt}
+                    valorEnfAntes={enfAntes}
+                    valorAptAntes={aptAntes}
+                    valorEnfAtual={enfResumo}
+                    valorAptAtual={aptResumo}
+                    labelValor={isPorFaixa && primeiraFaixa
+                      ? `1ª Faixa (${labelFaixa(primeiraFaixa.ini, primeiraFaixa.fim)})`
+                      : undefined}
+                  />
+                );
+              })()}
               {!reajuste && (
                 <p className="text-xs text-muted-foreground mt-3 italic">
-                  Contrato ainda não reajustado — exibindo valores originais da implantação.
+                  {isPorFaixa
+                    ? "Contrato por faixa etária — exibindo valores da primeira faixa. Veja a aba Faixa Etária para detalhes."
+                    : "Contrato ainda não reajustado — exibindo valores originais da implantação."}
                 </p>
               )}
             </TabsContent>
