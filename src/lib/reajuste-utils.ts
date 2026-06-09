@@ -177,8 +177,8 @@ export function labelStatusReajusteFluxo(s: StatusReajusteFluxo | string | null 
   if (s === "liberado_financeiro") return "Liberado p/ Financeiro";
   if (s === "retroativo_aplicado") return "Retroativo Aplicado";
   if (s === "solicitado") return "Solicitado";
-  if (s === "pendente_confirmacao") return "Aguardando Cadastro";
-  if (s === "aguardando_aprovacao") return "Aguardando Diretora";
+  if (s === "pendente_confirmacao") return "Aguardando Diretora";
+  if (s === "aguardando_aprovacao") return "Aguardando Cadastro";
   if (s === "aprovado") return "Aprovado";
   if (s === "rejeitado") return "Rejeitado";
   return "Pendente";
