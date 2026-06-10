@@ -165,6 +165,15 @@ export default function MailingBrindes() {
         </div>
       </div>
 
+      <Tabs value={tipoFilter} onValueChange={setTipoFilter} className="mb-6">
+        <TabsList>
+          <TabsTrigger value="todos">Todas <span className="ml-1.5 text-xs text-muted-foreground">({rows.length})</span></TabsTrigger>
+          <TabsTrigger value="A">Cesta Tipo A <span className="ml-1.5 text-xs text-muted-foreground">({tipoCounts.A})</span></TabsTrigger>
+          <TabsTrigger value="B">Cesta Tipo B <span className="ml-1.5 text-xs text-muted-foreground">({tipoCounts.B})</span></TabsTrigger>
+          <TabsTrigger value="C">Cesta Tipo C <span className="ml-1.5 text-xs text-muted-foreground">({tipoCounts.C})</span></TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {[
           { label: "Total", value: counts.total, color: "text-foreground" },
