@@ -179,8 +179,26 @@ export default function MailingBrindes() {
               className="pl-9"
             />
           </div>
+          <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <SelectTrigger className="w-full md:w-40"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
+              <SelectItem value="A">Cesta A</SelectItem>
+              <SelectItem value="B">Cesta B</SelectItem>
+              <SelectItem value="C">Cesta C</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={execFilter} onValueChange={setExecFilter}>
+            <SelectTrigger className="w-full md:w-44"><SelectValue placeholder="Executiva" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas executivas</SelectItem>
+              {executivas.map((e) => (
+                <SelectItem key={e} value={e}>{e}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full md:w-48"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full md:w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os status</SelectItem>
               <SelectItem value="pendente">Pendente</SelectItem>
@@ -197,7 +215,8 @@ export default function MailingBrindes() {
               <TableRow>
                 <TableHead>Empresa</TableHead>
                 <TableHead>Contato</TableHead>
-                <TableHead>Cidade/UF</TableHead>
+                <TableHead>Cesta</TableHead>
+                <TableHead>Executiva</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Rastreio</TableHead>
                 <TableHead className="w-24 text-right">Ações</TableHead>
