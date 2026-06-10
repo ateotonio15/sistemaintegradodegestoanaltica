@@ -36,7 +36,7 @@ const TABS: Tab[] = [
   },
   {
     to: "/contratos-recem-implantados",
-    label: "Recém Implantados",
+    label: "Primeira Vigencia",
     icon: ClockAlert,
     show: ({ isAdmin, isFinanceiro, role }) =>
       isAdmin || isFinanceiro || ["comum", "administradoras", "diretora"].includes(role as string),

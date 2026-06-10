@@ -40,7 +40,7 @@ const allNavItems = [
   { to: "/executivas", label: "Executivas", icon: UserCheck },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/implantacao", label: "Implantação", icon: FileSignature },
-  { to: "/contratos-recem-implantados", label: "Recém Implantados", icon: ClockAlert },
+  { to: "/contratos-recem-implantados", label: "Primeira Vigencia", icon: ClockAlert },
   { to: "/arquivos", label: "Arquivos", icon: FolderArchive },
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },

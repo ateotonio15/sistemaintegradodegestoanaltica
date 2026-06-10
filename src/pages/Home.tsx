@@ -93,7 +93,7 @@ const EMPRESAS_CHILDREN: LeafShortcut[] = [
   },
   {
     to: "/contratos-recem-implantados",
-    label: "Recém Implantados",
+    label: "Primeira Vigencia",
     description: "Acompanhar primeiros fechamentos",
     icon: ClockAlert,
     show: (c) =>
