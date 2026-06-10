@@ -2949,6 +2949,72 @@ export type Database = {
           },
         ]
       }
+      uber_corridas: {
+        Row: {
+          cancelada: boolean
+          colaborador: string
+          created_at: string
+          created_by: string | null
+          criado_por: string | null
+          data: string
+          destino: string | null
+          empresa: string | null
+          forma_pagamento: string | null
+          horario: string | null
+          id: string
+          motivo: string | null
+          observacao: string | null
+          origem: string | null
+          reembolso: number | null
+          responsavel: string | null
+          tipo: string | null
+          updated_at: string
+          valor: number | null
+        }
+        Insert: {
+          cancelada?: boolean
+          colaborador: string
+          created_at?: string
+          created_by?: string | null
+          criado_por?: string | null
+          data: string
+          destino?: string | null
+          empresa?: string | null
+          forma_pagamento?: string | null
+          horario?: string | null
+          id?: string
+          motivo?: string | null
+          observacao?: string | null
+          origem?: string | null
+          reembolso?: number | null
+          responsavel?: string | null
+          tipo?: string | null
+          updated_at?: string
+          valor?: number | null
+        }
+        Update: {
+          cancelada?: boolean
+          colaborador?: string
+          created_at?: string
+          created_by?: string | null
+          criado_por?: string | null
+          data?: string
+          destino?: string | null
+          empresa?: string | null
+          forma_pagamento?: string | null
+          horario?: string | null
+          id?: string
+          motivo?: string | null
+          observacao?: string | null
+          origem?: string | null
+          reembolso?: number | null
+          responsavel?: string | null
+          tipo?: string | null
+          updated_at?: string
+          valor?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
