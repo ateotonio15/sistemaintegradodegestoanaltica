@@ -150,6 +150,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         label: "Mailing de Brindes",
         description: "Cestas natalinas e brindes corporativos",
         icon: Gift,
+        to: "/mailing-brindes",
       },
     ],
   },

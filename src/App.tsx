@@ -45,6 +45,7 @@ import SaudeEmpresasLista from "./modules/saude-empresas/pages/SaudeEmpresasList
 import SaudeEmpresaAcoes from "./modules/saude-empresas/pages/SaudeEmpresaAcoes";
 import SaudeAcaoTriagens from "./modules/saude-empresas/pages/SaudeAcaoTriagens";
 import SaudeVisaoGeral from "./modules/saude-empresas/pages/SaudeVisaoGeral";
+import MailingBrindes from "./pages/MailingBrindes";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -167,6 +168,7 @@ const AppRoutes = () => (
 
       <Route path="/honda-exclusoes" element={<HondaExclusoes />} />
       <Route path="/inteligencia/:slug" element={<InteligenciaModulo />} />
+      <Route path="/mailing-brindes" element={<MailingBrindes />} />
       <Route path="/demandas" element={<Demandas />} />
       <Route path="/demandas/dashboard" element={<DemandasDashboard />} />
 
