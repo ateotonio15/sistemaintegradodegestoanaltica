@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 
 type InteligenciaItem = {
+  slug: string;
   label: string;
   description: string;
   icon: LucideIcon;
@@ -55,6 +56,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     title: "Demandas",
     items: [
       {
+        slug: "registro-reclamacoes",
         label: "Registro de Reclamações",
         description: "Abertura e acompanhamento de demandas com SLA",
         icon: MessageSquareWarning,
@@ -65,11 +67,13 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     title: "Plantões",
     items: [
       {
+        slug: "plantoes-atendimentos",
         label: "Plantões de atendimentos",
         description: "Registro de atendimentos do plantão 24h",
         icon: Phone,
       },
       {
+        slug: "calendario-plantoes",
         label: "Calendário de plantões",
         description: "Escala visual de plantões por executiva",
         icon: CalendarDays,
@@ -80,6 +84,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     title: "Uber Corporativo",
     items: [
       {
+        slug: "uber-corporativo",
         label: "Uber Corporativo",
         description: "Corridas, colaboradores e centro de custo",
         icon: Car,
@@ -90,16 +95,19 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     title: "Saúde nas Empresas",
     items: [
       {
+        slug: "acoes-saude",
         label: "Ações saúde nas empresas",
         description: "Triagens, PA, IMC e fichas biométricas",
         icon: Stethoscope,
       },
       {
+        slug: "calendario-palestras",
         label: "Calendário de palestras",
         description: "Agenda de palestras nas empresas",
         icon: Mic,
       },
       {
+        slug: "calendario-preventivas",
         label: "Calendário de ações preventivas",
         description: "Programação de ações preventivas",
         icon: ShieldPlus,
@@ -110,6 +118,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     title: "Mailing de Brindes",
     items: [
       {
+        slug: "mailing-brindes",
         label: "Mailing de Brindes",
         description: "Cestas natalinas e brindes corporativos",
         icon: Gift,
@@ -120,6 +129,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     title: "Central de Avaliações",
     items: [
       {
+        slug: "central-avaliacoes",
         label: "Central de Avaliações",
         description: "NPS, CSAT, executiva, RH e palestras",
         icon: BarChart3,
@@ -504,14 +514,10 @@ export default function Home() {
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     return (
-                      <button
-                        key={item.label}
-                        onClick={() =>
-                          toast.info("Em breve", {
-                            description: `${item.label} estará disponível em breve.`,
-                          })
-                        }
-                        className="group text-left"
+                      <Link
+                        key={item.slug}
+                        to={`/inteligencia/${item.slug}`}
+                        className="group"
                       >
                         <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
                           <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
@@ -526,7 +532,7 @@ export default function Home() {
                             </div>
                           </div>
                         </Card>
-                      </button>
+                      </Link>
                     );
                   })}
                 </div>
