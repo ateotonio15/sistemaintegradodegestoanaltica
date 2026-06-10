@@ -2324,6 +2324,72 @@ export type Database = {
         }
         Relationships: []
       }
+      mailing_brindes: {
+        Row: {
+          cargo: string | null
+          cep: string | null
+          cidade: string | null
+          contato_nome: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          empresa_nome: string
+          endereco: string | null
+          entregue_em: string | null
+          enviado_em: string | null
+          id: string
+          observacoes: string | null
+          rastreio_codigo: string | null
+          status: string
+          telefone: string | null
+          transportadora: string | null
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          cargo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          contato_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          empresa_nome: string
+          endereco?: string | null
+          entregue_em?: string | null
+          enviado_em?: string | null
+          id?: string
+          observacoes?: string | null
+          rastreio_codigo?: string | null
+          status?: string
+          telefone?: string | null
+          transportadora?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          contato_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          empresa_nome?: string
+          endereco?: string | null
+          entregue_em?: string | null
+          enviado_em?: string | null
+          id?: string
+          observacoes?: string | null
+          rastreio_codigo?: string | null
+          status?: string
+          telefone?: string | null
+          transportadora?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       movimentacoes: {
         Row: {
           created_at: string
