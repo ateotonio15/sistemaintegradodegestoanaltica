@@ -72,6 +72,51 @@ function maskCpf(v: string) {
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 
+const SETORES = [
+  "Agenda Cirúrgica",
+  "Atendimento",
+  "Auditoria",
+  "Cadastro",
+  "Clínica Externa",
+  "Direção Clínica",
+  "Financeiro",
+  "T.I",
+];
+const TIPOS = [
+  "Aplicativo Samel",
+  "Aprazamento",
+  "Cancelamento",
+  "Assistencial",
+  "Conduta Médica",
+  "Falha Cadastral",
+  "Nota Fiscal",
+  "Portal",
+  "Reclamação",
+  "T.I",
+];
+const RECLAMACOES = [
+  "Aprazamento cirúrgico",
+  "Aprazamento de consulta",
+  "Aprazamento de exame",
+  "Aprazamento de neuro pediatra",
+  "Aprazamento de ortopedista",
+  "Aprazamento de terapia adulto",
+  "Aprazamento de terapia infantil",
+  "Aprazamento fisioterapia ortopédica",
+  "Aprazamento fisioterapia pediátrica",
+  "Cancelamento cirúrgico",
+  "Cancelamento de consulta",
+  "Cancelamento de exame",
+  "Cancelamento de terapia adulto",
+  "Atraso na emissão da nota",
+  "Atraso na medicação",
+  "Despreparo assistencial",
+  "Falha de processo",
+  "Indisponibilidade de dados",
+  "Telemedicina",
+  "Aplicativo",
+];
+
 
 
 export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props) {
@@ -98,11 +143,24 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
     },
   });
 
+  const { data: empresasList = [] } = useQuery({
+    queryKey: ["empresas-nomes"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("empresas")
+        .select("id, nome")
+        .order("nome");
+      return data ?? [];
+    },
+  });
+
   useEffect(() => {
     if (open) {
       setForm(demanda ? { ...demanda } : empty());
     }
   }, [open, demanda]);
+
+
 
 
   const set = <K extends keyof Demanda>(k: K, v: Demanda[K] | string | boolean) =>
@@ -117,6 +175,11 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
       toast.error("Informe o nome do beneficiário");
       return;
     }
+    if (!form.setor_responsavel) return toast.error("Selecione o setor responsável");
+    if (!form.tipo_reclamacao) return toast.error("Selecione o tipo de reclamação");
+    if (!form.reclamacao) return toast.error("Selecione a reclamação");
+    if (!form.empresa) return toast.error("Selecione a empresa");
+
     if (isSurgical(form.reclamacao)) {
       if (!form.cpf?.trim()) return toast.error("Informe o CPF");
       if (!form.data_entrada) return toast.error("Informe a data de entrada");
@@ -148,6 +211,48 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+          <Field label="Setor responsável *">
+            <Select
+              value={form.setor_responsavel || ""}
+              onValueChange={(v) => set("setor_responsavel", v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {SETORES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {form.setor_responsavel && !SETORES.includes(form.setor_responsavel) && (
+                  <SelectItem value={form.setor_responsavel}>{form.setor_responsavel}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Tipo de reclamação *">
+            <Select
+              value={form.tipo_reclamacao || ""}
+              onValueChange={(v) => set("tipo_reclamacao", v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {TIPOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                {form.tipo_reclamacao && !TIPOS.includes(form.tipo_reclamacao) && (
+                  <SelectItem value={form.tipo_reclamacao}>{form.tipo_reclamacao}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Reclamação *">
+            <Select
+              value={form.reclamacao || ""}
+              onValueChange={(v) => set("reclamacao", v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {RECLAMACOES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                {form.reclamacao && !RECLAMACOES.includes(form.reclamacao) && (
+                  <SelectItem value={form.reclamacao}>{form.reclamacao}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </Field>
           <Field label="Data da reclamação *">
             <Input
               type="date"
@@ -155,8 +260,46 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
               onChange={(e) => set("data_reclamacao", e.target.value)}
             />
           </Field>
-          <Field label="Beneficiário *">
-            <Input value={form.nome_cliente || ""} onChange={(e) => set("nome_cliente", e.target.value)} />
+          <Field label="Executivo(a) *">
+            <Select
+              value={form.executiva || "__none__"}
+              onValueChange={(v) => set("executiva", v === "__none__" ? "" : v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Nenhuma —</SelectItem>
+                {executivas.map((e: any) => (
+                  <SelectItem key={e.user_id} value={e.display_name}>{e.display_name}</SelectItem>
+                ))}
+                {form.executiva &&
+                  !executivas.some((e: any) => e.display_name === form.executiva) && (
+                    <SelectItem value={form.executiva}>{form.executiva}</SelectItem>
+                  )}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Empresa *">
+            <Select
+              value={form.empresa || ""}
+              onValueChange={(v) => set("empresa", v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
+              <SelectContent>
+                {empresasList.map((e: any) => (
+                  <SelectItem key={e.id} value={e.nome}>{e.nome}</SelectItem>
+                ))}
+                {form.empresa && !empresasList.some((e: any) => e.nome === form.empresa) && (
+                  <SelectItem value={form.empresa}>{form.empresa}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Nome do cliente *" className="md:col-span-2">
+            <Input
+              value={form.nome_cliente || ""}
+              onChange={(e) => set("nome_cliente", e.target.value)}
+              placeholder="Nome completo do beneficiário"
+            />
           </Field>
 
           {isSurgical(form.reclamacao) && (
@@ -188,40 +331,6 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
             </>
           )}
 
-          <Field label="Empresa">
-            <Input value={form.empresa || ""} onChange={(e) => set("empresa", e.target.value)} />
-          </Field>
-          <Field label="Setor responsável">
-            <Input value={form.setor_responsavel || ""} onChange={(e) => set("setor_responsavel", e.target.value)} />
-          </Field>
-          <Field label="Tipo">
-            <Input value={form.tipo_reclamacao || ""} onChange={(e) => set("tipo_reclamacao", e.target.value)} />
-          </Field>
-          <Field label="Reclamação">
-            <Input value={form.reclamacao || ""} onChange={(e) => set("reclamacao", e.target.value)} />
-          </Field>
-          <Field label="Executiva responsável" className="md:col-span-2">
-            <Select
-              value={form.executiva || "__none__"}
-              onValueChange={(v) => set("executiva", v === "__none__" ? "" : v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">— Nenhuma —</SelectItem>
-                {executivas.map((e: any) => (
-                  <SelectItem key={e.user_id} value={e.display_name}>
-                    {e.display_name}
-                  </SelectItem>
-                ))}
-                {form.executiva &&
-                  !executivas.some((e: any) => e.display_name === form.executiva) && (
-                    <SelectItem value={form.executiva}>{form.executiva}</SelectItem>
-                  )}
-              </SelectContent>
-            </Select>
-          </Field>
 
           <Field label="Detalhamento" className="md:col-span-2">
             <Textarea
