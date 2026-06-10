@@ -227,9 +227,24 @@ export default function Home() {
     );
   }, [visible, query, tab]);
 
-  const greetingName =
-    (user?.email?.split("@")[0] || "").charAt(0).toUpperCase() +
-    (user?.email?.split("@")[0] || "").slice(1);
+  const { data: profile } = useQuery({
+    queryKey: ["home-profile", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const greetingName = (profile?.display_name || user?.email?.split("@")[0] || "")
+    .split(" ")[0];
+  const greetingDisplay = greetingName
+    ? greetingName.charAt(0).toUpperCase() + greetingName.slice(1)
+    : "";
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center px-4 py-10 md:py-16">
