@@ -81,17 +81,25 @@ export default function MailingBrindes() {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
       if (statusFilter !== "todos" && r.status !== statusFilter) return false;
+      if (tipoFilter !== "todos" && (r.tipo_cesta ?? "") !== tipoFilter) return false;
+      if (execFilter !== "todos" && (r.executiva ?? "") !== execFilter) return false;
       if (!q) return true;
-      return [r.empresa_nome, r.contato_nome, r.cidade, r.rastreio_codigo, r.email]
+      return [r.empresa_nome, r.contato_nome, r.cidade, r.rastreio_codigo, r.email, r.executiva]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
-  }, [rows, search, statusFilter]);
+  }, [rows, search, statusFilter, tipoFilter, execFilter]);
 
   const counts = useMemo(() => {
     const c = { total: rows.length, pendente: 0, enviado: 0, entregue: 0, devolvido: 0 };
     rows.forEach((r) => { c[r.status]++; });
     return c;
+  }, [rows]);
+
+  const executivas = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => r.executiva && set.add(r.executiva));
+    return Array.from(set).sort();
   }, [rows]);
 
   const handleNew = () => {
