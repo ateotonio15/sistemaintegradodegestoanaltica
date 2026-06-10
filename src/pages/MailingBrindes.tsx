@@ -92,8 +92,19 @@ export default function MailingBrindes() {
   }, [rows, search, statusFilter, tipoFilter, execFilter]);
 
   const counts = useMemo(() => {
-    const c = { total: rows.length, pendente: 0, enviado: 0, entregue: 0, devolvido: 0 };
-    rows.forEach((r) => { c[r.status]++; });
+    const base = tipoFilter === "todos" ? rows : rows.filter((r) => (r.tipo_cesta ?? "") === tipoFilter);
+    const c = { total: base.length, pendente: 0, enviado: 0, entregue: 0, devolvido: 0 };
+    base.forEach((r) => { c[r.status]++; });
+    return c;
+  }, [rows, tipoFilter]);
+
+  const tipoCounts = useMemo(() => {
+    const c = { A: 0, B: 0, C: 0 };
+    rows.forEach((r) => {
+      if (r.tipo_cesta === "A") c.A++;
+      else if (r.tipo_cesta === "B") c.B++;
+      else if (r.tipo_cesta === "C") c.C++;
+    });
     return c;
   }, [rows]);
 
