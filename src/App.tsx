@@ -34,6 +34,11 @@ import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import InteligenciaModulo from "./pages/InteligenciaModulo";
 import Demandas from "./pages/Demandas";
 import DemandasDashboard from "./pages/DemandasDashboard";
+import Plantoes from "./pages/Plantoes";
+import PlantoesCalendario from "./pages/PlantoesCalendario";
+import PlantoesEmpresa from "./pages/PlantoesEmpresa";
+import PlantaoAtendimentos from "./pages/PlantaoAtendimentos";
+import PlantoesRelatorios from "./pages/PlantoesRelatorios";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
