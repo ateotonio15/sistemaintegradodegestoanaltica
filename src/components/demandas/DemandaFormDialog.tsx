@@ -53,6 +53,38 @@ const empty = (): Partial<Demanda> => ({
   data_resolucao_executiva: "",
 });
 
+const SURGICAL = ["aprazamento cirurgico", "cancelamento cirurgico"];
+function normalize(s: string | null | undefined) {
+  return String(s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+}
+function isSurgical(reclamacao: string | null | undefined) {
+  return SURGICAL.includes(normalize(reclamacao));
+}
+function maskCpf(v: string) {
+  const d = String(v).replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+  observacao: "",
+  executiva: "",
+  cpf: "",
+  data_entrada: "",
+  nome_medico: "",
+  nome_procedimento: "",
+  encaminhado_setor: false,
+  resolvido_setor: false,
+  data_resolucao_setor: "",
+  resolvido_executiva: false,
+  data_resolucao_executiva: "",
+});
+
 export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props) {
   const [form, setForm] = useState<Partial<Demanda>>(empty());
   const create = useCreateDemanda();
