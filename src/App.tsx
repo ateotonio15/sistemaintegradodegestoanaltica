@@ -31,6 +31,7 @@ import CSSinistralidade from "./modules/carteira-samel/pages/Sinistralidade";
 import CSScore from "./modules/carteira-samel/pages/ScoreRisco";
 import CSAvaliacoesRH from "./modules/carteira-samel/pages/AvaliacoesRH";
 import CSResponderRH from "./modules/carteira-samel/pages/ResponderRH";
+import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
