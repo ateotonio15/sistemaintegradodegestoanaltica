@@ -153,7 +153,7 @@ export default function MailingBrindes() {
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">Mailing de Brindes</h1>
               <p className="text-sm text-muted-foreground">
-                Controle de entrega de cestas e brindes corporativos
+                Acompanhe entregas por tipo de cesta
               </p>
             </div>
           </div>
