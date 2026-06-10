@@ -333,6 +333,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"funcoes" | "utilitarios">("funcoes");
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [openInteligencia, setOpenInteligencia] = useState<string | null>(null);
 
   const ctx: Ctx = {
     isAdmin,
