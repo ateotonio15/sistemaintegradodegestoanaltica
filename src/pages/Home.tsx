@@ -44,6 +44,8 @@ type InteligenciaItem = {
   label: string;
   description: string;
   icon: LucideIcon;
+  /** Rota real (opcional). Quando ausente, usa /inteligencia/:slug (placeholder "Em construção"). */
+  to?: string;
 };
 
 type InteligenciaSection = {
@@ -64,6 +66,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         label: "Registro de Reclamações",
         description: "Abertura e acompanhamento de demandas com SLA",
         icon: MessageSquareWarning,
+        to: "/demandas",
       },
     ],
   },
