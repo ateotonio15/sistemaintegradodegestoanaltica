@@ -175,6 +175,11 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
       toast.error("Informe o nome do beneficiário");
       return;
     }
+    if (!form.setor_responsavel) return toast.error("Selecione o setor responsável");
+    if (!form.tipo_reclamacao) return toast.error("Selecione o tipo de reclamação");
+    if (!form.reclamacao) return toast.error("Selecione a reclamação");
+    if (!form.empresa) return toast.error("Selecione a empresa");
+
     if (isSurgical(form.reclamacao)) {
       if (!form.cpf?.trim()) return toast.error("Informe o CPF");
       if (!form.data_entrada) return toast.error("Informe a data de entrada");
