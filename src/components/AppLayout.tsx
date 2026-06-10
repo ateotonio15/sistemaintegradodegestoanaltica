@@ -467,6 +467,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           )}
         </div>
       </aside>
+      )}
 
       {/* Mobile overlay */}
       {isMobile && !collapsed && (
