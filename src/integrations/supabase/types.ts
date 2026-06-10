@@ -446,6 +446,227 @@ export type Database = {
           },
         ]
       }
+      cs_avaliacao_formularios: {
+        Row: {
+          created_at: string
+          id: string
+          instrucoes: string | null
+          perguntas: Json
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instrucoes?: string | null
+          perguntas?: Json
+          tipo: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instrucoes?: string | null
+          perguntas?: Json
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cs_avaliacao_respostas: {
+        Row: {
+          created_at: string
+          formulario_id: string
+          id: string
+          respondente: string | null
+          respostas: Json
+        }
+        Insert: {
+          created_at?: string
+          formulario_id: string
+          id?: string
+          respondente?: string | null
+          respostas?: Json
+        }
+        Update: {
+          created_at?: string
+          formulario_id?: string
+          id?: string
+          respondente?: string | null
+          respostas?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_avaliacao_respostas_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "cs_avaliacao_formularios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_avaliacao_risco: {
+        Row: {
+          classificacao_final: string | null
+          created_at: string
+          data_avaliacao: string
+          empresa_id: string
+          id: string
+          pontuacao_total: number | null
+          reclamacoes: string | null
+          relacionamento: string | null
+          renovacao_proximidade: string | null
+          satisfacao: string | null
+          semaforo: string | null
+          sinistralidade_classificacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          classificacao_final?: string | null
+          created_at?: string
+          data_avaliacao?: string
+          empresa_id: string
+          id?: string
+          pontuacao_total?: number | null
+          reclamacoes?: string | null
+          relacionamento?: string | null
+          renovacao_proximidade?: string | null
+          satisfacao?: string | null
+          semaforo?: string | null
+          sinistralidade_classificacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          classificacao_final?: string | null
+          created_at?: string
+          data_avaliacao?: string
+          empresa_id?: string
+          id?: string
+          pontuacao_total?: number | null
+          reclamacoes?: string | null
+          relacionamento?: string | null
+          renovacao_proximidade?: string | null
+          satisfacao?: string | null
+          semaforo?: string | null
+          sinistralidade_classificacao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cs_avaliacoes_executiva: {
+        Row: {
+          contrato: string | null
+          created_at: string
+          created_by: string | null
+          empresa: string
+          id: string
+          observacao: string | null
+          relacionamento: string | null
+          satisfacao: string | null
+        }
+        Insert: {
+          contrato?: string | null
+          created_at?: string
+          created_by?: string | null
+          empresa: string
+          id?: string
+          observacao?: string | null
+          relacionamento?: string | null
+          satisfacao?: string | null
+        }
+        Update: {
+          contrato?: string | null
+          created_at?: string
+          created_by?: string | null
+          empresa?: string
+          id?: string
+          observacao?: string | null
+          relacionamento?: string | null
+          satisfacao?: string | null
+        }
+        Relationships: []
+      }
+      cs_sinistralidade_historico: {
+        Row: {
+          ano: number
+          contrato: string | null
+          created_at: string
+          created_by: string | null
+          empresa: string
+          id: string
+          indexador: string | null
+          mes: string
+          observacao: string | null
+          percentual_reajuste: number | null
+          sinistralidade: number | null
+        }
+        Insert: {
+          ano: number
+          contrato?: string | null
+          created_at?: string
+          created_by?: string | null
+          empresa: string
+          id?: string
+          indexador?: string | null
+          mes: string
+          observacao?: string | null
+          percentual_reajuste?: number | null
+          sinistralidade?: number | null
+        }
+        Update: {
+          ano?: number
+          contrato?: string | null
+          created_at?: string
+          created_by?: string | null
+          empresa?: string
+          id?: string
+          indexador?: string | null
+          mes?: string
+          observacao?: string | null
+          percentual_reajuste?: number | null
+          sinistralidade?: number | null
+        }
+        Relationships: []
+      }
+      cs_sinistralidade_mensal: {
+        Row: {
+          ano_referencia: number
+          created_at: string
+          data_registro: string
+          empresa_id: string
+          id: string
+          mes_referencia: number
+          reajuste_percentual: number | null
+          sinistralidade_percentual: number | null
+          updated_at: string
+        }
+        Insert: {
+          ano_referencia: number
+          created_at?: string
+          data_registro?: string
+          empresa_id: string
+          id?: string
+          mes_referencia: number
+          reajuste_percentual?: number | null
+          sinistralidade_percentual?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ano_referencia?: number
+          created_at?: string
+          data_registro?: string
+          empresa_id?: string
+          id?: string
+          mes_referencia?: number
+          reajuste_percentual?: number | null
+          sinistralidade_percentual?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       empresa_implantacao_historico: {
         Row: {
           created_at: string
