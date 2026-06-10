@@ -164,6 +164,13 @@ const AppRoutes = () => (
       <Route path="/demandas" element={<Demandas />} />
       <Route path="/demandas/dashboard" element={<DemandasDashboard />} />
 
+      <Route path="/plantoes" element={<Plantoes />} />
+      <Route path="/plantoes/calendario" element={<PlantoesCalendario />} />
+      <Route path="/plantoes/empresa/:empresaId" element={<PlantoesEmpresa />} />
+      <Route path="/plantoes/:plantaoId/atendimentos" element={<PlantaoAtendimentos />} />
+      <Route path="/plantoes/relatorios" element={<PlantoesRelatorios />} />
+
+
       <Route element={<RoleGate allow={["admin", "diretora", "comum", "executivo", "administradoras"]} />}>
         <Route path="/carteira-samel" element={<CarteiraSamelLayout />}>
           <Route index element={<CSVisaoGeral />} />
