@@ -1,85 +1,68 @@
-# Módulo "Carteira Samel" no CS Control
+## Dashboard Executivo de Reclamações
 
-Adiciona um novo módulo `/carteira-samel` reaproveitando o login Supabase atual e a sidebar do CS Control. Nenhuma alteração na identidade visual nem nos módulos existentes.
+Nova rota `/demandas/dashboard` voltada para leitura em sala/TV (tipografia grande, alto contraste, responsivo widescreen). Lê direto da tabela `demandas` já existente, sem novas tabelas.
 
-## 1. Navegação
+### Acesso
+- Apenas Admin (mesma regra do módulo Demandas).
+- Botão "Dashboard" no topo da página `/demandas` levando para `/demandas/dashboard`, e link de volta.
 
-Adicionar no `src/components/AppLayout.tsx` um item de menu **"Carteira Samel"** (ícone `Briefcase`), com subitens que aparecem dentro do mesmo padrão dos demais (mesmo estilo verde/dark do CS Control — sem sidebar paralela):
+### Filtros (barra superior, persistidos em Context)
+- Período (data inicial / final, padrão últimos 30 dias)
+- Empresa, Setor, Executiva (multi-select)
+- Aplicam-se a todos os cards.
 
-- Visão Geral · Carteira · Sinistralidade · Score de Risco · Avaliações RH
+### Cards / Componentes
 
-Visível para `admin`, `diretora`, `comum`, `executivo`. Demais perfis não veem.
+1. **KPIs (4 cartões grandes)**
+   - SLA Geral: % de demandas com `data_resolucao` dentro de 5 dias úteis da `data_reclamacao`.
+   - Backlog Crítico: nº em aberto há mais de 5 dias.
+   - Tempo Médio de Resposta: média de dias entre `data_reclamacao` e `data_resolucao` (resolvidas no período).
+   - Score Operacional (0–100): `0.5 * SLA + 0.3 * (1 - backlog_critico/total) + 0.2 * (1 - tempo_medio/10)` (clamp 0–100).
 
-## 2. Banco (Lovable Cloud)
+2. **TrendLineCard** — recharts LineChart com SLA% e Backlog por semana no período.
 
-Migração criando 6 tabelas com prefixo `cs_` para não colidir com nada existente:
+3. **MatrizRiscoSetores** — heatmap setor × tipo de reclamação. Cor por volume, anotação com atraso médio (dias).
 
-- `cs_sinistralidade_historico` (empresa, contrato, mês/ano, sinistralidade %, % reajuste, indexador, observação, created_by)
-- `cs_sinistralidade_mensal` (empresa_id, mes/ano, sinistralidade %, reajuste %)
-- `cs_avaliacao_risco` (semáforos por dimensão, pontuação_total, classificação_final)
-- `cs_avaliacoes_executiva` (relacionamento, satisfação, observação, created_by)
-- `cs_avaliacao_formularios` (tipo, título, instruções, perguntas jsonb)
-- `cs_avaliacao_respostas` (formulario_id, respondente, respostas jsonb)
+4. **VolumeReclamacoesSetor** — barras horizontais por setor, %Δ vs período anterior de mesmo tamanho, thresholds: verde ≤0%, amarelo ≤20%, vermelho >20%.
 
-Todas com GRANT para `anon` e `authenticated` + RLS aberta (`USING (true)` para SELECT/INSERT/UPDATE), conforme especificado. `cs_avaliacao_formularios` e `cs_avaliacao_respostas` permitem `anon` para que o link público de resposta funcione sem login.
+5. **ReincidênciasSetores** — tabela por setor: Total, Reincidentes (mesmo `nome_cliente` com 2+ no período), Taxa%, Tendência (↑↓ vs período anterior), Status (badge).
 
-## 3. Carteira (mock em memória)
+6. **GargalosPanel** — top 5 `tipo_reclamacao` por volume com tempo médio.
 
-`src/modules/carteira-samel/context/EmpresasContext.tsx` carrega lista de `src/modules/carteira-samel/data/mockData.ts` (~15 empresas exemplo). `add/update/inativar` somente em memória.
+7. **AlertasCríticos** — lista de demandas em aberto > 5 dias, click leva para `/demandas?reclamacao=<id>` (abre o registro no formulário existente).
 
-## 4. Regras de risco
+8. **InsightsBanner** — frase automática no topo: ex. "Setor Atendimento subiu 32% esta semana" baseada na maior variação positiva.
 
-- `src/modules/carteira-samel/lib/risco.ts` — semáforos sinistralidade/renovação, score 5 dimensões (5–15), próximo aniversário do contrato.
-- `src/modules/carteira-samel/lib/analiseContrato.ts` — comparativo entre 2 períodos (média, meses >100%, mês pico, distorção acumulada) com classificação melhorou/piorou/estável e geração dos 3 blocos de texto.
+### Implementação técnica
 
-## 5. Páginas (sob `/carteira-samel/...`)
+```text
+src/
+  pages/
+    DemandasDashboard.tsx           // página /demandas/dashboard
+  components/demandas/dashboard/
+    DashboardFiltersBar.tsx
+    KpiExecCard.tsx
+    TrendLineCard.tsx
+    MatrizRiscoSetores.tsx
+    VolumeReclamacoesSetor.tsx
+    ReincidenciasSetores.tsx
+    GargalosPanel.tsx
+    AlertasCriticos.tsx
+    InsightsBanner.tsx
+  hooks/
+    useDemandasDashboard.ts         // fetch único + agregações via useMemo
+  contexts/
+    DemandasDashboardFiltersContext.tsx
+```
 
-| Rota | Conteúdo |
-|---|---|
-| `/carteira-samel` | Visão Geral — 4 KPIs, alerta reajustes 3 faixas clicáveis, busca individual com painel detalhado |
-| `/carteira-samel/carteira` | Tabela de clientes com filtros (grupo/busca), 4 KPIs no topo, ordenação por coluna |
-| `/carteira-samel/sinistralidade` | Lista + modal Histórico/Inserir + seção Análise de Contrato (duas TabelaPeriodo + Gerar Análise) |
-| `/carteira-samel/score` | Score simplificado 2D, toggle grid/lista, drawer 3 abas (Reclamações stub, Reajuste, Avaliação) |
-| `/carteira-samel/avaliacoes/rh` | Editor + link público `${origin}/carteira-samel/avaliacoes/rh/responder/:formId` |
-| `/carteira-samel/avaliacoes/rh/responder/:formId` | **Rota pública** (fora do `AppShell`), formulário 5 ratings + 1 textarea, salva em `cs_avaliacao_respostas` |
+- Reutiliza `useDemandas` para fetch base ou cria query dedicada `select('id, data_reclamacao, data_resolucao, empresa, setor, executiva, tipo_reclamacao, nome_cliente, status')` filtrada por intervalo de datas.
+- Agregações 100% no client com `useMemo` (volume controlável; dataset esperado pequeno-médio).
+- Usa `recharts` (já no projeto) e tokens semânticos do `index.css` — nada hardcoded.
+- Rota adicionada em `src/App.tsx` dentro do `AppLayout`, link novo em `AppSidebar` ou apenas dentro de `/demandas`.
+- Drilldown: `AlertasCríticos` navega para `/demandas?reclamacao=<id>`; ajustar `Demandas.tsx` para abrir `DemandaFormDialog` quando o query param `reclamacao` estiver presente.
 
-**Fora do escopo desta entrega:** `/externo` e `/catalog-items` (dependem do Supabase externo, marcados como pendentes).
+### Fora de escopo deste plano
+- Tabelas novas, edge functions, importações.
+- Outras abas (Plantões, Uber, Avaliações, Cestas) — serão planejadas separadamente quando você pedir.
 
-A aba *Reclamações* no drawer Score exibe placeholder "Conexão externa pendente — configure a base externa para ativar".
-
-## 6. Componentes reutilizáveis
-
-Dentro de `src/modules/carteira-samel/components/`:
-- `RatingScale.tsx` (botões 1–5, verde Samel, readOnly opcional)
-- `TabelaPeriodo.tsx` (tabela editável com totais e add/remove linha)
-- `EmpresaDetailsDrawer.tsx` (3 abas)
-- `StatCard.tsx` (KPI)
-- `SemaforoBadge.tsx` (Verde/Amarelo/Vermelho com tokens existentes)
-
-**Reutiliza** os tokens/cores do CS Control (sem introduzir `#2D6A4F` — o verde já existe em `--primary`). Sem nova fonte, sem nova sidebar, sem novo header.
-
-## 7. Hook
-
-`useRiscoData` em `src/modules/carteira-samel/hooks/useRiscoData.ts` com as operações listadas no prompt, todas via `supabase` client existente.
-
-## 8. App.tsx
-
-- Rota pública `/carteira-samel/avaliacoes/rh/responder/:formId` registrada **fora** do `AppShell`.
-- Demais rotas dentro do `AppShell` (login Supabase atual + AppLayout).
-- `RoleGate allow={["admin","diretora","comum","executivo"]}` envolve `/carteira-samel/*`.
-
-## Detalhes técnicos
-
-- Isolamento: todo código novo em `src/modules/carteira-samel/` (exceto rotas em `App.tsx` e 1 item no `AppLayout.tsx`).
-- Tipos Supabase: as 6 tabelas aparecem em `src/integrations/supabase/types.ts` automaticamente após a migração.
-- Nada do CS Control é renomeado/removido. Sidebar mantém logo CS Control e cor atual.
-- Login fixo do prompt **descartado** — usa Supabase auth atual conforme escolhido.
-- Base externa **descartada** por enquanto — placeholder na aba Reclamações.
-
-## Arquivos novos
-- `supabase/migrations/<ts>_carteira_samel.sql`
-- `src/modules/carteira-samel/` (context, data, lib, hooks, components, pages — ~20 arquivos)
-
-## Arquivos editados
-- `src/App.tsx` — registra rotas
-- `src/components/AppLayout.tsx` — adiciona item de menu com gate de role
+Confirma para eu implementar?
