@@ -106,6 +106,7 @@ function AuthRoute() {
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute />} />
+    <Route path="/carteira-samel/avaliacoes/rh/responder/:formId" element={<CSResponderRH />} />
     <Route element={<AppShell />}>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/dashboard" element={<HomeRoute />} />
