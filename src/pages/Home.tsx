@@ -100,16 +100,9 @@ const EMPRESAS_CHILDREN: LeafShortcut[] = [
       c.isAdmin || c.isFinanceiro || ["comum", "administradoras", "diretora"].includes(c.role as string),
   },
   {
-    to: "/gestao-vidas",
-    label: "Gestão de Vidas",
-    description: "Histórico analítico de vidas",
-    icon: Activity,
-    show: (c) => c.isAdmin || ["diretora", "comum", "administradoras"].includes(c.role as string),
-  },
-  {
-    to: "/vidas-operadora",
-    label: "Vidas na Operadora",
-    description: "Conciliação com a operadora",
+    to: "/vidas",
+    label: "Vidas",
+    description: "Gestão e conciliação com a operadora",
     icon: Activity,
     show: (c) =>
       c.isAdmin || ["diretora", "comum", "administradoras", "vendas"].includes(c.role as string),

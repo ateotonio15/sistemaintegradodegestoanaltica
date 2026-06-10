@@ -42,15 +42,8 @@ const TABS: Tab[] = [
       isAdmin || isFinanceiro || ["comum", "administradoras", "diretora"].includes(role as string),
   },
   {
-    to: "/gestao-vidas",
-    label: "Gestão de Vidas",
-    icon: Activity,
-    show: ({ isAdmin, role }) =>
-      isAdmin || ["diretora", "comum", "administradoras"].includes(role as string),
-  },
-  {
-    to: "/vidas-operadora",
-    label: "Vidas na Operadora",
+    to: "/vidas",
+    label: "Vidas",
     icon: Activity,
     show: ({ isAdmin, role }) =>
       isAdmin || ["diretora", "comum", "administradoras", "vendas"].includes(role as string),
@@ -67,7 +60,11 @@ export default function EmpresasGroupLayout() {
       <div className="px-4 md:px-6 pt-4">
         <nav className="flex flex-wrap gap-1 border-b">
           {visible.map((t) => {
-            const active = loc.pathname === t.to || loc.pathname.startsWith(t.to + "/");
+            const path = loc.pathname;
+            const active =
+              path === t.to ||
+              path.startsWith(t.to + "/") ||
+              (t.to === "/vidas" && (path === "/gestao-vidas" || path === "/vidas-operadora"));
             return (
               <NavLink
                 key={t.to}

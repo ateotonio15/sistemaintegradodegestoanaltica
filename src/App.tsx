@@ -21,8 +21,7 @@ import Arquivos from "./pages/Arquivos";
 import Implantacao from "./pages/Implantacao";
 import ContratosRecemImplantados from "./pages/ContratosRecemImplantados";
 import VidasSamel from "./pages/VidasSamel";
-import GestaoVidas from "./pages/GestaoVidas";
-import VidasOperadora from "./pages/VidasOperadora";
+import Vidas from "./pages/Vidas";
 import HondaExclusoes from "./pages/HondaExclusoes";
 import CarteiraSamelLayout from "./modules/carteira-samel/CarteiraSamelLayout";
 import CSVisaoGeral from "./modules/carteira-samel/pages/VisaoGeral";
@@ -120,8 +119,9 @@ const AppRoutes = () => (
         <Route path="/movimentacoes" element={<Movimentacoes />} />
 
         <Route element={<RoleGate allow={["admin", "diretora", "comum", "administradoras", "vendas"]} />}>
-          <Route path="/gestao-vidas" element={<GestaoVidas />} />
-          <Route path="/vidas-operadora" element={<VidasOperadora />} />
+          <Route path="/vidas" element={<Vidas />} />
+          <Route path="/gestao-vidas" element={<Vidas />} />
+          <Route path="/vidas-operadora" element={<Vidas />} />
         </Route>
 
         <Route element={<RoleGate deny={["financeiro"]} />}>
