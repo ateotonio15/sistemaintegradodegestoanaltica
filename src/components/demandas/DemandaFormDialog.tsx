@@ -143,8 +143,28 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
             <Input value={form.reclamacao || ""} onChange={(e) => set("reclamacao", e.target.value)} />
           </Field>
           <Field label="Executiva responsável">
-            <Input value={form.executiva || ""} onChange={(e) => set("executiva", e.target.value)} />
+            <Select
+              value={form.executiva || "__none__"}
+              onValueChange={(v) => set("executiva", v === "__none__" ? "" : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Nenhuma —</SelectItem>
+                {executivas.map((e: any) => (
+                  <SelectItem key={e.user_id} value={e.display_name}>
+                    {e.display_name}
+                  </SelectItem>
+                ))}
+                {form.executiva &&
+                  !executivas.some((e: any) => e.display_name === form.executiva) && (
+                    <SelectItem value={form.executiva}>{form.executiva}</SelectItem>
+                  )}
+              </SelectContent>
+            </Select>
           </Field>
+
           <Field label="CPF">
             <Input value={form.cpf || ""} onChange={(e) => set("cpf", e.target.value)} />
           </Field>
