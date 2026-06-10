@@ -37,7 +37,7 @@ const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/empresas", label: "Empresas", icon: Building2 },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
-  { to: "/executivas", label: "Executivas", icon: UserCheck },
+  
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/implantacao", label: "Implantação", icon: FileSignature },
   { to: "/contratos-recem-implantados", label: "Primeira Vigencia", icon: ClockAlert },
@@ -121,7 +121,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       : allNavItems;
     const filtered = base.filter((item) => {
       if (role === "vendas") {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/executivas", "/implantacao", "/vidas"];
+        const allowed = ["/", "/empresas", "/movimentacoes", "/implantacao", "/vidas"];
         return allowed.includes(item.to);
       }
       if (isFinanceiro) {
@@ -135,7 +135,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
       if (item.to === "/vidas" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
       if (isEnfermeira) {
-        const allowed = ["/empresas", "/executivas", "/reajustes"];
+        const allowed = ["/empresas", "/reajustes"];
         return allowed.includes(item.to);
       }
       return true;
