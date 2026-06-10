@@ -548,7 +548,7 @@ export default function Home() {
                         return (
                           <Link
                             key={item.slug}
-                            to={`/inteligencia/${item.slug}`}
+                            to={item.to || `/inteligencia/${item.slug}`}
                             className="group"
                           >
                             <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
