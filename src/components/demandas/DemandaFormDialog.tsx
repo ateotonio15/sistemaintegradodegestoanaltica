@@ -342,14 +342,14 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
 
 
           <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-border pt-4">
-            <SwitchField
-              label="Encaminhado ao setor"
-              checked={!!form.encaminhado_setor}
+            <YesNoField
+              label="Encaminhado ao setor responsável?"
+              value={!!form.encaminhado_setor}
               onChange={(v) => set("encaminhado_setor", v)}
             />
-            <SwitchField
-              label="Resolvido pelo setor"
-              checked={!!form.resolvido_setor}
+            <YesNoField
+              label="Resolvido pelo setor?"
+              value={!!form.resolvido_setor}
               onChange={(v) => {
                 set("resolvido_setor", v);
                 if (v && !form.data_resolucao_setor) {
@@ -364,9 +364,9 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
                 onChange={(e) => set("data_resolucao_setor", e.target.value)}
               />
             </Field>
-            <SwitchField
-              label="Resolvido pela executiva"
-              checked={!!form.resolvido_executiva}
+            <YesNoField
+              label="Resolvido pela executiva?"
+              value={!!form.resolvido_executiva}
               onChange={(v) => {
                 set("resolvido_executiva", v);
                 if (v && !form.data_resolucao_executiva) {
@@ -382,6 +382,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
               />
             </Field>
           </div>
+
         </div>
 
         <DialogFooter>
