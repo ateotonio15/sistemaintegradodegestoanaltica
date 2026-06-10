@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert, Bike, Briefcase } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert, Bike, Briefcase, MessageSquareWarning } from "lucide-react";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
 import { useAtivarContratosPendentes } from "@/hooks/useAtivarContratosPendentes";
 import logoImg from "@/assets/logo-cs-control.png";
@@ -46,6 +46,7 @@ const allNavItems = [
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
   { to: "/vidas-samel", label: "Vidas Samel", icon: HeartPulse },
   { to: "/vidas", label: "Vidas", icon: Activity },
+  { to: "/demandas", label: "Registro de Reclamações", icon: MessageSquareWarning, adminOnly: true },
 ];
 
 interface Notificacao {
