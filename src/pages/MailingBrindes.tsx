@@ -53,6 +53,8 @@ export default function MailingBrindes() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [tipoFilter, setTipoFilter] = useState<string>("todos");
+  const [execFilter, setExecFilter] = useState<string>("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MailingBrinde | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
