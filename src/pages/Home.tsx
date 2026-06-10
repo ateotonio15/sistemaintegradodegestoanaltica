@@ -321,7 +321,7 @@ export default function Home() {
       <div className="w-full max-w-5xl flex flex-col items-center gap-8">
         <div className="text-center space-y-2">
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
-            Bem-vindo{greetingDisplay ? `, ${greetingDisplay}` : ""}
+            Bem-vindo{greetingDisplay ? `, ${greetingDisplay}` : ""}!
           </h1>
           <p className="text-sm text-muted-foreground">Acesse rapidamente os módulos do CS Control</p>
         </div>
