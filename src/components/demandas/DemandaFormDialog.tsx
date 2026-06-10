@@ -11,10 +11,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useCreateDemanda, useUpdateDemanda } from "@/hooks/useDemandas";
 import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
+
 
 type Props = {
   open: boolean;
