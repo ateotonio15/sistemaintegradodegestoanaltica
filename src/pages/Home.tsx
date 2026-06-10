@@ -48,6 +48,8 @@ type InteligenciaItem = {
 
 type InteligenciaSection = {
   title: string;
+  description: string;
+  icon: LucideIcon;
   items: InteligenciaItem[];
 };
 
