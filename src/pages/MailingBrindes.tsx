@@ -191,15 +191,6 @@ export default function MailingBrindes() {
               className="pl-9"
             />
           </div>
-          <Select value={tipoFilter} onValueChange={setTipoFilter}>
-            <SelectTrigger className="w-full md:w-40"><SelectValue placeholder="Tipo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os tipos</SelectItem>
-              <SelectItem value="A">Cesta A</SelectItem>
-              <SelectItem value="B">Cesta B</SelectItem>
-              <SelectItem value="C">Cesta C</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={execFilter} onValueChange={setExecFilter}>
             <SelectTrigger className="w-full md:w-44"><SelectValue placeholder="Executiva" /></SelectTrigger>
             <SelectContent>
