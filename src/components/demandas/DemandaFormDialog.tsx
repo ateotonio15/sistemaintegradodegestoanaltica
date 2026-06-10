@@ -59,11 +59,30 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
   const update = useUpdateDemanda();
   const isEdit = !!demanda?.id;
 
+  const { data: executivas = [] } = useQuery({
+    queryKey: ["executivas-list"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "executivo");
+      const ids = (roles ?? []).map((r) => r.user_id);
+      if (!ids.length) return [] as { user_id: string; display_name: string }[];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", ids)
+        .order("display_name");
+      return (profs ?? []).filter((p) => p.display_name) as any;
+    },
+  });
+
   useEffect(() => {
     if (open) {
       setForm(demanda ? { ...demanda } : empty());
     }
   }, [open, demanda]);
+
 
   const set = <K extends keyof Demanda>(k: K, v: Demanda[K] | string | boolean) =>
     setForm((p) => ({ ...p, [k]: v as any }));
