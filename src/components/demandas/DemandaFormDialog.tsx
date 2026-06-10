@@ -11,10 +11,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useCreateDemanda, useUpdateDemanda } from "@/hooks/useDemandas";
 import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
+
 
 type Props = {
   open: boolean;
@@ -49,11 +59,30 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
   const update = useUpdateDemanda();
   const isEdit = !!demanda?.id;
 
+  const { data: executivas = [] } = useQuery({
+    queryKey: ["executivas-list"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "executivo");
+      const ids = (roles ?? []).map((r) => r.user_id);
+      if (!ids.length) return [] as { user_id: string; display_name: string }[];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", ids)
+        .order("display_name");
+      return (profs ?? []).filter((p) => p.display_name) as any;
+    },
+  });
+
   useEffect(() => {
     if (open) {
       setForm(demanda ? { ...demanda } : empty());
     }
   }, [open, demanda]);
+
 
   const set = <K extends keyof Demanda>(k: K, v: Demanda[K] | string | boolean) =>
     setForm((p) => ({ ...p, [k]: v as any }));
@@ -114,8 +143,28 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
             <Input value={form.reclamacao || ""} onChange={(e) => set("reclamacao", e.target.value)} />
           </Field>
           <Field label="Executiva responsável">
-            <Input value={form.executiva || ""} onChange={(e) => set("executiva", e.target.value)} />
+            <Select
+              value={form.executiva || "__none__"}
+              onValueChange={(v) => set("executiva", v === "__none__" ? "" : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Nenhuma —</SelectItem>
+                {executivas.map((e: any) => (
+                  <SelectItem key={e.user_id} value={e.display_name}>
+                    {e.display_name}
+                  </SelectItem>
+                ))}
+                {form.executiva &&
+                  !executivas.some((e: any) => e.display_name === form.executiva) && (
+                    <SelectItem value={form.executiva}>{form.executiva}</SelectItem>
+                  )}
+              </SelectContent>
+            </Select>
           </Field>
+
           <Field label="CPF">
             <Input value={form.cpf || ""} onChange={(e) => set("cpf", e.target.value)} />
           </Field>
