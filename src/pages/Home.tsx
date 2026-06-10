@@ -48,12 +48,16 @@ type InteligenciaItem = {
 
 type InteligenciaSection = {
   title: string;
+  description: string;
+  icon: LucideIcon;
   items: InteligenciaItem[];
 };
 
 const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   {
     title: "Demandas",
+    description: "Reclamações e demandas com SLA",
+    icon: MessageSquareWarning,
     items: [
       {
         slug: "registro-reclamacoes",
@@ -65,6 +69,8 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     title: "Plantões",
+    description: "Atendimentos e escala 24h",
+    icon: Phone,
     items: [
       {
         slug: "plantoes-atendimentos",
@@ -82,6 +88,8 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     title: "Uber Corporativo",
+    description: "Corridas e centro de custo",
+    icon: Car,
     items: [
       {
         slug: "uber-corporativo",
@@ -93,6 +101,8 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     title: "Saúde nas Empresas",
+    description: "Ações, palestras e preventivas",
+    icon: Stethoscope,
     items: [
       {
         slug: "acoes-saude",
@@ -116,6 +126,8 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     title: "Mailing de Brindes",
+    description: "Cestas natalinas e brindes corporativos",
+    icon: Gift,
     items: [
       {
         slug: "mailing-brindes",
@@ -127,6 +139,8 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     title: "Central de Avaliações",
+    description: "NPS, CSAT, executiva, RH e palestras",
+    icon: BarChart3,
     items: [
       {
         slug: "central-avaliacoes",
@@ -319,6 +333,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"funcoes" | "utilitarios">("funcoes");
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [openInteligencia, setOpenInteligencia] = useState<string | null>(null);
 
   const ctx: Ctx = {
     isAdmin,
@@ -491,7 +506,7 @@ export default function Home() {
 
         {/* Inteligência de Relacionamento — sempre visível */}
         {!query && !activeGroup && (
-          <div className="w-full flex flex-col gap-6 pt-4">
+          <div className="w-full flex flex-col gap-4 pt-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 text-foreground">
                 <Sparkles className="h-4 w-4 text-primary" />
@@ -500,44 +515,114 @@ export default function Home() {
                 </h2>
               </div>
               <div className="flex-1 h-px bg-border/60" />
+              {openInteligencia && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setOpenInteligencia(null)}
+                  className="gap-1 h-7 px-2"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Voltar
+                </Button>
+              )}
             </div>
 
-            {INTELIGENCIA_SECTIONS.map((section) => (
-              <div key={section.title} className="flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-[11px] font-semibold tracking-[0.12em] uppercase text-muted-foreground">
-                    {section.title}
-                  </h3>
-                  <div className="flex-1 h-px bg-border/40" />
-                </div>
+            {(() => {
+              const activeSection = openInteligencia
+                ? INTELIGENCIA_SECTIONS.find((s) => s.title === openInteligencia)
+                : null;
+
+              if (activeSection) {
+                return (
+                  <div className="flex flex-col gap-3">
+                    <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-muted-foreground">
+                      {activeSection.title}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {activeSection.items.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <Link
+                            key={item.slug}
+                            to={`/inteligencia/${item.slug}`}
+                            className="group"
+                          >
+                            <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
+                              <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
+                                <Icon className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-foreground truncate">
+                                  {item.label}
+                                </div>
+                                <div className="text-xs text-muted-foreground line-clamp-2">
+                                  {item.description}
+                                </div>
+                              </div>
+                            </Card>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {section.items.map((item) => {
-                    const Icon = item.icon;
+                  {INTELIGENCIA_SECTIONS.map((section) => {
+                    const Icon = section.icon;
+                    const isGroup = section.items.length > 1;
+                    const onlyItem = section.items[0];
+
+                    const cardInner = (
+                      <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
+                        <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <div className="text-sm font-semibold text-foreground truncate">
+                              {isGroup ? section.title : onlyItem.label}
+                            </div>
+                            {isGroup && (
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                                {section.items.length}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground line-clamp-2">
+                            {isGroup ? section.description : onlyItem.description}
+                          </div>
+                        </div>
+                      </Card>
+                    );
+
+                    if (isGroup) {
+                      return (
+                        <button
+                          key={section.title}
+                          onClick={() => setOpenInteligencia(section.title)}
+                          className="group text-left"
+                        >
+                          {cardInner}
+                        </button>
+                      );
+                    }
                     return (
                       <Link
-                        key={item.slug}
-                        to={`/inteligencia/${item.slug}`}
+                        key={section.title}
+                        to={`/inteligencia/${onlyItem.slug}`}
                         className="group"
                       >
-                        <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
-                          <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold text-foreground truncate">
-                              {item.label}
-                            </div>
-                            <div className="text-xs text-muted-foreground line-clamp-2">
-                              {item.description}
-                            </div>
-                          </div>
-                        </Card>
+                        {cardInner}
                       </Link>
                     );
                   })}
                 </div>
-              </div>
-            ))}
+              );
+            })()}
           </div>
         )}
       </div>
