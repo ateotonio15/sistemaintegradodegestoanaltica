@@ -44,6 +44,8 @@ type InteligenciaItem = {
   label: string;
   description: string;
   icon: LucideIcon;
+  /** Rota real (opcional). Quando ausente, usa /inteligencia/:slug (placeholder "Em construção"). */
+  to?: string;
 };
 
 type InteligenciaSection = {
@@ -64,6 +66,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         label: "Registro de Reclamações",
         description: "Abertura e acompanhamento de demandas com SLA",
         icon: MessageSquareWarning,
+        to: "/demandas",
       },
     ],
   },
@@ -545,7 +548,7 @@ export default function Home() {
                         return (
                           <Link
                             key={item.slug}
-                            to={`/inteligencia/${item.slug}`}
+                            to={item.to || `/inteligencia/${item.slug}`}
                             className="group"
                           >
                             <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
@@ -613,7 +616,7 @@ export default function Home() {
                     return (
                       <Link
                         key={section.title}
-                        to={`/inteligencia/${onlyItem.slug}`}
+                        to={onlyItem.to || `/inteligencia/${onlyItem.slug}`}
                         className="group"
                       >
                         {cardInner}

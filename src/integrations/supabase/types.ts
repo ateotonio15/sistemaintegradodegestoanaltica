@@ -667,6 +667,92 @@ export type Database = {
         }
         Relationships: []
       }
+      demandas: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          data_entrada: string | null
+          data_reclamacao: string
+          data_resolucao_executiva: string | null
+          data_resolucao_setor: string | null
+          detalhamento: string | null
+          empresa: string | null
+          encaminhado_setor: boolean
+          executiva: string | null
+          id: string
+          importacao_id: string | null
+          nome_cliente: string
+          nome_medico: string | null
+          nome_procedimento: string | null
+          observacao: string | null
+          reclamacao: string | null
+          resolvido_executiva: boolean
+          resolvido_setor: boolean
+          setor_responsavel: string | null
+          tipo_reclamacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_entrada?: string | null
+          data_reclamacao: string
+          data_resolucao_executiva?: string | null
+          data_resolucao_setor?: string | null
+          detalhamento?: string | null
+          empresa?: string | null
+          encaminhado_setor?: boolean
+          executiva?: string | null
+          id?: string
+          importacao_id?: string | null
+          nome_cliente: string
+          nome_medico?: string | null
+          nome_procedimento?: string | null
+          observacao?: string | null
+          reclamacao?: string | null
+          resolvido_executiva?: boolean
+          resolvido_setor?: boolean
+          setor_responsavel?: string | null
+          tipo_reclamacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_entrada?: string | null
+          data_reclamacao?: string
+          data_resolucao_executiva?: string | null
+          data_resolucao_setor?: string | null
+          detalhamento?: string | null
+          empresa?: string | null
+          encaminhado_setor?: boolean
+          executiva?: string | null
+          id?: string
+          importacao_id?: string | null
+          nome_cliente?: string
+          nome_medico?: string | null
+          nome_procedimento?: string | null
+          observacao?: string | null
+          reclamacao?: string | null
+          resolvido_executiva?: boolean
+          resolvido_setor?: boolean
+          setor_responsavel?: string | null
+          tipo_reclamacao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandas_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa_implantacao_historico: {
         Row: {
           created_at: string
@@ -2146,6 +2232,33 @@ export type Database = {
         }
         Relationships: []
       }
+      importacoes: {
+        Row: {
+          created_at: string
+          id: string
+          importado_por: string | null
+          importado_por_nome: string | null
+          nome_arquivo: string
+          total_registros: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          importado_por?: string | null
+          importado_por_nome?: string | null
+          nome_arquivo: string
+          total_registros?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          importado_por?: string | null
+          importado_por_nome?: string | null
+          nome_arquivo?: string
+          total_registros?: number
+        }
+        Relationships: []
+      }
       movimentacoes: {
         Row: {
           created_at: string
@@ -2880,6 +2993,7 @@ export type Database = {
         }
         Returns: string
       }
+      demanda_can_edit: { Args: { _executiva: string }; Returns: boolean }
       enviar_implantacao_diretoria: {
         Args: { p_impl: string }
         Returns: string
