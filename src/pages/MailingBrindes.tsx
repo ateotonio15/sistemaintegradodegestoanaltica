@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Gift, Pencil, Plus, Search, Trash2, ExternalLink } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { MailingBrindeDialog, type MailingBrinde } from "@/components/mailing/MailingBrindeDialog";
 import {
@@ -91,8 +92,19 @@ export default function MailingBrindes() {
   }, [rows, search, statusFilter, tipoFilter, execFilter]);
 
   const counts = useMemo(() => {
-    const c = { total: rows.length, pendente: 0, enviado: 0, entregue: 0, devolvido: 0 };
-    rows.forEach((r) => { c[r.status]++; });
+    const base = tipoFilter === "todos" ? rows : rows.filter((r) => (r.tipo_cesta ?? "") === tipoFilter);
+    const c = { total: base.length, pendente: 0, enviado: 0, entregue: 0, devolvido: 0 };
+    base.forEach((r) => { c[r.status]++; });
+    return c;
+  }, [rows, tipoFilter]);
+
+  const tipoCounts = useMemo(() => {
+    const c = { A: 0, B: 0, C: 0 };
+    rows.forEach((r) => {
+      if (r.tipo_cesta === "A") c.A++;
+      else if (r.tipo_cesta === "B") c.B++;
+      else if (r.tipo_cesta === "C") c.C++;
+    });
     return c;
   }, [rows]);
 
@@ -141,7 +153,7 @@ export default function MailingBrindes() {
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">Mailing de Brindes</h1>
               <p className="text-sm text-muted-foreground">
-                Controle de entrega de cestas e brindes corporativos
+                Acompanhe entregas por tipo de cesta
               </p>
             </div>
           </div>
@@ -152,6 +164,15 @@ export default function MailingBrindes() {
           )}
         </div>
       </div>
+
+      <Tabs value={tipoFilter} onValueChange={setTipoFilter} className="mb-6">
+        <TabsList>
+          <TabsTrigger value="todos">Todas <span className="ml-1.5 text-xs text-muted-foreground">({rows.length})</span></TabsTrigger>
+          <TabsTrigger value="A">Cesta Tipo A <span className="ml-1.5 text-xs text-muted-foreground">({tipoCounts.A})</span></TabsTrigger>
+          <TabsTrigger value="B">Cesta Tipo B <span className="ml-1.5 text-xs text-muted-foreground">({tipoCounts.B})</span></TabsTrigger>
+          <TabsTrigger value="C">Cesta Tipo C <span className="ml-1.5 text-xs text-muted-foreground">({tipoCounts.C})</span></TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {[
@@ -179,15 +200,6 @@ export default function MailingBrindes() {
               className="pl-9"
             />
           </div>
-          <Select value={tipoFilter} onValueChange={setTipoFilter}>
-            <SelectTrigger className="w-full md:w-40"><SelectValue placeholder="Tipo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os tipos</SelectItem>
-              <SelectItem value="A">Cesta A</SelectItem>
-              <SelectItem value="B">Cesta B</SelectItem>
-              <SelectItem value="C">Cesta C</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={execFilter} onValueChange={setExecFilter}>
             <SelectTrigger className="w-full md:w-44"><SelectValue placeholder="Executiva" /></SelectTrigger>
             <SelectContent>
