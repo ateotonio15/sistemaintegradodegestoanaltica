@@ -105,9 +105,17 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     items: [
       {
         slug: "uber-corporativo",
-        label: "Uber Corporativo",
-        description: "Corridas, colaboradores e centro de custo",
+        label: "Corridas Uber",
+        description: "Lista, importação Excel e CRUD de corridas",
         icon: Car,
+        to: "/uber",
+      },
+      {
+        slug: "uber-dashboard",
+        label: "Dashboard Uber",
+        description: "KPIs, gastos por empresa e ranking de uso",
+        icon: BarChart3,
+        to: "/uber/dashboard",
       },
     ],
   },
