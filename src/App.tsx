@@ -153,6 +153,7 @@ const AppRoutes = () => (
       </Route>
 
       <Route path="/honda-exclusoes" element={<HondaExclusoes />} />
+      <Route path="/inteligencia/:slug" element={<InteligenciaModulo />} />
 
       <Route element={<RoleGate allow={["admin", "diretora", "comum", "executivo", "administradoras"]} />}>
         <Route path="/carteira-samel" element={<CarteiraSamelLayout />}>
