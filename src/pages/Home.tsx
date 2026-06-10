@@ -514,14 +514,10 @@ export default function Home() {
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     return (
-                      <button
-                        key={item.label}
-                        onClick={() =>
-                          toast.info("Em breve", {
-                            description: `${item.label} estará disponível em breve.`,
-                          })
-                        }
-                        className="group text-left"
+                      <Link
+                        key={item.slug}
+                        to={`/inteligencia/${item.slug}`}
+                        className="group"
                       >
                         <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
                           <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
