@@ -445,21 +445,18 @@ export default function Home() {
         {/* Tabs */}
         {!query && !activeGroup && (
           <div className="flex items-center gap-6 border-b border-border/60 w-full max-w-2xl justify-center">
-            {(["funcoes", "utilitarios", "inteligencia"] as const).map((t) => {
+            {(["funcoes", "utilitarios"] as const).map((t) => {
               const active = tab === t;
-              const label =
-                t === "funcoes" ? "Funções" : t === "utilitarios" ? "Utilitários" : "Inteligência";
               return (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
                   className={cn(
-                    "relative pb-3 text-sm font-medium transition-colors inline-flex items-center gap-1.5",
+                    "relative pb-3 text-sm font-medium transition-colors",
                     active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {t === "inteligencia" && <Sparkles className="h-3.5 w-3.5" />}
-                  {label}
+                  {t === "funcoes" ? "Funções" : "Utilitários"}
                   {active && (
                     <span className="absolute -bottom-px left-0 right-0 h-0.5 bg-primary rounded-full" />
                   )}
@@ -469,16 +466,39 @@ export default function Home() {
           </div>
         )}
 
-        {/* Content */}
-        {tab === "inteligencia" && !query && !activeGroup ? (
-          <div className="w-full flex flex-col gap-8">
+        {/* Grid */}
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filtered.length === 0 ? (
+            <div className="col-span-full text-center text-sm text-muted-foreground py-12">
+              Nenhum módulo encontrado.
+            </div>
+          ) : (
+            filtered.map((s: any) =>
+              isGroup(s) ? renderCard(s, { asGroup: true }) : renderCard(s),
+            )
+          )}
+        </div>
+
+        {/* Inteligência de Relacionamento — sempre visível */}
+        {!query && !activeGroup && (
+          <div className="w-full flex flex-col gap-6 pt-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-foreground">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold tracking-tight">
+                  Inteligência de Relacionamento
+                </h2>
+              </div>
+              <div className="flex-1 h-px bg-border/60" />
+            </div>
+
             {INTELIGENCIA_SECTIONS.map((section) => (
               <div key={section.title} className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-[11px] font-semibold tracking-[0.12em] uppercase text-muted-foreground">
+                  <h3 className="text-[11px] font-semibold tracking-[0.12em] uppercase text-muted-foreground">
                     {section.title}
-                  </h2>
-                  <div className="flex-1 h-px bg-border/60" />
+                  </h3>
+                  <div className="flex-1 h-px bg-border/40" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {section.items.map((item) => {
@@ -512,18 +532,6 @@ export default function Home() {
                 </div>
               </div>
             ))}
-          </div>
-        ) : (
-          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filtered.length === 0 ? (
-              <div className="col-span-full text-center text-sm text-muted-foreground py-12">
-                Nenhum módulo encontrado.
-              </div>
-            ) : (
-              filtered.map((s: any) =>
-                isGroup(s) ? renderCard(s, { asGroup: true }) : renderCard(s),
-              )
-            )}
           </div>
         )}
       </div>
