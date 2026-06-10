@@ -77,13 +77,6 @@ const EMPRESAS_CHILDREN: LeafShortcut[] = [
     show: () => true,
   },
   {
-    to: "/executivas",
-    label: "Executivas",
-    description: "Carteira e ranking das executivas",
-    icon: UserCheck,
-    show: (c) => !c.isFinanceiro,
-  },
-  {
     to: "/implantacao",
     label: "Implantação",
     description: "Novos contratos e onboarding",

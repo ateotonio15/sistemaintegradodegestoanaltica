@@ -14,7 +14,7 @@ import Home from "./pages/Home";
 import DashboardFinanceiro from "./pages/DashboardFinanceiro";
 import DashboardVendas from "./pages/DashboardVendas";
 import DashboardAdministradoras from "./pages/DashboardAdministradoras";
-import Executivas from "./pages/Executivas";
+
 import Financeiro from "./pages/Financeiro";
 import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
@@ -124,9 +124,6 @@ const AppRoutes = () => (
           <Route path="/vidas-operadora" element={<Vidas />} />
         </Route>
 
-        <Route element={<RoleGate deny={["financeiro"]} />}>
-          <Route path="/executivas" element={<Executivas />} />
-        </Route>
 
         <Route element={<RoleGate deny={["financeiro"]} />}>
           <Route path="/implantacao" element={<Implantacao />} />
