@@ -64,6 +64,8 @@ type FormState = {
   rastreio_codigo: string;
   transportadora: string;
   observacoes: string;
+  tipo_cesta: "A" | "B" | "C" | "";
+  executiva: string;
 };
 
 const empty: FormState = {
@@ -80,6 +82,8 @@ const empty: FormState = {
   rastreio_codigo: "",
   transportadora: "",
   observacoes: "",
+  tipo_cesta: "",
+  executiva: "",
 };
 
 const todayIso = () => new Date().toISOString();
@@ -104,6 +108,8 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
         rastreio_codigo: editing.rastreio_codigo ?? "",
         transportadora: editing.transportadora ?? "",
         observacoes: editing.observacoes ?? "",
+        tipo_cesta: editing.tipo_cesta ?? "",
+        executiva: editing.executiva ?? "",
       });
     } else {
       setForm({ ...empty });
@@ -141,6 +147,8 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
       rastreio_codigo: form.rastreio_codigo.trim() || null,
       transportadora: form.transportadora.trim() || null,
       observacoes: form.observacoes.trim() || null,
+      tipo_cesta: form.tipo_cesta || null,
+      executiva: form.executiva.trim() || null,
       enviado_em,
       entregue_em,
     };
