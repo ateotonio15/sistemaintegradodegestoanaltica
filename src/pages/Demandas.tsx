@@ -57,8 +57,9 @@ type StatusFilter = "todos" | "aberto" | "resolvido";
 
 export default function Demandas() {
   const { isAdmin, isDiretora, isViewOnly, user } = useAuth();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const reclamacaoParam = params.get("reclamacao");
+  const idParam = params.get("id");
 
   const { data: demandas = [], isLoading } = useDemandas();
   const del = useDeleteDemanda();
