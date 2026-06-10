@@ -117,6 +117,13 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
       toast.error("Informe o nome do beneficiário");
       return;
     }
+    if (isSurgical(form.reclamacao)) {
+      if (!form.cpf?.trim()) return toast.error("Informe o CPF");
+      if (!form.data_entrada) return toast.error("Informe a data de entrada");
+      if (!form.nome_medico?.trim()) return toast.error("Informe o nome do médico");
+      if (!form.nome_procedimento?.trim()) return toast.error("Informe o nome do procedimento");
+    }
+
     try {
       if (isEdit && demanda) {
         await update.mutateAsync({ id: demanda.id, patch: form });
