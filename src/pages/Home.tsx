@@ -6,9 +6,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Search,
+  ArrowLeft,
   LayoutDashboard,
   Building2,
   ArrowLeftRight,
@@ -26,15 +28,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type Shortcut = {
-  to: string;
-  label: string;
-  description: string;
-  icon: LucideIcon;
-  group: "funcoes" | "utilitarios";
-  show: (ctx: Ctx) => boolean;
-};
-
 type Ctx = {
   isAdmin: boolean;
   isExecutivo: boolean;
@@ -45,6 +38,83 @@ type Ctx = {
   role: string | null | undefined;
   canHonda: boolean;
 };
+
+type LeafShortcut = {
+  to: string;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  show: (ctx: Ctx) => boolean;
+};
+
+type GroupShortcut = {
+  groupKey: string;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  show: (ctx: Ctx) => boolean;
+  children: LeafShortcut[];
+};
+
+type Shortcut = (LeafShortcut | GroupShortcut) & { group: "funcoes" | "utilitarios" };
+
+const isGroup = (s: Shortcut): s is GroupShortcut & { group: "funcoes" | "utilitarios" } =>
+  (s as GroupShortcut).children !== undefined;
+
+const EMPRESAS_CHILDREN: LeafShortcut[] = [
+  {
+    to: "/empresas",
+    label: "Empresas",
+    description: "Cadastro e gestão de contratos",
+    icon: Building2,
+    show: () => true,
+  },
+  {
+    to: "/movimentacoes",
+    label: "Movimentações",
+    description: "Inclusões, exclusões e alterações",
+    icon: ArrowLeftRight,
+    show: () => true,
+  },
+  {
+    to: "/executivas",
+    label: "Executivas",
+    description: "Carteira e ranking das executivas",
+    icon: UserCheck,
+    show: (c) => !c.isFinanceiro,
+  },
+  {
+    to: "/implantacao",
+    label: "Implantação",
+    description: "Novos contratos e onboarding",
+    icon: FileSignature,
+    show: (c) =>
+      c.isAdmin || ["comum", "administradoras", "visualizacao", "diretora"].includes(c.role as string),
+  },
+  {
+    to: "/contratos-recem-implantados",
+    label: "Recém Implantados",
+    description: "Acompanhar primeiros fechamentos",
+    icon: ClockAlert,
+    show: (c) =>
+      c.isAdmin || c.isFinanceiro || ["comum", "administradoras", "diretora"].includes(c.role as string),
+  },
+  {
+    to: "/gestao-vidas",
+    label: "Gestão de Vidas",
+    description: "Histórico analítico de vidas",
+    icon: Activity,
+    show: (c) => c.isAdmin || ["diretora", "comum", "administradoras"].includes(c.role as string),
+  },
+  {
+    to: "/vidas-operadora",
+    label: "Vidas na Operadora",
+    description: "Conciliação com a operadora",
+    icon: Activity,
+    show: (c) =>
+      c.isAdmin || ["diretora", "comum", "administradoras", "vendas"].includes(c.role as string),
+  },
+];
 
 const SHORTCUTS: Shortcut[] = [
   {
@@ -80,28 +150,13 @@ const SHORTCUTS: Shortcut[] = [
     show: (c) => c.isAdmin,
   },
   {
-    to: "/empresas",
+    groupKey: "empresas",
     label: "Empresas",
-    description: "Cadastro e gestão de contratos",
+    description: "Cadastro, movimentações, implantação e vidas",
     icon: Building2,
     group: "funcoes",
     show: () => true,
-  },
-  {
-    to: "/movimentacoes",
-    label: "Movimentações",
-    description: "Inclusões, exclusões e alterações",
-    icon: ArrowLeftRight,
-    group: "funcoes",
-    show: () => true,
-  },
-  {
-    to: "/executivas",
-    label: "Executivas",
-    description: "Carteira e ranking das executivas",
-    icon: UserCheck,
-    group: "funcoes",
-    show: (c) => !c.isFinanceiro,
+    children: EMPRESAS_CHILDREN,
   },
   {
     to: "/financeiro",
@@ -111,24 +166,6 @@ const SHORTCUTS: Shortcut[] = [
     group: "funcoes",
     show: (c) =>
       c.isAdmin || c.isFinanceiro || c.role === "comum" || c.role === "administradoras" || c.role === "visualizacao",
-  },
-  {
-    to: "/implantacao",
-    label: "Implantação",
-    description: "Novos contratos e onboarding",
-    icon: FileSignature,
-    group: "funcoes",
-    show: (c) =>
-      c.isAdmin || ["comum", "administradoras", "visualizacao", "diretora"].includes(c.role as string),
-  },
-  {
-    to: "/contratos-recem-implantados",
-    label: "Recém Implantados",
-    description: "Acompanhar primeiros fechamentos",
-    icon: ClockAlert,
-    group: "funcoes",
-    show: (c) =>
-      c.isAdmin || c.isFinanceiro || ["comum", "administradoras", "diretora"].includes(c.role as string),
   },
   {
     to: "/reajustes",
@@ -146,24 +183,6 @@ const SHORTCUTS: Shortcut[] = [
     group: "funcoes",
     show: (c) =>
       c.isAdmin || ["diretora", "comum", "executivo", "administradoras"].includes(c.role as string),
-  },
-  {
-    to: "/gestao-vidas",
-    label: "Gestão de Vidas",
-    description: "Histórico analítico de vidas",
-    icon: Activity,
-    group: "funcoes",
-    show: (c) =>
-      c.isAdmin || ["diretora", "comum", "administradoras"].includes(c.role as string),
-  },
-  {
-    to: "/vidas-operadora",
-    label: "Vidas na Operadora",
-    description: "Conciliação com a operadora",
-    icon: Activity,
-    group: "funcoes",
-    show: (c) =>
-      c.isAdmin || ["diretora", "comum", "administradoras", "vendas"].includes(c.role as string),
   },
   {
     to: "/vidas-samel",
@@ -204,6 +223,7 @@ export default function Home() {
   const { data: canHonda } = useCanAccessHonda();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"funcoes" | "utilitarios">("funcoes");
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   const ctx: Ctx = {
     isAdmin,
@@ -216,16 +236,42 @@ export default function Home() {
     canHonda: !!canHonda,
   };
 
-  const visible = useMemo(() => SHORTCUTS.filter((s) => s.show(ctx)), [ctx]);
+  const visible = useMemo(() => {
+    return SHORTCUTS.filter((s) => s.show(ctx)).map((s) => {
+      if (isGroup(s)) {
+        return { ...s, children: s.children.filter((c) => c.show(ctx)) };
+      }
+      return s;
+    });
+  }, [ctx]);
+
+  const activeGroup = useMemo(
+    () => (openGroup ? (visible.find((s) => isGroup(s) && s.groupKey === openGroup) as GroupShortcut | undefined) : null),
+    [visible, openGroup],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = q ? visible : visible.filter((s) => s.group === tab);
-    if (!q) return base;
-    return visible.filter(
-      (s) => s.label.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
-    );
-  }, [visible, query, tab]);
+    if (activeGroup) {
+      const items = activeGroup.children;
+      if (!q) return items;
+      return items.filter(
+        (s) => s.label.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
+      );
+    }
+    if (q) {
+      // search across everything (groups + leaves + children)
+      const flat: LeafShortcut[] = [];
+      visible.forEach((s) => {
+        if (isGroup(s)) flat.push(...s.children);
+        else flat.push(s);
+      });
+      return flat.filter(
+        (s) => s.label.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
+      );
+    }
+    return visible.filter((s) => s.group === tab);
+  }, [visible, query, tab, activeGroup]);
 
   const { data: profile } = useQuery({
     queryKey: ["home-profile", user?.id],
@@ -240,11 +286,43 @@ export default function Home() {
     enabled: !!user?.id,
   });
 
-  const greetingName = (profile?.display_name || user?.email?.split("@")[0] || "")
-    .split(" ")[0];
+  const greetingName = (profile?.display_name || user?.email?.split("@")[0] || "").split(" ")[0];
   const greetingDisplay = greetingName
     ? greetingName.charAt(0).toUpperCase() + greetingName.slice(1)
     : "";
+
+  const renderCard = (s: LeafShortcut | (GroupShortcut & { group?: string }), opts?: { asGroup?: boolean }) => {
+    const Icon = s.icon;
+    const inner = (
+      <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
+        <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-foreground truncate">{s.label}</div>
+          <div className="text-xs text-muted-foreground line-clamp-2">{s.description}</div>
+        </div>
+      </Card>
+    );
+    if (opts?.asGroup) {
+      const g = s as GroupShortcut;
+      return (
+        <button
+          key={g.groupKey}
+          onClick={() => setOpenGroup(g.groupKey)}
+          className="group text-left"
+        >
+          {inner}
+        </button>
+      );
+    }
+    const leaf = s as LeafShortcut;
+    return (
+      <Link key={leaf.to} to={leaf.to} className="group">
+        {inner}
+      </Link>
+    );
+  };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center px-4 py-10 md:py-16">
@@ -253,9 +331,7 @@ export default function Home() {
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
             Bem-vindo{greetingDisplay ? `, ${greetingDisplay}` : ""}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Acesse rapidamente os módulos do CS Control
-          </p>
+          <p className="text-sm text-muted-foreground">Acesse rapidamente os módulos do CS Control</p>
         </div>
 
         {/* Search */}
@@ -269,8 +345,20 @@ export default function Home() {
           />
         </div>
 
+        {/* Group header */}
+        {activeGroup && !query && (
+          <div className="w-full flex items-center justify-between gap-3 max-w-2xl">
+            <Button variant="ghost" size="sm" onClick={() => setOpenGroup(null)} className="gap-1">
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
+            <div className="text-sm font-medium text-foreground">{activeGroup.label}</div>
+            <div className="w-[72px]" />
+          </div>
+        )}
+
         {/* Tabs */}
-        {!query && (
+        {!query && !activeGroup && (
           <div className="flex items-center gap-6 border-b border-border/60 w-full max-w-2xl justify-center">
             {(["funcoes", "utilitarios"] as const).map((t) => {
               const active = tab === t;
@@ -300,26 +388,9 @@ export default function Home() {
               Nenhum módulo encontrado.
             </div>
           ) : (
-            filtered.map((s) => {
-              const Icon = s.icon;
-              return (
-                <Link key={s.to} to={s.to} className="group">
-                  <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                    <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-foreground truncate">
-                        {s.label}
-                      </div>
-                      <div className="text-xs text-muted-foreground line-clamp-2">
-                        {s.description}
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })
+            filtered.map((s: any) =>
+              isGroup(s) ? renderCard(s, { asGroup: true }) : renderCard(s),
+            )
           )}
         </div>
       </div>
