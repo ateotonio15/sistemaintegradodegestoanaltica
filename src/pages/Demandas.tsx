@@ -226,6 +226,14 @@ export default function Demandas() {
                 </Button>
               </>
             )}
+            {isAdmin && (
+              <Button variant="outline" size="sm" asChild className="gap-1.5">
+                <Link to="/demandas/dashboard">
+                  <Gauge className="h-4 w-4" />
+                  Dashboard
+                </Link>
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={exportExcel} className="gap-1.5">
               <Download className="h-4 w-4" />
               Exportar Excel
