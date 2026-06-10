@@ -137,13 +137,22 @@ export function useImportDemandasLote() {
         }),
       );
 
-      const { error: errIns } = await supabase.from("demandas").insert(rows as any);
-      if (errIns) {
-        // rollback do lote
-        await supabase.from("importacoes").delete().eq("id", lote.id);
-        throw errIns;
+      // Insere em lotes de 200 para evitar payload grande e identificar erros
+      const CHUNK = 200;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const slice = rows.slice(i, i + CHUNK);
+        const { error: errIns } = await supabase.from("demandas").insert(slice as any);
+        if (errIns) {
+          await supabase.from("importacoes").delete().eq("id", lote.id);
+          throw new Error(
+            `Falha no lote ${i + 1}-${i + slice.length}: ${errIns.message}${
+              errIns.details ? " — " + errIns.details : ""
+            }`,
+          );
+        }
       }
       return lote as ImportacaoLote;
+
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QK_DEMANDAS });
