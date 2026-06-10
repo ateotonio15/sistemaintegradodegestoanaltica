@@ -52,9 +52,8 @@ const allNavItems = [
   { to: "/plantoes/calendario", label: "Calendário Plantões", icon: Calendar, adminOnly: true },
   { to: "/uber", label: "Uber Corporativo", icon: Car, adminOnly: true },
   { to: "/uber/dashboard", label: "Dashboard Uber", icon: LayoutDashboard, adminOnly: true },
-  { to: "/saude/acoes", label: "Ações Saúde", icon: Stethoscope },
-  { to: "/saude/palestras", label: "Calendário Palestras", icon: Mic },
-  { to: "/saude/preventivas", label: "Ações Preventivas", icon: ShieldPlus },
+  { to: "/saude-empresas", label: "Saúde nas Empresas", icon: Stethoscope },
+  { to: "/saude-empresas/visao-geral", label: "Visão Geral · Saúde", icon: Activity },
 ];
 
 interface Notificacao {
@@ -144,7 +143,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
       if (item.to === "/vidas" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
       if (isEnfermeira) {
-        const allowed = ["/empresas", "/reajustes", "/saude/acoes", "/saude/palestras", "/saude/preventivas"];
+        const allowed = ["/empresas", "/reajustes", "/saude-empresas", "/saude-empresas/visao-geral"];
         return allowed.includes(item.to);
       }
       return true;
