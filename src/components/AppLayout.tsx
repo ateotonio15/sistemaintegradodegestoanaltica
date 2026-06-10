@@ -47,6 +47,7 @@ const allNavItems = [
   { to: "/vidas-samel", label: "Vidas Samel", icon: HeartPulse },
   { to: "/vidas", label: "Vidas", icon: Activity },
   { to: "/demandas", label: "Registro de Reclamações", icon: MessageSquareWarning, adminOnly: true },
+  { to: "/demandas/dashboard", label: "Dashboard Reclamações", icon: LayoutDashboard, adminOnly: true },
 ];
 
 interface Notificacao {
