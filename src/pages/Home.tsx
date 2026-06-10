@@ -307,7 +307,7 @@ export default function Home() {
   const { isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, isVendas, role, user } = useAuth();
   const { data: canHonda } = useCanAccessHonda();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<"funcoes" | "utilitarios" | "inteligencia">("funcoes");
+  const [tab, setTab] = useState<"funcoes" | "utilitarios">("funcoes");
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   const ctx: Ctx = {
