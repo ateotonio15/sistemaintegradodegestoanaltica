@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Gift, Pencil, Plus, Search, Trash2, ExternalLink } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { MailingBrindeDialog, type MailingBrinde } from "@/components/mailing/MailingBrindeDialog";
 import {
