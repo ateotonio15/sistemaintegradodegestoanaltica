@@ -2377,6 +2377,131 @@ export type Database = {
           },
         ]
       }
+      plantoes: {
+        Row: {
+          created_at: string
+          data: string
+          empresa_id: string
+          id: string
+          observacao: string | null
+          plantonista: string | null
+          turno: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          empresa_id: string
+          id?: string
+          observacao?: string | null
+          plantonista?: string | null
+          turno?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          empresa_id?: string
+          id?: string
+          observacao?: string | null
+          plantonista?: string | null
+          turno?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "plantoes_empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plantoes_atendimentos: {
+        Row: {
+          assunto: string | null
+          cpf: string | null
+          created_at: string
+          demanda_id: string | null
+          hora: string | null
+          id: string
+          nome_cliente: string
+          observacao: string | null
+          plantao_id: string
+          resolvido: boolean
+          updated_at: string
+        }
+        Insert: {
+          assunto?: string | null
+          cpf?: string | null
+          created_at?: string
+          demanda_id?: string | null
+          hora?: string | null
+          id?: string
+          nome_cliente: string
+          observacao?: string | null
+          plantao_id: string
+          resolvido?: boolean
+          updated_at?: string
+        }
+        Update: {
+          assunto?: string | null
+          cpf?: string | null
+          created_at?: string
+          demanda_id?: string | null
+          hora?: string | null
+          id?: string
+          nome_cliente?: string
+          observacao?: string | null
+          plantao_id?: string
+          resolvido?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantoes_atendimentos_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demandas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plantoes_atendimentos_plantao_id_fkey"
+            columns: ["plantao_id"]
+            isOneToOne: false
+            referencedRelation: "plantoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plantoes_empresas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          observacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          observacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          observacao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       process_jobs: {
         Row: {
           completed_at: string | null

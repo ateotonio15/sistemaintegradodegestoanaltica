@@ -34,6 +34,11 @@ import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import InteligenciaModulo from "./pages/InteligenciaModulo";
 import Demandas from "./pages/Demandas";
 import DemandasDashboard from "./pages/DemandasDashboard";
+import Plantoes from "./pages/Plantoes";
+import PlantoesCalendario from "./pages/PlantoesCalendario";
+import PlantoesEmpresa from "./pages/PlantoesEmpresa";
+import PlantaoAtendimentos from "./pages/PlantaoAtendimentos";
+import PlantoesRelatorios from "./pages/PlantoesRelatorios";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -158,6 +163,13 @@ const AppRoutes = () => (
       <Route path="/inteligencia/:slug" element={<InteligenciaModulo />} />
       <Route path="/demandas" element={<Demandas />} />
       <Route path="/demandas/dashboard" element={<DemandasDashboard />} />
+
+      <Route path="/plantoes" element={<Plantoes />} />
+      <Route path="/plantoes/calendario" element={<PlantoesCalendario />} />
+      <Route path="/plantoes/empresa/:empresaId" element={<PlantoesEmpresa />} />
+      <Route path="/plantoes/:plantaoId/atendimentos" element={<PlantaoAtendimentos />} />
+      <Route path="/plantoes/relatorios" element={<PlantoesRelatorios />} />
+
 
       <Route element={<RoleGate allow={["admin", "diretora", "comum", "executivo", "administradoras"]} />}>
         <Route path="/carteira-samel" element={<CarteiraSamelLayout />}>
