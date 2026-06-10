@@ -257,6 +257,7 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
               maxLength={100}
               placeholder="Ex.: Mayara"
             />
+          </div>
           <div>
             <Label>Cidade</Label>
             <Input
