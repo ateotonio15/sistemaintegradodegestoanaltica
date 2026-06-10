@@ -53,6 +53,27 @@ const empty = (): Partial<Demanda> => ({
   data_resolucao_executiva: "",
 });
 
+const SURGICAL = ["aprazamento cirurgico", "cancelamento cirurgico"];
+function normalize(s: string | null | undefined) {
+  return String(s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+}
+function isSurgical(reclamacao: string | null | undefined) {
+  return SURGICAL.includes(normalize(reclamacao));
+}
+function maskCpf(v: string) {
+  const d = String(v).replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+
+
 export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props) {
   const [form, setForm] = useState<Partial<Demanda>>(empty());
   const create = useCreateDemanda();
@@ -96,6 +117,13 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
       toast.error("Informe o nome do beneficiário");
       return;
     }
+    if (isSurgical(form.reclamacao)) {
+      if (!form.cpf?.trim()) return toast.error("Informe o CPF");
+      if (!form.data_entrada) return toast.error("Informe a data de entrada");
+      if (!form.nome_medico?.trim()) return toast.error("Informe o nome do médico");
+      if (!form.nome_procedimento?.trim()) return toast.error("Informe o nome do procedimento");
+    }
+
     try {
       if (isEdit && demanda) {
         await update.mutateAsync({ id: demanda.id, patch: form });
@@ -130,6 +158,36 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
           <Field label="Beneficiário *">
             <Input value={form.nome_cliente || ""} onChange={(e) => set("nome_cliente", e.target.value)} />
           </Field>
+
+          {isSurgical(form.reclamacao) && (
+            <>
+              <Field label="CPF *">
+                <Input
+                  value={form.cpf || ""}
+                  onChange={(e) => set("cpf", maskCpf(e.target.value))}
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                />
+              </Field>
+              <Field label="Data de entrada *">
+                <Input
+                  type="date"
+                  value={form.data_entrada || ""}
+                  onChange={(e) => set("data_entrada", e.target.value)}
+                />
+              </Field>
+              <Field label="Nome do médico *">
+                <Input value={form.nome_medico || ""} onChange={(e) => set("nome_medico", e.target.value)} />
+              </Field>
+              <Field label="Nome do procedimento *">
+                <Input
+                  value={form.nome_procedimento || ""}
+                  onChange={(e) => set("nome_procedimento", e.target.value)}
+                />
+              </Field>
+            </>
+          )}
+
           <Field label="Empresa">
             <Input value={form.empresa || ""} onChange={(e) => set("empresa", e.target.value)} />
           </Field>
@@ -142,7 +200,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
           <Field label="Reclamação">
             <Input value={form.reclamacao || ""} onChange={(e) => set("reclamacao", e.target.value)} />
           </Field>
-          <Field label="Executiva responsável">
+          <Field label="Executiva responsável" className="md:col-span-2">
             <Select
               value={form.executiva || "__none__"}
               onValueChange={(v) => set("executiva", v === "__none__" ? "" : v)}
@@ -165,25 +223,6 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
             </Select>
           </Field>
 
-          <Field label="CPF">
-            <Input value={form.cpf || ""} onChange={(e) => set("cpf", e.target.value)} />
-          </Field>
-          <Field label="Data de entrada">
-            <Input
-              type="date"
-              value={form.data_entrada || ""}
-              onChange={(e) => set("data_entrada", e.target.value)}
-            />
-          </Field>
-          <Field label="Nome do médico">
-            <Input value={form.nome_medico || ""} onChange={(e) => set("nome_medico", e.target.value)} />
-          </Field>
-          <Field label="Nome do procedimento" className="md:col-span-2">
-            <Input
-              value={form.nome_procedimento || ""}
-              onChange={(e) => set("nome_procedimento", e.target.value)}
-            />
-          </Field>
           <Field label="Detalhamento" className="md:col-span-2">
             <Textarea
               rows={3}
@@ -191,13 +230,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
               onChange={(e) => set("detalhamento", e.target.value)}
             />
           </Field>
-          <Field label="Observação" className="md:col-span-2">
-            <Textarea
-              rows={2}
-              value={form.observacao || ""}
-              onChange={(e) => set("observacao", e.target.value)}
-            />
-          </Field>
+
 
           <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-border pt-4">
             <SwitchField
