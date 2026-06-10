@@ -620,26 +620,35 @@ export default function Reajustes() {
                             <History className="h-4 w-4" />
                           </Button>
 
-                          {canCriar && reajuste && !isSolicitado && (
-                            <>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                title="Editar"
-                                onClick={() => statusFluxo === "pendente_confirmacao" || statusFluxo === "aguardando_aprovacao" ? openSolicitar(empresa, reajuste) : openEdit(reajuste)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button size="icon" variant="ghost" title="Excluir" onClick={() => setConfirmDelete(reajuste.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </>
-                          )}
-                          {isAdmin && isSolicitado && (
-                            <Button size="icon" variant="ghost" title="Excluir" onClick={() => setConfirmDelete(reajuste.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
+                          {(() => {
+                            const bloqueado = ["liberado_financeiro", "retroativo_aplicado", "reajustado"].includes(statusFluxo || "");
+                            if (bloqueado) return null;
+                            return (
+                              <>
+                                {canCriar && reajuste && !isSolicitado && (
+                                  <>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      title="Editar"
+                                      onClick={() => statusFluxo === "pendente_confirmacao" || statusFluxo === "aguardando_aprovacao" ? openSolicitar(empresa, reajuste) : openEdit(reajuste)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button size="icon" variant="ghost" title="Excluir" onClick={() => setConfirmDelete(reajuste.id)}>
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </>
+                                )}
+                                {isAdmin && isSolicitado && (
+                                  <Button size="icon" variant="ghost" title="Excluir" onClick={() => setConfirmDelete(reajuste.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                )}
+                              </>
+                            );
+                          })()}
+
                           {podeSolicitar && !reajuste && (
                             <Button
                               size="sm"
