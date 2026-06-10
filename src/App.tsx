@@ -115,29 +115,31 @@ const AppRoutes = () => (
         <Route path="/dashboard/administradoras" element={<DashboardAdministradoras />} />
       </Route>
 
-      <Route path="/empresas" element={<Empresas />} />
-      <Route path="/movimentacoes" element={<Movimentacoes />} />
+      <Route element={<EmpresasGroupLayout />}>
+        <Route path="/empresas" element={<Empresas />} />
+        <Route path="/movimentacoes" element={<Movimentacoes />} />
+
+        <Route element={<RoleGate allow={["admin", "diretora", "comum", "administradoras", "vendas"]} />}>
+          <Route path="/gestao-vidas" element={<GestaoVidas />} />
+          <Route path="/vidas-operadora" element={<VidasOperadora />} />
+        </Route>
+
+        <Route element={<RoleGate deny={["financeiro"]} />}>
+          <Route path="/executivas" element={<Executivas />} />
+        </Route>
+
+        <Route element={<RoleGate deny={["financeiro"]} />}>
+          <Route path="/implantacao" element={<Implantacao />} />
+        </Route>
+
+        <Route element={<RoleGate allow={["admin", "comum", "administradoras", "financeiro", "diretora"]} />}>
+          <Route path="/contratos-recem-implantados" element={<ContratosRecemImplantados />} />
+        </Route>
+      </Route>
 
       <Route element={<RoleGate deny={[]} />}>
         <Route path="/vidas-samel" element={<VidasSamel />} />
         <Route path="/reajustes" element={<Reajustes />} />
-      </Route>
-
-      <Route element={<RoleGate allow={["admin", "diretora", "comum", "administradoras", "vendas"]} />}>
-        <Route path="/gestao-vidas" element={<GestaoVidas />} />
-        <Route path="/vidas-operadora" element={<VidasOperadora />} />
-      </Route>
-
-      <Route element={<RoleGate deny={["financeiro"]} />}>
-        <Route path="/executivas" element={<Executivas />} />
-      </Route>
-
-      <Route element={<RoleGate deny={["financeiro"]} />}>
-        <Route path="/implantacao" element={<Implantacao />} />
-      </Route>
-
-      <Route element={<RoleGate allow={["admin", "comum", "administradoras", "financeiro", "diretora"]} />}>
-        <Route path="/contratos-recem-implantados" element={<ContratosRecemImplantados />} />
       </Route>
 
       <Route element={<RoleGate allow={["admin", "financeiro", "comum", "administradoras", "visualizacao", "diretora"]} />}>
