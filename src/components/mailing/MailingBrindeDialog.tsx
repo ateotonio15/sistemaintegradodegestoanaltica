@@ -37,6 +37,8 @@ export type MailingBrinde = {
   enviado_em: string | null;
   entregue_em: string | null;
   observacoes: string | null;
+  tipo_cesta: "A" | "B" | "C" | null;
+  executiva: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -62,6 +64,8 @@ type FormState = {
   rastreio_codigo: string;
   transportadora: string;
   observacoes: string;
+  tipo_cesta: "A" | "B" | "C" | "";
+  executiva: string;
 };
 
 const empty: FormState = {
@@ -78,6 +82,8 @@ const empty: FormState = {
   rastreio_codigo: "",
   transportadora: "",
   observacoes: "",
+  tipo_cesta: "",
+  executiva: "",
 };
 
 const todayIso = () => new Date().toISOString();
@@ -102,6 +108,8 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
         rastreio_codigo: editing.rastreio_codigo ?? "",
         transportadora: editing.transportadora ?? "",
         observacoes: editing.observacoes ?? "",
+        tipo_cesta: editing.tipo_cesta ?? "",
+        executiva: editing.executiva ?? "",
       });
     } else {
       setForm({ ...empty });
@@ -139,6 +147,8 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
       rastreio_codigo: form.rastreio_codigo.trim() || null,
       transportadora: form.transportadora.trim() || null,
       observacoes: form.observacoes.trim() || null,
+      tipo_cesta: form.tipo_cesta || null,
+      executiva: form.executiva.trim() || null,
       enviado_em,
       entregue_em,
     };
@@ -222,6 +232,30 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
               onChange={(e) => set("endereco", e.target.value)}
               maxLength={300}
               placeholder="Rua, número, complemento, bairro"
+            />
+          </div>
+          <div>
+            <Label>Tipo de cesta</Label>
+            <Select
+              value={form.tipo_cesta || "none"}
+              onValueChange={(v) => set("tipo_cesta", v === "none" ? "" : (v as "A" | "B" | "C"))}
+            >
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                <SelectItem value="A">Cesta tipo A</SelectItem>
+                <SelectItem value="B">Cesta tipo B</SelectItem>
+                <SelectItem value="C">Cesta tipo C</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Executiva responsável</Label>
+            <Input
+              value={form.executiva}
+              onChange={(e) => set("executiva", e.target.value)}
+              maxLength={100}
+              placeholder="Ex.: Mayara"
             />
           </div>
           <div>

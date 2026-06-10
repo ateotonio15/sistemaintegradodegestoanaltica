@@ -53,6 +53,8 @@ export default function MailingBrindes() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [tipoFilter, setTipoFilter] = useState<string>("todos");
+  const [execFilter, setExecFilter] = useState<string>("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MailingBrinde | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -79,17 +81,25 @@ export default function MailingBrindes() {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
       if (statusFilter !== "todos" && r.status !== statusFilter) return false;
+      if (tipoFilter !== "todos" && (r.tipo_cesta ?? "") !== tipoFilter) return false;
+      if (execFilter !== "todos" && (r.executiva ?? "") !== execFilter) return false;
       if (!q) return true;
-      return [r.empresa_nome, r.contato_nome, r.cidade, r.rastreio_codigo, r.email]
+      return [r.empresa_nome, r.contato_nome, r.cidade, r.rastreio_codigo, r.email, r.executiva]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
-  }, [rows, search, statusFilter]);
+  }, [rows, search, statusFilter, tipoFilter, execFilter]);
 
   const counts = useMemo(() => {
     const c = { total: rows.length, pendente: 0, enviado: 0, entregue: 0, devolvido: 0 };
     rows.forEach((r) => { c[r.status]++; });
     return c;
+  }, [rows]);
+
+  const executivas = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => r.executiva && set.add(r.executiva));
+    return Array.from(set).sort();
   }, [rows]);
 
   const handleNew = () => {
@@ -169,8 +179,26 @@ export default function MailingBrindes() {
               className="pl-9"
             />
           </div>
+          <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <SelectTrigger className="w-full md:w-40"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
+              <SelectItem value="A">Cesta A</SelectItem>
+              <SelectItem value="B">Cesta B</SelectItem>
+              <SelectItem value="C">Cesta C</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={execFilter} onValueChange={setExecFilter}>
+            <SelectTrigger className="w-full md:w-44"><SelectValue placeholder="Executiva" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas executivas</SelectItem>
+              {executivas.map((e) => (
+                <SelectItem key={e} value={e}>{e}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full md:w-48"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full md:w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os status</SelectItem>
               <SelectItem value="pendente">Pendente</SelectItem>
@@ -187,7 +215,8 @@ export default function MailingBrindes() {
               <TableRow>
                 <TableHead>Empresa</TableHead>
                 <TableHead>Contato</TableHead>
-                <TableHead>Cidade/UF</TableHead>
+                <TableHead>Cesta</TableHead>
+                <TableHead>Executiva</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Rastreio</TableHead>
                 <TableHead className="w-24 text-right">Ações</TableHead>
@@ -196,13 +225,13 @@ export default function MailingBrindes() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Nenhum registro encontrado
                   </TableCell>
                 </TableRow>
@@ -211,14 +240,26 @@ export default function MailingBrindes() {
                   const meta = STATUS_META[r.status];
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.empresa_nome}</TableCell>
+                      <TableCell className="font-medium">
+                        <div>{r.empresa_nome}</div>
+                        {r.cidade && (
+                          <div className="text-xs text-muted-foreground">
+                            {r.cidade}{r.uf ? "/" + r.uf : ""}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div>{r.contato_nome || "—"}</div>
                         {r.cargo && <div className="text-xs text-muted-foreground">{r.cargo}</div>}
                       </TableCell>
-                      <TableCell className="text-sm">
-                        {r.cidade ? `${r.cidade}${r.uf ? "/" + r.uf : ""}` : "—"}
+                      <TableCell>
+                        {r.tipo_cesta ? (
+                          <Badge variant="outline" className="font-mono">{r.tipo_cesta}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
                       </TableCell>
+                      <TableCell className="text-sm">{r.executiva || "—"}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={meta.className}>{meta.label}</Badge>
                       </TableCell>
