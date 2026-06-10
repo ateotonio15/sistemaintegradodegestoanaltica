@@ -32,6 +32,7 @@ import CSAvaliacoesRH from "./modules/carteira-samel/pages/AvaliacoesRH";
 import CSResponderRH from "./modules/carteira-samel/pages/ResponderRH";
 import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import InteligenciaModulo from "./pages/InteligenciaModulo";
+import Demandas from "./pages/Demandas";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
