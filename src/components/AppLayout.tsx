@@ -262,7 +262,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     <div className="min-h-screen bg-background flex relative">
       {/* Ambient background glow */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-gradient-glow opacity-60" />
-      {/* Sidebar */}
+      {/* Sidebar — apenas admin */}
+      {isAdmin && (
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border transition-all duration-300 ease-in-out",
