@@ -52,6 +52,9 @@ const allNavItems = [
   { to: "/plantoes/calendario", label: "Calendário Plantões", icon: Calendar, adminOnly: true },
   { to: "/uber", label: "Uber Corporativo", icon: Car, adminOnly: true },
   { to: "/uber/dashboard", label: "Dashboard Uber", icon: LayoutDashboard, adminOnly: true },
+  { to: "/saude/acoes", label: "Ações Saúde", icon: Stethoscope },
+  { to: "/saude/palestras", label: "Calendário Palestras", icon: Mic },
+  { to: "/saude/preventivas", label: "Ações Preventivas", icon: ShieldPlus },
 ];
 
 interface Notificacao {
