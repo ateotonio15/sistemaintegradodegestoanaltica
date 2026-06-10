@@ -145,6 +145,9 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     if (canAccessHonda) {
       filtered.push({ to: "/honda-exclusoes", label: "Honda Exclusões", icon: Bike });
     }
+    if (isAdmin || role === "diretora" || role === "comum" || role === "executivo" || role === "administradoras") {
+      filtered.push({ to: "/carteira-samel", label: "Carteira Samel", icon: Briefcase });
+    }
     return filtered;
   }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren, canAccessHonda]);
 
