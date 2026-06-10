@@ -415,6 +415,45 @@ function Field({
   );
 }
 
+function YesNoField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  const id = label.replace(/\s+/g, "-");
+  return (
+    <div className="flex flex-col gap-2">
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <div className="flex items-center gap-5 pt-1">
+        <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <input
+            type="radio"
+            name={id}
+            checked={value === true}
+            onChange={() => onChange(true)}
+            className="h-4 w-4 accent-primary"
+          />
+          SIM
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <input
+            type="radio"
+            name={id}
+            checked={value === false}
+            onChange={() => onChange(false)}
+            className="h-4 w-4 accent-primary"
+          />
+          NÃO
+        </label>
+      </div>
+    </div>
+  );
+}
+
 function SwitchField({
   label,
   checked,
@@ -429,5 +468,6 @@ function SwitchField({
       <Label className="text-sm font-medium">{label}</Label>
       <Switch checked={checked} onCheckedChange={onChange} />
     </div>
+
   );
 }
