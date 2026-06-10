@@ -160,7 +160,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
     }
   }, [open, demanda]);
 
-  }, [open, demanda]);
+
 
 
   const set = <K extends keyof Demanda>(k: K, v: Demanda[K] | string | boolean) =>
