@@ -225,13 +225,13 @@ export default function MailingBrindes() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Nenhum registro encontrado
                   </TableCell>
                 </TableRow>
@@ -240,14 +240,26 @@ export default function MailingBrindes() {
                   const meta = STATUS_META[r.status];
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.empresa_nome}</TableCell>
+                      <TableCell className="font-medium">
+                        <div>{r.empresa_nome}</div>
+                        {r.cidade && (
+                          <div className="text-xs text-muted-foreground">
+                            {r.cidade}{r.uf ? "/" + r.uf : ""}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div>{r.contato_nome || "—"}</div>
                         {r.cargo && <div className="text-xs text-muted-foreground">{r.cargo}</div>}
                       </TableCell>
-                      <TableCell className="text-sm">
-                        {r.cidade ? `${r.cidade}${r.uf ? "/" + r.uf : ""}` : "—"}
+                      <TableCell>
+                        {r.tipo_cesta ? (
+                          <Badge variant="outline" className="font-mono">{r.tipo_cesta}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
                       </TableCell>
+                      <TableCell className="text-sm">{r.executiva || "—"}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={meta.className}>{meta.label}</Badge>
                       </TableCell>
