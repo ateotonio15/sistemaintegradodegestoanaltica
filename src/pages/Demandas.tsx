@@ -8,6 +8,7 @@ import {
   Download,
   Edit2,
   FileUp,
+  Gauge,
   History,
   MessageSquareWarning,
   Plus,
