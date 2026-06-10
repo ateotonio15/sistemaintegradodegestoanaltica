@@ -182,7 +182,7 @@ export default function ImportarDemandasDialog({ open, onOpenChange }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 flex-1 overflow-hidden flex flex-col min-h-0">
           <div>
             <Label className="text-xs text-muted-foreground">Arquivo</Label>
             <Input
@@ -196,47 +196,22 @@ export default function ImportarDemandasDialog({ open, onOpenChange }: Props) {
           </div>
 
           {preview && (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <div className="px-3 py-2 bg-muted/40 text-xs font-medium text-foreground">
-                Pré-visualização ({preview.rows.length} linha{preview.rows.length === 1 ? "" : "s"})
-              </div>
-              <div className="max-h-64 overflow-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/30 sticky top-0">
-                    <tr>
-                      {preview.headers.map((h, i) => {
-                        const matched = COL_MAP[normHeader(h)];
-                        return (
-                          <th key={i} className="px-2 py-1 text-left font-medium">
-                            <div>{h}</div>
-                            <div
-                              className={`text-[10px] ${
-                                matched ? "text-primary" : "text-muted-foreground/60"
-                              }`}
-                            >
-                              {matched || "(ignorada)"}
-                            </div>
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.rows.slice(0, 5).map((r, i) => (
-                      <tr key={i} className="border-t border-border">
-                        {r.map((c, j) => (
-                          <td key={j} className="px-2 py-1 truncate max-w-[160px]">
-                            {String(c ?? "")}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="rounded-lg border border-border px-3 py-2 bg-muted/40 text-sm">
+              <span className="font-medium">{preview.rows.length}</span> linha(s) prontas para importar.
+              <div className="text-xs text-muted-foreground mt-1">
+                Colunas reconhecidas:{" "}
+                {Array.from(
+                  new Set(
+                    preview.headers
+                      .map((h) => COL_MAP[normHeader(h)])
+                      .filter(Boolean) as string[],
+                  ),
+                ).join(", ") || "—"}
               </div>
             </div>
           )}
         </div>
+
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={importMut.isPending}>
