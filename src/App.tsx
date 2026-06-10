@@ -10,6 +10,7 @@ import Empresas from "./pages/Empresas";
 import Movimentacoes from "./pages/Movimentacoes";
 import Usuarios from "./pages/Usuarios";
 import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
 import DashboardFinanceiro from "./pages/DashboardFinanceiro";
 import DashboardVendas from "./pages/DashboardVendas";
 import DashboardAdministradoras from "./pages/DashboardAdministradoras";
