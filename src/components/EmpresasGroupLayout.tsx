@@ -22,12 +22,6 @@ const TABS: Tab[] = [
   { to: "/empresas", label: "Empresas", icon: Building2, show: () => true },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight, show: () => true },
   {
-    to: "/executivas",
-    label: "Executivas",
-    icon: UserCheck,
-    show: ({ isFinanceiro }) => !isFinanceiro,
-  },
-  {
     to: "/implantacao",
     label: "Implantação",
     icon: FileSignature,
