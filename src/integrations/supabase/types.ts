@@ -2337,11 +2337,13 @@ export type Database = {
           endereco: string | null
           entregue_em: string | null
           enviado_em: string | null
+          executiva: string | null
           id: string
           observacoes: string | null
           rastreio_codigo: string | null
           status: string
           telefone: string | null
+          tipo_cesta: string | null
           transportadora: string | null
           uf: string | null
           updated_at: string
@@ -2358,11 +2360,13 @@ export type Database = {
           endereco?: string | null
           entregue_em?: string | null
           enviado_em?: string | null
+          executiva?: string | null
           id?: string
           observacoes?: string | null
           rastreio_codigo?: string | null
           status?: string
           telefone?: string | null
+          tipo_cesta?: string | null
           transportadora?: string | null
           uf?: string | null
           updated_at?: string
@@ -2379,11 +2383,13 @@ export type Database = {
           endereco?: string | null
           entregue_em?: string | null
           enviado_em?: string | null
+          executiva?: string | null
           id?: string
           observacoes?: string | null
           rastreio_codigo?: string | null
           status?: string
           telefone?: string | null
+          tipo_cesta?: string | null
           transportadora?: string | null
           uf?: string | null
           updated_at?: string
