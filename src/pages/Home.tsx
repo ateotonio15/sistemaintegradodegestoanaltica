@@ -616,7 +616,7 @@ export default function Home() {
                     return (
                       <Link
                         key={section.title}
-                        to={`/inteligencia/${onlyItem.slug}`}
+                        to={onlyItem.to || `/inteligencia/${onlyItem.slug}`}
                         className="group"
                       >
                         {cardInner}
