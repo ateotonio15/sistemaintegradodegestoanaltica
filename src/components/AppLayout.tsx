@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert, Bike } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert, Bike, Briefcase } from "lucide-react";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
 import { useAtivarContratosPendentes } from "@/hooks/useAtivarContratosPendentes";
 import logoImg from "@/assets/logo-cs-control.png";
@@ -144,6 +144,9 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     });
     if (canAccessHonda) {
       filtered.push({ to: "/honda-exclusoes", label: "Honda Exclusões", icon: Bike });
+    }
+    if (isAdmin || role === "diretora" || role === "comum" || role === "executivo" || role === "administradoras") {
+      filtered.push({ to: "/carteira-samel", label: "Carteira Samel", icon: Briefcase });
     }
     return filtered;
   }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren, canAccessHonda]);

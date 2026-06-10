@@ -1,102 +1,85 @@
-## Módulo Honda Exclusões
+# Módulo "Carteira Samel" no CS Control
 
-Novo módulo dedicado ao acompanhamento antecipado de desligamentos programados de beneficiários da empresa Honda, restrito ao responsável Honda, Diretora e Admin.
+Adiciona um novo módulo `/carteira-samel` reaproveitando o login Supabase atual e a sidebar do CS Control. Nenhuma alteração na identidade visual nem nos módulos existentes.
 
-### 1. Banco de dados (Lovable Cloud)
+## 1. Navegação
 
-Nova tabela `honda_exclusoes`:
-- `nome_beneficiario` (text)
-- `cpf` (text, 11 dígitos)
-- `data_demissao` (date)
-- `motivo` (text)
-- `tipo_operacao` (text)
-- `sequencia` (text)
-- `importado_por` (uuid → auth.users)
-- `importado_em` (timestamptz default now())
-- `concluido` (boolean default false) — marcação manual ou automática pós-data
-- standard `id`, `created_at`, `updated_at`
+Adicionar no `src/components/AppLayout.tsx` um item de menu **"Carteira Samel"** (ícone `Briefcase`), com subitens que aparecem dentro do mesmo padrão dos demais (mesmo estilo verde/dark do CS Control — sem sidebar paralela):
 
-RLS:
-- SELECT/INSERT/UPDATE permitidos para `admin`, `diretora` e para o responsável vinculado à empresa Honda (via `empresa_usuarios` + lookup da empresa cujo nome contém "HONDA").
-- DELETE bloqueado para todos exceto `admin` (preservação de histórico).
-- GRANT a `authenticated` e `service_role`.
+- Visão Geral · Carteira · Sinistralidade · Score de Risco · Avaliações RH
 
-Função SECURITY DEFINER `can_access_honda_exclusoes(_user_id uuid)` retornando boolean, usada nas policies e no frontend (via RPC) para liberar/ocultar a aba.
+Visível para `admin`, `diretora`, `comum`, `executivo`. Demais perfis não veem.
 
-### 2. Permissões e navegação
+## 2. Banco (Lovable Cloud)
 
-- `useAuth` ganha flag derivada `canAccessHondaExclusoes` que consulta `can_access_honda_exclusoes` via RPC (cacheado em React Query).
-- `AppLayout` / sidebar mostra item "Honda Exclusões" (ícone 🏍️ Bike do lucide) somente se `canAccessHondaExclusoes`.
-- `RoleGate` customizado para a rota `/honda-exclusoes` baseado nessa flag (admin, diretora ou responsável Honda).
+Migração criando 6 tabelas com prefixo `cs_` para não colidir com nada existente:
 
-### 3. Estrutura da página `/honda-exclusoes`
+- `cs_sinistralidade_historico` (empresa, contrato, mês/ano, sinistralidade %, % reajuste, indexador, observação, created_by)
+- `cs_sinistralidade_mensal` (empresa_id, mes/ano, sinistralidade %, reajuste %)
+- `cs_avaliacao_risco` (semáforos por dimensão, pontuação_total, classificação_final)
+- `cs_avaliacoes_executiva` (relacionamento, satisfação, observação, created_by)
+- `cs_avaliacao_formularios` (tipo, título, instruções, perguntas jsonb)
+- `cs_avaliacao_respostas` (formulario_id, respondente, respostas jsonb)
 
-Página `src/pages/HondaExclusoes.tsx` com `Tabs` shadcn:
-- **Dashboard** — KPI cards: Programadas, Mês, Semana, Amanhã, Vencidas (não concluídas). Pequeno gráfico de barras por mês.
-- **Importação** — botão "Importar Arquivo" abrindo dialog que aceita `.xlsx` e `.csv`. Parser dedicado em `src/lib/honda-exclusoes-import.ts` lendo as 6 colunas; valida CPF (11 dígitos) e Data Demissão; pula linhas inválidas/vazias e exibe relatório de erros antes de confirmar o insert em lote.
-- **Exclusões Futuras** — tabela de registros com `data_demissao >= hoje` e não concluídos.
-- **Exclusões do Dia** — tabela com `data_demissao = hoje`.
-- **Histórico** — tabela completa com filtros (Mês, Ano, Status, Motivo, CPF, Nome) e busca rápida CPF/Nome.
+Todas com GRANT para `anon` e `authenticated` + RLS aberta (`USING (true)` para SELECT/INSERT/UPDATE), conforme especificado. `cs_avaliacao_formularios` e `cs_avaliacao_respostas` permitem `anon` para que o link público de resposta funcione sem login.
 
-Colunas padrão: Nome, CPF, Data Demissão, Motivo, Dias Restantes, Status.
+## 3. Carteira (mock em memória)
 
-Status calculado em runtime:
-- `Concluído` se `concluido = true` ou data passou e foi marcada.
-- `Hoje` se data = hoje.
-- `Amanhã` se data = hoje+1.
-- `Atrasado` se data < hoje e não concluído.
-- `Programado` caso contrário.
+`src/modules/carteira-samel/context/EmpresasContext.tsx` carrega lista de `src/modules/carteira-samel/data/mockData.ts` (~15 empresas exemplo). `add/update/inativar` somente em memória.
 
-### 4. Alertas automáticos
+## 4. Regras de risco
 
-- Hook `useHondaAlertas` consulta exclusões com `data_demissao` entre hoje e amanhã (inclusive) e não concluídas.
-- Alerta aparece a partir de D-1 00:00 e permanece visível até 23:59 da data de demissão (filtro no client por horário local).
-- Banner global no topo do Dashboard do responsável Honda (e admin/diretora) com lista resumida (Nome, CPF, Data, Motivo).
-- Card "Exclusões Honda" no `Dashboard` (e `DashboardFinanceiro` quando aplicável) mostrando contadores Amanhã / Hoje / Atrasadas com link para a aba.
+- `src/modules/carteira-samel/lib/risco.ts` — semáforos sinistralidade/renovação, score 5 dimensões (5–15), próximo aniversário do contrato.
+- `src/modules/carteira-samel/lib/analiseContrato.ts` — comparativo entre 2 períodos (média, meses >100%, mês pico, distorção acumulada) com classificação melhorou/piorou/estável e geração dos 3 blocos de texto.
 
-### 5. Animação Honda (moto)
+## 5. Páginas (sob `/carteira-samel/...`)
 
-Componente `HondaMotoProgress` (CSS/Tailwind puro, sem libs):
-- Linha horizontal com 🏍️ avançando em direção a 📍.
-- Posição calculada por `diasRestantes`: mais perto do destino conforme a data se aproxima (ex.: 100% em D-0, 75% em D-1, etc.).
-- Animação suave (`transition-all duration-700`) e respeitando `prefers-reduced-motion`.
-- Exibido no header da aba e ao lado de cada linha "Amanhã/Hoje" das tabelas. Cores derivadas dos tokens existentes (dark green/primary), compatível com tema escuro.
+| Rota | Conteúdo |
+|---|---|
+| `/carteira-samel` | Visão Geral — 4 KPIs, alerta reajustes 3 faixas clicáveis, busca individual com painel detalhado |
+| `/carteira-samel/carteira` | Tabela de clientes com filtros (grupo/busca), 4 KPIs no topo, ordenação por coluna |
+| `/carteira-samel/sinistralidade` | Lista + modal Histórico/Inserir + seção Análise de Contrato (duas TabelaPeriodo + Gerar Análise) |
+| `/carteira-samel/score` | Score simplificado 2D, toggle grid/lista, drawer 3 abas (Reclamações stub, Reajuste, Avaliação) |
+| `/carteira-samel/avaliacoes/rh` | Editor + link público `${origin}/carteira-samel/avaliacoes/rh/responder/:formId` |
+| `/carteira-samel/avaliacoes/rh/responder/:formId` | **Rota pública** (fora do `AppShell`), formulário 5 ratings + 1 textarea, salva em `cs_avaliacao_respostas` |
 
-### 6. Integrações
+**Fora do escopo desta entrega:** `/externo` e `/catalog-items` (dependem do Supabase externo, marcados como pendentes).
 
-- Link para empresa Honda em `Empresas` (badge "Honda Exclusões" quando há programadas).
-- Card resumo no `Dashboard`.
-- Lançamento opcional em `Movimentações` é deixado de fora (apenas leitura cruzada — sem exclusão automática).
-- `Gestão de Vidas`: contador de exclusões Honda futuras exibido no painel da Honda.
+A aba *Reclamações* no drawer Score exibe placeholder "Conexão externa pendente — configure a base externa para ativar".
 
-### 7. Arquivos a criar/editar
+## 6. Componentes reutilizáveis
 
-Novos:
-- `supabase/migrations/<timestamp>_honda_exclusoes.sql` (tabela + RLS + função `can_access_honda_exclusoes`).
-- `src/pages/HondaExclusoes.tsx`
-- `src/components/honda/ImportarHondaDialog.tsx`
-- `src/components/honda/HondaMotoProgress.tsx`
-- `src/components/honda/HondaAlertasBanner.tsx`
-- `src/components/honda/HondaExclusoesCard.tsx` (card para dashboards)
-- `src/hooks/useHondaExclusoes.ts`
-- `src/hooks/useHondaAlertas.ts`
-- `src/lib/honda-exclusoes-import.ts` (parser xlsx + csv, valida CPF/data)
+Dentro de `src/modules/carteira-samel/components/`:
+- `RatingScale.tsx` (botões 1–5, verde Samel, readOnly opcional)
+- `TabelaPeriodo.tsx` (tabela editável com totais e add/remove linha)
+- `EmpresaDetailsDrawer.tsx` (3 abas)
+- `StatCard.tsx` (KPI)
+- `SemaforoBadge.tsx` (Verde/Amarelo/Vermelho com tokens existentes)
 
-Editados:
-- `src/App.tsx` — rota `/honda-exclusoes` com gate por flag.
-- `src/components/AppLayout.tsx` — item de menu condicional.
-- `src/hooks/useAuth.tsx` — flag `canAccessHondaExclusoes`.
-- `src/pages/Dashboard.tsx` (e dashboards relevantes) — incorpora `HondaAlertasBanner` e `HondaExclusoesCard`.
+**Reutiliza** os tokens/cores do CS Control (sem introduzir `#2D6A4F` — o verde já existe em `--primary`). Sem nova fonte, sem nova sidebar, sem novo header.
 
-### 8. Garantias
+## 7. Hook
 
-- Nenhuma exclusão automática de beneficiários — módulo é apenas informativo.
-- Histórico não é apagado (sem DELETE no client).
-- Aba e dados ocultos para perfis sem permissão (RLS + gate de rota + sidebar condicional).
-- Alertas só somem após 23:59 local da data de demissão.
-- Importações ficam registradas com `importado_por` e `importado_em`.
+`useRiscoData` em `src/modules/carteira-samel/hooks/useRiscoData.ts` com as operações listadas no prompt, todas via `supabase` client existente.
 
-### Pergunta antes de implementar
+## 8. App.tsx
 
-1. Qual é a empresa exata que representa a "Honda" no cadastro (nome ou contrato) para vincular o responsável? Posso usar `ILIKE '%HONDA%'` na tabela `empresas` ou prefere um contrato específico (ex.: contrato Honda Componentes vs Moto Honda)?
-2. O "Responsável da empresa Honda" deve ser todo usuário ligado via `empresa_usuarios` à empresa Honda, ou somente o usuário marcado como responsável principal/executivo?
+- Rota pública `/carteira-samel/avaliacoes/rh/responder/:formId` registrada **fora** do `AppShell`.
+- Demais rotas dentro do `AppShell` (login Supabase atual + AppLayout).
+- `RoleGate allow={["admin","diretora","comum","executivo"]}` envolve `/carteira-samel/*`.
+
+## Detalhes técnicos
+
+- Isolamento: todo código novo em `src/modules/carteira-samel/` (exceto rotas em `App.tsx` e 1 item no `AppLayout.tsx`).
+- Tipos Supabase: as 6 tabelas aparecem em `src/integrations/supabase/types.ts` automaticamente após a migração.
+- Nada do CS Control é renomeado/removido. Sidebar mantém logo CS Control e cor atual.
+- Login fixo do prompt **descartado** — usa Supabase auth atual conforme escolhido.
+- Base externa **descartada** por enquanto — placeholder na aba Reclamações.
+
+## Arquivos novos
+- `supabase/migrations/<ts>_carteira_samel.sql`
+- `src/modules/carteira-samel/` (context, data, lib, hooks, components, pages — ~20 arquivos)
+
+## Arquivos editados
+- `src/App.tsx` — registra rotas
+- `src/components/AppLayout.tsx` — adiciona item de menu com gate de role
