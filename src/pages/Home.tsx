@@ -532,7 +532,7 @@ export default function Home() {
                             </div>
                           </div>
                         </Card>
-                      </button>
+                      </Link>
                     );
                   })}
                 </div>
