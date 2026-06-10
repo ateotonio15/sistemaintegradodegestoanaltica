@@ -80,6 +80,19 @@ export default function Demandas() {
   const [openHist, setOpenHist] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Demanda | null>(null);
 
+  // Drilldown via ?id= → abre o formulário do registro
+  useEffect(() => {
+    if (!idParam || demandas.length === 0) return;
+    const d = demandas.find((x) => x.id === idParam);
+    if (d) {
+      setEditing(d);
+      setOpenForm(true);
+      const next = new URLSearchParams(params);
+      next.delete("id");
+      setParams(next, { replace: true });
+    }
+  }, [idParam, demandas]);
+
   // Perfil para checar propriedade
   const { data: profile } = useQuery({
     queryKey: ["profile-display", user?.id],
