@@ -342,14 +342,14 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
 
 
           <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-border pt-4">
-            <SwitchField
-              label="Encaminhado ao setor"
-              checked={!!form.encaminhado_setor}
+            <YesNoField
+              label="Encaminhado ao setor responsável?"
+              value={!!form.encaminhado_setor}
               onChange={(v) => set("encaminhado_setor", v)}
             />
-            <SwitchField
-              label="Resolvido pelo setor"
-              checked={!!form.resolvido_setor}
+            <YesNoField
+              label="Resolvido pelo setor?"
+              value={!!form.resolvido_setor}
               onChange={(v) => {
                 set("resolvido_setor", v);
                 if (v && !form.data_resolucao_setor) {
@@ -364,9 +364,9 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
                 onChange={(e) => set("data_resolucao_setor", e.target.value)}
               />
             </Field>
-            <SwitchField
-              label="Resolvido pela executiva"
-              checked={!!form.resolvido_executiva}
+            <YesNoField
+              label="Resolvido pela executiva?"
+              value={!!form.resolvido_executiva}
               onChange={(v) => {
                 set("resolvido_executiva", v);
                 if (v && !form.data_resolucao_executiva) {
@@ -382,6 +382,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
               />
             </Field>
           </div>
+
         </div>
 
         <DialogFooter>
@@ -414,6 +415,45 @@ function Field({
   );
 }
 
+function YesNoField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  const id = label.replace(/\s+/g, "-");
+  return (
+    <div className="flex flex-col gap-2">
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <div className="flex items-center gap-5 pt-1">
+        <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <input
+            type="radio"
+            name={id}
+            checked={value === true}
+            onChange={() => onChange(true)}
+            className="h-4 w-4 accent-primary"
+          />
+          SIM
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <input
+            type="radio"
+            name={id}
+            checked={value === false}
+            onChange={() => onChange(false)}
+            className="h-4 w-4 accent-primary"
+          />
+          NÃO
+        </label>
+      </div>
+    </div>
+  );
+}
+
 function SwitchField({
   label,
   checked,
@@ -428,5 +468,6 @@ function SwitchField({
       <Label className="text-sm font-medium">{label}</Label>
       <Switch checked={checked} onCheckedChange={onChange} />
     </div>
+
   );
 }
