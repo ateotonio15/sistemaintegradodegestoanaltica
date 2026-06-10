@@ -178,6 +178,10 @@ const AppRoutes = () => (
       <Route path="/uber" element={<UberCorridas />} />
       <Route path="/uber/dashboard" element={<UberDashboard />} />
 
+      <Route path="/saude/acoes" element={<SaudeAcoes />} />
+      <Route path="/saude/palestras" element={<SaudePalestras />} />
+      <Route path="/saude/preventivas" element={<SaudePreventivas />} />
+
 
 
 
