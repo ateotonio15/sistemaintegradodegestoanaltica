@@ -262,7 +262,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     <div className="min-h-screen bg-background flex relative">
       {/* Ambient background glow */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-gradient-glow opacity-60" />
-      {/* Sidebar */}
+      {/* Sidebar — apenas admin */}
+      {isAdmin && (
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border transition-all duration-300 ease-in-out",
@@ -466,6 +467,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           )}
         </div>
       </aside>
+      )}
 
       {/* Mobile overlay */}
       {isMobile && !collapsed && (
@@ -478,14 +480,14 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       {/* Main area */}
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300 ease-in-out",
-        !isMobile && (collapsed ? "ml-[72px]" : "ml-[252px]"),
-        isMobile && "ml-0"
+        !isMobile && isAdmin && (collapsed ? "ml-[72px]" : "ml-[252px]"),
+        (isMobile || !isAdmin) && "ml-0"
       )}>
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-border/50 bg-background/70 backdrop-blur-xl">
           <div className="flex h-14 items-center justify-between px-4 md:px-6">
             <div className="flex items-center gap-3">
-              {isMobile && (
+              {isMobile && isAdmin && (
                 <button
                   onClick={() => setCollapsed(false)}
                   className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
