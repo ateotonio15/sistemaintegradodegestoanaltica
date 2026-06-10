@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
@@ -25,8 +26,107 @@ import {
   Activity,
   Bike,
   Briefcase,
+  MessageSquareWarning,
+  Phone,
+  CalendarDays,
+  Car,
+  Stethoscope,
+  Mic,
+  ShieldPlus,
+  Gift,
+  BarChart3,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
+
+type InteligenciaItem = {
+  label: string;
+  description: string;
+  icon: LucideIcon;
+};
+
+type InteligenciaSection = {
+  title: string;
+  items: InteligenciaItem[];
+};
+
+const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
+  {
+    title: "Demandas",
+    items: [
+      {
+        label: "Registro de Reclamações",
+        description: "Abertura e acompanhamento de demandas com SLA",
+        icon: MessageSquareWarning,
+      },
+    ],
+  },
+  {
+    title: "Plantões",
+    items: [
+      {
+        label: "Plantões de atendimentos",
+        description: "Registro de atendimentos do plantão 24h",
+        icon: Phone,
+      },
+      {
+        label: "Calendário de plantões",
+        description: "Escala visual de plantões por executiva",
+        icon: CalendarDays,
+      },
+    ],
+  },
+  {
+    title: "Uber Corporativo",
+    items: [
+      {
+        label: "Uber Corporativo",
+        description: "Corridas, colaboradores e centro de custo",
+        icon: Car,
+      },
+    ],
+  },
+  {
+    title: "Saúde nas Empresas",
+    items: [
+      {
+        label: "Ações saúde nas empresas",
+        description: "Triagens, PA, IMC e fichas biométricas",
+        icon: Stethoscope,
+      },
+      {
+        label: "Calendário de palestras",
+        description: "Agenda de palestras nas empresas",
+        icon: Mic,
+      },
+      {
+        label: "Calendário de ações preventivas",
+        description: "Programação de ações preventivas",
+        icon: ShieldPlus,
+      },
+    ],
+  },
+  {
+    title: "Mailing de Brindes",
+    items: [
+      {
+        label: "Mailing de Brindes",
+        description: "Cestas natalinas e brindes corporativos",
+        icon: Gift,
+      },
+    ],
+  },
+  {
+    title: "Central de Avaliações",
+    items: [
+      {
+        label: "Central de Avaliações",
+        description: "NPS, CSAT, executiva, RH e palestras",
+        icon: BarChart3,
+      },
+    ],
+  },
+];
 
 type Ctx = {
   isAdmin: boolean;
