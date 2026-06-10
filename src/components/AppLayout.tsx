@@ -480,8 +480,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       {/* Main area */}
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300 ease-in-out",
-        !isMobile && (collapsed ? "ml-[72px]" : "ml-[252px]"),
-        isMobile && "ml-0"
+        !isMobile && isAdmin && (collapsed ? "ml-[72px]" : "ml-[252px]"),
+        (isMobile || !isAdmin) && "ml-0"
       )}>
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-border/50 bg-background/70 backdrop-blur-xl">
