@@ -2896,8 +2896,83 @@ export type Database = {
           },
         ]
       }
+      saude_acoes: {
+        Row: {
+          altura: number | null
+          colaborador_nome: string
+          cpf: string | null
+          created_at: string
+          data: string
+          empresa_id: string
+          enfermeira_user_id: string
+          frequencia_cardiaca: number | null
+          glicemia: number | null
+          id: string
+          idade: number | null
+          imc: number | null
+          observacao: string | null
+          peso: number | null
+          pressao_arterial: string | null
+          saturacao: number | null
+          sexo: string | null
+          temperatura: number | null
+          updated_at: string
+        }
+        Insert: {
+          altura?: number | null
+          colaborador_nome: string
+          cpf?: string | null
+          created_at?: string
+          data: string
+          empresa_id: string
+          enfermeira_user_id: string
+          frequencia_cardiaca?: number | null
+          glicemia?: number | null
+          id?: string
+          idade?: number | null
+          imc?: number | null
+          observacao?: string | null
+          peso?: number | null
+          pressao_arterial?: string | null
+          saturacao?: number | null
+          sexo?: string | null
+          temperatura?: number | null
+          updated_at?: string
+        }
+        Update: {
+          altura?: number | null
+          colaborador_nome?: string
+          cpf?: string | null
+          created_at?: string
+          data?: string
+          empresa_id?: string
+          enfermeira_user_id?: string
+          frequencia_cardiaca?: number | null
+          glicemia?: number | null
+          id?: string
+          idade?: number | null
+          imc?: number | null
+          observacao?: string | null
+          peso?: number | null
+          pressao_arterial?: string | null
+          saturacao?: number | null
+          sexo?: string | null
+          temperatura?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saude_acoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saude_agendamentos: {
         Row: {
+          categoria: string
           created_at: string
           data: string
           empresa_id: string
@@ -2912,6 +2987,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          categoria?: string
           created_at?: string
           data: string
           empresa_id: string
@@ -2926,6 +3002,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          categoria?: string
           created_at?: string
           data?: string
           empresa_id?: string

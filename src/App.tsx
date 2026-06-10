@@ -41,6 +41,9 @@ import PlantaoAtendimentos from "./pages/PlantaoAtendimentos";
 import PlantoesRelatorios from "./pages/PlantoesRelatorios";
 import UberCorridas from "./pages/UberCorridas";
 import UberDashboard from "./pages/UberDashboard";
+import SaudeAcoes from "./pages/SaudeAcoes";
+import SaudePalestras from "./pages/SaudePalestras";
+import SaudePreventivas from "./pages/SaudePreventivas";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -174,6 +177,10 @@ const AppRoutes = () => (
 
       <Route path="/uber" element={<UberCorridas />} />
       <Route path="/uber/dashboard" element={<UberDashboard />} />
+
+      <Route path="/saude/acoes" element={<SaudeAcoes />} />
+      <Route path="/saude/palestras" element={<SaudePalestras />} />
+      <Route path="/saude/preventivas" element={<SaudePreventivas />} />
 
 
 
