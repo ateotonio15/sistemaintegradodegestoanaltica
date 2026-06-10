@@ -143,10 +143,23 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
     },
   });
 
+  const { data: empresasList = [] } = useQuery({
+    queryKey: ["empresas-nomes"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("empresas")
+        .select("id, nome")
+        .order("nome");
+      return data ?? [];
+    },
+  });
+
   useEffect(() => {
     if (open) {
       setForm(demanda ? { ...demanda } : empty());
     }
+  }, [open, demanda]);
+
   }, [open, demanda]);
 
 
