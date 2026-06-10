@@ -41,9 +41,10 @@ import PlantaoAtendimentos from "./pages/PlantaoAtendimentos";
 import PlantoesRelatorios from "./pages/PlantoesRelatorios";
 import UberCorridas from "./pages/UberCorridas";
 import UberDashboard from "./pages/UberDashboard";
-import SaudeAcoes from "./pages/SaudeAcoes";
-import SaudePalestras from "./pages/SaudePalestras";
-import SaudePreventivas from "./pages/SaudePreventivas";
+import SaudeEmpresasLista from "./modules/saude-empresas/pages/SaudeEmpresasLista";
+import SaudeEmpresaAcoes from "./modules/saude-empresas/pages/SaudeEmpresaAcoes";
+import SaudeAcaoTriagens from "./modules/saude-empresas/pages/SaudeAcaoTriagens";
+import SaudeVisaoGeral from "./modules/saude-empresas/pages/SaudeVisaoGeral";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -178,9 +179,12 @@ const AppRoutes = () => (
       <Route path="/uber" element={<UberCorridas />} />
       <Route path="/uber/dashboard" element={<UberDashboard />} />
 
-      <Route path="/saude/acoes" element={<SaudeAcoes />} />
-      <Route path="/saude/palestras" element={<SaudePalestras />} />
-      <Route path="/saude/preventivas" element={<SaudePreventivas />} />
+      <Route element={<RoleGate allow={["admin", "enfermeira", "executivo", "coordenadora", "diretora", "diretora_saude"]} />}>
+        <Route path="/saude-empresas" element={<SaudeEmpresasLista />} />
+        <Route path="/saude-empresas/visao-geral" element={<SaudeVisaoGeral />} />
+        <Route path="/saude-empresas/empresa/:empresaId" element={<SaudeEmpresaAcoes />} />
+        <Route path="/saude-empresas/acao/:acaoId" element={<SaudeAcaoTriagens />} />
+      </Route>
 
 
 
