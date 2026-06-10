@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      acoes_saude: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_acao: string
+          empresa_id: string
+          enfermeira_nome: string | null
+          enfermeira_user_id: string | null
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+          local: string | null
+          observacoes: string | null
+          status: Database["public"]["Enums"]["acao_saude_status"]
+          tipo: Database["public"]["Enums"]["acao_saude_tipo"]
+          titulo: string | null
+          total_atendidos: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_acao: string
+          empresa_id: string
+          enfermeira_nome?: string | null
+          enfermeira_user_id?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          local?: string | null
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["acao_saude_status"]
+          tipo?: Database["public"]["Enums"]["acao_saude_tipo"]
+          titulo?: string | null
+          total_atendidos?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_acao?: string
+          empresa_id?: string
+          enfermeira_nome?: string | null
+          enfermeira_user_id?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          local?: string | null
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["acao_saude_status"]
+          tipo?: Database["public"]["Enums"]["acao_saude_tipo"]
+          titulo?: string | null
+          total_atendidos?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acoes_saude_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alertas_financeiro: {
         Row: {
           created_at: string
@@ -2896,129 +2961,164 @@ export type Database = {
           },
         ]
       }
-      saude_acoes: {
+      triagens: {
         Row: {
-          altura: number | null
-          colaborador_nome: string
+          acao_id: string
+          agua_corporal_pct: number | null
+          altura_cm: number | null
+          cargo: string | null
+          circ_abdominal_cm: number | null
+          circ_quadril_cm: number | null
+          classificacao_glicemia: string | null
+          classificacao_pa: string | null
           cpf: string | null
           created_at: string
-          data: string
+          created_by: string | null
+          data_nascimento: string | null
+          email: string | null
           empresa_id: string
-          enfermeira_user_id: string
-          frequencia_cardiaca: number | null
-          glicemia: number | null
+          enviado_email_em: string | null
+          freq_cardiaca: number | null
+          glicemia_mg_dl: number | null
+          gordura_corporal_kg: number | null
+          gordura_pct: number | null
+          gordura_subcutanea_pct: number | null
+          gordura_visceral: number | null
           id: string
           idade: number | null
+          idade_metabolica: number | null
           imc: number | null
-          observacao: string | null
-          peso: number | null
-          pressao_arterial: string | null
-          saturacao: number | null
+          jejum: boolean
+          massa_muscular_kg: number | null
+          massa_ossea_kg: number | null
+          medicamentos: string | null
+          nome: string
+          pad_mmhg: number | null
+          pas_mmhg: number | null
+          peso_kg: number | null
+          rcq: number | null
+          recomendacao: string | null
+          risco_geral: string | null
+          sat_o2: number | null
+          score_corporal: number | null
+          setor: string | null
           sexo: string | null
-          temperatura: number | null
+          telefone: string | null
+          tem_dm: boolean
+          tem_has: boolean
+          temperatura_c: number | null
+          tmb_kcal: number | null
           updated_at: string
+          usa_medicacao: boolean
         }
         Insert: {
-          altura?: number | null
-          colaborador_nome: string
+          acao_id: string
+          agua_corporal_pct?: number | null
+          altura_cm?: number | null
+          cargo?: string | null
+          circ_abdominal_cm?: number | null
+          circ_quadril_cm?: number | null
+          classificacao_glicemia?: string | null
+          classificacao_pa?: string | null
           cpf?: string | null
           created_at?: string
-          data: string
+          created_by?: string | null
+          data_nascimento?: string | null
+          email?: string | null
           empresa_id: string
-          enfermeira_user_id: string
-          frequencia_cardiaca?: number | null
-          glicemia?: number | null
+          enviado_email_em?: string | null
+          freq_cardiaca?: number | null
+          glicemia_mg_dl?: number | null
+          gordura_corporal_kg?: number | null
+          gordura_pct?: number | null
+          gordura_subcutanea_pct?: number | null
+          gordura_visceral?: number | null
           id?: string
           idade?: number | null
+          idade_metabolica?: number | null
           imc?: number | null
-          observacao?: string | null
-          peso?: number | null
-          pressao_arterial?: string | null
-          saturacao?: number | null
+          jejum?: boolean
+          massa_muscular_kg?: number | null
+          massa_ossea_kg?: number | null
+          medicamentos?: string | null
+          nome: string
+          pad_mmhg?: number | null
+          pas_mmhg?: number | null
+          peso_kg?: number | null
+          rcq?: number | null
+          recomendacao?: string | null
+          risco_geral?: string | null
+          sat_o2?: number | null
+          score_corporal?: number | null
+          setor?: string | null
           sexo?: string | null
-          temperatura?: number | null
+          telefone?: string | null
+          tem_dm?: boolean
+          tem_has?: boolean
+          temperatura_c?: number | null
+          tmb_kcal?: number | null
           updated_at?: string
+          usa_medicacao?: boolean
         }
         Update: {
-          altura?: number | null
-          colaborador_nome?: string
+          acao_id?: string
+          agua_corporal_pct?: number | null
+          altura_cm?: number | null
+          cargo?: string | null
+          circ_abdominal_cm?: number | null
+          circ_quadril_cm?: number | null
+          classificacao_glicemia?: string | null
+          classificacao_pa?: string | null
           cpf?: string | null
           created_at?: string
-          data?: string
+          created_by?: string | null
+          data_nascimento?: string | null
+          email?: string | null
           empresa_id?: string
-          enfermeira_user_id?: string
-          frequencia_cardiaca?: number | null
-          glicemia?: number | null
+          enviado_email_em?: string | null
+          freq_cardiaca?: number | null
+          glicemia_mg_dl?: number | null
+          gordura_corporal_kg?: number | null
+          gordura_pct?: number | null
+          gordura_subcutanea_pct?: number | null
+          gordura_visceral?: number | null
           id?: string
           idade?: number | null
+          idade_metabolica?: number | null
           imc?: number | null
-          observacao?: string | null
-          peso?: number | null
-          pressao_arterial?: string | null
-          saturacao?: number | null
+          jejum?: boolean
+          massa_muscular_kg?: number | null
+          massa_ossea_kg?: number | null
+          medicamentos?: string | null
+          nome?: string
+          pad_mmhg?: number | null
+          pas_mmhg?: number | null
+          peso_kg?: number | null
+          rcq?: number | null
+          recomendacao?: string | null
+          risco_geral?: string | null
+          sat_o2?: number | null
+          score_corporal?: number | null
+          setor?: string | null
           sexo?: string | null
-          temperatura?: number | null
+          telefone?: string | null
+          tem_dm?: boolean
+          tem_has?: boolean
+          temperatura_c?: number | null
+          tmb_kcal?: number | null
           updated_at?: string
+          usa_medicacao?: boolean
         }
         Relationships: [
           {
-            foreignKeyName: "saude_acoes_empresa_id_fkey"
-            columns: ["empresa_id"]
+            foreignKeyName: "triagens_acao_id_fkey"
+            columns: ["acao_id"]
             isOneToOne: false
-            referencedRelation: "empresas"
+            referencedRelation: "acoes_saude"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      saude_agendamentos: {
-        Row: {
-          categoria: string
-          created_at: string
-          data: string
-          empresa_id: string
-          endereco_empresa: string | null
-          enfermeira_user_id: string
-          hora_fim: string
-          hora_inicio: string
-          id: string
-          observacao: string | null
-          status: string
-          tipo_palestra: string
-          updated_at: string
-        }
-        Insert: {
-          categoria?: string
-          created_at?: string
-          data: string
-          empresa_id: string
-          endereco_empresa?: string | null
-          enfermeira_user_id: string
-          hora_fim: string
-          hora_inicio: string
-          id?: string
-          observacao?: string | null
-          status?: string
-          tipo_palestra: string
-          updated_at?: string
-        }
-        Update: {
-          categoria?: string
-          created_at?: string
-          data?: string
-          empresa_id?: string
-          endereco_empresa?: string | null
-          enfermeira_user_id?: string
-          hora_fim?: string
-          hora_inicio?: string
-          id?: string
-          observacao?: string | null
-          status?: string
-          tipo_palestra?: string
-          updated_at?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "saude_agendamentos_empresa_id_fkey"
+            foreignKeyName: "triagens_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
@@ -3238,15 +3338,29 @@ export type Database = {
         Returns: undefined
       }
       ativar_contratos_pendentes: { Args: never; Returns: number }
+      calcular_idade: { Args: { p_nasc: string }; Returns: number }
+      calcular_imc: {
+        Args: { p_altura_cm: number; p_peso: number }
+        Returns: number
+      }
       calcular_primeira_competencia: {
         Args: { p_empresa_id: string }
         Returns: string
       }
+      calcular_rcq: { Args: { p_abd: number; p_qua: number }; Returns: number }
       can_access_honda_exclusoes: {
         Args: { _user_id: string }
         Returns: boolean
       }
       cancelar_ferias_cadastro: { Args: { p_ferias_id: string }; Returns: Json }
+      classificar_glicemia: {
+        Args: { p_jejum: boolean; p_valor: number }
+        Returns: string
+      }
+      classificar_pa: {
+        Args: { p_pad: number; p_pas: number }
+        Returns: string
+      }
       confirmar_reajuste_cadastro: {
         Args: { p_id: string }
         Returns: undefined
@@ -3308,6 +3422,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_saude_editor: { Args: { _uid: string }; Returns: boolean }
       liberar_reajuste_financeiro: {
         Args: { p_id: string }
         Returns: undefined
@@ -3341,6 +3456,13 @@ export type Database = {
       vincular_empresas_por_responsavel: { Args: never; Returns: undefined }
     }
     Enums: {
+      acao_saude_status: "agendada" | "em_andamento" | "concluida" | "cancelada"
+      acao_saude_tipo:
+        | "triagem"
+        | "palestra"
+        | "preventiva"
+        | "bioimpedancia"
+        | "outro"
       app_role:
         | "admin"
         | "comum"
@@ -3351,6 +3473,8 @@ export type Database = {
         | "diretora"
         | "vendas"
         | "administradoras"
+        | "coordenadora"
+        | "diretora_saude"
       ferias_empresa_status:
         | "pendente_inicio"
         | "redistribuida"
@@ -3500,6 +3624,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      acao_saude_status: ["agendada", "em_andamento", "concluida", "cancelada"],
+      acao_saude_tipo: [
+        "triagem",
+        "palestra",
+        "preventiva",
+        "bioimpedancia",
+        "outro",
+      ],
       app_role: [
         "admin",
         "comum",
@@ -3510,6 +3642,8 @@ export const Constants = {
         "diretora",
         "vendas",
         "administradoras",
+        "coordenadora",
+        "diretora_saude",
       ],
       ferias_empresa_status: [
         "pendente_inicio",
