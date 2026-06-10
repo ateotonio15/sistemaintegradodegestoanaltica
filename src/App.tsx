@@ -168,6 +168,7 @@ const AppRoutes = () => (
 
       <Route path="/honda-exclusoes" element={<HondaExclusoes />} />
       <Route path="/inteligencia/:slug" element={<InteligenciaModulo />} />
+      <Route path="/mailing-brindes" element={<MailingBrindes />} />
       <Route path="/demandas" element={<Demandas />} />
       <Route path="/demandas/dashboard" element={<DemandasDashboard />} />
 
