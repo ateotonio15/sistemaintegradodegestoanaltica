@@ -1,0 +1,241 @@
+import { useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import { useCreateDemanda, useUpdateDemanda } from "@/hooks/useDemandas";
+import type { Demanda } from "@/lib/demandas-utils";
+import { format } from "date-fns";
+
+type Props = {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  demanda?: Demanda | null;
+};
+
+const empty = (): Partial<Demanda> => ({
+  data_reclamacao: format(new Date(), "yyyy-MM-dd"),
+  nome_cliente: "",
+  empresa: "",
+  setor_responsavel: "",
+  tipo_reclamacao: "",
+  reclamacao: "",
+  detalhamento: "",
+  observacao: "",
+  executiva: "",
+  cpf: "",
+  data_entrada: "",
+  nome_medico: "",
+  nome_procedimento: "",
+  encaminhado_setor: false,
+  resolvido_setor: false,
+  data_resolucao_setor: "",
+  resolvido_executiva: false,
+  data_resolucao_executiva: "",
+});
+
+export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props) {
+  const [form, setForm] = useState<Partial<Demanda>>(empty());
+  const create = useCreateDemanda();
+  const update = useUpdateDemanda();
+  const isEdit = !!demanda?.id;
+
+  useEffect(() => {
+    if (open) {
+      setForm(demanda ? { ...demanda } : empty());
+    }
+  }, [open, demanda]);
+
+  const set = <K extends keyof Demanda>(k: K, v: Demanda[K] | string | boolean) =>
+    setForm((p) => ({ ...p, [k]: v as any }));
+
+  const onSubmit = async () => {
+    if (!form.data_reclamacao) {
+      toast.error("Informe a data da reclamação");
+      return;
+    }
+    if (!form.nome_cliente?.trim()) {
+      toast.error("Informe o nome do beneficiário");
+      return;
+    }
+    try {
+      if (isEdit && demanda) {
+        await update.mutateAsync({ id: demanda.id, patch: form });
+        toast.success("Demanda atualizada");
+      } else {
+        await create.mutateAsync(form);
+        toast.success("Demanda criada");
+      }
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao salvar");
+    }
+  };
+
+  const loading = create.isPending || update.isPending;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Editar demanda" : "Nova demanda"}</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+          <Field label="Data da reclamação *">
+            <Input
+              type="date"
+              value={form.data_reclamacao || ""}
+              onChange={(e) => set("data_reclamacao", e.target.value)}
+            />
+          </Field>
+          <Field label="Beneficiário *">
+            <Input value={form.nome_cliente || ""} onChange={(e) => set("nome_cliente", e.target.value)} />
+          </Field>
+          <Field label="Empresa">
+            <Input value={form.empresa || ""} onChange={(e) => set("empresa", e.target.value)} />
+          </Field>
+          <Field label="Setor responsável">
+            <Input value={form.setor_responsavel || ""} onChange={(e) => set("setor_responsavel", e.target.value)} />
+          </Field>
+          <Field label="Tipo">
+            <Input value={form.tipo_reclamacao || ""} onChange={(e) => set("tipo_reclamacao", e.target.value)} />
+          </Field>
+          <Field label="Reclamação">
+            <Input value={form.reclamacao || ""} onChange={(e) => set("reclamacao", e.target.value)} />
+          </Field>
+          <Field label="Executiva responsável">
+            <Input value={form.executiva || ""} onChange={(e) => set("executiva", e.target.value)} />
+          </Field>
+          <Field label="CPF">
+            <Input value={form.cpf || ""} onChange={(e) => set("cpf", e.target.value)} />
+          </Field>
+          <Field label="Data de entrada">
+            <Input
+              type="date"
+              value={form.data_entrada || ""}
+              onChange={(e) => set("data_entrada", e.target.value)}
+            />
+          </Field>
+          <Field label="Nome do médico">
+            <Input value={form.nome_medico || ""} onChange={(e) => set("nome_medico", e.target.value)} />
+          </Field>
+          <Field label="Nome do procedimento" className="md:col-span-2">
+            <Input
+              value={form.nome_procedimento || ""}
+              onChange={(e) => set("nome_procedimento", e.target.value)}
+            />
+          </Field>
+          <Field label="Detalhamento" className="md:col-span-2">
+            <Textarea
+              rows={3}
+              value={form.detalhamento || ""}
+              onChange={(e) => set("detalhamento", e.target.value)}
+            />
+          </Field>
+          <Field label="Observação" className="md:col-span-2">
+            <Textarea
+              rows={2}
+              value={form.observacao || ""}
+              onChange={(e) => set("observacao", e.target.value)}
+            />
+          </Field>
+
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-border pt-4">
+            <SwitchField
+              label="Encaminhado ao setor"
+              checked={!!form.encaminhado_setor}
+              onChange={(v) => set("encaminhado_setor", v)}
+            />
+            <SwitchField
+              label="Resolvido pelo setor"
+              checked={!!form.resolvido_setor}
+              onChange={(v) => {
+                set("resolvido_setor", v);
+                if (v && !form.data_resolucao_setor) {
+                  set("data_resolucao_setor", format(new Date(), "yyyy-MM-dd"));
+                }
+              }}
+            />
+            <Field label="Data resolução (setor)">
+              <Input
+                type="date"
+                value={form.data_resolucao_setor || ""}
+                onChange={(e) => set("data_resolucao_setor", e.target.value)}
+              />
+            </Field>
+            <SwitchField
+              label="Resolvido pela executiva"
+              checked={!!form.resolvido_executiva}
+              onChange={(v) => {
+                set("resolvido_executiva", v);
+                if (v && !form.data_resolucao_executiva) {
+                  set("data_resolucao_executiva", format(new Date(), "yyyy-MM-dd"));
+                }
+              }}
+            />
+            <Field label="Data resolução (executiva)" className="md:col-span-2">
+              <Input
+                type="date"
+                value={form.data_resolucao_executiva || ""}
+                onChange={(e) => set("data_resolucao_executiva", e.target.value)}
+              />
+            </Field>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button onClick={onSubmit} disabled={loading}>
+            {loading ? "Salvando..." : isEdit ? "Salvar alterações" : "Criar demanda"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${className || ""}`}>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function SwitchField({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2.5">
+      <Label className="text-sm font-medium">{label}</Label>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
