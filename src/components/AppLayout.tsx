@@ -1,7 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert, Bike, Briefcase } from "lucide-react";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
 import { useAtivarContratosPendentes } from "@/hooks/useAtivarContratosPendentes";
