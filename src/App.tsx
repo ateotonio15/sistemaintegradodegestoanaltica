@@ -33,6 +33,7 @@ import CSResponderRH from "./modules/carteira-samel/pages/ResponderRH";
 import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import InteligenciaModulo from "./pages/InteligenciaModulo";
 import Demandas from "./pages/Demandas";
+import DemandasDashboard from "./pages/DemandasDashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
