@@ -58,7 +58,7 @@ export default function EmpresasGroupLayout() {
   return (
     <div className="animate-in fade-in duration-300">
       <div className="px-4 md:px-6 pt-4">
-        <nav className="flex flex-wrap gap-1 border-b">
+        <nav className="flex flex-wrap items-center gap-1 border-b border-border px-1">
           {visible.map((t) => {
             const path = loc.pathname;
             const active =
@@ -70,14 +70,29 @@ export default function EmpresasGroupLayout() {
                 key={t.to}
                 to={t.to}
                 className={cn(
-                  "inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+                  "group relative flex items-center gap-2.5 px-4 py-3 text-sm tracking-tight transition-all duration-200",
                   active
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
+                    ? "text-primary font-semibold"
+                    : "text-muted-foreground hover:text-primary font-medium",
                 )}
               >
-                <t.icon className="h-4 w-4" />
-                {t.label}
+                <span
+                  className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200",
+                    active
+                      ? "bg-primary/10 text-primary group-hover:scale-110"
+                      : "bg-transparent text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary",
+                  )}
+                >
+                  <t.icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.5 : 2} />
+                </span>
+                <span>{t.label}</span>
+                {active && (
+                  <span
+                    className="absolute bottom-[-1px] left-0 right-0 h-1 rounded-t-full bg-primary"
+                    style={{ boxShadow: "0 -2px 8px hsl(var(--primary) / 0.35)" }}
+                  />
+                )}
               </NavLink>
             );
           })}
