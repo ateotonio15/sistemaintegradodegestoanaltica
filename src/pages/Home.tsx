@@ -68,6 +68,13 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         icon: MessageSquareWarning,
         to: "/demandas",
       },
+      {
+        slug: "dashboard-reclamacoes",
+        label: "Dashboard Executivo",
+        description: "KPIs, SLA, backlog e insights de reclamações",
+        icon: MessageSquareWarning,
+        to: "/demandas/dashboard",
+      },
     ],
   },
   {
