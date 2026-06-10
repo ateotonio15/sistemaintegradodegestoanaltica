@@ -48,7 +48,23 @@ type Props = {
   onSaved: () => void;
 };
 
-const empty = {
+type FormState = {
+  empresa_nome: string;
+  contato_nome: string;
+  cargo: string;
+  email: string;
+  telefone: string;
+  endereco: string;
+  cidade: string;
+  uf: string;
+  cep: string;
+  status: MailingBrinde["status"];
+  rastreio_codigo: string;
+  transportadora: string;
+  observacoes: string;
+};
+
+const empty: FormState = {
   empresa_nome: "",
   contato_nome: "",
   cargo: "",
@@ -58,7 +74,7 @@ const empty = {
   cidade: "",
   uf: "",
   cep: "",
-  status: "pendente" as const,
+  status: "pendente",
   rastreio_codigo: "",
   transportadora: "",
   observacoes: "",
