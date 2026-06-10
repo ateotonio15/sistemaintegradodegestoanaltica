@@ -56,6 +56,8 @@ type InteligenciaSection = {
 const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   {
     title: "Demandas",
+    description: "Reclamações e demandas com SLA",
+    icon: MessageSquareWarning,
     items: [
       {
         slug: "registro-reclamacoes",
@@ -67,6 +69,8 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     title: "Plantões",
+    description: "Atendimentos e escala 24h",
+    icon: Phone,
     items: [
       {
         slug: "plantoes-atendimentos",
@@ -84,6 +88,8 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     title: "Uber Corporativo",
+    description: "Corridas e centro de custo",
+    icon: Car,
     items: [
       {
         slug: "uber-corporativo",
@@ -95,6 +101,8 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     title: "Saúde nas Empresas",
+    description: "Ações, palestras e preventivas",
+    icon: Stethoscope,
     items: [
       {
         slug: "acoes-saude",
@@ -118,6 +126,8 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     title: "Mailing de Brindes",
+    description: "Cestas natalinas e brindes corporativos",
+    icon: Gift,
     items: [
       {
         slug: "mailing-brindes",
@@ -129,6 +139,8 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     title: "Central de Avaliações",
+    description: "NPS, CSAT, executiva, RH e palestras",
+    icon: BarChart3,
     items: [
       {
         slug: "central-avaliacoes",
