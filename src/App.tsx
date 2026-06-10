@@ -33,6 +33,7 @@ import CSResponderRH from "./modules/carteira-samel/pages/ResponderRH";
 import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import InteligenciaModulo from "./pages/InteligenciaModulo";
 import Demandas from "./pages/Demandas";
+import DemandasDashboard from "./pages/DemandasDashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -156,6 +157,7 @@ const AppRoutes = () => (
       <Route path="/honda-exclusoes" element={<HondaExclusoes />} />
       <Route path="/inteligencia/:slug" element={<InteligenciaModulo />} />
       <Route path="/demandas" element={<Demandas />} />
+      <Route path="/demandas/dashboard" element={<DemandasDashboard />} />
 
       <Route element={<RoleGate allow={["admin", "diretora", "comum", "executivo", "administradoras"]} />}>
         <Route path="/carteira-samel" element={<CarteiraSamelLayout />}>

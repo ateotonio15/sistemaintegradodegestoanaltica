@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
@@ -8,6 +8,7 @@ import {
   Download,
   Edit2,
   FileUp,
+  Gauge,
   History,
   MessageSquareWarning,
   Plus,
@@ -56,8 +57,9 @@ type StatusFilter = "todos" | "aberto" | "resolvido";
 
 export default function Demandas() {
   const { isAdmin, isDiretora, isViewOnly, user } = useAuth();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const reclamacaoParam = params.get("reclamacao");
+  const idParam = params.get("id");
 
   const { data: demandas = [], isLoading } = useDemandas();
   const del = useDeleteDemanda();
@@ -77,6 +79,19 @@ export default function Demandas() {
   const [openImport, setOpenImport] = useState(false);
   const [openHist, setOpenHist] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Demanda | null>(null);
+
+  // Drilldown via ?id= → abre o formulário do registro
+  useEffect(() => {
+    if (!idParam || demandas.length === 0) return;
+    const d = demandas.find((x) => x.id === idParam);
+    if (d) {
+      setEditing(d);
+      setOpenForm(true);
+      const next = new URLSearchParams(params);
+      next.delete("id");
+      setParams(next, { replace: true });
+    }
+  }, [idParam, demandas]);
 
   // Perfil para checar propriedade
   const { data: profile } = useQuery({
@@ -210,6 +225,14 @@ export default function Demandas() {
                   Histórico
                 </Button>
               </>
+            )}
+            {isAdmin && (
+              <Button variant="outline" size="sm" asChild className="gap-1.5">
+                <Link to="/demandas/dashboard">
+                  <Gauge className="h-4 w-4" />
+                  Dashboard
+                </Link>
+              </Button>
             )}
             <Button variant="outline" size="sm" onClick={exportExcel} className="gap-1.5">
               <Download className="h-4 w-4" />
