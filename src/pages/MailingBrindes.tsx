@@ -254,7 +254,10 @@ export default function MailingBrindes() {
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">
                         <div>{r.empresa_nome}</div>
-                        {r.cidade && (
+                        {r.endereco && (
+                          <div className="text-xs text-muted-foreground">{r.endereco}</div>
+                        )}
+                        {(r.cidade || r.uf) && (
                           <div className="text-xs text-muted-foreground">
                             {r.cidade}{r.uf ? "/" + r.uf : ""}
                           </div>
