@@ -45,8 +45,7 @@ const allNavItems = [
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
   { to: "/vidas-samel", label: "Vidas Samel", icon: HeartPulse },
-  { to: "/gestao-vidas", label: "Gestão de Vidas", icon: Activity },
-  { to: "/vidas-operadora", label: "Vidas na Operadora", icon: Activity },
+  { to: "/vidas", label: "Vidas", icon: Activity },
 ];
 
 interface Notificacao {
@@ -122,7 +121,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       : allNavItems;
     const filtered = base.filter((item) => {
       if (role === "vendas") {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/executivas", "/implantacao", "/gestao-vidas", "/vidas-operadora"];
+        const allowed = ["/", "/empresas", "/movimentacoes", "/executivas", "/implantacao", "/vidas"];
         return allowed.includes(item.to);
       }
       if (isFinanceiro) {
@@ -134,8 +133,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "administradoras" && role !== "visualizacao" && role !== "diretora") return false;
       if (item.to === "/contratos-recem-implantados" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "diretora") return false;
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
-      if (item.to === "/gestao-vidas" && !isAdmin && role !== "diretora" && role !== "comum" && role !== "administradoras") return false;
-      if (item.to === "/vidas-operadora" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
+      if (item.to === "/vidas" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
       if (isEnfermeira) {
         const allowed = ["/empresas", "/executivas", "/reajustes"];
         return allowed.includes(item.to);
