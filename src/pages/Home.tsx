@@ -150,13 +150,12 @@ const SHORTCUTS: Shortcut[] = [
     show: (c) => c.isAdmin,
   },
   {
-    groupKey: "empresas",
+    to: "/empresas",
     label: "Empresas",
     description: "Cadastro, movimentações, implantação e vidas",
     icon: Building2,
     group: "funcoes",
     show: () => true,
-    children: EMPRESAS_CHILDREN,
   },
   {
     to: "/financeiro",

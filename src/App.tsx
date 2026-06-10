@@ -31,6 +31,7 @@ import CSSinistralidade from "./modules/carteira-samel/pages/Sinistralidade";
 import CSScore from "./modules/carteira-samel/pages/ScoreRisco";
 import CSAvaliacoesRH from "./modules/carteira-samel/pages/AvaliacoesRH";
 import CSResponderRH from "./modules/carteira-samel/pages/ResponderRH";
+import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -114,29 +115,31 @@ const AppRoutes = () => (
         <Route path="/dashboard/administradoras" element={<DashboardAdministradoras />} />
       </Route>
 
-      <Route path="/empresas" element={<Empresas />} />
-      <Route path="/movimentacoes" element={<Movimentacoes />} />
+      <Route element={<EmpresasGroupLayout />}>
+        <Route path="/empresas" element={<Empresas />} />
+        <Route path="/movimentacoes" element={<Movimentacoes />} />
+
+        <Route element={<RoleGate allow={["admin", "diretora", "comum", "administradoras", "vendas"]} />}>
+          <Route path="/gestao-vidas" element={<GestaoVidas />} />
+          <Route path="/vidas-operadora" element={<VidasOperadora />} />
+        </Route>
+
+        <Route element={<RoleGate deny={["financeiro"]} />}>
+          <Route path="/executivas" element={<Executivas />} />
+        </Route>
+
+        <Route element={<RoleGate deny={["financeiro"]} />}>
+          <Route path="/implantacao" element={<Implantacao />} />
+        </Route>
+
+        <Route element={<RoleGate allow={["admin", "comum", "administradoras", "financeiro", "diretora"]} />}>
+          <Route path="/contratos-recem-implantados" element={<ContratosRecemImplantados />} />
+        </Route>
+      </Route>
 
       <Route element={<RoleGate deny={[]} />}>
         <Route path="/vidas-samel" element={<VidasSamel />} />
         <Route path="/reajustes" element={<Reajustes />} />
-      </Route>
-
-      <Route element={<RoleGate allow={["admin", "diretora", "comum", "administradoras", "vendas"]} />}>
-        <Route path="/gestao-vidas" element={<GestaoVidas />} />
-        <Route path="/vidas-operadora" element={<VidasOperadora />} />
-      </Route>
-
-      <Route element={<RoleGate deny={["financeiro"]} />}>
-        <Route path="/executivas" element={<Executivas />} />
-      </Route>
-
-      <Route element={<RoleGate deny={["financeiro"]} />}>
-        <Route path="/implantacao" element={<Implantacao />} />
-      </Route>
-
-      <Route element={<RoleGate allow={["admin", "comum", "administradoras", "financeiro", "diretora"]} />}>
-        <Route path="/contratos-recem-implantados" element={<ContratosRecemImplantados />} />
       </Route>
 
       <Route element={<RoleGate allow={["admin", "financeiro", "comum", "administradoras", "visualizacao", "diretora"]} />}>
