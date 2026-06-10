@@ -23,6 +23,13 @@ import VidasSamel from "./pages/VidasSamel";
 import GestaoVidas from "./pages/GestaoVidas";
 import VidasOperadora from "./pages/VidasOperadora";
 import HondaExclusoes from "./pages/HondaExclusoes";
+import CarteiraSamelLayout from "./modules/carteira-samel/CarteiraSamelLayout";
+import CSVisaoGeral from "./modules/carteira-samel/pages/VisaoGeral";
+import CSCarteira from "./modules/carteira-samel/pages/Carteira";
+import CSSinistralidade from "./modules/carteira-samel/pages/Sinistralidade";
+import CSScore from "./modules/carteira-samel/pages/ScoreRisco";
+import CSAvaliacoesRH from "./modules/carteira-samel/pages/AvaliacoesRH";
+import CSResponderRH from "./modules/carteira-samel/pages/ResponderRH";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -147,6 +154,16 @@ const AppRoutes = () => (
       </Route>
 
       <Route path="/honda-exclusoes" element={<HondaExclusoes />} />
+
+      <Route element={<RoleGate allow={["admin", "diretora", "comum", "executivo"]} />}>
+        <Route path="/carteira-samel" element={<CarteiraSamelLayout />}>
+          <Route index element={<CSVisaoGeral />} />
+          <Route path="carteira" element={<CSCarteira />} />
+          <Route path="sinistralidade" element={<CSSinistralidade />} />
+          <Route path="score" element={<CSScore />} />
+          <Route path="avaliacoes/rh" element={<CSAvaliacoesRH />} />
+        </Route>
+      </Route>
 
       <Route path="*" element={<NotFound />} />
     </Route>
