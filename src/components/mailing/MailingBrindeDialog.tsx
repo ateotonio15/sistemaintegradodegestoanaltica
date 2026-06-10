@@ -235,6 +235,29 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
             />
           </div>
           <div>
+            <Label>Tipo de cesta</Label>
+            <Select
+              value={form.tipo_cesta || "none"}
+              onValueChange={(v) => set("tipo_cesta", v === "none" ? "" : (v as "A" | "B" | "C"))}
+            >
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                <SelectItem value="A">Cesta tipo A</SelectItem>
+                <SelectItem value="B">Cesta tipo B</SelectItem>
+                <SelectItem value="C">Cesta tipo C</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Executiva responsável</Label>
+            <Input
+              value={form.executiva}
+              onChange={(e) => set("executiva", e.target.value)}
+              maxLength={100}
+              placeholder="Ex.: Mayara"
+            />
+          <div>
             <Label>Cidade</Label>
             <Input
               value={form.cidade}
