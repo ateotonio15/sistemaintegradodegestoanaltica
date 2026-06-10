@@ -72,18 +72,7 @@ function maskCpf(v: string) {
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 
-  observacao: "",
-  executiva: "",
-  cpf: "",
-  data_entrada: "",
-  nome_medico: "",
-  nome_procedimento: "",
-  encaminhado_setor: false,
-  resolvido_setor: false,
-  data_resolucao_setor: "",
-  resolvido_executiva: false,
-  data_resolucao_executiva: "",
-});
+
 
 export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props) {
   const [form, setForm] = useState<Partial<Demanda>>(empty());
