@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
 import { Input } from "@/components/ui/input";
@@ -225,16 +227,31 @@ export default function Home() {
     );
   }, [visible, query, tab]);
 
-  const greetingName =
-    (user?.email?.split("@")[0] || "").charAt(0).toUpperCase() +
-    (user?.email?.split("@")[0] || "").slice(1);
+  const { data: profile } = useQuery({
+    queryKey: ["home-profile", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const greetingName = (profile?.display_name || user?.email?.split("@")[0] || "")
+    .split(" ")[0];
+  const greetingDisplay = greetingName
+    ? greetingName.charAt(0).toUpperCase() + greetingName.slice(1)
+    : "";
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center px-4 py-10 md:py-16">
       <div className="w-full max-w-5xl flex flex-col items-center gap-8">
         <div className="text-center space-y-2">
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
-            Bem-vindo{greetingName ? `, ${greetingName}` : ""}
+            Bem-vindo{greetingDisplay ? `, ${greetingDisplay}` : ""}
           </h1>
           <p className="text-sm text-muted-foreground">
             Acesse rapidamente os módulos do CS Control
