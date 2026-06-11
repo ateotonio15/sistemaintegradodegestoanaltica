@@ -1348,31 +1348,48 @@ export default function Financeiro() {
 
     if (indices.length === 0) {
       // Quando a linha representa a empresa-mãe (sem pagador específico) e não
-      // achamos bloco com CNPJ exato, devolvemos TODOS os blocos da planilha —
-      // assim a análise (Excel + PDF) continua disponível mesmo quando o CNPJ
-      // do contrato difere do CNPJ que aparece dentro da planilha/PDF.
-      // Adiciona um aviso explicando a divergência e qual tomador foi usado.
+      // achamos bloco com CNPJ exato, antes devolvíamos TODOS os blocos da
+      // planilha — porém isso fazia a matriz "herdar" os dados de uma filial
+      // cadastrada separadamente. Agora ignoramos blocos cujo CNPJ pertença a
+      // outro pagador registrado da mesma empresa.
+      const pagadoresEmpresa = (pagadoresCadastradosMap[row.empresa_id] || [])
+        .filter((p) => p.ativo);
+      const cnpjsOutrosPagadores = new Set(
+        pagadoresEmpresa
+          .map((p) => onlyDigits(p.cnpj))
+          .filter((c) => c && c !== cnpjAlvo),
+      );
+
       if (!row.pagador_id && mother.resultados.length > 0) {
         const fmtCnpj = (d: string) =>
           d.length === 14
             ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
             : d;
-        const resultadosComAviso = mother.resultados.map((r: any) => {
-          const blocoCnpj = onlyDigits(r?.cnpj);
-          const blocoNome = r?.nomeExibicao || r?.pagador || "—";
-          const mesmoCnpj = !!blocoCnpj && !!cnpjAlvo && blocoCnpj === cnpjAlvo;
-          if (mesmoCnpj) return r;
-          const aviso =
-            `Atenção: CNPJ ${blocoCnpj ? fmtCnpj(blocoCnpj) : "(não informado)"} (tomador "${blocoNome}") ` +
-            `pertence a outra empresa — não confere com o CNPJ do contrato ` +
-            `${cnpjAlvo ? fmtCnpj(cnpjAlvo) : "(não cadastrado)"} (${row.empresa_nome}). ` +
-            `A análise foi feita com os dados encontrados na planilha/PDF.`;
-          return { ...r, avisos: [...(r?.avisos || []), aviso] };
+        const blocosUtilizaveis = mother.resultados.filter((r: any) => {
+          const bc = onlyDigits(r?.cnpj);
+          return !bc || !cnpjsOutrosPagadores.has(bc);
         });
-        return {
-          resultados: resultadosComAviso,
-          comparacoes: mother.comparacoes.slice(),
-        };
+
+        if (blocosUtilizaveis.length > 0) {
+          const resultadosComAviso = blocosUtilizaveis.map((r: any) => {
+            const blocoCnpj = onlyDigits(r?.cnpj);
+            const blocoNome = r?.nomeExibicao || r?.pagador || "—";
+            const mesmoCnpj = !!blocoCnpj && !!cnpjAlvo && blocoCnpj === cnpjAlvo;
+            if (mesmoCnpj) return r;
+            const aviso =
+              `Atenção: CNPJ ${blocoCnpj ? fmtCnpj(blocoCnpj) : "(não informado)"} (tomador "${blocoNome}") ` +
+              `pertence a outra empresa — não confere com o CNPJ do contrato ` +
+              `${cnpjAlvo ? fmtCnpj(cnpjAlvo) : "(não cadastrado)"} (${row.empresa_nome}). ` +
+              `A análise foi feita com os dados encontrados na planilha/PDF.`;
+            return { ...r, avisos: [...(r?.avisos || []), aviso] };
+          });
+          return {
+            resultados: resultadosComAviso,
+            comparacoes: mother.comparacoes.slice(),
+          };
+        }
+        // todos os blocos pertencem a outros pagadores cadastrados → cai no
+        // placeholder abaixo.
       }
 
 
@@ -1387,12 +1404,13 @@ export default function Financeiro() {
         inclusoes: { quantidade: 0, total: 0 },
         avisos: [
           cnpjAlvo
-            ? `CNPJ ${row.empresa_cnpj} não localizado na planilha do contrato.`
+            ? `CNPJ ${row.empresa_cnpj} não localizado na planilha do contrato — os dados encontrados pertencem a outro pagador cadastrado.`
             : "Pagador sem CNPJ cadastrado — não foi possível casar com a planilha.",
         ],
       };
       return { resultados: [placeholder], comparacoes: mother.comparacoes.slice() };
     }
+
 
 
     return {
