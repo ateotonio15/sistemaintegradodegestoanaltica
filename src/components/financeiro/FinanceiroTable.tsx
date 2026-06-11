@@ -33,6 +33,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   faturamento_iniciado_em?: string | null;
   /** Indica que existe ao menos um anexo originado de Reajuste/Cobrança Retroativa */
   retroativo?: boolean;
+  prioridade_maxima?: boolean;
   /** Chave única por linha (id da movimentação + id do pagador, quando aplicável) */
   rowKey?: string;
   /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
