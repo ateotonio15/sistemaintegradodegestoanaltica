@@ -840,12 +840,17 @@ export default function Financeiro() {
       if (bv === null) return -1;
       return (av - bv) * dir;
     };
+    // Para ordenar por "Envio da nota" usamos data_envio_nota; quando não houver
+    // (ex.: status Aguardando Emissão), fazemos fallback para aguardando_nota_em
+    // (data em que o Cadastro enviou ao Financeiro), assim a ordenação sempre
+    // produz um resultado visível e útil.
+    const envioKey = (r: any) => r?.data_envio_nota ?? r?.aguardando_nota_em ?? null;
     switch (ordenacao) {
       case "envio_desc":
-        arr.sort((a, b) => cmpDate((a as any).data_envio_nota, (b as any).data_envio_nota, -1));
+        arr.sort((a, b) => cmpDate(envioKey(a), envioKey(b), -1));
         break;
       case "envio_asc":
-        arr.sort((a, b) => cmpDate((a as any).data_envio_nota, (b as any).data_envio_nota, 1));
+        arr.sort((a, b) => cmpDate(envioKey(a), envioKey(b), 1));
         break;
       case "cadastro_asc":
         // Mais antigo anexado pelo Cadastro (envio ao Financeiro)
