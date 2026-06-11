@@ -75,13 +75,21 @@ export async function exportReajustesExcel(rows: ReajusteRowExport[], filename =
   URL.revokeObjectURL(url);
 }
 
+const esc = (v: any) =>
+  String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 export function exportReajustesPDF(rows: ReajusteRowExport[], titulo = "Relatório de Reajustes") {
   const win = window.open("", "_blank");
   if (!win) return;
   const formatBRL = (c?: number | null) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(centavosToReais(c ?? 0));
 
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(titulo)}</title>
   <style>
     body{font-family:Inter,system-ui,sans-serif;padding:24px;color:#111}
     h1{font-size:18px;margin:0 0 4px}
@@ -93,8 +101,8 @@ export function exportReajustesPDF(rows: ReajusteRowExport[], titulo = "Relatór
     .right{text-align:right}
     @media print{.noprint{display:none}}
   </style></head><body>
-  <h1>${titulo}</h1>
-  <div class="meta">Gerado em ${new Date().toLocaleString("pt-BR")} · ${rows.length} registros</div>
+  <h1>${esc(titulo)}</h1>
+  <div class="meta">Gerado em ${esc(new Date().toLocaleString("pt-BR"))} · ${rows.length} registros</div>
   <button class="noprint" onclick="window.print()" style="margin-bottom:12px;padding:6px 12px;cursor:pointer">Imprimir / Salvar PDF</button>
   <table>
     <thead><tr>
@@ -104,15 +112,15 @@ export function exportReajustesPDF(rows: ReajusteRowExport[], titulo = "Relatór
     </tr></thead>
     <tbody>
       ${rows.map((r) => `<tr>
-        <td>${r.empresa}</td>
-        <td>${r.contrato || "—"}</td>
-        <td>${nomeMes(r.mesReajuste)}</td>
-        <td class="right">${r.percentual != null ? Number(r.percentual).toFixed(2).replace(".", ",") + "%" : "—"}</td>
-        <td class="right">${formatBRL(r.valorAtual)}</td>
-        <td class="right">${formatBRL(r.valorReajustado)}</td>
-        <td class="right">${formatBRL(r.retroativo)}</td>
-        <td class="right"><strong>${formatBRL(r.valorFinal)}</strong></td>
-        <td>${labelStatusReajusteFluxo(r.status as any)}</td>
+        <td>${esc(r.empresa)}</td>
+        <td>${esc(r.contrato || "—")}</td>
+        <td>${esc(nomeMes(r.mesReajuste))}</td>
+        <td class="right">${r.percentual != null ? esc(Number(r.percentual).toFixed(2).replace(".", ",") + "%") : "—"}</td>
+        <td class="right">${esc(formatBRL(r.valorAtual))}</td>
+        <td class="right">${esc(formatBRL(r.valorReajustado))}</td>
+        <td class="right">${esc(formatBRL(r.retroativo))}</td>
+        <td class="right"><strong>${esc(formatBRL(r.valorFinal))}</strong></td>
+        <td>${esc(labelStatusReajusteFluxo(r.status as any))}</td>
       </tr>`).join("")}
     </tbody>
   </table>
@@ -120,3 +128,4 @@ export function exportReajustesPDF(rows: ReajusteRowExport[], titulo = "Relatór
   win.document.write(html);
   win.document.close();
 }
+
