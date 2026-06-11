@@ -1855,8 +1855,8 @@ export default function Financeiro() {
                 <SelectContent>
                   <SelectItem value="envio_desc">Envio da nota (mais recente)</SelectItem>
                   <SelectItem value="envio_asc">Envio da nota (mais antigo)</SelectItem>
-                  <SelectItem value="venc_asc">Vencimento (mais próximo)</SelectItem>
-                  <SelectItem value="venc_desc">Vencimento (mais distante)</SelectItem>
+                  <SelectItem value="cadastro_asc">Anexado pelo Cadastro (mais antigo)</SelectItem>
+                  <SelectItem value="cadastro_desc">Anexado pelo Cadastro (mais recente)</SelectItem>
                   <SelectItem value="empresa_asc">Empresa (A → Z)</SelectItem>
                   <SelectItem value="empresa_desc">Empresa (Z → A)</SelectItem>
                   <SelectItem value="vidas_desc">Nº de vidas (maior)</SelectItem>
