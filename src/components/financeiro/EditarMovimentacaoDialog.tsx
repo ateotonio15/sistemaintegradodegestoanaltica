@@ -373,7 +373,6 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     "INCLUSÃO/EXCLUSÃO",
     "INCLUSÃO/EXCLUSÃO/COPAR",
     "TAXA ADESÃO",
-    "30 dias",
   ]);
 
   const saveMutation = useMutation({

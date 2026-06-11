@@ -55,14 +55,13 @@ import {
 } from "@/lib/financeiro-utils";
 
 const STATUS_OPTIONS: StatusFinanceiro[] = [
+  "Enviada",
   "Nota emitida",
   "Faturado",
   "Aguardando validação",
-  "Enviada",
   "Em faturamento",
   "Aguardando nota",
   "Pendente",
-  "Fora do prazo",
 ];
 
 

@@ -13,7 +13,6 @@ export const TIPOS_FINANCEIRO = [
   "INCLUSÃO/EXCLUSÃO",
   "INCLUSÃO/EXCLUSÃO/COPAR",
   "TAXA ADESÃO",
-  "30 dias",
 ] as const;
 export type TipoFinanceiro = (typeof TIPOS_FINANCEIRO)[number];
 
