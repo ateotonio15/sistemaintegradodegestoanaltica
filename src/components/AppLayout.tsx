@@ -127,6 +127,11 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           { to: "/", label: "Painéis", icon: LayoutDashboard, children: dashChildren },
           ...allNavItems.slice(1),
         ]
+      : isFinanceiro
+        ? [
+            { to: "/dashboard/financeiro", label: "Painel Financeiro", icon: Wallet },
+            ...allNavItems,
+          ]
       : allNavItems;
     const filtered = base.filter((item) => {
       if (role === "vendas") {
@@ -134,7 +139,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         return allowed.includes(item.to);
       }
       if (isFinanceiro) {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes", "/contratos-recem-implantados"];
+        const allowed = ["/", "/dashboard/financeiro", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes", "/contratos-recem-implantados"];
         return allowed.includes(item.to);
       }
       if (item.adminOnly && !isAdmin) return false;
