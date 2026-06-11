@@ -24,7 +24,7 @@ function bucketVidas(v: number): GrupoTamanho {
 
 export function EmpresasProvider({ children }: { children: ReactNode }) {
   const { data: empresasDb, isLoading: loadingEmp } = useQuery({
-    queryKey: ["carteira-samel", "empresas"],
+    queryKey: ["carteira-samel", "empresas", "somente-empresarial"],
     queryFn: async () => {
       const hoje = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
@@ -36,7 +36,7 @@ export function EmpresasProvider({ children }: { children: ReactNode }) {
         .is("data_rescisao", null)
         .order("nome");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).filter((empresa) => empresa.tipo_contrato === "EMPRESARIAL");
     },
   });
 
