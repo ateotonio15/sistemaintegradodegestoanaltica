@@ -78,11 +78,19 @@ export function AnexosViewerDialog({
     empresaNome: string;
     movimentacaoId: string;
   } | null>(null);
+  // Override local para refletir início/cancelamento imediatamente na UI,
+  // sem esperar o refetch do parent.
+  const [localIniciadoEm, setLocalIniciadoEm] = useState<string | null>(null);
+  const [localIniciadoPorNome, setLocalIniciadoPorNome] = useState<string | null>(null);
+  const [localCancelado, setLocalCancelado] = useState(false);
   const [avisos, setAvisos] = useState<{
     exigePoPc: boolean;
     envioBoletoComNota: boolean;
     observacao: string | null;
   } | null>(null);
+
+  const iniciadoEmEfetivo = localCancelado ? null : (localIniciadoEm ?? faturamentoIniciadoEm);
+  const iniciadoPorEfetivo = localCancelado ? null : (localIniciadoPorNome ?? faturamentoIniciadoPorNome);
 
   const executarIniciarFaturamento = async (ctx = configContext) => {
     const targetMovimentacaoId = ctx?.movimentacaoId ?? movimentacaoId;
