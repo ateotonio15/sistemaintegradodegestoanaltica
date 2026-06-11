@@ -96,7 +96,7 @@ export default function VisaoGeral() {
           {([
             ["critico", "Crítico (≤30 dias)", "Vermelho" as const],
             ["atencao", "Atenção (31–60 dias)", "Amarelo" as const],
-            ["estavel", "Estável (61–90 dias)", "Verde" as const],
+            ["estavel", "Estável (61+ dias)", "Verde" as const],
           ] as const).map(([key, label, sem]) => {
             const aberta = faixaAberta === key;
             return (
