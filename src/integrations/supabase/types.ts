@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      acoes_preventivas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_nome: string | null
+          data: string
+          empresa_id: string
+          endereco: string | null
+          executiva_nome: string | null
+          executiva_user_id: string | null
+          horario_fim: string | null
+          horario_inicio: string | null
+          id: string
+          motivo_cancelamento: string | null
+          observacao: string | null
+          status: Database["public"]["Enums"]["acao_preventiva_status"]
+          tipo: Database["public"]["Enums"]["acao_preventiva_tipo"]
+          updated_at: string
+          updated_by: string | null
+          updated_by_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data: string
+          empresa_id: string
+          endereco?: string | null
+          executiva_nome?: string | null
+          executiva_user_id?: string | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["acao_preventiva_status"]
+          tipo: Database["public"]["Enums"]["acao_preventiva_tipo"]
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data?: string
+          empresa_id?: string
+          endereco?: string | null
+          executiva_nome?: string | null
+          executiva_user_id?: string | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["acao_preventiva_status"]
+          tipo?: Database["public"]["Enums"]["acao_preventiva_tipo"]
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acoes_preventivas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       acoes_saude: {
         Row: {
           created_at: string
@@ -3529,6 +3600,12 @@ export type Database = {
       vincular_empresas_por_responsavel: { Args: never; Returns: undefined }
     }
     Enums: {
+      acao_preventiva_status:
+        | "a_confirmar"
+        | "confirmado"
+        | "concluido"
+        | "cancelado"
+      acao_preventiva_tipo: "sinais_vitais" | "preventivo" | "psa"
       acao_saude_status: "agendada" | "em_andamento" | "concluida" | "cancelada"
       acao_saude_tipo:
         | "triagem"
@@ -3697,6 +3774,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      acao_preventiva_status: [
+        "a_confirmar",
+        "confirmado",
+        "concluido",
+        "cancelado",
+      ],
+      acao_preventiva_tipo: ["sinais_vitais", "preventivo", "psa"],
       acao_saude_status: ["agendada", "em_andamento", "concluida", "cancelada"],
       acao_saude_tipo: [
         "triagem",
