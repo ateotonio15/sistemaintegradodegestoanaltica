@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { labelStatusFinanceiro } from "@/lib/financeiro-utils";
 import {
   Select,
   SelectContent,
