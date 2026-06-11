@@ -502,10 +502,10 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                   <PanelLeft className="h-5 w-5" />
                 </button>
               )}
-              {collapsed && !isMobile && (
+              {((collapsed && !isMobile) || !isAdmin) && (
                 <Link to="/" className="flex items-center gap-2.5 font-bold text-lg tracking-tight text-foreground hover:opacity-80 transition-opacity">
                   <img src={logoImg} alt="CS Control" className="h-8 w-8 rounded-lg object-contain" />
-                  <span>CS Control</span>
+                  <span className="hidden sm:inline">CS Control</span>
                 </Link>
               )}
             </div>
