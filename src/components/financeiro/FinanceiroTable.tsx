@@ -152,6 +152,7 @@ export function FinanceiroTable({
                     <TableCell className="font-medium">
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
+                          {row.prioridade_maxima && <PrioridadeBadge variant="fire" label="🔥 PRIORIDADE" />}
                           <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
                           {row.cobranca_registrada && (
                             <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
