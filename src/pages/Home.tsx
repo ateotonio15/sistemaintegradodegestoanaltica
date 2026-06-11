@@ -458,7 +458,7 @@ export default function Home() {
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
             Bem-vindo{greetingDisplay ? `, ${greetingDisplay}` : ""}!
           </h1>
-          <p className="text-sm text-muted-foreground">Acesse rapidamente os módulos do CS Control</p>
+          <p className="text-sm text-muted-foreground">Acesse rapidamente os módulos do SIGA</p>
         </div>
 
         {/* Search */}

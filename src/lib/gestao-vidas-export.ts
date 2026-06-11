@@ -7,7 +7,7 @@ export async function exportGestaoVidasExcel(
   mesRef: string,
 ) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "CS Control";
+  wb.creator = "SIGA";
   wb.created = new Date();
 
   const wsEmp = wb.addWorksheet("Empresas");

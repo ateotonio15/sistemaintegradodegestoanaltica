@@ -60,7 +60,7 @@ export function WelcomeHero({ totalAtivas, totalNoPeriodo, pendentes, concluidas
         <div className="space-y-3">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/12 px-3 py-1 text-[11px] font-medium text-primary ring-1 ring-primary/20">
             <Sparkles className="h-3 w-3" />
-            CS Control · Painel Executivo
+            SIGA · Painel Executivo
           </div>
           <div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
