@@ -1052,12 +1052,18 @@ export async function analisarExcelFinanceiroPorCnpj(
   const grupos = new Map<string, Acc>();
   const ehCnpjPlaceholder = (c: string) => !c || c.length !== 14 || /0{6,}$/.test(c);
   const getGrupo = (cnpj: string, nome: string): Acc => {
-    // Chave preferencial: nome normalizado. Alguns pagadores aparecem com
-    // CNPJs diferentes em linhas de Exclusão (placeholder tipo "...0000000"),
-    // o que criava um bloco órfão só para as exclusões. Agrupar por nome
-    // consolida tudo no mesmo pagador.
+    // Chave preferencial: CNPJ válido. Pagadores distintos com a mesma
+    // razão social (matriz + filial) ficam em blocos separados. Linhas
+    // sem CNPJ válido (ex.: exclusões com placeholder) caem em chave por
+    // nome — quando há ambiguidade entre múltiplos CNPJs com mesmo nome,
+    // o agrupamento por nome só é usado como último recurso.
     const nomeKey = norm(nome);
-    const key = nomeKey ? `__nome::${nomeKey}` : cnpj || "__sem_id__";
+    const cnpjValido = !ehCnpjPlaceholder(cnpj);
+    const key = cnpjValido
+      ? `__cnpj::${cnpj}`
+      : nomeKey
+      ? `__nome::${nomeKey}`
+      : "__sem_id__";
     let g = grupos.get(key);
     if (!g) {
       g = {
@@ -1077,7 +1083,6 @@ export async function analisarExcelFinanceiroPorCnpj(
       grupos.set(key, g);
     } else {
       if (!g.nome && nome) g.nome = nome;
-      // Mantém o "melhor" CNPJ: prefere o que não é placeholder de zeros.
       if (ehCnpjPlaceholder(g.cnpj) && !ehCnpjPlaceholder(cnpj)) {
         g.cnpj = cnpj;
       }
@@ -1130,6 +1135,28 @@ export async function analisarExcelFinanceiroPorCnpj(
     if (cat === "enfermaria") grp.enfValores.push(valorValido ? valor : 0);
     else grp.aptValores.push(valorValido ? valor : 0);
   }
+
+  // Mescla grupos por-nome (placeholder de CNPJ) em grupos com CNPJ válido
+  // quando há um único pagador com o mesmo nome. Evita órfão de exclusões.
+  for (const [key, g] of Array.from(grupos.entries())) {
+    if (!key.startsWith("__nome::")) continue;
+    const nomeKey = key.slice("__nome::".length);
+    const candidatos = Array.from(grupos.values()).filter(
+      (x) => x !== g && !ehCnpjPlaceholder(x.cnpj) && norm(x.nome) === nomeKey,
+    );
+    if (candidatos.length === 1) {
+      const dest = candidatos[0];
+      dest.enfValores.push(...g.enfValores);
+      dest.aptValores.push(...g.aptValores);
+      dest.incQtd += g.incQtd; dest.incTotal += g.incTotal;
+      dest.retroQtd += g.retroQtd; dest.retroTotal += g.retroTotal;
+      dest.excQtd += g.excQtd; dest.excTotal += g.excTotal;
+      dest.devQtd += g.devQtd; dest.devTotal += g.devTotal;
+      grupos.delete(key);
+    }
+  }
+
+
 
   const buildCategoria = (vals: number[]): CategoriaResultado => {
     const total = vals.reduce((s, v) => s + v, 0);
