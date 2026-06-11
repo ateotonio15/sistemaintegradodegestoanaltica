@@ -884,6 +884,7 @@ export default function Financeiro() {
           if (cfg.dia_emissao != null) linha.dia_emissao = cfg.dia_emissao;
           if (cfg.tipo_cobranca != null) linha.tipo_cobranca = cfg.tipo_cobranca;
           if (cfg.possui_prorrogacao != null) linha.possui_prorrogacao = cfg.possui_prorrogacao;
+          if (cfg.data_vencimento != null) linha.data_vencimento = cfg.data_vencimento;
           linhas.push(linha);
         });
       }
