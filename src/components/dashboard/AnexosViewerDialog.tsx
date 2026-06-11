@@ -231,124 +231,140 @@ export function AnexosViewerDialog({
           ? ((vinc as any)?.grupos_financeiros?.nome_grupo as string)
           : null;
 
-      // Lista de empresas do grupo (inclui a atual)
-      let empresaIdsGrupo: string[] = [empresaId!];
+      // Empresas irmãs do grupo (somente para compartilhar anexos do Financeiro)
+      let empresasIrmas: string[] = [];
       if (grupoId) {
         const { data: irmaos } = await supabase
           .from("grupos_financeiros_contratos" as any)
           .select("empresa_id")
           .eq("grupo_id", grupoId)
           .eq("ativo", true);
-        const ids = ((irmaos as any[]) ?? []).map((r) => r.empresa_id).filter(Boolean);
-        if (ids.length) empresaIdsGrupo = Array.from(new Set([empresaId!, ...ids]));
+        empresasIrmas = ((irmaos as any[]) ?? [])
+          .map((r) => r.empresa_id)
+          .filter((id) => id && id !== empresaId);
       }
 
-      // 1) Movimentações financeiras do processo (todas as empresas do grupo)
+      // 1) Movimentações financeiras da empresa atual
       const { data: movsFin } = await supabase
         .from("financeiro_movimentacoes")
-        .select("id, empresa_id")
-        .in("empresa_id", empresaIdsGrupo)
+        .select("id")
+        .eq("empresa_id", empresaId!)
         .eq("mes_referencia", mesReferencia)
         .eq("periodo", periodo);
       const movFinIds = (movsFin ?? []).map((m) => m.id);
-      const movFinEmpresaMap = new Map<string, string>(
-        (movsFin ?? []).map((m: any) => [m.id, m.empresa_id]),
-      );
 
-      // 2) Movimentações operacionais (cadastro) do processo (todas as empresas do grupo)
+      // 1b) Movimentações financeiras das empresas irmãs (mesmo período)
+      const { data: movsFinIrmaos } = empresasIrmas.length
+        ? await supabase
+            .from("financeiro_movimentacoes")
+            .select("id")
+            .in("empresa_id", empresasIrmas)
+            .eq("mes_referencia", mesReferencia)
+            .eq("periodo", periodo)
+        : { data: [] as any[] };
+      const movFinIrmaosIds = ((movsFinIrmaos as any[]) ?? []).map((m) => m.id);
+
+      // 2) Movimentações operacionais (cadastro) — só desta empresa
       const { data: movsOp } = await supabase
         .from("movimentacoes")
-        .select("id, empresa_id")
-        .in("empresa_id", empresaIdsGrupo)
+        .select("id")
+        .eq("empresa_id", empresaId!)
         .eq("mes_referencia", mesReferencia)
         .eq("periodo", periodo);
       const movOpIds = (movsOp ?? []).map((m) => m.id);
-      const movOpEmpresaMap = new Map<string, string>(
-        (movsOp ?? []).map((m: any) => [m.id, m.empresa_id]),
-      );
 
-      // 3) Anexos da implantação (contratos a vigenciar) — todas as empresas do grupo
+      // 3) Anexos da implantação — só desta empresa
       const { data: impls } = await supabase
         .from("implantacoes_contratos")
-        .select("id, empresa_id")
-        .in("empresa_id", empresaIdsGrupo);
+        .select("id")
+        .eq("empresa_id", empresaId!);
       const implIds = (impls ?? []).map((i: any) => i.id);
 
-      const [anxFinRes, anxOpRes, anxImplRes] = await Promise.all([
+      const [anxFinRes, anxOpRes, anxImplRes, anxFinIrmaosRes] = await Promise.all([
         movFinIds.length
           ? supabase
               .from("anexos_financeiro")
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, financeiro_movimentacao_id")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
               .in("financeiro_movimentacao_id", movFinIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
         movOpIds.length
           ? supabase
               .from("anexos_movimentacao")
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, movimentacao_id")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
               .in("movimentacao_id", movOpIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
-        // Busca por empresa_id (anexos salvos direto na empresa) OU implantacao_id (anexos de wizard de implantação)
         supabase
           .from("implantacao_anexos" as any)
           .select("id, nome_arquivo, storage_path, created_at, uploaded_by, empresa_id, implantacao_id")
           .or(
-            `empresa_id.in.(${empresaIdsGrupo.join(",")})` +
+            `empresa_id.eq.${empresaId}` +
               (implIds.length ? `,implantacao_id.in.(${implIds.join(",")})` : ""),
           )
           .order("created_at", { ascending: false }),
+        // Anexos financeiros das empresas irmãs (compartilhados pelo grupo)
+        movFinIrmaosIds.length
+          ? supabase
+              .from("anexos_financeiro")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
+              .in("financeiro_movimentacao_id", movFinIrmaosIds)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [] as any[], error: null }),
       ]);
 
       if (anxFinRes.error) throw anxFinRes.error;
       if (anxOpRes.error) throw anxOpRes.error;
       if ((anxImplRes as any).error) throw (anxImplRes as any).error;
 
-      const sharedLabel = grupoId
-        ? (`Compartilhado pelo grupo${grupoNome ? ` ${grupoNome}` : ""}` as any)
-        : ("Financeiro" as const);
+      const fin: AnexoRow[] = (anxFinRes.data ?? []).map((a: any) => ({
+        ...a,
+        bucket: BUCKET_FINANCEIRO,
+        origem_label: "Financeiro" as const,
+      }));
+      const op: AnexoRow[] = (anxOpRes.data ?? []).map((a: any) => ({
+        ...a,
+        bucket: BUCKET_OPERACIONAL,
+        origem_label: "Cadastro" as const,
+      }));
+      const impl: AnexoRow[] = ((anxImplRes as any).data ?? []).map((a: any) => ({
+        ...a,
+        bucket: BUCKET_IMPLANTACAO,
+        origem_label: "Contrato" as const,
+      }));
 
-      const fin: AnexoRow[] = (anxFinRes.data ?? []).map((a: any) => {
-        const empOrigem = movFinEmpresaMap.get(a.financeiro_movimentacao_id);
-        const isOutro = empOrigem && empOrigem !== empresaId;
-        return {
+      // Filtra apenas anexos enviados por usuários com papel "financeiro"
+      const irmaosRaw = ((anxFinIrmaosRes as any).data ?? []) as any[];
+      const uploadersIrmaos = Array.from(
+        new Set(irmaosRaw.map((a) => a.uploaded_by).filter(Boolean) as string[]),
+      );
+      let financeiroSet = new Set<string>();
+      if (uploadersIrmaos.length) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", uploadersIrmaos)
+          .eq("role", "financeiro" as any);
+        financeiroSet = new Set(((roles as any[]) ?? []).map((r) => r.user_id));
+      }
+
+      const sharedLabel =
+        `Compartilhado pelo grupo${grupoNome ? ` ${grupoNome}` : ""}` as any;
+      const existingPaths = new Set([...fin, ...op, ...impl].map((a) => a.storage_path));
+      const grupoExtras: AnexoRow[] = irmaosRaw
+        .filter(
+          (a) =>
+            a.uploaded_by &&
+            financeiroSet.has(a.uploaded_by) &&
+            !existingPaths.has(a.storage_path),
+        )
+        .map((a) => ({
           ...a,
           bucket: BUCKET_FINANCEIRO,
-          origem_label: isOutro ? sharedLabel : ("Financeiro" as const),
-        };
-      });
-      const op: AnexoRow[] = (anxOpRes.data ?? []).map((a: any) => {
-        const empOrigem = movOpEmpresaMap.get(a.movimentacao_id);
-        const isOutro = empOrigem && empOrigem !== empresaId;
-        return {
-          ...a,
-          bucket: BUCKET_OPERACIONAL,
-          origem_label: isOutro ? sharedLabel : ("Cadastro" as const),
-        };
-      });
-      const impl: AnexoRow[] = ((anxImplRes as any).data ?? []).map((a: any) => {
-        const isOutro = a.empresa_id && a.empresa_id !== empresaId;
-        return {
-          ...a,
-          bucket: BUCKET_IMPLANTACAO,
-          origem_label: isOutro ? sharedLabel : ("Contrato" as const),
-        };
-      });
+          origem_label: sharedLabel,
+        }));
 
-      // Deduplica por storage_path (mantém a primeira ocorrência — preferência por própria empresa)
-      const seen = new Set<string>();
-      const merged: AnexoRow[] = [];
-      const ordemPrioridade = (a: AnexoRow) =>
-        String(a.origem_label).startsWith("Compartilhado") ? 1 : 0;
-      [...fin, ...op, ...impl]
-        .sort((a, b) => ordemPrioridade(a) - ordemPrioridade(b))
-        .forEach((a) => {
-          if (seen.has(a.storage_path)) return;
-          seen.add(a.storage_path);
-          merged.push(a);
-        });
-
-      merged.sort(
+      const merged = [...fin, ...op, ...impl, ...grupoExtras].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
@@ -369,6 +385,7 @@ export function AnexosViewerDialog({
       }));
     },
   });
+
 
 
   const handleDownload = async (bucket: string, path: string, nome: string) => {
