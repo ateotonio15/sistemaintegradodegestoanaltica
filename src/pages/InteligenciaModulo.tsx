@@ -144,7 +144,7 @@ export default function InteligenciaModulo() {
           <p className="text-sm text-muted-foreground max-w-md">
             Esta área faz parte da plataforma de Inteligência de Relacionamento e será disponibilizada em breve.
             A estrutura, ícone e categoria já estão reservados — quando você quiser, construímos as telas reais
-            mantendo a identidade visual do CS Control.
+            mantendo a identidade visual do SIGA.
           </p>
         </Card>
       </div>

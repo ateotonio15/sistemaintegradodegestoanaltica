@@ -92,13 +92,13 @@ export default function Auth() {
             <div className="relative">
               <div className="absolute inset-0 rounded-2xl bg-primary/40 blur-2xl" />
               <div className="relative h-24 w-24 rounded-2xl bg-card/70 backdrop-blur-xl border border-border/60 shadow-2xl flex items-center justify-center">
-                <img src={logo} alt="CS Control" className="h-16 w-16 object-contain" />
+                <img src={logo} alt="SIGA" className="h-16 w-16 object-contain" />
               </div>
             </div>
           </div>
 
           <h1 className="text-4xl xl:text-5xl font-bold tracking-tight text-foreground">
-            CS Control
+            SIGA
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
             Gestão inteligente de contratos e movimentações empresariais.
@@ -125,7 +125,7 @@ export default function Auth() {
         </motion.div>
 
         <div className="absolute bottom-6 left-0 right-0 text-center text-xs text-muted-foreground/70">
-          © {year} CS Control · Cadastro Samel e Gestão Empresarial
+          © {year} SIGA · Cadastro Samel e Gestão Empresarial
         </div>
       </div>
 
@@ -143,9 +143,9 @@ export default function Auth() {
           {/* Mobile logo */}
           <div className="lg:hidden flex flex-col items-center mb-8">
             <div className="h-16 w-16 rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-lg flex items-center justify-center mb-3">
-              <img src={logo} alt="CS Control" className="h-10 w-10 object-contain" />
+              <img src={logo} alt="SIGA" className="h-10 w-10 object-contain" />
             </div>
-            <span className="text-lg font-semibold">CS Control</span>
+            <span className="text-lg font-semibold">SIGA</span>
           </div>
 
           <div className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xl shadow-2xl shadow-primary/5 p-8 sm:p-10">
@@ -231,7 +231,7 @@ export default function Auth() {
           </div>
 
           <p className="lg:hidden mt-8 text-center text-xs text-muted-foreground">
-            © {year} CS Control · v1.0
+            © {year} SIGA · v1.0
           </p>
         </motion.div>
       </div>

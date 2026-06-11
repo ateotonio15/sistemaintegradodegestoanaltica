@@ -184,8 +184,8 @@ function addInfoRow(ws: ExcelJS.Worksheet, label: string, value: ExcelJS.CellVal
 
 export async function exportarAnaliseExcel(data: AnaliseCompletaExport) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "CS Control";
-  wb.company = "CS Control";
+  wb.creator = "SIGA";
+  wb.company = "SIGA";
   wb.created = new Date();
   const props: any = wb.properties;
   props.date1904 = false;
@@ -384,7 +384,7 @@ export async function exportarAnaliseExcel(data: AnaliseCompletaExport) {
   }
   wsRes.addRow([]);
   const foot = wsRes.addRow([
-    `Gerado em ${data.geradoEm}${data.geradoPor ? ` por ${data.geradoPor}` : ""} • CS Control`,
+    `Gerado em ${data.geradoEm}${data.geradoPor ? ` por ${data.geradoPor}` : ""} • SIGA`,
   ]);
   foot.getCell(1).font = { italic: true, color: { argb: COLOR.neutral }, size: 10 };
 
@@ -503,7 +503,7 @@ ${
     : ""
 }
 
-<div class="footer">Gerado em ${esc(data.geradoEm)}${data.geradoPor ? ` por ${esc(data.geradoPor)}` : ""} • CS Control</div>
+<div class="footer">Gerado em ${esc(data.geradoEm)}${data.geradoPor ? ` por ${esc(data.geradoPor)}` : ""} • SIGA</div>
 <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
 </body></html>`;
   w.document.write(html);

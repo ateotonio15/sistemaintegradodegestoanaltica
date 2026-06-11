@@ -21,7 +21,7 @@ export type ReajusteRowExport = {
 
 export async function exportReajustesExcel(rows: ReajusteRowExport[], filename = "reajustes.xlsx") {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "CS Control";
+  wb.creator = "SIGA";
   wb.created = new Date();
 
   const ws = wb.addWorksheet("Reajustes");

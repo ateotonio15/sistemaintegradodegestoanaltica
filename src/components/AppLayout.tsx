@@ -293,8 +293,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         )}>
           {!collapsed && (
             <Link to="/" className="flex items-center gap-2.5 font-bold text-[15px] tracking-tight text-sidebar-foreground hover:opacity-80 transition-opacity">
-              <img src={logoImg} alt="CS Control" className="h-9 w-9 rounded-xl object-contain shrink-0 ring-1 ring-primary/20" />
-              <span className="truncate">CS Control</span>
+              <img src={logoImg} alt="SIGA" className="h-9 w-9 rounded-xl object-contain shrink-0 ring-1 ring-primary/20" />
+              <span className="truncate">SIGA</span>
             </Link>
           )}
           <button
@@ -509,8 +509,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
               )}
               {((collapsed && !isMobile) || !isAdmin) && (
                 <Link to="/" className="flex items-center gap-2.5 font-bold text-lg tracking-tight text-foreground hover:opacity-80 transition-opacity">
-                  <img src={logoImg} alt="CS Control" className="h-8 w-8 rounded-lg object-contain" />
-                  <span className="hidden sm:inline">CS Control</span>
+                  <img src={logoImg} alt="SIGA" className="h-8 w-8 rounded-lg object-contain" />
+                  <span className="hidden sm:inline">SIGA</span>
                 </Link>
               )}
             </div>
