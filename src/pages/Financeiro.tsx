@@ -792,13 +792,27 @@ export default function Financeiro() {
         .eq("mes_referencia", mes);
       if (movErr) throw movErr;
 
+      // Continuidade: períodos do mês financeiro anterior — mantém a empresa na
+      // nova competência mesmo quando a configuração de período/data de corte
+      // mudou entre as competências (evita "sumir" linhas já preenchidas antes).
+      const [yrMes, mrMes] = mes.split("-").map(Number);
+      const prevDate = new Date(yrMes, mrMes - 2, 1);
+      const prevMes = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+      const { data: finPrev, error: finPrevErr } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("empresa_id, periodo")
+        .eq("mes_referencia", prevMes);
+      if (finPrevErr) throw finPrevErr;
+
       const operacionaisPorEmpresa = new Map<string, Set<string>>();
-      (movsMes || []).forEach((m) => {
-        if (!operacionaisPorEmpresa.has(m.empresa_id)) {
-          operacionaisPorEmpresa.set(m.empresa_id, new Set());
+      const addPeriodo = (empresa_id: string, periodo: string) => {
+        if (!operacionaisPorEmpresa.has(empresa_id)) {
+          operacionaisPorEmpresa.set(empresa_id, new Set());
         }
-        operacionaisPorEmpresa.get(m.empresa_id)!.add(m.periodo);
-      });
+        operacionaisPorEmpresa.get(empresa_id)!.add(periodo);
+      };
+      (movsMes || []).forEach((m) => addPeriodo(m.empresa_id, m.periodo));
+      (finPrev || []).forEach((m) => addPeriodo(m.empresa_id, m.periodo));
 
       const PERIODOS_VALIDOS = new Set(PERIODOS_FIN as readonly string[]);
       const linhas: Array<{
