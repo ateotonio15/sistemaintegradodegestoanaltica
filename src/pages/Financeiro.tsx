@@ -342,8 +342,14 @@ export default function Financeiro() {
     enabled: movIds.length > 0,
   });
 
-  // Helper para comparar CNPJ ignorando máscara
-  const onlyDigits = (s?: string | null) => (s || "").replace(/\D/g, "");
+  // Helper para comparar CNPJ ignorando máscara.
+  // Normaliza para 14 dígitos com zero-padding à esquerda (alguns CNPJs ficam
+  // sem o "0" inicial quando são tratados como número em planilhas/parsers).
+  const onlyDigits = (s?: string | null) => {
+    const d = (s || "").replace(/\D/g, "");
+    if (d.length >= 11 && d.length < 14) return d.padStart(14, "0");
+    return d;
+  };
 
   // CNPJs detectados em cada arquivo analisado (chave: `${origem_mov_id}|${nome_arquivo}`)
   // Origem = contrato onde o anexo foi originalmente enviado.
