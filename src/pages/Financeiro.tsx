@@ -625,7 +625,7 @@ export default function Financeiro() {
         .eq("user_id", user!.id)
         .eq("competencia", mes);
       if (error) throw error;
-      return (data ?? []) as Array<{ empresa_id: string }>;
+      return ((data ?? []) as unknown) as Array<{ empresa_id: string }>;
     },
   });
   const ocultosSet = useMemo(
