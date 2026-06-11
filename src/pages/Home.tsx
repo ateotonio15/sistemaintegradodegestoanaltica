@@ -296,7 +296,7 @@ const SHORTCUTS: Shortcut[] = [
   {
     to: "/reajustes",
     label: "Reajustes",
-    description: "Aniversário e retroativos",
+    description: "\n\n\n",
     icon: TrendingUp,
     group: "funcoes",
     show: () => true,
