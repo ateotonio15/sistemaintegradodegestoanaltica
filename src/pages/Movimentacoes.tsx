@@ -95,7 +95,7 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, tipo_contrato, status_implantacao, primeira_competencia_financeira)")
+        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, tipo_contrato, status_implantacao, primeira_competencia_financeira, prioridade_maxima_id)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -692,10 +692,15 @@ export default function Movimentacoes() {
                       const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
                       const notaKey = `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`;
                       const dataNota = notasMap.get(notaKey) ?? null;
+                      const temPrio = !!(m.empresas as any)?.prioridade_maxima_id;
+                      const prioAtiva = temPrio && !m.data_envio_financeiro;
                       return (
-                        <TableRow key={m.id} className={`transition-colors ${!m.empresas ? "bg-destructive/5" : status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : "hover:bg-accent/50"}`}>
+                        <TableRow key={m.id} className={`transition-colors ${!m.empresas ? "bg-destructive/5" : status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : prioAtiva ? "bg-red-500/5 priority-row hover:bg-red-500/10" : "hover:bg-accent/50"}`}>
                           <TableCell className="font-medium">
-                            {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
+                              {temPrio && <PrioridadeBadge variant="compact" />}
+                            </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
