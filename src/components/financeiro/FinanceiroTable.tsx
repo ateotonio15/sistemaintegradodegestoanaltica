@@ -10,6 +10,7 @@ import {
   type FinanceiroMovimentacao,
   type StatusFinanceiro,
   statusFinanceiroColor,
+  labelStatusFinanceiro,
 } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { AnaliseExcelRow } from "./AnaliseExcelRow";
