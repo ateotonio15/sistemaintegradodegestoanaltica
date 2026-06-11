@@ -51,8 +51,8 @@ export function usePrioridadeHistorico(empresaId: string | null | undefined) {
 export function usePrioridadeMaxima() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { isAdmin, isDiretora } = useAuth();
-  const canManage = isAdmin || isDiretora;
+  const { isAdmin, isDiretora, isComum } = useAuth();
+  const canManage = isAdmin || isDiretora || isComum;
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["prioridade-maxima"] });
