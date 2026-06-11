@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Download, Eye, FileText, Paperclip, Play, Loader2, CheckCircle2, X, AlertTriangle, Receipt, Info } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 import { formatDateBR } from "@/lib/date-utils";
 import { ConfigFinanceiraEmpresaDialog } from "@/components/financeiro/ConfigFinanceiraEmpresaDialog";
@@ -78,11 +78,26 @@ export function AnexosViewerDialog({
     empresaNome: string;
     movimentacaoId: string;
   } | null>(null);
+  // Override local para refletir início/cancelamento imediatamente na UI,
+  // sem esperar o refetch do parent.
+  const [localIniciadoEm, setLocalIniciadoEm] = useState<string | null>(null);
+  const [localIniciadoPorNome, setLocalIniciadoPorNome] = useState<string | null>(null);
+  const [localCancelado, setLocalCancelado] = useState(false);
   const [avisos, setAvisos] = useState<{
     exigePoPc: boolean;
     envioBoletoComNota: boolean;
     observacao: string | null;
   } | null>(null);
+
+  const iniciadoEmEfetivo = localCancelado ? null : (localIniciadoEm ?? faturamentoIniciadoEm);
+  const iniciadoPorEfetivo = localCancelado ? null : (localIniciadoPorNome ?? faturamentoIniciadoPorNome);
+
+  // Reseta overrides locais quando muda a movimentação alvo ou o dialog reabre.
+  useEffect(() => {
+    setLocalIniciadoEm(null);
+    setLocalIniciadoPorNome(null);
+    setLocalCancelado(false);
+  }, [movimentacaoId, open]);
 
   const executarIniciarFaturamento = async (ctx = configContext) => {
     const targetMovimentacaoId = ctx?.movimentacaoId ?? movimentacaoId;
@@ -124,6 +139,11 @@ export function AnexosViewerDialog({
           setAvisos({ exigePoPc, envioBoletoComNota, observacao });
         }
       }
+
+      // Atualiza estado local para refletir início imediatamente na UI.
+      setLocalIniciadoEm(new Date().toISOString());
+      setLocalIniciadoPorNome(nome);
+      setLocalCancelado(false);
 
       toast.success("Faturamento iniciado");
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
@@ -180,6 +200,10 @@ export function AnexosViewerDialog({
         p_mov_id: movimentacaoId,
       });
       if (error) throw error;
+      // Reflete cancelamento imediatamente na UI.
+      setLocalCancelado(true);
+      setLocalIniciadoEm(null);
+      setLocalIniciadoPorNome(null);
       toast.success("Faturamento cancelado");
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
     } catch (e: any) {
@@ -441,15 +465,15 @@ export function AnexosViewerDialog({
 
         {movimentacaoId && (
           <div className="border-t pt-3 mt-1">
-            {faturamentoIniciadoEm ? (
+            {iniciadoEmEfetivo ? (
               <div className="flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-400/30 px-3 py-2.5 text-sm">
                 <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-300 shrink-0" />
                 <div className="flex flex-col leading-tight flex-1 min-w-0">
                   <span className="font-medium text-blue-700 dark:text-blue-200 truncate">
-                    Faturamento iniciado{faturamentoIniciadoPorNome ? ` por ${faturamentoIniciadoPorNome}` : ""}
+                    Faturamento iniciado{iniciadoPorEfetivo ? ` por ${iniciadoPorEfetivo}` : ""}
                   </span>
                   <span className="text-xs text-blue-600/80 dark:text-blue-300/80">
-                    Iniciado às {formatDateTime(faturamentoIniciadoEm)}
+                    Iniciado às {formatDateTime(iniciadoEmEfetivo)}
                   </span>
                 </div>
                 <Button
