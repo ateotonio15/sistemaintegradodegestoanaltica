@@ -1661,6 +1661,41 @@ export type Database = {
         }
         Relationships: []
       }
+      financeiro_chips_ocultos: {
+        Row: {
+          competencia: string
+          empresa_id: string
+          id: string
+          ocultado_em: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          competencia: string
+          empresa_id: string
+          id?: string
+          ocultado_em?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          competencia?: string
+          empresa_id?: string
+          id?: string
+          ocultado_em?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_chips_ocultos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financeiro_movimentacoes: {
         Row: {
           aguardando_nota_em: string | null
