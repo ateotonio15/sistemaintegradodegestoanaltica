@@ -420,45 +420,8 @@ export default function Movimentacoes() {
     <>
       <div className="space-y-6">
         {tabs}
-        <Card className="rounded-xl shadow-sm">
-          <CardContent className="pt-5 pb-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold">Resumo Geral por Período</h2>
-              <Button asChild variant="outline" size="sm" className="rounded-lg">
-                <Link to="/dashboard/geral">
-                  <LayoutDashboard className="mr-2 h-4 w-4" /> Ir para Dashboard Geral
-                </Link>
-              </Button>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              {PERIODOS.map((p) => {
-                const items = movimentacoes.filter((m) => {
-                  if ((m.empresas as any)?.status_empresa === "Inativa") return false;
-                  const statusImpl = (m.empresas as any)?.status_implantacao;
-                  const primComp = (m.empresas as any)?.primeira_competencia_financeira as string | null | undefined;
-                  if (statusImpl === "aguardando_primeiro_fechamento" && (!primComp || m.mes_referencia < primComp)) return false;
-                  return m.periodo === p;
-                });
-                const done = items.filter((m) => calcularStatus(m) === "Enviado ao financeiro").length;
-                const late = items.filter((m) => calcularStatus(m) === "Fora do prazo").length;
-                const isActiveP = p === filterPeriodo;
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setFilterPeriodo(isActiveP ? "all" : p)}
-                    className={`rounded-xl border p-4 text-center space-y-1.5 transition-all duration-200 ${isActiveP ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20" : "hover:bg-accent hover:shadow-sm border-border/60"}`}
-                  >
-                    <div className="font-semibold text-sm">{p}</div>
-                    <div className="text-xs text-muted-foreground">{items.length} total</div>
-                    {done > 0 && <div className="text-xs text-success font-medium">{done} concluída(s)</div>}
-                    {late > 0 && <div className="text-xs text-destructive font-medium">{late} fora do prazo</div>}
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+
+
 
         <div className="flex items-center justify-between">
 
