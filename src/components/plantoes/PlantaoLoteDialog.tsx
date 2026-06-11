@@ -99,8 +99,10 @@ export function PlantaoLoteDialog({ open, onOpenChange }: { open: boolean; onOpe
             <Select value={empresaId} onValueChange={setEmpresaId}>
               <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
               <SelectContent>
-                {empresas.filter((e) => e.ativo).map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                {empresas.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.codigo_contrato ? `${e.codigo_contrato} - ${e.nome}` : e.nome}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
