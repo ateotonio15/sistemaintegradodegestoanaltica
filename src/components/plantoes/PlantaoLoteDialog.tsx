@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { usePlantaoEmpresas, usePlantaoMutations } from "@/hooks/usePlantoes";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -17,8 +16,19 @@ const sb = supabase as any;
 export function PlantaoLoteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: empresas = [] } = usePlantaoEmpresas();
-  const { upsertPlantao } = usePlantaoMutations();
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["empresas_select_plantao"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("empresas")
+        .select("id,nome,codigo_contrato")
+        .eq("status_empresa", "Ativa")
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const today = new Date().toISOString().slice(0, 10);
   const [empresaId, setEmpresaId] = useState("");
