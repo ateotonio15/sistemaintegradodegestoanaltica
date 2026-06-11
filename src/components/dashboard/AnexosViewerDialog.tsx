@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Download, Eye, FileText, Paperclip, Play, Loader2, CheckCircle2, X, AlertTriangle, Receipt, Info } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 import { formatDateBR } from "@/lib/date-utils";
 import { ConfigFinanceiraEmpresaDialog } from "@/components/financeiro/ConfigFinanceiraEmpresaDialog";
