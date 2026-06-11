@@ -463,7 +463,7 @@ export function AnexosViewerDialog({
                 <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-300 shrink-0" />
                 <div className="flex flex-col leading-tight flex-1 min-w-0">
                   <span className="font-medium text-blue-700 dark:text-blue-200 truncate">
-                    Faturamento iniciado{faturamentoIniciadoPorNome ? ` por ${faturamentoIniciadoPorNome}` : ""}
+                    Faturamento iniciado{iniciadoPorEfetivo ? ` por ${iniciadoPorEfetivo}` : ""}
                   </span>
                   <span className="text-xs text-blue-600/80 dark:text-blue-300/80">
                     Iniciado às {formatDateTime(faturamentoIniciadoEm)}
