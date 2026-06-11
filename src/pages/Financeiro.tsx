@@ -705,6 +705,15 @@ export default function Financeiro() {
     });
   }, [allRows, acompanhandoIds, dispensadosIds, mes, ocultosSet]);
 
+  // Se o chip ativo (filtroAcompanhamento) saiu da lista de faturandoRows
+  // (ex.: usuário enviou a nota e status virou "Enviada"), limpa o filtro
+  // automaticamente para não deixar o usuário "preso" numa tabela vazia.
+  useEffect(() => {
+    if (!filtroAcompanhamento) return;
+    const aindaExiste = faturandoRows.some((r) => r.empresa_id === filtroAcompanhamento);
+    if (!aindaExiste) setFiltroAcompanhamento(null);
+  }, [filtroAcompanhamento, faturandoRows, setFiltroAcompanhamento]);
+
   const removerAcompanhamento = async (empresaId: string) => {
     const key = chaveAcomp(empresaId, mes);
     setAcompanhandoIds((prev) => prev.filter((k) => k !== key));
