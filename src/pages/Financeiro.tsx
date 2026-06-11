@@ -594,28 +594,57 @@ export default function Financeiro() {
     return Array.from(s).sort();
   }, [allRows]);
 
-  // Faturamentos em andamento iniciados pelo usuário atual — exibidos como chip(s)
-  const faturandoRows = useMemo(() => {
-    if (!user?.id) return [];
-    return allRows.filter(
-      (r) => r.status === "Em faturamento" && r.faturamento_iniciado_por === user.id,
-    );
-  }, [allRows, user?.id]);
+  // Empresas que o usuário está acompanhando (faturando) — persiste até o usuário fechar via X
+  const [acompanhandoIds, setAcompanhandoIds] = useSessionState<string[]>(
+    "financeiro:acompanhandoIds",
+    [],
+  );
+  const [filtroAcompanhamento, setFiltroAcompanhamento] = useSessionState<string | null>(
+    "financeiro:filtroAcompanhamento",
+    null,
+  );
 
-  const cancelarFaturamentoMut = useMutation({
-    mutationFn: async (movId: string) => {
-      const { error } = await supabase.rpc(
-        "aplicar_cancelar_faturamento_grupo" as any,
-        { p_mov_id: movId },
-      );
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
-      toast.success("Faturamento cancelado");
-    },
-    onError: (e: any) => toast.error("Erro ao cancelar: " + e.message),
-  });
+  // Auto-adiciona ao acompanhamento quando o próprio usuário inicia um faturamento
+  useEffect(() => {
+    if (!user?.id) return;
+    const novos = allRows
+      .filter((r) => r.status === "Em faturamento" && r.faturamento_iniciado_por === user.id)
+      .map((r) => r.empresa_id);
+    if (novos.length === 0) return;
+    setAcompanhandoIds((prev) => {
+      const set = new Set(prev);
+      let changed = false;
+      novos.forEach((id) => {
+        if (!set.has(id)) {
+          set.add(id);
+          changed = true;
+        }
+      });
+      return changed ? Array.from(set) : prev;
+    });
+  }, [allRows, user?.id, setAcompanhandoIds]);
+
+  // Chips: uma linha "mãe" por empresa acompanhada, com status atual
+  const faturandoRows = useMemo(() => {
+    if (acompanhandoIds.length === 0) return [] as FinanceiroRow[];
+    const ids = new Set(acompanhandoIds);
+    const byEmpresa = new Map<string, FinanceiroRow>();
+    allRows.forEach((r) => {
+      if (!ids.has(r.empresa_id)) return;
+      const prev = byEmpresa.get(r.empresa_id);
+      // mantém a linha mais recente (maior mes_referencia)
+      if (!prev || (r.mes_referencia || "") > (prev.mes_referencia || "")) {
+        byEmpresa.set(r.empresa_id, r);
+      }
+    });
+    return Array.from(byEmpresa.values());
+  }, [allRows, acompanhandoIds]);
+
+  const removerAcompanhamento = (empresaId: string) => {
+    setAcompanhandoIds((prev) => prev.filter((id) => id !== empresaId));
+    setFiltroAcompanhamento((cur) => (cur === empresaId ? null : cur));
+  };
+
 
   // KPI/Chart: aplica APENAS filtro de período
   const kpiRows = useMemo(() => {
