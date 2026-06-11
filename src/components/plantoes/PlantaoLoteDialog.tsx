@@ -101,7 +101,7 @@ export function PlantaoLoteDialog({ open, onOpenChange }: { open: boolean; onOpe
               <SelectContent>
                 {empresas.map((e) => (
                   <SelectItem key={e.id} value={e.id}>
-                    {e.codigo_contrato ? `${e.codigo_contrato} - ${e.nome}` : e.nome}
+                    {e.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
