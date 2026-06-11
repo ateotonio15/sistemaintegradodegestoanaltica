@@ -1470,6 +1470,28 @@ export default function Empresas() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
+                              {canManagePrioridade && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setPrioridadeDialog({ open: true, empresa: e, mode: temPrioridade ? "remover" : "marcar" })}
+                                  className={cn("rounded-lg", temPrioridade ? "hover:bg-red-500/20 text-red-600" : "hover:bg-red-500/10 text-muted-foreground hover:text-red-600")}
+                                  title={temPrioridade ? "Remover Prioridade Máxima" : "Definir como Prioridade Máxima"}
+                                >
+                                  <Star className={cn("h-4 w-4", temPrioridade && "fill-current")} />
+                                </Button>
+                              )}
+                              {temPrioridade && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setHistoricoPrioridade(e)}
+                                  className="rounded-lg hover:bg-primary/10"
+                                  title="Histórico de Prioridade"
+                                >
+                                  <HistoryIcon className="h-4 w-4 text-primary" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"
