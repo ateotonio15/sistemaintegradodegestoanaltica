@@ -3495,6 +3495,7 @@ export type Database = {
         Returns: boolean
       }
       is_saude_editor: { Args: { _uid: string }; Returns: boolean }
+      is_saude_reader: { Args: { _uid: string }; Returns: boolean }
       liberar_reajuste_financeiro: {
         Args: { p_id: string }
         Returns: undefined
