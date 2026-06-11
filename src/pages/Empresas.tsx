@@ -121,6 +121,10 @@ export default function Empresas() {
   const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo || isFinanceiro);
   const canFullEdit = isAdmin || isComumLike;
   const isComum = isComumLike;
+  const { canManage: canManagePrioridade } = usePrioridadeMaxima();
+  const [prioridadeDialog, setPrioridadeDialog] = useState<{ open: boolean; empresa: Empresa | null; mode: "marcar" | "remover" }>({ open: false, empresa: null, mode: "marcar" });
+  const [historicoPrioridade, setHistoricoPrioridade] = useState<Empresa | null>(null);
+  const [filtroPrioridade, setFiltroPrioridade] = useState<"todas" | "somente" | "ativas" | "concluidas">("todas");
 
   const { data: usuarios = [] } = useQuery({
     queryKey: ["profiles-list"],
