@@ -667,10 +667,10 @@ export default function Financeiro() {
       }
     });
     return Array.from(byEmpresa.values()).filter((r) => {
+      if (r.status === "Enviada") return false;
       const finalizado =
         r.status === "Nota emitida" ||
-        r.status === "Aguardando validação" ||
-        r.status === "Enviada";
+        r.status === "Aguardando validação";
       return !(finalizado && dispensados.has(r.empresa_id));
     });
   }, [allRows, acompanhandoIds, dispensadosIds]);
