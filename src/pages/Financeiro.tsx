@@ -800,9 +800,20 @@ export default function Financeiro() {
       const prevMes = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
       const { data: finPrev, error: finPrevErr } = await supabase
         .from("financeiro_movimentacoes")
-        .select("empresa_id, periodo")
+        .select("empresa_id, periodo, tipo_analise, dia_emissao, tipo_cobranca, possui_prorrogacao")
         .eq("mes_referencia", prevMes);
       if (finPrevErr) throw finPrevErr;
+
+      // Configurações por contrato (empresa+periodo) replicadas da competência anterior
+      const configPrev = new Map<string, { tipo_analise?: string | null; dia_emissao?: number | null; tipo_cobranca?: string | null; possui_prorrogacao?: boolean | null }>();
+      (finPrev || []).forEach((m: any) => {
+        configPrev.set(`${m.empresa_id}|${m.periodo}`, {
+          tipo_analise: m.tipo_analise,
+          dia_emissao: m.dia_emissao,
+          tipo_cobranca: m.tipo_cobranca,
+          possui_prorrogacao: m.possui_prorrogacao,
+        });
+      });
 
       const operacionaisPorEmpresa = new Map<string, Set<string>>();
       const addPeriodo = (empresa_id: string, periodo: string) => {
