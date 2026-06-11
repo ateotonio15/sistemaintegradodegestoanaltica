@@ -611,69 +611,61 @@ export default function Financeiro() {
     [],
   );
 
+  // Chave composta empresa+mês para escopo dos chips por competência.
+  const chaveAcomp = (empresaId: string, mesRef: string) => `${empresaId}|${mesRef}`;
+
   // Auto-adiciona ao acompanhamento quando o próprio usuário inicia um faturamento.
-  // Considera apenas a linha atual da empresa para não trazer de volta um chip finalizado
-  // que o usuário já fechou após atualizar a página.
+  // O acompanhamento é escopo POR COMPETÊNCIA: iniciar faturamento em Mai não
+  // reflete em Jun. Cada par empresa+mes_referencia é tratado separadamente.
   useEffect(() => {
     if (!user?.id) return;
     const dispensados = new Set(dispensadosIds);
-    const atualPorEmpresa = new Map<string, FinanceiroRow>();
-    const temFinalizada = new Set<string>();
     const novos: string[] = [];
     const limparDispensa: string[] = [];
     allRows.forEach((r) => {
       if (r.faturamento_iniciado_por !== user.id) return;
-      if (
-        r.status === "Nota emitida" ||
-        r.status === "Aguardando validação" ||
-        r.status === "Enviada"
-      ) {
-        temFinalizada.add(r.empresa_id);
-      }
-      const prev = atualPorEmpresa.get(r.empresa_id);
-      if (!prev || (r.mes_referencia || "") > (prev.mes_referencia || "")) {
-        atualPorEmpresa.set(r.empresa_id, r);
-      }
-    });
-    atualPorEmpresa.forEach((r) => {
       const ativo = r.status === "Em faturamento" || r.status === "Faturado";
       if (!ativo) return;
-      // Se a empresa também tem alguma linha já finalizada (nota emitida/enviada/aguardando validação),
-      // não reativa nem limpa o "fechado" do usuário.
-      if (temFinalizada.has(r.empresa_id)) return;
-      if (dispensados.has(r.empresa_id)) {
-        limparDispensa.push(r.empresa_id);
+      const key = chaveAcomp(r.empresa_id, r.mes_referencia || mes);
+      if (dispensados.has(key)) {
+        limparDispensa.push(key);
       }
-      novos.push(r.empresa_id);
+      novos.push(key);
     });
     if (limparDispensa.length > 0) {
-      setDispensadosIds((prev) => prev.filter((id) => !limparDispensa.includes(id)));
+      setDispensadosIds((prev) => prev.filter((k) => !limparDispensa.includes(k)));
     }
     if (novos.length === 0) return;
     setAcompanhandoIds((prev) => {
       const set = new Set(prev);
       let changed = false;
-      novos.forEach((id) => {
-        if (!set.has(id)) {
-          set.add(id);
+      novos.forEach((k) => {
+        if (!set.has(k)) {
+          set.add(k);
           changed = true;
         }
       });
       return changed ? Array.from(set) : prev;
     });
-  }, [allRows, user?.id, setAcompanhandoIds, dispensadosIds, setDispensadosIds]);
+  }, [allRows, user?.id, mes, setAcompanhandoIds, dispensadosIds, setDispensadosIds]);
 
-  // Chips: uma linha "mãe" por empresa acompanhada, com status atual
+  // Chips: uma linha "mãe" por empresa acompanhada NESTA competência.
   const faturandoRows = useMemo(() => {
     if (acompanhandoIds.length === 0) return [] as FinanceiroRow[];
-    const ids = new Set(acompanhandoIds);
-    const byEmpresa = new Map<string, FinanceiroRow>();
+    // Filtra apenas chaves do mês atualmente visualizado.
+    const idsDoMes = new Set(
+      acompanhandoIds
+        .filter((k) => k.endsWith(`|${mes}`))
+        .map((k) => k.split("|")[0]),
+    );
+    if (idsDoMes.size === 0) return [];
     const dispensados = new Set(dispensadosIds);
+    const byEmpresa = new Map<string, FinanceiroRow>();
     allRows.forEach((r) => {
-      if (!ids.has(r.empresa_id)) return;
+      if (!idsDoMes.has(r.empresa_id)) return;
+      if ((r.mes_referencia || mes) !== mes) return;
       const prev = byEmpresa.get(r.empresa_id);
-      // mantém a linha mais recente (maior mes_referencia)
-      if (!prev || (r.mes_referencia || "") > (prev.mes_referencia || "")) {
+      if (!prev || (r.created_at || "") > (prev.created_at || "")) {
         byEmpresa.set(r.empresa_id, r);
       }
     });
@@ -682,15 +674,16 @@ export default function Financeiro() {
       const finalizado =
         r.status === "Nota emitida" ||
         r.status === "Aguardando validação";
-      return !(finalizado && dispensados.has(r.empresa_id));
+      return !(finalizado && dispensados.has(chaveAcomp(r.empresa_id, mes)));
     });
-  }, [allRows, acompanhandoIds, dispensadosIds]);
+  }, [allRows, acompanhandoIds, dispensadosIds, mes]);
 
   const removerAcompanhamento = (empresaId: string) => {
-    setAcompanhandoIds((prev) => prev.filter((id) => id !== empresaId));
+    const key = chaveAcomp(empresaId, mes);
+    setAcompanhandoIds((prev) => prev.filter((k) => k !== key));
     setFiltroAcompanhamento((cur) => (cur === empresaId ? null : cur));
-    // Marca como dispensado para não reaparecer automaticamente nesta sessão
-    setDispensadosIds((prev) => (prev.includes(empresaId) ? prev : [...prev, empresaId]));
+    // Marca como dispensado (por competência) para não reaparecer automaticamente
+    setDispensadosIds((prev) => (prev.includes(key) ? prev : [...prev, key]));
   };
 
 
