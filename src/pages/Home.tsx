@@ -522,7 +522,7 @@ export default function Home() {
         </div>
 
         {/* Inteligência de Relacionamento — sempre visível */}
-        {!query && !activeGroup && (
+        {!query && !activeGroup && !isFinanceiro && (
           <div className="w-full flex flex-col gap-4 pt-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 text-foreground">
