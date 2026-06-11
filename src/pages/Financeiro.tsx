@@ -902,27 +902,45 @@ export default function Financeiro() {
       }
       const linhasDedup = Array.from(linhasMap.values());
 
-      // Buscar existentes para evitar duplicatas
+      // Buscar existentes para separar inserções de atualizações
       const { data: existentes, error: exErr } = await supabase
         .from("financeiro_movimentacoes")
-        .select("empresa_id, periodo")
+        .select("id, empresa_id, periodo, data_vencimento, tipo_cobranca, dia_emissao")
         .eq("mes_referencia", mes);
       if (exErr) throw exErr;
 
-      const chaves = new Set((existentes || []).map((r) => `${r.empresa_id}|${r.periodo}`));
-      const novas = linhasDedup.filter((l) => !chaves.has(`${l.empresa_id}|${l.periodo}`));
+      const existentesMap = new Map(
+        (existentes || []).map((r: any) => [`${r.empresa_id}|${r.periodo}`, r]),
+      );
+      const novas = linhasDedup.filter((l) => !existentesMap.has(`${l.empresa_id}|${l.periodo}`));
 
-      if (novas.length === 0) return { inseridas: 0, total: linhasDedup.length };
+      // Atualiza linhas já existentes que estejam sem dados que vieram da competência anterior
+      for (const l of linhasDedup) {
+        const existente: any = existentesMap.get(`${l.empresa_id}|${l.periodo}`);
+        if (!existente) continue;
+        const patch: any = {};
+        if (!existente.data_vencimento && l.data_vencimento) patch.data_vencimento = l.data_vencimento;
+        if (!existente.tipo_cobranca && l.tipo_cobranca) patch.tipo_cobranca = l.tipo_cobranca;
+        if (existente.dia_emissao == null && l.dia_emissao != null) patch.dia_emissao = l.dia_emissao;
+        if (Object.keys(patch).length === 0) continue;
+        const { error: updErr } = await supabase
+          .from("financeiro_movimentacoes")
+          .update(patch)
+          .eq("id", existente.id);
+        if (updErr) throw updErr;
+      }
 
       let inseridas = 0;
-      for (let i = 0; i < novas.length; i += 100) {
-        const batch = novas.slice(i, i + 100);
-        const { data: ins, error: insErr } = await supabase
-          .from("financeiro_movimentacoes")
-          .upsert(batch, { onConflict: "empresa_id,mes_referencia,periodo,tipo_lancamento", ignoreDuplicates: true })
-          .select("id");
-        if (insErr) throw insErr;
-        inseridas += ins?.length ?? 0;
+      if (novas.length > 0) {
+        for (let i = 0; i < novas.length; i += 100) {
+          const batch = novas.slice(i, i + 100);
+          const { data: ins, error: insErr } = await supabase
+            .from("financeiro_movimentacoes")
+            .upsert(batch, { onConflict: "empresa_id,mes_referencia,periodo,tipo_lancamento", ignoreDuplicates: true })
+            .select("id");
+          if (insErr) throw insErr;
+          inseridas += ins?.length ?? 0;
+        }
       }
 
       return { inseridas, total: linhasDedup.length };
