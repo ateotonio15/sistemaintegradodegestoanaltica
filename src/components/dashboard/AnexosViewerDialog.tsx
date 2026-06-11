@@ -193,6 +193,10 @@ export function AnexosViewerDialog({
         p_mov_id: movimentacaoId,
       });
       if (error) throw error;
+      // Reflete cancelamento imediatamente na UI.
+      setLocalCancelado(true);
+      setLocalIniciadoEm(null);
+      setLocalIniciadoPorNome(null);
       toast.success("Faturamento cancelado");
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
     } catch (e: any) {
