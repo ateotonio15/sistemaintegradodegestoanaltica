@@ -133,6 +133,11 @@ export function AnexosViewerDialog({
         }
       }
 
+      // Atualiza estado local para refletir início imediatamente na UI.
+      setLocalIniciadoEm(new Date().toISOString());
+      setLocalIniciadoPorNome(nome);
+      setLocalCancelado(false);
+
       toast.success("Faturamento iniciado");
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
     } catch (e: any) {
