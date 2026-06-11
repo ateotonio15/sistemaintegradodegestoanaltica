@@ -1,20 +1,21 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 const SYSTEM_PROMPT = `Você extrai dados de um documento "Anexo I — Plano Coletivo Empresarial" (texto bruto fornecido pelo usuário) e retorna APENAS um JSON válido (sem markdown, sem comentários) com este formato exato:
 
 {
-  "nome": string | null,                       // Nome/Razão social da Empresa (campo "Empresa:")
-  "cnpj": string | null,                       // CNPJ no formato 00.000.000/0000-00
-  "telefone": string | null,                   // Telefone (somente dígitos OU formatado, como aparece)
-  "email": string | null,                      // E-mail (do campo "Fax / E-mail")
-  "responsavel": string | null,                // Nome do "Responsável:"
-  "vidas": number | null,                      // Total de Associados (coluna "Total"); se ausente, soma Principais + Dependentes
-  "data_implantacao": string | null,           // "Início do Atendimento" em formato ISO YYYY-MM-DD
-  "dia_vencimento": number | null,             // Dia (1-31) extraído da "Data de Pré-Pagamento"
-  "valor_enfermaria_reais": number | null,     // Valor em reais do Plano Enfermaria (ex: 275.00)
-  "valor_apartamento_reais": number | null     // Valor em reais do Plano Apartamento (ex: 385.00)
+  "nome": string | null,
+  "cnpj": string | null,
+  "telefone": string | null,
+  "email": string | null,
+  "responsavel": string | null,
+  "vidas": number | null,
+  "data_implantacao": string | null,
+  "dia_vencimento": number | null,
+  "valor_enfermaria_reais": number | null,
+  "valor_apartamento_reais": number | null
 }
 
 Regras:
@@ -27,6 +28,42 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    // --- Auth ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const userId = claimsData.claims.sub as string;
+
+    const { data: roles, error: rolesErr } = await userClient
+      .from('user_roles').select('role').eq('user_id', userId);
+    if (rolesErr) {
+      return new Response(JSON.stringify({ error: 'Falha ao validar permissão' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const roleSet = new Set((roles ?? []).map((r: any) => r.role));
+    const allowed = ['admin', 'comum', 'vendas', 'diretora', 'financeiro'];
+    if (!allowed.some((r) => roleSet.has(r))) {
+      return new Response(JSON.stringify({ error: 'Permissão negada' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY ausente' }), {
         status: 500,

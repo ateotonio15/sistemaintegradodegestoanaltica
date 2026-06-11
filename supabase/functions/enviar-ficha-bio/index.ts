@@ -8,9 +8,47 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const esc = (v: any) =>
+  String(v ?? "—")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
+    // --- Auth obrigatória ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = claimsData.claims.sub as string;
+    const { data: roles } = await userClient
+      .from("user_roles").select("role").eq("user_id", userId);
+    const roleSet = new Set((roles ?? []).map((r: any) => r.role));
+    const allowed = ["admin", "enfermeira"];
+    if (!allowed.some((r) => roleSet.has(r))) {
+      return new Response(JSON.stringify({ error: "Permissão negada" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY não configurada");
 
@@ -32,12 +70,12 @@ serve(async (req) => {
     if (!t.email) throw new Error("Triagem sem e-mail do colaborador");
 
     const row = (label: string, value: any) =>
-      `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;color:#555">${label}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;font-weight:600">${value ?? "—"}</td></tr>`;
+      `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;color:#555">${esc(label)}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;font-weight:600">${esc(value)}</td></tr>`;
 
     const html = `
       <div style="font-family:Inter,Arial,sans-serif;max-width:640px;margin:0 auto;background:#fff;padding:24px;border-radius:12px;color:#111">
         <h1 style="color:#16a34a;margin:0 0 4px">Ficha de Bioimpedância</h1>
-        <p style="color:#555;margin:0 0 16px">${t.empresa?.nome ?? ""}</p>
+        <p style="color:#555;margin:0 0 16px">${esc(t.empresa?.nome ?? "")}</p>
         <h3 style="margin:16px 0 6px">Identificação</h3>
         <table style="width:100%;border-collapse:collapse">
           ${row("Nome", t.nome)}${row("CPF", t.cpf)}${row("Idade", t.idade)}${row("Setor", t.setor)}${row("Cargo", t.cargo)}
@@ -55,8 +93,8 @@ serve(async (req) => {
           ${row("Glicemia", `${t.glicemia_mg_dl ?? "—"} mg/dL (${t.classificacao_glicemia ?? "—"}${t.jejum ? ", jejum" : ""})`)}
           ${row("Frequência cardíaca", t.freq_cardiaca)}${row("Saturação O₂", t.sat_o2 ? t.sat_o2 + "%" : "—")}
         </table>
-        ${t.recomendacao ? `<h3 style="margin:16px 0 6px">Recomendação</h3><p style="background:#f8fafc;padding:12px;border-radius:8px">${t.recomendacao}</p>` : ""}
-        <p style="color:#888;font-size:12px;margin-top:24px">Risco geral: <strong>${t.risco_geral ?? "—"}</strong></p>
+        ${t.recomendacao ? `<h3 style="margin:16px 0 6px">Recomendação</h3><p style="background:#f8fafc;padding:12px;border-radius:8px">${esc(t.recomendacao)}</p>` : ""}
+        <p style="color:#888;font-size:12px;margin-top:24px">Risco geral: <strong>${esc(t.risco_geral ?? "—")}</strong></p>
       </div>
     `;
 

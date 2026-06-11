@@ -397,10 +397,18 @@ export async function exportarAnaliseExcel(data: AnaliseCompletaExport) {
   );
 }
 
+const esc = (v: any) =>
+  String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 export function exportarAnalisePDF(data: AnaliseCompletaExport) {
   const w = window.open("", "_blank", "width=1100,height=800");
   if (!w) return;
-  const num = (v: number | null) => (v == null ? "—" : formatBRL(v));
+  const num = (v: number | null) => (v == null ? "—" : esc(formatBRL(v)));
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
       OK: "#16a34a",
@@ -411,9 +419,9 @@ export function exportarAnalisePDF(data: AnaliseCompletaExport) {
       Pendente: "#f59e0b",
     };
     const c = map[s] || "#374151";
-    return `<span style="background:${c}1a;color:${c};padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid ${c}40">${s}</span>`;
+    return `<span style="background:${c}1a;color:${c};padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid ${c}40">${esc(s)}</span>`;
   };
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${data.titulo}</title>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(data.titulo)}</title>
 <style>
 *{box-sizing:border-box}body{font-family:Inter,Arial,sans-serif;color:#0f172a;padding:32px;max-width:1000px;margin:0 auto}
 h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:24px 0 8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}
@@ -426,13 +434,13 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .footer{margin-top:32px;font-size:11px;color:#94a3b8}
 @media print{body{padding:16px}}
 </style></head><body>
-<h1>${data.titulo}</h1>
+<h1>${esc(data.titulo)}</h1>
 <div class="sub">Conferência entre Excel, histórico da NFS-e e informações tributárias da nota fiscal.</div>
 <div class="cards">
-  <div class="card"><div class="l">Empresa</div><div class="v">${data.empresa}</div></div>
-  <div class="card"><div class="l">CNPJ</div><div class="v">${data.cnpj || "—"}</div></div>
-  <div class="card"><div class="l">NFS-e</div><div class="v">${data.documentos.nfNumero || "—"}</div></div>
-  <div class="card"><div class="l">Competência</div><div class="v">${data.competencia} • ${data.periodo}</div></div>
+  <div class="card"><div class="l">Empresa</div><div class="v">${esc(data.empresa)}</div></div>
+  <div class="card"><div class="l">CNPJ</div><div class="v">${esc(data.cnpj || "—")}</div></div>
+  <div class="card"><div class="l">NFS-e</div><div class="v">${esc(data.documentos.nfNumero || "—")}</div></div>
+  <div class="card"><div class="l">Competência</div><div class="v">${esc(data.competencia)} • ${esc(data.periodo)}</div></div>
   <div class="card"><div class="l">Valor total do Excel</div><div class="v">${num(
     data.servico.find((s) => s.origem.toLowerCase().includes("excel"))?.valor ?? null,
   )}</div></div>
@@ -448,9 +456,9 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 <h2>Etapa 1 — Documentos</h2>
 <table>
 <tr><th>Excel encontrado</th><td>${data.documentos.excelEncontrado ? "Sim" : "Não"}</td><th>PDF encontrado</th><td>${data.documentos.pdfEncontrado ? "Sim" : "Não"}</td></tr>
-<tr><th>Arquivo Excel</th><td>${data.documentos.nomeExcel || "—"}</td><th>Arquivo PDF</th><td>${data.documentos.nomePdf || "—"}</td></tr>
-<tr><th>NFS-e</th><td>${data.documentos.nfNumero || "—"}</td><th>Tomador</th><td>${data.documentos.tomador || "—"}</td></tr>
-<tr><th>CNPJ</th><td colspan="3">${data.documentos.cnpj || "—"}</td></tr>
+<tr><th>Arquivo Excel</th><td>${esc(data.documentos.nomeExcel || "—")}</td><th>Arquivo PDF</th><td>${esc(data.documentos.nomePdf || "—")}</td></tr>
+<tr><th>NFS-e</th><td>${esc(data.documentos.nfNumero || "—")}</td><th>Tomador</th><td>${esc(data.documentos.tomador || "—")}</td></tr>
+<tr><th>CNPJ</th><td colspan="3">${esc(data.documentos.cnpj || "—")}</td></tr>
 <tr><th>Status</th><td colspan="3">${statusBadge(data.documentos.status)}</td></tr>
 </table>
 
@@ -461,12 +469,12 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 ${data.categorias
   .map(
     (c) => `<tr>
-<td>${c.categoria}</td>
+<td>${esc(c.categoria)}</td>
 <td class="num">${num(c.excel)}</td>
 <td class="num">${num(c.pdf)}</td>
 <td class="num ${c.diferenca && Math.abs(c.diferenca) > 0.01 ? "diverg" : "ok"}">${num(c.diferenca)}</td>
 <td>${statusBadge(c.status)}</td>
-<td>${c.observacao || ""}</td>
+<td>${esc(c.observacao || "")}</td>
 </tr>`,
   )
   .join("")}
@@ -477,12 +485,12 @@ ${data.categorias
 <thead><tr><th>Origem</th><th>Valor encontrado</th><th>Status</th></tr></thead>
 <tbody>
 ${data.servico
-  .map((s) => `<tr><td>${s.origem}</td><td class="num">${num(s.valor)}</td><td>${statusBadge(s.status)}</td></tr>`)
+  .map((s) => `<tr><td>${esc(s.origem)}</td><td class="num">${num(s.valor)}</td><td>${statusBadge(s.status)}</td></tr>`)
   .join("")}
 </tbody></table>
 
 <h2>Etapa 5 — Resultado Final</h2>
-<p><strong>${data.resumo.mensagem}</strong></p>
+<p><strong>${esc(data.resumo.mensagem)}</strong></p>
 <table>
 <tr><th>Total de itens analisados</th><td>${data.resumo.totalItens}</td>
 <th>OK</th><td>${data.resumo.ok}</td>
@@ -491,13 +499,14 @@ ${data.servico
 </table>
 ${
   data.divergenciasLista.length > 0
-    ? `<h2>Divergências encontradas</h2><ul>${data.divergenciasLista.map((d) => `<li>${d}</li>`).join("")}</ul>`
+    ? `<h2>Divergências encontradas</h2><ul>${data.divergenciasLista.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>`
     : ""
 }
 
-<div class="footer">Gerado em ${data.geradoEm}${data.geradoPor ? ` por ${data.geradoPor}` : ""} • CS Control</div>
+<div class="footer">Gerado em ${esc(data.geradoEm)}${data.geradoPor ? ` por ${esc(data.geradoPor)}` : ""} • CS Control</div>
 <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
 </body></html>`;
   w.document.write(html);
   w.document.close();
 }
+
