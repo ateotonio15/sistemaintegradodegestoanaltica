@@ -594,6 +594,29 @@ export default function Financeiro() {
     return Array.from(s).sort();
   }, [allRows]);
 
+  // Faturamentos em andamento iniciados pelo usuário atual — exibidos como chip(s)
+  const faturandoRows = useMemo(() => {
+    if (!user?.id) return [];
+    return allRows.filter(
+      (r) => r.status === "Em faturamento" && r.faturamento_iniciado_por === user.id,
+    );
+  }, [allRows, user?.id]);
+
+  const cancelarFaturamentoMut = useMutation({
+    mutationFn: async (movId: string) => {
+      const { error } = await supabase.rpc(
+        "aplicar_cancelar_faturamento_grupo" as any,
+        { p_mov_id: movId },
+      );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      toast.success("Faturamento cancelado");
+    },
+    onError: (e: any) => toast.error("Erro ao cancelar: " + e.message),
+  });
+
   // KPI/Chart: aplica APENAS filtro de período
   const kpiRows = useMemo(() => {
     return filtroPeriodo ? allRows.filter((r) => r.periodo === filtroPeriodo) : allRows;
