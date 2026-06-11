@@ -905,7 +905,7 @@ export default function Financeiro() {
         const batch = novas.slice(i, i + 100);
         const { data: ins, error: insErr } = await supabase
           .from("financeiro_movimentacoes")
-          .upsert(batch, { onConflict: "empresa_id,mes_referencia,periodo", ignoreDuplicates: true })
+          .upsert(batch, { onConflict: "empresa_id,mes_referencia,periodo,tipo_lancamento", ignoreDuplicates: true })
           .select("id");
         if (insErr) throw insErr;
         inseridas += ins?.length ?? 0;
