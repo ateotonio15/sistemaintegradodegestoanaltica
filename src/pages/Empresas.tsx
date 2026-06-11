@@ -31,6 +31,12 @@ import { cn } from "@/lib/utils";
 import { IsoDatePicker } from "@/components/ui/iso-date-picker";
 import { GrupoFinanceiroSection } from "@/components/empresas/GrupoFinanceiroSection";
 import { EmpresaAnexosImplantacao } from "@/components/empresas/EmpresaAnexosImplantacao";
+import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
+import { PrioridadeDialog } from "@/components/prioridade/PrioridadeDialog";
+import { PrioridadeInfoCard } from "@/components/prioridade/PrioridadeInfoCard";
+import { PrioridadeHistoricoDialog } from "@/components/prioridade/PrioridadeHistoricoDialog";
+import { usePrioridadeMaxima } from "@/hooks/usePrioridadeMaxima";
+import { Star, History as HistoryIcon } from "lucide-react";
 
 type Empresa = Tables<"empresas">;
 
@@ -115,6 +121,10 @@ export default function Empresas() {
   const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo || isFinanceiro);
   const canFullEdit = isAdmin || isComumLike;
   const isComum = isComumLike;
+  const { canManage: canManagePrioridade } = usePrioridadeMaxima();
+  const [prioridadeDialog, setPrioridadeDialog] = useState<{ open: boolean; empresa: Empresa | null; mode: "marcar" | "remover" }>({ open: false, empresa: null, mode: "marcar" });
+  const [historicoPrioridade, setHistoricoPrioridade] = useState<Empresa | null>(null);
+  const [filtroPrioridade, setFiltroPrioridade] = useState<"todas" | "somente" | "ativas" | "concluidas">("todas");
 
   const { data: usuarios = [] } = useQuery({
     queryKey: ["profiles-list"],
@@ -492,12 +502,23 @@ export default function Empresas() {
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
       .filter((e) => respFilter === "all" || (e.responsavel_contrato ?? "").trim() === respFilter)
       .filter((e) => corretoraFilter === "all" || (e.operadora_plano ?? "").trim() === corretoraFilter)
+      .filter((e) => {
+        if (filtroPrioridade === "todas") return true;
+        if (filtroPrioridade === "somente" || filtroPrioridade === "ativas") return !!(e as any).prioridade_maxima_id;
+        if (filtroPrioridade === "concluidas") return !(e as any).prioridade_maxima_id;
+        return true;
+      })
       .filter((e) =>
         e.nome.toLowerCase().includes(q) ||
         (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
         (e.cnpj ?? "").toLowerCase().includes(q)
-      );
-  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter]);
+      )
+      .sort((a, b) => {
+        const pa = (a as any).prioridade_maxima_id ? 1 : 0;
+        const pb = (b as any).prioridade_maxima_id ? 1 : 0;
+        return pb - pa;
+      });
+  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, filtroPrioridade]);
 
   async function exportarInativasExcel() {
     const inativas = empresas
@@ -1334,6 +1355,15 @@ export default function Empresas() {
               {corretoraOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={filtroPrioridade} onValueChange={(v) => setFiltroPrioridade(v as any)}>
+            <SelectTrigger className="rounded-lg w-[200px]"><SelectValue placeholder="Prioridade" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas (prioridade)</SelectItem>
+              <SelectItem value="somente">⭐ Somente prioridade</SelectItem>
+              <SelectItem value="ativas">Ativas (com prioridade)</SelectItem>
+              <SelectItem value="concluidas">Concluídas</SelectItem>
+            </SelectContent>
+          </Select>
           {(respFilter !== "all" || corretoraFilter !== "all") && (
             <Button variant="ghost" size="sm" onClick={() => { setRespFilter("all"); setCorretoraFilter("all"); }} className="rounded-lg">
               Limpar filtros
@@ -1388,12 +1418,14 @@ export default function Empresas() {
                     filtered.map((e) => {
                       const suspenso = (e as any).contrato_suspenso;
                       const faixa = (e as any).contrato_faixa_etaria;
+                      const temPrioridade = !!(e as any).prioridade_maxima_id;
                       return (
                         <TableRow
                           key={e.id}
                           className={cn(
                             "cursor-pointer transition-colors",
-                            suspenso ? "bg-muted/50 hover:bg-muted/70" : "hover:bg-accent/50"
+                            suspenso ? "bg-muted/50 hover:bg-muted/70" : "hover:bg-accent/50",
+                            temPrioridade && "priority-row bg-red-500/5"
                           )}
                           onClick={() => setDetailEmpresa(e)}
                         >
@@ -1401,6 +1433,7 @@ export default function Empresas() {
                             <div className="flex items-center gap-2 flex-wrap">
                               {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0" />}
                               <span>{e.nome}</span>
+                              {temPrioridade && <PrioridadeBadge variant="compact" />}
                               {faixa && <Badge variant="outline" className="rounded-md text-[10px]">Faixa Etária</Badge>}
                             </div>
                           </TableCell>
@@ -1437,6 +1470,28 @@ export default function Empresas() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
+                              {canManagePrioridade && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setPrioridadeDialog({ open: true, empresa: e, mode: temPrioridade ? "remover" : "marcar" })}
+                                  className={cn("rounded-lg", temPrioridade ? "hover:bg-red-500/20 text-red-600" : "hover:bg-red-500/10 text-muted-foreground hover:text-red-600")}
+                                  title={temPrioridade ? "Remover Prioridade Máxima" : "Definir como Prioridade Máxima"}
+                                >
+                                  <Star className={cn("h-4 w-4", temPrioridade && "fill-current")} />
+                                </Button>
+                              )}
+                              {temPrioridade && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setHistoricoPrioridade(e)}
+                                  className="rounded-lg hover:bg-primary/10"
+                                  title="Histórico de Prioridade"
+                                >
+                                  <HistoryIcon className="h-4 w-4 text-primary" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1520,6 +1575,10 @@ export default function Empresas() {
                       </div>
                       <p className="text-xs text-muted-foreground mt-1 ml-6">Motivo: {(detailEmpresa as any).motivo_suspensao || "—"}</p>
                     </div>
+                  )}
+
+                  {(detailEmpresa as any).prioridade_maxima_id && (
+                    <PrioridadeInfoCard empresaId={detailEmpresa.id} />
                   )}
 
                   {/* Contrato */}
@@ -1707,6 +1766,20 @@ export default function Empresas() {
         <RecalcularVidasDialog
           open={recalcVidasOpen}
           onOpenChange={setRecalcVidasOpen}
+        />
+
+        <PrioridadeDialog
+          open={prioridadeDialog.open}
+          onOpenChange={(o) => setPrioridadeDialog((s) => ({ ...s, open: o }))}
+          empresaId={prioridadeDialog.empresa?.id ?? null}
+          empresaNome={prioridadeDialog.empresa?.nome}
+          mode={prioridadeDialog.mode}
+        />
+        <PrioridadeHistoricoDialog
+          open={!!historicoPrioridade}
+          onOpenChange={(o) => { if (!o) setHistoricoPrioridade(null); }}
+          empresaId={historicoPrioridade?.id ?? null}
+          empresaNome={historicoPrioridade?.nome}
         />
 
       </div>

@@ -397,3 +397,25 @@
       inset 0 1px 0 0 hsl(var(--primary) / 0.15);
   }
 }
+
+@layer utilities {
+  @keyframes pulse-priority {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+    50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  }
+  .animate-pulse-priority {
+    animation: pulse-priority 1.8s ease-out infinite;
+  }
+  .priority-row {
+    position: relative;
+  }
+  .priority-row::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: rgb(239, 68, 68);
+    animation: pulse-priority 1.8s ease-out infinite;
+  }
+}
+

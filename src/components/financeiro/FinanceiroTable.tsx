@@ -15,6 +15,7 @@ import {
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { AnaliseExcelRow } from "./AnaliseExcelRow";
 import type { AnaliseResultado, ComparacaoResultado, NotaOrfa } from "@/lib/excel-analysis-utils";
+import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 
 export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_nome: string;
@@ -33,6 +34,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   faturamento_iniciado_em?: string | null;
   /** Indica que existe ao menos um anexo originado de Reajuste/Cobrança Retroativa */
   retroativo?: boolean;
+  prioridade_maxima?: boolean;
   /** Chave única por linha (id da movimentação + id do pagador, quando aplicável) */
   rowKey?: string;
   /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
@@ -151,6 +153,7 @@ export function FinanceiroTable({
                     <TableCell className="font-medium">
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
+                          {row.prioridade_maxima && <PrioridadeBadge variant="fire" label="🔥 PRIORIDADE" />}
                           <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
                           {row.cobranca_registrada && (
                             <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
