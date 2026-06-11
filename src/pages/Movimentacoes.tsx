@@ -430,6 +430,17 @@ export default function Movimentacoes() {
             <p className="text-sm text-muted-foreground mt-1">{filtered.length} movimentação(ões) encontrada(s)</p>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await queryClient.invalidateQueries();
+                toast({ title: "Informações atualizadas" });
+              }}
+              className="rounded-lg"
+              title="Atualizar informações"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />Atualizar
+            </Button>
             <Button variant="outline" onClick={handleExportExcel} className="rounded-lg">
               <Download className="mr-2 h-4 w-4" />Exportar Excel
             </Button>
