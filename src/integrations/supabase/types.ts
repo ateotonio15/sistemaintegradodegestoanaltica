@@ -933,6 +933,65 @@ export type Database = {
           },
         ]
       }
+      empresa_prioridade_maxima: {
+        Row: {
+          ativo: boolean | null
+          created_at: string
+          criado_em: string
+          criado_por_nome: string | null
+          criado_por_user_id: string
+          empresa_id: string
+          id: string
+          motivo: string
+          motivo_remocao: string | null
+          observacoes: string | null
+          removido_em: string | null
+          removido_por_nome: string | null
+          removido_por_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string
+          criado_em?: string
+          criado_por_nome?: string | null
+          criado_por_user_id: string
+          empresa_id: string
+          id?: string
+          motivo: string
+          motivo_remocao?: string | null
+          observacoes?: string | null
+          removido_em?: string | null
+          removido_por_nome?: string | null
+          removido_por_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string
+          criado_em?: string
+          criado_por_nome?: string | null
+          criado_por_user_id?: string
+          empresa_id?: string
+          id?: string
+          motivo?: string
+          motivo_remocao?: string | null
+          observacoes?: string | null
+          removido_em?: string | null
+          removido_por_nome?: string | null
+          removido_por_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_prioridade_maxima_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa_suspensoes: {
         Row: {
           created_at: string
@@ -1056,6 +1115,7 @@ export type Database = {
           primeira_competencia_financeira: string | null
           primeiro_fechamento_em: string | null
           primeiro_processamento_financeiro_em: string | null
+          prioridade_maxima_id: string | null
           regra_prorrogacao: string | null
           responsavel_contrato: string | null
           responsavel_user_id: string | null
@@ -1113,6 +1173,7 @@ export type Database = {
           primeira_competencia_financeira?: string | null
           primeiro_fechamento_em?: string | null
           primeiro_processamento_financeiro_em?: string | null
+          prioridade_maxima_id?: string | null
           regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
@@ -1170,6 +1231,7 @@ export type Database = {
           primeira_competencia_financeira?: string | null
           primeiro_fechamento_em?: string | null
           primeiro_processamento_financeiro_em?: string | null
+          prioridade_maxima_id?: string | null
           regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
@@ -1189,6 +1251,13 @@ export type Database = {
           vidas?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "empresas_prioridade_maxima_id_fkey"
+            columns: ["prioridade_maxima_id"]
+            isOneToOne: false
+            referencedRelation: "empresa_prioridade_maxima"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "empresas_responsavel_user_id_fkey"
             columns: ["responsavel_user_id"]
@@ -3606,6 +3675,10 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      marcar_prioridade_maxima: {
+        Args: { p_empresa_id: string; p_motivo: string; p_observacoes?: string }
+        Returns: string
+      }
       processar_retorno_ferias: { Args: never; Returns: number }
       rejeitar_implantacao: {
         Args: { p_impl: string; p_motivo: string }
@@ -3617,6 +3690,10 @@ export type Database = {
       }
       remover_contrato_grupo: {
         Args: { p_vinculo_id: string }
+        Returns: undefined
+      }
+      remover_prioridade_maxima: {
+        Args: { p_empresa_id: string; p_motivo_remocao?: string }
         Returns: undefined
       }
       simular_redistribuicao_ferias: {
