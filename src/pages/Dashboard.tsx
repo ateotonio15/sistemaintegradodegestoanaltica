@@ -34,6 +34,7 @@ import { ImplantacoesAguardandoFechamentoCard } from "@/components/dashboard/Imp
 import { VidasOperadoraResumo } from "@/components/dashboard/VidasOperadoraResumo";
 import { AlertasContratosAnaliseDiretora } from "@/components/dashboard/AlertasContratosAnaliseDiretora";
 import { AlertasContratosVendas } from "@/components/dashboard/AlertasContratosVendas";
+import { PrioridadeMaximaDashboardCard } from "@/components/dashboard/PrioridadeMaximaDashboardCard";
 import { AlertaReajustesPendentes } from "@/components/reajustes/AlertaReajustesPendentes";
 import { AlertaReajustesParaConfirmar } from "@/components/reajustes/AlertaReajustesParaConfirmar";
 import { AlertaReajustesParaAprovar } from "@/components/reajustes/AlertaReajustesParaAprovar";
@@ -668,6 +669,7 @@ export default function Dashboard() {
   return (
     <>
       <div className="space-y-8">
+        <PrioridadeMaximaDashboardCard />
         {isDiretora && <AlertasContratosAnaliseDiretora />}
         {isVendas && <AlertasContratosVendas />}
         
