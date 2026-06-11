@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
-import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import {
@@ -593,6 +593,29 @@ export default function Financeiro() {
     });
     return Array.from(s).sort();
   }, [allRows]);
+
+  // Faturamentos em andamento iniciados pelo usuário atual — exibidos como chip(s)
+  const faturandoRows = useMemo(() => {
+    if (!user?.id) return [];
+    return allRows.filter(
+      (r) => r.status === "Em faturamento" && r.faturamento_iniciado_por === user.id,
+    );
+  }, [allRows, user?.id]);
+
+  const cancelarFaturamentoMut = useMutation({
+    mutationFn: async (movId: string) => {
+      const { error } = await supabase.rpc(
+        "aplicar_cancelar_faturamento_grupo" as any,
+        { p_mov_id: movId },
+      );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      toast.success("Faturamento cancelado");
+    },
+    onError: (e: any) => toast.error("Erro ao cancelar: " + e.message),
+  });
 
   // KPI/Chart: aplica APENAS filtro de período
   const kpiRows = useMemo(() => {
@@ -1841,25 +1864,48 @@ export default function Financeiro() {
 
         {/* Filtros da tabela */}
         <Card className="rounded-xl shadow-sm">
-          {filtroGrupo && (
-            <div className="px-4 pt-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
-                <Users className="h-3 w-3" />
-                <span>
-                  Visualizando grupo:{" "}
-                  <strong>
-                    {(gruposAtivos ?? []).find((g) => g.id === filtroGrupo)?.nome_grupo ?? "—"}
-                  </strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setFiltroGrupo(null)}
-                  className="ml-1 rounded-full p-0.5 hover:bg-primary/20"
-                  title="Limpar filtro de grupo"
+          {(filtroGrupo || faturandoRows.length > 0) && (
+            <div className="px-4 pt-4 flex flex-wrap gap-2">
+              {filtroGrupo && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
+                  <Users className="h-3 w-3" />
+                  <span>
+                    Visualizando grupo:{" "}
+                    <strong>
+                      {(gruposAtivos ?? []).find((g) => g.id === filtroGrupo)?.nome_grupo ?? "—"}
+                    </strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroGrupo(null)}
+                    className="ml-1 rounded-full p-0.5 hover:bg-primary/20"
+                    title="Limpar filtro de grupo"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+              {faturandoRows.map((r) => (
+                <div
+                  key={r.id}
+                  className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-700 dark:text-blue-300"
+                  title="Faturamento em andamento por você"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>
+                    Faturando: <strong>{r.empresa_nome}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => cancelarFaturamentoMut.mutate(r.id)}
+                    disabled={cancelarFaturamentoMut.isPending}
+                    className="ml-1 rounded-full p-0.5 hover:bg-blue-500/20 disabled:opacity-50"
+                    title="Cancelar faturamento em andamento"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
           <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
