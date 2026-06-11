@@ -878,12 +878,13 @@ export default function Financeiro() {
             periodo,
             dentro_prazo: true,
             responsavel: e.responsavel_contrato ?? null,
+            // Defaults explícitos (evita NULL quando outras linhas do batch trazem o campo)
+            tipo_analise: cfg.tipo_analise ?? "normal",
+            possui_prorrogacao: cfg.possui_prorrogacao ?? false,
+            tipo_lancamento: "normal",
           };
-          // Replica configurações universais salvas para o contrato
-          if (cfg.tipo_analise != null) linha.tipo_analise = cfg.tipo_analise;
           if (cfg.dia_emissao != null) linha.dia_emissao = cfg.dia_emissao;
           if (cfg.tipo_cobranca != null) linha.tipo_cobranca = cfg.tipo_cobranca;
-          if (cfg.possui_prorrogacao != null) linha.possui_prorrogacao = cfg.possui_prorrogacao;
           if (cfg.data_vencimento != null) linha.data_vencimento = cfg.data_vencimento;
           linhas.push(linha);
         });
