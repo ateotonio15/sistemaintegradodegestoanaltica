@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert, Bike, Briefcase, MessageSquareWarning, Phone, Car, Stethoscope, Mic, ShieldPlus } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert, Bike, Briefcase, MessageSquareWarning, Phone, Car, Stethoscope, Mic, ShieldPlus, Home as HomeIcon, Plus, ExternalLink } from "lucide-react";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
 import { useAtivarContratosPendentes } from "@/hooks/useAtivarContratosPendentes";
 import logoImg from "@/assets/logo-cs-control.png";
@@ -510,6 +510,72 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
             </div>
 
             <div className="flex items-center gap-1.5">
+              {!isAdmin && (
+                <>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to="/"
+                        className={cn(
+                          "p-2.5 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-accent",
+                          location.pathname === "/" && "bg-primary/10 text-primary",
+                        )}
+                        aria-label="Ir para a Home"
+                      >
+                        <HomeIcon className="h-4 w-4" />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="font-medium">Home</TooltipContent>
+                  </Tooltip>
+
+                  <Popover>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <PopoverTrigger asChild>
+                          <button
+                            className="p-2.5 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-accent"
+                            aria-label="Abrir módulo em nova guia"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </PopoverTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="font-medium">Abrir em nova guia</TooltipContent>
+                    </Tooltip>
+                    <PopoverContent className="w-72 p-1 rounded-xl shadow-lg" align="end">
+                      <div className="px-3 py-2 border-b mb-1">
+                        <p className="text-xs font-semibold text-foreground">Abrir em nova guia</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Selecione um módulo para abrir em outra aba do navegador
+                        </p>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {navItems
+                          .filter((it) => !("children" in it) || !it.children)
+                          .map((it) => {
+                            const Icon = it.icon;
+                            return (
+                              <a
+                                key={it.to}
+                                href={it.to}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-foreground/85 hover:bg-accent transition-colors"
+                              >
+                                <Icon className="h-4 w-4 shrink-0 text-primary" />
+                                <span className="truncate flex-1">{it.label}</span>
+                                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              </a>
+                            );
+                          })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  <div className="w-px h-6 bg-border/60 mx-1" />
+                </>
+              )}
+
               <button
                 onClick={toggleTheme}
                 className="p-2.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
