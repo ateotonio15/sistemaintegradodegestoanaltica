@@ -92,6 +92,13 @@ export function AnexosViewerDialog({
   const iniciadoEmEfetivo = localCancelado ? null : (localIniciadoEm ?? faturamentoIniciadoEm);
   const iniciadoPorEfetivo = localCancelado ? null : (localIniciadoPorNome ?? faturamentoIniciadoPorNome);
 
+  // Reseta overrides locais quando muda a movimentação alvo ou o dialog reabre.
+  useEffect(() => {
+    setLocalIniciadoEm(null);
+    setLocalIniciadoPorNome(null);
+    setLocalCancelado(false);
+  }, [movimentacaoId, open]);
+
   const executarIniciarFaturamento = async (ctx = configContext) => {
     const targetMovimentacaoId = ctx?.movimentacaoId ?? movimentacaoId;
     const targetEmpresaId = ctx?.empresaId ?? empresaId;
