@@ -48,12 +48,20 @@ export function HeaderTabs({ available }: { available: HeaderTabItem[] }) {
     return m;
   }, [available]);
 
+  // Auto-adiciona aba ao navegar para um módulo permitido (exceto Home "/").
+  useEffect(() => {
+    if (current === "/") return;
+    if (!byPath.has(current)) return;
+    setOpenTabs((prev) => (prev.includes(current) ? prev : [...prev, current]));
+  }, [current, byPath]);
+
   // Persiste
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(openTabs));
     } catch {}
   }, [openTabs]);
+
 
   const closeTab = (path: string) => {
     setOpenTabs((prev) => {
