@@ -674,6 +674,8 @@ export default function Financeiro() {
         const g = empresaGrupoMap?.get(r.empresa_id);
         if (!g || g.grupo_id !== filtroGrupo) return false;
       }
+      if (filtroAcompanhamento && r.empresa_id !== filtroAcompanhamento) return false;
+
       return true;
     }).map((r) => {
       const g = empresaGrupoMap?.get(r.empresa_id);
