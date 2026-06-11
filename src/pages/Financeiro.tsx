@@ -1861,7 +1861,7 @@ export default function Financeiro() {
                   <SelectItem value="empresa_desc">Empresa (Z → A)</SelectItem>
                   <SelectItem value="vidas_desc">Nº de vidas (maior)</SelectItem>
                   <SelectItem value="vidas_asc">Nº de vidas (menor)</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
+                  
                 </SelectContent>
               </Select>
             </div>
