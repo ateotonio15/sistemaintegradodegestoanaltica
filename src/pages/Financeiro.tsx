@@ -800,18 +800,30 @@ export default function Financeiro() {
       const prevMes = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
       const { data: finPrev, error: finPrevErr } = await supabase
         .from("financeiro_movimentacoes")
-        .select("empresa_id, periodo, tipo_analise, dia_emissao, tipo_cobranca, possui_prorrogacao")
+        .select("empresa_id, periodo, tipo_analise, dia_emissao, tipo_cobranca, possui_prorrogacao, data_vencimento")
         .eq("mes_referencia", prevMes);
       if (finPrevErr) throw finPrevErr;
 
+      // Calcula data_vencimento para o novo mês mantendo o mesmo dia (com clamp para o último dia)
+      const [yrNew, mrNew] = mes.split("-").map(Number);
+      const ultimoDiaNovoMes = new Date(yrNew, mrNew, 0).getDate();
+      const buildVencimentoNovo = (vencAnterior: string | null | undefined): string | null => {
+        if (!vencAnterior) return null;
+        const dia = Number(vencAnterior.slice(8, 10));
+        if (!dia) return null;
+        const diaFinal = Math.min(dia, ultimoDiaNovoMes);
+        return `${yrNew}-${String(mrNew).padStart(2, "0")}-${String(diaFinal).padStart(2, "0")}`;
+      };
+
       // Configurações por contrato (empresa+periodo) replicadas da competência anterior
-      const configPrev = new Map<string, { tipo_analise?: string | null; dia_emissao?: number | null; tipo_cobranca?: string | null; possui_prorrogacao?: boolean | null }>();
+      const configPrev = new Map<string, { tipo_analise?: string | null; dia_emissao?: number | null; tipo_cobranca?: string | null; possui_prorrogacao?: boolean | null; data_vencimento?: string | null }>();
       (finPrev || []).forEach((m: any) => {
         configPrev.set(`${m.empresa_id}|${m.periodo}`, {
           tipo_analise: m.tipo_analise,
           dia_emissao: m.dia_emissao,
           tipo_cobranca: m.tipo_cobranca,
           possui_prorrogacao: m.possui_prorrogacao,
+          data_vencimento: buildVencimentoNovo(m.data_vencimento),
         });
       });
 
