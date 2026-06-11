@@ -29,8 +29,9 @@ export function EmpresasProvider({ children }: { children: ReactNode }) {
       const hoje = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("empresas")
-        .select("id,nome,codigo_contrato,data_implantacao,vidas,status_empresa,data_rescisao,contrato_suspenso")
+        .select("id,nome,codigo_contrato,data_implantacao,vidas,status_empresa,data_rescisao,contrato_suspenso,tipo_contrato")
         .eq("status_empresa", "Ativa")
+        .eq("tipo_contrato", "EMPRESARIAL")
         .lte("data_implantacao", hoje)
         .is("data_rescisao", null)
         .order("nome");
