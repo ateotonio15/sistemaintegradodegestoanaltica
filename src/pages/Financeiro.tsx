@@ -618,10 +618,18 @@ export default function Financeiro() {
     if (!user?.id) return;
     const dispensados = new Set(dispensadosIds);
     const atualPorEmpresa = new Map<string, FinanceiroRow>();
+    const temFinalizada = new Set<string>();
     const novos: string[] = [];
     const limparDispensa: string[] = [];
     allRows.forEach((r) => {
       if (r.faturamento_iniciado_por !== user.id) return;
+      if (
+        r.status === "Nota emitida" ||
+        r.status === "Aguardando validação" ||
+        r.status === "Enviada"
+      ) {
+        temFinalizada.add(r.empresa_id);
+      }
       const prev = atualPorEmpresa.get(r.empresa_id);
       if (!prev || (r.mes_referencia || "") > (prev.mes_referencia || "")) {
         atualPorEmpresa.set(r.empresa_id, r);
@@ -630,6 +638,9 @@ export default function Financeiro() {
     atualPorEmpresa.forEach((r) => {
       const ativo = r.status === "Em faturamento" || r.status === "Faturado";
       if (!ativo) return;
+      // Se a empresa também tem alguma linha já finalizada (nota emitida/enviada/aguardando validação),
+      // não reativa nem limpa o "fechado" do usuário.
+      if (temFinalizada.has(r.empresa_id)) return;
       if (dispensados.has(r.empresa_id)) {
         limparDispensa.push(r.empresa_id);
       }
