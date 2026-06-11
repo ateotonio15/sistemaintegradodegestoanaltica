@@ -59,10 +59,18 @@ export function PlantaoLoteDialog({ open, onOpenChange }: { open: boolean; onOpe
 
   const handleSubmit = async () => {
     if (!empresaId || !executiva || !data) return;
+    const emp = empresas.find((e: any) => e.id === empresaId);
+    if (!emp) return;
     setSaving(true);
     try {
+      // Ensure a plantoes_empresas row exists mirroring the selected empresa
+      const { error: upErr } = await sb
+        .from("plantoes_empresas")
+        .upsert({ id: emp.id, nome: emp.nome, ativo: true }, { onConflict: "id" });
+      if (upErr) throw upErr;
+
       const payload = {
-        empresa_id: empresaId,
+        empresa_id: emp.id,
         data,
         turno: tipo,
         plantonista: executiva,
@@ -79,6 +87,7 @@ export function PlantaoLoteDialog({ open, onOpenChange }: { open: boolean; onOpe
       setSaving(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
