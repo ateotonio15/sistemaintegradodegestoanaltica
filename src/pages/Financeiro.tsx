@@ -1841,25 +1841,48 @@ export default function Financeiro() {
 
         {/* Filtros da tabela */}
         <Card className="rounded-xl shadow-sm">
-          {filtroGrupo && (
-            <div className="px-4 pt-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
-                <Users className="h-3 w-3" />
-                <span>
-                  Visualizando grupo:{" "}
-                  <strong>
-                    {(gruposAtivos ?? []).find((g) => g.id === filtroGrupo)?.nome_grupo ?? "—"}
-                  </strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setFiltroGrupo(null)}
-                  className="ml-1 rounded-full p-0.5 hover:bg-primary/20"
-                  title="Limpar filtro de grupo"
+          {(filtroGrupo || faturandoRows.length > 0) && (
+            <div className="px-4 pt-4 flex flex-wrap gap-2">
+              {filtroGrupo && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
+                  <Users className="h-3 w-3" />
+                  <span>
+                    Visualizando grupo:{" "}
+                    <strong>
+                      {(gruposAtivos ?? []).find((g) => g.id === filtroGrupo)?.nome_grupo ?? "—"}
+                    </strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroGrupo(null)}
+                    className="ml-1 rounded-full p-0.5 hover:bg-primary/20"
+                    title="Limpar filtro de grupo"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+              {faturandoRows.map((r) => (
+                <div
+                  key={r.id}
+                  className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-700 dark:text-blue-300"
+                  title="Faturamento em andamento por você"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>
+                    Faturando: <strong>{r.empresa_nome}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => cancelarFaturamentoMut.mutate(r.id)}
+                    disabled={cancelarFaturamentoMut.isPending}
+                    className="ml-1 rounded-full p-0.5 hover:bg-blue-500/20 disabled:opacity-50"
+                    title="Cancelar faturamento em andamento"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
           <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
