@@ -614,6 +614,25 @@ export default function Financeiro() {
   // Chave composta empresa+mês para escopo dos chips por competência.
   const chaveAcomp = (empresaId: string, mesRef: string) => `${empresaId}|${mesRef}`;
 
+  // Chips fechados pelo usuário persistidos no banco — sobrevive a F5 / troca de aba.
+  const { data: chipsOcultos = [] } = useQuery({
+    queryKey: ["financeiro-chips-ocultos", user?.id, mes],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_chips_ocultos" as any)
+        .select("empresa_id")
+        .eq("user_id", user!.id)
+        .eq("competencia", mes);
+      if (error) throw error;
+      return (data ?? []) as Array<{ empresa_id: string }>;
+    },
+  });
+  const ocultosSet = useMemo(
+    () => new Set(chipsOcultos.map((c) => c.empresa_id)),
+    [chipsOcultos],
+  );
+
   // Auto-adiciona ao acompanhamento quando o próprio usuário inicia um faturamento.
   // O acompanhamento é escopo POR COMPETÊNCIA: iniciar faturamento em Mai não
   // reflete em Jun. Cada par empresa+mes_referencia é tratado separadamente.
@@ -626,7 +645,10 @@ export default function Financeiro() {
       if (r.faturamento_iniciado_por !== user.id) return;
       const ativo = r.status === "Em faturamento" || r.status === "Faturado";
       if (!ativo) return;
-      const key = chaveAcomp(r.empresa_id, r.mes_referencia || mes);
+      const rowMes = r.mes_referencia || mes;
+      // Se o chip está oculto persistido nesta competência, NÃO reativa.
+      if (rowMes === mes && ocultosSet.has(r.empresa_id)) return;
+      const key = chaveAcomp(r.empresa_id, rowMes);
       if (dispensados.has(key)) {
         limparDispensa.push(key);
       }
@@ -647,7 +669,7 @@ export default function Financeiro() {
       });
       return changed ? Array.from(set) : prev;
     });
-  }, [allRows, user?.id, mes, setAcompanhandoIds, dispensadosIds, setDispensadosIds]);
+  }, [allRows, user?.id, mes, setAcompanhandoIds, dispensadosIds, setDispensadosIds, ocultosSet]);
 
   // Chips: uma linha "mãe" por empresa acompanhada NESTA competência.
   const faturandoRows = useMemo(() => {
@@ -670,20 +692,47 @@ export default function Financeiro() {
       }
     });
     return Array.from(byEmpresa.values()).filter((r) => {
+      // Persistido no banco: chip ocultado pelo usuário nesta competência.
+      if (ocultosSet.has(r.empresa_id)) return false;
       if (r.status === "Enviada") return false;
       const finalizado =
         r.status === "Nota emitida" ||
         r.status === "Aguardando validação";
       return !(finalizado && dispensados.has(chaveAcomp(r.empresa_id, mes)));
     });
-  }, [allRows, acompanhandoIds, dispensadosIds, mes]);
+  }, [allRows, acompanhandoIds, dispensadosIds, mes, ocultosSet]);
 
-  const removerAcompanhamento = (empresaId: string) => {
+  const removerAcompanhamento = async (empresaId: string) => {
     const key = chaveAcomp(empresaId, mes);
     setAcompanhandoIds((prev) => prev.filter((k) => k !== key));
     setFiltroAcompanhamento((cur) => (cur === empresaId ? null : cur));
     // Marca como dispensado (por competência) para não reaparecer automaticamente
     setDispensadosIds((prev) => (prev.includes(key) ? prev : [...prev, key]));
+
+    // Persiste no banco para sobreviver a F5 / troca de aba.
+    if (user?.id) {
+      const statusAtual =
+        allRows.find(
+          (r) => r.empresa_id === empresaId && (r.mes_referencia || mes) === mes,
+        )?.status ?? null;
+      const { error } = await supabase
+        .from("financeiro_chips_ocultos" as any)
+        .upsert(
+          {
+            user_id: user.id,
+            empresa_id: empresaId,
+            competencia: mes,
+            status: statusAtual,
+            ocultado_em: new Date().toISOString(),
+          },
+          { onConflict: "user_id,empresa_id,competencia" },
+        );
+      if (error) {
+        toast.error("Não foi possível salvar a ocultação do chip");
+      } else {
+        qc.invalidateQueries({ queryKey: ["financeiro-chips-ocultos", user.id, mes] });
+      }
+    }
   };
 
 
