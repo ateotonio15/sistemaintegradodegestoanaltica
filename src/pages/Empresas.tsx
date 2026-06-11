@@ -1418,12 +1418,14 @@ export default function Empresas() {
                     filtered.map((e) => {
                       const suspenso = (e as any).contrato_suspenso;
                       const faixa = (e as any).contrato_faixa_etaria;
+                      const temPrioridade = !!(e as any).prioridade_maxima_id;
                       return (
                         <TableRow
                           key={e.id}
                           className={cn(
                             "cursor-pointer transition-colors",
-                            suspenso ? "bg-muted/50 hover:bg-muted/70" : "hover:bg-accent/50"
+                            suspenso ? "bg-muted/50 hover:bg-muted/70" : "hover:bg-accent/50",
+                            temPrioridade && "priority-row bg-red-500/5"
                           )}
                           onClick={() => setDetailEmpresa(e)}
                         >
@@ -1431,6 +1433,7 @@ export default function Empresas() {
                             <div className="flex items-center gap-2 flex-wrap">
                               {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0" />}
                               <span>{e.nome}</span>
+                              {temPrioridade && <PrioridadeBadge variant="compact" />}
                               {faixa && <Badge variant="outline" className="rounded-md text-[10px]">Faixa Etária</Badge>}
                             </div>
                           </TableCell>
