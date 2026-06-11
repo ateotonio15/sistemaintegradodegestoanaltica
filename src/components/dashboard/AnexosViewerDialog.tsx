@@ -231,43 +231,61 @@ export function AnexosViewerDialog({
           ? ((vinc as any)?.grupos_financeiros?.nome_grupo as string)
           : null;
 
-      // 1) Movimentações financeiras do processo desta empresa
+      // Lista de empresas do grupo (inclui a atual)
+      let empresaIdsGrupo: string[] = [empresaId!];
+      if (grupoId) {
+        const { data: irmaos } = await supabase
+          .from("grupos_financeiros_contratos" as any)
+          .select("empresa_id")
+          .eq("grupo_id", grupoId)
+          .eq("ativo", true);
+        const ids = ((irmaos as any[]) ?? []).map((r) => r.empresa_id).filter(Boolean);
+        if (ids.length) empresaIdsGrupo = Array.from(new Set([empresaId!, ...ids]));
+      }
+
+      // 1) Movimentações financeiras do processo (todas as empresas do grupo)
       const { data: movsFin } = await supabase
         .from("financeiro_movimentacoes")
-        .select("id")
-        .eq("empresa_id", empresaId!)
+        .select("id, empresa_id")
+        .in("empresa_id", empresaIdsGrupo)
         .eq("mes_referencia", mesReferencia)
         .eq("periodo", periodo);
       const movFinIds = (movsFin ?? []).map((m) => m.id);
+      const movFinEmpresaMap = new Map<string, string>(
+        (movsFin ?? []).map((m: any) => [m.id, m.empresa_id]),
+      );
 
-      // 2) Movimentações operacionais (cadastro) do processo
+      // 2) Movimentações operacionais (cadastro) do processo (todas as empresas do grupo)
       const { data: movsOp } = await supabase
         .from("movimentacoes")
-        .select("id")
-        .eq("empresa_id", empresaId!)
+        .select("id, empresa_id")
+        .in("empresa_id", empresaIdsGrupo)
         .eq("mes_referencia", mesReferencia)
         .eq("periodo", periodo);
       const movOpIds = (movsOp ?? []).map((m) => m.id);
+      const movOpEmpresaMap = new Map<string, string>(
+        (movsOp ?? []).map((m: any) => [m.id, m.empresa_id]),
+      );
 
-      // 3) Anexos da implantação (contratos a vigenciar)
+      // 3) Anexos da implantação (contratos a vigenciar) — todas as empresas do grupo
       const { data: impls } = await supabase
         .from("implantacoes_contratos")
-        .select("id")
-        .eq("empresa_id", empresaId!);
+        .select("id, empresa_id")
+        .in("empresa_id", empresaIdsGrupo);
       const implIds = (impls ?? []).map((i: any) => i.id);
 
-      const [anxFinRes, anxOpRes, anxImplRes, anxGrupoRes] = await Promise.all([
+      const [anxFinRes, anxOpRes, anxImplRes] = await Promise.all([
         movFinIds.length
           ? supabase
               .from("anexos_financeiro")
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, grupo_id, contrato_origem_id")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, financeiro_movimentacao_id")
               .in("financeiro_movimentacao_id", movFinIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
         movOpIds.length
           ? supabase
               .from("anexos_movimentacao")
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, movimentacao_id")
               .in("movimentacao_id", movOpIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
@@ -276,76 +294,61 @@ export function AnexosViewerDialog({
           .from("implantacao_anexos" as any)
           .select("id, nome_arquivo, storage_path, created_at, uploaded_by, empresa_id, implantacao_id")
           .or(
-            `empresa_id.eq.${empresaId}` +
+            `empresa_id.in.(${empresaIdsGrupo.join(",")})` +
               (implIds.length ? `,implantacao_id.in.(${implIds.join(",")})` : ""),
           )
           .order("created_at", { ascending: false }),
-        // 4) Anexos compartilhados pelo grupo (qualquer contrato), do mesmo período
-        grupoId
-          ? supabase
-              .from("anexos_financeiro")
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, grupo_id, contrato_origem_id, financeiro_movimentacao_id")
-              .eq("grupo_id", grupoId)
-              .order("created_at", { ascending: false })
-          : Promise.resolve({ data: [] as any[], error: null }),
       ]);
 
       if (anxFinRes.error) throw anxFinRes.error;
       if (anxOpRes.error) throw anxOpRes.error;
       if ((anxImplRes as any).error) throw (anxImplRes as any).error;
 
-      const fin: AnexoRow[] = (anxFinRes.data ?? []).map((a: any) => ({
-        ...a,
-        bucket: BUCKET_FINANCEIRO,
-        origem_label: "Financeiro" as const,
-      }));
-      const op: AnexoRow[] = (anxOpRes.data ?? []).map((a: any) => ({
-        ...a,
-        bucket: BUCKET_OPERACIONAL,
-        origem_label: "Cadastro" as const,
-      }));
-      const impl: AnexoRow[] = ((anxImplRes as any).data ?? []).map((a: any) => ({
-        ...a,
-        bucket: BUCKET_IMPLANTACAO,
-        origem_label: "Contrato" as const,
-      }));
+      const sharedLabel = grupoId
+        ? (`Compartilhado pelo grupo${grupoNome ? ` ${grupoNome}` : ""}` as any)
+        : ("Financeiro" as const);
 
-      // Anexos vindos do grupo (de OUTROS contratos) — deduplicar por storage_path
-      const existingPaths = new Set([...fin, ...op, ...impl].map((a) => a.storage_path));
-      const grupoRaw = ((anxGrupoRes as any).data ?? []) as any[];
-      let grupoExtras: AnexoRow[] = [];
-      if (grupoId && grupoRaw.length) {
-        // Resolve mes_referencia/periodo/empresa_id das movimentações vinculadas em uma só query
-        const movIds = Array.from(
-          new Set(grupoRaw.map((a) => a.financeiro_movimentacao_id).filter(Boolean)),
-        );
-        const { data: movsLink } = movIds.length
-          ? await supabase
-              .from("financeiro_movimentacoes")
-              .select("id, mes_referencia, periodo, empresa_id")
-              .in("id", movIds)
-          : { data: [] as any[] };
-        const movMap = new Map<string, { mes_referencia: string; periodo: string; empresa_id: string }>(
-          ((movsLink as any[]) ?? []).map((m) => [m.id, m]),
-        );
-        grupoExtras = grupoRaw
-          .map((a) => ({ a, mov: movMap.get(a.financeiro_movimentacao_id) }))
-          .filter(({ a, mov }) =>
-            !!mov &&
-            mov.mes_referencia === mesReferencia &&
-            mov.periodo === periodo &&
-            mov.empresa_id !== empresaId &&
-            !existingPaths.has(a.storage_path),
-          )
-          .map(({ a }) => ({
-            ...a,
-            bucket: BUCKET_FINANCEIRO,
-            origem_label: `Compartilhado pelo grupo${grupoNome ? ` ${grupoNome}` : ""}` as any,
-          }));
-      }
+      const fin: AnexoRow[] = (anxFinRes.data ?? []).map((a: any) => {
+        const empOrigem = movFinEmpresaMap.get(a.financeiro_movimentacao_id);
+        const isOutro = empOrigem && empOrigem !== empresaId;
+        return {
+          ...a,
+          bucket: BUCKET_FINANCEIRO,
+          origem_label: isOutro ? sharedLabel : ("Financeiro" as const),
+        };
+      });
+      const op: AnexoRow[] = (anxOpRes.data ?? []).map((a: any) => {
+        const empOrigem = movOpEmpresaMap.get(a.movimentacao_id);
+        const isOutro = empOrigem && empOrigem !== empresaId;
+        return {
+          ...a,
+          bucket: BUCKET_OPERACIONAL,
+          origem_label: isOutro ? sharedLabel : ("Cadastro" as const),
+        };
+      });
+      const impl: AnexoRow[] = ((anxImplRes as any).data ?? []).map((a: any) => {
+        const isOutro = a.empresa_id && a.empresa_id !== empresaId;
+        return {
+          ...a,
+          bucket: BUCKET_IMPLANTACAO,
+          origem_label: isOutro ? sharedLabel : ("Contrato" as const),
+        };
+      });
 
-      const merged = [...fin, ...op, ...impl, ...grupoExtras].sort(
+      // Deduplica por storage_path (mantém a primeira ocorrência — preferência por própria empresa)
+      const seen = new Set<string>();
+      const merged: AnexoRow[] = [];
+      const ordemPrioridade = (a: AnexoRow) =>
+        String(a.origem_label).startsWith("Compartilhado") ? 1 : 0;
+      [...fin, ...op, ...impl]
+        .sort((a, b) => ordemPrioridade(a) - ordemPrioridade(b))
+        .forEach((a) => {
+          if (seen.has(a.storage_path)) return;
+          seen.add(a.storage_path);
+          merged.push(a);
+        });
 
+      merged.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
@@ -366,6 +369,7 @@ export function AnexosViewerDialog({
       }));
     },
   });
+
 
   const handleDownload = async (bucket: string, path: string, nome: string) => {
     try {
