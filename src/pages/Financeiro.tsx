@@ -800,9 +800,20 @@ export default function Financeiro() {
       const prevMes = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
       const { data: finPrev, error: finPrevErr } = await supabase
         .from("financeiro_movimentacoes")
-        .select("empresa_id, periodo")
+        .select("empresa_id, periodo, tipo_analise, dia_emissao, tipo_cobranca, possui_prorrogacao")
         .eq("mes_referencia", prevMes);
       if (finPrevErr) throw finPrevErr;
+
+      // Configurações por contrato (empresa+periodo) replicadas da competência anterior
+      const configPrev = new Map<string, { tipo_analise?: string | null; dia_emissao?: number | null; tipo_cobranca?: string | null; possui_prorrogacao?: boolean | null }>();
+      (finPrev || []).forEach((m: any) => {
+        configPrev.set(`${m.empresa_id}|${m.periodo}`, {
+          tipo_analise: m.tipo_analise,
+          dia_emissao: m.dia_emissao,
+          tipo_cobranca: m.tipo_cobranca,
+          possui_prorrogacao: m.possui_prorrogacao,
+        });
+      });
 
       const operacionaisPorEmpresa = new Map<string, Set<string>>();
       const addPeriodo = (empresa_id: string, periodo: string) => {
@@ -815,13 +826,7 @@ export default function Financeiro() {
       (finPrev || []).forEach((m) => addPeriodo(m.empresa_id, m.periodo));
 
       const PERIODOS_VALIDOS = new Set(PERIODOS_FIN as readonly string[]);
-      const linhas: Array<{
-        empresa_id: string;
-        mes_referencia: string;
-        periodo: string;
-        dentro_prazo: boolean;
-        responsavel: string | null;
-      }> = [];
+      const linhas: Array<any> = [];
 
       for (const e of empresas || []) {
         const ativa = e.status_empresa === "Ativa";
@@ -854,13 +859,20 @@ export default function Financeiro() {
         });
 
         periodos.forEach((periodo) => {
-          linhas.push({
+          const cfg = configPrev.get(`${e.id}|${periodo}`) ?? {};
+          const linha: any = {
             empresa_id: e.id,
             mes_referencia: mes,
             periodo,
             dentro_prazo: true,
             responsavel: e.responsavel_contrato ?? null,
-          });
+          };
+          // Replica configurações universais salvas para o contrato
+          if (cfg.tipo_analise != null) linha.tipo_analise = cfg.tipo_analise;
+          if (cfg.dia_emissao != null) linha.dia_emissao = cfg.dia_emissao;
+          if (cfg.tipo_cobranca != null) linha.tipo_cobranca = cfg.tipo_cobranca;
+          if (cfg.possui_prorrogacao != null) linha.possui_prorrogacao = cfg.possui_prorrogacao;
+          linhas.push(linha);
         });
       }
 
@@ -893,7 +905,7 @@ export default function Financeiro() {
         const batch = novas.slice(i, i + 100);
         const { data: ins, error: insErr } = await supabase
           .from("financeiro_movimentacoes")
-          .upsert(batch, { onConflict: "empresa_id,mes_referencia,periodo", ignoreDuplicates: true })
+          .upsert(batch, { onConflict: "empresa_id,mes_referencia,periodo,tipo_lancamento", ignoreDuplicates: true })
           .select("id");
         if (insErr) throw insErr;
         inseridas += ins?.length ?? 0;
