@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -430,6 +430,17 @@ export default function Movimentacoes() {
             <p className="text-sm text-muted-foreground mt-1">{filtered.length} movimentação(ões) encontrada(s)</p>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await queryClient.invalidateQueries();
+                toast({ title: "Informações atualizadas" });
+              }}
+              className="rounded-lg"
+              title="Atualizar informações"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />Atualizar
+            </Button>
             <Button variant="outline" onClick={handleExportExcel} className="rounded-lg">
               <Download className="mr-2 h-4 w-4" />Exportar Excel
             </Button>
