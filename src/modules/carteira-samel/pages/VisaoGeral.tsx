@@ -55,7 +55,7 @@ export default function VisaoGeral() {
   const faixas = {
     critico: enriquecidas.filter((e) => e.dias <= 30),
     atencao: enriquecidas.filter((e) => e.dias > 30 && e.dias <= 60),
-    estavel: enriquecidas.filter((e) => e.dias > 60 && e.dias <= 90),
+    estavel: enriquecidas.filter((e) => e.dias > 60),
   };
 
   const buscaFiltrada = busca
