@@ -730,7 +730,7 @@ export default function Financeiro() {
       if (error) {
         toast.error("Não foi possível salvar a ocultação do chip");
       } else {
-        qc.invalidateQueries({ queryKey: ["financeiro-chips-ocultos", user.id, mes] });
+        queryClient.invalidateQueries({ queryKey: ["financeiro-chips-ocultos", user.id, mes] });
       }
     }
   };
