@@ -1136,6 +1136,28 @@ export async function analisarExcelFinanceiroPorCnpj(
     else grp.aptValores.push(valorValido ? valor : 0);
   }
 
+  // Mescla grupos por-nome (placeholder de CNPJ) em grupos com CNPJ válido
+  // quando há um único pagador com o mesmo nome. Evita órfão de exclusões.
+  for (const [key, g] of Array.from(grupos.entries())) {
+    if (!key.startsWith("__nome::")) continue;
+    const nomeKey = key.slice("__nome::".length);
+    const candidatos = Array.from(grupos.values()).filter(
+      (x) => x !== g && !ehCnpjPlaceholder(x.cnpj) && norm(x.nome) === nomeKey,
+    );
+    if (candidatos.length === 1) {
+      const dest = candidatos[0];
+      dest.enfValores.push(...g.enfValores);
+      dest.aptValores.push(...g.aptValores);
+      dest.incQtd += g.incQtd; dest.incTotal += g.incTotal;
+      dest.retroQtd += g.retroQtd; dest.retroTotal += g.retroTotal;
+      dest.excQtd += g.excQtd; dest.excTotal += g.excTotal;
+      dest.devQtd += g.devQtd; dest.devTotal += g.devTotal;
+      grupos.delete(key);
+    }
+  }
+
+
+
   const buildCategoria = (vals: number[]): CategoriaResultado => {
     const total = vals.reduce((s, v) => s + v, 0);
     const beneficiarios = vals.length;
