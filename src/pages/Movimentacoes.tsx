@@ -28,6 +28,7 @@ import {
   formatPeriodoEmpresa,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 
 import ExcelJS from "exceljs";
