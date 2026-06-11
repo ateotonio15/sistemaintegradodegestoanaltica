@@ -124,9 +124,11 @@ const AppRoutes = () => (
       <Route path="/dashboard" element={<HomeRoute />} />
       <Route element={<RoleGate allow={["admin"]} />}>
         <Route path="/dashboard/geral" element={<Dashboard />} />
-        <Route path="/dashboard/financeiro" element={<DashboardFinanceiro />} />
         <Route path="/dashboard/vendas" element={<DashboardVendas />} />
         <Route path="/dashboard/administradoras" element={<DashboardAdministradoras />} />
+      </Route>
+      <Route element={<RoleGate allow={["admin", "financeiro"]} />}>
+        <Route path="/dashboard/financeiro" element={<DashboardFinanceiro />} />
       </Route>
 
       <Route element={<EmpresasGroupLayout />}>
