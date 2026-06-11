@@ -55,6 +55,30 @@ export function HeaderTabs({ available }: { available: HeaderTabItem[] }) {
     } catch {}
   }, [openTabs]);
 
+  const closeTab = (path: string) => {
+    setOpenTabs((prev) => {
+      const next = prev.filter((p) => p !== path);
+      if (path === current) {
+        const idx = prev.indexOf(path);
+        const fallback = next[Math.max(0, idx - 1)] ?? next[0] ?? "/";
+        setTimeout(() => navigate(fallback), 0);
+      }
+      return next;
+    });
+  };
+
+  const addTab = (path: string) => {
+    setOpenTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
+    navigate(path);
+  };
+
+  const visibleTabs = openTabs.filter((p) => byPath.has(p) && p !== "/");
+  const notOpen = available.filter(
+    (it) => it.to !== "/" && !visibleTabs.includes(it.to),
+  );
+
+  return (
+    <div className="flex items-center gap-1 min-w-0 flex-1 overflow-x-auto no-scrollbar">
 
       {visibleTabs.map((path) => {
         const item = byPath.get(path);
