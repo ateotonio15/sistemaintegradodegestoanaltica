@@ -296,7 +296,7 @@ export function DashboardFinanceiro() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <KpiCard label="Contratos ativos" value={ativasNaoSuspensas.length} icon={Building2} accent="text-primary" bg="bg-primary/10" />
         <KpiCard label="Notas enviadas" value={notasEnviadas} icon={CheckCircle2} accent="text-success" bg="bg-success/10" />
-        <KpiCard label="Aguardando nota" value={aguardandoNota} icon={CalendarClock} accent="text-warning" bg="bg-warning/10" />
+        <KpiCard label="Aguardando Emissão" value={aguardandoNota} icon={CalendarClock} accent="text-warning" bg="bg-warning/10" />
         <KpiCard label="Cobranças abertas" value={cobrancasAbertas.length} icon={AlertCircle} accent="text-destructive" bg="bg-destructive/10" />
         <KpiCard label="Empresas fora do prazo" value={foraPrazoFiltrado.length} icon={TimerOff} accent="text-destructive" bg="bg-destructive/10" />
       </div>

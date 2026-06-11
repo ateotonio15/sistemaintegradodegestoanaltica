@@ -107,6 +107,11 @@ export function getCurrentMesReferencia(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/** Rótulo de exibição para o setor Financeiro (renomeia "Aguardando nota" → "Aguardando Emissão"). */
+export function labelStatusFinanceiro(status: StatusFinanceiro): string {
+  return status === "Aguardando nota" ? "Aguardando Emissão" : status;
+}
+
 export function formatMesReferencia(mes: string): string {
   const [year, month] = mes.split("-");
   const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];

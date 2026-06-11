@@ -51,6 +51,7 @@ import {
   getCurrentMesReferencia,
   formatMesReferencia,
   getMesesOptions,
+  labelStatusFinanceiro,
 } from "@/lib/financeiro-utils";
 
 const STATUS_OPTIONS: StatusFinanceiro[] = [
@@ -1801,7 +1802,7 @@ export default function Financeiro() {
             <div className="space-y-1.5">
               <Label className="text-xs">Status</Label>
               <MultiSelectFilter
-                options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
+                options={STATUS_OPTIONS.map((s) => ({ value: s, label: labelStatusFinanceiro(s) }))}
                 selected={filtroStatus}
                 onChange={setFiltroStatus}
                 allLabel="Todos os status"
