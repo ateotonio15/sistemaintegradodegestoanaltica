@@ -618,7 +618,7 @@ export default function Financeiro() {
     const novos = allRows
       .filter(
         (r) =>
-          r.status === "Em faturamento" &&
+          (r.status === "Em faturamento" || r.status === "Faturado") &&
           r.faturamento_iniciado_por === user.id &&
           !dispensados.has(r.empresa_id),
       )
