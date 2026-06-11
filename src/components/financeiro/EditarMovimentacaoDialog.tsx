@@ -191,7 +191,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       if (error) throw error;
       const ownList = (own ?? []) as any[];
 
-      // 2) Anexos compartilhados pelo grupo (outros contratos, mesmo período)
+      // 2) Anexos compartilhados pelo grupo (outros contratos do mesmo grupo, mesmo período)
       const { data: vinc } = await supabase
         .from("grupos_financeiros_contratos" as any)
         .select("grupo_id")
@@ -201,38 +201,36 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       const grupoId = (vinc as any)?.grupo_id as string | undefined;
       if (!grupoId) return ownList;
 
+      // Empresas irmãs do grupo
+      const { data: irmaos } = await supabase
+        .from("grupos_financeiros_contratos" as any)
+        .select("empresa_id")
+        .eq("grupo_id", grupoId)
+        .eq("ativo", true);
+      const empresasIrmas = ((irmaos as any[]) ?? [])
+        .map((r) => r.empresa_id)
+        .filter((id) => id && id !== movimentacao.empresa_id);
+      if (!empresasIrmas.length) return ownList;
+
+      // Movimentações irmãs no mesmo período
+      const { data: movsIrmas } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("id, empresa_id")
+        .in("empresa_id", empresasIrmas)
+        .eq("mes_referencia", movimentacao.mes_referencia)
+        .eq("periodo", movimentacao.periodo);
+      const movIrmasIds = ((movsIrmas as any[]) ?? []).map((m) => m.id);
+      if (!movIrmasIds.length) return ownList;
+
       const { data: grupoRaw } = await supabase
         .from("anexos_financeiro")
-        .select("*, financeiro_movimentacao_id")
-        .eq("grupo_id", grupoId)
+        .select("*")
+        .in("financeiro_movimentacao_id", movIrmasIds)
         .order("created_at", { ascending: false });
       const grupoList = (grupoRaw ?? []) as any[];
-      const otherMovIds = Array.from(
-        new Set(
-          grupoList
-            .map((a) => a.financeiro_movimentacao_id)
-            .filter((id) => id && id !== movimentacao.id),
-        ),
-      ) as string[];
-      if (!otherMovIds.length) return ownList;
-
-      const { data: movs } = await supabase
-        .from("financeiro_movimentacoes")
-        .select("id, mes_referencia, periodo, empresa_id")
-        .in("id", otherMovIds);
-      const movMap = new Map(((movs ?? []) as any[]).map((m) => [m.id, m]));
       const existingPaths = new Set(ownList.map((a) => a.storage_path));
       const extras = grupoList
-        .filter((a) => {
-          if (a.financeiro_movimentacao_id === movimentacao.id) return false;
-          const m = movMap.get(a.financeiro_movimentacao_id);
-          if (!m) return false;
-          return (
-            m.mes_referencia === movimentacao.mes_referencia &&
-            m.periodo === movimentacao.periodo &&
-            !existingPaths.has(a.storage_path)
-          );
-        })
+        .filter((a) => !existingPaths.has(a.storage_path))
         .map((a) => ({ ...a, _compartilhado_grupo: true }));
 
       return [...ownList, ...extras];
