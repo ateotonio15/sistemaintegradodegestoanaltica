@@ -1577,6 +1577,10 @@ export default function Empresas() {
                     </div>
                   )}
 
+                  {(detailEmpresa as any).prioridade_maxima_id && (
+                    <PrioridadeInfoCard empresaId={detailEmpresa.id} />
+                  )}
+
                   {/* Contrato */}
                   <section>
                     <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
