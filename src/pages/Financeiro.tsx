@@ -692,11 +692,13 @@ export default function Financeiro() {
       case "envio_asc":
         arr.sort((a, b) => cmpDate((a as any).data_envio_nota, (b as any).data_envio_nota, 1));
         break;
-      case "venc_asc":
-        arr.sort((a, b) => cmpDate((a as any).data_vencimento, (b as any).data_vencimento, 1));
+      case "cadastro_asc":
+        // Mais antigo anexado pelo Cadastro (envio ao Financeiro)
+        arr.sort((a, b) => cmpDate((a as any).aguardando_nota_em, (b as any).aguardando_nota_em, 1));
         break;
-      case "venc_desc":
-        arr.sort((a, b) => cmpDate((a as any).data_vencimento, (b as any).data_vencimento, -1));
+      case "cadastro_desc":
+        // Mais recente anexado pelo Cadastro (envio ao Financeiro)
+        arr.sort((a, b) => cmpDate((a as any).aguardando_nota_em, (b as any).aguardando_nota_em, -1));
         break;
       case "empresa_asc":
         arr.sort((a, b) => cmpStr(a.empresa_nome, b.empresa_nome));
@@ -1853,8 +1855,8 @@ export default function Financeiro() {
                 <SelectContent>
                   <SelectItem value="envio_desc">Envio da nota (mais recente)</SelectItem>
                   <SelectItem value="envio_asc">Envio da nota (mais antigo)</SelectItem>
-                  <SelectItem value="venc_asc">Vencimento (mais próximo)</SelectItem>
-                  <SelectItem value="venc_desc">Vencimento (mais distante)</SelectItem>
+                  <SelectItem value="cadastro_asc">Anexado pelo Cadastro (mais antigo)</SelectItem>
+                  <SelectItem value="cadastro_desc">Anexado pelo Cadastro (mais recente)</SelectItem>
                   <SelectItem value="empresa_asc">Empresa (A → Z)</SelectItem>
                   <SelectItem value="empresa_desc">Empresa (Z → A)</SelectItem>
                   <SelectItem value="vidas_desc">Nº de vidas (maior)</SelectItem>
