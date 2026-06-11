@@ -51,6 +51,7 @@ import {
   getCurrentMesReferencia,
   formatMesReferencia,
   getMesesOptions,
+  labelStatusFinanceiro,
 } from "@/lib/financeiro-utils";
 
 const STATUS_OPTIONS: StatusFinanceiro[] = [
