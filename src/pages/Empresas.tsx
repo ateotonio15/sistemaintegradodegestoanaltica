@@ -1768,6 +1768,20 @@ export default function Empresas() {
           onOpenChange={setRecalcVidasOpen}
         />
 
+        <PrioridadeDialog
+          open={prioridadeDialog.open}
+          onOpenChange={(o) => setPrioridadeDialog((s) => ({ ...s, open: o }))}
+          empresaId={prioridadeDialog.empresa?.id ?? null}
+          empresaNome={prioridadeDialog.empresa?.nome}
+          mode={prioridadeDialog.mode}
+        />
+        <PrioridadeHistoricoDialog
+          open={!!historicoPrioridade}
+          onOpenChange={(o) => { if (!o) setHistoricoPrioridade(null); }}
+          empresaId={historicoPrioridade?.id ?? null}
+          empresaNome={historicoPrioridade?.nome}
+        />
+
       </div>
     </>
   );
