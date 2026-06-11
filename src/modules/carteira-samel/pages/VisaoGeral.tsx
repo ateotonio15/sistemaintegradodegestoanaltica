@@ -9,20 +9,46 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { GrupoTamanho } from "../data/mockData";
+
+type GrupoFiltro = "todos" | GrupoTamanho;
+
+function bucketVidas(v: number): GrupoTamanho {
+  if (v >= 500) return "≥500";
+  if (v >= 100) return "100-499";
+  return "30-99";
+}
+
+const GRUPOS: { key: GrupoFiltro; label: string }[] = [
+  { key: "todos", label: "Todos" },
+  { key: "≥500", label: "≥ 500" },
+  { key: "100-499", label: "100–499" },
+  { key: "30-99", label: "30–99" },
+];
 
 export default function VisaoGeral() {
   const { ativas } = useEmpresasCarteira();
   const [faixaAberta, setFaixaAberta] = useState<"critico" | "atencao" | "estavel" | null>(null);
   const [busca, setBusca] = useState("");
+  const [grupo, setGrupo] = useState<GrupoFiltro>("todos");
 
-  const enriquecidas = useMemo(() => ativas.map((e) => ({ ...e, dias: diasAteReajuste(e.vigenciaInicio) })), [ativas]);
+  const empresasFiltradas = useMemo(
+    () => (grupo === "todos" ? ativas : ativas.filter((e) => bucketVidas(e.vidas) === grupo)),
+    [ativas, grupo],
+  );
 
-  const totalEmpresas = ativas.length;
-  const totalVidas = ativas.reduce((s, e) => s + e.vidas, 0);
-  // sem dados reais de sinistralidade média; usa o reajusteValor como proxy visual
-  const sinistralidadeMedia = ativas.length ? ativas.reduce((s, e) => s + e.reajusteValor * 6, 0) / ativas.length : 0;
-  const scoreMedio = ativas.length
-    ? ativas.reduce((s, e) => s + scoreCompleto({ sinistralidade: classificarSinistralidade(sinistralidadeMedia), reclamacoes: "Verde", relacionamento: "Verde", satisfacao: "Verde", renovacao: classificarProximidadeReajuste(diasAteReajuste(e.vigenciaInicio)) }).total, 0) / ativas.length
+  const enriquecidas = useMemo(
+    () => empresasFiltradas.map((e) => ({ ...e, dias: diasAteReajuste(e.vigenciaInicio) })),
+    [empresasFiltradas],
+  );
+
+  const totalEmpresas = empresasFiltradas.length;
+  const totalVidas = empresasFiltradas.reduce((s, e) => s + e.vidas, 0);
+  const sinistralidadeMedia = empresasFiltradas.length
+    ? empresasFiltradas.reduce((s, e) => s + e.reajusteValor * 6, 0) / empresasFiltradas.length
+    : 0;
+  const scoreMedio = empresasFiltradas.length
+    ? empresasFiltradas.reduce((s, e) => s + scoreCompleto({ sinistralidade: classificarSinistralidade(sinistralidadeMedia), reclamacoes: "Verde", relacionamento: "Verde", satisfacao: "Verde", renovacao: classificarProximidadeReajuste(diasAteReajuste(e.vigenciaInicio)) }).total, 0) / empresasFiltradas.length
     : 0;
 
   const faixas = {
@@ -32,11 +58,30 @@ export default function VisaoGeral() {
   };
 
   const buscaFiltrada = busca
-    ? ativas.filter((e) => e.nome.toLowerCase().includes(busca.toLowerCase()) || e.contrato.includes(busca))
+    ? empresasFiltradas.filter((e) => e.nome.toLowerCase().includes(busca.toLowerCase()) || e.contrato.includes(busca))
     : [];
 
   return (
     <div className="space-y-6">
+      <Card className="p-3 flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-muted-foreground mr-1">Grupo de vidas:</span>
+        {GRUPOS.map((g) => {
+          const active = grupo === g.key;
+          return (
+            <Button
+              key={g.key}
+              type="button"
+              size="sm"
+              variant={active ? "default" : "outline"}
+              onClick={() => setGrupo(g.key)}
+              className={cn(active && "bg-[image:var(--gradient-hero)] text-white border-transparent hover:opacity-90")}
+            >
+              {g.label}
+            </Button>
+          );
+        })}
+      </Card>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Building2} label="Empresas ativas" value={totalEmpresas} />
         <StatCard icon={Users} label="Total de vidas" value={totalVidas.toLocaleString("pt-BR")} />
