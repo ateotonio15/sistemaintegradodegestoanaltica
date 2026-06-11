@@ -605,12 +605,23 @@ export default function Financeiro() {
     "financeiro:filtroAcompanhamento",
     null,
   );
+  // Empresas dispensadas pelo usuário (fechou via X) — não devem voltar automaticamente
+  const [dispensadosIds, setDispensadosIds] = useSessionState<string[]>(
+    "financeiro:dispensadosIds",
+    [],
+  );
 
   // Auto-adiciona ao acompanhamento quando o próprio usuário inicia um faturamento
   useEffect(() => {
     if (!user?.id) return;
+    const dispensados = new Set(dispensadosIds);
     const novos = allRows
-      .filter((r) => r.status === "Em faturamento" && r.faturamento_iniciado_por === user.id)
+      .filter(
+        (r) =>
+          r.status === "Em faturamento" &&
+          r.faturamento_iniciado_por === user.id &&
+          !dispensados.has(r.empresa_id),
+      )
       .map((r) => r.empresa_id);
     if (novos.length === 0) return;
     setAcompanhandoIds((prev) => {
@@ -624,7 +635,7 @@ export default function Financeiro() {
       });
       return changed ? Array.from(set) : prev;
     });
-  }, [allRows, user?.id, setAcompanhandoIds]);
+  }, [allRows, user?.id, setAcompanhandoIds, dispensadosIds]);
 
   // Chips: uma linha "mãe" por empresa acompanhada, com status atual
   const faturandoRows = useMemo(() => {
@@ -645,6 +656,8 @@ export default function Financeiro() {
   const removerAcompanhamento = (empresaId: string) => {
     setAcompanhandoIds((prev) => prev.filter((id) => id !== empresaId));
     setFiltroAcompanhamento((cur) => (cur === empresaId ? null : cur));
+    // Marca como dispensado para não reaparecer automaticamente nesta sessão
+    setDispensadosIds((prev) => (prev.includes(empresaId) ? prev : [...prev, empresaId]));
   };
 
 
