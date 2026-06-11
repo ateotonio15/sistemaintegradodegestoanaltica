@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home as HomeIcon, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Popover,
