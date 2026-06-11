@@ -1355,6 +1355,15 @@ export default function Empresas() {
               {corretoraOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={filtroPrioridade} onValueChange={(v) => setFiltroPrioridade(v as any)}>
+            <SelectTrigger className="rounded-lg w-[200px]"><SelectValue placeholder="Prioridade" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas (prioridade)</SelectItem>
+              <SelectItem value="somente">⭐ Somente prioridade</SelectItem>
+              <SelectItem value="ativas">Ativas (com prioridade)</SelectItem>
+              <SelectItem value="concluidas">Concluídas</SelectItem>
+            </SelectContent>
+          </Select>
           {(respFilter !== "all" || corretoraFilter !== "all") && (
             <Button variant="ghost" size="sm" onClick={() => { setRespFilter("all"); setCorretoraFilter("all"); }} className="rounded-lg">
               Limpar filtros
