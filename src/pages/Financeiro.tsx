@@ -1916,27 +1916,48 @@ export default function Financeiro() {
                   </button>
                 </div>
               )}
-              {faturandoRows.map((r) => (
-                <div
-                  key={r.id}
-                  className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-700 dark:text-blue-300"
-                  title="Faturamento em andamento por você"
-                >
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>
-                    Faturando: <strong>{r.empresa_nome}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => cancelarFaturamentoMut.mutate(r.id)}
-                    disabled={cancelarFaturamentoMut.isPending}
-                    className="ml-1 rounded-full p-0.5 hover:bg-blue-500/20 disabled:opacity-50"
-                    title="Cancelar faturamento em andamento"
+              {faturandoRows.map((r) => {
+                const ativo = filtroAcompanhamento === r.empresa_id;
+                return (
+                  <div
+                    key={r.empresa_id}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors",
+                      ativo
+                        ? "border-blue-500 bg-blue-500/20 text-blue-800 dark:text-blue-200 ring-1 ring-blue-500/40"
+                        : "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20",
+                    )}
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFiltroAcompanhamento((cur) => (cur === r.empresa_id ? null : r.empresa_id))
+                      }
+                      className="inline-flex items-center gap-2"
+                      title="Clique para filtrar apenas esta empresa"
+                    >
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>
+                        Faturando: <strong>{r.empresa_nome}</strong>
+                      </span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-current">
+                        {labelStatusFinanceiro(r.status)}
+                      </Badge>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removerAcompanhamento(r.empresa_id);
+                      }}
+                      className="ml-1 rounded-full p-0.5 hover:bg-blue-500/30"
+                      title="Parar de acompanhar"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
           <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
