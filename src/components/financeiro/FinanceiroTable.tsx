@@ -222,7 +222,7 @@ export function FinanceiroTable({
                           {row.status === "Em faturamento" && (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           )}
-                          {row.status}
+                          {labelStatusFinanceiro(row.status)}
                         </Badge>
                         {row.status === "Em faturamento" && row.faturamento_iniciado_por_nome && (
                           <span className="text-[10px] text-blue-600 dark:text-blue-300 leading-tight">
