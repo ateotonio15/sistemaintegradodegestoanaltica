@@ -502,12 +502,23 @@ export default function Empresas() {
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
       .filter((e) => respFilter === "all" || (e.responsavel_contrato ?? "").trim() === respFilter)
       .filter((e) => corretoraFilter === "all" || (e.operadora_plano ?? "").trim() === corretoraFilter)
+      .filter((e) => {
+        if (filtroPrioridade === "todas") return true;
+        if (filtroPrioridade === "somente" || filtroPrioridade === "ativas") return !!(e as any).prioridade_maxima_id;
+        if (filtroPrioridade === "concluidas") return !(e as any).prioridade_maxima_id;
+        return true;
+      })
       .filter((e) =>
         e.nome.toLowerCase().includes(q) ||
         (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
         (e.cnpj ?? "").toLowerCase().includes(q)
-      );
-  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter]);
+      )
+      .sort((a, b) => {
+        const pa = (a as any).prioridade_maxima_id ? 1 : 0;
+        const pb = (b as any).prioridade_maxima_id ? 1 : 0;
+        return pb - pa;
+      });
+  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, filtroPrioridade]);
 
   async function exportarInativasExcel() {
     const inativas = empresas
