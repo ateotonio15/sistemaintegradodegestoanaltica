@@ -611,18 +611,26 @@ export default function Financeiro() {
     [],
   );
 
-  // Auto-adiciona ao acompanhamento quando o próprio usuário inicia um faturamento
+  // Auto-adiciona ao acompanhamento quando o próprio usuário inicia um faturamento.
+  // O "dispensado" (X) só permanece enquanto status for "Nota emitida"/"Aguardando validação";
+  // se voltar para "Em faturamento" ou "Faturado", limpa dispensado e reaparece.
   useEffect(() => {
     if (!user?.id) return;
     const dispensados = new Set(dispensadosIds);
-    const novos = allRows
-      .filter(
-        (r) =>
-          (r.status === "Em faturamento" || r.status === "Faturado") &&
-          r.faturamento_iniciado_por === user.id &&
-          !dispensados.has(r.empresa_id),
-      )
-      .map((r) => r.empresa_id);
+    const novos: string[] = [];
+    const limparDispensa: string[] = [];
+    allRows.forEach((r) => {
+      if (r.faturamento_iniciado_por !== user.id) return;
+      const ativo = r.status === "Em faturamento" || r.status === "Faturado";
+      if (!ativo) return;
+      if (dispensados.has(r.empresa_id)) {
+        limparDispensa.push(r.empresa_id);
+      }
+      novos.push(r.empresa_id);
+    });
+    if (limparDispensa.length > 0) {
+      setDispensadosIds((prev) => prev.filter((id) => !limparDispensa.includes(id)));
+    }
     if (novos.length === 0) return;
     setAcompanhandoIds((prev) => {
       const set = new Set(prev);
@@ -635,7 +643,7 @@ export default function Financeiro() {
       });
       return changed ? Array.from(set) : prev;
     });
-  }, [allRows, user?.id, setAcompanhandoIds, dispensadosIds]);
+  }, [allRows, user?.id, setAcompanhandoIds, dispensadosIds, setDispensadosIds]);
 
   // Chips: uma linha "mãe" por empresa acompanhada, com status atual
   const faturandoRows = useMemo(() => {
