@@ -1969,8 +1969,9 @@ export default function Financeiro() {
                         className="ml-1 rounded-full p-0.5 hover:bg-blue-500/30"
                         title="Parar de acompanhar"
                       >
-                      <X className="h-3 w-3" />
-                    </button>
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                 );
               })}
