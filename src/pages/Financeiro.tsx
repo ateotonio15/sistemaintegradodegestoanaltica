@@ -1959,15 +1959,16 @@ export default function Financeiro() {
                         {labelStatusFinanceiro(r.status)}
                       </Badge>
                     </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removerAcompanhamento(r.empresa_id);
-                      }}
-                      className="ml-1 rounded-full p-0.5 hover:bg-blue-500/30"
-                      title="Parar de acompanhar"
-                    >
+                    {(r.status === "Nota emitida" || r.status === "Aguardando validação") && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removerAcompanhamento(r.empresa_id);
+                        }}
+                        className="ml-1 rounded-full p-0.5 hover:bg-blue-500/30"
+                        title="Parar de acompanhar"
+                      >
                       <X className="h-3 w-3" />
                     </button>
                   </div>
