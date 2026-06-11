@@ -101,7 +101,7 @@ export default function Auth() {
             SIGA
           </h1>
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-            Gestão inteligente de contratos e movimentações empresariais.
+            Sistema Integrado de Gestão Analítica
           </p>
 
           <div className="mt-10 grid grid-cols-3 gap-3">
