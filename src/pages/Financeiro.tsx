@@ -826,13 +826,7 @@ export default function Financeiro() {
       (finPrev || []).forEach((m) => addPeriodo(m.empresa_id, m.periodo));
 
       const PERIODOS_VALIDOS = new Set(PERIODOS_FIN as readonly string[]);
-      const linhas: Array<{
-        empresa_id: string;
-        mes_referencia: string;
-        periodo: string;
-        dentro_prazo: boolean;
-        responsavel: string | null;
-      }> = [];
+      const linhas: Array<any> = [];
 
       for (const e of empresas || []) {
         const ativa = e.status_empresa === "Ativa";
@@ -865,13 +859,20 @@ export default function Financeiro() {
         });
 
         periodos.forEach((periodo) => {
-          linhas.push({
+          const cfg = configPrev.get(`${e.id}|${periodo}`) ?? {};
+          const linha: any = {
             empresa_id: e.id,
             mes_referencia: mes,
             periodo,
             dentro_prazo: true,
             responsavel: e.responsavel_contrato ?? null,
-          });
+          };
+          // Replica configurações universais salvas para o contrato
+          if (cfg.tipo_analise != null) linha.tipo_analise = cfg.tipo_analise;
+          if (cfg.dia_emissao != null) linha.dia_emissao = cfg.dia_emissao;
+          if (cfg.tipo_cobranca != null) linha.tipo_cobranca = cfg.tipo_cobranca;
+          if (cfg.possui_prorrogacao != null) linha.possui_prorrogacao = cfg.possui_prorrogacao;
+          linhas.push(linha);
         });
       }
 
