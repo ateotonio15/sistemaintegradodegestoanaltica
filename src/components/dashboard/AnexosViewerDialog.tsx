@@ -466,7 +466,7 @@ export function AnexosViewerDialog({
                     Faturamento iniciado{iniciadoPorEfetivo ? ` por ${iniciadoPorEfetivo}` : ""}
                   </span>
                   <span className="text-xs text-blue-600/80 dark:text-blue-300/80">
-                    Iniciado às {formatDateTime(faturamentoIniciadoEm)}
+                    Iniciado às {formatDateTime(iniciadoEmEfetivo)}
                   </span>
                 </div>
                 <Button
