@@ -37,9 +37,10 @@ export default function VisaoGeral() {
     [ativas, grupo],
   );
 
+  // "Alerta de Reajustes Próximos" sempre mostra todas as empresas, ignorando o filtro de grupo.
   const enriquecidas = useMemo(
-    () => empresasFiltradas.map((e) => ({ ...e, dias: diasAteReajuste(e.vigenciaInicio) })),
-    [empresasFiltradas],
+    () => ativas.map((e) => ({ ...e, dias: diasAteReajuste(e.vigenciaInicio) })),
+    [ativas],
   );
 
   const totalEmpresas = empresasFiltradas.length;
