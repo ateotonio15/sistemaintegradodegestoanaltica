@@ -271,13 +271,15 @@ export function AnexosViewerDialog({
               .in("movimentacao_id", movOpIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
-        implIds.length
-          ? supabase
-              .from("implantacao_anexos" as any)
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
-              .in("implantacao_id", implIds)
-              .order("created_at", { ascending: false })
-          : Promise.resolve({ data: [] as any[], error: null }),
+        // Busca por empresa_id (anexos salvos direto na empresa) OU implantacao_id (anexos de wizard de implantação)
+        supabase
+          .from("implantacao_anexos" as any)
+          .select("id, nome_arquivo, storage_path, created_at, uploaded_by, empresa_id, implantacao_id")
+          .or(
+            `empresa_id.eq.${empresaId}` +
+              (implIds.length ? `,implantacao_id.in.(${implIds.join(",")})` : ""),
+          )
+          .order("created_at", { ascending: false }),
         // 4) Anexos compartilhados pelo grupo (qualquer contrato), do mesmo período
         grupoId
           ? supabase
