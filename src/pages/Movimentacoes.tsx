@@ -689,7 +689,7 @@ export default function Movimentacoes() {
                           <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
                           <TableCell><Badge variant="outline" className="rounded-md">{tipo}</Badge></TableCell>
-                          <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
+                          <TableCell>{m.periodo || formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                           <TableCell>
                             <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
                           </TableCell>
