@@ -11,7 +11,6 @@ import {
   Mic,
   ShieldPlus,
   Gift,
-  BarChart3,
 } from "lucide-react";
 
 type ModuloInfo = {
@@ -69,12 +68,6 @@ export const INTELIGENCIA_MODULOS: Record<string, ModuloInfo> = {
     description: "Cestas natalinas e brindes corporativos",
     section: "Mailing de Brindes",
     icon: Gift,
-  },
-  "central-avaliacoes": {
-    label: "Central de Avaliações",
-    description: "NPS, CSAT, executiva, RH e palestras",
-    section: "Central de Avaliações",
-    icon: BarChart3,
   },
 };
 

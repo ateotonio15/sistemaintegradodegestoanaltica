@@ -154,19 +154,6 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
       },
     ],
   },
-  {
-    title: "Central de Avaliações",
-    description: "NPS, CSAT, executiva, RH e palestras",
-    icon: BarChart3,
-    items: [
-      {
-        slug: "central-avaliacoes",
-        label: "Central de Avaliações",
-        description: "NPS, CSAT, executiva, RH e palestras",
-        icon: BarChart3,
-      },
-    ],
-  },
 ];
 
 type Ctx = {
