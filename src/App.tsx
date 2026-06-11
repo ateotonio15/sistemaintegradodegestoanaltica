@@ -187,6 +187,7 @@ const AppRoutes = () => (
       <Route element={<RoleGate allow={["admin", "enfermeira", "executivo", "coordenadora", "diretora", "diretora_saude"]} />}>
         <Route path="/saude-empresas" element={<SaudeEmpresasLista />} />
         <Route path="/saude-empresas/visao-geral" element={<SaudeVisaoGeral />} />
+        <Route path="/saude-empresas/preventivas" element={<CalendarioPreventivas />} />
         <Route path="/saude-empresas/empresa/:empresaId" element={<SaudeEmpresaAcoes />} />
         <Route path="/saude-empresas/acao/:acaoId" element={<SaudeAcaoTriagens />} />
       </Route>
