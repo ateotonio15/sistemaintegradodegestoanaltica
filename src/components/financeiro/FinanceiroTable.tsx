@@ -15,6 +15,7 @@ import {
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { AnaliseExcelRow } from "./AnaliseExcelRow";
 import type { AnaliseResultado, ComparacaoResultado, NotaOrfa } from "@/lib/excel-analysis-utils";
+import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 
 export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_nome: string;
