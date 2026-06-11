@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home as HomeIcon, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Popover,
@@ -48,13 +48,6 @@ export function HeaderTabs({ available }: { available: HeaderTabItem[] }) {
     return m;
   }, [available]);
 
-  // Garante que a rota atual está sempre na lista (se for um módulo permitido).
-  useEffect(() => {
-    const allowed = byPath.has(current);
-    if (!allowed) return;
-    setOpenTabs((prev) => (prev.includes(current) ? prev : [...prev, current]));
-  }, [current, byPath]);
-
   // Persiste
   useEffect(() => {
     try {
@@ -66,10 +59,8 @@ export function HeaderTabs({ available }: { available: HeaderTabItem[] }) {
     setOpenTabs((prev) => {
       const next = prev.filter((p) => p !== path);
       if (path === current) {
-        // Navega para a aba vizinha (se houver), senão para a Home.
         const idx = prev.indexOf(path);
         const fallback = next[Math.max(0, idx - 1)] ?? next[0] ?? "/";
-        // setTimeout para deixar o setState terminar antes de navegar
         setTimeout(() => navigate(fallback), 0);
       }
       return next;
@@ -81,24 +72,13 @@ export function HeaderTabs({ available }: { available: HeaderTabItem[] }) {
     navigate(path);
   };
 
-  const visibleTabs = openTabs.filter((p) => byPath.has(p));
-  const notOpen = available.filter((it) => !visibleTabs.includes(it.to));
+  const visibleTabs = openTabs.filter((p) => byPath.has(p) && p !== "/");
+  const notOpen = available.filter(
+    (it) => it.to !== "/" && !visibleTabs.includes(it.to),
+  );
 
   return (
     <div className="flex items-center gap-1 min-w-0 flex-1 overflow-x-auto no-scrollbar">
-      <Link
-        to="/"
-        className={cn(
-          "shrink-0 inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-sm font-medium transition-colors",
-          current === "/"
-            ? "bg-primary/15 text-primary"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent",
-        )}
-        aria-label="Home"
-        title="Home"
-      >
-        <HomeIcon className="h-4 w-4" />
-      </Link>
 
       {visibleTabs.map((path) => {
         const item = byPath.get(path);
