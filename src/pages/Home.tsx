@@ -311,14 +311,6 @@ const SHORTCUTS: Shortcut[] = [
       c.isAdmin || ["diretora", "comum", "executivo", "administradoras"].includes(c.role as string),
   },
   {
-    to: "/vidas-samel",
-    label: "Vidas Samel",
-    description: "Base interna de vidas",
-    icon: HeartPulse,
-    group: "funcoes",
-    show: () => true,
-  },
-  {
     to: "/arquivos",
     label: "Arquivos",
     description: "Documentos e anexos centralizados",
