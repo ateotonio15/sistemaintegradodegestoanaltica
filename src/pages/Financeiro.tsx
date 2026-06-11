@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -594,28 +596,57 @@ export default function Financeiro() {
     return Array.from(s).sort();
   }, [allRows]);
 
-  // Faturamentos em andamento iniciados pelo usuário atual — exibidos como chip(s)
-  const faturandoRows = useMemo(() => {
-    if (!user?.id) return [];
-    return allRows.filter(
-      (r) => r.status === "Em faturamento" && r.faturamento_iniciado_por === user.id,
-    );
-  }, [allRows, user?.id]);
+  // Empresas que o usuário está acompanhando (faturando) — persiste até o usuário fechar via X
+  const [acompanhandoIds, setAcompanhandoIds] = useSessionState<string[]>(
+    "financeiro:acompanhandoIds",
+    [],
+  );
+  const [filtroAcompanhamento, setFiltroAcompanhamento] = useSessionState<string | null>(
+    "financeiro:filtroAcompanhamento",
+    null,
+  );
 
-  const cancelarFaturamentoMut = useMutation({
-    mutationFn: async (movId: string) => {
-      const { error } = await supabase.rpc(
-        "aplicar_cancelar_faturamento_grupo" as any,
-        { p_mov_id: movId },
-      );
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
-      toast.success("Faturamento cancelado");
-    },
-    onError: (e: any) => toast.error("Erro ao cancelar: " + e.message),
-  });
+  // Auto-adiciona ao acompanhamento quando o próprio usuário inicia um faturamento
+  useEffect(() => {
+    if (!user?.id) return;
+    const novos = allRows
+      .filter((r) => r.status === "Em faturamento" && r.faturamento_iniciado_por === user.id)
+      .map((r) => r.empresa_id);
+    if (novos.length === 0) return;
+    setAcompanhandoIds((prev) => {
+      const set = new Set(prev);
+      let changed = false;
+      novos.forEach((id) => {
+        if (!set.has(id)) {
+          set.add(id);
+          changed = true;
+        }
+      });
+      return changed ? Array.from(set) : prev;
+    });
+  }, [allRows, user?.id, setAcompanhandoIds]);
+
+  // Chips: uma linha "mãe" por empresa acompanhada, com status atual
+  const faturandoRows = useMemo(() => {
+    if (acompanhandoIds.length === 0) return [] as FinanceiroRow[];
+    const ids = new Set(acompanhandoIds);
+    const byEmpresa = new Map<string, FinanceiroRow>();
+    allRows.forEach((r) => {
+      if (!ids.has(r.empresa_id)) return;
+      const prev = byEmpresa.get(r.empresa_id);
+      // mantém a linha mais recente (maior mes_referencia)
+      if (!prev || (r.mes_referencia || "") > (prev.mes_referencia || "")) {
+        byEmpresa.set(r.empresa_id, r);
+      }
+    });
+    return Array.from(byEmpresa.values());
+  }, [allRows, acompanhandoIds]);
+
+  const removerAcompanhamento = (empresaId: string) => {
+    setAcompanhandoIds((prev) => prev.filter((id) => id !== empresaId));
+    setFiltroAcompanhamento((cur) => (cur === empresaId ? null : cur));
+  };
+
 
   // KPI/Chart: aplica APENAS filtro de período
   const kpiRows = useMemo(() => {
@@ -645,6 +676,8 @@ export default function Financeiro() {
         const g = empresaGrupoMap?.get(r.empresa_id);
         if (!g || g.grupo_id !== filtroGrupo) return false;
       }
+      if (filtroAcompanhamento && r.empresa_id !== filtroAcompanhamento) return false;
+
       return true;
     }).map((r) => {
       const g = empresaGrupoMap?.get(r.empresa_id);
@@ -692,7 +725,7 @@ export default function Financeiro() {
       const hay = `${r.empresa_nome} ${r.empresa_codigo || ""} ${r.empresa_cnpj || ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap, movIdsMatchAnexoFilters, filtroGrupo, empresaGrupoMap]);
+  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap, movIdsMatchAnexoFilters, filtroGrupo, empresaGrupoMap, filtroAcompanhamento]);
 
   // Ordenação aplicada após filtros
   const sortedRows = useMemo(() => {
@@ -1885,27 +1918,48 @@ export default function Financeiro() {
                   </button>
                 </div>
               )}
-              {faturandoRows.map((r) => (
-                <div
-                  key={r.id}
-                  className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-700 dark:text-blue-300"
-                  title="Faturamento em andamento por você"
-                >
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>
-                    Faturando: <strong>{r.empresa_nome}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => cancelarFaturamentoMut.mutate(r.id)}
-                    disabled={cancelarFaturamentoMut.isPending}
-                    className="ml-1 rounded-full p-0.5 hover:bg-blue-500/20 disabled:opacity-50"
-                    title="Cancelar faturamento em andamento"
+              {faturandoRows.map((r) => {
+                const ativo = filtroAcompanhamento === r.empresa_id;
+                return (
+                  <div
+                    key={r.empresa_id}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors",
+                      ativo
+                        ? "border-blue-500 bg-blue-500/20 text-blue-800 dark:text-blue-200 ring-1 ring-blue-500/40"
+                        : "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20",
+                    )}
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFiltroAcompanhamento((cur) => (cur === r.empresa_id ? null : r.empresa_id))
+                      }
+                      className="inline-flex items-center gap-2"
+                      title="Clique para filtrar apenas esta empresa"
+                    >
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>
+                        Faturando: <strong>{r.empresa_nome}</strong>
+                      </span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-current">
+                        {labelStatusFinanceiro(r.status)}
+                      </Badge>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removerAcompanhamento(r.empresa_id);
+                      }}
+                      className="ml-1 rounded-full p-0.5 hover:bg-blue-500/30"
+                      title="Parar de acompanhar"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
           <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
