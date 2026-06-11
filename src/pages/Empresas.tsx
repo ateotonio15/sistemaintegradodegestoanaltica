@@ -31,6 +31,12 @@ import { cn } from "@/lib/utils";
 import { IsoDatePicker } from "@/components/ui/iso-date-picker";
 import { GrupoFinanceiroSection } from "@/components/empresas/GrupoFinanceiroSection";
 import { EmpresaAnexosImplantacao } from "@/components/empresas/EmpresaAnexosImplantacao";
+import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
+import { PrioridadeDialog } from "@/components/prioridade/PrioridadeDialog";
+import { PrioridadeInfoCard } from "@/components/prioridade/PrioridadeInfoCard";
+import { PrioridadeHistoricoDialog } from "@/components/prioridade/PrioridadeHistoricoDialog";
+import { usePrioridadeMaxima } from "@/hooks/usePrioridadeMaxima";
+import { Star, History as HistoryIcon } from "lucide-react";
 
 type Empresa = Tables<"empresas">;
 
