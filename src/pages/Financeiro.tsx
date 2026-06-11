@@ -612,15 +612,22 @@ export default function Financeiro() {
   );
 
   // Auto-adiciona ao acompanhamento quando o próprio usuário inicia um faturamento.
-  // O "dispensado" (X) só permanece enquanto status for "Nota emitida"/"Aguardando validação";
-  // se voltar para "Em faturamento" ou "Faturado", limpa dispensado e reaparece.
+  // Considera apenas a linha atual da empresa para não trazer de volta um chip finalizado
+  // que o usuário já fechou após atualizar a página.
   useEffect(() => {
     if (!user?.id) return;
     const dispensados = new Set(dispensadosIds);
+    const atualPorEmpresa = new Map<string, FinanceiroRow>();
     const novos: string[] = [];
     const limparDispensa: string[] = [];
     allRows.forEach((r) => {
       if (r.faturamento_iniciado_por !== user.id) return;
+      const prev = atualPorEmpresa.get(r.empresa_id);
+      if (!prev || (r.mes_referencia || "") > (prev.mes_referencia || "")) {
+        atualPorEmpresa.set(r.empresa_id, r);
+      }
+    });
+    atualPorEmpresa.forEach((r) => {
       const ativo = r.status === "Em faturamento" || r.status === "Faturado";
       if (!ativo) return;
       if (dispensados.has(r.empresa_id)) {
@@ -650,6 +657,7 @@ export default function Financeiro() {
     if (acompanhandoIds.length === 0) return [] as FinanceiroRow[];
     const ids = new Set(acompanhandoIds);
     const byEmpresa = new Map<string, FinanceiroRow>();
+    const dispensados = new Set(dispensadosIds);
     allRows.forEach((r) => {
       if (!ids.has(r.empresa_id)) return;
       const prev = byEmpresa.get(r.empresa_id);
@@ -658,8 +666,11 @@ export default function Financeiro() {
         byEmpresa.set(r.empresa_id, r);
       }
     });
-    return Array.from(byEmpresa.values());
-  }, [allRows, acompanhandoIds]);
+    return Array.from(byEmpresa.values()).filter((r) => {
+      const finalizado = r.status === "Nota emitida" || r.status === "Aguardando validação";
+      return !(finalizado && dispensados.has(r.empresa_id));
+    });
+  }, [allRows, acompanhandoIds, dispensadosIds]);
 
   const removerAcompanhamento = (empresaId: string) => {
     setAcompanhandoIds((prev) => prev.filter((id) => id !== empresaId));
