@@ -1123,7 +1123,10 @@ export async function analisarExcelFinanceiroPorCnpj(
         excTotal: 0,
         devQtd: 0,
         devTotal: 0,
+        adesaoQtd: 0,
+        adesaoTotal: 0,
       };
+
       grupos.set(key, g);
     } else {
       if (!g.nome && nome) g.nome = nome;
