@@ -1206,6 +1206,8 @@ export async function analisarExcelFinanceiroPorCnpj(
       dest.retroQtd += g.retroQtd; dest.retroTotal += g.retroTotal;
       dest.excQtd += g.excQtd; dest.excTotal += g.excTotal;
       dest.devQtd += g.devQtd; dest.devTotal += g.devTotal;
+      dest.adesaoQtd += g.adesaoQtd; dest.adesaoTotal += g.adesaoTotal;
+
       grupos.delete(key);
     }
   }
