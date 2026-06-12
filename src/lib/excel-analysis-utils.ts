@@ -413,11 +413,18 @@ export async function analisarExcelFinanceiroPorPagador(
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
 
+    if (idxTipo >= 0 && isTaxaAdesao(String(tipoCell))) {
+      adesaoQtd += 1;
+      if (valorValido) adesaoTotal += valor;
+      continue;
+    }
+
     if (idxTipo >= 0 && isDevolucao(String(tipoCell))) {
       devQtd += 1;
       devTotal += valorNum > 0 ? -valorNum : valorNum;
       continue;
     }
+
 
     if (idxTipo >= 0 && isExclusao(String(tipoCell))) {
       excQtd += 1;
