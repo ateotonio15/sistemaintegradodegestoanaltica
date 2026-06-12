@@ -872,7 +872,9 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     retroQtd: number; retroTotal: number;
     excQtd: number; excTotal: number;
     devQtd: number; devTotal: number;
+    adesaoQtd: number; adesaoTotal: number;
   };
+
 
 
   const blocos: Acc[] = [];
