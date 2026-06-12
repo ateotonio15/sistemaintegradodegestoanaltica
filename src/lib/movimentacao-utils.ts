@@ -216,3 +216,41 @@ export function contratoDentroDoPeriodo(
 
   return false;
 }
+
+/**
+ * Indica se o alerta de Prioridade Máxima deve ser exibido em modo INTENSO
+ * (pulsando + vermelho sólido). Regra: faltam ≤ 1 dia para o início do
+ * período de movimentação da empresa, OU o período já está em curso.
+ *
+ * Período "01-05" → começa dia 1; "05-10" → 6; "10-15" → 11; "15-20" → 16;
+ * "20-25" → 21; "25-30" → 26.
+ */
+export function isPrioridadeAlertaIntenso(
+  empresa: { tipo_movimentacao?: string | null; periodo_movimentacao?: string | null; data_corte?: number | null; status_empresa?: string | null } | null | undefined,
+  hoje: Date = new Date(),
+): boolean {
+  if (!empresa) return false;
+  if (empresa.status_empresa && empresa.status_empresa !== "Ativa") return false;
+
+  let periodo: string | null = null;
+  if (empresa.tipo_movimentacao === "Diária" && empresa.data_corte) {
+    periodo = periodoDaDataCorte(empresa.data_corte);
+  } else if (empresa.periodo_movimentacao) {
+    periodo = empresa.periodo_movimentacao;
+  } else if (empresa.data_corte) {
+    periodo = periodoDaDataCorte(empresa.data_corte);
+  }
+  if (!periodo) return false;
+
+  const [iniStr, fimStr] = periodo.split("-");
+  const ini = parseInt(iniStr, 10);
+  const fim = parseInt(fimStr, 10);
+  if (!ini || !fim) return false;
+
+  // O primeiro período (01-05) inicia no dia 1; os demais iniciam no dia seguinte
+  // ao fim do período anterior (ex.: 05-10 começa dia 6).
+  const startDay = periodo === "01-05" ? 1 : ini + 1;
+  const dia = hoje.getDate();
+  return dia >= startDay - 1 && dia <= fim;
+}
+
