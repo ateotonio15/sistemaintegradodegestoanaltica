@@ -1089,7 +1089,10 @@ export async function analisarExcelFinanceiroPorCnpj(
     excTotal: number;
     devQtd: number;
     devTotal: number;
+    adesaoQtd: number;
+    adesaoTotal: number;
   };
+
   const grupos = new Map<string, Acc>();
   const ehCnpjPlaceholder = (c: string) => !c || c.length !== 14 || /0{6,}$/.test(c);
   const getGrupo = (cnpj: string, nome: string): Acc => {
