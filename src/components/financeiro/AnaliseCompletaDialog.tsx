@@ -209,6 +209,11 @@ export function AnaliseCompletaDialog({
         totalDevExcel += r.devolucoes.total;
         temDevExcel = true;
       }
+      if (r.taxaAdesao && r.taxaAdesao.total) {
+        totalAdesaoExcel += r.taxaAdesao.total;
+        temAdesaoExcel = true;
+      }
+
       if (c && !isSimplificada(c)) {
         if (c.enfermaria?.total.pdf != null) {
           totalEnfPdf += Number(c.enfermaria.total.pdf);
