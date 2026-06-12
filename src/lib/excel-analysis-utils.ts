@@ -931,6 +931,12 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     const hasValor = !isNaN(val) && val !== 0;
     const hasMensalidade = !isNaN(mensN) && mensN !== 0;
 
+    if (labelNorm.includes("adesao") || labelNorm.includes("adesão")) {
+      cur.adesaoQtd += qtdNum;
+      cur.adesaoTotal += valNum;
+      continue;
+    }
+
     if (labelNorm.includes("inclus") || labelNorm.includes("retroativ")) {
       cur.incQtd += qtdNum;
       cur.incTotal += valNum;
@@ -940,6 +946,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       }
       continue;
     }
+
 
     if (labelNorm.includes("devolu")) {
       cur.devQtd += qtdNum;
