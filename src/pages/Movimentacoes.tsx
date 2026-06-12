@@ -151,11 +151,11 @@ export default function Movimentacoes() {
   };
 
   const handleDataEnvioChange = (dateStr: string | null) => {
-    const newForm = { ...form, data_envio_empresa: dateStr };
-    if (form.tipo_movimentacao === "Diária" && dateStr) {
-      newForm.periodo = calcularPeriodoPorData(dateStr);
-    }
-    setForm(newForm);
+    // IMPORTANTE: não recalcular o período a partir da Data de Envio Empresa.
+    // O período da movimentação é definido pela data_corte/periodo_movimentacao
+    // da empresa (em handleEmpresaChange) e deve permanecer fixo, senão o
+    // contrato "pula" de coluna no Resumo Geral por Período ao preencher datas.
+    setForm({ ...form, data_envio_empresa: dateStr });
   };
 
   const upsert = useMutation({
