@@ -27,6 +27,8 @@ export interface AnaliseResultado {
   exclusoes?: InclusaoResultado;
   /** Devoluções — categoria própria com valor negativo (crédito). */
   devolucoes?: InclusaoResultado;
+  /** Taxa de Adesão — cobrada uma única vez por adesão. */
+  taxaAdesao?: InclusaoResultado;
   avisos: string[];
 }
 
@@ -41,8 +43,10 @@ export interface AnalisePorCnpj {
   retroativas?: InclusaoResultado;
   exclusoes?: InclusaoResultado;
   devolucoes?: InclusaoResultado;
+  taxaAdesao?: InclusaoResultado;
   avisos: string[];
 }
+
 
 
 
