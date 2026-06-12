@@ -1250,7 +1250,6 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                       <Checkbox
                         checked={isChecked}
                         onCheckedChange={() => toggleSelecionado(a.id)}
-                        disabled={isShared}
                       />
                       <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                       <div className="min-w-0">
