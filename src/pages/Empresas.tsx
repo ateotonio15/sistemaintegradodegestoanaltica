@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock } from "lucide-react";
-import { PERIODOS } from "@/lib/movimentacao-utils";
+import { PERIODOS, isPrioridadeAlertaIntenso } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 import { FAIXAS_ETARIAS, labelFaixa, formatCentavosBRL } from "@/lib/reajuste-utils";
@@ -1433,7 +1433,7 @@ export default function Empresas() {
                             <div className="flex items-center gap-2 flex-wrap">
                               {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0" />}
                               <span>{e.nome}</span>
-                              {temPrioridade && <PrioridadeBadge variant="compact" />}
+                              {temPrioridade && <PrioridadeBadge variant="compact" intense={isPrioridadeAlertaIntenso(e as any)} />}
                               {faixa && <Badge variant="outline" className="rounded-md text-[10px]">Faixa Etária</Badge>}
                             </div>
                           </TableCell>
