@@ -183,6 +183,9 @@ export function AnaliseCompletaDialog({
       totalDevPdf = 0,
       temDevExcel = false,
       temDevPdf = false;
+    let totalAdesaoExcel = 0,
+      temAdesaoExcel = false;
+
 
     res.forEach((r, idx) => {
       const c: any = cmps[idx];
