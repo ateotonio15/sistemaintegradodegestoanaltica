@@ -3,8 +3,30 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Star } from "lucide-react";
 import { usePrioridadeMaxima } from "@/hooks/usePrioridadeMaxima";
+
+const MOTIVOS_PRIORIDADE = [
+  "🔥 Fechamento Crítico",
+  "🚨 Prioridade Máxima",
+  "⚠️ Movimentação Urgente",
+  "⏰ Prazo Crítico",
+  "📢 Atenção Imediata",
+  "🔴 Contrato Estratégico",
+  "⭐ Cliente Prioritário",
+  "🏆 Atendimento Preferencial",
+  "🚀 Prioridade Executiva",
+  "💼 Operação Prioritária",
+  "Atraso crítico",
+];
+const MOTIVOS_REMOCAO = [
+  "Fechamento concluído",
+  "Situação normalizada",
+  "Não é mais prioridade",
+  "Solicitação da diretoria",
+  "Cancelado por engano",
+];
 
 interface Props {
   open: boolean;
