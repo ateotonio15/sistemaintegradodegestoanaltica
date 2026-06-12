@@ -1170,7 +1170,7 @@ export default function Financeiro() {
   };
 
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
-  const ANALISE_PARSER_VERSION = "20";
+  const ANALISE_PARSER_VERSION = "21";
 
   // Computa a análise no NÍVEL DO CONTRATO (financeiro_movimentacoes.id).
   // Faz download/parse dos anexos uma única vez por movimentação e devolve
@@ -1254,6 +1254,7 @@ export default function Financeiro() {
       cruzarExcelComPdfs,
       compararExcelComPdf,
       compararExcelComPdfSimplificado,
+      isTaxaAdesao,
     } = await import("@/lib/excel-analysis-utils");
     const { analisarExcelMotoHonda } = await import("@/lib/excel-analysis-moto-honda");
     const { analisarPdfFinanceiro, analisarPdfFinanceiroSimplificado } = await import(
@@ -1437,9 +1438,27 @@ export default function Financeiro() {
         if (b.retroativas) out.retroativas = b.retroativas;
         if (b.exclusoes) out.exclusoes = b.exclusoes;
         if (b.devolucoes) out.devolucoes = b.devolucoes;
+        if (b.taxaAdesao) out.taxaAdesao = b.taxaAdesao;
         return out;
       },
     );
+
+    if (isTaxaAdesao(row.tipo_cobranca || "") && resultados.length > 0) {
+      const totalBase = resultados.reduce(
+        (s: number, r: any) =>
+          s + (r.enfermaria?.total || 0) + (r.apartamento?.total || 0) + (r.inclusoes?.total || 0),
+        0,
+      );
+      resultados.forEach((r: any) => {
+        if (!r.taxaAdesao && totalBase > 0) {
+          const total = (r.enfermaria?.total || 0) + (r.apartamento?.total || 0) + (r.inclusoes?.total || 0);
+          r.taxaAdesao = { quantidade: 1, total };
+          r.enfermaria = { beneficiarios: 0, mensalidade: 0, total: 0 };
+          r.apartamento = { beneficiarios: 0, mensalidade: 0, total: 0 };
+          r.inclusoes = { quantidade: 0, total: 0 };
+        }
+      });
+    }
 
 
     const out = { key: cacheKey, resultados, comparacoes, notasOrfas, temXls: true };

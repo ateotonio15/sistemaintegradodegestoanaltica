@@ -272,10 +272,15 @@ function isDevolucao(tipo: string): boolean {
   return t.includes("devolucao") || t.includes("devolução") || t.includes("devolvido");
 }
 
-function isTaxaAdesao(tipo: string): boolean {
+export function isTaxaAdesao(tipo: string): boolean {
   const t = norm(tipo);
   // Casa "Taxa de Adesão", "TAXA ADESAO", "Adesão", "Adesao"
   return /\bades[aã]o\b/.test(t) || t.includes("taxa de adesao") || t.includes("taxa adesao");
+}
+
+function rowHasTaxaAdesao(row: unknown[], idxTipo: number): boolean {
+  if (idxTipo >= 0 && isTaxaAdesao(String(row[idxTipo] ?? ""))) return true;
+  return row.some((cell) => isTaxaAdesao(String(cell ?? "")));
 }
 
 
@@ -413,7 +418,7 @@ export async function analisarExcelFinanceiroPorPagador(
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
 
-    if (idxTipo >= 0 && isTaxaAdesao(String(tipoCell))) {
+    if (rowHasTaxaAdesao(r, idxTipo)) {
       adesaoQtd += 1;
       if (valorValido) adesaoTotal += valor;
       continue;
@@ -1155,7 +1160,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
 
-    if (idxTipo >= 0 && isTaxaAdesao(String(tipoCell))) {
+    if (rowHasTaxaAdesao(r, idxTipo)) {
       grp.adesaoQtd += 1;
       if (valorValido) grp.adesaoTotal += valor;
       continue;
