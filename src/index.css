@@ -406,15 +406,8 @@
   .animate-pulse-priority {
     animation: pulse-priority 1.8s ease-out infinite;
   }
-  .priority-row {
-    position: relative;
-  }
-  .priority-row::before {
-    content: "";
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    background: rgb(239, 68, 68);
+  .priority-row > td:first-child {
+    box-shadow: inset 3px 0 0 0 rgb(239, 68, 68);
     animation: pulse-priority 1.8s ease-out infinite;
   }
 }
