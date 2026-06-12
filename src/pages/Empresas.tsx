@@ -1429,12 +1429,18 @@ export default function Empresas() {
                           )}
                           onClick={() => setDetailEmpresa(e)}
                         >
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0" />}
-                              <span>{e.nome}</span>
-                              {temPrioridade && <PrioridadeBadge variant="compact" intense={isPrioridadeAlertaIntenso(e as any)} />}
-                              {faixa && <Badge variant="outline" className="rounded-md text-[10px]">Faixa Etária</Badge>}
+                          <TableCell className="font-medium align-top">
+                            <div className="flex flex-col items-start gap-1">
+                              <div className="flex items-start gap-2">
+                                {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
+                                <span className="break-words">{e.nome}</span>
+                              </div>
+                              {(temPrioridade || faixa) && (
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  {temPrioridade && <PrioridadeBadge variant="compact" intense={isPrioridadeAlertaIntenso(e as any)} />}
+                                  {faixa && <Badge variant="outline" className="rounded-md text-[10px]">Faixa Etária</Badge>}
+                                </div>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
