@@ -78,7 +78,7 @@ export function PrioridadeMaximaDashboardCard() {
                 return (
                   <tr key={e.id} className="border-b last:border-0 hover:bg-red-500/5">
                     <td className="px-2 py-2 font-medium flex items-center gap-2">
-                      <PrioridadeBadge variant="compact" />
+                      <PrioridadeBadge variant="compact" intense={isPrioridadeAlertaIntenso(e as any)} />
                       {e.nome}
                     </td>
                     <td className="px-2 py-2 text-muted-foreground">{e.responsavel_contrato ?? "—"}</td>
