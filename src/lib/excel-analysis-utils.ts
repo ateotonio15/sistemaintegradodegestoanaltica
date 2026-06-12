@@ -856,9 +856,24 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     for (let c = 0; c < r.length; c++) {
       const h = norm(r[c]);
       if (!h) continue;
-      if (lbl < 0 && (h.includes("empresa/modulo") || h.includes("empresa / modulo") || h.includes("modulo"))) lbl = c;
-      else if (qtd < 0 && (h === "qtd" || h.includes("quantidade"))) qtd = c;
-      else if (mens < 0 && h.includes("mensalidade")) mens = c;
+      if (
+        lbl < 0 &&
+        (h.includes("empresa/modulo") ||
+          h.includes("empresa / modulo") ||
+          h.includes("modulo") ||
+          h === "empresa")
+      )
+        lbl = c;
+      else if (
+        qtd < 0 &&
+        (h === "qtd" || h.includes("quantidade") || h.includes("usuario"))
+      )
+        qtd = c;
+      else if (
+        mens < 0 &&
+        (h.includes("mensalidade") || h.includes("valor unit") || h.includes("valor unitario"))
+      )
+        mens = c;
       else if (val < 0 && (h === "valor" || h.includes("valor total"))) val = c;
     }
     if (lbl >= 0 && val >= 0) {
@@ -942,7 +957,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       continue;
     }
 
-    if (labelNorm.includes("inclus") || labelNorm.includes("retroativ")) {
+    if (labelNorm.includes("inclus") || labelNorm.includes("inlus") || labelNorm.includes("retroativ")) {
       cur.incQtd += qtdNum;
       cur.incTotal += valNum;
       if (labelNorm.includes("retroativ")) {
