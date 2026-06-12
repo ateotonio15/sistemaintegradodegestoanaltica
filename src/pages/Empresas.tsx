@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock } from "lucide-react";
-import { PERIODOS, isPrioridadeAlertaIntenso } from "@/lib/movimentacao-utils";
+import { PERIODOS, isPrioridadeAlertaIntenso, periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 import { FAIXAS_ETARIAS, labelFaixa, formatCentavosBRL } from "@/lib/reajuste-utils";
@@ -114,6 +114,120 @@ export default function Empresas() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const anexoInputRef = useRef<HTMLInputElement>(null);
   const [importingAnexo, setImportingAnexo] = useState(false);
+  const [loadingRevisao, setLoadingRevisao] = useState(false);
+
+  const handleRevisarEmpresas = async () => {
+    if (loadingRevisao) return;
+    if (!confirm("Deseja revisar todas as empresas e movimentações? Isso corrige inconsistências e remove movimentações duplicadas (mesma empresa + mês + período).")) return;
+    setLoadingRevisao(true);
+    try {
+      const { data: empresas, error } = await supabase.from("empresas").select("*");
+      if (error) throw error;
+
+      let errosEmp = 0;
+      let corrigidosEmp = 0;
+      const empresaMap = new Map<string, Tables<"empresas">>();
+
+      for (const emp of empresas) {
+        empresaMap.set(emp.id, emp);
+        const updateData: Record<string, any> = {};
+        if (!emp.nome) { errosEmp++; continue; }
+        if (!emp.status_empresa) { updateData.status_empresa = "Ativa"; corrigidosEmp++; }
+        if (!emp.tipo_movimentacao) { updateData.tipo_movimentacao = "Fechada"; corrigidosEmp++; }
+        if (!emp.periodo_movimentacao && emp.tipo_movimentacao !== "Diária") { updateData.periodo_movimentacao = "01-05"; corrigidosEmp++; }
+        if (!emp.data_implantacao) { const n = new Date(); updateData.data_implantacao = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`; corrigidosEmp++; }
+        if (!emp.prazo) { updateData.prazo = "Sem prazo definido"; corrigidosEmp++; }
+        if (!emp.grupo_contrato) { updateData.grupo_contrato = "Não informado"; corrigidosEmp++; }
+
+        if (Object.keys(updateData).length > 0) {
+          const { error: updateError } = await supabase.from("empresas").update(updateData).eq("id", emp.id);
+          if (updateError) { console.error("Erro ao atualizar empresa:", emp.nome, updateError); errosEmp++; }
+          else { Object.assign(emp, updateData); empresaMap.set(emp.id, emp); }
+        }
+      }
+
+      const { data: allMovs, error: movError } = await supabase
+        .from("movimentacoes")
+        .select("id, empresa_id, periodo, tipo_movimentacao, responsavel_movimentacao, mes_referencia, data_envio_empresa, data_retorno_empresa, data_envio_financeiro, observacoes, created_at")
+        .order("created_at", { ascending: true });
+      if (movError) throw movError;
+
+      let corrigidosMov = 0;
+      let errosMov = 0;
+      let duplicadasRemovidas = 0;
+
+      const grupos = new Map<string, typeof allMovs>();
+      for (const m of allMovs) {
+        const k = `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`;
+        const arr = grupos.get(k) ?? [];
+        arr.push(m);
+        grupos.set(k, arr);
+      }
+
+      const idsParaApagar: string[] = [];
+      for (const [, arr] of grupos) {
+        if (arr.length < 2) continue;
+        const score = (m: any) =>
+          (m.data_envio_empresa ? 1 : 0) +
+          (m.data_retorno_empresa ? 1 : 0) +
+          (m.data_envio_financeiro ? 1 : 0) +
+          (m.observacoes ? 1 : 0) +
+          (m.responsavel_movimentacao ? 1 : 0);
+        arr.sort((a, b) => {
+          const d = score(b) - score(a);
+          if (d !== 0) return d;
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        });
+        for (let i = 1; i < arr.length; i++) idsParaApagar.push(arr[i].id);
+      }
+
+      if (idsParaApagar.length > 0) {
+        for (let i = 0; i < idsParaApagar.length; i += 100) {
+          const slice = idsParaApagar.slice(i, i + 100);
+          const { error: delErr } = await supabase.from("movimentacoes").delete().in("id", slice);
+          if (delErr) { console.error("Erro ao remover duplicatas:", delErr); errosMov += slice.length; }
+          else { duplicadasRemovidas += slice.length; }
+        }
+      }
+
+      const apagadosSet = new Set(idsParaApagar);
+      for (const mov of allMovs) {
+        if (apagadosSet.has(mov.id)) continue;
+        const emp = empresaMap.get(mov.empresa_id);
+        if (!emp) continue;
+        const updateMov: Record<string, any> = {};
+        let periodoCorreto: string;
+        if (emp.tipo_movimentacao === "Diária" && emp.data_corte) periodoCorreto = periodoDaDataCorte(emp.data_corte);
+        else if (emp.periodo_movimentacao) periodoCorreto = emp.periodo_movimentacao;
+        else periodoCorreto = "01-05";
+        if (mov.periodo !== periodoCorreto) updateMov.periodo = periodoCorreto;
+        const tipoCorreto = emp.tipo_movimentacao || "Fechada";
+        if (mov.tipo_movimentacao !== tipoCorreto) updateMov.tipo_movimentacao = tipoCorreto;
+        if (!mov.responsavel_movimentacao && emp.responsavel_contrato) updateMov.responsavel_movimentacao = emp.responsavel_contrato;
+        if (Object.keys(updateMov).length > 0) {
+          const { error: updErr } = await supabase.from("movimentacoes").update(updateMov).eq("id", mov.id);
+          if (updErr) { console.error("Erro ao atualizar mov:", mov.id, updErr); errosMov++; }
+          else { corrigidosMov++; }
+        }
+      }
+
+      const totalErros = errosEmp + errosMov;
+      toast({
+        title: "Revisão concluída!",
+        description: `Empresas: ${corrigidosEmp} corrigidas | Movimentações: ${corrigidosMov} corrigidas, ${duplicadasRemovidas} duplicada(s) removida(s) | ${totalErros} erro(s)`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Erro na revisão", description: err?.message, variant: "destructive" });
+    } finally {
+      setLoadingRevisao(false);
+    }
+  };
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin, role, isViewOnly, isExecutivo, isFinanceiro, user } = useAuth();
@@ -627,6 +741,11 @@ export default function Empresas() {
                   {isAdmin && (
                     <Button variant="outline" onClick={() => setRecalcVidasOpen(true)} className="rounded-lg">
                       <Users className="mr-2 h-4 w-4" />Recalcular Vidas
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button variant="secondary" onClick={handleRevisarEmpresas} disabled={loadingRevisao} className="rounded-lg">
+                      <Search className="mr-2 h-4 w-4" />{loadingRevisao ? "Revisando..." : "Verificar Empresas e Duplicidade"}
                     </Button>
                   )}
                 </>
