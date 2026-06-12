@@ -691,7 +691,7 @@ export default function Dashboard() {
                 {isGenerating ? "Gerando..." : "Gerar Movimentações"}
               </Button>
             )}
-            {isAdmin && (
+            {false && isAdmin && (
               <Button variant="secondary" size="sm" onClick={handleRevisarEmpresas} disabled={loadingRevisao} className="rounded-lg gap-2">
                 <Search className="h-4 w-4" />
                 {loadingRevisao ? "Revisando..." : "Revisar Empresas"}
