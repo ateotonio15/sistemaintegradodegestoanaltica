@@ -1,0 +1,1 @@
+UPDATE public.financeiro_pagadores SET cnpj = '04967477000100' WHERE id = '65210d1b-a570-4ee5-b27f-022b5781ca6b';
