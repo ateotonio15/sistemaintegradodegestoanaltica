@@ -88,6 +88,7 @@ export function gerarHistoricoTexto(
   let benefApt = 0, totalApt = 0, mensApt = 0;
   let totalInc = 0;
   let totalExc = 0;
+  let totalAdesao = 0;
 
   resultados.forEach((r) => {
     if (r.enfermaria.beneficiarios > 0 || r.enfermaria.total > 0) {
@@ -102,6 +103,7 @@ export function gerarHistoricoTexto(
     }
     if (r.inclusoes?.total) totalInc += r.inclusoes.total;
     if (r.exclusoes?.total) totalExc += r.exclusoes.total;
+    if (r.taxaAdesao?.total) totalAdesao += r.taxaAdesao.total;
   });
 
   if (benefEnf > 0 || totalEnf > 0) {
