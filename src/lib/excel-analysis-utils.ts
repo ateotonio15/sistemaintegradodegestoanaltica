@@ -1257,8 +1257,10 @@ export async function analisarExcelFinanceiroPorCnpj(
         b.apartamento.beneficiarios > 0 ||
         b.inclusoes.quantidade > 0 ||
         (b.exclusoes && b.exclusoes.quantidade > 0) ||
-        (b.devolucoes && b.devolucoes.quantidade > 0),
+        (b.devolucoes && b.devolucoes.quantidade > 0) ||
+        (b.taxaAdesao && b.taxaAdesao.quantidade > 0),
     )
+
     .sort((a, b) => {
       const ta = a.enfermaria.total + a.apartamento.total + a.inclusoes.total;
       const tb = b.enfermaria.total + b.apartamento.total + b.inclusoes.total;
