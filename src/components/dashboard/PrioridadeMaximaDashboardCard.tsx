@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Star } from "lucide-react";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { Badge } from "@/components/ui/badge";
+import { isPrioridadeAlertaIntenso } from "@/lib/movimentacao-utils";
 
 interface EmpresaPrio {
   id: string;
