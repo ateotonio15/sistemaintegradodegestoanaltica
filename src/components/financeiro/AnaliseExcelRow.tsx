@@ -286,6 +286,17 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     destaqueNegativo: true,
                   });
                 }
+                if (r.taxaAdesao && (r.taxaAdesao.quantidade > 0 || r.taxaAdesao.total !== 0)) {
+                  const qtd = r.taxaAdesao.quantidade;
+                  const tot = r.taxaAdesao.total;
+                  linhas.push({
+                    label: "Taxa de Adesão",
+                    beneficiarios: qtd,
+                    mensalidade: qtd > 0 ? tot / qtd : null,
+                    total: tot,
+                  });
+                }
+
 
 
                 const totalGeral = linhas.reduce((s, l) => s + l.total, 0);

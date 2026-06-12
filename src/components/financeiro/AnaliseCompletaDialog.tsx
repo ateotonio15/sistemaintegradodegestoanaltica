@@ -183,6 +183,9 @@ export function AnaliseCompletaDialog({
       totalDevPdf = 0,
       temDevExcel = false,
       temDevPdf = false;
+    let totalAdesaoExcel = 0,
+      temAdesaoExcel = false;
+
 
     res.forEach((r, idx) => {
       const c: any = cmps[idx];
@@ -206,6 +209,11 @@ export function AnaliseCompletaDialog({
         totalDevExcel += r.devolucoes.total;
         temDevExcel = true;
       }
+      if (r.taxaAdesao && r.taxaAdesao.total) {
+        totalAdesaoExcel += r.taxaAdesao.total;
+        temAdesaoExcel = true;
+      }
+
       if (c && !isSimplificada(c)) {
         if (c.enfermaria?.total.pdf != null) {
           totalEnfPdf += Number(c.enfermaria.total.pdf);
@@ -267,13 +275,17 @@ export function AnaliseCompletaDialog({
         linha("Devolução", temDevExcel ? totalDevExcel : null, temDevPdf ? totalDevPdf : null),
       );
     }
+    if (temAdesaoExcel) {
+      categorias.push(linha("Taxa de Adesão", totalAdesaoExcel, null));
+    }
 
     const totalExcelGeral =
       (temEnfExcel ? totalEnfExcel : 0) +
       (temAptExcel ? totalAptExcel : 0) +
       (temIncExcel ? totalIncExcel : 0) +
       (temExcExcel ? totalExcExcel : 0) +
-      (temDevExcel ? totalDevExcel : 0);
+      (temDevExcel ? totalDevExcel : 0) +
+      (temAdesaoExcel ? totalAdesaoExcel : 0);
     const totalPdfGeral =
       (temEnfPdf ? totalEnfPdf : 0) +
       (temAptPdf ? totalAptPdf : 0) +
@@ -284,10 +296,11 @@ export function AnaliseCompletaDialog({
     categorias.push(
       linha(
         "Total geral",
-        temEnfExcel || temAptExcel || temIncExcel || temExcExcel || temDevExcel ? totalExcelGeral : null,
+        temEnfExcel || temAptExcel || temIncExcel || temExcExcel || temDevExcel || temAdesaoExcel ? totalExcelGeral : null,
         temEnfPdf || temAptPdf || temIncPdf || temExcPdf || temDevPdf ? totalPdfGeral : null,
       ),
     );
+
 
     // Etapa 1 status
     let docStatus: Status = "OK";

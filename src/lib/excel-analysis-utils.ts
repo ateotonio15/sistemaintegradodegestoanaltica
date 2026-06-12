@@ -27,6 +27,8 @@ export interface AnaliseResultado {
   exclusoes?: InclusaoResultado;
   /** Devoluções — categoria própria com valor negativo (crédito). */
   devolucoes?: InclusaoResultado;
+  /** Taxa de Adesão — cobrada uma única vez por adesão. */
+  taxaAdesao?: InclusaoResultado;
   avisos: string[];
 }
 
@@ -41,8 +43,10 @@ export interface AnalisePorCnpj {
   retroativas?: InclusaoResultado;
   exclusoes?: InclusaoResultado;
   devolucoes?: InclusaoResultado;
+  taxaAdesao?: InclusaoResultado;
   avisos: string[];
 }
+
 
 
 
@@ -268,6 +272,13 @@ function isDevolucao(tipo: string): boolean {
   return t.includes("devolucao") || t.includes("devolução") || t.includes("devolvido");
 }
 
+function isTaxaAdesao(tipo: string): boolean {
+  const t = norm(tipo);
+  // Casa "Taxa de Adesão", "TAXA ADESAO", "Adesão", "Adesao"
+  return /\bades[aã]o\b/.test(t) || t.includes("taxa de adesao") || t.includes("taxa adesao");
+}
+
+
 
 
 /**
@@ -367,6 +378,9 @@ export async function analisarExcelFinanceiroPorPagador(
   let excTotal = 0;
   let devQtd = 0;
   let devTotal = 0;
+  let adesaoQtd = 0;
+  let adesaoTotal = 0;
+
 
   let linhasCasadas = 0;
 
@@ -399,11 +413,18 @@ export async function analisarExcelFinanceiroPorPagador(
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
 
+    if (idxTipo >= 0 && isTaxaAdesao(String(tipoCell))) {
+      adesaoQtd += 1;
+      if (valorValido) adesaoTotal += valor;
+      continue;
+    }
+
     if (idxTipo >= 0 && isDevolucao(String(tipoCell))) {
       devQtd += 1;
       devTotal += valorNum > 0 ? -valorNum : valorNum;
       continue;
     }
+
 
     if (idxTipo >= 0 && isExclusao(String(tipoCell))) {
       excQtd += 1;
@@ -461,6 +482,11 @@ export async function analisarExcelFinanceiroPorPagador(
   if (devQtd > 0 || devTotal !== 0) {
     result.devolucoes = { quantidade: devQtd, total: devTotal };
   }
+  if (adesaoQtd > 0 || adesaoTotal !== 0) {
+    result.taxaAdesao = { quantidade: adesaoQtd, total: adesaoTotal };
+  }
+
+
 
   return result;
 }
@@ -846,7 +872,9 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     retroQtd: number; retroTotal: number;
     excQtd: number; excTotal: number;
     devQtd: number; devTotal: number;
+    adesaoQtd: number; adesaoTotal: number;
   };
+
 
 
   const blocos: Acc[] = [];
@@ -885,7 +913,9 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         retroQtd: 0, retroTotal: 0,
         excQtd: 0, excTotal: 0,
         devQtd: 0, devTotal: 0,
+        adesaoQtd: 0, adesaoTotal: 0,
       };
+
       blocos.push(cur);
       continue;
     }
@@ -901,6 +931,12 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     const hasValor = !isNaN(val) && val !== 0;
     const hasMensalidade = !isNaN(mensN) && mensN !== 0;
 
+    if (labelNorm.includes("adesao") || labelNorm.includes("adesão")) {
+      cur.adesaoQtd += qtdNum;
+      cur.adesaoTotal += valNum;
+      continue;
+    }
+
     if (labelNorm.includes("inclus") || labelNorm.includes("retroativ")) {
       cur.incQtd += qtdNum;
       cur.incTotal += valNum;
@@ -910,6 +946,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       }
       continue;
     }
+
 
     if (labelNorm.includes("devolu")) {
       cur.devQtd += qtdNum;
@@ -966,6 +1003,10 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (g.devQtd > 0 || g.devTotal !== 0) {
       bloco.devolucoes = { quantidade: g.devQtd, total: g.devTotal };
     }
+    if (g.adesaoQtd > 0 || g.adesaoTotal !== 0) {
+      bloco.taxaAdesao = { quantidade: g.adesaoQtd, total: g.adesaoTotal };
+    }
+
 
     return bloco;
   });
@@ -1048,7 +1089,10 @@ export async function analisarExcelFinanceiroPorCnpj(
     excTotal: number;
     devQtd: number;
     devTotal: number;
+    adesaoQtd: number;
+    adesaoTotal: number;
   };
+
   const grupos = new Map<string, Acc>();
   const ehCnpjPlaceholder = (c: string) => !c || c.length !== 14 || /0{6,}$/.test(c);
   const getGrupo = (cnpj: string, nome: string): Acc => {
@@ -1079,7 +1123,10 @@ export async function analisarExcelFinanceiroPorCnpj(
         excTotal: 0,
         devQtd: 0,
         devTotal: 0,
+        adesaoQtd: 0,
+        adesaoTotal: 0,
       };
+
       grupos.set(key, g);
     } else {
       if (!g.nome && nome) g.nome = nome;
@@ -1108,6 +1155,12 @@ export async function analisarExcelFinanceiroPorCnpj(
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
 
+    if (idxTipo >= 0 && isTaxaAdesao(String(tipoCell))) {
+      grp.adesaoQtd += 1;
+      if (valorValido) grp.adesaoTotal += valor;
+      continue;
+    }
+
     if (idxTipo >= 0 && isDevolucao(String(tipoCell))) {
       grp.devQtd += 1;
       grp.devTotal += valorNum > 0 ? -valorNum : valorNum;
@@ -1118,6 +1171,7 @@ export async function analisarExcelFinanceiroPorCnpj(
       grp.excTotal += valorNum > 0 ? -valorNum : valorNum;
       continue;
     }
+
 
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
       grp.incQtd += 1;
@@ -1152,6 +1206,8 @@ export async function analisarExcelFinanceiroPorCnpj(
       dest.retroQtd += g.retroQtd; dest.retroTotal += g.retroTotal;
       dest.excQtd += g.excQtd; dest.excTotal += g.excTotal;
       dest.devQtd += g.devQtd; dest.devTotal += g.devTotal;
+      dest.adesaoQtd += g.adesaoQtd; dest.adesaoTotal += g.adesaoTotal;
+
       grupos.delete(key);
     }
   }
@@ -1187,6 +1243,11 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (g.devQtd > 0 || g.devTotal !== 0) {
         bloco.devolucoes = { quantidade: g.devQtd, total: g.devTotal };
       }
+      if (g.adesaoQtd > 0 || g.adesaoTotal !== 0) {
+        bloco.taxaAdesao = { quantidade: g.adesaoQtd, total: g.adesaoTotal };
+      }
+
+
 
       return bloco;
     })
@@ -1196,8 +1257,10 @@ export async function analisarExcelFinanceiroPorCnpj(
         b.apartamento.beneficiarios > 0 ||
         b.inclusoes.quantidade > 0 ||
         (b.exclusoes && b.exclusoes.quantidade > 0) ||
-        (b.devolucoes && b.devolucoes.quantidade > 0),
+        (b.devolucoes && b.devolucoes.quantidade > 0) ||
+        (b.taxaAdesao && b.taxaAdesao.quantidade > 0),
     )
+
     .sort((a, b) => {
       const ta = a.enfermaria.total + a.apartamento.total + a.inclusoes.total;
       const tb = b.enfermaria.total + b.apartamento.total + b.inclusoes.total;
@@ -1273,7 +1336,9 @@ export function cruzarExcelComPdfs(
       retroativas: bloco.retroativas,
       exclusoes: bloco.exclusoes,
       devolucoes: bloco.devolucoes,
+      taxaAdesao: bloco.taxaAdesao,
       avisos: bloco.avisos,
+
 
     };
     const cmp = compararExcelComPdf(excelResult, pdf);
