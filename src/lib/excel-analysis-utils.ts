@@ -1243,6 +1243,11 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (g.devQtd > 0 || g.devTotal !== 0) {
         bloco.devolucoes = { quantidade: g.devQtd, total: g.devTotal };
       }
+      if (g.adesaoQtd > 0 || g.adesaoTotal !== 0) {
+        bloco.taxaAdesao = { quantidade: g.adesaoQtd, total: g.adesaoTotal };
+      }
+
+
 
       return bloco;
     })
