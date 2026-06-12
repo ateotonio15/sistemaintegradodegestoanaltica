@@ -1170,7 +1170,7 @@ export default function Financeiro() {
   };
 
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
-  const ANALISE_PARSER_VERSION = "21";
+  const ANALISE_PARSER_VERSION = "22";
 
   // Computa a análise no NÍVEL DO CONTRATO (financeiro_movimentacoes.id).
   // Faz download/parse dos anexos uma única vez por movimentação e devolve
@@ -1443,22 +1443,9 @@ export default function Financeiro() {
       },
     );
 
-    if (isTaxaAdesao(row.tipo_cobranca || "") && resultados.length > 0) {
-      const totalBase = resultados.reduce(
-        (s: number, r: any) =>
-          s + (r.enfermaria?.total || 0) + (r.apartamento?.total || 0) + (r.inclusoes?.total || 0),
-        0,
-      );
-      resultados.forEach((r: any) => {
-        if (!r.taxaAdesao && totalBase > 0) {
-          const total = (r.enfermaria?.total || 0) + (r.apartamento?.total || 0) + (r.inclusoes?.total || 0);
-          r.taxaAdesao = { quantidade: 1, total };
-          r.enfermaria = { beneficiarios: 0, mensalidade: 0, total: 0 };
-          r.apartamento = { beneficiarios: 0, mensalidade: 0, total: 0 };
-          r.inclusoes = { quantidade: 0, total: 0 };
-        }
-      });
-    }
+    // Observação: não sintetizamos mais "Taxa de Adesão" a partir do tipo_cobranca.
+    // A linha "Taxa de Adesão" só aparecerá quando o próprio Excel contiver adesão.
+
 
 
     const out = { key: cacheKey, resultados, comparacoes, notasOrfas, temXls: true };
