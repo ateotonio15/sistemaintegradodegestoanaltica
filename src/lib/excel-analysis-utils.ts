@@ -1336,7 +1336,9 @@ export function cruzarExcelComPdfs(
       retroativas: bloco.retroativas,
       exclusoes: bloco.exclusoes,
       devolucoes: bloco.devolucoes,
+      taxaAdesao: bloco.taxaAdesao,
       avisos: bloco.avisos,
+
 
     };
     const cmp = compararExcelComPdf(excelResult, pdf);
