@@ -1155,6 +1155,12 @@ export async function analisarExcelFinanceiroPorCnpj(
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
 
+    if (idxTipo >= 0 && isTaxaAdesao(String(tipoCell))) {
+      grp.adesaoQtd += 1;
+      if (valorValido) grp.adesaoTotal += valor;
+      continue;
+    }
+
     if (idxTipo >= 0 && isDevolucao(String(tipoCell))) {
       grp.devQtd += 1;
       grp.devTotal += valorNum > 0 ? -valorNum : valorNum;
@@ -1165,6 +1171,7 @@ export async function analisarExcelFinanceiroPorCnpj(
       grp.excTotal += valorNum > 0 ? -valorNum : valorNum;
       continue;
     }
+
 
     if (idxTipo >= 0 && isInclusao(String(tipoCell))) {
       grp.incQtd += 1;
