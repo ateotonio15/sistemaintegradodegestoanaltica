@@ -74,13 +74,16 @@ export function PrioridadeDialog({ open, onOpenChange, empresaId, empresaNome, m
             <Label htmlFor="motivo-prioridade">
               {mode === "marcar" ? "Motivo da prioridade *" : "Motivo da remoção"}
             </Label>
-            <Textarea
-              id="motivo-prioridade"
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              placeholder={mode === "marcar" ? "Descreva por que esta empresa precisa de tratamento urgente" : "Opcional"}
-              rows={3}
-            />
+            <Select value={motivo} onValueChange={setMotivo}>
+              <SelectTrigger id="motivo-prioridade">
+                <SelectValue placeholder="Selecione um motivo" />
+              </SelectTrigger>
+              <SelectContent>
+                {(mode === "marcar" ? MOTIVOS_PRIORIDADE : MOTIVOS_REMOCAO).map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {mode === "marcar" && (
             <div>
