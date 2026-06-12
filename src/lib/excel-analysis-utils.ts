@@ -272,6 +272,13 @@ function isDevolucao(tipo: string): boolean {
   return t.includes("devolucao") || t.includes("devolução") || t.includes("devolvido");
 }
 
+function isTaxaAdesao(tipo: string): boolean {
+  const t = norm(tipo);
+  // Casa "Taxa de Adesão", "TAXA ADESAO", "Adesão", "Adesao"
+  return /\bades[aã]o\b/.test(t) || t.includes("taxa de adesao") || t.includes("taxa adesao");
+}
+
+
 
 
 /**
