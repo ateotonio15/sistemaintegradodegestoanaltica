@@ -482,6 +482,11 @@ export async function analisarExcelFinanceiroPorPagador(
   if (devQtd > 0 || devTotal !== 0) {
     result.devolucoes = { quantidade: devQtd, total: devTotal };
   }
+  if (adesaoQtd > 0 || adesaoTotal !== 0) {
+    result.taxaAdesao = { quantidade: adesaoQtd, total: adesaoTotal };
+  }
+
+
 
   return result;
 }
