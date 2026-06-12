@@ -115,6 +115,9 @@ export function gerarHistoricoTexto(
   if (totalInc > 0) {
     linhas.push(`Inclusão= ${fmtBR(totalInc)} /`);
   }
+  if (totalAdesao > 0) {
+    linhas.push(`Taxa de Adesão= ${fmtBR(totalAdesao)} /`);
+  }
   if (totalExc !== 0) {
     const v = Math.abs(totalExc);
     linhas.push(`Exclusão: (${fmtBR(v)}).`);
