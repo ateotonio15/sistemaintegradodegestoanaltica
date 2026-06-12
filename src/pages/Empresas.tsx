@@ -743,6 +743,11 @@ export default function Empresas() {
                       <Users className="mr-2 h-4 w-4" />Recalcular Vidas
                     </Button>
                   )}
+                  {isAdmin && (
+                    <Button variant="secondary" onClick={handleRevisarEmpresas} disabled={loadingRevisao} className="rounded-lg">
+                      <Search className="mr-2 h-4 w-4" />{loadingRevisao ? "Revisando..." : "Verificar Empresas e Duplicidade"}
+                    </Button>
+                  )}
                 </>
               )}
               <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => {
