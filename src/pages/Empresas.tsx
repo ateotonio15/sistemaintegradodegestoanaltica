@@ -1433,7 +1433,7 @@ export default function Empresas() {
                             <div className="flex items-center gap-2 flex-wrap">
                               {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0" />}
                               <span>{e.nome}</span>
-                              {temPrioridade && <PrioridadeBadge variant="compact" />}
+                              {temPrioridade && <PrioridadeBadge variant="compact" intense={isPrioridadeAlertaIntenso(e as any)} />}
                               {faixa && <Badge variant="outline" className="rounded-md text-[10px]">Faixa Etária</Badge>}
                             </div>
                           </TableCell>
