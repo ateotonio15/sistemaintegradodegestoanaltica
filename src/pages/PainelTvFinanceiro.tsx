@@ -838,15 +838,18 @@ function ListaCard<T>({
           </Badge>
         </div>
       </div>
-      <ScrollArea style={contentHeight ? { height: contentHeight, minHeight: 220 } : undefined} className={contentHeight ? "" : "h-[400px]"}>
-        <div className="p-3 pr-4">
+      <div
+        style={contentHeight ? { height: contentHeight, minHeight: 220 } : { height: 400 }}
+        className="overflow-y-auto overflow-x-hidden"
+      >
+        <div className="p-3">
           {rows.length === 0 ? (
             <div className="text-sm text-muted-foreground text-center py-12 px-4">{empty}</div>
           ) : (
             rows.map((r, i) => renderRow(r, i))
           )}
         </div>
-      </ScrollArea>
+      </div>
     </Card>
   );
 }
