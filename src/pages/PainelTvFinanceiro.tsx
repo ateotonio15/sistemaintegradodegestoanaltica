@@ -485,33 +485,79 @@ function HeroKpi({
   value,
   icon: Icon,
   tone,
+  hint,
   pulse,
 }: {
   label: string;
   value: number;
   icon: any;
-  tone: "neutral" | "muted" | "blue" | "purple";
+  tone: "neutral" | "muted" | "blue" | "purple" | "amber";
+  hint?: string;
   pulse?: boolean;
 }) {
   const toneMap = {
-    neutral: "from-foreground/5 to-foreground/0",
-    muted: "from-slate-400/10 to-slate-400/0",
-    blue: "from-blue-500/15 to-blue-500/0 text-blue-700 dark:text-blue-300",
-    purple: "from-purple-500/15 to-purple-500/0 text-purple-700 dark:text-purple-300",
+    neutral: {
+      bg: "from-emerald-500/10 via-card to-card",
+      iconWrap: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+      value: "text-foreground",
+      ring: "ring-emerald-500/20",
+    },
+    muted: {
+      bg: "from-slate-500/10 via-card to-card",
+      iconWrap: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+      value: "text-foreground",
+      ring: "ring-slate-500/20",
+    },
+    blue: {
+      bg: "from-blue-500/10 via-card to-card",
+      iconWrap: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+      value: "text-blue-700 dark:text-blue-300",
+      ring: "ring-blue-500/20",
+    },
+    amber: {
+      bg: "from-amber-500/10 via-card to-card",
+      iconWrap: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+      value: "text-amber-700 dark:text-amber-300",
+      ring: "ring-amber-500/20",
+    },
+    purple: {
+      bg: "from-purple-500/10 via-card to-card",
+      iconWrap: "bg-purple-500/15 text-purple-600 dark:text-purple-400",
+      value: "text-purple-700 dark:text-purple-300",
+      ring: "ring-purple-500/20",
+    },
   };
+  const t = toneMap[tone];
   return (
     <Card
       className={cn(
-        "p-5 bg-gradient-to-br border-0 shadow-sm",
-        toneMap[tone],
-        pulse && "ring-2 ring-purple-400/60 animate-pulse",
+        "relative overflow-hidden p-6 bg-gradient-to-br border border-border/60 shadow-sm hover:shadow-md transition-all",
+        t.bg,
+        "ring-1",
+        t.ring,
+        pulse && "ring-2 ring-purple-400/70 shadow-[0_0_30px_-5px_rgba(168,85,247,0.5)]",
       )}
     >
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium uppercase tracking-wider opacity-80">{label}</span>
-        <Icon className="h-5 w-5 opacity-70" />
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {label}
+        </span>
+        <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", t.iconWrap)}>
+          <Icon className="h-4.5 w-4.5" />
+        </div>
       </div>
-      <div className="text-5xl font-bold tabular-nums">{value}</div>
+      <div className={cn("text-5xl md:text-6xl font-bold tabular-nums leading-none tracking-tight", t.value)}>
+        {value}
+      </div>
+      {hint && (
+        <div className="mt-3 text-xs text-muted-foreground font-medium">{hint}</div>
+      )}
+      {pulse && (
+        <span className="absolute top-3 right-3 flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
+        </span>
+      )}
     </Card>
   );
 }
@@ -530,30 +576,50 @@ function ListaCard<T>({
   accent: "purple" | "blue" | "yellow";
   icon: any;
   rows: T[];
-  renderRow: (r: T) => React.ReactNode;
+  renderRow: (r: T, index: number) => React.ReactNode;
   empty: string;
 }) {
   const accentMap = {
-    purple: "border-l-4 border-purple-500",
-    blue: "border-l-4 border-blue-500",
-    yellow: "border-l-4 border-yellow-500",
+    purple: {
+      stripe: "bg-gradient-to-b from-purple-500 to-purple-500/30",
+      iconWrap: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
+      badge: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
+    },
+    blue: {
+      stripe: "bg-gradient-to-b from-blue-500 to-blue-500/30",
+      iconWrap: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
+      badge: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
+    },
+    yellow: {
+      stripe: "bg-gradient-to-b from-yellow-500 to-yellow-500/30",
+      iconWrap: "bg-yellow-500/15 text-yellow-600 dark:text-yellow-300",
+      badge: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border-yellow-500/30",
+    },
   };
+  const a = accentMap[accent];
   return (
-    <Card className={cn("flex flex-col", accentMap[accent])}>
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <Icon className="h-5 w-5" />
-          <h2 className="font-semibold text-lg">{title}</h2>
-          <Badge variant="secondary" className="ml-auto">{rows.length}</Badge>
+    <Card className="relative flex flex-col overflow-hidden border border-border/60 shadow-sm">
+      <span className={cn("absolute left-0 top-0 bottom-0 w-1", a.stripe)} aria-hidden />
+      <div className="p-5 border-b border-border/60 bg-gradient-to-b from-muted/30 to-transparent">
+        <div className="flex items-center gap-3">
+          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", a.iconWrap)}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold text-lg leading-tight">{title}</h2>
+            {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+          </div>
+          <Badge variant="secondary" className={cn("text-base font-bold tabular-nums px-3 py-1", a.badge)}>
+            {rows.length}
+          </Badge>
         </div>
-        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
       </div>
-      <ScrollArea className="h-[360px]">
-        <div className="p-4 pt-2">
+      <ScrollArea className="h-[400px]">
+        <div className="p-3">
           {rows.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">{empty}</p>
+            <div className="text-sm text-muted-foreground text-center py-12 px-4">{empty}</div>
           ) : (
-            rows.map(renderRow)
+            rows.map((r, i) => renderRow(r, i))
           )}
         </div>
       </ScrollArea>
