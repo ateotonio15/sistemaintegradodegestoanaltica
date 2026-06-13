@@ -16,6 +16,7 @@ import DashboardVendas from "./pages/DashboardVendas";
 import DashboardAdministradoras from "./pages/DashboardAdministradoras";
 
 import Financeiro from "./pages/Financeiro";
+import PainelTvFinanceiro from "./pages/PainelTvFinanceiro";
 import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
 import Implantacao from "./pages/Implantacao";
@@ -119,6 +120,7 @@ function AuthRoute() {
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute />} />
+    <Route path="/financeiro/painel-tv" element={<PainelTvFinanceiro />} />
     <Route path="/carteira-samel/avaliacoes/rh/responder/:formId" element={<CSResponderRH />} />
     <Route element={<AppShell />}>
       <Route path="/" element={<HomeRoute />} />
