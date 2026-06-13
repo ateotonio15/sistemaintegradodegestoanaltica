@@ -432,6 +432,8 @@ export default function PainelTvFinanceiro() {
             selected={selectedLists.has("notas")}
             onClick={() => toggleList("notas")}
           />
+        </section>
+
 
         {/* LISTAS SELECIONADAS */}
         {selectedLists.size > 0 && (
