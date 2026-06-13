@@ -281,6 +281,14 @@ const SHORTCUTS: Shortcut[] = [
       c.isAdmin || c.isFinanceiro || c.role === "comum" || c.role === "administradoras" || c.role === "visualizacao",
   },
   {
+    to: "/financeiro/painel-tv",
+    label: "Painel TV Financeiro",
+    description: "Monitoramento em tempo real do faturamento",
+    icon: Activity,
+    group: "funcoes",
+    show: (c) => c.isAdmin || c.isFinanceiro,
+  },
+  {
     to: "/reajustes",
     label: "Reajustes",
     description: "\n\n\n",
