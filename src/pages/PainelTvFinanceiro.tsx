@@ -787,6 +787,7 @@ function ListaCard<T>({
   rows,
   renderRow,
   empty,
+  contentHeight,
 }: {
   title: string;
   subtitle?: string;
@@ -795,6 +796,7 @@ function ListaCard<T>({
   rows: T[];
   renderRow: (r: T, index: number) => React.ReactNode;
   empty: string;
+  contentHeight?: string;
 }) {
   const accentMap = {
     purple: {
