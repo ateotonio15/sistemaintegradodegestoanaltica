@@ -68,6 +68,8 @@ export interface HistoricoOpts {
    * substitui a primeira linha do histórico por "Período de: 13/05/2026 à 12/06/2026".
    */
   periodoCobrancaLabel?: string | null;
+  /** Tipo de análise da movimentação. Quando "faixa_etaria", gera histórico detalhado por faixas. */
+  tipoAnalise?: string | null;
 }
 
 
@@ -106,21 +108,74 @@ export function gerarHistoricoTexto(
     if (r.taxaAdesao?.total) totalAdesao += r.taxaAdesao.total;
   });
 
-  if (benefEnf > 0 || totalEnf > 0) {
-    linhas.push(`Enfermaria: ${benefEnf}x${fmtBR(mensEnf)}= ${fmtBR(totalEnf)} /`);
-  }
-  if (benefApt > 0 || totalApt > 0) {
-    linhas.push(`Apartamento: ${benefApt}x${fmtBR(mensApt)}= ${fmtBR(totalApt)} /`);
-  }
-  if (totalInc > 0) {
-    linhas.push(`Inclusão= ${fmtBR(totalInc)} /`);
-  }
-  if (totalAdesao > 0) {
-    linhas.push(`Taxa de Adesão= ${fmtBR(totalAdesao)} /`);
-  }
-  if (totalExc !== 0) {
-    const v = Math.abs(totalExc);
-    linhas.push(`Exclusão: (${fmtBR(v)}).`);
+  const ehFaixaEtaria = (opts.tipoAnalise || "").toLowerCase() === "faixa_etaria";
+
+  if (ehFaixaEtaria) {
+    // Cabeçalho por categoria
+    if (benefEnf > 0 || totalEnf > 0) {
+      linhas.push(`Enfermaria (${benefEnf} beneficiários): R$ ${fmtBR(totalEnf)}.`);
+    }
+    if (benefApt > 0 || totalApt > 0) {
+      linhas.push(`Apartamento (${benefApt} beneficiários): R$ ${fmtBR(totalApt)}.`);
+    }
+
+    // Agrega faixas etárias somando todos os pagadores (mesma label)
+    const mapFaixas = new Map<string, { label: string; ordem: number; quantidade: number; total: number }>();
+    resultados.forEach((r) => {
+      (r.faixasEtarias || []).forEach((f) => {
+        const key = f.label;
+        const atual = mapFaixas.get(key);
+        if (atual) {
+          atual.quantidade += f.quantidade;
+          atual.total += f.total;
+        } else {
+          mapFaixas.set(key, {
+            label: f.label,
+            ordem: f.idadeInicial ?? 0,
+            quantidade: f.quantidade,
+            total: f.total,
+          });
+        }
+      });
+    });
+
+    const faixas = Array.from(mapFaixas.values()).sort((a, b) => a.ordem - b.ordem);
+    if (faixas.length > 0) {
+      linhas.push("");
+      linhas.push("Detalhamento por Faixa Etária:");
+      faixas.forEach((f) => {
+        linhas.push(`- ${f.label} (${f.quantidade} beneficiários): R$ ${fmtBR(f.total)}`);
+      });
+    }
+
+    if (totalInc > 0) {
+      linhas.push("");
+      linhas.push(`Inclusão= ${fmtBR(totalInc)}`);
+    }
+    if (totalAdesao > 0) {
+      linhas.push(`Taxa de Adesão= ${fmtBR(totalAdesao)}`);
+    }
+    if (totalExc !== 0) {
+      const v = Math.abs(totalExc);
+      linhas.push(`Exclusão: (${fmtBR(v)}).`);
+    }
+  } else {
+    if (benefEnf > 0 || totalEnf > 0) {
+      linhas.push(`Enfermaria: ${benefEnf}x${fmtBR(mensEnf)}= ${fmtBR(totalEnf)} /`);
+    }
+    if (benefApt > 0 || totalApt > 0) {
+      linhas.push(`Apartamento: ${benefApt}x${fmtBR(mensApt)}= ${fmtBR(totalApt)} /`);
+    }
+    if (totalInc > 0) {
+      linhas.push(`Inclusão= ${fmtBR(totalInc)} /`);
+    }
+    if (totalAdesao > 0) {
+      linhas.push(`Taxa de Adesão= ${fmtBR(totalAdesao)} /`);
+    }
+    if (totalExc !== 0) {
+      const v = Math.abs(totalExc);
+      linhas.push(`Exclusão: (${fmtBR(v)}).`);
+    }
   }
 
   linhas.push("");

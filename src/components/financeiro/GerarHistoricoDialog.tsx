@@ -189,6 +189,7 @@ export function GerarHistoricoDialog({
       pagamentoViaDeposito: pagamentoViaDepositoHistorico,
       poFixo,
       periodoCobrancaLabel: periodoCobrancaInfo?.label ?? null,
+      tipoAnalise: (row as any)?.tipo_analise ?? null,
     });
 
     return deveIncluirObsDda ? garantirObsDda(textoGerado) : textoGerado;
