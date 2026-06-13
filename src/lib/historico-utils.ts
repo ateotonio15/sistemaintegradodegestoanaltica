@@ -82,8 +82,6 @@ export function gerarHistoricoTexto(
   const cabecalho = opts.periodoCobrancaLabel && opts.periodoCobrancaLabel.trim()
     ? opts.periodoCobrancaLabel.trim()
     : opts.competenciaLabel;
-  linhas.push(`Período de: ${cabecalho}.`);
-  linhas.push("");
 
   // Agrega categorias somando todos os pagadores
   let benefEnf = 0, totalEnf = 0, mensEnf = 0;
@@ -111,13 +109,15 @@ export function gerarHistoricoTexto(
   const ehFaixaEtaria = (opts.tipoAnalise || "").toLowerCase() === "faixa_etaria";
 
   if (ehFaixaEtaria) {
-    // Cabeçalho por categoria
+    const resumoProdutos: string[] = [];
     if (benefEnf > 0 || totalEnf > 0) {
-      linhas.push(`Enfermaria (${benefEnf} beneficiários): R$ ${fmtBR(totalEnf)}.`);
+      resumoProdutos.push(`Enfermaria (${benefEnf} beneficiários): R$ ${fmtBR(totalEnf)}`);
     }
     if (benefApt > 0 || totalApt > 0) {
-      linhas.push(`Apartamento (${benefApt} beneficiários): R$ ${fmtBR(totalApt)}.`);
+      resumoProdutos.push(`Apartamento (${benefApt} beneficiários): R$ ${fmtBR(totalApt)}`);
     }
+
+    linhas.push(`Período de ${cabecalho}${resumoProdutos.length ? ` ${resumoProdutos.join(" / ")}` : ""}.`);
 
 
     if (totalInc > 0) {
@@ -132,6 +132,9 @@ export function gerarHistoricoTexto(
       linhas.push(`Exclusão: (${fmtBR(v)}).`);
     }
   } else {
+    linhas.push(`Período de: ${cabecalho}.`);
+    linhas.push("");
+
     if (benefEnf > 0 || totalEnf > 0) {
       linhas.push(`Enfermaria: ${benefEnf}x${fmtBR(mensEnf)}= ${fmtBR(totalEnf)} /`);
     }
