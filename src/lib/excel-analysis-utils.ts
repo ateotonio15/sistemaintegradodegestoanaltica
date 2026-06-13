@@ -29,6 +29,8 @@ export interface AnaliseResultado {
   devolucoes?: InclusaoResultado;
   /** Taxa de Adesão — cobrada uma única vez por adesão. */
   taxaAdesao?: InclusaoResultado;
+  /** Detalhamento por faixa etária quando disponível na RESUMO. */
+  faixasEtarias?: FaixaEtariaResumo[];
   avisos: string[];
 }
 
