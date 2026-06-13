@@ -18,7 +18,7 @@ import { Card } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { CalendarRange, Check, ChevronDown, GripVertical } from "lucide-react";
+import { CalendarRange, Check, ChevronDown, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -135,6 +135,13 @@ export default function PainelTvFinanceiro() {
       prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k],
     );
   const [dragKey, setDragKey] = useState<ListKey | null>(null);
+  const [sortDirs, setSortDirs] = useState<Record<ListKey, "desc" | "asc">>({
+    aguardando: "desc",
+    notas: "desc",
+    faturamento: "desc",
+  });
+  const toggleSort = (k: ListKey) =>
+    setSortDirs((prev) => ({ ...prev, [k]: prev[k] === "desc" ? "asc" : "desc" }));
   const moveList = (from: ListKey, to: ListKey) => {
     if (from === to) return;
     setListOrder((prev) => {
@@ -349,9 +356,30 @@ export default function PainelTvFinanceiro() {
       .slice(0, 8);
   }, [rows]);
 
-  const notasAguardandoEnvio = rows.filter((r) => r.status === "Nota emitida");
-  const emFaturamento = rows.filter((r) => r.status === "Em faturamento");
-  const aguardandoEmissao = rows.filter((r) => r.status === "Aguardando nota");
+  const sortByTime = <T extends Record<string, any>>(arr: T[], field: (r: T) => string | null | undefined, dir: "desc" | "asc") => {
+    const copy = [...arr];
+    copy.sort((a, b) => {
+      const ta = new Date(field(a) || 0).getTime();
+      const tb = new Date(field(b) || 0).getTime();
+      return dir === "desc" ? tb - ta : ta - tb;
+    });
+    return copy;
+  };
+  const notasAguardandoEnvio = sortByTime(
+    rows.filter((r) => r.status === "Nota emitida"),
+    (r) => r.updated_at,
+    sortDirs.notas,
+  );
+  const emFaturamento = sortByTime(
+    rows.filter((r) => r.status === "Em faturamento"),
+    (r) => r.faturamento_iniciado_em || r.updated_at,
+    sortDirs.faturamento,
+  );
+  const aguardandoEmissao = sortByTime(
+    rows.filter((r) => r.status === "Aguardando nota"),
+    (r) => r.aguardando_nota_em || r.updated_at,
+    sortDirs.aguardando,
+  );
 
   void now;
 
@@ -525,6 +553,8 @@ export default function PainelTvFinanceiro() {
                   icon={TimerReset}
                   rows={aguardandoEmissao}
                   contentHeight={listHeight}
+                  sortDir={sortDirs.aguardando}
+                  onBadgeClick={() => toggleSort("aguardando")}
                   renderRow={(r, i) => (
                     <RowItem
                       key={r.id}
@@ -549,6 +579,8 @@ export default function PainelTvFinanceiro() {
                   icon={Send}
                   rows={notasAguardandoEnvio}
                   contentHeight={listHeight}
+                  sortDir={sortDirs.notas}
+                  onBadgeClick={() => toggleSort("notas")}
                   renderRow={(r, i) => (
                     <RowItem
                       key={r.id}
@@ -572,6 +604,8 @@ export default function PainelTvFinanceiro() {
                 icon={Activity}
                 rows={emFaturamento}
                 contentHeight={listHeight}
+                sortDir={sortDirs.faturamento}
+                onBadgeClick={() => toggleSort("faturamento")}
                 renderRow={(r, i) => (
                   <RowItem
                     key={r.id}
@@ -787,6 +821,8 @@ function ListaCard<T>({
   renderRow,
   empty,
   contentHeight,
+  sortDir,
+  onBadgeClick,
 }: {
   title: string;
   subtitle?: string;
@@ -796,6 +832,8 @@ function ListaCard<T>({
   renderRow: (r: T, index: number) => React.ReactNode;
   empty: string;
   contentHeight?: string;
+  sortDir?: "desc" | "asc";
+  onBadgeClick?: () => void;
 }) {
   const accentMap = {
     purple: {
@@ -833,9 +871,30 @@ function ListaCard<T>({
             <h2 className="font-semibold text-lg leading-tight truncate">{title}</h2>
             {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
           </div>
-          <Badge variant="secondary" className={cn("text-base font-bold tabular-nums px-3 py-1 shrink-0", a.badge)}>
+          <button
+            type="button"
+            onClick={onBadgeClick}
+            disabled={!onBadgeClick}
+            title={
+              onBadgeClick
+                ? sortDir === "desc"
+                  ? "Ordenado: mais recente → mais antigo (clique para inverter)"
+                  : "Ordenado: mais antigo → mais recente (clique para inverter)"
+                : undefined
+            }
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md text-base font-bold tabular-nums px-3 py-1 shrink-0 border transition-colors",
+              a.badge,
+              onBadgeClick && "hover:brightness-110 cursor-pointer",
+            )}
+          >
             {rows.length}
-          </Badge>
+            {onBadgeClick && (
+              sortDir === "desc"
+                ? <ArrowDown className="h-3.5 w-3.5 opacity-80" />
+                : <ArrowUp className="h-3.5 w-3.5 opacity-80" />
+            )}
+          </button>
         </div>
       </div>
       <div
