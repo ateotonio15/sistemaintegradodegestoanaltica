@@ -676,8 +676,10 @@ export function obterDivergenciasNotaFiscal(
 export function compararExcelComPdf(
   excel: AnaliseResultado,
   pdf: AnalisePdfResultado | null,
+  tipoAnalise?: string | null,
 ): ComparacaoResultado {
   const divergencias: string[] = [];
+  const isFaixaEtaria = tipoAnalise === "faixa_etaria";
   const tem = (c: { beneficiarios: number; total: number }) =>
     c.beneficiarios > 0 || c.total > 0;
 
@@ -692,13 +694,14 @@ export function compararExcelComPdf(
       mensalidade: campo(e.mensalidade, pdfEnc ? p!.mensalidade : null, "money"),
       total: campo(e.total, pdfEnc ? p!.total : null, "money"),
     };
+    if (isFaixaEtaria) enfermaria.mensalidade.ok = true;
     if (pdf && !pdfEnc) divergencias.push("Categoria Enfermaria não encontrada no PDF.");
     else if (pdfEnc) {
       if (!enfermaria.beneficiarios.ok)
         divergencias.push(
           `Divergência nos beneficiários da enfermaria (Excel ${e.beneficiarios} × PDF ${p!.beneficiarios ?? "—"}).`,
         );
-      if (!enfermaria.mensalidade.ok)
+      if (!isFaixaEtaria && !enfermaria.mensalidade.ok)
         divergencias.push(
           `Divergência na mensalidade da enfermaria (Excel ${formatBRL(e.mensalidade)} × PDF ${p!.mensalidade !== null ? formatBRL(p!.mensalidade) : "—"}).`,
         );
@@ -720,13 +723,14 @@ export function compararExcelComPdf(
       mensalidade: campo(e.mensalidade, pdfEnc ? p!.mensalidade : null, "money"),
       total: campo(e.total, pdfEnc ? p!.total : null, "money"),
     };
+    if (isFaixaEtaria) apartamento.mensalidade.ok = true;
     if (pdf && !pdfEnc) divergencias.push("Categoria Apartamento não encontrada no PDF.");
     else if (pdfEnc) {
       if (!apartamento.beneficiarios.ok)
         divergencias.push(
           `Divergência nos beneficiários do apartamento (Excel ${e.beneficiarios} × PDF ${p!.beneficiarios ?? "—"}).`,
         );
-      if (!apartamento.mensalidade.ok)
+      if (!isFaixaEtaria && !apartamento.mensalidade.ok)
         divergencias.push(
           `Divergência na mensalidade do apartamento (Excel ${formatBRL(e.mensalidade)} × PDF ${p!.mensalidade !== null ? formatBRL(p!.mensalidade) : "—"}).`,
         );
@@ -736,6 +740,7 @@ export function compararExcelComPdf(
         );
     }
   }
+
 
   // Inclusões — só compara o total
   let inclusoes: { total: CampoValidacao } | null = null;
