@@ -871,9 +871,30 @@ function ListaCard<T>({
             <h2 className="font-semibold text-lg leading-tight truncate">{title}</h2>
             {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
           </div>
-          <Badge variant="secondary" className={cn("text-base font-bold tabular-nums px-3 py-1 shrink-0", a.badge)}>
+          <button
+            type="button"
+            onClick={onBadgeClick}
+            disabled={!onBadgeClick}
+            title={
+              onBadgeClick
+                ? sortDir === "desc"
+                  ? "Ordenado: mais recente → mais antigo (clique para inverter)"
+                  : "Ordenado: mais antigo → mais recente (clique para inverter)"
+                : undefined
+            }
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md text-base font-bold tabular-nums px-3 py-1 shrink-0 border transition-colors",
+              a.badge,
+              onBadgeClick && "hover:brightness-110 cursor-pointer",
+            )}
+          >
             {rows.length}
-          </Badge>
+            {onBadgeClick && (
+              sortDir === "desc"
+                ? <ArrowDown className="h-3.5 w-3.5 opacity-80" />
+                : <ArrowUp className="h-3.5 w-3.5 opacity-80" />
+            )}
+          </button>
         </div>
       </div>
       <div
