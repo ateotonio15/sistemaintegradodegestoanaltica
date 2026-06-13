@@ -579,6 +579,8 @@ export default function PainelTvFinanceiro() {
                   icon={Send}
                   rows={notasAguardandoEnvio}
                   contentHeight={listHeight}
+                  sortDir={sortDirs.notas}
+                  onBadgeClick={() => toggleSort("notas")}
                   renderRow={(r, i) => (
                     <RowItem
                       key={r.id}
