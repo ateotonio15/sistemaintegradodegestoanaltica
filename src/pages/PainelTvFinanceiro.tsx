@@ -112,7 +112,20 @@ export default function PainelTvFinanceiro() {
   const { user, role, isAdmin, isFinanceiro } = useAuth();
   const podeVer = isAdmin || isFinanceiro || role === "diretora";
 
-  const [mes, setMes] = useState<string>(getCurrentMesReferencia());
+  // Seleção: { mes_referencia: [periodos...] }. Periodos = subset de PERIODOS_FIN.
+  const [selections, setSelections] = useState<Record<string, string[]>>(() => ({
+    [getCurrentMesReferencia()]: [...PERIODOS_FIN],
+  }));
+  const mesesSelecionados = useMemo(
+    () => Object.keys(selections).filter((m) => selections[m]?.length > 0).sort(),
+    [selections],
+  );
+  const selectionKey = useMemo(
+    () => mesesSelecionados.map((m) => `${m}:${selections[m].join(",")}`).join("|"),
+    [mesesSelecionados, selections],
+  );
+  const mesPrincipal = mesesSelecionados[0] || getCurrentMesReferencia();
+
   type ListKey = "aguardando" | "notas" | "faturamento";
   const [selectedLists, setSelectedLists] = useState<Set<ListKey>>(new Set());
   const toggleList = (k: ListKey) =>
@@ -126,7 +139,7 @@ export default function PainelTvFinanceiro() {
   const [now, setNow] = useState(Date.now());
   const [lastUpdate, setLastUpdate] = useState(Date.now());
 
-  useFinanceiroRealtime({ enabled: !!user && podeVer, mesReferencia: mes });
+  useFinanceiroRealtime({ enabled: !!user && podeVer, mesReferencia: mesPrincipal });
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30000);
