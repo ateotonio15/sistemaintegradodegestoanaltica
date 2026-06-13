@@ -108,7 +108,15 @@ export default function PainelTvFinanceiro() {
   const podeVer = isAdmin || isFinanceiro || role === "diretora";
 
   const [mes, setMes] = useState<string>(getCurrentMesReferencia());
-  const [selectedList, setSelectedList] = useState<"aguardando" | "notas" | null>(null);
+  type ListKey = "aguardando" | "notas" | "faturamento";
+  const [selectedLists, setSelectedLists] = useState<Set<ListKey>>(new Set());
+  const toggleList = (k: ListKey) =>
+    setSelectedLists((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
   const [tvMode, setTvMode] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [lastUpdate, setLastUpdate] = useState(Date.now());
