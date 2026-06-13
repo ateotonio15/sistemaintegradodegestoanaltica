@@ -361,7 +361,7 @@ export default function PainelTvFinanceiro() {
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <HeroKpi label="Total competência" value={counts.total} icon={TrendingUp} tone="neutral" />
           <HeroKpi label="Pendentes" value={pendentes} icon={Clock} tone="muted" />
-          <HeroKpi label="Aguardando emissão" value={emAndamento} icon={Activity} tone="blue" />
+          <HeroKpi label="Aguardando emissão" value={aguardandoEmissao.length} icon={Activity} tone="blue" />
           <HeroKpi
             label="Notas — enviar ao cliente"
             value={counts["Nota emitida"]}
@@ -482,7 +482,7 @@ export default function PainelTvFinanceiro() {
         </section>
 
         {/* RANKING + LISTAS PRINCIPAIS */}
-        <section className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold">Ranking — operação ativa</h2>
@@ -567,34 +567,6 @@ export default function PainelTvFinanceiro() {
               </div>
             )}
             empty="Nenhuma empresa em faturamento agora."
-          />
-
-          <ListaCard
-            title="Aguardando emissão"
-            subtitle="Operacional enviou — Financeiro precisa emitir"
-            accent="yellow"
-            icon={Clock}
-            rows={aguardandoEmissao}
-            renderRow={(r) => (
-              <div key={r.id} className="flex items-start justify-between gap-3 py-2 border-b border-border/40 last:border-0">
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{r.empresa_nome}</div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {r.empresa_codigo || "—"} · {r.periodo}
-                    {r.responsavel ? ` · ${r.responsavel}` : ""}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <Badge className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30">
-                    Emitir
-                  </Badge>
-                  <div className="text-[11px] text-muted-foreground mt-1">
-                    {tempoDesde(r.aguardando_nota_em || r.updated_at)}
-                  </div>
-                </div>
-              </div>
-            )}
-            empty="Nenhuma aguardando emissão."
           />
         </section>
 
