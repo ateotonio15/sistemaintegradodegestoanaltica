@@ -553,6 +553,8 @@ export default function PainelTvFinanceiro() {
                   icon={TimerReset}
                   rows={aguardandoEmissao}
                   contentHeight={listHeight}
+                  sortDir={sortDirs.aguardando}
+                  onBadgeClick={() => toggleSort("aguardando")}
                   renderRow={(r, i) => (
                     <RowItem
                       key={r.id}
