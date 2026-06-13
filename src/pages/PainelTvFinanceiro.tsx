@@ -147,17 +147,20 @@ export default function PainelTvFinanceiro() {
       return arr;
     });
   };
-  // Tamanho de cada card: 1 = normal, 2 = duas colunas, 3 = linha inteira
-  const [cardSpan, setCardSpan] = useState<Record<ListKey, 1 | 2 | 3>>({
-    aguardando: 1,
-    notas: 1,
-    faturamento: 1,
-  });
-  const cycleSpan = (k: ListKey) =>
-    setCardSpan((prev) => ({
-      ...prev,
-      [k]: prev[k] === 1 ? 2 : prev[k] === 2 ? 3 : 1,
-    }));
+  // Layout preset — sempre completa as linhas (sem cards "pela metade") em qualquer combinação.
+  type LayoutMode = "cols" | "stacked" | "two-one" | "one-two" | "side";
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("cols");
+  // Retorna spans em colunas de 12 para cada card, na ordem atual.
+  const computeSpans = (order: ListKey[], mode: LayoutMode): number[] => {
+    const n = order.length;
+    if (n === 0) return [];
+    if (n === 1) return [12];
+    if (n === 2) return mode === "stacked" ? [12, 12] : [6, 6];
+    if (mode === "stacked") return [12, 12, 12];
+    if (mode === "two-one") return [8, 4, 12];
+    if (mode === "one-two") return [12, 8, 4];
+    return [4, 4, 4];
+  };
   const [tvMode, setTvMode] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [lastUpdate, setLastUpdate] = useState(Date.now());
