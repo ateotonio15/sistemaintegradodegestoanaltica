@@ -130,6 +130,7 @@ const COL_TIPO_COBRANCA = [
 const COL_VALOR = ["valor", "mensalidade", "valor mensalidade", "vlr", "preco", "valor total"];
 const COL_CNPJ = ["cnpj", "cnpj pagador", "cnpj do pagador", "cnpj empresa"];
 const COL_PAGADOR = ["pagador", "nome pagador", "nome do pagador", "razao social", "razão social", "empresa", "contratante", "nome empresa", "nome da empresa"];
+const COL_FAIXA_ETARIA = ["fx etaria", "fx etária", "faixa etaria", "faixa etária", "idade", "grupo faixa etaria", "grupo faixa etária"];
 
 /** Normalização "agressiva" para casamento de nomes: remove pontuação e colapsa espaços. */
 function normMatch(s: unknown): string {
@@ -256,6 +257,28 @@ function classificarPlano(plano: string): "enfermaria" | "apartamento" | null {
     /\bempresarial\b/.test(p)
   ) {
     return "enfermaria";
+  }
+  return null;
+}
+
+function parseFaixaEtariaLabel(raw: unknown): FaixaEtariaResumo | null {
+  const original = cellToText(raw).trim();
+  if (!original) return null;
+  const s = norm(original)
+    .replace(/anos?/g, "")
+    .replace(/idade/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const faixa = s.match(/(\d{1,3})\s*(?:[àa]|-|–|—|ate|até)\s*(\d{1,3})/i);
+  if (faixa) {
+    const ini = parseInt(faixa[1], 10);
+    const fim = parseInt(faixa[2], 10);
+    return { label: `${ini} à ${fim}`, idadeInicial: ini, idadeFinal: fim, quantidade: 0, total: 0 };
+  }
+  const mais = s.match(/(\d{1,3})\s*(?:\+|mais|acima)/i);
+  if (mais) {
+    const ini = parseInt(mais[1], 10);
+    return { label: `${ini}+`, idadeInicial: ini, idadeFinal: null, quantidade: 0, total: 0 };
   }
   return null;
 }
