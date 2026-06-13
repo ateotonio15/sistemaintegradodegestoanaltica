@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { BedDouble, Hotel, Users } from "lucide-react";
@@ -7,7 +7,6 @@ import {
   FAIXAS_ETARIAS,
   labelFaixa,
   type FaixaEtariaItem,
-  reaisToCentavos,
   centavosToReais,
   calcularValorReajustadoCentavos,
   calcularRetroativoCentavos,
@@ -133,11 +132,7 @@ export function ReajusteFaixaEtariaTable({
           </thead>
           <tbody>
             {faixas.map((f, idx) => {
-              const valorStr =
-                f.valor_atual_centavos > 0
-                  ? centavosToReais(f.valor_atual_centavos).toFixed(2).replace(".", ",")
-                  : "";
-              const pctStr = f.percentual > 0 ? String(f.percentual).replace(".", ",") : "";
+              const valorReais = f.valor_atual_centavos > 0 ? centavosToReais(f.valor_atual_centavos) : 0;
               return (
                 <tr key={`${f.idade_inicial}-${f.idade_final}`} className="border-t">
                   <td className="p-2">
@@ -146,29 +141,23 @@ export function ReajusteFaixaEtariaTable({
                     </Badge>
                   </td>
                   <td className="p-2">
-                    <Input
-                      inputMode="decimal"
+                    <DecimalInput
                       placeholder="0,00"
                       className="h-8 text-xs"
-                      value={valorStr}
-                      onChange={(e) =>
-                        updateFaixa(idx, { valor_atual_centavos: reaisToCentavos(e.target.value) })
-                      }
+                      value={valorReais}
+                      onChange={(n) => updateFaixa(idx, { valor_atual_centavos: Math.round(n * 100) })}
                     />
                   </td>
                   <td className="p-2">
-                    <Input
-                      inputMode="decimal"
+                    <DecimalInput
                       placeholder={percentualUnico ? `${percentualGlobal || 0}` : "0,00"}
                       className="h-8 text-xs"
-                      value={percentualUnico ? "" : pctStr}
+                      value={percentualUnico ? 0 : f.percentual}
                       disabled={percentualUnico}
-                      onChange={(e) => {
-                        const n = parseFloat(String(e.target.value).replace(",", "."));
-                        updateFaixa(idx, { percentual: isNaN(n) ? 0 : n });
-                      }}
+                      onChange={(n) => updateFaixa(idx, { percentual: n })}
                     />
                   </td>
+
                   <td className="p-2 font-medium">{formatCentavosBRL(f.valor_reajustado_centavos)}</td>
                   <td className="p-2">{formatCentavosBRL(f.valor_retroativo_centavos)}</td>
                   <td className={`p-2 font-bold ${cor.final}`}>{formatCentavosBRL(f.valor_final_centavos)}</td>

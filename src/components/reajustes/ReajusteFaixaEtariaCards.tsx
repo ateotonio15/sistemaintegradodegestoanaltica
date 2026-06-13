@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { BedDouble, Hotel, Users } from "lucide-react";
@@ -7,7 +7,6 @@ import {
   FAIXAS_ETARIAS,
   labelFaixa,
   type FaixaEtariaItem,
-  reaisToCentavos,
   centavosToReais,
   calcularValorReajustadoCentavos,
   calcularRetroativoCentavos,
@@ -138,11 +137,7 @@ export function ReajusteFaixaEtariaCards({
 
       <div className="grid gap-3">
         {faixas.map((f, idx) => {
-          const valorStr =
-            f.valor_atual_centavos > 0
-              ? centavosToReais(f.valor_atual_centavos).toFixed(2).replace(".", ",")
-              : "";
-          const pctStr = f.percentual > 0 ? String(f.percentual).replace(".", ",") : "";
+          const valorReais = f.valor_atual_centavos > 0 ? centavosToReais(f.valor_atual_centavos) : 0;
           const preenchida = f.valor_atual_centavos > 0;
           return (
             <div
@@ -161,30 +156,24 @@ export function ReajusteFaixaEtariaCards({
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4">
                 <div className="space-y-1.5">
                   <label className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Valor Atual</label>
-                  <Input
-                    inputMode="decimal"
+                  <DecimalInput
                     placeholder="0,00"
                     className="h-10"
-                    value={valorStr}
-                    onChange={(e) =>
-                      updateFaixa(idx, { valor_atual_centavos: reaisToCentavos(e.target.value) })
-                    }
+                    value={valorReais}
+                    onChange={(n) => updateFaixa(idx, { valor_atual_centavos: Math.round(n * 100) })}
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">%</label>
-                  <Input
-                    inputMode="decimal"
+                  <DecimalInput
                     placeholder={percentualUnico ? `${percentualGlobal || 0}` : "0,00"}
                     className="h-10"
-                    value={percentualUnico ? "" : pctStr}
+                    value={percentualUnico ? 0 : f.percentual}
                     disabled={percentualUnico}
-                    onChange={(e) => {
-                      const n = parseFloat(String(e.target.value).replace(",", "."));
-                      updateFaixa(idx, { percentual: isNaN(n) ? 0 : n });
-                    }}
+                    onChange={(n) => updateFaixa(idx, { percentual: n })}
                   />
                 </div>
+
                 <div className="space-y-1.5">
                   <label className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Reajustado</label>
                   <div className="h-10 flex items-center px-3 rounded-md bg-muted/40 text-sm font-medium tabular-nums">
