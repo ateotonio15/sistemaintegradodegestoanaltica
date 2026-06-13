@@ -604,6 +604,8 @@ export default function PainelTvFinanceiro() {
                 icon={Activity}
                 rows={emFaturamento}
                 contentHeight={listHeight}
+                sortDir={sortDirs.faturamento}
+                onBadgeClick={() => toggleSort("faturamento")}
                 renderRow={(r, i) => (
                   <RowItem
                     key={r.id}
