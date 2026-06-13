@@ -26,12 +26,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Activity,
-  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   Clock,
-  FileSpreadsheet,
-  FileText,
   Maximize2,
   Minimize2,
   RefreshCw,
@@ -40,6 +37,22 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as RTooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  RadialBarChart,
+  RadialBar,
+  PolarAngleAxis,
+} from "recharts";
 
 type Row = {
   id: string;
@@ -54,12 +67,6 @@ type Row = {
   faturamento_iniciado_em: string | null;
   aguardando_nota_em: string | null;
   updated_at: string;
-  anexos_count: number;
-  tem_pdf: boolean;
-  tem_xls: boolean;
-  exige_po_pc: boolean;
-  divergente: boolean;
-  dentro_prazo: boolean | null;
 };
 
 function tempoDesde(iso: string | null | undefined): string {
@@ -75,46 +82,24 @@ function tempoDesde(iso: string | null | undefined): string {
   return `${dias}d ${h % 24}h`;
 }
 
-const STATUS_META: Record<
-  string,
-  { label: string; color: string; icon: any }
-> = {
-  Pendente: { label: "Pendentes", color: "bg-muted text-foreground", icon: Clock },
-  "Aguardando nota": {
-    label: "Aguardando emissão",
-    color: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30",
-    icon: TimerReset,
-  },
-  "Em faturamento": {
-    label: "Em faturamento",
-    color: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30",
-    icon: Activity,
-  },
-  "Nota emitida": {
-    label: "Nota emitida — enviar",
-    color: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30",
-    icon: Send,
-  },
-  Enviada: {
-    label: "Enviadas",
-    color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30",
-    icon: CheckCircle2,
-  },
-  Faturado: {
-    label: "Faturadas",
-    color: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30",
-    icon: CheckCircle2,
-  },
-  "Aguardando validação": {
-    label: "Validação PO/PC",
-    color: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300 border border-fuchsia-500/30",
-    icon: FileText,
-  },
-  "Fora do prazo": {
-    label: "Fora do prazo",
-    color: "bg-red-500/15 text-red-600 dark:text-red-300 border border-red-500/30",
-    icon: AlertTriangle,
-  },
+const STATUS_ORDER: StatusFinanceiro[] = [
+  "Pendente",
+  "Aguardando nota",
+  "Em faturamento",
+  "Nota emitida",
+  "Enviada",
+  "Faturado",
+];
+
+const STATUS_COLORS: Record<string, string> = {
+  Pendente: "#94a3b8",
+  "Aguardando nota": "#f59e0b",
+  "Em faturamento": "#3b82f6",
+  "Nota emitida": "#a855f7",
+  Enviada: "#10b981",
+  Faturado: "#06b6d4",
+  "Aguardando validação": "#d946ef",
+  "Fora do prazo": "#ef4444",
 };
 
 export default function PainelTvFinanceiro() {
@@ -129,13 +114,11 @@ export default function PainelTvFinanceiro() {
 
   useFinanceiroRealtime({ enabled: !!user && podeVer, mesReferencia: mes });
 
-  // tick a cada 30s para atualizar "tempo no status"
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(id);
   }, []);
 
-  // fullscreen toggle
   const toggleFullscreen = async () => {
     if (!document.fullscreenElement) {
       await document.documentElement.requestFullscreen().catch(() => {});
@@ -146,7 +129,6 @@ export default function PainelTvFinanceiro() {
     }
   };
 
-  // fetch financeiro_movimentacoes + empresas + analises + anexos + envio operacional
   const { data: fin = [], isLoading, refetch } = useQuery({
     queryKey: ["tv-financeiro-mov", mes],
     queryFn: async () => {
@@ -219,29 +201,9 @@ export default function PainelTvFinanceiro() {
     },
   });
 
-  const { data: analiseStatusMap = {} } = useQuery({
-    queryKey: ["tv-fin-analise", movIds.sort().join(",")],
-    enabled: movIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("financeiro_analises")
-        .select("financeiro_movimentacao_id, status_analise")
-        .in("financeiro_movimentacao_id", movIds);
-      if (error) throw error;
-      const m: Record<string, boolean> = {};
-      (data || []).forEach((r: any) => {
-        const s = String(r.status_analise || "").toLowerCase();
-        if (s === "divergente" || s === "divergencia" || s === "divergência") {
-          m[r.financeiro_movimentacao_id] = true;
-        }
-      });
-      return m;
-    },
-  });
-
   useEffect(() => {
     setLastUpdate(Date.now());
-  }, [fin, anexosMap, envioOpMap, analiseStatusMap]);
+  }, [fin, anexosMap, envioOpMap]);
 
   const rows: Row[] = useMemo(() => {
     return (fin as any[]).map((f) => {
@@ -267,53 +229,67 @@ export default function PainelTvFinanceiro() {
         faturamento_iniciado_em: f.faturamento_iniciado_em,
         aguardando_nota_em: f.aguardando_nota_em,
         updated_at: f.updated_at,
-        anexos_count: anexos.length,
-        tem_pdf: anexos.some(isPdfAnexo),
-        tem_xls: anexos.some(isXlsAnexo),
-        exige_po_pc: !!emp?.exige_po_pc,
-        divergente: !!(analiseStatusMap as any)[f.id],
-        dentro_prazo: f.dentro_prazo,
       };
     });
-  }, [fin, empresasMap, anexosMap, envioOpMap, analiseStatusMap]);
+  }, [fin, empresasMap, anexosMap, envioOpMap]);
 
   const counts = useMemo(() => {
-    const c = {
+    const c: Record<string, number> = {
       total: rows.length,
-      pendente: 0,
-      aguardando_nota: 0,
-      em_faturamento: 0,
-      nota_emitida: 0,
-      enviada: 0,
-      faturado: 0,
-      validacao: 0,
-      fora_prazo: 0,
-      divergente: 0,
-      sem_excel: 0,
-      sem_pdf: 0,
+      Pendente: 0,
+      "Aguardando nota": 0,
+      "Em faturamento": 0,
+      "Nota emitida": 0,
+      Enviada: 0,
+      Faturado: 0,
     };
     rows.forEach((r) => {
-      if (r.status === "Pendente") c.pendente++;
-      if (r.status === "Aguardando nota") c.aguardando_nota++;
-      if (r.status === "Em faturamento") c.em_faturamento++;
-      if (r.status === "Nota emitida") c.nota_emitida++;
-      if (r.status === "Enviada") c.enviada++;
-      if (r.status === "Faturado") c.faturado++;
-      if (r.status === "Aguardando validação") c.validacao++;
-      if (r.status === "Fora do prazo") c.fora_prazo++;
-      if (r.divergente) c.divergente++;
-      if (!r.tem_xls) c.sem_excel++;
-      if (!r.tem_pdf) c.sem_pdf++;
+      if (c[r.status] !== undefined) c[r.status]++;
     });
     return c;
   }, [rows]);
 
-  const emFaturamento = rows.filter((r) => r.status === "Em faturamento");
-  const notasAguardandoEnvio = rows.filter((r) => r.status === "Nota emitida");
-  const foraPrazo = rows.filter((r) => r.status === "Fora do prazo");
-  const divergentes = rows.filter((r) => r.divergente);
+  const concluidas = counts.Enviada + counts.Faturado;
+  const pctConcluidas = counts.total > 0 ? Math.round((concluidas / counts.total) * 100) : 0;
+  const emAndamento = counts["Aguardando nota"] + counts["Em faturamento"] + counts["Nota emitida"];
+  const pendentes = counts.Pendente;
 
-  void now; // referenced for re-render of tempo
+  // Pie data — apenas status com valor
+  const pieData = STATUS_ORDER.filter((s) => counts[s] > 0).map((s) => ({
+    name: s,
+    value: counts[s],
+    color: STATUS_COLORS[s],
+  }));
+
+  // Bar data — funil de progresso
+  const funilData = STATUS_ORDER.map((s) => ({
+    nome: s,
+    quantidade: counts[s],
+    fill: STATUS_COLORS[s],
+  }));
+
+  // Radial — % concluídas
+  const radialData = [{ name: "Concluídas", value: pctConcluidas, fill: "#10b981" }];
+
+  // Top responsáveis (Em faturamento + Aguardando nota + Nota emitida)
+  const topResponsaveis = useMemo(() => {
+    const map = new Map<string, number>();
+    rows
+      .filter((r) => r.status === "Em faturamento" || r.status === "Aguardando nota" || r.status === "Nota emitida")
+      .forEach((r) => {
+        const k = r.responsavel || "Sem responsável";
+        map.set(k, (map.get(k) || 0) + 1);
+      });
+    return Array.from(map.entries())
+      .map(([nome, q]) => ({ nome, quantidade: q }))
+      .sort((a, b) => b.quantidade - a.quantidade)
+      .slice(0, 8);
+  }, [rows]);
+
+  const notasAguardandoEnvio = rows.filter((r) => r.status === "Nota emitida");
+  const emFaturamento = rows.filter((r) => r.status === "Em faturamento");
+
+  void now;
 
   if (!podeVer) {
     return (
@@ -332,7 +308,6 @@ export default function PainelTvFinanceiro() {
         tvMode && "fixed inset-0 z-50 overflow-auto",
       )}
     >
-      {/* HEADER */}
       <header className="sticky top-0 z-10 backdrop-blur bg-background/80 border-b border-border">
         <div className="px-6 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
@@ -367,17 +342,13 @@ export default function PainelTvFinanceiro() {
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-1" /> Atualizar agora
+              <RefreshCw className="h-4 w-4 mr-1" /> Atualizar
             </Button>
             <Button variant="outline" size="sm" onClick={toggleFullscreen}>
               {tvMode ? (
-                <>
-                  <Minimize2 className="h-4 w-4 mr-1" /> Sair
-                </>
+                <><Minimize2 className="h-4 w-4 mr-1" /> Sair</>
               ) : (
-                <>
-                  <Maximize2 className="h-4 w-4 mr-1" /> Modo TV
-                </>
+                <><Maximize2 className="h-4 w-4 mr-1" /> Modo TV</>
               )}
             </Button>
           </div>
@@ -385,94 +356,166 @@ export default function PainelTvFinanceiro() {
       </header>
 
       <main className="p-6 space-y-6">
-        {/* KPIs */}
-        <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          <KpiCard label="Total" value={counts.total} icon={TrendingUp} color="bg-foreground/5" />
-          <KpiCard
-            label="Pendentes"
-            value={counts.pendente}
-            total={counts.total}
-            icon={Clock}
-            color="bg-muted"
-          />
-          <KpiCard
-            label="Aguardando emissão"
-            value={counts.aguardando_nota}
-            total={counts.total}
-            icon={TimerReset}
-            color="bg-amber-500/15 text-amber-700 dark:text-amber-300"
-          />
-          <KpiCard
-            label="Em faturamento"
-            value={counts.em_faturamento}
-            total={counts.total}
-            icon={Activity}
-            color="bg-blue-500/15 text-blue-700 dark:text-blue-300"
-          />
-          <KpiCard
-            label="Nota emitida — enviar"
-            value={counts.nota_emitida}
-            total={counts.total}
+        {/* HEROES — 4 KPIs grandes */}
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <HeroKpi label="Total competência" value={counts.total} icon={TrendingUp} tone="neutral" />
+          <HeroKpi label="Pendentes" value={pendentes} icon={Clock} tone="muted" />
+          <HeroKpi label="Em andamento" value={emAndamento} icon={Activity} tone="blue" />
+          <HeroKpi
+            label="Notas — enviar ao cliente"
+            value={counts["Nota emitida"]}
             icon={Send}
-            color="bg-purple-500/15 text-purple-700 dark:text-purple-300"
-            highlight={counts.nota_emitida > 0}
-          />
-          <KpiCard
-            label="Enviadas"
-            value={counts.enviada}
-            total={counts.total}
-            icon={CheckCircle2}
-            color="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-          />
-          <KpiCard
-            label="Fora do prazo"
-            value={counts.fora_prazo}
-            total={counts.total}
-            icon={AlertTriangle}
-            color="bg-red-500/15 text-red-600 dark:text-red-300"
-          />
-          <KpiCard
-            label="Divergentes"
-            value={counts.divergente}
-            total={counts.total}
-            icon={AlertTriangle}
-            color="bg-red-500/15 text-red-600 dark:text-red-300"
-          />
-          <KpiCard
-            label="Validação PO/PC"
-            value={counts.validacao}
-            total={counts.total}
-            icon={FileText}
-            color="bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300"
-          />
-          <KpiCard
-            label="Faturadas"
-            value={counts.faturado}
-            total={counts.total}
-            icon={CheckCircle2}
-            color="bg-cyan-500/15 text-cyan-700 dark:text-cyan-300"
-          />
-          <KpiCard
-            label="Sem Excel"
-            value={counts.sem_excel}
-            total={counts.total}
-            icon={FileSpreadsheet}
-            color="bg-orange-500/10 text-orange-700 dark:text-orange-300"
-          />
-          <KpiCard
-            label="Sem PDF"
-            value={counts.sem_pdf}
-            total={counts.total}
-            icon={FileText}
-            color="bg-orange-500/10 text-orange-700 dark:text-orange-300"
+            tone="purple"
+            pulse={counts["Nota emitida"] > 0}
           />
         </section>
 
-        {/* COLUNAS */}
+        {/* GRÁFICOS */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Radial concluídas */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-semibold">Progresso da competência</h2>
+              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            </div>
+            <div className="h-[260px] relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadialBarChart
+                  innerRadius="70%"
+                  outerRadius="100%"
+                  data={radialData}
+                  startAngle={90}
+                  endAngle={-270}
+                >
+                  <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                  <RadialBar background dataKey="value" cornerRadius={12} fill="#10b981" />
+                </RadialBarChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-5xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {pctConcluidas}%
+                </span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  {concluidas} de {counts.total} concluídas
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Pie distribuição */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-semibold">Distribuição por status</h2>
+            </div>
+            <div className="h-[260px]">
+              {pieData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                  Sem dados
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={55}
+                      outerRadius={90}
+                      paddingAngle={2}
+                    >
+                      {pieData.map((d) => (
+                        <Cell key={d.name} fill={d.color} />
+                      ))}
+                    </Pie>
+                    <RTooltip
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 8,
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: 11 }}
+                      iconType="circle"
+                      layout="horizontal"
+                      verticalAlign="bottom"
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </Card>
+
+          {/* Funil bar */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-semibold">Funil de faturamento</h2>
+            </div>
+            <div className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={funilData} layout="vertical" margin={{ left: 10, right: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="nome"
+                    tick={{ fontSize: 11 }}
+                    width={110}
+                  />
+                  <RTooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                    }}
+                  />
+                  <Bar dataKey="quantidade" radius={[0, 6, 6, 0]}>
+                    {funilData.map((d, i) => (
+                      <Cell key={i} fill={d.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </section>
+
+        {/* RANKING + LISTAS PRINCIPAIS */}
         <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold">Ranking — operação ativa</h2>
+              <Badge variant="secondary">{topResponsaveis.reduce((a, b) => a + b.quantidade, 0)}</Badge>
+            </div>
+            {topResponsaveis.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Sem operação ativa.</p>
+            ) : (
+              <div className="space-y-3">
+                {topResponsaveis.map((r) => {
+                  const max = topResponsaveis[0].quantidade || 1;
+                  const pct = (r.quantidade / max) * 100;
+                  return (
+                    <div key={r.nome}>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="truncate font-medium">{r.nome}</span>
+                        <span className="text-muted-foreground tabular-nums">{r.quantidade}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
           <ListaCard
-            title="Notas emitidas — enviar para empresa"
-            subtitle="Nota pronta aguardando envio ao cliente"
+            title="Notas emitidas — enviar"
+            subtitle="Prontas aguardando envio ao cliente"
             accent="purple"
             icon={Send}
             rows={notasAguardandoEnvio}
@@ -498,8 +541,8 @@ export default function PainelTvFinanceiro() {
           />
 
           <ListaCard
-            title="Empresas em faturamento"
-            subtitle="Faturamento iniciado e em andamento"
+            title="Em faturamento"
+            subtitle="Processo iniciado e em andamento"
             accent="blue"
             icon={Activity}
             rows={emFaturamento}
@@ -514,7 +557,7 @@ export default function PainelTvFinanceiro() {
                 </div>
                 <div className="text-right shrink-0">
                   <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30">
-                    Em faturamento
+                    Ativo
                   </Badge>
                   <div className="text-[11px] text-muted-foreground mt-1">
                     {tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
@@ -523,67 +566,6 @@ export default function PainelTvFinanceiro() {
               </div>
             )}
             empty="Nenhuma empresa em faturamento agora."
-          />
-
-          <ListaCard
-            title="Alertas"
-            subtitle="Fora do prazo, divergências e pendências críticas"
-            accent="red"
-            icon={AlertTriangle}
-            rows={[...foraPrazo, ...divergentes.filter((d) => !foraPrazo.some((f) => f.id === d.id))]}
-            renderRow={(r) => {
-              const motivo = r.status === "Fora do prazo"
-                ? "Fora do prazo"
-                : r.divergente
-                ? "Divergência na análise"
-                : r.status;
-              return (
-                <div key={r.id} className="flex items-start justify-between gap-3 py-2 border-b border-border/40 last:border-0">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{r.empresa_nome}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {r.empresa_codigo || "—"} · {r.periodo} · {motivo}
-                    </div>
-                  </div>
-                  <Badge className="bg-red-500/20 text-red-600 dark:text-red-300 border border-red-500/30 shrink-0">
-                    Atenção
-                  </Badge>
-                </div>
-              );
-            }}
-            empty="Sem alertas no momento."
-          />
-        </section>
-
-        {/* Pendências documentais */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ListaCard
-            title="Sem Excel"
-            subtitle="Pendência documental — falta planilha"
-            accent="orange"
-            icon={FileSpreadsheet}
-            rows={rows.filter((r) => !r.tem_xls && r.status !== "Enviada")}
-            renderRow={(r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 py-2 border-b border-border/40 last:border-0 text-sm">
-                <span className="truncate">{r.empresa_nome}</span>
-                <span className="text-xs text-muted-foreground shrink-0">{r.periodo}</span>
-              </div>
-            )}
-            empty="Todas com Excel anexado."
-          />
-          <ListaCard
-            title="Sem PDF"
-            subtitle="Pendência documental — falta nota fiscal"
-            accent="orange"
-            icon={FileText}
-            rows={rows.filter((r) => !r.tem_pdf && r.status !== "Enviada")}
-            renderRow={(r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 py-2 border-b border-border/40 last:border-0 text-sm">
-                <span className="truncate">{r.empresa_nome}</span>
-                <span className="text-xs text-muted-foreground shrink-0">{r.periodo}</span>
-              </div>
-            )}
-            empty="Todas com PDF anexado."
           />
         </section>
 
@@ -595,40 +577,38 @@ export default function PainelTvFinanceiro() {
   );
 }
 
-function KpiCard({
+function HeroKpi({
   label,
   value,
-  total,
   icon: Icon,
-  color,
-  highlight,
+  tone,
+  pulse,
 }: {
   label: string;
   value: number;
-  total?: number;
   icon: any;
-  color: string;
-  highlight?: boolean;
+  tone: "neutral" | "muted" | "blue" | "purple";
+  pulse?: boolean;
 }) {
-  const pct = total && total > 0 ? Math.round((value / total) * 100) : null;
+  const toneMap = {
+    neutral: "from-foreground/5 to-foreground/0",
+    muted: "from-slate-400/10 to-slate-400/0",
+    blue: "from-blue-500/15 to-blue-500/0 text-blue-700 dark:text-blue-300",
+    purple: "from-purple-500/15 to-purple-500/0 text-purple-700 dark:text-purple-300",
+  };
   return (
     <Card
       className={cn(
-        "p-4 transition-all",
-        color,
-        highlight && value > 0 && "ring-2 ring-purple-400/60 animate-pulse",
+        "p-5 bg-gradient-to-br border-0 shadow-sm",
+        toneMap[tone],
+        pulse && "ring-2 ring-purple-400/60 animate-pulse",
       )}
     >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium uppercase tracking-wide opacity-80">{label}</span>
-        <Icon className="h-4 w-4 opacity-70" />
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-medium uppercase tracking-wider opacity-80">{label}</span>
+        <Icon className="h-5 w-5 opacity-70" />
       </div>
-      <div className="flex items-baseline gap-2">
-        <span className="text-4xl font-bold">{value}</span>
-        {pct !== null && (
-          <span className="text-xs opacity-70">/ {total} · {pct}%</span>
-        )}
-      </div>
+      <div className="text-5xl font-bold tabular-nums">{value}</div>
     </Card>
   );
 }
@@ -644,7 +624,7 @@ function ListaCard<T>({
 }: {
   title: string;
   subtitle?: string;
-  accent: "purple" | "blue" | "red" | "orange";
+  accent: "purple" | "blue";
   icon: any;
   rows: T[];
   renderRow: (r: T) => React.ReactNode;
@@ -653,8 +633,6 @@ function ListaCard<T>({
   const accentMap = {
     purple: "border-l-4 border-purple-500",
     blue: "border-l-4 border-blue-500",
-    red: "border-l-4 border-red-500",
-    orange: "border-l-4 border-orange-500",
   };
   return (
     <Card className={cn("flex flex-col", accentMap[accent])}>
