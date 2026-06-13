@@ -356,9 +356,30 @@ export default function PainelTvFinanceiro() {
       .slice(0, 8);
   }, [rows]);
 
-  const notasAguardandoEnvio = rows.filter((r) => r.status === "Nota emitida");
-  const emFaturamento = rows.filter((r) => r.status === "Em faturamento");
-  const aguardandoEmissao = rows.filter((r) => r.status === "Aguardando nota");
+  const sortByTime = <T extends Record<string, any>>(arr: T[], field: (r: T) => string | null | undefined, dir: "desc" | "asc") => {
+    const copy = [...arr];
+    copy.sort((a, b) => {
+      const ta = new Date(field(a) || 0).getTime();
+      const tb = new Date(field(b) || 0).getTime();
+      return dir === "desc" ? tb - ta : ta - tb;
+    });
+    return copy;
+  };
+  const notasAguardandoEnvio = sortByTime(
+    rows.filter((r) => r.status === "Nota emitida"),
+    (r) => r.updated_at,
+    sortDirs.notas,
+  );
+  const emFaturamento = sortByTime(
+    rows.filter((r) => r.status === "Em faturamento"),
+    (r) => r.faturamento_iniciado_em || r.updated_at,
+    sortDirs.faturamento,
+  );
+  const aguardandoEmissao = sortByTime(
+    rows.filter((r) => r.status === "Aguardando nota"),
+    (r) => r.aguardando_nota_em || r.updated_at,
+    sortDirs.aguardando,
+  );
 
   void now;
 
