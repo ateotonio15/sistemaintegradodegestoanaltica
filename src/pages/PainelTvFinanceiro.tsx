@@ -356,49 +356,59 @@ export default function PainelTvFinanceiro() {
         </div>
       </header>
 
-      <main className="p-6 space-y-6">
+      <main className="p-6 md:p-8 space-y-8 max-w-[1800px] mx-auto">
         {/* HEROES — 4 KPIs grandes */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <HeroKpi label="Total competência" value={counts.total} icon={TrendingUp} tone="neutral" />
-          <HeroKpi label="Pendentes" value={pendentes} icon={Clock} tone="muted" />
-          <HeroKpi label="Aguardando emissão" value={aguardandoEmissao.length} icon={Activity} tone="blue" />
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+          <HeroKpi
+            label="Total da competência"
+            value={counts.total}
+            icon={TrendingUp}
+            tone="neutral"
+            hint={`${concluidas} concluídas · ${pctConcluidas}%`}
+          />
+          <HeroKpi
+            label="Pendentes"
+            value={pendentes}
+            icon={Clock}
+            tone="muted"
+            hint={counts.total > 0 ? `${Math.round((pendentes / counts.total) * 100)}% do total` : undefined}
+          />
+          <HeroKpi
+            label="Aguardando emissão"
+            value={aguardandoEmissao.length}
+            icon={TimerReset}
+            tone="amber"
+            hint="Operacional enviou — emitir nota"
+          />
           <HeroKpi
             label="Notas — enviar ao cliente"
             value={counts["Nota emitida"]}
             icon={Send}
             tone="purple"
+            hint="Prontas para envio"
             pulse={counts["Nota emitida"] > 0}
           />
         </section>
 
-
         {/* LISTAS PRINCIPAIS */}
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-
-
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
           <ListaCard
             title="Notas emitidas — enviar"
             subtitle="Prontas aguardando envio ao cliente"
             accent="purple"
             icon={Send}
             rows={notasAguardandoEnvio}
-            renderRow={(r) => (
-              <div key={r.id} className="flex items-start justify-between gap-3 py-2 border-b border-border/40 last:border-0">
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{r.empresa_nome}</div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {r.empresa_codigo || "—"} · {r.periodo}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <Badge className="bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30">
-                    Enviar
-                  </Badge>
-                  <div className="text-[11px] text-muted-foreground mt-1">
-                    {tempoDesde(r.updated_at)}
-                  </div>
-                </div>
-              </div>
+            renderRow={(r, i) => (
+              <RowItem
+                key={r.id}
+                index={i}
+                title={r.empresa_nome}
+                subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
+                badgeText="Enviar"
+                badgeClass="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
+                timeText={tempoDesde(r.updated_at)}
+                accentDot="bg-purple-500"
+              />
             )}
             empty="Nenhuma nota aguardando envio 🎉"
           />
@@ -409,24 +419,17 @@ export default function PainelTvFinanceiro() {
             accent="blue"
             icon={Activity}
             rows={emFaturamento}
-            renderRow={(r) => (
-              <div key={r.id} className="flex items-start justify-between gap-3 py-2 border-b border-border/40 last:border-0">
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{r.empresa_nome}</div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {r.empresa_codigo || "—"} · {r.periodo}
-                    {r.responsavel ? ` · ${r.responsavel}` : ""}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30">
-                    Ativo
-                  </Badge>
-                  <div className="text-[11px] text-muted-foreground mt-1">
-                    {tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
-                  </div>
-                </div>
-              </div>
+            renderRow={(r, i) => (
+              <RowItem
+                key={r.id}
+                index={i}
+                title={r.empresa_nome}
+                subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
+                badgeText="Ativo"
+                badgeClass="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30"
+                timeText={tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
+                accentDot="bg-blue-500"
+              />
             )}
             empty="Nenhuma empresa em faturamento agora."
           />
@@ -436,6 +439,43 @@ export default function PainelTvFinanceiro() {
           <p className="text-center text-sm text-muted-foreground">Carregando…</p>
         )}
       </main>
+    </div>
+  );
+}
+
+function RowItem({
+  index,
+  title,
+  subtitle,
+  badgeText,
+  badgeClass,
+  timeText,
+  accentDot,
+}: {
+  index: number;
+  title: string;
+  subtitle: string;
+  badgeText: string;
+  badgeClass: string;
+  timeText: string;
+  accentDot: string;
+}) {
+  return (
+    <div className="group flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/40 transition-colors border-b border-border/30 last:border-0">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <span className="text-xs font-mono font-semibold text-muted-foreground tabular-nums w-6 text-right">
+          {String(index + 1).padStart(2, "0")}
+        </span>
+        <span className={cn("h-8 w-1 rounded-full shrink-0", accentDot)} />
+        <div className="min-w-0">
+          <div className="font-semibold truncate leading-tight">{title}</div>
+          <div className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</div>
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        <Badge className={cn("font-medium", badgeClass)}>{badgeText}</Badge>
+        <div className="text-[11px] text-muted-foreground mt-1 tabular-nums">{timeText}</div>
+      </div>
     </div>
   );
 }
