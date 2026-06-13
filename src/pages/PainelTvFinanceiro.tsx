@@ -678,7 +678,7 @@ function ListaCard<T>({
 }: {
   title: string;
   subtitle?: string;
-  accent: "purple" | "blue" | "yellow";
+  accent: "purple" | "blue" | "yellow" | "green";
   icon: any;
   rows: T[];
   renderRow: (r: T, index: number) => React.ReactNode;
@@ -699,6 +699,11 @@ function ListaCard<T>({
       stripe: "bg-gradient-to-b from-yellow-500 to-yellow-500/30",
       iconWrap: "bg-yellow-500/15 text-yellow-600 dark:text-yellow-300",
       badge: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border-yellow-500/30",
+    },
+    green: {
+      stripe: "bg-gradient-to-b from-emerald-500 to-emerald-500/30",
+      iconWrap: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
+      badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
     },
   };
   const a = accentMap[accent];
