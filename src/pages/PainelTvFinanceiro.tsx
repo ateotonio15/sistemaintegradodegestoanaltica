@@ -135,6 +135,13 @@ export default function PainelTvFinanceiro() {
       prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k],
     );
   const [dragKey, setDragKey] = useState<ListKey | null>(null);
+  const [sortDirs, setSortDirs] = useState<Record<ListKey, "desc" | "asc">>({
+    aguardando: "desc",
+    notas: "desc",
+    faturamento: "desc",
+  });
+  const toggleSort = (k: ListKey) =>
+    setSortDirs((prev) => ({ ...prev, [k]: prev[k] === "desc" ? "asc" : "desc" }));
   const moveList = (from: ListKey, to: ListKey) => {
     if (from === to) return;
     setListOrder((prev) => {
