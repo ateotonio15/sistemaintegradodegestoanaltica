@@ -288,6 +288,7 @@ export default function PainelTvFinanceiro() {
 
   const notasAguardandoEnvio = rows.filter((r) => r.status === "Nota emitida");
   const emFaturamento = rows.filter((r) => r.status === "Em faturamento");
+  const aguardandoEmissao = rows.filter((r) => r.status === "Aguardando nota");
 
   void now;
 
