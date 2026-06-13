@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -549,16 +550,16 @@ function Step2Extracao({ data, update, onExtrair, extracting, hasAnexo1, readOnl
         </div>
         <Field label="Grupo do Contrato" v={data.grupo_contrato} onChange={(v: string) => update({ grupo_contrato: v })} readOnly={readOnly} />
         <Field label="Início do atendimento" type="date" v={data.inicio_atendimento} onChange={(v: string) => update({ inicio_atendimento: v })} readOnly={readOnly} />
-        <Field
+        <MoneyField
           label="Valor Enfermaria (R$)"
-          v={brFromCents(data.valor_enfermaria_centavos)}
-          onChange={(v: string) => update({ valor_enfermaria_centavos: centsFromBR(v) })}
+          value={data.valor_enfermaria_centavos}
+          onChange={(cents: number | null) => update({ valor_enfermaria_centavos: cents })}
           readOnly={readOnly}
         />
-        <Field
+        <MoneyField
           label="Valor Apartamento (R$)"
-          v={brFromCents(data.valor_apartamento_centavos)}
-          onChange={(v: string) => update({ valor_apartamento_centavos: centsFromBR(v) })}
+          value={data.valor_apartamento_centavos}
+          onChange={(cents: number | null) => update({ valor_apartamento_centavos: cents })}
           readOnly={readOnly}
         />
       </div>
@@ -932,6 +933,20 @@ function Field({ label, v, onChange, type = "text", readOnly, error }: any) {
         className={error ? "border-destructive" : ""}
       />
       {error && <p className="text-xs text-destructive mt-1">{error}</p>}
+    </div>
+  );
+}
+
+function MoneyField({ label, value, onChange, readOnly }: { label: string; value: number | null | undefined; onChange: (cents: number | null) => void; readOnly?: boolean }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <DecimalInput
+        value={value != null ? value / 100 : null}
+        onChange={(n) => onChange(n === 0 ? null : Math.round(n * 100))}
+        readOnly={readOnly}
+        placeholder="0,00"
+      />
     </div>
   );
 }
