@@ -68,6 +68,8 @@ export interface HistoricoOpts {
    * substitui a primeira linha do histórico por "Período de: 13/05/2026 à 12/06/2026".
    */
   periodoCobrancaLabel?: string | null;
+  /** Tipo de análise da movimentação. Quando "faixa_etaria", gera histórico detalhado por faixas. */
+  tipoAnalise?: string | null;
 }
 
 
