@@ -147,17 +147,20 @@ export default function PainelTvFinanceiro() {
       return arr;
     });
   };
-  // Tamanho de cada card: 1 = normal, 2 = duas colunas, 3 = linha inteira
-  const [cardSpan, setCardSpan] = useState<Record<ListKey, 1 | 2 | 3>>({
-    aguardando: 1,
-    notas: 1,
-    faturamento: 1,
-  });
-  const cycleSpan = (k: ListKey) =>
-    setCardSpan((prev) => ({
-      ...prev,
-      [k]: prev[k] === 1 ? 2 : prev[k] === 2 ? 3 : 1,
-    }));
+  // Layout preset — sempre completa as linhas (sem cards "pela metade") em qualquer combinação.
+  type LayoutMode = "cols" | "stacked" | "two-one" | "one-two" | "side";
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("cols");
+  // Retorna spans em colunas de 12 para cada card, na ordem atual.
+  const computeSpans = (order: ListKey[], mode: LayoutMode): number[] => {
+    const n = order.length;
+    if (n === 0) return [];
+    if (n === 1) return [12];
+    if (n === 2) return mode === "stacked" ? [12, 12] : [6, 6];
+    if (mode === "stacked") return [12, 12, 12];
+    if (mode === "two-one") return [8, 4, 12];
+    if (mode === "one-two") return [12, 8, 4];
+    return [4, 4, 4];
+  };
   const [tvMode, setTvMode] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [lastUpdate, setLastUpdate] = useState(Date.now());
@@ -458,130 +461,171 @@ export default function PainelTvFinanceiro() {
         </section>
 
 
-        {/* LISTAS SELECIONADAS — ordem manual via drag-and-drop */}
-        {listOrder.length > 0 && (
-          <section className="grid gap-5 items-start grid-cols-1 xl:grid-cols-3">
-            {listOrder.map((key) => {
-              const span = cardSpan[key];
-              const spanClass =
-                span === 3
-                  ? "xl:col-span-3"
-                  : span === 2
-                    ? "xl:col-span-2"
-                    : "xl:col-span-1";
-              const wrap = (node: React.ReactNode) => (
-                <div
-                  key={key}
-                  draggable
-                  onDragStart={(e) => {
-                    setDragKey(key);
-                    e.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragEnd={() => setDragKey(null)}
-                  onDragOver={(e) => {
-                    if (dragKey && dragKey !== key) e.preventDefault();
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (dragKey) moveList(dragKey, key);
-                    setDragKey(null);
-                  }}
-                  className={cn(
-                    "relative transition-opacity",
-                    spanClass,
-                    dragKey === key && "opacity-50",
-                    dragKey && dragKey !== key && "outline-dashed outline-2 outline-primary/40 outline-offset-2 rounded-xl",
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => cycleSpan(key)}
-                    title={`Largura: ${span === 1 ? "1/3" : span === 2 ? "2/3" : "inteira"} (clique para alternar)`}
-                    className="absolute top-2 right-2 z-10 h-7 w-7 grid place-items-center rounded-md bg-background/80 hover:bg-background border border-border/60 text-muted-foreground hover:text-foreground transition"
-                  >
-                    {span === 3 ? (
-                      <Minimize2 className="h-3.5 w-3.5" />
-                    ) : (
-                      <Maximize2 className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                  {node}
-                </div>
-              );
+        {/* LAYOUT preset selector */}
+        {listOrder.length > 1 && (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Layout:</span>
+            {(listOrder.length === 2
+              ? ([
+                  { k: "cols", label: "Lado a lado" },
+                  { k: "stacked", label: "Empilhado" },
+                ] as { k: LayoutMode; label: string }[])
+              : ([
+                  { k: "cols", label: "3 colunas" },
+                  { k: "two-one", label: "2 em cima + 1 abaixo" },
+                  { k: "one-two", label: "1 em cima + 2 abaixo" },
+                  { k: "stacked", label: "Empilhado" },
+                ] as { k: LayoutMode; label: string }[])
+            ).map((opt) => (
+              <button
+                key={opt.k}
+                type="button"
+                onClick={() => setLayoutMode(opt.k)}
+                className={cn(
+                  "px-2.5 py-1 rounded-md border transition-colors",
+                  layoutMode === opt.k
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-border text-muted-foreground hover:border-primary/50",
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
 
-              if (key === "aguardando")
-                return wrap(
-                  <ListaCard
-                    title="Aguardando emissão"
-                    subtitle="Operacional já enviou — emitir nota fiscal"
-                    accent="yellow"
-                    icon={TimerReset}
-                    rows={aguardandoEmissao}
-                    renderRow={(r, i) => (
-                      <RowItem
-                        key={r.id}
-                        index={i}
-                        title={r.empresa_nome}
-                        subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
-                        badgeText="Emitir"
-                        badgeClass="bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30"
-                        timeText={tempoDesde(r.aguardando_nota_em || r.updated_at)}
-                        accentDot="bg-yellow-500"
-                      />
-                    )}
-                    empty="Nenhuma empresa aguardando emissão 🎉"
-                  />,
-                );
+        {/* LISTAS SELECIONADAS — ordem manual via drag-and-drop, layout sempre completo */}
+        {listOrder.length > 0 && (() => {
+          const spans = computeSpans(listOrder, layoutMode);
+          // Agrupa cards em linhas cujos spans somam 12
+          const rows: { key: ListKey; span: number }[][] = [];
+          let buf: { key: ListKey; span: number }[] = [];
+          let acc = 0;
+          listOrder.forEach((k, i) => {
+            const s = spans[i];
+            buf.push({ key: k, span: s });
+            acc += s;
+            if (acc >= 12) {
+              rows.push(buf);
+              buf = [];
+              acc = 0;
+            }
+          });
+          if (buf.length) rows.push(buf);
+          const rowsCount = rows.length;
+          // Altura do conteúdo da lista para caber tudo em uma única tela.
+          const listHeight = `calc((100vh - 260px) / ${rowsCount} - 90px)`;
 
-              if (key === "notas")
-                return wrap(
-                  <ListaCard
-                    title="Notas emitidas — enviar"
-                    subtitle="Prontas aguardando envio ao cliente"
-                    accent="green"
-                    icon={Send}
-                    rows={notasAguardandoEnvio}
-                    renderRow={(r, i) => (
-                      <RowItem
-                        key={r.id}
-                        index={i}
-                        title={r.empresa_nome}
-                        subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
-                        badgeText="Enviar"
-                        badgeClass="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
-                        timeText={tempoDesde(r.updated_at)}
-                        accentDot="bg-emerald-500"
-                      />
-                    )}
-                    empty="Nenhuma nota aguardando envio 🎉"
-                  />,
-                );
-
-              return wrap(
+          const renderCard = (key: ListKey) => {
+            if (key === "aguardando")
+              return (
                 <ListaCard
-                  title="Em faturamento"
-                  subtitle="Processo iniciado e em andamento"
-                  accent="blue"
-                  icon={Activity}
-                  rows={emFaturamento}
+                  title="Aguardando emissão"
+                  subtitle="Operacional já enviou — emitir nota fiscal"
+                  accent="yellow"
+                  icon={TimerReset}
+                  rows={aguardandoEmissao}
+                  contentHeight={listHeight}
                   renderRow={(r, i) => (
                     <RowItem
                       key={r.id}
                       index={i}
                       title={r.empresa_nome}
                       subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
-                      badgeText="Ativo"
-                      badgeClass="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30"
-                      timeText={tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
-                      accentDot="bg-blue-500"
+                      badgeText="Emitir"
+                      badgeClass="bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30"
+                      timeText={tempoDesde(r.aguardando_nota_em || r.updated_at)}
+                      accentDot="bg-yellow-500"
                     />
                   )}
-                  empty="Nenhuma empresa em faturamento agora."
-                />,
+                  empty="Nenhuma empresa aguardando emissão 🎉"
+                />
               );
-            })}
-          </section>
-        )}
+            if (key === "notas")
+              return (
+                <ListaCard
+                  title="Notas emitidas — enviar"
+                  subtitle="Prontas aguardando envio ao cliente"
+                  accent="green"
+                  icon={Send}
+                  rows={notasAguardandoEnvio}
+                  contentHeight={listHeight}
+                  renderRow={(r, i) => (
+                    <RowItem
+                      key={r.id}
+                      index={i}
+                      title={r.empresa_nome}
+                      subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
+                      badgeText="Enviar"
+                      badgeClass="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+                      timeText={tempoDesde(r.updated_at)}
+                      accentDot="bg-emerald-500"
+                    />
+                  )}
+                  empty="Nenhuma nota aguardando envio 🎉"
+                />
+              );
+            return (
+              <ListaCard
+                title="Em faturamento"
+                subtitle="Processo iniciado e em andamento"
+                accent="blue"
+                icon={Activity}
+                rows={emFaturamento}
+                contentHeight={listHeight}
+                renderRow={(r, i) => (
+                  <RowItem
+                    key={r.id}
+                    index={i}
+                    title={r.empresa_nome}
+                    subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
+                    badgeText="Ativo"
+                    badgeClass="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30"
+                    timeText={tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
+                    accentDot="bg-blue-500"
+                  />
+                )}
+                empty="Nenhuma empresa em faturamento agora."
+              />
+            );
+          };
+
+          return (
+            <section className="space-y-5">
+              {rows.map((row, ri) => (
+                <div key={ri} className="grid grid-cols-12 gap-5 items-start">
+                  {row.map(({ key, span }) => (
+                    <div
+                      key={key}
+                      draggable
+                      onDragStart={(e) => {
+                        setDragKey(key);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragEnd={() => setDragKey(null)}
+                      onDragOver={(e) => {
+                        if (dragKey && dragKey !== key) e.preventDefault();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragKey) moveList(dragKey, key);
+                        setDragKey(null);
+                      }}
+                      style={{ gridColumn: `span ${span} / span ${span}` }}
+                      className={cn(
+                        "relative transition-opacity",
+                        dragKey === key && "opacity-50",
+                        dragKey && dragKey !== key && "outline-dashed outline-2 outline-primary/40 outline-offset-2 rounded-xl",
+                      )}
+                    >
+                      {renderCard(key)}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </section>
+          );
+        })()}
 
 
         {selectedLists.size === 0 && (
@@ -743,6 +787,7 @@ function ListaCard<T>({
   rows,
   renderRow,
   empty,
+  contentHeight,
 }: {
   title: string;
   subtitle?: string;
@@ -751,6 +796,7 @@ function ListaCard<T>({
   rows: T[];
   renderRow: (r: T, index: number) => React.ReactNode;
   empty: string;
+  contentHeight?: string;
 }) {
   const accentMap = {
     purple: {
@@ -793,7 +839,7 @@ function ListaCard<T>({
           </Badge>
         </div>
       </div>
-      <ScrollArea className="h-[400px]">
+      <ScrollArea style={contentHeight ? { height: contentHeight, minHeight: 220 } : undefined} className={contentHeight ? "" : "h-[400px]"}>
         <div className="p-3 pr-4">
           {rows.length === 0 ? (
             <div className="text-sm text-muted-foreground text-center py-12 px-4">{empty}</div>
