@@ -363,6 +363,7 @@ export async function analisarExcelFinanceiroPorPagador(
   let idxValor = -1;
   let idxCnpj = -1;
   let idxPagador = -1;
+  let idxFaixa = -1;
 
   for (let i = 0; i < Math.min(10, allRows.length); i++) {
     const r = allRows[i];
@@ -377,6 +378,7 @@ export async function analisarExcelFinanceiroPorPagador(
       idxValor = v;
       idxCnpj = findColumnIndex(r, COL_CNPJ);
       idxPagador = findColumnIndex(r, COL_PAGADOR);
+      idxFaixa = findColumnIndex(r, COL_FAIXA_ETARIA);
       break;
     }
   }
@@ -1178,6 +1180,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     devTotal: number;
     adesaoQtd: number;
     adesaoTotal: number;
+    faixas: Map<string, FaixaEtariaResumo>;
   };
 
   const grupos = new Map<string, Acc>();
@@ -1212,6 +1215,7 @@ export async function analisarExcelFinanceiroPorCnpj(
         devTotal: 0,
         adesaoQtd: 0,
         adesaoTotal: 0,
+        faixas: new Map(),
       };
 
       grupos.set(key, g);
@@ -1241,6 +1245,17 @@ export async function analisarExcelFinanceiroPorCnpj(
     const valor = toNumber(valorCell);
     const valorNum = isNaN(valor) ? 0 : valor;
     const valorValido = !isNaN(valor) && valor >= 0;
+
+    if (idxFaixa >= 0) {
+      const faixa = parseFaixaEtariaLabel(r[idxFaixa]);
+      if (faixa && !(idxTipo >= 0 && (isInclusao(String(tipoCell)) || isExclusao(String(tipoCell)) || isDevolucao(String(tipoCell)))) && !rowHasTaxaAdesao(r, idxTipo)) {
+        const key = `${faixa.idadeInicial}-${faixa.idadeFinal ?? "+"}`;
+        const prev = grp.faixas.get(key) || faixa;
+        prev.quantidade += 1;
+        if (valorValido) prev.total += valor;
+        grp.faixas.set(key, prev);
+      }
+    }
 
     if (rowHasTaxaAdesao(r, idxTipo)) {
       grp.adesaoQtd += 1;
@@ -1294,6 +1309,12 @@ export async function analisarExcelFinanceiroPorCnpj(
       dest.excQtd += g.excQtd; dest.excTotal += g.excTotal;
       dest.devQtd += g.devQtd; dest.devTotal += g.devTotal;
       dest.adesaoQtd += g.adesaoQtd; dest.adesaoTotal += g.adesaoTotal;
+      g.faixas.forEach((f, key) => {
+        const prev = dest.faixas.get(key) || { ...f, quantidade: 0, total: 0 };
+        prev.quantidade += f.quantidade;
+        prev.total += f.total;
+        dest.faixas.set(key, prev);
+      });
 
       grupos.delete(key);
     }
@@ -1332,6 +1353,11 @@ export async function analisarExcelFinanceiroPorCnpj(
       }
       if (g.adesaoQtd > 0 || g.adesaoTotal !== 0) {
         bloco.taxaAdesao = { quantidade: g.adesaoQtd, total: g.adesaoTotal };
+      }
+      if (g.faixas.size > 0) {
+        bloco.faixasEtarias = Array.from(g.faixas.values()).sort(
+          (a, b) => a.idadeInicial - b.idadeInicial,
+        );
       }
 
 
