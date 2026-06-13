@@ -514,7 +514,7 @@ export default function PainelTvFinanceiro() {
           if (buf.length) rows.push(buf);
           const rowsCount = rows.length;
           // Altura do conteúdo da lista para caber tudo em uma única tela.
-          const listHeight = `calc((100vh - 260px) / ${rowsCount} - 90px)`;
+          const listHeight = `320px`;
 
           const renderCard = (key: ListKey) => {
             if (key === "aguardando")
