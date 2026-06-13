@@ -130,7 +130,7 @@ const COL_TIPO_COBRANCA = [
 const COL_VALOR = ["valor", "mensalidade", "valor mensalidade", "vlr", "preco", "valor total"];
 const COL_CNPJ = ["cnpj", "cnpj pagador", "cnpj do pagador", "cnpj empresa"];
 const COL_PAGADOR = ["pagador", "nome pagador", "nome do pagador", "razao social", "razão social", "empresa", "contratante", "nome empresa", "nome da empresa"];
-const COL_FAIXA_ETARIA = ["fx etaria", "fx etária", "faixa etaria", "faixa etária", "idade", "grupo faixa etaria", "grupo faixa etária"];
+const COL_FAIXA_ETARIA = ["fx etaria", "fx etária", "faixa etaria", "faixa etária", "grupo faixa etaria", "grupo faixa etária"];
 
 /** Normalização "agressiva" para casamento de nomes: remove pontuação e colapsa espaços. */
 function normMatch(s: unknown): string {
@@ -225,7 +225,15 @@ function findColumnIndex(header: unknown[], aliases: string[]): number {
     const h = norm(header[i]);
     if (!h) continue;
     for (const alias of aliases) {
-      if (h === alias || h.includes(alias)) return i;
+      const aliasNorm = norm(alias);
+      const hMatch = normMatch(h);
+      const aliasMatch = normMatch(aliasNorm);
+      if (
+        h === aliasNorm ||
+        h.includes(aliasNorm) ||
+        hMatch === aliasMatch ||
+        hMatch.includes(aliasMatch)
+      ) return i;
     }
   }
   return -1;
