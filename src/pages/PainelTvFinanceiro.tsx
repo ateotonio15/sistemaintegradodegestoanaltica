@@ -510,6 +510,9 @@ function HeroKpi({
   tone,
   hint,
   pulse,
+  selectable,
+  selected,
+  onClick,
 }: {
   label: string;
   value: number;
@@ -517,6 +520,9 @@ function HeroKpi({
   tone: "neutral" | "muted" | "blue" | "purple" | "amber";
   hint?: string;
   pulse?: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onClick?: () => void;
 }) {
   const toneMap = {
     neutral: {
@@ -524,41 +530,61 @@ function HeroKpi({
       iconWrap: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
       value: "text-foreground",
       ring: "ring-emerald-500/20",
+      selectedRing: "ring-2 ring-emerald-500",
     },
     muted: {
       bg: "from-slate-500/10 via-card to-card",
       iconWrap: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
       value: "text-foreground",
       ring: "ring-slate-500/20",
+      selectedRing: "ring-2 ring-slate-500",
     },
     blue: {
       bg: "from-blue-500/10 via-card to-card",
       iconWrap: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
       value: "text-blue-700 dark:text-blue-300",
       ring: "ring-blue-500/20",
+      selectedRing: "ring-2 ring-blue-500",
     },
     amber: {
       bg: "from-amber-500/10 via-card to-card",
       iconWrap: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
       value: "text-amber-700 dark:text-amber-300",
       ring: "ring-amber-500/20",
+      selectedRing: "ring-2 ring-amber-500 shadow-[0_0_30px_-5px_rgba(245,158,11,0.5)]",
     },
     purple: {
       bg: "from-purple-500/10 via-card to-card",
       iconWrap: "bg-purple-500/15 text-purple-600 dark:text-purple-400",
       value: "text-purple-700 dark:text-purple-300",
       ring: "ring-purple-500/20",
+      selectedRing: "ring-2 ring-purple-500 shadow-[0_0_30px_-5px_rgba(168,85,247,0.5)]",
     },
   };
   const t = toneMap[tone];
   return (
     <Card
+      onClick={selectable ? onClick : undefined}
+      role={selectable ? "button" : undefined}
+      tabIndex={selectable ? 0 : undefined}
+      onKeyDown={
+        selectable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
       className={cn(
         "relative overflow-hidden p-6 bg-gradient-to-br border border-border/60 shadow-sm hover:shadow-md transition-all",
         t.bg,
         "ring-1",
         t.ring,
-        pulse && "ring-2 ring-purple-400/70 shadow-[0_0_30px_-5px_rgba(168,85,247,0.5)]",
+        selectable && "cursor-pointer hover:-translate-y-0.5 hover:scale-[1.01]",
+        selected && t.selectedRing,
+        pulse && !selected && "ring-2 ring-purple-400/70 shadow-[0_0_30px_-5px_rgba(168,85,247,0.5)]",
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-4">
