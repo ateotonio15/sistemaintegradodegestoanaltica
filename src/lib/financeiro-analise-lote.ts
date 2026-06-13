@@ -462,7 +462,7 @@ export async function executarAnaliseCompetencia(
       continue;
     }
 
-    const { comparacoes } = xls.cruzarExcelComPdfs(blocosTotais, pdfsValidos);
+    const { comparacoes } = xls.cruzarExcelComPdfs(blocosTotais, pdfsValidos, tipoAnalise);
 
     blocosTotais.forEach((b, i) => {
       const cmp = comparacoes[i] ?? null;

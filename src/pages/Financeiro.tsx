@@ -1170,7 +1170,7 @@ export default function Financeiro() {
   };
 
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
-  const ANALISE_PARSER_VERSION = "27";
+  const ANALISE_PARSER_VERSION = "28";
 
   // Computa a análise no NÍVEL DO CONTRATO (financeiro_movimentacoes.id).
   // Faz download/parse dos anexos uma única vez por movimentação e devolve
@@ -1399,7 +1399,7 @@ export default function Financeiro() {
       return out;
     }
 
-    const { comparacoes, notasOrfas } = cruzarExcelComPdfs(blocosTotais, pdfsValidos);
+    const { comparacoes, notasOrfas } = cruzarExcelComPdfs(blocosTotais, pdfsValidos, tipoAnalise);
 
     const resultados: import("@/lib/excel-analysis-utils").AnaliseResultado[] = blocosTotais.map(
       (b, i) => {
