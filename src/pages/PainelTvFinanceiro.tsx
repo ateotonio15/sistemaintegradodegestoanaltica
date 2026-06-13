@@ -367,7 +367,7 @@ export default function PainelTvFinanceiro() {
 
       <main className="p-6 md:p-8 space-y-8 max-w-[1800px] mx-auto">
         {/* HEROES — 4 KPIs grandes */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <HeroKpi
             label="Total da competência"
             value={counts.total}
@@ -622,28 +622,28 @@ function HeroKpi({
           : undefined
       }
       className={cn(
-        "relative overflow-hidden p-6 bg-gradient-to-br border border-border/60 shadow-sm hover:shadow-md transition-all",
+        "relative overflow-hidden p-4 bg-gradient-to-br border border-border/60 shadow-sm hover:shadow-md transition-all",
         t.bg,
         "ring-1",
         t.ring,
-        selectable && "cursor-pointer hover:-translate-y-0.5 hover:scale-[1.01]",
+        selectable && "cursor-pointer hover:-translate-y-0.5",
         selected && t.selectedRing,
-        pulse && !selected && "ring-2 ring-purple-400/70 shadow-[0_0_30px_-5px_rgba(168,85,247,0.5)]",
+        pulse && !selected && "ring-2 ring-purple-400/70 shadow-[0_0_20px_-5px_rgba(168,85,247,0.5)]",
       )}
     >
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground leading-tight">
           {label}
         </span>
-        <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", t.iconWrap)}>
-          <Icon className="h-4.5 w-4.5" />
+        <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center shrink-0", t.iconWrap)}>
+          <Icon className="h-3.5 w-3.5" />
         </div>
       </div>
-      <div className={cn("text-5xl md:text-6xl font-bold tabular-nums leading-none tracking-tight", t.value)}>
+      <div className={cn("text-3xl md:text-4xl font-bold tabular-nums leading-none tracking-tight", t.value)}>
         {value}
       </div>
       {hint && (
-        <div className="mt-3 text-xs text-muted-foreground font-medium">{hint}</div>
+        <div className="mt-2 text-[11px] text-muted-foreground font-medium leading-snug">{hint}</div>
       )}
       {pulse && (
         <span className="absolute top-3 right-3 flex h-2 w-2">
