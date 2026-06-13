@@ -570,39 +570,29 @@ function HeroKpi({
 }) {
   const toneMap = {
     neutral: {
-      bg: "from-emerald-500/10 via-card to-card",
-      iconWrap: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+      iconWrap: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
       value: "text-foreground",
-      ring: "ring-emerald-500/20",
-      selectedRing: "ring-2 ring-emerald-500",
+      selectedRing: "ring-1 ring-emerald-500/60",
     },
     muted: {
-      bg: "from-slate-500/10 via-card to-card",
-      iconWrap: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+      iconWrap: "bg-muted text-muted-foreground",
       value: "text-foreground",
-      ring: "ring-slate-500/20",
-      selectedRing: "ring-2 ring-slate-500",
+      selectedRing: "ring-1 ring-slate-400/60",
     },
     blue: {
-      bg: "from-blue-500/10 via-card to-card",
-      iconWrap: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-      value: "text-blue-700 dark:text-blue-300",
-      ring: "ring-blue-500/20",
-      selectedRing: "ring-2 ring-blue-500",
+      iconWrap: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+      value: "text-blue-600 dark:text-blue-400",
+      selectedRing: "ring-1 ring-blue-500/60",
     },
     amber: {
-      bg: "from-amber-500/10 via-card to-card",
-      iconWrap: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-      value: "text-amber-700 dark:text-amber-300",
-      ring: "ring-amber-500/20",
-      selectedRing: "ring-2 ring-amber-500 shadow-[0_0_30px_-5px_rgba(245,158,11,0.5)]",
+      iconWrap: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      value: "text-amber-600 dark:text-amber-400",
+      selectedRing: "ring-1 ring-amber-500/60",
     },
     purple: {
-      bg: "from-purple-500/10 via-card to-card",
-      iconWrap: "bg-purple-500/15 text-purple-600 dark:text-purple-400",
-      value: "text-purple-700 dark:text-purple-300",
-      ring: "ring-purple-500/20",
-      selectedRing: "ring-2 ring-purple-500 shadow-[0_0_30px_-5px_rgba(168,85,247,0.5)]",
+      iconWrap: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+      value: "text-purple-600 dark:text-purple-400",
+      selectedRing: "ring-1 ring-purple-500/60",
     },
   };
   const t = toneMap[tone];
@@ -622,33 +612,30 @@ function HeroKpi({
           : undefined
       }
       className={cn(
-        "relative overflow-hidden p-4 bg-gradient-to-br border border-border/60 shadow-sm hover:shadow-md transition-all",
-        t.bg,
-        "ring-1",
-        t.ring,
-        selectable && "cursor-pointer hover:-translate-y-0.5",
+        "relative p-4 bg-card border border-border/60 shadow-none transition-colors",
+        selectable && "cursor-pointer hover:border-border",
         selected && t.selectedRing,
-        pulse && !selected && "ring-2 ring-purple-400/70 shadow-[0_0_20px_-5px_rgba(168,85,247,0.5)]",
+        pulse && !selected && "ring-1 ring-purple-400/50",
       )}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground leading-tight">
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground leading-tight">
           {label}
         </span>
-        <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center shrink-0", t.iconWrap)}>
-          <Icon className="h-3.5 w-3.5" />
+        <div className={cn("h-6 w-6 rounded-md flex items-center justify-center shrink-0", t.iconWrap)}>
+          <Icon className="h-3 w-3" />
         </div>
       </div>
-      <div className={cn("text-3xl md:text-4xl font-bold tabular-nums leading-none tracking-tight", t.value)}>
+      <div className={cn("text-3xl font-semibold tabular-nums leading-none tracking-tight", t.value)}>
         {value}
       </div>
       {hint && (
-        <div className="mt-2 text-[11px] text-muted-foreground font-medium leading-snug">{hint}</div>
+        <div className="mt-2 text-[11px] text-muted-foreground leading-snug">{hint}</div>
       )}
       {pulse && (
-        <span className="absolute top-3 right-3 flex h-2 w-2">
+        <span className="absolute top-2 right-2 flex h-1.5 w-1.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-500" />
         </span>
       )}
     </Card>
