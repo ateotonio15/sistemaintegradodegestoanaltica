@@ -147,6 +147,17 @@ export default function PainelTvFinanceiro() {
       return arr;
     });
   };
+  // Tamanho de cada card: 1 = normal, 2 = duas colunas, 3 = linha inteira
+  const [cardSpan, setCardSpan] = useState<Record<ListKey, 1 | 2 | 3>>({
+    aguardando: 1,
+    notas: 1,
+    faturamento: 1,
+  });
+  const cycleSpan = (k: ListKey) =>
+    setCardSpan((prev) => ({
+      ...prev,
+      [k]: prev[k] === 1 ? 2 : prev[k] === 2 ? 3 : 1,
+    }));
   const [tvMode, setTvMode] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [lastUpdate, setLastUpdate] = useState(Date.now());
@@ -449,15 +460,15 @@ export default function PainelTvFinanceiro() {
 
         {/* LISTAS SELECIONADAS — ordem manual via drag-and-drop */}
         {listOrder.length > 0 && (
-          <section
-            className={cn(
-              "grid gap-5 items-start",
-              listOrder.length === 1 && "grid-cols-1",
-              listOrder.length === 2 && "grid-cols-1 xl:grid-cols-2",
-              listOrder.length >= 3 && "grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3",
-            )}
-          >
+          <section className="grid gap-5 items-start grid-cols-1 xl:grid-cols-3">
             {listOrder.map((key) => {
+              const span = cardSpan[key];
+              const spanClass =
+                span === 3
+                  ? "xl:col-span-3"
+                  : span === 2
+                    ? "xl:col-span-2"
+                    : "xl:col-span-1";
               const wrap = (node: React.ReactNode) => (
                 <div
                   key={key}
@@ -476,11 +487,24 @@ export default function PainelTvFinanceiro() {
                     setDragKey(null);
                   }}
                   className={cn(
-                    "transition-opacity",
+                    "relative transition-opacity",
+                    spanClass,
                     dragKey === key && "opacity-50",
                     dragKey && dragKey !== key && "outline-dashed outline-2 outline-primary/40 outline-offset-2 rounded-xl",
                   )}
                 >
+                  <button
+                    type="button"
+                    onClick={() => cycleSpan(key)}
+                    title={`Largura: ${span === 1 ? "1/3" : span === 2 ? "2/3" : "inteira"} (clique para alternar)`}
+                    className="absolute top-2 right-2 z-10 h-7 w-7 grid place-items-center rounded-md bg-background/80 hover:bg-background border border-border/60 text-muted-foreground hover:text-foreground transition"
+                  >
+                    {span === 3 ? (
+                      <Minimize2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    )}
+                  </button>
                   {node}
                 </div>
               );
