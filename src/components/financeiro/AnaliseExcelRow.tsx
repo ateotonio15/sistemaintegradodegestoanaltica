@@ -39,6 +39,7 @@ export interface ContextoAnalise {
   nomeExcel: string | null;
   temPdf: boolean;
   usuarioNome?: string | null;
+  tipoAnalise?: string | null;
 }
 
 interface Props {
@@ -409,7 +410,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                       </div>
                     )}
 
-                    {r.faixasEtarias && r.faixasEtarias.length > 0 && (
+                    {contexto?.tipoAnalise === "faixa_etaria" && r.faixasEtarias && r.faixasEtarias.length > 0 && (
                       <div className="mt-3 rounded-lg border border-border bg-card overflow-hidden">
                         <div className="bg-muted/40 px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                           Detalhamento por Faixa Etária
