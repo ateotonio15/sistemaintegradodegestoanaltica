@@ -11,9 +11,14 @@ import {
   getMesesOptions,
   isPdfAnexo,
   isXlsAnexo,
+  PERIODOS_FIN,
   type StatusFinanceiro,
 } from "@/lib/financeiro-utils";
 import { Card } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { CalendarRange, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -107,7 +112,20 @@ export default function PainelTvFinanceiro() {
   const { user, role, isAdmin, isFinanceiro } = useAuth();
   const podeVer = isAdmin || isFinanceiro || role === "diretora";
 
-  const [mes, setMes] = useState<string>(getCurrentMesReferencia());
+  // Seleção: { mes_referencia: [periodos...] }. Periodos = subset de PERIODOS_FIN.
+  const [selections, setSelections] = useState<Record<string, string[]>>(() => ({
+    [getCurrentMesReferencia()]: [...PERIODOS_FIN],
+  }));
+  const mesesSelecionados = useMemo(
+    () => Object.keys(selections).filter((m) => selections[m]?.length > 0).sort(),
+    [selections],
+  );
+  const selectionKey = useMemo(
+    () => mesesSelecionados.map((m) => `${m}:${selections[m].join(",")}`).join("|"),
+    [mesesSelecionados, selections],
+  );
+  const mesPrincipal = mesesSelecionados[0] || getCurrentMesReferencia();
+
   type ListKey = "aguardando" | "notas" | "faturamento";
   const [selectedLists, setSelectedLists] = useState<Set<ListKey>>(new Set());
   const toggleList = (k: ListKey) =>
@@ -121,7 +139,7 @@ export default function PainelTvFinanceiro() {
   const [now, setNow] = useState(Date.now());
   const [lastUpdate, setLastUpdate] = useState(Date.now());
 
-  useFinanceiroRealtime({ enabled: !!user && podeVer, mesReferencia: mes });
+  useFinanceiroRealtime({ enabled: !!user && podeVer, mesReferencia: mesPrincipal });
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30000);
@@ -138,19 +156,29 @@ export default function PainelTvFinanceiro() {
     }
   };
 
-  const { data: fin = [], isLoading, refetch } = useQuery({
-    queryKey: ["tv-financeiro-mov", mes],
+  const { data: finRaw = [], isLoading, refetch } = useQuery({
+    queryKey: ["tv-financeiro-mov", selectionKey],
     queryFn: async () => {
+      if (mesesSelecionados.length === 0) return [];
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
         .select("*")
-        .eq("mes_referencia", mes);
+        .in("mes_referencia", mesesSelecionados);
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user && podeVer,
+    enabled: !!user && podeVer && mesesSelecionados.length > 0,
     refetchInterval: 15000,
   });
+
+  // Filtra rows pelos periodos escolhidos dentro de cada competência
+  const fin = useMemo(
+    () =>
+      (finRaw as any[]).filter((f) =>
+        (selections[f.mes_referencia] || []).includes(f.periodo),
+      ),
+    [finRaw, selections],
+  );
 
   const empresaIds = useMemo(
     () => Array.from(new Set(fin.map((f: any) => f.empresa_id))),
@@ -193,18 +221,18 @@ export default function PainelTvFinanceiro() {
   });
 
   const { data: envioOpMap = {} } = useQuery({
-    queryKey: ["tv-fin-envio-op", mes, empresaIds.sort().join(",")],
-    enabled: empresaIds.length > 0,
+    queryKey: ["tv-fin-envio-op", selectionKey, empresaIds.sort().join(",")],
+    enabled: empresaIds.length > 0 && mesesSelecionados.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("empresa_id, periodo, data_envio_financeiro")
-        .eq("mes_referencia", mes)
+        .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
+        .in("mes_referencia", mesesSelecionados)
         .in("empresa_id", empresaIds);
       if (error) throw error;
       const m: Record<string, boolean> = {};
       (data || []).forEach((r: any) => {
-        if (r.data_envio_financeiro) m[`${r.empresa_id}|${r.periodo}`] = true;
+        if (r.data_envio_financeiro) m[`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`] = true;
       });
       return m;
     },
@@ -218,7 +246,7 @@ export default function PainelTvFinanceiro() {
     return (fin as any[]).map((f) => {
       const emp = (empresasMap as any)[f.empresa_id];
       const anexos = (anexosMap as any)[f.id] || [];
-      const envioOp = !!(envioOpMap as any)[`${f.empresa_id}|${f.periodo}`];
+      const envioOp = !!(envioOpMap as any)[`${f.empresa_id}|${f.mes_referencia}|${f.periodo}`];
       const status = calcularStatusFinanceiro(
         f,
         envioOp,
@@ -332,25 +360,16 @@ export default function PainelTvFinanceiro() {
               </h1>
               <p className="text-sm text-muted-foreground flex items-center gap-2">
                 <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                Atualizando em tempo real · Competência {formatMesReferencia(mes)} · Última
-                atualização {hora}
+                Atualizando em tempo real · {resumoSelecao(selections)} · Última atualização {hora}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Select value={mes} onValueChange={setMes}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {getMesesOptions().map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {formatMesReferencia(m)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CompetenciaPeriodoPicker
+              selections={selections}
+              onChange={setSelections}
+            />
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-1" /> Atualizar
             </Button>
@@ -704,5 +723,142 @@ function ListaCard<T>({
         </div>
       </ScrollArea>
     </Card>
+  );
+}
+
+function resumoSelecao(selections: Record<string, string[]>): string {
+  const meses = Object.keys(selections).filter((m) => selections[m]?.length > 0).sort();
+  if (meses.length === 0) return "Nenhuma competência selecionada";
+  const partes = meses.map((m) => {
+    const ps = selections[m];
+    const completo = ps.length === PERIODOS_FIN.length;
+    return `${formatMesReferencia(m)}${completo ? "" : ` (${ps.join(", ")})`}`;
+  });
+  if (partes.length <= 2) return partes.join(" · ");
+  return `${partes.slice(0, 2).join(" · ")} +${partes.length - 2}`;
+}
+
+function CompetenciaPeriodoPicker({
+  selections,
+  onChange,
+}: {
+  selections: Record<string, string[]>;
+  onChange: (next: Record<string, string[]>) => void;
+}) {
+  const meses = useMemo(() => getMesesOptions(), []);
+  const totalMeses = Object.keys(selections).filter((m) => selections[m]?.length > 0).length;
+
+  const toggleMes = (mes: string, completo: boolean) => {
+    const next = { ...selections };
+    if (completo) next[mes] = [...PERIODOS_FIN];
+    else delete next[mes];
+    onChange(next);
+  };
+
+  const togglePeriodo = (mes: string, periodo: string) => {
+    const next = { ...selections };
+    const atual = new Set(next[mes] || []);
+    if (atual.has(periodo)) atual.delete(periodo);
+    else atual.add(periodo);
+    if (atual.size === 0) delete next[mes];
+    else next[mes] = [...PERIODOS_FIN].filter((p) => atual.has(p));
+    onChange(next);
+  };
+
+  const limpar = () => onChange({});
+  const mesAtual = () => onChange({ [getCurrentMesReferencia()]: [...PERIODOS_FIN] });
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 min-w-[220px] justify-between">
+          <span className="flex items-center gap-2 min-w-0">
+            <CalendarRange className="h-4 w-4 shrink-0" />
+            <span className="truncate text-left">
+              {totalMeses === 0
+                ? "Selecionar competências"
+                : `${totalMeses} competência${totalMeses > 1 ? "s" : ""}`}
+            </span>
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-60" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[420px] p-0">
+        <div className="p-3 border-b border-border flex items-center justify-between gap-2">
+          <div>
+            <div className="font-semibold text-sm">Competências e períodos</div>
+            <div className="text-xs text-muted-foreground">
+              Selecione meses completos ou períodos específicos.
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={mesAtual}>
+              Mês atual
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={limpar}>
+              Limpar
+            </Button>
+          </div>
+        </div>
+        <ScrollArea className="h-[360px]">
+          <div className="p-2">
+            {meses.map((mes) => {
+              const ps = selections[mes] || [];
+              const completo = ps.length === PERIODOS_FIN.length;
+              const parcial = ps.length > 0 && !completo;
+              return (
+                <div
+                  key={mes}
+                  className={cn(
+                    "rounded-md px-2 py-2 mb-1 hover:bg-muted/50 transition-colors",
+                    ps.length > 0 && "bg-muted/30",
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={completo ? true : parcial ? "indeterminate" : false}
+                      onCheckedChange={(v) => toggleMes(mes, !!v)}
+                      id={`mes-${mes}`}
+                    />
+                    <label
+                      htmlFor={`mes-${mes}`}
+                      className="flex-1 text-sm font-medium cursor-pointer"
+                    >
+                      {formatMesReferencia(mes)}
+                    </label>
+                    {ps.length > 0 && (
+                      <Badge variant="secondary" className="text-[10px] h-5">
+                        {completo ? "Completo" : `${ps.length}/${PERIODOS_FIN.length}`}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-2 pl-6">
+                    {PERIODOS_FIN.map((p) => {
+                      const sel = ps.includes(p);
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => togglePeriodo(mes, p)}
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-mono tabular-nums border transition-colors",
+                            sel
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background border-border text-muted-foreground hover:border-primary/50",
+                          )}
+                        >
+                          {sel && <Check className="h-3 w-3" />}
+                          {p}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
   );
 }
