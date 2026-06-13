@@ -361,7 +361,7 @@ export default function PainelTvFinanceiro() {
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <HeroKpi label="Total competência" value={counts.total} icon={TrendingUp} tone="neutral" />
           <HeroKpi label="Pendentes" value={pendentes} icon={Clock} tone="muted" />
-          <HeroKpi label="Aguardando emissão" value={emAndamento} icon={Activity} tone="blue" />
+          <HeroKpi label="Aguardando emissão" value={aguardandoEmissao.length} icon={Activity} tone="blue" />
           <HeroKpi
             label="Notas — enviar ao cliente"
             value={counts["Nota emitida"]}
