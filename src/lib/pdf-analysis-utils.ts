@@ -266,6 +266,14 @@ export async function analisarPdfFinanceiro(
   let inclusoesTotal = 0;
   let inclusoesEncontradas = false;
 
+  // Fallback (faixa etária): "Enfermaria (27 beneficiarios): R$ 9.729,89"
+  // — sem mensalidade por capita, apenas qtd e total.
+  const reCatFaixa = (cat: string) =>
+    new RegExp(
+      `${cat}[\\s\\-:a-z]{0,10}?\\(?\\s*(\\d+)\\s*benefici[aá]ri[oa]s?\\s*\\)?\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
+      "i",
+    );
+
   const mEnf = t.match(reCat("enfermaria"));
   if (mEnf) {
     const ben = parseInt(mEnf[1], 10);
@@ -273,6 +281,16 @@ export async function analisarPdfFinanceiro(
     const tot = parseValor(mEnf[3]);
     if (!isNaN(ben) && !isNaN(men) && !isNaN(tot)) {
       enfermaria = { beneficiarios: ben, mensalidade: men, total: tot };
+    }
+  }
+  if (!enfermaria) {
+    const mEnfF = t.match(reCatFaixa("enfermaria"));
+    if (mEnfF) {
+      const ben = parseInt(mEnfF[1], 10);
+      const tot = parseValor(mEnfF[2]);
+      if (!isNaN(ben) && !isNaN(tot)) {
+        enfermaria = { beneficiarios: ben, mensalidade: null, total: tot };
+      }
     }
   }
 
@@ -283,6 +301,16 @@ export async function analisarPdfFinanceiro(
     const tot = parseValor(mApt[3]);
     if (!isNaN(ben) && !isNaN(men) && !isNaN(tot)) {
       apartamento = { beneficiarios: ben, mensalidade: men, total: tot };
+    }
+  }
+  if (!apartamento) {
+    const mAptF = t.match(reCatFaixa("apartamento"));
+    if (mAptF) {
+      const ben = parseInt(mAptF[1], 10);
+      const tot = parseValor(mAptF[2]);
+      if (!isNaN(ben) && !isNaN(tot)) {
+        apartamento = { beneficiarios: ben, mensalidade: null, total: tot };
+      }
     }
   }
 
