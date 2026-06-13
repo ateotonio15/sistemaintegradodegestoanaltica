@@ -821,6 +821,8 @@ function ListaCard<T>({
   renderRow,
   empty,
   contentHeight,
+  sortDir,
+  onBadgeClick,
 }: {
   title: string;
   subtitle?: string;
@@ -830,6 +832,8 @@ function ListaCard<T>({
   renderRow: (r: T, index: number) => React.ReactNode;
   empty: string;
   contentHeight?: string;
+  sortDir?: "desc" | "asc";
+  onBadgeClick?: () => void;
 }) {
   const accentMap = {
     purple: {
