@@ -581,7 +581,7 @@ function HeroKpi({
   label: string;
   value: number;
   icon: any;
-  tone: "neutral" | "muted" | "blue" | "purple" | "amber";
+  tone: "neutral" | "muted" | "blue" | "purple" | "amber" | "green";
   hint?: string;
   pulse?: boolean;
   selectable?: boolean;
