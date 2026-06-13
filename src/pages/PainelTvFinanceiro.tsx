@@ -18,7 +18,7 @@ import { Card } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { CalendarRange, Check, ChevronDown } from "lucide-react";
+import { CalendarRange, Check, ChevronDown, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
