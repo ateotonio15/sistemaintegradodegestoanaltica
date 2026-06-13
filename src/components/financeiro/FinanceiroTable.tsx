@@ -320,6 +320,7 @@ export function FinanceiroTable({
                         periodo: row.periodo,
                         nomeExcel: (analiseResultados[rowKey] ?? analiseResultados[row.id] ?? [])[0]?.pagador ? "Excel anexado" : null,
                         temPdf: !!(analiseComparacoes?.[rowKey] ?? analiseComparacoes?.[row.id] ?? [])?.some((c: any) => c?.arquivoPdf),
+                        tipoAnalise: (row as any).tipo_analise ?? "normal",
                       }}
                     />
                   )}
