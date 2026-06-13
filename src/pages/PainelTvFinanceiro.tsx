@@ -403,38 +403,9 @@ export default function PainelTvFinanceiro() {
           </Card>
         </section>
 
-        {/* RANKING + LISTAS PRINCIPAIS */}
-        <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">Ranking — operação ativa</h2>
-              <Badge variant="secondary">{topResponsaveis.reduce((a, b) => a + b.quantidade, 0)}</Badge>
-            </div>
-            {topResponsaveis.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Sem operação ativa.</p>
-            ) : (
-              <div className="space-y-3">
-                {topResponsaveis.map((r) => {
-                  const max = topResponsaveis[0].quantidade || 1;
-                  const pct = (r.quantidade / max) * 100;
-                  return (
-                    <div key={r.nome}>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="truncate font-medium">{r.nome}</span>
-                        <span className="text-muted-foreground tabular-nums">{r.quantidade}</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
+        {/* LISTAS PRINCIPAIS */}
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+
 
           <ListaCard
             title="Notas emitidas — enviar"
