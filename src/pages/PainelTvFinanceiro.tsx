@@ -412,17 +412,6 @@ export default function PainelTvFinanceiro() {
             onClick={() => toggleList("aguardando")}
           />
           <HeroKpi
-            label="Notas — enviar ao cliente"
-            value={counts["Nota emitida"]}
-            icon={Send}
-            tone="purple"
-            hint="Prontas para envio"
-            pulse={counts["Nota emitida"] > 0}
-            selectable
-            selected={selectedLists.has("notas")}
-            onClick={() => toggleList("notas")}
-          />
-          <HeroKpi
             label="Em faturamento"
             value={emFaturamento.length}
             icon={Activity}
@@ -432,7 +421,19 @@ export default function PainelTvFinanceiro() {
             selected={selectedLists.has("faturamento")}
             onClick={() => toggleList("faturamento")}
           />
+          <HeroKpi
+            label="Notas — enviar ao cliente"
+            value={counts["Nota emitida"]}
+            icon={Send}
+            tone="green"
+            hint="Prontas para envio"
+            pulse={counts["Nota emitida"] > 0}
+            selectable
+            selected={selectedLists.has("notas")}
+            onClick={() => toggleList("notas")}
+          />
         </section>
+
 
         {/* LISTAS SELECIONADAS */}
         {selectedLists.size > 0 && (
@@ -580,7 +581,7 @@ function HeroKpi({
   label: string;
   value: number;
   icon: any;
-  tone: "neutral" | "muted" | "blue" | "purple" | "amber";
+  tone: "neutral" | "muted" | "blue" | "purple" | "amber" | "green";
   hint?: string;
   pulse?: boolean;
   selectable?: boolean;
@@ -613,6 +614,11 @@ function HeroKpi({
       value: "text-purple-600 dark:text-purple-400",
       selectedRing: "ring-1 ring-purple-500/60",
     },
+    green: {
+      iconWrap: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      value: "text-emerald-600 dark:text-emerald-400",
+      selectedRing: "ring-1 ring-emerald-500/60",
+    },
   };
   const t = toneMap[tone];
   return (
@@ -634,7 +640,7 @@ function HeroKpi({
         "relative p-4 bg-card border border-border/60 shadow-none transition-colors",
         selectable && "cursor-pointer hover:border-border",
         selected && t.selectedRing,
-        pulse && !selected && "ring-1 ring-purple-400/50",
+        pulse && !selected && "ring-1 ring-emerald-400/50",
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -653,8 +659,8 @@ function HeroKpi({
       )}
       {pulse && (
         <span className="absolute top-2 right-2 flex h-1.5 w-1.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-500" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
         </span>
       )}
     </Card>
