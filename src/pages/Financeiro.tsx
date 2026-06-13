@@ -1170,7 +1170,7 @@ export default function Financeiro() {
   };
 
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
-  const ANALISE_PARSER_VERSION = "26";
+  const ANALISE_PARSER_VERSION = "27";
 
   // Computa a análise no NÍVEL DO CONTRATO (financeiro_movimentacoes.id).
   // Faz download/parse dos anexos uma única vez por movimentação e devolve
