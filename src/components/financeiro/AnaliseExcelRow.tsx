@@ -39,6 +39,7 @@ export interface ContextoAnalise {
   nomeExcel: string | null;
   temPdf: boolean;
   usuarioNome?: string | null;
+  tipoAnalise?: string | null;
 }
 
 interface Props {
