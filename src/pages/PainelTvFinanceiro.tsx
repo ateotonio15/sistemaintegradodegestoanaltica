@@ -614,6 +614,11 @@ function HeroKpi({
       value: "text-purple-600 dark:text-purple-400",
       selectedRing: "ring-1 ring-purple-500/60",
     },
+    green: {
+      iconWrap: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      value: "text-emerald-600 dark:text-emerald-400",
+      selectedRing: "ring-1 ring-emerald-500/60",
+    },
   };
   const t = toneMap[tone];
   return (
