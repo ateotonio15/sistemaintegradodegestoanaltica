@@ -225,7 +225,15 @@ function findColumnIndex(header: unknown[], aliases: string[]): number {
     const h = norm(header[i]);
     if (!h) continue;
     for (const alias of aliases) {
-      if (h === alias || h.includes(alias)) return i;
+      const aliasNorm = norm(alias);
+      const hMatch = normMatch(h);
+      const aliasMatch = normMatch(aliasNorm);
+      if (
+        h === aliasNorm ||
+        h.includes(aliasNorm) ||
+        hMatch === aliasMatch ||
+        hMatch.includes(aliasMatch)
+      ) return i;
     }
   }
   return -1;
