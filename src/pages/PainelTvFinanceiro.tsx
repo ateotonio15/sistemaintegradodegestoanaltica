@@ -147,6 +147,17 @@ export default function PainelTvFinanceiro() {
       return arr;
     });
   };
+  // Tamanho de cada card: 1 = normal, 2 = duas colunas, 3 = linha inteira
+  const [cardSpan, setCardSpan] = useState<Record<ListKey, 1 | 2 | 3>>({
+    aguardando: 1,
+    notas: 1,
+    faturamento: 1,
+  });
+  const cycleSpan = (k: ListKey) =>
+    setCardSpan((prev) => ({
+      ...prev,
+      [k]: prev[k] === 1 ? 2 : prev[k] === 2 ? 3 : 1,
+    }));
   const [tvMode, setTvMode] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [lastUpdate, setLastUpdate] = useState(Date.now());
