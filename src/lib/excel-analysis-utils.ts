@@ -1065,6 +1065,11 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (g.adesaoQtd > 0 || g.adesaoTotal !== 0) {
       bloco.taxaAdesao = { quantidade: g.adesaoQtd, total: g.adesaoTotal };
     }
+    if (g.faixas.size > 0) {
+      bloco.faixasEtarias = Array.from(g.faixas.values()).sort(
+        (a, b) => a.idadeInicial - b.idadeInicial,
+      );
+    }
 
 
     return bloco;
