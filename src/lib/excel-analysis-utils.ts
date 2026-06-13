@@ -952,6 +952,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         excQtd: 0, excTotal: 0,
         devQtd: 0, devTotal: 0,
         adesaoQtd: 0, adesaoTotal: 0,
+        faixas: new Map(),
       };
 
       blocos.push(cur);
