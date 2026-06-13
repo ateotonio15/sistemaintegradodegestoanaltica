@@ -397,7 +397,7 @@ export async function executarAnaliseCompetencia(
           (!p.apartamento || (p.apartamento.total === 0 && p.apartamento.beneficiarios === null));
         const cmp = semDetalhes
           ? xls.compararExcelComPdfSimplificado(excelRes, await pdfLib.analisarPdfFinanceiroSimplificado(p.buf) as any)
-          : xls.compararExcelComPdf(excelRes, p);
+          : xls.compararExcelComPdf(excelRes, p, tipoAnalise);
         const divs = extrairDivergencias(cmp);
         const valorPdf = sumPdfTotal(cmp);
         const status: StatusItem = divs.length === 0 ? "OK" : "Divergente";
