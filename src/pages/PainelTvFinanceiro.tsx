@@ -156,19 +156,29 @@ export default function PainelTvFinanceiro() {
     }
   };
 
-  const { data: fin = [], isLoading, refetch } = useQuery({
-    queryKey: ["tv-financeiro-mov", mes],
+  const { data: finRaw = [], isLoading, refetch } = useQuery({
+    queryKey: ["tv-financeiro-mov", selectionKey],
     queryFn: async () => {
+      if (mesesSelecionados.length === 0) return [];
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
         .select("*")
-        .eq("mes_referencia", mes);
+        .in("mes_referencia", mesesSelecionados);
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user && podeVer,
+    enabled: !!user && podeVer && mesesSelecionados.length > 0,
     refetchInterval: 15000,
   });
+
+  // Filtra rows pelos periodos escolhidos dentro de cada competência
+  const fin = useMemo(
+    () =>
+      (finRaw as any[]).filter((f) =>
+        (selections[f.mes_referencia] || []).includes(f.periodo),
+      ),
+    [finRaw, selections],
+  );
 
   const empresaIds = useMemo(
     () => Array.from(new Set(fin.map((f: any) => f.empresa_id))),
@@ -211,18 +221,18 @@ export default function PainelTvFinanceiro() {
   });
 
   const { data: envioOpMap = {} } = useQuery({
-    queryKey: ["tv-fin-envio-op", mes, empresaIds.sort().join(",")],
-    enabled: empresaIds.length > 0,
+    queryKey: ["tv-fin-envio-op", selectionKey, empresaIds.sort().join(",")],
+    enabled: empresaIds.length > 0 && mesesSelecionados.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("empresa_id, periodo, data_envio_financeiro")
-        .eq("mes_referencia", mes)
+        .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
+        .in("mes_referencia", mesesSelecionados)
         .in("empresa_id", empresaIds);
       if (error) throw error;
       const m: Record<string, boolean> = {};
       (data || []).forEach((r: any) => {
-        if (r.data_envio_financeiro) m[`${r.empresa_id}|${r.periodo}`] = true;
+        if (r.data_envio_financeiro) m[`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`] = true;
       });
       return m;
     },
