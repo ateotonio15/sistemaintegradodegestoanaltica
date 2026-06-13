@@ -447,86 +447,118 @@ export default function PainelTvFinanceiro() {
         </section>
 
 
-        {/* LISTAS SELECIONADAS */}
-        {selectedLists.size > 0 && (
+        {/* LISTAS SELECIONADAS — ordem manual via drag-and-drop */}
+        {listOrder.length > 0 && (
           <section
             className={cn(
-              "grid gap-5",
-              selectedLists.size === 1 && "grid-cols-1",
-              selectedLists.size === 2 && "grid-cols-1 xl:grid-cols-2",
-              selectedLists.size >= 3 && "grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3",
+              "grid gap-5 items-start",
+              listOrder.length === 1 && "grid-cols-1",
+              listOrder.length === 2 && "grid-cols-1 xl:grid-cols-2",
+              listOrder.length >= 3 && "grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3",
             )}
           >
-            {selectedLists.has("aguardando") && (
-              <ListaCard
-                title="Aguardando emissão"
-                subtitle="Operacional já enviou — emitir nota fiscal"
-                accent="yellow"
-                icon={TimerReset}
-                rows={aguardandoEmissao}
-                renderRow={(r, i) => (
-                  <RowItem
-                    key={r.id}
-                    index={i}
-                    title={r.empresa_nome}
-                    subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
-                    badgeText="Emitir"
-                    badgeClass="bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30"
-                    timeText={tempoDesde(r.aguardando_nota_em || r.updated_at)}
-                    accentDot="bg-yellow-500"
-                  />
-                )}
-                empty="Nenhuma empresa aguardando emissão 🎉"
-              />
-            )}
+            {listOrder.map((key) => {
+              const wrap = (node: React.ReactNode) => (
+                <div
+                  key={key}
+                  draggable
+                  onDragStart={(e) => {
+                    setDragKey(key);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragEnd={() => setDragKey(null)}
+                  onDragOver={(e) => {
+                    if (dragKey && dragKey !== key) e.preventDefault();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragKey) moveList(dragKey, key);
+                    setDragKey(null);
+                  }}
+                  className={cn(
+                    "transition-opacity",
+                    dragKey === key && "opacity-50",
+                    dragKey && dragKey !== key && "outline-dashed outline-2 outline-primary/40 outline-offset-2 rounded-xl",
+                  )}
+                >
+                  {node}
+                </div>
+              );
 
-            {selectedLists.has("notas") && (
-              <ListaCard
-                title="Notas emitidas — enviar"
-                subtitle="Prontas aguardando envio ao cliente"
-                accent="green"
-                icon={Send}
-                rows={notasAguardandoEnvio}
-                renderRow={(r, i) => (
-                  <RowItem
-                    key={r.id}
-                    index={i}
-                    title={r.empresa_nome}
-                    subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
-                    badgeText="Enviar"
-                    badgeClass="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
-                    timeText={tempoDesde(r.updated_at)}
-                    accentDot="bg-emerald-500"
-                  />
-                )}
-                empty="Nenhuma nota aguardando envio 🎉"
-              />
-            )}
+              if (key === "aguardando")
+                return wrap(
+                  <ListaCard
+                    title="Aguardando emissão"
+                    subtitle="Operacional já enviou — emitir nota fiscal"
+                    accent="yellow"
+                    icon={TimerReset}
+                    rows={aguardandoEmissao}
+                    renderRow={(r, i) => (
+                      <RowItem
+                        key={r.id}
+                        index={i}
+                        title={r.empresa_nome}
+                        subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
+                        badgeText="Emitir"
+                        badgeClass="bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30"
+                        timeText={tempoDesde(r.aguardando_nota_em || r.updated_at)}
+                        accentDot="bg-yellow-500"
+                      />
+                    )}
+                    empty="Nenhuma empresa aguardando emissão 🎉"
+                  />,
+                );
 
-            {selectedLists.has("faturamento") && (
-              <ListaCard
-                title="Em faturamento"
-                subtitle="Processo iniciado e em andamento"
-                accent="blue"
-                icon={Activity}
-                rows={emFaturamento}
-                renderRow={(r, i) => (
-                  <RowItem
-                    key={r.id}
-                    index={i}
-                    title={r.empresa_nome}
-                    subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
-                    badgeText="Ativo"
-                    badgeClass="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30"
-                    timeText={tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
-                    accentDot="bg-blue-500"
-                  />
-                )}
-                empty="Nenhuma empresa em faturamento agora."
-              />
-            )}
+              if (key === "notas")
+                return wrap(
+                  <ListaCard
+                    title="Notas emitidas — enviar"
+                    subtitle="Prontas aguardando envio ao cliente"
+                    accent="green"
+                    icon={Send}
+                    rows={notasAguardandoEnvio}
+                    renderRow={(r, i) => (
+                      <RowItem
+                        key={r.id}
+                        index={i}
+                        title={r.empresa_nome}
+                        subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
+                        badgeText="Enviar"
+                        badgeClass="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+                        timeText={tempoDesde(r.updated_at)}
+                        accentDot="bg-emerald-500"
+                      />
+                    )}
+                    empty="Nenhuma nota aguardando envio 🎉"
+                  />,
+                );
+
+              return wrap(
+                <ListaCard
+                  title="Em faturamento"
+                  subtitle="Processo iniciado e em andamento"
+                  accent="blue"
+                  icon={Activity}
+                  rows={emFaturamento}
+                  renderRow={(r, i) => (
+                    <RowItem
+                      key={r.id}
+                      index={i}
+                      title={r.empresa_nome}
+                      subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
+                      badgeText="Ativo"
+                      badgeClass="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30"
+                      timeText={tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
+                      accentDot="bg-blue-500"
+                    />
+                  )}
+                  empty="Nenhuma empresa em faturamento agora."
+                />,
+              );
+            })}
           </section>
         )}
+
 
         {selectedLists.size === 0 && (
           <div className="text-center text-sm text-muted-foreground py-12">
