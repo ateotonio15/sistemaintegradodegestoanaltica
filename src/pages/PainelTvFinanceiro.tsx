@@ -725,3 +725,140 @@ function ListaCard<T>({
     </Card>
   );
 }
+
+function resumoSelecao(selections: Record<string, string[]>): string {
+  const meses = Object.keys(selections).filter((m) => selections[m]?.length > 0).sort();
+  if (meses.length === 0) return "Nenhuma competência selecionada";
+  const partes = meses.map((m) => {
+    const ps = selections[m];
+    const completo = ps.length === PERIODOS_FIN.length;
+    return `${formatMesReferencia(m)}${completo ? "" : ` (${ps.join(", ")})`}`;
+  });
+  if (partes.length <= 2) return partes.join(" · ");
+  return `${partes.slice(0, 2).join(" · ")} +${partes.length - 2}`;
+}
+
+function CompetenciaPeriodoPicker({
+  selections,
+  onChange,
+}: {
+  selections: Record<string, string[]>;
+  onChange: (next: Record<string, string[]>) => void;
+}) {
+  const meses = useMemo(() => getMesesOptions(), []);
+  const totalMeses = Object.keys(selections).filter((m) => selections[m]?.length > 0).length;
+
+  const toggleMes = (mes: string, completo: boolean) => {
+    const next = { ...selections };
+    if (completo) next[mes] = [...PERIODOS_FIN];
+    else delete next[mes];
+    onChange(next);
+  };
+
+  const togglePeriodo = (mes: string, periodo: string) => {
+    const next = { ...selections };
+    const atual = new Set(next[mes] || []);
+    if (atual.has(periodo)) atual.delete(periodo);
+    else atual.add(periodo);
+    if (atual.size === 0) delete next[mes];
+    else next[mes] = [...PERIODOS_FIN].filter((p) => atual.has(p));
+    onChange(next);
+  };
+
+  const limpar = () => onChange({});
+  const mesAtual = () => onChange({ [getCurrentMesReferencia()]: [...PERIODOS_FIN] });
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 min-w-[220px] justify-between">
+          <span className="flex items-center gap-2 min-w-0">
+            <CalendarRange className="h-4 w-4 shrink-0" />
+            <span className="truncate text-left">
+              {totalMeses === 0
+                ? "Selecionar competências"
+                : `${totalMeses} competência${totalMeses > 1 ? "s" : ""}`}
+            </span>
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-60" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[420px] p-0">
+        <div className="p-3 border-b border-border flex items-center justify-between gap-2">
+          <div>
+            <div className="font-semibold text-sm">Competências e períodos</div>
+            <div className="text-xs text-muted-foreground">
+              Selecione meses completos ou períodos específicos.
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={mesAtual}>
+              Mês atual
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={limpar}>
+              Limpar
+            </Button>
+          </div>
+        </div>
+        <ScrollArea className="h-[360px]">
+          <div className="p-2">
+            {meses.map((mes) => {
+              const ps = selections[mes] || [];
+              const completo = ps.length === PERIODOS_FIN.length;
+              const parcial = ps.length > 0 && !completo;
+              return (
+                <div
+                  key={mes}
+                  className={cn(
+                    "rounded-md px-2 py-2 mb-1 hover:bg-muted/50 transition-colors",
+                    ps.length > 0 && "bg-muted/30",
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={completo ? true : parcial ? "indeterminate" : false}
+                      onCheckedChange={(v) => toggleMes(mes, !!v)}
+                      id={`mes-${mes}`}
+                    />
+                    <label
+                      htmlFor={`mes-${mes}`}
+                      className="flex-1 text-sm font-medium cursor-pointer"
+                    >
+                      {formatMesReferencia(mes)}
+                    </label>
+                    {ps.length > 0 && (
+                      <Badge variant="secondary" className="text-[10px] h-5">
+                        {completo ? "Completo" : `${ps.length}/${PERIODOS_FIN.length}`}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-2 pl-6">
+                    {PERIODOS_FIN.map((p) => {
+                      const sel = ps.includes(p);
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => togglePeriodo(mes, p)}
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-mono tabular-nums border transition-colors",
+                            sel
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background border-border text-muted-foreground hover:border-primary/50",
+                          )}
+                        >
+                          {sel && <Check className="h-3 w-3" />}
+                          {p}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
+  );
+}
