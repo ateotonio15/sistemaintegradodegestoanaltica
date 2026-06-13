@@ -679,7 +679,9 @@ export function compararExcelComPdf(
   tipoAnalise?: string | null,
 ): ComparacaoResultado {
   const divergencias: string[] = [];
-  const isFaixaEtaria = tipoAnalise === "faixa_etaria";
+  const isFaixaEtaria = String(tipoAnalise ?? "")
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_") === "faixa_etaria";
   const tem = (c: { beneficiarios: number; total: number }) =>
     c.beneficiarios > 0 || c.total > 0;
 
@@ -1440,6 +1442,7 @@ export async function analisarExcelFinanceiroPorCnpj(
 export function cruzarExcelComPdfs(
   blocos: AnalisePorCnpj[],
   pdfs: Array<AnalisePdfResultado & { arquivo: string }>,
+  tipoAnalise?: string | null,
 ): { comparacoes: ComparacaoResultado[]; notasOrfas: NotaOrfa[] } {
   const usados = new Set<number>();
   const comparacoes: ComparacaoResultado[] = blocos.map((bloco) => {
@@ -1468,7 +1471,7 @@ export function cruzarExcelComPdfs(
 
 
     };
-    const cmp = compararExcelComPdf(excelResult, pdf);
+    const cmp = compararExcelComPdf(excelResult, pdf, tipoAnalise);
     cmp.cnpj = bloco.cnpj;
     cmp.nomeExibicao = bloco.nomeExibicao;
     cmp.tomadorCnpj = pdf ? normalizarCnpj(pdf.tomadorCnpj) : null;
