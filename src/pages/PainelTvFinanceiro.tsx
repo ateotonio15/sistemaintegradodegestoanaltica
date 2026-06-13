@@ -754,22 +754,23 @@ function ListaCard<T>({
   return (
     <Card className="relative flex flex-col overflow-hidden border border-border/60 shadow-sm">
       <span className={cn("absolute left-0 top-0 bottom-0 w-1", a.stripe)} aria-hidden />
-      <div className="p-5 border-b border-border/60 bg-gradient-to-b from-muted/30 to-transparent">
+      <div className="p-5 border-b border-border/60 bg-gradient-to-b from-muted/30 to-transparent cursor-grab active:cursor-grabbing select-none">
         <div className="flex items-center gap-3">
+          <GripVertical className="h-4 w-4 text-muted-foreground/60 shrink-0" />
           <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", a.iconWrap)}>
             <Icon className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-semibold text-lg leading-tight">{title}</h2>
-            {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+            <h2 className="font-semibold text-lg leading-tight truncate">{title}</h2>
+            {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
           </div>
-          <Badge variant="secondary" className={cn("text-base font-bold tabular-nums px-3 py-1", a.badge)}>
+          <Badge variant="secondary" className={cn("text-base font-bold tabular-nums px-3 py-1 shrink-0", a.badge)}>
             {rows.length}
           </Badge>
         </div>
       </div>
       <ScrollArea className="h-[400px]">
-        <div className="p-3">
+        <div className="p-3 pr-4">
           {rows.length === 0 ? (
             <div className="text-sm text-muted-foreground text-center py-12 px-4">{empty}</div>
           ) : (
