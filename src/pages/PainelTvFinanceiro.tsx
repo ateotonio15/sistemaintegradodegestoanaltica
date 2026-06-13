@@ -380,6 +380,11 @@ export default function PainelTvFinanceiro() {
             icon={TimerReset}
             tone="amber"
             hint="Operacional enviou — emitir nota"
+            selectable
+            selected={selectedList === "aguardando"}
+            onClick={() =>
+              setSelectedList((s) => (s === "aguardando" ? null : "aguardando"))
+            }
           />
           <HeroKpi
             label="Notas — enviar ao cliente"
@@ -388,8 +393,64 @@ export default function PainelTvFinanceiro() {
             tone="purple"
             hint="Prontas para envio"
             pulse={counts["Nota emitida"] > 0}
+            selectable
+            selected={selectedList === "notas"}
+            onClick={() =>
+              setSelectedList((s) => (s === "notas" ? null : "notas"))
+            }
           />
         </section>
+
+        {/* LISTA SELECIONADA */}
+        {selectedList === "aguardando" && (
+          <section>
+            <ListaCard
+              title="Aguardando emissão"
+              subtitle="Operacional já enviou — emitir nota fiscal"
+              accent="yellow"
+              icon={TimerReset}
+              rows={aguardandoEmissao}
+              renderRow={(r, i) => (
+                <RowItem
+                  key={r.id}
+                  index={i}
+                  title={r.empresa_nome}
+                  subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
+                  badgeText="Emitir"
+                  badgeClass="bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30"
+                  timeText={tempoDesde(r.aguardando_nota_em || r.updated_at)}
+                  accentDot="bg-yellow-500"
+                />
+              )}
+              empty="Nenhuma empresa aguardando emissão 🎉"
+            />
+          </section>
+        )}
+
+        {selectedList === "notas" && (
+          <section>
+            <ListaCard
+              title="Notas emitidas — enviar"
+              subtitle="Prontas aguardando envio ao cliente"
+              accent="purple"
+              icon={Send}
+              rows={notasAguardandoEnvio}
+              renderRow={(r, i) => (
+                <RowItem
+                  key={r.id}
+                  index={i}
+                  title={r.empresa_nome}
+                  subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
+                  badgeText="Enviar"
+                  badgeClass="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
+                  timeText={tempoDesde(r.updated_at)}
+                  accentDot="bg-purple-500"
+                />
+              )}
+              empty="Nenhuma nota aguardando envio 🎉"
+            />
+          </section>
+        )}
 
         {/* LISTAS PRINCIPAIS */}
         <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
