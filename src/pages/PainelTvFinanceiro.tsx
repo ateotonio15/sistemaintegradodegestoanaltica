@@ -452,50 +452,11 @@ export default function PainelTvFinanceiro() {
           </section>
         )}
 
-        {/* LISTAS PRINCIPAIS */}
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          <ListaCard
-            title="Notas emitidas — enviar"
-            subtitle="Prontas aguardando envio ao cliente"
-            accent="purple"
-            icon={Send}
-            rows={notasAguardandoEnvio}
-            renderRow={(r, i) => (
-              <RowItem
-                key={r.id}
-                index={i}
-                title={r.empresa_nome}
-                subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
-                badgeText="Enviar"
-                badgeClass="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
-                timeText={tempoDesde(r.updated_at)}
-                accentDot="bg-purple-500"
-              />
-            )}
-            empty="Nenhuma nota aguardando envio 🎉"
-          />
-
-          <ListaCard
-            title="Em faturamento"
-            subtitle="Processo iniciado e em andamento"
-            accent="blue"
-            icon={Activity}
-            rows={emFaturamento}
-            renderRow={(r, i) => (
-              <RowItem
-                key={r.id}
-                index={i}
-                title={r.empresa_nome}
-                subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
-                badgeText="Ativo"
-                badgeClass="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30"
-                timeText={tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
-                accentDot="bg-blue-500"
-              />
-            )}
-            empty="Nenhuma empresa em faturamento agora."
-          />
-        </section>
+        {selectedList === null && (
+          <div className="text-center text-sm text-muted-foreground py-12">
+            Selecione um dos cards acima para ver os detalhes.
+          </div>
+        )}
 
         {isLoading && (
           <p className="text-center text-sm text-muted-foreground">Carregando…</p>
