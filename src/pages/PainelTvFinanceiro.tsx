@@ -389,10 +389,8 @@ export default function PainelTvFinanceiro() {
             tone="amber"
             hint="Operacional enviou — emitir nota"
             selectable
-            selected={selectedList === "aguardando"}
-            onClick={() =>
-              setSelectedList((s) => (s === "aguardando" ? null : "aguardando"))
-            }
+            selected={selectedLists.has("aguardando")}
+            onClick={() => toggleList("aguardando")}
           />
           <HeroKpi
             label="Notas — enviar ao cliente"
@@ -402,67 +400,105 @@ export default function PainelTvFinanceiro() {
             hint="Prontas para envio"
             pulse={counts["Nota emitida"] > 0}
             selectable
-            selected={selectedList === "notas"}
-            onClick={() =>
-              setSelectedList((s) => (s === "notas" ? null : "notas"))
-            }
+            selected={selectedLists.has("notas")}
+            onClick={() => toggleList("notas")}
+          />
+          <HeroKpi
+            label="Em faturamento"
+            value={emFaturamento.length}
+            icon={Activity}
+            tone="blue"
+            hint="Processo iniciado"
+            selectable
+            selected={selectedLists.has("faturamento")}
+            onClick={() => toggleList("faturamento")}
           />
         </section>
 
-        {/* LISTA SELECIONADA */}
-        {selectedList === "aguardando" && (
-          <section>
-            <ListaCard
-              title="Aguardando emissão"
-              subtitle="Operacional já enviou — emitir nota fiscal"
-              accent="yellow"
-              icon={TimerReset}
-              rows={aguardandoEmissao}
-              renderRow={(r, i) => (
-                <RowItem
-                  key={r.id}
-                  index={i}
-                  title={r.empresa_nome}
-                  subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
-                  badgeText="Emitir"
-                  badgeClass="bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30"
-                  timeText={tempoDesde(r.aguardando_nota_em || r.updated_at)}
-                  accentDot="bg-yellow-500"
-                />
-              )}
-              empty="Nenhuma empresa aguardando emissão 🎉"
-            />
+        {/* LISTAS SELECIONADAS */}
+        {selectedLists.size > 0 && (
+          <section
+            className={cn(
+              "grid gap-5",
+              selectedLists.size === 1 && "grid-cols-1",
+              selectedLists.size === 2 && "grid-cols-1 xl:grid-cols-2",
+              selectedLists.size >= 3 && "grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3",
+            )}
+          >
+            {selectedLists.has("aguardando") && (
+              <ListaCard
+                title="Aguardando emissão"
+                subtitle="Operacional já enviou — emitir nota fiscal"
+                accent="yellow"
+                icon={TimerReset}
+                rows={aguardandoEmissao}
+                renderRow={(r, i) => (
+                  <RowItem
+                    key={r.id}
+                    index={i}
+                    title={r.empresa_nome}
+                    subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
+                    badgeText="Emitir"
+                    badgeClass="bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30"
+                    timeText={tempoDesde(r.aguardando_nota_em || r.updated_at)}
+                    accentDot="bg-yellow-500"
+                  />
+                )}
+                empty="Nenhuma empresa aguardando emissão 🎉"
+              />
+            )}
+
+            {selectedLists.has("notas") && (
+              <ListaCard
+                title="Notas emitidas — enviar"
+                subtitle="Prontas aguardando envio ao cliente"
+                accent="purple"
+                icon={Send}
+                rows={notasAguardandoEnvio}
+                renderRow={(r, i) => (
+                  <RowItem
+                    key={r.id}
+                    index={i}
+                    title={r.empresa_nome}
+                    subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
+                    badgeText="Enviar"
+                    badgeClass="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
+                    timeText={tempoDesde(r.updated_at)}
+                    accentDot="bg-purple-500"
+                  />
+                )}
+                empty="Nenhuma nota aguardando envio 🎉"
+              />
+            )}
+
+            {selectedLists.has("faturamento") && (
+              <ListaCard
+                title="Em faturamento"
+                subtitle="Processo iniciado e em andamento"
+                accent="blue"
+                icon={Activity}
+                rows={emFaturamento}
+                renderRow={(r, i) => (
+                  <RowItem
+                    key={r.id}
+                    index={i}
+                    title={r.empresa_nome}
+                    subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
+                    badgeText="Ativo"
+                    badgeClass="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30"
+                    timeText={tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
+                    accentDot="bg-blue-500"
+                  />
+                )}
+                empty="Nenhuma empresa em faturamento agora."
+              />
+            )}
           </section>
         )}
 
-        {selectedList === "notas" && (
-          <section>
-            <ListaCard
-              title="Notas emitidas — enviar"
-              subtitle="Prontas aguardando envio ao cliente"
-              accent="purple"
-              icon={Send}
-              rows={notasAguardandoEnvio}
-              renderRow={(r, i) => (
-                <RowItem
-                  key={r.id}
-                  index={i}
-                  title={r.empresa_nome}
-                  subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
-                  badgeText="Enviar"
-                  badgeClass="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
-                  timeText={tempoDesde(r.updated_at)}
-                  accentDot="bg-purple-500"
-                />
-              )}
-              empty="Nenhuma nota aguardando envio 🎉"
-            />
-          </section>
-        )}
-
-        {selectedList === null && (
+        {selectedLists.size === 0 && (
           <div className="text-center text-sm text-muted-foreground py-12">
-            Selecione um dos cards acima para ver os detalhes.
+            Selecione um ou mais cards acima para ver os detalhes.
           </div>
         )}
 
