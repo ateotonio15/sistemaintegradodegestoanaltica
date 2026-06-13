@@ -412,17 +412,6 @@ export default function PainelTvFinanceiro() {
             onClick={() => toggleList("aguardando")}
           />
           <HeroKpi
-            label="Notas — enviar ao cliente"
-            value={counts["Nota emitida"]}
-            icon={Send}
-            tone="purple"
-            hint="Prontas para envio"
-            pulse={counts["Nota emitida"] > 0}
-            selectable
-            selected={selectedLists.has("notas")}
-            onClick={() => toggleList("notas")}
-          />
-          <HeroKpi
             label="Em faturamento"
             value={emFaturamento.length}
             icon={Activity}
@@ -432,7 +421,17 @@ export default function PainelTvFinanceiro() {
             selected={selectedLists.has("faturamento")}
             onClick={() => toggleList("faturamento")}
           />
-        </section>
+          <HeroKpi
+            label="Notas — enviar ao cliente"
+            value={counts["Nota emitida"]}
+            icon={Send}
+            tone="green"
+            hint="Prontas para envio"
+            pulse={counts["Nota emitida"] > 0}
+            selectable
+            selected={selectedLists.has("notas")}
+            onClick={() => toggleList("notas")}
+          />
 
         {/* LISTAS SELECIONADAS */}
         {selectedLists.size > 0 && (
