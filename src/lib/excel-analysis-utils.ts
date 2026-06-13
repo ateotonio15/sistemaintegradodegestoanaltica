@@ -364,6 +364,7 @@ export async function analisarExcelFinanceiroPorPagador(
   let idxCnpj = -1;
   let idxPagador = -1;
   let idxFaixa = -1;
+  let idxFaixa = -1;
 
   for (let i = 0; i < Math.min(10, allRows.length); i++) {
     const r = allRows[i];
@@ -1145,6 +1146,7 @@ export async function analisarExcelFinanceiroPorCnpj(
       idxValor = v;
       idxCnpj = findColumnIndex(r, COL_CNPJ);
       idxPagador = findColumnIndex(r, COL_PAGADOR);
+      idxFaixa = findColumnIndex(r, COL_FAIXA_ETARIA);
       break;
     }
   }
