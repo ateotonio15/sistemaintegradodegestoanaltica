@@ -1343,9 +1343,10 @@ export default function Financeiro() {
       } else {
         comparacoes = resultados.map((excel, idx) => {
           const pdf = pdfsValidos[idx] ?? pdfsValidos[0] ?? null;
-          return compararExcelComPdf(excel, pdf);
+          return compararExcelComPdf(excel, pdf, tipoAnalise);
         });
       }
+
 
       const out = {
         key: cacheKey,
