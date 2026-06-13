@@ -888,6 +888,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   let idxQtd = -1;
   let idxMens = -1;
   let idxValor = -1;
+  let idxFaixa = -1;
   for (let i = 0; i < Math.min(15, rows.length); i++) {
     const r = rows[i] || [];
     let lbl = -1, qtd = -1, mens = -1, val = -1;
@@ -916,6 +917,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     }
     if (lbl >= 0 && val >= 0) {
       headerIdx = i; idxLabel = lbl; idxQtd = qtd; idxMens = mens; idxValor = val;
+      idxFaixa = findColumnIndex(r, COL_FAIXA_ETARIA);
       break;
     }
   }
@@ -1024,15 +1026,12 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       continue;
     }
 
-    // Detecta faixa etária: "0 à 18", "19 a 23", "60+"
-    const faixaMatch = labelRaw.match(reFaixa);
-    const faixaMaisMatch = !faixaMatch ? labelRaw.match(reFaixaMais) : null;
-    if (faixaMatch || faixaMaisMatch) {
-      const ini = parseInt((faixaMatch ? faixaMatch[1] : faixaMaisMatch![1]), 10);
-      const fim = faixaMatch ? parseInt(faixaMatch[2], 10) : null;
-      const label = faixaMatch
-        ? `${ini} à ${fim}`
-        : `${ini}+`;
+    // Detecta faixa etária: "0 à 18", "19 a 23", "60+" no label ou coluna "Fx Etária".
+    const faixaInfo = (idxFaixa >= 0 ? parseFaixaEtariaLabel(r[idxFaixa]) : null) ?? parseFaixaEtariaLabel(labelRaw);
+    if (faixaInfo) {
+      const ini = faixaInfo.idadeInicial;
+      const fim = faixaInfo.idadeFinal;
+      const label = faixaInfo.label;
       const key = `${ini}-${fim ?? "+"}`;
       const prev = cur.faixas.get(key) || { label, idadeInicial: ini, idadeFinal: fim, quantidade: 0, total: 0 };
       prev.quantidade += qtdNum;
