@@ -472,7 +472,7 @@ export default function PainelTvFinanceiro() {
               <ListaCard
                 title="Notas emitidas — enviar"
                 subtitle="Prontas aguardando envio ao cliente"
-                accent="purple"
+                accent="green"
                 icon={Send}
                 rows={notasAguardandoEnvio}
                 renderRow={(r, i) => (
@@ -482,9 +482,9 @@ export default function PainelTvFinanceiro() {
                     title={r.empresa_nome}
                     subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
                     badgeText="Enviar"
-                    badgeClass="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30"
+                    badgeClass="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
                     timeText={tempoDesde(r.updated_at)}
-                    accentDot="bg-purple-500"
+                    accentDot="bg-emerald-500"
                   />
                 )}
                 empty="Nenhuma nota aguardando envio 🎉"
