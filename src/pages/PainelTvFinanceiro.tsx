@@ -246,7 +246,7 @@ export default function PainelTvFinanceiro() {
     return (fin as any[]).map((f) => {
       const emp = (empresasMap as any)[f.empresa_id];
       const anexos = (anexosMap as any)[f.id] || [];
-      const envioOp = !!(envioOpMap as any)[`${f.empresa_id}|${f.periodo}`];
+      const envioOp = !!(envioOpMap as any)[`${f.empresa_id}|${f.mes_referencia}|${f.periodo}`];
       const status = calcularStatusFinanceiro(
         f,
         envioOp,
