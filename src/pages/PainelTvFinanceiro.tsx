@@ -482,7 +482,7 @@ export default function PainelTvFinanceiro() {
         </section>
 
         {/* RANKING + LISTAS PRINCIPAIS */}
-        <section className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold">Ranking — operação ativa</h2>
