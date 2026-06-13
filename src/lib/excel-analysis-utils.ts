@@ -29,6 +29,8 @@ export interface AnaliseResultado {
   devolucoes?: InclusaoResultado;
   /** Taxa de Adesão — cobrada uma única vez por adesão. */
   taxaAdesao?: InclusaoResultado;
+  /** Detalhamento por faixa etária quando disponível na RESUMO. */
+  faixasEtarias?: FaixaEtariaResumo[];
   avisos: string[];
 }
 
@@ -44,7 +46,18 @@ export interface AnalisePorCnpj {
   exclusoes?: InclusaoResultado;
   devolucoes?: InclusaoResultado;
   taxaAdesao?: InclusaoResultado;
+  /** Detalhamento por faixa etária (quando a aba RESUMO contém faixas). */
+  faixasEtarias?: FaixaEtariaResumo[];
   avisos: string[];
+}
+
+/** Linha de detalhamento por faixa etária extraída da aba RESUMO. */
+export interface FaixaEtariaResumo {
+  label: string;
+  idadeInicial: number;
+  idadeFinal: number | null;
+  quantidade: number;
+  total: number;
 }
 
 
@@ -893,7 +906,12 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     excQtd: number; excTotal: number;
     devQtd: number; devTotal: number;
     adesaoQtd: number; adesaoTotal: number;
+    faixas: Map<string, { label: string; idadeInicial: number; idadeFinal: number | null; quantidade: number; total: number }>;
   };
+
+  // Regex para faixa etária: "0 à 18", "19 a 23", "60+", "60 +"
+  const reFaixa = /^\s*(\d{1,3})\s*(?:[àa]|-|–|—|até|ate)\s*(\d{1,3})\s*$/i;
+  const reFaixaMais = /^\s*(\d{1,3})\s*\+\s*$/;
 
 
 
@@ -934,6 +952,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         excQtd: 0, excTotal: 0,
         devQtd: 0, devTotal: 0,
         adesaoQtd: 0, adesaoTotal: 0,
+        faixas: new Map(),
       };
 
       blocos.push(cur);
@@ -977,6 +996,26 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (labelNorm.includes("exclus")) {
       cur.excQtd += qtdNum;
       cur.excTotal += valNum;
+      continue;
+    }
+
+    // Detecta faixa etária: "0 à 18", "19 a 23", "60+"
+    const faixaMatch = labelRaw.match(reFaixa);
+    const faixaMaisMatch = !faixaMatch ? labelRaw.match(reFaixaMais) : null;
+    if (faixaMatch || faixaMaisMatch) {
+      const ini = parseInt((faixaMatch ? faixaMatch[1] : faixaMaisMatch![1]), 10);
+      const fim = faixaMatch ? parseInt(faixaMatch[2], 10) : null;
+      const label = faixaMatch
+        ? `${ini} à ${fim}`
+        : `${ini}+`;
+      const key = `${ini}-${fim ?? "+"}`;
+      const prev = cur.faixas.get(key) || { label, idadeInicial: ini, idadeFinal: fim, quantidade: 0, total: 0 };
+      prev.quantidade += qtdNum;
+      prev.total += valNum;
+      cur.faixas.set(key, prev);
+      // Soma também na enfermaria (categoria padrão para contratos faixa etária)
+      cur.enfQtd += qtdNum;
+      cur.enfValores.push(valNum);
       continue;
     }
 
@@ -1025,6 +1064,11 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     }
     if (g.adesaoQtd > 0 || g.adesaoTotal !== 0) {
       bloco.taxaAdesao = { quantidade: g.adesaoQtd, total: g.adesaoTotal };
+    }
+    if (g.faixas.size > 0) {
+      bloco.faixasEtarias = Array.from(g.faixas.values()).sort(
+        (a, b) => a.idadeInicial - b.idadeInicial,
+      );
     }
 
 

@@ -1439,6 +1439,7 @@ export default function Financeiro() {
         if (b.exclusoes) out.exclusoes = b.exclusoes;
         if (b.devolucoes) out.devolucoes = b.devolucoes;
         if (b.taxaAdesao) out.taxaAdesao = b.taxaAdesao;
+        if (b.faixasEtarias) out.faixasEtarias = b.faixasEtarias;
         return out;
       },
     );
