@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { BedDouble, Hotel, Users } from "lucide-react";
@@ -7,7 +7,6 @@ import {
   FAIXAS_ETARIAS,
   labelFaixa,
   type FaixaEtariaItem,
-  reaisToCentavos,
   centavosToReais,
   calcularValorReajustadoCentavos,
   calcularRetroativoCentavos,
