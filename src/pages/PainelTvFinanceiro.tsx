@@ -625,7 +625,7 @@ function ListaCard<T>({
 }: {
   title: string;
   subtitle?: string;
-  accent: "purple" | "blue";
+  accent: "purple" | "blue" | "yellow";
   icon: any;
   rows: T[];
   renderRow: (r: T) => React.ReactNode;
@@ -634,6 +634,7 @@ function ListaCard<T>({
   const accentMap = {
     purple: "border-l-4 border-purple-500",
     blue: "border-l-4 border-blue-500",
+    yellow: "border-l-4 border-yellow-500",
   };
   return (
     <Card className={cn("flex flex-col", accentMap[accent])}>
