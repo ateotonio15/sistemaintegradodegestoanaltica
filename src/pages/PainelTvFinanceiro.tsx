@@ -640,7 +640,7 @@ function HeroKpi({
         "relative p-4 bg-card border border-border/60 shadow-none transition-colors",
         selectable && "cursor-pointer hover:border-border",
         selected && t.selectedRing,
-        pulse && !selected && "ring-1 ring-purple-400/50",
+        pulse && !selected && "ring-1 ring-emerald-400/50",
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
