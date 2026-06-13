@@ -839,7 +839,7 @@ function ListaCard<T>({
           </Badge>
         </div>
       </div>
-      <ScrollArea className="h-[400px]">
+      <ScrollArea style={contentHeight ? { height: contentHeight, minHeight: 220 } : undefined} className={contentHeight ? "" : "h-[400px]"}>
         <div className="p-3 pr-4">
           {rows.length === 0 ? (
             <div className="text-sm text-muted-foreground text-center py-12 px-4">{empty}</div>
