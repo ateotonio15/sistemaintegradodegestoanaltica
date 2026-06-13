@@ -371,9 +371,8 @@ export default function PainelTvFinanceiro() {
           />
         </section>
 
-        {/* GRÁFICOS */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Radial concluídas */}
+        {/* PROGRESSO */}
+        <section className="grid grid-cols-1 gap-4">
           <Card className="p-5">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold">Progresso da competência</h2>
@@ -402,117 +401,11 @@ export default function PainelTvFinanceiro() {
               </div>
             </div>
           </Card>
-
-          {/* Pie distribuição */}
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold">Distribuição por status</h2>
-            </div>
-            <div className="h-[260px]">
-              {pieData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                  Sem dados
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={55}
-                      outerRadius={90}
-                      paddingAngle={2}
-                    >
-                      {pieData.map((d) => (
-                        <Cell key={d.name} fill={d.color} />
-                      ))}
-                    </Pie>
-                    <RTooltip
-                      contentStyle={{
-                        background: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: 8,
-                      }}
-                    />
-                    <Legend
-                      wrapperStyle={{ fontSize: 11 }}
-                      iconType="circle"
-                      layout="horizontal"
-                      verticalAlign="bottom"
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </Card>
-
-          {/* Funil bar */}
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold">Funil de faturamento</h2>
-            </div>
-            <div className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={funilData} layout="vertical" margin={{ left: 10, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis
-                    type="category"
-                    dataKey="nome"
-                    tick={{ fontSize: 11 }}
-                    width={110}
-                  />
-                  <RTooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                    }}
-                  />
-                  <Bar dataKey="quantidade" radius={[0, 6, 6, 0]}>
-                    {funilData.map((d, i) => (
-                      <Cell key={i} fill={d.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
         </section>
 
-        {/* RANKING + LISTAS PRINCIPAIS */}
-        <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">Ranking — operação ativa</h2>
-              <Badge variant="secondary">{topResponsaveis.reduce((a, b) => a + b.quantidade, 0)}</Badge>
-            </div>
-            {topResponsaveis.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Sem operação ativa.</p>
-            ) : (
-              <div className="space-y-3">
-                {topResponsaveis.map((r) => {
-                  const max = topResponsaveis[0].quantidade || 1;
-                  const pct = (r.quantidade / max) * 100;
-                  return (
-                    <div key={r.nome}>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="truncate font-medium">{r.nome}</span>
-                        <span className="text-muted-foreground tabular-nums">{r.quantidade}</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
+        {/* LISTAS PRINCIPAIS */}
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+
 
           <ListaCard
             title="Notas emitidas — enviar"
