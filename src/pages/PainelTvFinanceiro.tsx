@@ -367,7 +367,7 @@ export default function PainelTvFinanceiro() {
 
       <main className="p-6 md:p-8 space-y-8 max-w-[1800px] mx-auto">
         {/* HEROES — 4 KPIs grandes */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <HeroKpi
             label="Total da competência"
             value={counts.total}
