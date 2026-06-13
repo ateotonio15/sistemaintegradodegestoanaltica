@@ -44,7 +44,18 @@ export interface AnalisePorCnpj {
   exclusoes?: InclusaoResultado;
   devolucoes?: InclusaoResultado;
   taxaAdesao?: InclusaoResultado;
+  /** Detalhamento por faixa etária (quando a aba RESUMO contém faixas). */
+  faixasEtarias?: FaixaEtariaResumo[];
   avisos: string[];
+}
+
+/** Linha de detalhamento por faixa etária extraída da aba RESUMO. */
+export interface FaixaEtariaResumo {
+  label: string;
+  idadeInicial: number;
+  idadeFinal: number | null;
+  quantidade: number;
+  total: number;
 }
 
 
