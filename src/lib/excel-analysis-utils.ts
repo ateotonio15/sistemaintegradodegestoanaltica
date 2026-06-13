@@ -364,7 +364,6 @@ export async function analisarExcelFinanceiroPorPagador(
   let idxCnpj = -1;
   let idxPagador = -1;
   let idxFaixa = -1;
-  let idxFaixa = -1;
 
   for (let i = 0; i < Math.min(10, allRows.length); i++) {
     const r = allRows[i];
@@ -1133,6 +1132,7 @@ export async function analisarExcelFinanceiroPorCnpj(
   let idxValor = -1;
   let idxCnpj = -1;
   let idxPagador = -1;
+  let idxFaixa = -1;
 
   for (let i = 0; i < Math.min(10, allRows.length); i++) {
     const r = allRows[i];
