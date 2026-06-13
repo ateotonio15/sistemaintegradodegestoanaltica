@@ -360,25 +360,16 @@ export default function PainelTvFinanceiro() {
               </h1>
               <p className="text-sm text-muted-foreground flex items-center gap-2">
                 <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                Atualizando em tempo real · Competência {formatMesReferencia(mes)} · Última
-                atualização {hora}
+                Atualizando em tempo real · {resumoSelecao(selections)} · Última atualização {hora}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Select value={mes} onValueChange={setMes}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {getMesesOptions().map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {formatMesReferencia(m)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CompetenciaPeriodoPicker
+              selections={selections}
+              onChange={setSelections}
+            />
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-1" /> Atualizar
             </Button>
