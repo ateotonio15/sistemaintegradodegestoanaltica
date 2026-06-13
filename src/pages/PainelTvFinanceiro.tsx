@@ -512,8 +512,7 @@ export default function PainelTvFinanceiro() {
             }
           });
           if (buf.length) rows.push(buf);
-          const rowsCount = rows.length;
-          // Altura do conteúdo da lista para caber tudo em uma única tela.
+          // Altura fixa para mostrar ~5 empresas por card (scroll se houver mais).
           const listHeight = `320px`;
 
           const renderCard = (key: ListKey) => {
