@@ -906,7 +906,12 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     excQtd: number; excTotal: number;
     devQtd: number; devTotal: number;
     adesaoQtd: number; adesaoTotal: number;
+    faixas: Map<string, { label: string; idadeInicial: number; idadeFinal: number | null; quantidade: number; total: number }>;
   };
+
+  // Regex para faixa etária: "0 à 18", "19 a 23", "60+", "60 +"
+  const reFaixa = /^\s*(\d{1,3})\s*(?:[àa]|-|–|—|até|ate)\s*(\d{1,3})\s*$/i;
+  const reFaixaMais = /^\s*(\d{1,3})\s*\+\s*$/;
 
 
 
