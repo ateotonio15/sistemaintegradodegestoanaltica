@@ -119,34 +119,6 @@ export function gerarHistoricoTexto(
       linhas.push(`Apartamento (${benefApt} beneficiários): R$ ${fmtBR(totalApt)}.`);
     }
 
-    // Agrega faixas etárias somando todos os pagadores (mesma label)
-    const mapFaixas = new Map<string, { label: string; ordem: number; quantidade: number; total: number }>();
-    resultados.forEach((r) => {
-      (r.faixasEtarias || []).forEach((f) => {
-        const key = f.label;
-        const atual = mapFaixas.get(key);
-        if (atual) {
-          atual.quantidade += f.quantidade;
-          atual.total += f.total;
-        } else {
-          mapFaixas.set(key, {
-            label: f.label,
-            ordem: f.idadeInicial ?? 0,
-            quantidade: f.quantidade,
-            total: f.total,
-          });
-        }
-      });
-    });
-
-    const faixas = Array.from(mapFaixas.values()).sort((a, b) => a.ordem - b.ordem);
-    if (faixas.length > 0) {
-      linhas.push("");
-      linhas.push("Detalhamento por Faixa Etária:");
-      faixas.forEach((f) => {
-        linhas.push(`- ${f.label} (${f.quantidade} beneficiários): R$ ${fmtBR(f.total)}`);
-      });
-    }
 
     if (totalInc > 0) {
       linhas.push("");
