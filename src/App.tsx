@@ -16,6 +16,7 @@ import DashboardVendas from "./pages/DashboardVendas";
 import DashboardAdministradoras from "./pages/DashboardAdministradoras";
 
 import Financeiro from "./pages/Financeiro";
+import PainelTvFinanceiro from "./pages/PainelTvFinanceiro";
 import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
 import Implantacao from "./pages/Implantacao";
