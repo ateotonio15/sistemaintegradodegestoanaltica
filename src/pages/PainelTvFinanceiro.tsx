@@ -127,14 +127,26 @@ export default function PainelTvFinanceiro() {
   const mesPrincipal = mesesSelecionados[0] || getCurrentMesReferencia();
 
   type ListKey = "aguardando" | "notas" | "faturamento";
-  const [selectedLists, setSelectedLists] = useState<Set<ListKey>>(new Set());
+  // Ordem manual das listas selecionadas (suporta drag-and-drop)
+  const [listOrder, setListOrder] = useState<ListKey[]>([]);
+  const selectedLists = useMemo(() => new Set(listOrder), [listOrder]);
   const toggleList = (k: ListKey) =>
-    setSelectedLists((prev) => {
-      const next = new Set(prev);
-      if (next.has(k)) next.delete(k);
-      else next.add(k);
-      return next;
+    setListOrder((prev) =>
+      prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k],
+    );
+  const [dragKey, setDragKey] = useState<ListKey | null>(null);
+  const moveList = (from: ListKey, to: ListKey) => {
+    if (from === to) return;
+    setListOrder((prev) => {
+      const arr = [...prev];
+      const fi = arr.indexOf(from);
+      const ti = arr.indexOf(to);
+      if (fi < 0 || ti < 0) return prev;
+      arr.splice(fi, 1);
+      arr.splice(ti, 0, from);
+      return arr;
     });
+  };
   const [tvMode, setTvMode] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [lastUpdate, setLastUpdate] = useState(Date.now());
