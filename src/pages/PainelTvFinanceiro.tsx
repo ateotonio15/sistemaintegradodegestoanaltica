@@ -371,37 +371,6 @@ export default function PainelTvFinanceiro() {
           />
         </section>
 
-        {/* PROGRESSO */}
-        <section className="grid grid-cols-1 gap-4">
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold">Progresso da competência</h2>
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            </div>
-            <div className="h-[260px] relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart
-                  innerRadius="70%"
-                  outerRadius="100%"
-                  data={radialData}
-                  startAngle={90}
-                  endAngle={-270}
-                >
-                  <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                  <RadialBar background dataKey="value" cornerRadius={12} fill="#10b981" />
-                </RadialBarChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-5xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {pctConcluidas}%
-                </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  {concluidas} de {counts.total} concluídas
-                </span>
-              </div>
-            </div>
-          </Card>
-        </section>
 
         {/* LISTAS PRINCIPAIS */}
         <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
