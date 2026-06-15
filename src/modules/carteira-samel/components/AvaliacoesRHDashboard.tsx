@@ -107,16 +107,18 @@ export function AvaliacoesRHDashboard({ form }: Props) {
       .sort((a, b) => b.media - a.media || b.qtd - a.qtd);
   }, [respostas]);
 
-  // Ranking por volume de avaliações enviadas
+  // Ranking por quantidade de EMPRESAS distintas que concluíram a avaliação
   const rankingVolume = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, Set<string>>();
     respostas.forEach(r => {
       const nome = (r.nome_executiva || "").trim();
-      if (!nome) return;
-      map.set(nome, (map.get(nome) || 0) + 1);
+      const empresa = (r.nome_empresa || "").trim().toLowerCase();
+      if (!nome || !empresa) return;
+      if (!map.has(nome)) map.set(nome, new Set());
+      map.get(nome)!.add(empresa);
     });
     return Array.from(map.entries())
-      .map(([nome, qtd]) => ({ nome, qtd }))
+      .map(([nome, set]) => ({ nome, qtd: set.size }))
       .sort((a, b) => b.qtd - a.qtd);
   }, [respostas]);
 
@@ -214,7 +216,7 @@ export function AvaliacoesRHDashboard({ form }: Props) {
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold text-sm">Ranking — volume de avaliações recebidas</h3>
+            <h3 className="font-semibold text-sm">Ranking — empresas que concluíram a avaliação</h3>
           </div>
           {rankingVolume.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sem dados.</p>
