@@ -798,7 +798,7 @@ function RowItem({
         <span className={cn("h-8 w-1 rounded-full shrink-0", accentDot)} />
         <div className="min-w-0 flex-1">
           <div className="font-semibold truncate leading-tight">{title}</div>
-          <div className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</div>
+          <div className="text-sm text-muted-foreground truncate mt-0.5">{subtitle}</div>
         </div>
       </div>
       <div className="flex flex-col items-end shrink-0 ml-2 min-w-[72px]">
