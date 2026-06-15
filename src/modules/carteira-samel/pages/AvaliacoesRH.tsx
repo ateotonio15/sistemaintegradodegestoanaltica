@@ -12,15 +12,8 @@ const db = supabase as any;
 const TEMPLATE_RH = {
   tipo: "rh",
   titulo: "Avaliação RH",
-  instrucoes: "Em uma escala de 1 a 5, sendo 1 = Insatisfatório e 5 = Excelente, como você avalia:",
-  perguntas: [
-    { id: "q1", tipo: "rating", obrigatoria: true, titulo: "Relacionamento e cordialidade", descricao: "A qualidade do relacionamento, cordialidade e profissionalismo demonstrados pela executiva durante os atendimentos." },
-    { id: "q2", tipo: "rating", obrigatoria: true, titulo: "Proatividade e comprometimento", descricao: "A executiva demonstra iniciativa e presteza para auxiliá-los para as demandas apresentadas?" },
-    { id: "q3", tipo: "rating", obrigatoria: true, titulo: "Agilidade e efetividade", descricao: "O tempo de resposta e a capacidade de conduzir as demandas de forma eficiente até sua resolução." },
-    { id: "q4", tipo: "rating", obrigatoria: true, titulo: "Disponibilidade e suporte", descricao: "A facilidade de contato e o suporte prestado sempre que sua empresa necessita de auxílio." },
-    { id: "q5", tipo: "rating", obrigatoria: true, titulo: "Satisfação geral", descricao: "Considerando sua experiência como um todo, qual sua avaliação sobre o atendimento prestado pela executiva?" },
-    { id: "q6", tipo: "texto", obrigatoria: false, titulo: "Comentários e sugestões", descricao: "Gostaríamos de conhecer sua opinião. Há algum elogio, reconhecimento ou oportunidade de melhoria que gostaria de compartilhar?" },
-  ],
+  instrucoes: "",
+  perguntas: [] as any[],
 };
 
 export default function AvaliacoesRH() {
@@ -85,13 +78,17 @@ export default function AvaliacoesRH() {
 
       <Card className="p-4 space-y-4">
         <h3 className="font-semibold">Preview do formulário</h3>
-        {form.perguntas.map((p: any, i: number) => (
-          <div key={p.id} className="space-y-1">
-            <p className="text-sm font-medium">{i + 1}. {p.titulo} {p.obrigatoria && <span className="text-red-500">*</span>}</p>
-            <p className="text-xs text-muted-foreground">{p.descricao}</p>
-            {p.tipo === "rating" ? <RatingScale value={null} readOnly /> : <textarea className="mt-1 w-full rounded-md border bg-muted/30 p-2 text-sm" rows={3} readOnly placeholder="Resposta..." />}
-          </div>
-        ))}
+        {form.perguntas && form.perguntas.length > 0 ? (
+          form.perguntas.map((p: any, i: number) => (
+            <div key={p.id} className="space-y-1">
+              <p className="text-sm font-medium">{i + 1}. {p.titulo} {p.obrigatoria && <span className="text-red-500">*</span>}</p>
+              <p className="text-xs text-muted-foreground">{p.descricao}</p>
+              {p.tipo === "rating" ? <RatingScale value={null} readOnly /> : <textarea className="mt-1 w-full rounded-md border bg-muted/30 p-2 text-sm" rows={3} readOnly placeholder="Resposta..." />}
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">Nenhuma pergunta cadastrada.</p>
+        )}
       </Card>
     </div>
   );
