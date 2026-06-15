@@ -72,6 +72,8 @@ type Row = {
   faturamento_iniciado_em: string | null;
   aguardando_nota_em: string | null;
   updated_at: string;
+  faturamento_iniciado_por_nome: string | null;
+  enviado_por_nome: string | null;
 };
 
 function tempoDesde(iso: string | null | undefined): string {
