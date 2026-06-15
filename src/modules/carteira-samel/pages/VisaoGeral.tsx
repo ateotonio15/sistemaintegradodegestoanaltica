@@ -64,66 +64,7 @@ export default function VisaoGeral() {
 
   return (
     <div className="space-y-6">
-      <Card className="p-3 flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium text-muted-foreground mr-1">Grupo de vidas:</span>
-        {GRUPOS.map((g) => {
-          const active = grupo === g.key;
-          return (
-            <Button
-              key={g.key}
-              type="button"
-              size="sm"
-              variant={active ? "default" : "outline"}
-              onClick={() => setGrupo(g.key)}
-              className={cn(active && "bg-[image:var(--gradient-hero)] text-white border-transparent hover:opacity-90")}
-            >
-              {g.label}
-            </Button>
-          );
-        })}
-      </Card>
 
-      {grupo !== "todos" && (
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">Empresas no grupo {GRUPOS.find((g) => g.key === grupo)?.label}</h2>
-            <span className="text-sm text-muted-foreground">{empresasFiltradas.length} empresa(s)</span>
-          </div>
-          <div className="rounded-lg border overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left">Empresa</th>
-                  <th className="px-3 py-2 text-left">Contrato</th>
-                  <th className="px-3 py-2 text-left">Vidas</th>
-                  <th className="px-3 py-2 text-left">Vigência</th>
-                  <th className="px-3 py-2 text-left">Próx. reajuste</th>
-                </tr>
-              </thead>
-              <tbody>
-                {empresasFiltradas.map((e) => {
-                  const dias = diasAteReajuste(e.vigenciaInicio);
-                  const sem = classificarProximidadeReajuste(dias);
-                  return (
-                    <tr key={e.id} className="border-t">
-                      <td className="px-3 py-2 font-medium">{e.nome}</td>
-                      <td className="px-3 py-2">{e.contrato}</td>
-                      <td className="px-3 py-2">{e.vidas.toLocaleString("pt-BR")}</td>
-                      <td className="px-3 py-2">{format(new Date(e.vigenciaInicio + "T00:00:00"), "dd/MM/yyyy")}</td>
-                      <td className="px-3 py-2">
-                        <SemaforoBadge semaforo={sem} label={`${dias}d`} />
-                      </td>
-                    </tr>
-                  );
-                })}
-                {empresasFiltradas.length === 0 && (
-                  <tr><td colSpan={5} className="text-center py-4 text-muted-foreground">Nenhuma empresa neste grupo.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
 
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
