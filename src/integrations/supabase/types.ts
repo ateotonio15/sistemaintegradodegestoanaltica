@@ -3614,6 +3614,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      can_read_triagem: {
+        Args: { _empresa_id: string; _uid: string }
+        Returns: boolean
+      }
       cancelar_ferias_cadastro: { Args: { p_ferias_id: string }; Returns: Json }
       classificar_glicemia: {
         Args: { p_jejum: boolean; p_valor: number }
