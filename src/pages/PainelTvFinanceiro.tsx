@@ -703,7 +703,7 @@ export default function PainelTvFinanceiro() {
                       key={r.id}
                       index={i}
                       title={r.empresa_nome}
-                      subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
+                      subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.faturamento_iniciado_por_nome ? ` · ${r.faturamento_iniciado_por_nome}` : r.responsavel ? ` · ${r.responsavel}` : ""}`}
                       badgeText={isFaturado ? "Faturado" : "Ativo"}
                       badgeClass={
                         isFaturado
