@@ -257,7 +257,7 @@ export function PreviewArquivoDialog({
           <DialogTitle className="truncate text-base pr-4" title={nomeArquivo}>
             {nomeArquivo}
           </DialogTitle>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 mr-8">
             {pdfDoc && (
               <div className="flex items-center gap-1 rounded-md border bg-background px-1 py-0.5">
                 <Button
