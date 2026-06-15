@@ -383,9 +383,15 @@ export default function PainelTvFinanceiro() {
         faturamento_iniciado_em: f.faturamento_iniciado_em,
         aguardando_nota_em: f.aguardando_nota_em,
         updated_at: f.updated_at,
+        faturamento_iniciado_por_nome: f.faturamento_iniciado_por
+          ? (profileNameMap as any)[f.faturamento_iniciado_por] || null
+          : null,
+        enviado_por_nome: (pdfUploaderByMov as any)[f.id]
+          ? (profileNameMap as any)[(pdfUploaderByMov as any)[f.id]] || null
+          : null,
       };
     });
-  }, [fin, empresasMap, anexosMap, envioOpMap]);
+  }, [fin, empresasMap, anexosMap, envioOpMap, pdfUploaderByMov, profileNameMap]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {
