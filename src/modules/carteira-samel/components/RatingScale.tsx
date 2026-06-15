@@ -1,4 +1,6 @@
 import { cn } from "@/lib/utils";
+import { Star } from "lucide-react";
+import { useState } from "react";
 
 export function RatingScale({
   value,
@@ -15,26 +17,36 @@ export function RatingScale({
   maxLabel?: string;
   readOnly?: boolean;
 }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const active = hover ?? value ?? 0;
   return (
     <div>
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         {Array.from({ length: max }, (_, i) => i + 1).map((n) => {
-          const selected = value === n;
+          const filled = n <= active;
           return (
             <button
               key={n}
               type="button"
               disabled={readOnly}
               onClick={() => onChange?.(n)}
+              onMouseEnter={() => !readOnly && setHover(n)}
+              onMouseLeave={() => !readOnly && setHover(null)}
+              aria-label={`${n} estrela${n > 1 ? "s" : ""}`}
               className={cn(
-                "h-10 w-10 rounded-lg border text-sm font-semibold transition-all",
-                selected
-                  ? "bg-primary text-primary-foreground border-primary shadow"
-                  : "bg-background hover:bg-accent border-border",
-                readOnly && "opacity-70 cursor-default"
+                "p-1 rounded-md transition-transform",
+                !readOnly && "hover:scale-110",
+                readOnly && "cursor-default"
               )}
             >
-              {n}
+              <Star
+                className={cn(
+                  "h-8 w-8 transition-colors",
+                  filled
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "fill-transparent text-muted-foreground/40"
+                )}
+              />
             </button>
           );
         })}
