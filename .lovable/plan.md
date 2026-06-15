@@ -1,104 +1,48 @@
-## Prioridade Máxima — Plano de Implementação
+## Avaliação RH — restauração e ajustes
 
-Funcionalidade para destacar contratos urgentes em todo o fluxo (Empresas → Dashboard → Movimentações → Cadastro → Financeiro), com histórico imutável e permissões restritas a **Diretora** e **Admin**.
-
----
+Recoloca o formulário com as 5 perguntas em escala 1–5, adiciona os campos extras pedidos e permite resposta pública (sem login) via link único.
 
 ### 1. Banco de dados (migração)
 
-**Nova tabela `empresa_prioridade_maxima`** (histórico imutável — uma linha por marcação/remoção):
-- `empresa_id` (FK empresas)
-- `motivo` (text, obrigatório)
-- `observacoes` (text)
-- `criado_por_user_id`, `criado_por_nome`, `criado_em`
-- `removido_por_user_id`, `removido_por_nome`, `removido_em`, `motivo_remocao`
-- `ativo` (boolean — gerado: `removido_em IS NULL`)
+Tabela `cs_avaliacao_respostas` — adicionar colunas:
+- `nota_media` (numeric) — média das respostas de rating
+- `comentario` (text, opcional)
+- `nome_empresa` (text, obrigatório no envio)
+- `nome_executiva` (text, obrigatório no envio)
+- `compartilhamento_id` (uuid, opcional) — para distinguir origem do link compartilhado
 
-**Coluna em `empresas`**:
-- `prioridade_maxima_id uuid` → referência à marcação ativa (cache para queries rápidas e ordenação)
+RLS:
+- Manter leitura restrita a admin/diretora/executivo
+- **Adicionar política de INSERT pública (anon + authenticated)** para que o link funcione sem login
 
-**RLS**:
-- SELECT: authenticated (todos visualizam)
-- INSERT/UPDATE: somente `admin` ou `diretora` (via `has_role`)
-- Sem DELETE (histórico nunca apagado)
+### 2. Template do formulário (`AvaliacoesRH.tsx`)
 
-**RPCs**:
-- `marcar_prioridade_maxima(empresa_id, motivo, observacoes)` — valida permissão, insere histórico, atualiza `empresas.prioridade_maxima_id`
-- `remover_prioridade_maxima(empresa_id, motivo_remocao)` — valida permissão, fecha registro ativo, zera `prioridade_maxima_id`
+Repopular `TEMPLATE_RH` com:
 
----
+| # | Título | Descrição |
+|---|---|---|
+| 1 | Relacionamento e cordialidade | A qualidade do relacionamento, cordialidade e profissionalismo demonstrados pela executiva durante os atendimentos. |
+| 2 | Proatividade e comprometimento | A executiva demonstra iniciativa e presteza para auxiliá-los para as demandas apresentadas? |
+| 3 | Agilidade e efetividade | O tempo de resposta e a capacidade de conduzir as demandas de forma eficiente até sua resolução. |
+| 4 | Disponibilidade e suporte | A facilidade de contato e o suporte prestado sempre que sua empresa necessita de auxílio. |
+| 5 | Satisfação geral | Considerando sua experiência como um todo, qual sua avaliação sobre o atendimento prestado pela executiva? |
 
-### 2. Componentes compartilhados
+Instruções: "Em uma escala de 1 a 5, sendo 1 = Insatisfatório e 5 = Excelente, como você avalia:"
 
-- `src/components/prioridade/PrioridadeBadge.tsx` — badge vermelho `⭐ PRIORIDADE MÁXIMA` (variantes: `default`, `pulsing`, `compact`)
-- `src/components/prioridade/PrioridadeDialog.tsx` — dialog de confirmação (motivo obrigatório + observações)
-- `src/components/prioridade/PrioridadeInfoCard.tsx` — exibe motivo, criador, data (usado em Cadastro e detalhes)
-- `src/components/prioridade/PrioridadeHistoricoDialog.tsx` — lista completa do histórico
-- `src/hooks/usePrioridadeMaxima.ts` — query + mutations + permissão (`canManagePrioridade = isAdmin || isDiretora`)
-- CSS animação `animate-pulse-priority` em `tailwind.config.ts` / `index.css` (borda vermelha pulsante elegante)
+Todas tipo `rating`, obrigatórias. O comentário deixa de ser uma pergunta e vira campo fixo no responder.
 
----
+### 3. Página pública (`ResponderRH.tsx`)
 
-### 3. Empresas (`src/pages/Empresas.tsx`)
+- Remover o campo "Seu nome (opcional)"
+- Adicionar dois inputs **obrigatórios** no topo: **Nome da Empresa** e **Executiva Avaliada**
+- Adicionar **Comentário (opcional)** como textarea após as 5 perguntas
+- Ao enviar:
+  - calcular `nota_media` = média das 5 respostas
+  - gravar `nome_empresa`, `nome_executiva`, `comentario`, `nota_media`, `respostas`, `compartilhamento_id` (lido de query string `?s=<uuid>` quando presente)
+- Validar empresa/executiva preenchidos antes de enviar
 
-- Botão `⭐ Definir como Prioridade Máxima` no menu de Ações (somente admin/diretora)
-- Quando ativa: troca para `Remover Prioridade Máxima` + badge na linha
-- Filtro: `Somente Prioridade Máxima` / `Ativas` / `Concluídas`
-- Exportação CSV com colunas: Empresa, Responsável, Motivo, Criação, Status, Conclusão
+### 4. Não incluído nesta etapa
+- Tela de listagem/análise das respostas (rankings, médias por executiva) — pode ser próxima iteração
+- Geração/gestão de links com `compartilhamento_id` distintos — por ora apenas captura se vier na URL
 
-### 4. Dashboard (`src/pages/Dashboard.tsx`)
-
-- Novo card `Empresas com Prioridade Máxima` no topo: Empresa, Responsável, Período, Status, Dias restantes
-- Listas existentes (período corrente) ordenadas com `prioridade_maxima_id IS NOT NULL` primeiro
-- Linhas prioritárias recebem `PrioridadeBadge pulsing` enquanto não enviadas ao Financeiro (detectado via `movimentacoes.data_envio_financeiro IS NULL` no período atual)
-
-### 5. Movimentações (`src/pages/Movimentacoes.tsx`)
-
-- Badge na linha da empresa
-- Quando período atual ativo e ainda não enviado: borda vermelha pulsante na linha
-
-### 6. Cadastro (responsável)
-
-- `PrioridadeInfoCard` no detalhe/dialog da empresa exibindo motivo, data, criador
-
-### 7. Financeiro (`src/pages/Financeiro.tsx`)
-
-- Badge `🔥 Prioridade Máxima` nas linhas/chips
-- Ao receber (entrar em pendentes): destaque visual
-- Alertas param naturalmente porque dependem do envio (já é o gatilho)
-
----
-
-### 8. Detalhes técnicos
-
-- Detecção "alerta ativo": empresa tem `prioridade_maxima_id IS NOT NULL` **E** existe movimentação no período atual sem `data_envio_financeiro`
-- Período atual calculado via `_periodo_para_empresa` (já existe)
-- Dias restantes: diferença até fim do período (`25-30` → dia 30; etc.)
-- Sem cron necessário — alertas são derivados do estado em tempo real
-- Permissão server-side garantida nas RPCs `SECURITY DEFINER` + RLS
-
----
-
-### 9. Arquivos a criar/editar
-
-**Criar:**
-- migração SQL
-- `src/hooks/usePrioridadeMaxima.ts`
-- `src/components/prioridade/PrioridadeBadge.tsx`
-- `src/components/prioridade/PrioridadeDialog.tsx`
-- `src/components/prioridade/PrioridadeInfoCard.tsx`
-- `src/components/prioridade/PrioridadeHistoricoDialog.tsx`
-- `src/components/dashboard/PrioridadeMaximaCard.tsx`
-
-**Editar:**
-- `src/pages/Empresas.tsx` (botão, filtros, badge, export)
-- `src/pages/Dashboard.tsx` (card + ordenação)
-- `src/pages/Movimentacoes.tsx` (badge + pulsing)
-- `src/pages/Financeiro.tsx` (badge 🔥)
-- `tailwind.config.ts` + `src/index.css` (animação)
-
----
-
-### 10. Memória de projeto
-
-Adicionar `mem://features/prioridade-maxima.md` documentando regras (permissões, gatilho de fim de alerta, histórico imutável) e referenciar em `mem://index.md`.
+Confirma para eu implementar?
