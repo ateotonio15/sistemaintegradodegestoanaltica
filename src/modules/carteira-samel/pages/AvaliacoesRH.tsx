@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Copy, Share2, Loader2 } from "lucide-react";
 import { RatingScale } from "../components/RatingScale";
+import { AvaliacoesRHDashboard } from "../components/AvaliacoesRHDashboard";
 import { toast } from "sonner";
 
 const db = supabase as any;
@@ -81,6 +82,8 @@ export default function AvaliacoesRH() {
           </div>
         </div>
       </Card>
+
+      <AvaliacoesRHDashboard form={form} />
 
       <Card className="p-4 space-y-4">
         <h3 className="font-semibold">Preview do formulário</h3>
