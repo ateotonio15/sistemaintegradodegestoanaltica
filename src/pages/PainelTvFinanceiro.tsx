@@ -172,6 +172,7 @@ export default function PainelTvFinanceiro() {
   const [now, setNow] = useState(Date.now());
   const [lastUpdate, setLastUpdate] = useState(Date.now());
 
+  const qc = useQueryClient();
   useFinanceiroRealtime({ enabled: !!user && podeVer, mesReferencia: mesPrincipal });
 
   // Realtime dedicado do Painel TV: invalida queries "tv-*" sempre que
