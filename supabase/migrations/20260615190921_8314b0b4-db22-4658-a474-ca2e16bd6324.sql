@@ -1,0 +1,1 @@
+UPDATE public.movimentacoes SET data_envio_empresa = NULL, data_envio_financeiro = NULL WHERE id = '87512858-1fe7-458c-a704-4d763d3c4c8e';
