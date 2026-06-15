@@ -778,7 +778,14 @@ export default function Financeiro() {
     const q = busca.trim().toLowerCase();
     const base = allRows.filter((r) => {
       if (filtroPeriodo && r.periodo !== filtroPeriodo) return false;
-      if (filtroStatus.length > 0 && !filtroStatus.includes(r.status)) return false;
+      if (filtroStatus.length > 0) {
+        // "Em faturamento" também inclui contratos já "Faturado",
+        // para que continuem visíveis (com seu próprio status) enquanto o ciclo de faturamento estiver em andamento.
+        const statusMatch =
+          filtroStatus.includes(r.status) ||
+          (filtroStatus.includes("Em faturamento") && r.status === "Faturado");
+        if (!statusMatch) return false;
+      }
       if (filtroTipo.length > 0 && !filtroTipo.includes(r.tipo_cobranca || "")) return false;
       if (movIdsMatchAnexoFilters && !movIdsMatchAnexoFilters.has(r.id)) return false;
       if (somenteOverdue && (r.dentro_prazo || r.data_envio_nota)) return false;
