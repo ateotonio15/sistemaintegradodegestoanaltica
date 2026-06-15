@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,13 @@ const db = supabase as any;
 
 export default function ResponderRH() {
   const { formId } = useParams<{ formId: string }>();
+  const [searchParams] = useSearchParams();
+  const compartilhamentoId = searchParams.get("s");
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<any>(null);
-  const [respondente, setRespondente] = useState("");
+  const [nomeEmpresa, setNomeEmpresa] = useState("");
+  const [nomeExecutiva, setNomeExecutiva] = useState("");
+  const [comentario, setComentario] = useState("");
   const [respostas, setRespostas] = useState<Record<string, any>>({});
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
@@ -30,14 +34,32 @@ export default function ResponderRH() {
 
   const enviar = async () => {
     if (!form) return;
+    if (!nomeEmpresa.trim()) { toast.error("Informe o nome da empresa"); return; }
+    if (!nomeExecutiva.trim()) { toast.error("Informe a executiva avaliada"); return; }
     for (const p of form.perguntas) {
       if (p.obrigatoria && (respostas[p.id] == null || respostas[p.id] === "")) {
         toast.error(`Responda: ${p.titulo}`);
         return;
       }
     }
+    const ratings = form.perguntas
+      .filter((p: any) => p.tipo === "rating")
+      .map((p: any) => Number(respostas[p.id]))
+      .filter((n: number) => !isNaN(n));
+    const notaMedia = ratings.length
+      ? Number((ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(2))
+      : null;
+
     setEnviando(true);
-    const { error } = await db.from("cs_avaliacao_respostas").insert({ formulario_id: form.id, respondente: respondente || null, respostas });
+    const { error } = await db.from("cs_avaliacao_respostas").insert({
+      formulario_id: form.id,
+      respostas,
+      nota_media: notaMedia,
+      comentario: comentario.trim() || null,
+      nome_empresa: nomeEmpresa.trim(),
+      nome_executiva: nomeExecutiva.trim(),
+      compartilhamento_id: compartilhamentoId || null,
+    });
     setEnviando(false);
     if (error) { toast.error("Erro ao enviar"); return; }
     setEnviado(true);
@@ -69,9 +91,15 @@ export default function ResponderRH() {
         </Card>
 
         <Card className="p-6 space-y-5">
-          <div>
-            <label className="text-sm font-medium">Seu nome (opcional)</label>
-            <Input value={respondente} onChange={(e) => setRespondente(e.target.value)} placeholder="Nome..." className="mt-1" />
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Nome da Empresa <span className="text-red-500">*</span></label>
+              <Input value={nomeEmpresa} onChange={(e) => setNomeEmpresa(e.target.value)} placeholder="Empresa..." className="mt-1" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Executiva Avaliada <span className="text-red-500">*</span></label>
+              <Input value={nomeExecutiva} onChange={(e) => setNomeExecutiva(e.target.value)} placeholder="Nome da executiva..." className="mt-1" />
+            </div>
           </div>
 
           {form.perguntas.map((p: any, i: number) => (
@@ -91,6 +119,18 @@ export default function ResponderRH() {
               )}
             </div>
           ))}
+
+          <div className="pt-2 border-t space-y-1.5">
+            <label className="text-sm font-medium">Comentários e sugestões (opcional)</label>
+            <p className="text-xs text-muted-foreground mb-2">Há algum elogio, reconhecimento ou oportunidade de melhoria que gostaria de compartilhar?</p>
+            <textarea
+              className="w-full rounded-md border bg-background p-2 text-sm"
+              rows={4}
+              value={comentario}
+              onChange={(e) => setComentario(e.target.value)}
+              placeholder="Sua mensagem..."
+            />
+          </div>
 
           <Button onClick={enviar} disabled={enviando} className="w-full" size="lg">
             {enviando ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
