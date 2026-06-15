@@ -58,9 +58,14 @@ export default function VisaoGeral() {
     estavel: enriquecidas.filter((e) => e.dias > 60),
   };
 
-  const buscaFiltrada = busca
-    ? empresasFiltradas.filter((e) => e.nome.toLowerCase().includes(busca.toLowerCase()) || e.contrato.includes(busca))
-    : [];
+  const listaExibida = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    const base = termo
+      ? empresasFiltradas.filter((e) => e.nome.toLowerCase().includes(termo) || e.contrato.includes(termo))
+      : empresasFiltradas;
+    return [...base].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [empresasFiltradas, busca]);
+
 
   return (
     <div className="space-y-6">
@@ -151,83 +156,45 @@ export default function VisaoGeral() {
         </div>
 
         <div>
-          <h2 className="font-semibold mb-3">Busca individual</h2>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h2 className="font-semibold">Busca individual</h2>
+            <span className="text-sm text-muted-foreground">{listaExibida.length} empresa(s)</span>
+          </div>
           <div className="relative max-w-md">
             <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
             <Input className="pl-8" placeholder="Nome ou contrato..." value={busca} onChange={(e) => setBusca(e.target.value)} />
           </div>
-          {busca && (
-            <div className="mt-3 space-y-3">
-              {buscaFiltrada.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma empresa encontrada.</p>}
-              {buscaFiltrada.slice(0, 5).map((e) => {
-                const dias = diasAteReajuste(e.vigenciaInicio);
-                const sem = classificarProximidadeReajuste(dias);
-                const score = scoreCompleto({ sinistralidade: "Verde", reclamacoes: "Verde", relacionamento: "Verde", satisfacao: "Verde", renovacao: sem });
-                return (
-                  <div key={e.id} className="rounded-lg border p-3">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div>
-                        <h3 className="font-semibold">{e.nome}</h3>
-                        <p className="text-xs text-muted-foreground">Contrato {e.contrato} · {e.vidas} vidas · vigência {format(new Date(e.vigenciaInicio + "T00:00:00"), "dd/MM/yyyy")}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <SemaforoBadge semaforo={sem} label={`${dias}d para reajuste`} />
-                        <span className="text-sm">Score: <strong>{score.total}</strong> · {score.classificacao}</span>
-                      </div>
+          <div className="mt-3 space-y-3">
+            {listaExibida.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma empresa encontrada.</p>
+            )}
+            {listaExibida.map((e) => {
+              const dias = diasAteReajuste(e.vigenciaInicio);
+              const sem = classificarProximidadeReajuste(dias);
+              const score = scoreCompleto({ sinistralidade: "Verde", reclamacoes: "Verde", relacionamento: "Verde", satisfacao: "Verde", renovacao: sem });
+              return (
+                <div key={e.id} className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h3 className="font-semibold">{e.nome}</h3>
+                      <p className="text-xs text-muted-foreground">Contrato {e.contrato} · {e.vidas.toLocaleString("pt-BR")} vidas · vigência {format(new Date(e.vigenciaInicio + "T00:00:00"), "dd/MM/yyyy")}</p>
                     </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Próximos 4 aniversários: {proximosAniversarios(e.vigenciaInicio, 4).map((d) => format(d, "dd/MM/yyyy")).join(" · ")}
+                    <div className="flex items-center gap-2">
+                      <SemaforoBadge semaforo={sem} label={`${dias}d para reajuste`} />
+                      <span className="text-sm">Score: <strong>{score.total}</strong> · {score.classificacao}</span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {grupo !== "todos" && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">Empresas no grupo {GRUPOS.find((g) => g.key === grupo)?.label}</h2>
-              <span className="text-sm text-muted-foreground">{empresasFiltradas.length} empresa(s)</span>
-            </div>
-            <div className="rounded-lg border overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-xs text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Empresa</th>
-                    <th className="px-3 py-2 text-left">Contrato</th>
-                    <th className="px-3 py-2 text-left">Vidas</th>
-                    <th className="px-3 py-2 text-left">Vigência</th>
-                    <th className="px-3 py-2 text-left">Próx. reajuste</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {empresasFiltradas.map((e) => {
-                    const dias = diasAteReajuste(e.vigenciaInicio);
-                    const sem = classificarProximidadeReajuste(dias);
-                    return (
-                      <tr key={e.id} className="border-t">
-                        <td className="px-3 py-2 font-medium">{e.nome}</td>
-                        <td className="px-3 py-2">{e.contrato}</td>
-                        <td className="px-3 py-2">{e.vidas.toLocaleString("pt-BR")}</td>
-                        <td className="px-3 py-2">{format(new Date(e.vigenciaInicio + "T00:00:00"), "dd/MM/yyyy")}</td>
-                        <td className="px-3 py-2">
-                          <SemaforoBadge semaforo={sem} label={`${dias}d`} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {empresasFiltradas.length === 0 && (
-                    <tr><td colSpan={5} className="text-center py-4 text-muted-foreground">Nenhuma empresa neste grupo.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Próximos 4 aniversários: {proximosAniversarios(e.vigenciaInicio, 4).map((d) => format(d, "dd/MM/yyyy")).join(" · ")}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
       </Card>
     </div>
+
   );
 }
 
