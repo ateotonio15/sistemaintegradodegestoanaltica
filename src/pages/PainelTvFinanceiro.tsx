@@ -676,7 +676,7 @@ export default function PainelTvFinanceiro() {
                       key={r.id}
                       index={i}
                       title={r.empresa_nome}
-                      subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}`}
+                      subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.enviado_por_nome ? ` · ${r.enviado_por_nome}` : ""}`}
                       badgeText="Enviar"
                       badgeClass="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
                       timeText={tempoDesde(r.updated_at)}
