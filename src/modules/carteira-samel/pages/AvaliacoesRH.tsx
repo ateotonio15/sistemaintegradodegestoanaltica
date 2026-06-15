@@ -78,13 +78,17 @@ export default function AvaliacoesRH() {
 
       <Card className="p-4 space-y-4">
         <h3 className="font-semibold">Preview do formulário</h3>
-        {form.perguntas.map((p: any, i: number) => (
-          <div key={p.id} className="space-y-1">
-            <p className="text-sm font-medium">{i + 1}. {p.titulo} {p.obrigatoria && <span className="text-red-500">*</span>}</p>
-            <p className="text-xs text-muted-foreground">{p.descricao}</p>
-            {p.tipo === "rating" ? <RatingScale value={null} readOnly /> : <textarea className="mt-1 w-full rounded-md border bg-muted/30 p-2 text-sm" rows={3} readOnly placeholder="Resposta..." />}
-          </div>
-        ))}
+        {form.perguntas && form.perguntas.length > 0 ? (
+          form.perguntas.map((p: any, i: number) => (
+            <div key={p.id} className="space-y-1">
+              <p className="text-sm font-medium">{i + 1}. {p.titulo} {p.obrigatoria && <span className="text-red-500">*</span>}</p>
+              <p className="text-xs text-muted-foreground">{p.descricao}</p>
+              {p.tipo === "rating" ? <RatingScale value={null} readOnly /> : <textarea className="mt-1 w-full rounded-md border bg-muted/30 p-2 text-sm" rows={3} readOnly placeholder="Resposta..." />}
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">Nenhuma pergunta cadastrada.</p>
+        )}
       </Card>
     </div>
   );
