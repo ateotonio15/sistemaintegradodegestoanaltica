@@ -107,18 +107,19 @@ export function AvaliacoesRHDashboard({ form }: Props) {
       .sort((a, b) => b.media - a.media || b.qtd - a.qtd);
   }, [respostas]);
 
-  // Ranking por quantidade de EMPRESAS distintas que concluíram a avaliação
+  // Ranking de EMPRESAS que mais concluíram avaliações
   const rankingVolume = useMemo(() => {
-    const map = new Map<string, Set<string>>();
+    const map = new Map<string, { label: string; qtd: number }>();
     respostas.forEach(r => {
-      const nome = (r.nome_executiva || "").trim();
-      const empresa = (r.nome_empresa || "").trim().toLowerCase();
-      if (!nome || !empresa) return;
-      if (!map.has(nome)) map.set(nome, new Set());
-      map.get(nome)!.add(empresa);
+      const raw = (r.nome_empresa || "").trim();
+      if (!raw) return;
+      const key = raw.toLowerCase();
+      const cur = map.get(key) || { label: raw, qtd: 0 };
+      cur.qtd += 1;
+      map.set(key, cur);
     });
-    return Array.from(map.entries())
-      .map(([nome, set]) => ({ nome, qtd: set.size }))
+    return Array.from(map.values())
+      .map(v => ({ nome: v.label, qtd: v.qtd }))
       .sort((a, b) => b.qtd - a.qtd);
   }, [respostas]);
 
