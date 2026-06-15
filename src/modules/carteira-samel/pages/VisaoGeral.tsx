@@ -58,9 +58,14 @@ export default function VisaoGeral() {
     estavel: enriquecidas.filter((e) => e.dias > 60),
   };
 
-  const buscaFiltrada = busca
-    ? empresasFiltradas.filter((e) => e.nome.toLowerCase().includes(busca.toLowerCase()) || e.contrato.includes(busca))
-    : [];
+  const listaExibida = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    const base = termo
+      ? empresasFiltradas.filter((e) => e.nome.toLowerCase().includes(termo) || e.contrato.includes(termo))
+      : empresasFiltradas;
+    return [...base].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [empresasFiltradas, busca]);
+
 
   return (
     <div className="space-y-6">
