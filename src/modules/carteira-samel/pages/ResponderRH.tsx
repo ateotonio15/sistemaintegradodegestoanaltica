@@ -122,7 +122,7 @@ export default function ResponderRH() {
 
           <div className="pt-2 border-t space-y-1.5">
             <label className="text-sm font-medium">Comentários e sugestões (opcional)</label>
-            <p className="text-xs text-muted-foreground mb-2">Há algum elogio, reconhecimento ou oportunidade de melhoria que gostaria de compartilhar?</p>
+            <p className="text-xs text-muted-foreground mb-2">Gostaríamos de conhecer sua opinião. Há algum elogio, reconhecimento ou oportunidade de melhoria que gostaria de compartilhar?</p>
             <textarea
               className="w-full rounded-md border bg-background p-2 text-sm"
               rows={4}
