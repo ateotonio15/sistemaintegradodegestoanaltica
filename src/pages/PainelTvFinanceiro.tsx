@@ -411,7 +411,7 @@ export default function PainelTvFinanceiro() {
     sortDirs.notas,
   );
   const emFaturamento = sortByTime(
-    rows.filter((r) => r.status === "Em faturamento"),
+    rows.filter((r) => r.status === "Em faturamento" || r.status === "Faturado"),
     (r) => r.faturamento_iniciado_em || r.updated_at,
     sortDirs.faturamento,
   );
@@ -646,18 +646,25 @@ export default function PainelTvFinanceiro() {
                 contentHeight={listHeight}
                 sortDir={sortDirs.faturamento}
                 onBadgeClick={() => toggleSort("faturamento")}
-                renderRow={(r, i) => (
-                  <RowItem
-                    key={r.id}
-                    index={i}
-                    title={r.empresa_nome}
-                    subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
-                    badgeText="Ativo"
-                    badgeClass="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30"
-                    timeText={tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
-                    accentDot="bg-blue-500"
-                  />
-                )}
+                renderRow={(r, i) => {
+                  const isFaturado = r.status === "Faturado";
+                  return (
+                    <RowItem
+                      key={r.id}
+                      index={i}
+                      title={r.empresa_nome}
+                      subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
+                      badgeText={isFaturado ? "Faturado" : "Ativo"}
+                      badgeClass={
+                        isFaturado
+                          ? "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30"
+                          : "bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30"
+                      }
+                      timeText={tempoDesde(r.faturamento_iniciado_em || r.updated_at)}
+                      accentDot={isFaturado ? "bg-cyan-500" : "bg-blue-500"}
+                    />
+                  );
+                }}
                 empty="Nenhuma empresa em faturamento agora."
               />
             );
