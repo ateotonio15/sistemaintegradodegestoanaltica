@@ -282,14 +282,56 @@ export default function PainelTvFinanceiro() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem")
-        .in("financeiro_movimentacao_id", movIds);
+        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem, uploaded_by, created_at")
+        .in("financeiro_movimentacao_id", movIds)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       const m: Record<string, any[]> = {};
       (data || []).forEach((a: any) => {
         if (a.origem === "retroativo") return;
         if (!m[a.financeiro_movimentacao_id]) m[a.financeiro_movimentacao_id] = [];
         m[a.financeiro_movimentacao_id].push(a);
+      });
+      return m;
+    },
+  });
+
+  // Mapa: para cada movimentação, o user_id de quem anexou o PDF mais recente
+  const pdfUploaderByMov = useMemo(() => {
+    const map: Record<string, string> = {};
+    Object.entries(anexosMap as Record<string, any[]>).forEach(([movId, list]) => {
+      const pdf = list.find(
+        (a) =>
+          a.uploaded_by &&
+          ((a.mime_type || "").toLowerCase().includes("pdf") ||
+            (a.nome_arquivo || "").toLowerCase().endsWith(".pdf")),
+      );
+      if (pdf) map[movId] = pdf.uploaded_by;
+    });
+    return map;
+  }, [anexosMap]);
+
+  const profileIds = useMemo(() => {
+    const ids = new Set<string>();
+    Object.values(pdfUploaderByMov).forEach((id) => id && ids.add(id));
+    (fin as any[]).forEach((f) => {
+      if (f.faturamento_iniciado_por) ids.add(f.faturamento_iniciado_por);
+    });
+    return Array.from(ids);
+  }, [pdfUploaderByMov, fin]);
+
+  const { data: profileNameMap = {} } = useQuery({
+    queryKey: ["tv-fin-profiles", profileIds.sort().join(",")],
+    enabled: profileIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, username")
+        .in("user_id", profileIds);
+      if (error) throw error;
+      const m: Record<string, string> = {};
+      (data || []).forEach((p: any) => {
+        m[p.user_id] = p.display_name || p.username || "—";
       });
       return m;
     },
