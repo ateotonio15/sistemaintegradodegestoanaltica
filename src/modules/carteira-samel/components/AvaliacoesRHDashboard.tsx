@@ -253,23 +253,33 @@ export function AvaliacoesRHDashboard({ form }: Props) {
         </Card>
       )}
 
-      <Card className="p-4">
-        <h3 className="font-semibold mb-3 text-sm">Últimos comentários</h3>
-        <div className="space-y-3 max-h-72 overflow-y-auto">
-          {respostas.filter(r => r.comentario && r.comentario.trim()).slice(0, 20).map(r => (
-            <div key={r.id} className="border-l-2 border-primary/40 pl-3 py-1">
-              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                <span className="truncate">{r.nome_empresa || "—"} → {r.nome_executiva || "—"}</span>
-                <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />{Number(r.nota_media).toFixed(1)}</span>
-              </div>
-              <p className="text-sm mt-1">{r.comentario}</p>
+      {(() => {
+        const hoje = new Date();
+        const isHoje = (iso: string) => {
+          const d = new Date(iso);
+          return d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth() && d.getDate() === hoje.getDate();
+        };
+        const comentariosHoje = respostas.filter(r => r.comentario && r.comentario.trim() && isHoje(r.created_at));
+        return (
+          <Card className="p-4">
+            <h3 className="font-semibold mb-3 text-sm">Últimos comentários (hoje)</h3>
+            <div className="space-y-3 max-h-72 overflow-y-auto">
+              {comentariosHoje.map(r => (
+                <div key={r.id} className="border-l-2 border-primary/40 pl-3 py-1">
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span className="truncate">{r.nome_empresa || "—"} → {r.nome_executiva || "—"}</span>
+                    <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />{Number(r.nota_media).toFixed(1)}</span>
+                  </div>
+                  <p className="text-sm mt-1">{r.comentario}</p>
+                </div>
+              ))}
+              {comentariosHoje.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum comentário recebido hoje.</p>
+              )}
             </div>
-          ))}
-          {respostas.filter(r => r.comentario && r.comentario.trim()).length === 0 && (
-            <p className="text-xs text-muted-foreground">Nenhum comentário recebido.</p>
-          )}
-        </div>
-      </Card>
+          </Card>
+        );
+      })()}
     </div>
   );
 }
