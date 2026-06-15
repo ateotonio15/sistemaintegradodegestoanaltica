@@ -614,23 +614,38 @@ export type Database = {
       }
       cs_avaliacao_respostas: {
         Row: {
+          comentario: string | null
+          compartilhamento_id: string | null
           created_at: string
           formulario_id: string
           id: string
+          nome_empresa: string | null
+          nome_executiva: string | null
+          nota_media: number | null
           respondente: string | null
           respostas: Json
         }
         Insert: {
+          comentario?: string | null
+          compartilhamento_id?: string | null
           created_at?: string
           formulario_id: string
           id?: string
+          nome_empresa?: string | null
+          nome_executiva?: string | null
+          nota_media?: number | null
           respondente?: string | null
           respostas?: Json
         }
         Update: {
+          comentario?: string | null
+          compartilhamento_id?: string | null
           created_at?: string
           formulario_id?: string
           id?: string
+          nome_empresa?: string | null
+          nome_executiva?: string | null
+          nota_media?: number | null
           respondente?: string | null
           respostas?: Json
         }
