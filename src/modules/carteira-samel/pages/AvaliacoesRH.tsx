@@ -12,8 +12,14 @@ const db = supabase as any;
 const TEMPLATE_RH = {
   tipo: "rh",
   titulo: "Avaliação RH",
-  instrucoes: "",
-  perguntas: [] as any[],
+  instrucoes: "Em uma escala de 1 a 5, sendo 1 = Insatisfatório e 5 = Excelente, como você avalia:",
+  perguntas: [
+    { id: "q1", tipo: "rating", obrigatoria: true, titulo: "Relacionamento e cordialidade", descricao: "A qualidade do relacionamento, cordialidade e profissionalismo demonstrados pela executiva durante os atendimentos." },
+    { id: "q2", tipo: "rating", obrigatoria: true, titulo: "Proatividade e comprometimento", descricao: "A executiva demonstra iniciativa e presteza para auxiliá-los para as demandas apresentadas?" },
+    { id: "q3", tipo: "rating", obrigatoria: true, titulo: "Agilidade e efetividade", descricao: "O tempo de resposta e a capacidade de conduzir as demandas de forma eficiente até sua resolução." },
+    { id: "q4", tipo: "rating", obrigatoria: true, titulo: "Disponibilidade e suporte", descricao: "A facilidade de contato e o suporte prestado sempre que sua empresa necessita de auxílio." },
+    { id: "q5", tipo: "rating", obrigatoria: true, titulo: "Satisfação geral", descricao: "Considerando sua experiência como um todo, qual sua avaliação sobre o atendimento prestado pela executiva?" },
+  ],
 };
 
 export default function AvaliacoesRH() {
