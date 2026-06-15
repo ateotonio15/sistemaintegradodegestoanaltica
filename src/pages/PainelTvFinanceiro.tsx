@@ -174,6 +174,45 @@ export default function PainelTvFinanceiro() {
 
   useFinanceiroRealtime({ enabled: !!user && podeVer, mesReferencia: mesPrincipal });
 
+  // Realtime dedicado do Painel TV: invalida queries "tv-*" sempre que
+  // alguma tabela relevante muda, garantindo atualização ao vivo
+  // (faturamento iniciado, anexos enviados, novas empresas/movimentações etc.)
+  useEffect(() => {
+    if (!user || !podeVer) return;
+    const tables = [
+      "financeiro_movimentacoes",
+      "anexos_financeiro",
+      "movimentacoes",
+      "anexos_movimentacao",
+      "empresas",
+      "financeiro_pagadores",
+    ];
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const trigger = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["tv-financeiro-mov"] });
+        qc.invalidateQueries({ queryKey: ["tv-fin-empresas"] });
+        qc.invalidateQueries({ queryKey: ["tv-fin-anexos"] });
+        qc.invalidateQueries({ queryKey: ["tv-fin-envio-op"] });
+        setLastUpdate(Date.now());
+      }, 400);
+    };
+    const channel = supabase.channel(`painel-tv-financeiro-${mesPrincipal}`);
+    tables.forEach((t) => {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: t },
+        trigger,
+      );
+    });
+    channel.subscribe();
+    return () => {
+      if (debounce) clearTimeout(debounce);
+      supabase.removeChannel(channel);
+    };
+  }, [user, podeVer, mesPrincipal]);
+
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(id);
