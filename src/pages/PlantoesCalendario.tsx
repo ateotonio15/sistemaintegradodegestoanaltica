@@ -287,7 +287,13 @@ export default function PlantoesCalendario() {
         </CardContent></Card>
       )}
 
-      {novo && <PlantaoDialog open={novo} onOpenChange={setNovo} />}
+      {novo && (
+        <PlantaoDialog
+          open={novo}
+          onOpenChange={(v) => { setNovo(v); if (!v) setNovoData(null); }}
+          defaultData={novoData ?? undefined}
+        />
+      )}
     </div>
   );
 }
