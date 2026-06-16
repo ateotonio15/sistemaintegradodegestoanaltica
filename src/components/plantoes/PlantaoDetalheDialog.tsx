@@ -123,7 +123,9 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                       {atendimentos.length === 0 && (
                         <div className="p-4 text-sm text-muted-foreground text-center">Nenhuma demanda registrada.</div>
                       )}
-                      {atendimentos.map((a) => (
+                      {atendimentos.map((a) => {
+                        const meta = parseAssunto(a.assunto, a.resolvido);
+                        return (
                         <div key={a.id} className="p-3 flex items-start gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="text-sm">
@@ -131,18 +133,12 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                               {a.cpf && <span className="text-muted-foreground ml-2 text-xs">{a.cpf}</span>}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {[a.assunto || "—", canalDe(a), `${dataFmt} ${a.hora ?? ""}`.trim()].filter(Boolean).join(" · ")}
+                              {[meta.tipo, meta.canal, `${dataFmt} ${a.hora ?? ""}`.trim()].filter(Boolean).join(" · ")}
                             </div>
                             {a.observacao && <div className="text-xs text-muted-foreground mt-1">{a.observacao}</div>}
                           </div>
-                          <Badge
-                            className={
-                              a.resolvido
-                                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0"
-                                : "bg-amber-100 text-amber-700 hover:bg-amber-100 border-0"
-                            }
-                          >
-                            {a.resolvido ? "Resolvido" : "Em aberto"}
+                          <Badge className={STATUS_COLORS[meta.status] ?? STATUS_COLORS["Pendente"]}>
+                            {meta.status}
                           </Badge>
                           {isAdmin && (
                             <div className="flex gap-1">
