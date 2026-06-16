@@ -7,8 +7,15 @@ import {
   User, Building2, MapPin, ChevronDown, Plus, Pencil, Trash2,
 } from "lucide-react";
 import { useAtendimentos, usePlantaoMutations, type Plantao, type PlantaoAtendimento } from "@/hooks/usePlantoes";
-import { AtendimentoDialog } from "@/components/plantoes/AtendimentoDialog";
+import { AtendimentoDialog, parseAssunto } from "@/components/plantoes/AtendimentoDialog";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
+
+const STATUS_COLORS: Record<string, string> = {
+  "Pendente": "bg-amber-100 text-amber-700 hover:bg-amber-100 border-0",
+  "Em andamento": "bg-blue-100 text-blue-700 hover:bg-blue-100 border-0",
+  "Resolvido": "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0",
+  "Cancelado": "bg-rose-100 text-rose-700 hover:bg-rose-100 border-0",
+};
 
 interface Props {
   open: boolean;
