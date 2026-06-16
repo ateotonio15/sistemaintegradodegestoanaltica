@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlantaoEmpresas, usePlantoes, usePlantaoMutations, usePlantoesRealtime, type Plantao } from "@/hooks/usePlantoes";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
+import { PlantaoDetalheDialog } from "@/components/plantoes/PlantaoDetalheDialog";
 
 export default function PlantoesEmpresa() {
   const { empresaId } = useParams<{ empresaId: string }>();
@@ -21,6 +22,7 @@ export default function PlantoesEmpresa() {
   const { deletePlantao } = usePlantaoMutations();
   const [edit, setEdit] = useState<Plantao | null>(null);
   const [novo, setNovo] = useState(false);
+  const [detalhe, setDetalhe] = useState<Plantao | null>(null);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -119,9 +121,9 @@ export default function PlantoesEmpresa() {
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t">
-                    <Link to={`/plantoes/${p.id}/atendimentos`} className="text-sm text-primary inline-flex items-center hover:underline">
+                    <button onClick={() => setDetalhe(p)} className="text-sm text-primary inline-flex items-center hover:underline">
                       Ver detalhes <ChevronRight className="h-4 w-4" />
-                    </Link>
+                    </button>
                     {isAdmin && (
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" onClick={() => setEdit(p)}>
@@ -142,6 +144,15 @@ export default function PlantoesEmpresa() {
 
       {edit && <PlantaoDialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)} plantao={edit} />}
       {novo && <PlantaoDialog open={novo} onOpenChange={setNovo} defaultEmpresaId={empresaId} />}
+      {detalhe && (
+        <PlantaoDetalheDialog
+          open={!!detalhe}
+          onOpenChange={(v) => !v && setDetalhe(null)}
+          plantao={detalhe}
+          empresaNome={empresa?.nome}
+          isAdmin={isAdmin}
+        />
+      )}
     </div>
   );
 }
