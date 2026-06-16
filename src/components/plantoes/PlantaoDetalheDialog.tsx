@@ -4,6 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   User, Building2, MapPin, ChevronDown, Plus, Pencil, Trash2,
 } from "lucide-react";
 import { useAtendimentos, usePlantaoMutations, usePlantoes, type Plantao, type PlantaoAtendimento } from "@/hooks/usePlantoes";
@@ -43,7 +46,7 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
   const active = todosPlantoes.find((p) => p.id === activeId) ?? plantao;
 
   const { data: atendimentos = [] } = useAtendimentos(active.id);
-  const { deleteAtendimento, deletePlantao } = usePlantaoMutations();
+  const { deleteAtendimento, deletePlantao, upsertAtendimento } = usePlantaoMutations();
   const [editAt, setEditAt] = useState<PlantaoAtendimento | null>(null);
   const [novoAt, setNovoAt] = useState(false);
   const [editPlantao, setEditPlantao] = useState(false);
@@ -157,8 +160,21 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                       )}
                       {atendimentos.map((a) => {
                         const meta = parseAssunto(a.assunto, a.resolvido);
+                        const statusOptions = ["Pendente", "Em andamento", "Resolvido", "Cancelado"];
+                        const changeStatus = (novo: string) => {
+                          upsertAtendimento.mutate({
+                            id: a.id,
+                            plantao_id: active.id,
+                            nome_cliente: a.nome_cliente,
+                            cpf: a.cpf,
+                            hora: a.hora,
+                            observacao: a.observacao,
+                            assunto: `${meta.tipo} · ${meta.canal} · ${novo}`,
+                            resolvido: novo === "Resolvido",
+                          });
+                        };
                         return (
-                        <div key={a.id} className="p-3 flex items-start gap-3">
+                        <div key={a.id} className="p-3 flex items-center gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="text-sm">
                               <span className="font-medium">{a.nome_cliente}</span>
@@ -169,9 +185,24 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                             </div>
                             {a.observacao && <div className="text-xs text-muted-foreground mt-1">{a.observacao}</div>}
                           </div>
-                          <Badge className={STATUS_COLORS[meta.status] ?? STATUS_COLORS["Pendente"]}>
-                            {meta.status}
-                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                className={`${STATUS_COLORS[meta.status] ?? STATUS_COLORS["Pendente"]} inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold hover:opacity-90 transition`}
+                                title="Trocar status"
+                              >
+                                {meta.status}
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {statusOptions.map((s) => (
+                                <DropdownMenuItem key={s} onClick={() => changeStatus(s)}>
+                                  {s}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           {isAdmin && (
                             <div className="flex gap-1">
                               <Button size="icon" variant="ghost" onClick={() => setEditAt(a)}>
