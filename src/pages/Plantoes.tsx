@@ -322,6 +322,7 @@ export default function Plantoes() {
       )}
 
       {empDialog && <PlantaoEmpresaDialog open={empDialog} onOpenChange={setEmpDialog} />}
+      {empEditar && <PlantaoEmpresaDialog open={!!empEditar} onOpenChange={(o) => !o && setEmpEditar(null)} empresa={empEditar} />}
       {plantaoDialog && <PlantaoDialog open={plantaoDialog} onOpenChange={setPlantaoDialog} />}
       {loteDialog && <PlantaoLoteDialog open={loteDialog} onOpenChange={setLoteDialog} />}
     </div>
