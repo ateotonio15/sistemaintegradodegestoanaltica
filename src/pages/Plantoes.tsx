@@ -89,24 +89,50 @@ export default function Plantoes() {
     return Array.from(map.entries()).map(([id, v]) => ({ empresaId: id, ...v }));
   }, [empresas, plantoes]);
 
+  const executivas = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of plantoes) if (p.plantonista) set.add(p.plantonista);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [plantoes]);
+
+  const atividadeNivel = (total: number) => (total >= 60 ? "alta" : total >= 20 ? "media" : "baixa");
+
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return porEmpresa.filter((e) => {
+    const arr = porEmpresa.filter((e) => {
       if (empresaFilter !== "all" && e.empresaId !== empresaFilter) return false;
       if (tipoFilter === "com" && !e.plantaoId) return false;
       if (tipoFilter === "sem" && e.plantaoId) return false;
       if (tipoFilter === "sem_plantonista" && !e.semPlantonista) return false;
+      if (execFilter !== "all" && e.plantonista !== execFilter) return false;
+      if (atividadeFilter !== "all" && atividadeNivel(e.total) !== atividadeFilter) return false;
       if (q && !e.nome.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [porEmpresa, busca, empresaFilter, tipoFilter]);
+    const sorted = [...arr];
+    if (sortBy === "atend_desc") sorted.sort((a, b) => b.total - a.total);
+    else if (sortBy === "atend_asc") sorted.sort((a, b) => a.total - b.total);
+    else if (sortBy === "nome") sorted.sort((a, b) => a.nome.localeCompare(b.nome));
+    else if (sortBy === "plantoes_desc") sorted.sort((a, b) => b.plantoesCount - a.plantoesCount);
+    else /* recente */ sorted.sort((a, b) => {
+      const ad = a.plantoesDatas.length ? a.plantoesDatas.slice().sort().pop()! : "";
+      const bd = b.plantoesDatas.length ? b.plantoesDatas.slice().sort().pop()! : "";
+      return bd.localeCompare(ad);
+    });
+    return sorted;
+  }, [porEmpresa, busca, empresaFilter, tipoFilter, execFilter, atividadeFilter, sortBy]);
 
   const totalAtendimentos = filtered.reduce((acc, e) => acc + e.total, 0);
+  const totalPlantoes = filtered.reduce((acc, e) => acc + e.plantoesCount, 0);
+  const mediaGeral = totalPlantoes > 0 ? totalAtendimentos / totalPlantoes : 0;
 
   const limparFiltros = () => {
     setBusca("");
     setEmpresaFilter("all");
     setTipoFilter("all");
+    setExecFilter("all");
+    setAtividadeFilter("all");
+    setSortBy("recente");
     setFrom(today);
     setTo(today);
   };
