@@ -87,6 +87,7 @@ export function PlantaoDialog({
         data,
         hora_inicio: horaInicio,
         hora_fim: horaFim,
+        status,
         plantonista,
         observacao,
       });
