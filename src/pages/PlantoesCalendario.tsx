@@ -179,11 +179,15 @@ export default function PlantoesCalendario() {
       {/* Legenda */}
       <div className="flex flex-wrap items-center gap-4 text-xs">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
-          Feriado Nacional/Estadual
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+          Feriado Nacional
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+          <span className="h-2.5 w-2.5 rounded-full bg-orange-400" />
+          Feriado Estadual - Amazonas
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
           Feriado Municipal - Manaus
         </span>
       </div>
