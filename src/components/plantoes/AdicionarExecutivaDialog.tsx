@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { usePlantoes, usePlantaoMutations } from "@/hooks/usePlantoes";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { usePlantaoMutations } from "@/hooks/usePlantoes";
 
 const TIPOS = ["Presencial", "WhatsApp"] as const;
 
@@ -15,23 +17,42 @@ interface Props {
   data: string;
 }
 
+function useExecutivasProfiles() {
+  const { user, loading } = useAuth();
+  return useQuery({
+    queryKey: ["executivas_profiles"],
+    enabled: !loading && !!user,
+    queryFn: async () => {
+      const { data: roles, error: rolesErr } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "executivo");
+      if (rolesErr) throw rolesErr;
+      const ids = (roles ?? []).map((r) => r.user_id);
+      if (!ids.length) return [] as { user_id: string; nome: string }[];
+      const { data: profs, error: pErr } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, username")
+        .in("user_id", ids);
+      if (pErr) throw pErr;
+      return (profs ?? [])
+        .map((p: any) => ({ user_id: p.user_id, nome: p.display_name || p.username || "" }))
+        .filter((p) => p.nome)
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+    },
+  });
+}
+
 export function AdicionarExecutivaDialog({ open, onOpenChange, empresaId, data }: Props) {
-  const { data: todos = [] } = usePlantoes();
+  const { data: opcoes = [] } = useExecutivasProfiles();
   const { upsertPlantao } = usePlantaoMutations();
 
-  const opcoes = useMemo(() => {
-    const set = new Set<string>();
-    todos.forEach((p) => p.plantonista && set.add(p.plantonista));
-    return Array.from(set).sort();
-  }, [todos]);
 
   const [executiva, setExecutiva] = useState("");
-  const [custom, setCustom] = useState(false);
   const [tipo, setTipo] = useState<(typeof TIPOS)[number]>("Presencial");
 
   const reset = () => {
     setExecutiva("");
-    setCustom(false);
     setTipo("Presencial");
   };
 
@@ -50,39 +71,26 @@ export function AdicionarExecutivaDialog({ open, onOpenChange, empresaId, data }
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>Executiva</Label>
-            {custom ? (
-              <Input
-                autoFocus
-                placeholder="Nome da executiva"
-                value={executiva}
-                onChange={(e) => setExecutiva(e.target.value)}
-              />
-            ) : (
-              <Select
-                value={executiva}
-                onValueChange={(v) => {
-                  if (v === "__novo__") {
-                    setCustom(true);
-                    setExecutiva("");
-                  } else {
-                    setExecutiva(v);
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a executiva" />
-                </SelectTrigger>
-                <SelectContent>
-                  {opcoes.map((n) => (
-                    <SelectItem key={n} value={n}>
-                      {n}
+            <Select value={executiva} onValueChange={setExecutiva}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a executiva" />
+              </SelectTrigger>
+              <SelectContent>
+                {opcoes.length === 0 ? (
+                  <div className="px-2 py-3 text-sm text-muted-foreground">
+                    Nenhuma executiva cadastrada.
+                  </div>
+                ) : (
+                  opcoes.map((p) => (
+                    <SelectItem key={p.user_id} value={p.nome}>
+                      {p.nome}
                     </SelectItem>
-                  ))}
-                  <SelectItem value="__novo__">+ Nova executiva…</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           </div>
+
 
           <div className="space-y-1.5">
             <Label>Tipo</Label>
