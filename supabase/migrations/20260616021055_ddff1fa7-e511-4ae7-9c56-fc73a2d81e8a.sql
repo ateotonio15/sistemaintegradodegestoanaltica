@@ -1,0 +1,1 @@
+ALTER TABLE public.plantoes ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'A confirmar';

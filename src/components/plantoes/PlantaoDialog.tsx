@@ -13,6 +13,7 @@ import { usePlantaoEmpresas, usePlantaoMutations, type Plantao } from "@/hooks/u
 import { ptBR } from "date-fns/locale";
 
 const TURNOS = ["integral", "manhã", "tarde", "noite"];
+const STATUS_OPTIONS = ["A confirmar", "Confirmado", "Concluído", "Cancelado"];
 
 function isoToDate(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number);
@@ -55,6 +56,7 @@ export function PlantaoDialog({
   const [datas, setDatas] = useState<string[]>(initialDates);
   const [horaInicio, setHoraInicio] = useState((plantao?.hora_inicio ?? "09:00").slice(0, 5));
   const [horaFim, setHoraFim] = useState((plantao?.hora_fim ?? "10:00").slice(0, 5));
+  const [status, setStatus] = useState(plantao?.status ?? "A confirmar");
   const [plantonista, setPlantonista] = useState(plantao?.plantonista ?? "");
   const [observacao, setObservacao] = useState(plantao?.observacao ?? "");
   const [calOpen, setCalOpen] = useState(false);
@@ -85,6 +87,7 @@ export function PlantaoDialog({
         data,
         hora_inicio: horaInicio,
         hora_fim: horaFim,
+        status,
         plantonista,
         observacao,
       });
@@ -188,6 +191,15 @@ export function PlantaoDialog({
           <div>
             <Label>Observação</Label>
             <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+          </div>
+          <div>
+            <Label>Status *</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>

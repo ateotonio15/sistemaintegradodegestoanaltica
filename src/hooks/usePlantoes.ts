@@ -20,6 +20,7 @@ export interface Plantao {
   turno: string;
   hora_inicio: string | null;
   hora_fim: string | null;
+  status: string;
   plantonista: string | null;
   observacao: string | null;
   created_at: string;
@@ -175,6 +176,7 @@ export function usePlantaoMutations() {
         turno: p.turno ?? "integral",
         hora_inicio: p.hora_inicio ?? null,
         hora_fim: p.hora_fim ?? null,
+        status: p.status ?? "A confirmar",
         plantonista: p.plantonista ?? null,
         observacao: p.observacao ?? null,
       };

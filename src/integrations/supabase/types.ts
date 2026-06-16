@@ -2744,6 +2744,7 @@ export type Database = {
           id: string
           observacao: string | null
           plantonista: string | null
+          status: string
           turno: string
           updated_at: string
         }
@@ -2756,6 +2757,7 @@ export type Database = {
           id?: string
           observacao?: string | null
           plantonista?: string | null
+          status?: string
           turno?: string
           updated_at?: string
         }
@@ -2768,6 +2770,7 @@ export type Database = {
           id?: string
           observacao?: string | null
           plantonista?: string | null
+          status?: string
           turno?: string
           updated_at?: string
         }
