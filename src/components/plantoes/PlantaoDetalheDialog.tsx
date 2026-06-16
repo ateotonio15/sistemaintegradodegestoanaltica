@@ -31,7 +31,17 @@ function canalDe(a: PlantaoAtendimento): "Presencial" | "WhatsApp" {
 }
 
 export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome, isAdmin }: Props) {
-  const { data: atendimentos = [] } = useAtendimentos(plantao.id);
+  const { data: plantoesDia = [] } = usePlantoes({
+    empresaId: plantao.empresa_id,
+    from: plantao.data,
+    to: plantao.data,
+  });
+  const todosPlantoes = plantoesDia.length > 0 ? plantoesDia : [plantao];
+  const [activeId, setActiveId] = useState<string>(plantao.id);
+  const [novoPlantao, setNovoPlantao] = useState(false);
+  const active = todosPlantoes.find((p) => p.id === activeId) ?? plantao;
+
+  const { data: atendimentos = [] } = useAtendimentos(active.id);
   const { deleteAtendimento, deletePlantao } = usePlantaoMutations();
   const [editAt, setEditAt] = useState<PlantaoAtendimento | null>(null);
   const [novoAt, setNovoAt] = useState(false);
@@ -39,8 +49,8 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
   const [demandasOpen, setDemandasOpen] = useState(true);
 
   const today = new Date().toISOString().slice(0, 10);
-  const isToday = plantao.data === today;
-  const dataFmt = new Date(plantao.data + "T00:00:00").toLocaleDateString("pt-BR");
+  const isToday = active.data === today;
+  const dataFmt = new Date(active.data + "T00:00:00").toLocaleDateString("pt-BR");
 
   const stats = useMemo(() => {
     const total = atendimentos.length;
