@@ -610,6 +610,11 @@ export default function Empresas() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let list = empresas;
+    if (isExecutivo) {
+      list = list.filter((e) => (e as any).tipo_contrato !== "ADMINISTRADORA");
+    }
+
+
 
     return list
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
