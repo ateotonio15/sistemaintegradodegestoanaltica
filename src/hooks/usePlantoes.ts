@@ -18,6 +18,8 @@ export interface Plantao {
   empresa_id: string;
   data: string;
   turno: string;
+  hora_inicio: string | null;
+  hora_fim: string | null;
   plantonista: string | null;
   observacao: string | null;
   created_at: string;
