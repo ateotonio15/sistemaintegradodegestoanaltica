@@ -84,19 +84,40 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
               </div>
             </div>
 
-            {/* Plantonista tab */}
-            <div className="border-b">
-              <button className="px-3 py-2 border-b-2 border-primary text-sm font-medium inline-flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary" />
-                {plantao.plantonista || "Sem plantonista"} <span className="text-muted-foreground">({stats.total})</span>
-              </button>
+            {/* Plantonistas tabs */}
+            <div className="border-b flex items-center gap-1 flex-wrap">
+              {todosPlantoes.map((p) => {
+                const isActive = p.id === active.id;
+                const count = p.id === active.id ? stats.total : (p.atendimentos_count ?? 0);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setActiveId(p.id)}
+                    className={`px-3 py-2 text-sm font-medium inline-flex items-center gap-2 border-b-2 -mb-px transition-colors ${
+                      isActive ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${isActive ? "bg-primary" : "bg-muted-foreground/40"}`} />
+                    {p.plantonista || "Sem plantonista"} <span className="text-muted-foreground">({count})</span>
+                  </button>
+                );
+              })}
+              {isAdmin && (
+                <button
+                  onClick={() => setNovoPlantao(true)}
+                  className="px-3 py-2 text-sm text-primary inline-flex items-center gap-1 hover:bg-muted/50 rounded-t-md"
+                  title="Adicionar executivo neste dia"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
             {/* Plantonista card */}
             <Card className="p-4 space-y-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 font-medium">
-                  <User className="h-4 w-4" /> {plantao.plantonista || "—"}
+                  <User className="h-4 w-4" /> {active.plantonista || "—"}
                 </div>
                 {empresaNome && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
