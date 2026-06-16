@@ -53,7 +53,8 @@ export function PlantaoDialog({
       ? [defaultData]
       : [];
   const [datas, setDatas] = useState<string[]>(initialDates);
-  const [turno, setTurno] = useState(plantao?.turno ?? "integral");
+  const [horaInicio, setHoraInicio] = useState((plantao?.hora_inicio ?? "09:00").slice(0, 5));
+  const [horaFim, setHoraFim] = useState((plantao?.hora_fim ?? "10:00").slice(0, 5));
   const [plantonista, setPlantonista] = useState(plantao?.plantonista ?? "");
   const [observacao, setObservacao] = useState(plantao?.observacao ?? "");
   const [calOpen, setCalOpen] = useState(false);
@@ -68,7 +69,13 @@ export function PlantaoDialog({
 
   const removeChip = (iso: string) => setDatas(datas.filter((d) => d !== iso));
 
-  const canSave = !!empresaId && datas.length > 0 && !upsertPlantao.isPending;
+  const canSave =
+    !!empresaId &&
+    datas.length > 0 &&
+    !!horaInicio &&
+    !!horaFim &&
+    horaFim > horaInicio &&
+    !upsertPlantao.isPending;
 
   const handleSave = async () => {
     for (const data of datas) {
@@ -76,7 +83,8 @@ export function PlantaoDialog({
         id: isEdit ? plantao?.id : undefined,
         empresa_id: empresaId,
         data,
-        turno,
+        hora_inicio: horaInicio,
+        hora_fim: horaFim,
         plantonista,
         observacao,
       });
