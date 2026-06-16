@@ -53,6 +53,9 @@ export default function Plantoes() {
   const [busca, setBusca] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState<string>("all");
   const [tipoFilter, setTipoFilter] = useState<string>("all");
+  const [execFilter, setExecFilter] = useState<string>("all");
+  const [atividadeFilter, setAtividadeFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("recente");
   const [view, setView] = useState<"grid" | "list">("grid");
 
   const { data: empresas = [] } = usePlantaoEmpresas();
