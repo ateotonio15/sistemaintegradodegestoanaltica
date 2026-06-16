@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import {
   User, Building2, MapPin, ChevronDown, Plus, Pencil, Trash2,
 } from "lucide-react";
-import { useAtendimentos, usePlantaoMutations, type Plantao, type PlantaoAtendimento } from "@/hooks/usePlantoes";
+import { useAtendimentos, usePlantaoMutations, usePlantoes, type Plantao, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 import { AtendimentoDialog, parseAssunto } from "@/components/plantoes/AtendimentoDialog";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 
@@ -31,7 +31,17 @@ function canalDe(a: PlantaoAtendimento): "Presencial" | "WhatsApp" {
 }
 
 export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome, isAdmin }: Props) {
-  const { data: atendimentos = [] } = useAtendimentos(plantao.id);
+  const { data: plantoesDia = [] } = usePlantoes({
+    empresaId: plantao.empresa_id,
+    from: plantao.data,
+    to: plantao.data,
+  });
+  const todosPlantoes = plantoesDia.length > 0 ? plantoesDia : [plantao];
+  const [activeId, setActiveId] = useState<string>(plantao.id);
+  const [novoPlantao, setNovoPlantao] = useState(false);
+  const active = todosPlantoes.find((p) => p.id === activeId) ?? plantao;
+
+  const { data: atendimentos = [] } = useAtendimentos(active.id);
   const { deleteAtendimento, deletePlantao } = usePlantaoMutations();
   const [editAt, setEditAt] = useState<PlantaoAtendimento | null>(null);
   const [novoAt, setNovoAt] = useState(false);
@@ -39,8 +49,8 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
   const [demandasOpen, setDemandasOpen] = useState(true);
 
   const today = new Date().toISOString().slice(0, 10);
-  const isToday = plantao.data === today;
-  const dataFmt = new Date(plantao.data + "T00:00:00").toLocaleDateString("pt-BR");
+  const isToday = active.data === today;
+  const dataFmt = new Date(active.data + "T00:00:00").toLocaleDateString("pt-BR");
 
   const stats = useMemo(() => {
     const total = atendimentos.length;
@@ -74,19 +84,40 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
               </div>
             </div>
 
-            {/* Plantonista tab */}
-            <div className="border-b">
-              <button className="px-3 py-2 border-b-2 border-primary text-sm font-medium inline-flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary" />
-                {plantao.plantonista || "Sem plantonista"} <span className="text-muted-foreground">({stats.total})</span>
-              </button>
+            {/* Plantonistas tabs */}
+            <div className="border-b flex items-center gap-1 flex-wrap">
+              {todosPlantoes.map((p) => {
+                const isActive = p.id === active.id;
+                const count = p.id === active.id ? stats.total : (p.atendimentos_count ?? 0);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setActiveId(p.id)}
+                    className={`px-3 py-2 text-sm font-medium inline-flex items-center gap-2 border-b-2 -mb-px transition-colors ${
+                      isActive ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${isActive ? "bg-primary" : "bg-muted-foreground/40"}`} />
+                    {p.plantonista || "Sem plantonista"} <span className="text-muted-foreground">({count})</span>
+                  </button>
+                );
+              })}
+              {isAdmin && (
+                <button
+                  onClick={() => setNovoPlantao(true)}
+                  className="px-3 py-2 text-sm text-primary inline-flex items-center gap-1 hover:bg-muted/50 rounded-t-md"
+                  title="Adicionar executivo neste dia"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
             {/* Plantonista card */}
             <Card className="p-4 space-y-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 font-medium">
-                  <User className="h-4 w-4" /> {plantao.plantonista || "—"}
+                  <User className="h-4 w-4" /> {active.plantonista || "—"}
                 </div>
                 {empresaNome && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -149,7 +180,7 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => {
-                                  if (confirm("Excluir demanda?")) deleteAtendimento.mutate({ id: a.id, plantao_id: plantao.id });
+                                  if (confirm("Excluir demanda?")) deleteAtendimento.mutate({ id: a.id, plantao_id: active.id });
                                 }}
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -184,7 +215,7 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                   className="text-destructive hover:text-destructive"
                   onClick={() => {
                     if (confirm("Excluir plantão?")) {
-                      deletePlantao.mutate(plantao.id);
+                      deletePlantao.mutate(active.id);
                       onOpenChange(false);
                     }
                   }}
@@ -198,10 +229,18 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
       </Dialog>
 
       {editAt && (
-        <AtendimentoDialog open={!!editAt} onOpenChange={(v) => !v && setEditAt(null)} plantaoId={plantao.id} atendimento={editAt} />
+        <AtendimentoDialog open={!!editAt} onOpenChange={(v) => !v && setEditAt(null)} plantaoId={active.id} atendimento={editAt} />
       )}
-      {novoAt && <AtendimentoDialog open={novoAt} onOpenChange={setNovoAt} plantaoId={plantao.id} />}
-      {editPlantao && <PlantaoDialog open={editPlantao} onOpenChange={setEditPlantao} plantao={plantao} />}
+      {novoAt && <AtendimentoDialog open={novoAt} onOpenChange={setNovoAt} plantaoId={active.id} />}
+      {editPlantao && <PlantaoDialog open={editPlantao} onOpenChange={setEditPlantao} plantao={active} />}
+      {novoPlantao && (
+        <PlantaoDialog
+          open={novoPlantao}
+          onOpenChange={setNovoPlantao}
+          defaultEmpresaId={plantao.empresa_id}
+          defaultData={plantao.data}
+        />
+      )}
     </>
   );
 }
