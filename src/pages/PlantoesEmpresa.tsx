@@ -22,6 +22,7 @@ export default function PlantoesEmpresa() {
   const { deletePlantao } = usePlantaoMutations();
   const [edit, setEdit] = useState<Plantao | null>(null);
   const [novo, setNovo] = useState(false);
+  const [detalhe, setDetalhe] = useState<Plantao | null>(null);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
