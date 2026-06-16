@@ -610,9 +610,7 @@ export default function Empresas() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let list = empresas;
-    if (isExecutivo && user) {
-      list = list.filter((e) => (e as any).executiva_user_id === user.id);
-    }
+
     return list
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
       .filter((e) => respFilter === "all" || (e.responsavel_contrato ?? "").trim() === respFilter)
@@ -705,25 +703,14 @@ export default function Empresas() {
   return (
     <>
       <div className="space-y-6">
-        {isExecutivo && (
-          <Card className="rounded-xl shadow-sm">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-primary/10">
-                <Building2 className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Suas empresas vinculadas</p>
-                <p className="text-2xl font-bold">{filtered.length}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
+
 
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {isExecutivo ? `Você possui ${filtered.length} empresa(s) vinculada(s)` : `${filtered.length} empresa(s) ${showInativas ? "inativas" : "ativas"}`}
+              {`${filtered.length} empresa(s) ${showInativas ? "inativas" : "ativas"}`}
             </p>
           </div>
           {(canEdit && !isExecutivo) && (
