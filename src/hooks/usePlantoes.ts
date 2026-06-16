@@ -173,6 +173,8 @@ export function usePlantaoMutations() {
         empresa_id: p.empresa_id,
         data: p.data,
         turno: p.turno ?? "integral",
+        hora_inicio: p.hora_inicio ?? null,
+        hora_fim: p.hora_fim ?? null,
         plantonista: p.plantonista ?? null,
         observacao: p.observacao ?? null,
       };
