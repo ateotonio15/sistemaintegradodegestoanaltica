@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { usePlantaoEmpresas, usePlantoes, usePlantoesRealtime, type Plantao } from "@/hooks/usePlantoes";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
-import { feriadoEm } from "@/modules/saude-empresas/lib/feriados";
+import { useFeriados } from "@/hooks/useFeriados";
 
 function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
@@ -19,18 +19,6 @@ function fmt(d: Date) {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-// Feriados municipais de Manaus (fixos)
-function feriadoManaus(d: Date): string | null {
-  const md = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const lista: Record<string, string> = {
-    "01-20": "São Sebastião",
-    "09-05": "Elevação do Amazonas",
-    "10-24": "Aniversário de Manaus",
-    "12-08": "N. Sra. da Conceição (Padroeira)",
-  };
-  return lista[md] ?? null;
 }
 
 type StatusFiltro = "todos" | "andamento" | "finalizado";
