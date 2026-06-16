@@ -192,6 +192,15 @@ export function PlantaoDialog({
             <Label>Observação</Label>
             <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} />
           </div>
+          <div>
+            <Label>Status *</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
