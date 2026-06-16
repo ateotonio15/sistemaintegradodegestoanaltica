@@ -8,13 +8,17 @@ import { usePlantaoMutations, type PlantaoAtendimento } from "@/hooks/usePlantoe
 
 const TIPOS = ["Consulta", "Exame", "Reclamação", "Dúvida", "Outro"];
 const CANAIS = ["Presencial", "WhatsApp"];
+const STATUS = ["Pendente", "Em andamento", "Resolvido", "Cancelado"] as const;
+type Status = (typeof STATUS)[number];
 
-function parseAssunto(assunto: string | null | undefined): { tipo: string; canal: string } {
-  if (!assunto) return { tipo: "Consulta", canal: "Presencial" };
+export function parseAssunto(assunto: string | null | undefined, resolvidoFallback = false): { tipo: string; canal: string; status: Status } {
+  const fallbackStatus: Status = resolvidoFallback ? "Resolvido" : "Pendente";
+  if (!assunto) return { tipo: "Consulta", canal: "Presencial", status: fallbackStatus };
   const parts = assunto.split("·").map((s) => s.trim());
   const tipo = TIPOS.find((t) => t.toLowerCase() === (parts[0] ?? "").toLowerCase()) ?? parts[0] ?? "Consulta";
   const canal = CANAIS.find((c) => c.toLowerCase() === (parts[1] ?? "").toLowerCase()) ?? "Presencial";
-  return { tipo, canal };
+  const status = (STATUS.find((s) => s.toLowerCase() === (parts[2] ?? "").toLowerCase()) ?? fallbackStatus) as Status;
+  return { tipo, canal, status };
 }
 
 export function AtendimentoDialog({
@@ -29,12 +33,12 @@ export function AtendimentoDialog({
   atendimento?: PlantaoAtendimento | null;
 }) {
   const { upsertAtendimento } = usePlantaoMutations();
-  const initial = parseAssunto(atendimento?.assunto);
+  const initial = parseAssunto(atendimento?.assunto, atendimento?.resolvido);
   const [nome, setNome] = useState(atendimento?.nome_cliente ?? "");
   const [cpf, setCpf] = useState(atendimento?.cpf ?? "");
   const [tipo, setTipo] = useState(initial.tipo);
   const [canal, setCanal] = useState(initial.canal);
-  const [resolvido, setResolvido] = useState(atendimento?.resolvido ?? false);
+  const [status, setStatus] = useState<Status>(initial.status);
   const [observacao, setObservacao] = useState(atendimento?.observacao ?? "");
 
   const now = new Date();
@@ -58,11 +62,10 @@ export function AtendimentoDialog({
               <SelectTrigger><SelectValue placeholder="Canal" /></SelectTrigger>
               <SelectContent>{CANAIS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
-            <Select value={resolvido ? "resolvido" : "pendente"} onValueChange={(v) => setResolvido(v === "resolvido")}>
+            <Select value={status} onValueChange={(v) => setStatus(v as Status)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="resolvido">Resolvido</SelectItem>
+                {STATUS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -85,8 +88,8 @@ export function AtendimentoDialog({
                 hora: atendimento?.hora ?? horaAtual,
                 nome_cliente: nome.trim(),
                 cpf: cpf.trim(),
-                assunto: `${tipo} · ${canal}`,
-                resolvido,
+                assunto: `${tipo} · ${canal} · ${status}`,
+                resolvido: status === "Resolvido",
                 observacao: observacao.trim(),
               });
               onOpenChange(false);
