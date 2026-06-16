@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import {
   BarChart3,
   Building2,
+  ClipboardList,
+  Calendar as CalendarIcon,
   FileSpreadsheet,
   FileText,
   LayoutGrid,
