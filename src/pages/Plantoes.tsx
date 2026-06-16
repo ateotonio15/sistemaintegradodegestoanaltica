@@ -63,10 +63,10 @@ export default function Plantoes() {
   const porEmpresa = useMemo(() => {
     const map = new Map<
       string,
-      { nome: string; total: number; plantonista: string | null; semPlantonista: boolean; plantaoId: string | null }
+      { nome: string; total: number; plantonista: string | null; semPlantonista: boolean; plantaoId: string | null; plantoesIds: string[]; plantoesDatas: string[]; plantoesCount: number }
     >();
     for (const e of empresas) {
-      map.set(e.id, { nome: e.nome, total: 0, plantonista: null, semPlantonista: false, plantaoId: null });
+      map.set(e.id, { nome: e.nome, total: 0, plantonista: null, semPlantonista: false, plantaoId: null, plantoesIds: [], plantoesDatas: [], plantoesCount: 0 });
     }
     for (const p of plantoes) {
       const cur = map.get(p.empresa_id);
@@ -75,6 +75,9 @@ export default function Plantoes() {
       cur.plantonista = cur.plantonista ?? p.plantonista;
       if (!p.plantonista) cur.semPlantonista = true;
       cur.plantaoId = cur.plantaoId ?? p.id;
+      cur.plantoesIds.push(p.id);
+      cur.plantoesDatas.push(p.data);
+      cur.plantoesCount += 1;
     }
     return Array.from(map.entries()).map(([id, v]) => ({ empresaId: id, ...v }));
   }, [empresas, plantoes]);
