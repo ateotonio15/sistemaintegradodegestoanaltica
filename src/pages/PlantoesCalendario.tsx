@@ -43,6 +43,12 @@ export default function PlantoesCalendario() {
 
   const today = fmt(new Date());
 
+  const { data: feriadosAno = [] } = useFeriados(cursor.getFullYear());
+  const feriadoMap = useMemo(() => {
+    const m = new Map(feriadosAno.map((f) => [f.data, f]));
+    return m;
+  }, [feriadosAno]);
+
   const executivas = useMemo(() => {
     const set = new Set<string>();
     plantoes.forEach((p) => p.plantonista && set.add(p.plantonista));
@@ -207,21 +213,31 @@ export default function PlantoesCalendario() {
             const items = byDay.get(key) ?? [];
             const isSel = selected === key;
             const isHoje = key === today;
-            const fNac = feriadoEm(d);
-            const fMun = feriadoManaus(d);
-            const bg = fNac ? "bg-rose-50" : fMun ? "bg-amber-50" : "";
+            const fer = feriadoMap.get(key);
+            const bg = fer?.tipo === "Nacional"
+              ? "bg-rose-50"
+              : fer?.tipo === "Estadual"
+                ? "bg-orange-50"
+                : fer?.tipo === "Municipal"
+                  ? "bg-amber-50"
+                  : "";
+            const dot = fer?.tipo === "Nacional"
+              ? "bg-rose-400"
+              : fer?.tipo === "Estadual"
+                ? "bg-orange-400"
+                : fer?.tipo === "Municipal"
+                  ? "bg-amber-400"
+                  : "";
             return (
               <button
                 key={i}
                 onClick={() => setSelected(key)}
                 className={`min-h-[88px] p-1.5 border rounded text-left text-xs hover:bg-muted/50 transition ${bg} ${isSel ? "ring-2 ring-primary" : ""} ${isHoje ? "border-primary" : ""}`}
-                title={fNac?.nome ?? fMun ?? ""}
+                title={fer?.nome ?? ""}
               >
                 <div className="flex items-center justify-between">
                   <span className={`font-semibold ${isHoje ? "text-primary" : ""}`}>{d.getDate()}</span>
-                  {(fNac || fMun) && (
-                    <span className={`h-2 w-2 rounded-full ${fNac ? "bg-rose-400" : "bg-amber-400"}`} />
-                  )}
+                  {fer && <span className={`h-2 w-2 rounded-full ${dot}`} />}
                 </div>
                 <div className="mt-1 space-y-0.5">
                   {items.slice(0, 2).map((p) => (
