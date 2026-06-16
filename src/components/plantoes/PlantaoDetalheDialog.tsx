@@ -180,7 +180,7 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => {
-                                  if (confirm("Excluir demanda?")) deleteAtendimento.mutate({ id: a.id, plantao_id: plantao.id });
+                                  if (confirm("Excluir demanda?")) deleteAtendimento.mutate({ id: a.id, plantao_id: active.id });
                                 }}
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -215,7 +215,7 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                   className="text-destructive hover:text-destructive"
                   onClick={() => {
                     if (confirm("Excluir plantão?")) {
-                      deletePlantao.mutate(plantao.id);
+                      deletePlantao.mutate(active.id);
                       onOpenChange(false);
                     }
                   }}
@@ -229,10 +229,10 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
       </Dialog>
 
       {editAt && (
-        <AtendimentoDialog open={!!editAt} onOpenChange={(v) => !v && setEditAt(null)} plantaoId={plantao.id} atendimento={editAt} />
+        <AtendimentoDialog open={!!editAt} onOpenChange={(v) => !v && setEditAt(null)} plantaoId={active.id} atendimento={editAt} />
       )}
-      {novoAt && <AtendimentoDialog open={novoAt} onOpenChange={setNovoAt} plantaoId={plantao.id} />}
-      {editPlantao && <PlantaoDialog open={editPlantao} onOpenChange={setEditPlantao} plantao={plantao} />}
+      {novoAt && <AtendimentoDialog open={novoAt} onOpenChange={setNovoAt} plantaoId={active.id} />}
+      {editPlantao && <PlantaoDialog open={editPlantao} onOpenChange={setEditPlantao} plantao={active} />}
     </>
   );
 }
