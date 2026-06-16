@@ -233,6 +233,14 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
       )}
       {novoAt && <AtendimentoDialog open={novoAt} onOpenChange={setNovoAt} plantaoId={active.id} />}
       {editPlantao && <PlantaoDialog open={editPlantao} onOpenChange={setEditPlantao} plantao={active} />}
+      {novoPlantao && (
+        <PlantaoDialog
+          open={novoPlantao}
+          onOpenChange={setNovoPlantao}
+          defaultEmpresaId={plantao.empresa_id}
+          defaultData={plantao.data}
+        />
+      )}
     </>
   );
 }
