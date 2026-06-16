@@ -247,31 +247,31 @@ export default function Plantoes() {
           </CardContent>
         </Card>
       ) : view === "grid" ? (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((e) => (
-            <Link key={e.empresaId} to={`/plantoes/empresa/${e.empresaId}`} className="block">
-              <Card className="rounded-xl border bg-card hover:border-primary/60 transition card-shadow">
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div className="font-semibold">{e.nome}</div>
-                    {e.plantaoId ? (
-                      <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">Em plantão</Badge>
-                    ) : (
-                      <Badge variant="outline" className="uppercase text-[10px] tracking-wider">Sem plantão</Badge>
-                    )}
-                  </div>
-                  <div className="text-3xl font-bold">{e.total}</div>
-                  <div className="text-xs text-muted-foreground">atendimentos no período</div>
-                  <div className="text-xs">
-                    Plantonista: <span className="font-medium">{e.plantonista || "—"}</span>
-                  </div>
-                  {e.semPlantonista && e.plantaoId && (
-                    <Badge variant="destructive" className="text-[10px]">Sem plantonista</Badge>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+          {filtered.map((e) => {
+            const empresa = empresas.find((x) => x.id === e.empresaId);
+            return (
+              <EmpresaPlantaoCard
+                key={e.empresaId}
+                empresaId={e.empresaId}
+                nome={e.nome}
+                plantoesIds={e.plantoesIds}
+                plantoesDatas={e.plantoesDatas}
+                plantonista={e.plantonista}
+                totalAtendimentos={e.total}
+                totalPlantoes={e.plantoesCount}
+                from={from}
+                to={to}
+                isAdmin={isAdmin}
+                onEdit={empresa ? () => setEmpEditar(empresa) : undefined}
+                onDelete={empresa ? () => {
+                  if (confirm(`Remover empresa "${empresa.nome}"? Todos os plantões e atendimentos serão excluídos.`)) {
+                    deleteEmpresa.mutate(empresa.id);
+                  }
+                } : undefined}
+              />
+            );
+          })}
         </div>
       ) : (
         <Card>
