@@ -1,0 +1,1 @@
+ALTER TABLE public.plantoes ADD COLUMN IF NOT EXISTS hora_inicio time, ADD COLUMN IF NOT EXISTS hora_fim time;
