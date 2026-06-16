@@ -159,7 +159,7 @@ export default function Plantoes() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Phone className="h-6 w-6 text-primary" /> Plantões 24h
+            <Phone className="h-6 w-6 text-primary" /> Calendário de Ações Preventivas
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {porEmpresa.length} empresas · {porEmpresa.reduce((a, e) => a + e.total, 0)} atendimentos no total
