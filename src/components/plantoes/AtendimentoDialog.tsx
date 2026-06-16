@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePlantaoMutations, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 
-const TIPOS = ["Consulta", "Exame", "Autorização", "Agendamento", "Reembolso", "Outro"];
+const TIPOS = ["Consulta", "Exame", "Reclamação", "Dúvida", "Outro"];
 const CANAIS = ["Presencial", "WhatsApp", "Telefone", "E-mail"];
 
 function parseAssunto(assunto: string | null | undefined): { tipo: string; canal: string } {
