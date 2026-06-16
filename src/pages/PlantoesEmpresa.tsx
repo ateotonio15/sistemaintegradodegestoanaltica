@@ -144,6 +144,15 @@ export default function PlantoesEmpresa() {
 
       {edit && <PlantaoDialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)} plantao={edit} />}
       {novo && <PlantaoDialog open={novo} onOpenChange={setNovo} defaultEmpresaId={empresaId} />}
+      {detalhe && (
+        <PlantaoDetalheDialog
+          open={!!detalhe}
+          onOpenChange={(v) => !v && setDetalhe(null)}
+          plantao={detalhe}
+          empresaNome={empresa?.nome}
+          isAdmin={isAdmin}
+        />
+      )}
     </div>
   );
 }
