@@ -40,6 +40,7 @@ export default function PlantoesCalendario() {
   const [status, setStatus] = useState<StatusFiltro>("todos");
   const [novo, setNovo] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [novoData, setNovoData] = useState<string | null>(null);
 
   const today = fmt(new Date());
 
