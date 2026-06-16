@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import {
   User, Building2, MapPin, ChevronDown, Plus, Pencil, Trash2,
 } from "lucide-react";
-import { useAtendimentos, usePlantaoMutations, type Plantao, type PlantaoAtendimento } from "@/hooks/usePlantoes";
+import { useAtendimentos, usePlantaoMutations, usePlantoes, type Plantao, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 import { AtendimentoDialog, parseAssunto } from "@/components/plantoes/AtendimentoDialog";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 
