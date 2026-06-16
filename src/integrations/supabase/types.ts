@@ -1282,6 +1282,36 @@ export type Database = {
           },
         ]
       }
+      feriados: {
+        Row: {
+          ano: number
+          created_at: string
+          data: string
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          data: string
+          id?: string
+          nome: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          data?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ferias_cadastro: {
         Row: {
           created_at: string
@@ -3600,6 +3630,7 @@ export type Database = {
         Returns: undefined
       }
       ativar_contratos_pendentes: { Args: never; Returns: number }
+      calc_pascoa: { Args: { _ano: number }; Returns: string }
       calcular_idade: { Args: { p_nasc: string }; Returns: number }
       calcular_imc: {
         Args: { p_altura_cm: number; p_peso: number }
@@ -3659,6 +3690,7 @@ export type Database = {
         Args: { p_impl: string }
         Returns: string
       }
+      gerar_feriados_ano: { Args: { _ano: number }; Returns: undefined }
       gerar_primeira_cobranca_financeira: {
         Args: { p_empresa_id: string }
         Returns: number

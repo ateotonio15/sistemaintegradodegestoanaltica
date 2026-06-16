@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { usePlantaoEmpresas, usePlantoes, usePlantoesRealtime, type Plantao } from "@/hooks/usePlantoes";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
-import { feriadoEm } from "@/modules/saude-empresas/lib/feriados";
+import { useFeriados } from "@/hooks/useFeriados";
 
 function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
@@ -19,18 +19,6 @@ function fmt(d: Date) {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-// Feriados municipais de Manaus (fixos)
-function feriadoManaus(d: Date): string | null {
-  const md = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const lista: Record<string, string> = {
-    "01-20": "São Sebastião",
-    "09-05": "Elevação do Amazonas",
-    "10-24": "Aniversário de Manaus",
-    "12-08": "N. Sra. da Conceição (Padroeira)",
-  };
-  return lista[md] ?? null;
 }
 
 type StatusFiltro = "todos" | "andamento" | "finalizado";
@@ -54,6 +42,12 @@ export default function PlantoesCalendario() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const today = fmt(new Date());
+
+  const { data: feriadosAno = [] } = useFeriados(cursor.getFullYear());
+  const feriadoMap = useMemo(() => {
+    const m = new Map(feriadosAno.map((f) => [f.data, f]));
+    return m;
+  }, [feriadosAno]);
 
   const executivas = useMemo(() => {
     const set = new Set<string>();
@@ -185,11 +179,15 @@ export default function PlantoesCalendario() {
       {/* Legenda */}
       <div className="flex flex-wrap items-center gap-4 text-xs">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
-          Feriado Nacional/Estadual
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+          Feriado Nacional
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+          <span className="h-2.5 w-2.5 rounded-full bg-orange-400" />
+          Feriado Estadual - Amazonas
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
           Feriado Municipal - Manaus
         </span>
       </div>
@@ -219,21 +217,31 @@ export default function PlantoesCalendario() {
             const items = byDay.get(key) ?? [];
             const isSel = selected === key;
             const isHoje = key === today;
-            const fNac = feriadoEm(d);
-            const fMun = feriadoManaus(d);
-            const bg = fNac ? "bg-rose-50" : fMun ? "bg-amber-50" : "";
+            const fer = feriadoMap.get(key);
+            const bg = fer?.tipo === "Nacional"
+              ? "bg-rose-50"
+              : fer?.tipo === "Estadual"
+                ? "bg-orange-50"
+                : fer?.tipo === "Municipal"
+                  ? "bg-amber-50"
+                  : "";
+            const dot = fer?.tipo === "Nacional"
+              ? "bg-rose-400"
+              : fer?.tipo === "Estadual"
+                ? "bg-orange-400"
+                : fer?.tipo === "Municipal"
+                  ? "bg-amber-400"
+                  : "";
             return (
               <button
                 key={i}
                 onClick={() => setSelected(key)}
                 className={`min-h-[88px] p-1.5 border rounded text-left text-xs hover:bg-muted/50 transition ${bg} ${isSel ? "ring-2 ring-primary" : ""} ${isHoje ? "border-primary" : ""}`}
-                title={fNac?.nome ?? fMun ?? ""}
+                title={fer?.nome ?? ""}
               >
                 <div className="flex items-center justify-between">
                   <span className={`font-semibold ${isHoje ? "text-primary" : ""}`}>{d.getDate()}</span>
-                  {(fNac || fMun) && (
-                    <span className={`h-2 w-2 rounded-full ${fNac ? "bg-rose-400" : "bg-amber-400"}`} />
-                  )}
+                  {fer && <span className={`h-2 w-2 rounded-full ${dot}`} />}
                 </div>
                 <div className="mt-1 space-y-0.5">
                   {items.slice(0, 2).map((p) => (
