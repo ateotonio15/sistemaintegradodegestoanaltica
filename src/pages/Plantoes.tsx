@@ -33,10 +33,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
-import { usePlantaoEmpresas, usePlantoes, usePlantoesRealtime } from "@/hooks/usePlantoes";
+import { usePlantaoEmpresas, usePlantaoMutations, usePlantoes, usePlantoesRealtime, type PlantaoEmpresa } from "@/hooks/usePlantoes";
 import { PlantaoEmpresaDialog } from "@/components/plantoes/PlantaoEmpresaDialog";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { PlantaoLoteDialog } from "@/components/plantoes/PlantaoLoteDialog";
+import { EmpresaPlantaoCard } from "@/components/plantoes/EmpresaPlantaoCard";
 import { format } from "date-fns";
 
 export default function Plantoes() {
