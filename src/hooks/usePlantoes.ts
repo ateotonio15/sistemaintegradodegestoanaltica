@@ -20,6 +20,7 @@ export interface Plantao {
   turno: string;
   hora_inicio: string | null;
   hora_fim: string | null;
+  status: string;
   plantonista: string | null;
   observacao: string | null;
   created_at: string;
