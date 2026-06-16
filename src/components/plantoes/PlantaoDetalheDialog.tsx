@@ -157,7 +157,8 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                             </div>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
