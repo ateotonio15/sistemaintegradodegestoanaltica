@@ -123,6 +123,17 @@ export default function PlantoesEmpresa() {
                       </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-md border p-2">
+                        <div className="text-lg font-bold">{atend}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Consultas</div>
+                      </div>
+                      <div className="rounded-md border p-2">
+                        <div className="text-lg font-bold">0</div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Pendências</div>
+                      </div>
+                    </div>
+
                     <div className="flex items-center justify-between pt-2 border-t">
                       <button onClick={() => setDetalhe(primeiro)} className="text-sm text-primary inline-flex items-center hover:underline">
                         Ver detalhes <ChevronRight className="h-4 w-4" />
