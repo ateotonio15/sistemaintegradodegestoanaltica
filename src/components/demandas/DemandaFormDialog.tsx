@@ -357,13 +357,16 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
                 }
               }}
             />
-            <Field label="Data resolução (setor)">
-              <Input
-                type="date"
-                value={form.data_resolucao_setor || ""}
-                onChange={(e) => set("data_resolucao_setor", e.target.value)}
-              />
-            </Field>
+            {form.resolvido_setor && (
+              <Field label="Data resolução (setor)">
+                <Input
+                  type="date"
+                  value={form.data_resolucao_setor || ""}
+                  onChange={(e) => set("data_resolucao_setor", e.target.value)}
+                />
+              </Field>
+            )}
+
             <YesNoField
               label="Resolvido pela executiva?"
               value={!!form.resolvido_executiva}
