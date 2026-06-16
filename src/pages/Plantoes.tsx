@@ -57,8 +57,10 @@ export default function Plantoes() {
   const { data: plantoes = [] } = usePlantoes({ from, to });
 
   const [empDialog, setEmpDialog] = useState(false);
+  const [empEditar, setEmpEditar] = useState<PlantaoEmpresa | null>(null);
   const [plantaoDialog, setPlantaoDialog] = useState(false);
   const [loteDialog, setLoteDialog] = useState(false);
+  const { deleteEmpresa } = usePlantaoMutations();
 
   const porEmpresa = useMemo(() => {
     const map = new Map<
