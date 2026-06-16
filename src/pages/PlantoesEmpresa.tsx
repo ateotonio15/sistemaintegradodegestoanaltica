@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlantaoEmpresas, usePlantoes, usePlantaoMutations, usePlantoesRealtime, type Plantao } from "@/hooks/usePlantoes";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
+import { PlantaoDetalheDialog } from "@/components/plantoes/PlantaoDetalheDialog";
 
 export default function PlantoesEmpresa() {
   const { empresaId } = useParams<{ empresaId: string }>();
