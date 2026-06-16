@@ -121,9 +121,9 @@ export default function PlantoesEmpresa() {
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t">
-                    <Link to={`/plantoes/${p.id}/atendimentos`} className="text-sm text-primary inline-flex items-center hover:underline">
+                    <button onClick={() => setDetalhe(p)} className="text-sm text-primary inline-flex items-center hover:underline">
                       Ver detalhes <ChevronRight className="h-4 w-4" />
-                    </Link>
+                    </button>
                     {isAdmin && (
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" onClick={() => setEdit(p)}>
