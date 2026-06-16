@@ -13,6 +13,7 @@ import { usePlantaoEmpresas, usePlantaoMutations, type Plantao } from "@/hooks/u
 import { ptBR } from "date-fns/locale";
 
 const TURNOS = ["integral", "manhã", "tarde", "noite"];
+const STATUS_OPTIONS = ["A confirmar", "Confirmado", "Concluído", "Cancelado"];
 
 function isoToDate(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number);
