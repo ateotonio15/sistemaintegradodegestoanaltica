@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarIcon, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,6 +63,26 @@ export function PlantaoDialog({
   const [observacao, setObservacao] = useState(plantao?.observacao ?? "");
   const [calOpen, setCalOpen] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(initialDates[0] ? isoToDate(initialDates[0]) : new Date());
+
+  const empresaNome = empresas.find((e) => e.id === empresaId)?.nome ?? "";
+  const { data: executivaContrato = "" } = useQuery({
+    queryKey: ["plantao_executiva_contrato", empresaNome],
+    enabled: !!empresaNome,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("empresas")
+        .select("responsavel_contrato")
+        .ilike("nome", empresaNome)
+        .limit(1)
+        .maybeSingle();
+      return data?.responsavel_contrato ?? "";
+    },
+  });
+
+  // Sincroniza executiva responsável quando empresa muda (mantém edição se já houver valor diferente em edição manual? Não — congelada à empresa)
+  useEffect(() => {
+    setPlantonista(executivaContrato ?? "");
+  }, [executivaContrato]);
 
   const selectedDates = datas.map(isoToDate);
 
@@ -185,8 +207,14 @@ export function PlantaoDialog({
             </div>
           </div>
           <div>
-            <Label>Plantonista</Label>
-            <Input value={plantonista} onChange={(e) => setPlantonista(e.target.value)} />
+            <Label>Executiva responsável *</Label>
+            <Input
+              value={plantonista}
+              readOnly
+              disabled
+              placeholder={empresaId ? "Sem executiva vinculada ao contrato" : "Selecione a empresa"}
+              className="bg-muted/50"
+            />
           </div>
           <div>
             <Label>Observação</Label>
