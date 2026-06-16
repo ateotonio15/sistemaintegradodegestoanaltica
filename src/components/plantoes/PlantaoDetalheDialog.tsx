@@ -9,6 +9,7 @@ import {
 import { useAtendimentos, usePlantaoMutations, usePlantoes, type Plantao, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 import { AtendimentoDialog, parseAssunto } from "@/components/plantoes/AtendimentoDialog";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
+import { AdicionarExecutivaDialog } from "@/components/plantoes/AdicionarExecutivaDialog";
 
 const STATUS_COLORS: Record<string, string> = {
   "Pendente": "bg-amber-100 text-amber-700 hover:bg-amber-100 border-0",
@@ -234,11 +235,11 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
       {novoAt && <AtendimentoDialog open={novoAt} onOpenChange={setNovoAt} plantaoId={active.id} />}
       {editPlantao && <PlantaoDialog open={editPlantao} onOpenChange={setEditPlantao} plantao={active} />}
       {novoPlantao && (
-        <PlantaoDialog
+        <AdicionarExecutivaDialog
           open={novoPlantao}
           onOpenChange={setNovoPlantao}
-          defaultEmpresaId={plantao.empresa_id}
-          defaultData={plantao.data}
+          empresaId={plantao.empresa_id}
+          data={plantao.data}
         />
       )}
     </>
