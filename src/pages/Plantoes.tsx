@@ -33,10 +33,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
-import { usePlantaoEmpresas, usePlantoes, usePlantoesRealtime } from "@/hooks/usePlantoes";
+import { usePlantaoEmpresas, usePlantaoMutations, usePlantoes, usePlantoesRealtime, type PlantaoEmpresa } from "@/hooks/usePlantoes";
 import { PlantaoEmpresaDialog } from "@/components/plantoes/PlantaoEmpresaDialog";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { PlantaoLoteDialog } from "@/components/plantoes/PlantaoLoteDialog";
+import { EmpresaPlantaoCard } from "@/components/plantoes/EmpresaPlantaoCard";
 import { format } from "date-fns";
 
 export default function Plantoes() {
@@ -56,16 +57,18 @@ export default function Plantoes() {
   const { data: plantoes = [] } = usePlantoes({ from, to });
 
   const [empDialog, setEmpDialog] = useState(false);
+  const [empEditar, setEmpEditar] = useState<PlantaoEmpresa | null>(null);
   const [plantaoDialog, setPlantaoDialog] = useState(false);
   const [loteDialog, setLoteDialog] = useState(false);
+  const { deleteEmpresa } = usePlantaoMutations();
 
   const porEmpresa = useMemo(() => {
     const map = new Map<
       string,
-      { nome: string; total: number; plantonista: string | null; semPlantonista: boolean; plantaoId: string | null }
+      { nome: string; total: number; plantonista: string | null; semPlantonista: boolean; plantaoId: string | null; plantoesIds: string[]; plantoesDatas: string[]; plantoesCount: number }
     >();
     for (const e of empresas) {
-      map.set(e.id, { nome: e.nome, total: 0, plantonista: null, semPlantonista: false, plantaoId: null });
+      map.set(e.id, { nome: e.nome, total: 0, plantonista: null, semPlantonista: false, plantaoId: null, plantoesIds: [], plantoesDatas: [], plantoesCount: 0 });
     }
     for (const p of plantoes) {
       const cur = map.get(p.empresa_id);
@@ -74,6 +77,9 @@ export default function Plantoes() {
       cur.plantonista = cur.plantonista ?? p.plantonista;
       if (!p.plantonista) cur.semPlantonista = true;
       cur.plantaoId = cur.plantaoId ?? p.id;
+      cur.plantoesIds.push(p.id);
+      cur.plantoesDatas.push(p.data);
+      cur.plantoesCount += 1;
     }
     return Array.from(map.entries()).map(([id, v]) => ({ empresaId: id, ...v }));
   }, [empresas, plantoes]);
@@ -241,31 +247,31 @@ export default function Plantoes() {
           </CardContent>
         </Card>
       ) : view === "grid" ? (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((e) => (
-            <Link key={e.empresaId} to={`/plantoes/empresa/${e.empresaId}`} className="block">
-              <Card className="rounded-xl border bg-card hover:border-primary/60 transition card-shadow">
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div className="font-semibold">{e.nome}</div>
-                    {e.plantaoId ? (
-                      <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">Em plantão</Badge>
-                    ) : (
-                      <Badge variant="outline" className="uppercase text-[10px] tracking-wider">Sem plantão</Badge>
-                    )}
-                  </div>
-                  <div className="text-3xl font-bold">{e.total}</div>
-                  <div className="text-xs text-muted-foreground">atendimentos no período</div>
-                  <div className="text-xs">
-                    Plantonista: <span className="font-medium">{e.plantonista || "—"}</span>
-                  </div>
-                  {e.semPlantonista && e.plantaoId && (
-                    <Badge variant="destructive" className="text-[10px]">Sem plantonista</Badge>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+          {filtered.map((e) => {
+            const empresa = empresas.find((x) => x.id === e.empresaId);
+            return (
+              <EmpresaPlantaoCard
+                key={e.empresaId}
+                empresaId={e.empresaId}
+                nome={e.nome}
+                plantoesIds={e.plantoesIds}
+                plantoesDatas={e.plantoesDatas}
+                plantonista={e.plantonista}
+                totalAtendimentos={e.total}
+                totalPlantoes={e.plantoesCount}
+                from={from}
+                to={to}
+                isAdmin={isAdmin}
+                onEdit={empresa ? () => setEmpEditar(empresa) : undefined}
+                onDelete={empresa ? () => {
+                  if (confirm(`Remover empresa "${empresa.nome}"? Todos os plantões e atendimentos serão excluídos.`)) {
+                    deleteEmpresa.mutate(empresa.id);
+                  }
+                } : undefined}
+              />
+            );
+          })}
         </div>
       ) : (
         <Card>
@@ -316,6 +322,7 @@ export default function Plantoes() {
       )}
 
       {empDialog && <PlantaoEmpresaDialog open={empDialog} onOpenChange={setEmpDialog} />}
+      {empEditar && <PlantaoEmpresaDialog open={!!empEditar} onOpenChange={(o) => !o && setEmpEditar(null)} empresa={empEditar} />}
       {plantaoDialog && <PlantaoDialog open={plantaoDialog} onOpenChange={setPlantaoDialog} />}
       {loteDialog && <PlantaoLoteDialog open={loteDialog} onOpenChange={setLoteDialog} />}
     </div>
