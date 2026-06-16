@@ -171,14 +171,15 @@ export function PlantaoDialog({
             )}
           </div>
 
-          <div>
-            <Label>Turno</Label>
-            <Select value={turno} onValueChange={setTurno}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TURNOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Início *</Label>
+              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} />
+            </div>
+            <div>
+              <Label>Fim *</Label>
+              <Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} />
+            </div>
           </div>
           <div>
             <Label>Plantonista</Label>
