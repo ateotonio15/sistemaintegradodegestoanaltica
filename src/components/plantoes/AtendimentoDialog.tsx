@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePlantaoMutations, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 
 const TIPOS = ["Consulta", "Exame", "Reclamação", "Dúvida", "Outro"];
-const CANAIS = ["Presencial", "WhatsApp", "Telefone", "E-mail"];
+const CANAIS = ["Presencial", "WhatsApp"];
 
 function parseAssunto(assunto: string | null | undefined): { tipo: string; canal: string } {
   if (!assunto) return { tipo: "Consulta", canal: "Presencial" };
