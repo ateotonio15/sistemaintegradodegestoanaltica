@@ -56,6 +56,7 @@ export function PlantaoDialog({
   const [datas, setDatas] = useState<string[]>(initialDates);
   const [horaInicio, setHoraInicio] = useState((plantao?.hora_inicio ?? "09:00").slice(0, 5));
   const [horaFim, setHoraFim] = useState((plantao?.hora_fim ?? "10:00").slice(0, 5));
+  const [status, setStatus] = useState(plantao?.status ?? "A confirmar");
   const [plantonista, setPlantonista] = useState(plantao?.plantonista ?? "");
   const [observacao, setObservacao] = useState(plantao?.observacao ?? "");
   const [calOpen, setCalOpen] = useState(false);
