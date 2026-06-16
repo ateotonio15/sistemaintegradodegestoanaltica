@@ -70,77 +70,89 @@ export default function PlantoesEmpresa() {
         </div>
       </div>
 
-      {/* Cards */}
+      {/* Cards — agrupados por dia */}
       {plantoes.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Nenhum plantão.</CardContent></Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {plantoes.map((p) => {
-            const isToday = p.data === today;
-            const dataFmt = new Date(p.data + "T00:00:00").toLocaleDateString("pt-BR");
-            const atend = p.atendimentos_count ?? 0;
-            return (
-              <Card key={p.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="font-semibold">{dataFmt}</div>
-                    {isToday ? (
-                      <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0">EM ANDAMENTO</Badge>
-                    ) : (
-                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0">FINALIZADO</Badge>
-                    )}
-                  </div>
-
-                  <Badge variant="outline" className="gap-1">
-                    <MapPin className="h-3 w-3" /> PRESENCIAL
-                  </Badge>
-
-                  <div className="pt-1">
-                    <span className="text-3xl font-bold text-primary">{atend}</span>
-                    <span className="text-sm text-muted-foreground ml-2">atendimentos no dia</span>
-                  </div>
-
-                  <div className="flex items-start gap-2 text-sm">
-                    <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{p.plantonista || "sem plantonista"}</div>
-                      <div className="text-xs text-muted-foreground truncate">{empresa?.nome}</div>
+      ) : (() => {
+        const grupos = new Map<string, Plantao[]>();
+        plantoes.forEach((p) => {
+          const arr = grupos.get(p.data) ?? [];
+          arr.push(p);
+          grupos.set(p.data, arr);
+        });
+        const dias = Array.from(grupos.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {dias.map(([data, lista]) => {
+              const isToday = data === today;
+              const dataFmt = new Date(data + "T00:00:00").toLocaleDateString("pt-BR");
+              const atend = lista.reduce((s, p) => s + (p.atendimentos_count ?? 0), 0);
+              const primeiro = lista[0];
+              return (
+                <Card key={data} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="font-semibold">{dataFmt}</div>
+                      {isToday ? (
+                        <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0">EM ANDAMENTO</Badge>
+                      ) : (
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0">FINALIZADO</Badge>
+                      )}
                     </div>
-                    <span className="text-sm text-muted-foreground">{atend}</span>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-md border p-2">
-                      <div className="text-lg font-bold">{atend}</div>
-                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Consultas</div>
-                    </div>
-                    <div className="rounded-md border p-2">
-                      <div className="text-lg font-bold">0</div>
-                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Pendências</div>
-                    </div>
-                  </div>
+                    <Badge variant="outline" className="gap-1">
+                      <MapPin className="h-3 w-3" /> PRESENCIAL
+                    </Badge>
 
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <button onClick={() => setDetalhe(p)} className="text-sm text-primary inline-flex items-center hover:underline">
-                      Ver detalhes <ChevronRight className="h-4 w-4" />
-                    </button>
-                    {isAdmin && (
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => setEdit(p)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => { if (confirm("Excluir plantão?")) deletePlantao.mutate(p.id); }}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                    <div className="pt-1">
+                      <span className="text-3xl font-bold text-primary">{atend}</span>
+                      <span className="text-sm text-muted-foreground ml-2">atendimentos no dia</span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+                        <User className="h-3.5 w-3.5" /> Executivas ({lista.length})
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                      <div className="space-y-1">
+                        {lista.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between text-sm">
+                            <span className="truncate font-medium">{p.plantonista || "sem plantonista"}</span>
+                            <span className="text-xs text-muted-foreground ml-2">{p.atendimentos_count ?? 0}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <button onClick={() => setDetalhe(primeiro)} className="text-sm text-primary inline-flex items-center hover:underline">
+                        Ver detalhes <ChevronRight className="h-4 w-4" />
+                      </button>
+                      {isAdmin && (
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => setEdit(primeiro)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              if (confirm(`Excluir ${lista.length} plantão(ões) do dia ${dataFmt}?`)) {
+                                lista.forEach((p) => deletePlantao.mutate(p.id));
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {edit && <PlantaoDialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)} plantao={edit} />}
       {novo && <PlantaoDialog open={novo} onOpenChange={setNovo} defaultEmpresaId={empresaId} />}
