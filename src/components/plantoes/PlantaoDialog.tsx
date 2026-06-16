@@ -64,6 +64,26 @@ export function PlantaoDialog({
   const [calOpen, setCalOpen] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(initialDates[0] ? isoToDate(initialDates[0]) : new Date());
 
+  const empresaNome = empresas.find((e) => e.id === empresaId)?.nome ?? "";
+  const { data: executivaContrato = "" } = useQuery({
+    queryKey: ["plantao_executiva_contrato", empresaNome],
+    enabled: !!empresaNome,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("empresas")
+        .select("responsavel_contrato")
+        .ilike("nome", empresaNome)
+        .limit(1)
+        .maybeSingle();
+      return data?.responsavel_contrato ?? "";
+    },
+  });
+
+  // Sincroniza executiva responsável quando empresa muda (mantém edição se já houver valor diferente em edição manual? Não — congelada à empresa)
+  useEffect(() => {
+    setPlantonista(executivaContrato ?? "");
+  }, [executivaContrato]);
+
   const selectedDates = datas.map(isoToDate);
 
   const toggleDates = (dates: Date[] | undefined) => {
