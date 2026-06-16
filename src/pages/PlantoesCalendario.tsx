@@ -236,7 +236,13 @@ export default function PlantoesCalendario() {
             return (
               <button
                 key={i}
-                onClick={() => setSelected(key)}
+                onClick={() => {
+                  setSelected(key);
+                  if (isAdmin) {
+                    setNovoData(key);
+                    setNovo(true);
+                  }
+                }}
                 className={`min-h-[88px] p-1.5 border rounded text-left text-xs hover:bg-muted/50 transition ${bg} ${isSel ? "ring-2 ring-primary" : ""} ${isHoje ? "border-primary" : ""}`}
                 title={fer?.nome ?? ""}
               >
