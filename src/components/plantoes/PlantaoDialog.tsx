@@ -207,8 +207,14 @@ export function PlantaoDialog({
             </div>
           </div>
           <div>
-            <Label>Plantonista</Label>
-            <Input value={plantonista} onChange={(e) => setPlantonista(e.target.value)} />
+            <Label>Executiva responsável *</Label>
+            <Input
+              value={plantonista}
+              readOnly
+              disabled
+              placeholder={empresaId ? "Sem executiva vinculada ao contrato" : "Selecione a empresa"}
+              className="bg-muted/50"
+            />
           </div>
           <div>
             <Label>Observação</Label>
