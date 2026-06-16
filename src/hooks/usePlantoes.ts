@@ -18,6 +18,8 @@ export interface Plantao {
   empresa_id: string;
   data: string;
   turno: string;
+  hora_inicio: string | null;
+  hora_fim: string | null;
   plantonista: string | null;
   observacao: string | null;
   created_at: string;
@@ -171,6 +173,8 @@ export function usePlantaoMutations() {
         empresa_id: p.empresa_id,
         data: p.data,
         turno: p.turno ?? "integral",
+        hora_inicio: p.hora_inicio ?? null,
+        hora_fim: p.hora_fim ?? null,
         plantonista: p.plantonista ?? null,
         observacao: p.observacao ?? null,
       };

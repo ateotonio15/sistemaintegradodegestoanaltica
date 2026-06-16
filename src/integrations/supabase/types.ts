@@ -2739,6 +2739,8 @@ export type Database = {
           created_at: string
           data: string
           empresa_id: string
+          hora_fim: string | null
+          hora_inicio: string | null
           id: string
           observacao: string | null
           plantonista: string | null
@@ -2749,6 +2751,8 @@ export type Database = {
           created_at?: string
           data: string
           empresa_id: string
+          hora_fim?: string | null
+          hora_inicio?: string | null
           id?: string
           observacao?: string | null
           plantonista?: string | null
@@ -2759,6 +2763,8 @@ export type Database = {
           created_at?: string
           data?: string
           empresa_id?: string
+          hora_fim?: string | null
+          hora_inicio?: string | null
           id?: string
           observacao?: string | null
           plantonista?: string | null

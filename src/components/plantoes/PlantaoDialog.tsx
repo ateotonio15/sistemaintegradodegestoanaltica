@@ -53,7 +53,8 @@ export function PlantaoDialog({
       ? [defaultData]
       : [];
   const [datas, setDatas] = useState<string[]>(initialDates);
-  const [turno, setTurno] = useState(plantao?.turno ?? "integral");
+  const [horaInicio, setHoraInicio] = useState((plantao?.hora_inicio ?? "09:00").slice(0, 5));
+  const [horaFim, setHoraFim] = useState((plantao?.hora_fim ?? "10:00").slice(0, 5));
   const [plantonista, setPlantonista] = useState(plantao?.plantonista ?? "");
   const [observacao, setObservacao] = useState(plantao?.observacao ?? "");
   const [calOpen, setCalOpen] = useState(false);
@@ -68,7 +69,13 @@ export function PlantaoDialog({
 
   const removeChip = (iso: string) => setDatas(datas.filter((d) => d !== iso));
 
-  const canSave = !!empresaId && datas.length > 0 && !upsertPlantao.isPending;
+  const canSave =
+    !!empresaId &&
+    datas.length > 0 &&
+    !!horaInicio &&
+    !!horaFim &&
+    horaFim > horaInicio &&
+    !upsertPlantao.isPending;
 
   const handleSave = async () => {
     for (const data of datas) {
@@ -76,7 +83,8 @@ export function PlantaoDialog({
         id: isEdit ? plantao?.id : undefined,
         empresa_id: empresaId,
         data,
-        turno,
+        hora_inicio: horaInicio,
+        hora_fim: horaFim,
         plantonista,
         observacao,
       });
@@ -163,14 +171,15 @@ export function PlantaoDialog({
             )}
           </div>
 
-          <div>
-            <Label>Turno</Label>
-            <Select value={turno} onValueChange={setTurno}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TURNOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Início *</Label>
+              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} />
+            </div>
+            <div>
+              <Label>Fim *</Label>
+              <Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} />
+            </div>
           </div>
           <div>
             <Label>Plantonista</Label>
