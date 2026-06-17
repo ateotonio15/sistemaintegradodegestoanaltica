@@ -467,7 +467,72 @@ export default function PainelTvFinanceiro() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Acesso restrito ao setor financeiro.</p>
       </div>
+  );
+
+  // ============= META DIÁRIA DE EMISSÃO POR USUÁRIO =============
+  const USUARIOS_META = ["João Victor", "Karen", "Maria Lucena"];
+  const emitidasHojePorUsuario = useMemo(() => {
+    const counts: Record<string, number> = {};
+    USUARIOS_META.forEach((u) => (counts[u] = 0));
+    const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local
+    Object.values(anexosMap as Record<string, any[]>).forEach((list) => {
+      list.forEach((a) => {
+        const isPdf =
+          (a.mime_type || "").toLowerCase().includes("pdf") ||
+          (a.nome_arquivo || "").toLowerCase().endsWith(".pdf");
+        if (!isPdf || !a.uploaded_by || !a.created_at) return;
+        const created = new Date(a.created_at).toLocaleDateString("en-CA");
+        if (created !== todayStr) return;
+        const name = ((profileNameMap as any)[a.uploaded_by] || "")
+          .trim()
+          .toLowerCase();
+        if (!name) return;
+        for (const u of USUARIOS_META) {
+          const target = u.toLowerCase();
+          if (name === target || name.includes(target) || target.includes(name.split(" ")[0])) {
+            counts[u]++;
+            break;
+          }
+        }
+      });
+    });
+    return counts;
+  }, [anexosMap, profileNameMap]);
+
+  const metaPorUsuario = useMemo(() => {
+    const totalAguardando = aguardandoEmissao.length;
+    const totalEmitidasHoje = USUARIOS_META.reduce(
+      (acc, u) => acc + (emitidasHojePorUsuario[u] || 0),
+      0,
     );
+    const totalBase = totalAguardando + totalEmitidasHoje;
+    const n = USUARIOS_META.length;
+    const base = Math.floor(totalBase / n);
+    const sobra = totalBase % n;
+    return USUARIOS_META.map((u, i) => {
+      const meta = base + (i < sobra ? 1 : 0);
+      const emitidas = emitidasHojePorUsuario[u] || 0;
+      const restante = Math.max(0, meta - emitidas);
+      const pct = meta > 0 ? Math.min(100, Math.round((emitidas / meta) * 100)) : 0;
+      return { nome: u, meta, emitidas, restante, pct };
+    });
+  }, [aguardandoEmissao.length, emitidasHojePorUsuario]);
+
+  const metaTotal = useMemo(() => {
+    const totalEmitidas = metaPorUsuario.reduce((a, m) => a + m.emitidas, 0);
+    const totalMeta = metaPorUsuario.reduce((a, m) => a + m.meta, 0);
+    const totalRestante = metaPorUsuario.reduce((a, m) => a + m.restante, 0);
+    return {
+      totalAguardando: aguardandoEmissao.length,
+      usuarios: USUARIOS_META.length,
+      mediaPorUsuario: Math.round(totalMeta / USUARIOS_META.length),
+      totalEmitidas,
+      totalRestante,
+      totalMeta,
+    };
+  }, [metaPorUsuario, aguardandoEmissao.length]);
+  // ==============================================================
+
   }
 
   const hora = new Date(lastUpdate).toLocaleTimeString("pt-BR");
