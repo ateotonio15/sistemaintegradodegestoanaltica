@@ -1176,11 +1176,11 @@ function ListaCard<T>({
   const PAGE_SIZE = 5;
   const ROTATE_MS = 9000;
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const [page, setPage] = React.useState(0);
-  React.useEffect(() => {
+  const [page, setPage] = useState(0);
+  useEffect(() => {
     if (page >= totalPages) setPage(0);
   }, [totalPages, page]);
-  React.useEffect(() => {
+  useEffect(() => {
     if (totalPages <= 1) return;
     const id = setInterval(() => {
       setPage((p) => (p + 1) % totalPages);
