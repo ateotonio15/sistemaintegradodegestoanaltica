@@ -1458,7 +1458,7 @@ function MetaDiariaSection({
             Defina a meta do dia para distribuir entre os usuários da escala.
           </p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {metaPorUsuario.map((u) => (
               <UsuarioMetaMini key={u.nome} usuario={u} />
             ))}
@@ -1548,7 +1548,7 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-lg border px-2.5 py-1.5",
+        "flex items-center gap-3 rounded-xl border px-4 py-3",
         concluida
           ? "border-emerald-500/40 bg-emerald-500/5"
           : usuario.emitidas > 0
@@ -1559,7 +1559,7 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
     >
       <span
         className={cn(
-          "h-7 w-7 rounded-full grid place-items-center text-[10px] font-bold shrink-0",
+          "h-11 w-11 rounded-full grid place-items-center text-sm font-bold shrink-0",
           concluida ? "bg-emerald-500 text-white" : "bg-primary/15 text-primary",
         )}
       >
@@ -1567,28 +1567,29 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium truncate">{usuario.nome}</span>
-          <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">
+          <span className="text-sm font-semibold truncate">{usuario.nome}</span>
+          <span className="text-xs tabular-nums text-muted-foreground shrink-0">
             {usuario.pct}%
           </span>
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] tabular-nums leading-tight">
+        <div className="flex items-center gap-3 text-xs tabular-nums leading-tight mt-0.5">
           <span>
             <span className="text-muted-foreground">Meta</span>{" "}
-            <strong className="text-foreground">{usuario.meta}</strong>
+            <strong className="text-foreground text-sm">{usuario.meta}</strong>
           </span>
-          <span className="text-emerald-600 dark:text-emerald-500">
+          <span className="text-emerald-600 dark:text-emerald-500 font-semibold">
             ✓ {usuario.emitidas}
           </span>
-          <span className="text-amber-600 dark:text-amber-500">
+          <span className="text-amber-600 dark:text-amber-500 font-semibold">
             • {usuario.restante}
           </span>
         </div>
-        <Progress value={usuario.pct} className="h-1 mt-1" />
+        <Progress value={usuario.pct} className="h-1.5 mt-2" />
       </div>
     </div>
   );
 }
+
 
 
 
