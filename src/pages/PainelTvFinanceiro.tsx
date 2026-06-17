@@ -1176,19 +1176,23 @@ function ListaCard<T>({
   const PAGE_SIZE = 5;
   const ROTATE_MS = 9000;
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const canRotate = totalPages > 1;
+  // Modo padrão: carrossel quando há mais de uma página
+  const [mode, setMode] = useState<"carrossel" | "lista">("carrossel");
+  const isCarrossel = canRotate && mode === "carrossel";
   const [page, setPage] = useState(0);
   useEffect(() => {
     if (page >= totalPages) setPage(0);
   }, [totalPages, page]);
   useEffect(() => {
-    if (totalPages <= 1) return;
+    if (!isCarrossel) return;
     const id = setInterval(() => {
       setPage((p) => (p + 1) % totalPages);
     }, ROTATE_MS);
     return () => clearInterval(id);
-  }, [totalPages]);
+  }, [isCarrossel, totalPages]);
   const currentPage = Math.min(page, totalPages - 1);
-  const pagedRows = totalPages > 1
+  const pagedRows = isCarrossel
     ? rows.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
     : rows;
 
@@ -1205,6 +1209,22 @@ function ListaCard<T>({
             <h2 className="font-bold text-2xl leading-tight truncate">{title}</h2>
             {subtitle && <p className="text-sm text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
           </div>
+          {canRotate && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMode((m) => (m === "carrossel" ? "lista" : "carrossel"));
+              }}
+              title={isCarrossel ? "Modo carrossel ativo — clique para ver como lista" : "Modo lista ativo — clique para ativar carrossel"}
+              className={cn(
+                "h-10 w-10 rounded-lg flex items-center justify-center shrink-0 border transition-colors hover:brightness-110 cursor-pointer",
+                a.badge,
+              )}
+            >
+              {isCarrossel ? <RotateCcw className="h-5 w-5" /> : <List className="h-5 w-5" />}
+            </button>
+          )}
           <button
             type="button"
             onClick={onBadgeClick}
@@ -1234,18 +1254,18 @@ function ListaCard<T>({
 
       <div
         style={contentHeight ? { height: contentHeight, minHeight: 220 } : { height: 400 }}
-        className={cn("overflow-hidden", totalPages <= 1 && "overflow-y-auto")}
+        className={cn(isCarrossel ? "overflow-hidden" : "overflow-y-auto")}
       >
         <div className="p-3">
           {rows.length === 0 ? (
             <div className="text-sm text-muted-foreground text-center py-12 px-4">{empty}</div>
           ) : (
-            pagedRows.map((r, i) => renderRow(r, currentPage * PAGE_SIZE + i))
+            pagedRows.map((r, i) => renderRow(r, isCarrossel ? currentPage * PAGE_SIZE + i : i))
           )}
         </div>
       </div>
 
-      {totalPages > 1 && (
+      {isCarrossel && (
         <div className="px-4 py-2 border-t border-border/60 bg-muted/20 flex items-center justify-between text-xs text-muted-foreground">
           <span className="tabular-nums">
             Página {currentPage + 1}/{totalPages} · {rows.length} empresas
