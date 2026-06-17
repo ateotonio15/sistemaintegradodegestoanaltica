@@ -31,6 +31,17 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
+import {
   Activity,
   ArrowLeft,
   CheckCircle2,
@@ -492,13 +503,29 @@ export default function PainelTvFinanceiro() {
     return counts;
   }, [anexosMap, profileNameMap]);
 
+  // Meta fixa do dia (snapshot persistido em localStorage por data).
+  const todayKey = new Date().toLocaleDateString("en-CA");
+  const metaStorageKey = `painel-tv-meta-diaria-${todayKey}`;
+  const [metaDiariaFixa, setMetaDiariaFixa] = useState<number | null>(() => {
+    try {
+      const raw = localStorage.getItem(`painel-tv-meta-diaria-${new Date().toLocaleDateString("en-CA")}`);
+      if (raw == null) return null;
+      const n = parseInt(raw, 10);
+      return Number.isFinite(n) && n >= 0 ? n : null;
+    } catch {
+      return null;
+    }
+  });
+
   const metaPorUsuario = useMemo(() => {
     const totalAguardando = aguardandoEmissao.length;
     const totalEmitidasHoje = USUARIOS_META.reduce(
       (acc, u) => acc + (emitidasHojePorUsuario[u] || 0),
       0,
     );
-    const totalBase = totalAguardando + totalEmitidasHoje;
+    const totalDinamico = totalAguardando + totalEmitidasHoje;
+    // Se a meta foi fixada, usa o valor congelado; caso contrário, dinâmico.
+    const totalBase = metaDiariaFixa != null ? metaDiariaFixa : totalDinamico;
     const n = USUARIOS_META.length;
     const base = Math.floor(totalBase / n);
     const sobra = totalBase % n;
@@ -509,7 +536,7 @@ export default function PainelTvFinanceiro() {
       const pct = meta > 0 ? Math.min(100, Math.round((emitidas / meta) * 100)) : 0;
       return { nome: u, meta, emitidas, restante, pct };
     });
-  }, [aguardandoEmissao.length, emitidasHojePorUsuario]);
+  }, [aguardandoEmissao.length, emitidasHojePorUsuario, metaDiariaFixa]);
 
   const metaTotal = useMemo(() => {
     const totalEmitidas = metaPorUsuario.reduce((a, m) => a + m.emitidas, 0);
@@ -524,6 +551,27 @@ export default function PainelTvFinanceiro() {
       totalMeta,
     };
   }, [metaPorUsuario, aguardandoEmissao.length]);
+
+  const sugestaoMetaDinamica =
+    aguardandoEmissao.length +
+    USUARIOS_META.reduce((acc, u) => acc + (emitidasHojePorUsuario[u] || 0), 0);
+
+  const definirMetaDoDia = (valor: number) => {
+    const v = Math.max(0, Math.floor(valor));
+    try {
+      localStorage.setItem(metaStorageKey, String(v));
+    } catch {}
+    setMetaDiariaFixa(v);
+    toast({ title: "Meta do dia definida", description: `${v} empresas distribuídas entre os usuários.` });
+  };
+
+  const limparMetaDoDia = () => {
+    try {
+      localStorage.removeItem(metaStorageKey);
+    } catch {}
+    setMetaDiariaFixa(null);
+    toast({ title: "Meta do dia removida", description: "Voltando ao cálculo automático em tempo real." });
+  };
   // ==============================================================
 
   if (!podeVer) {
@@ -636,6 +684,10 @@ export default function PainelTvFinanceiro() {
         <MetaDiariaSection
           metaPorUsuario={metaPorUsuario}
           metaTotal={metaTotal}
+          metaFixa={metaDiariaFixa}
+          sugestaoMeta={sugestaoMetaDinamica}
+          onDefinirMeta={definirMetaDoDia}
+          onLimparMeta={limparMetaDoDia}
         />
 
 
@@ -1224,6 +1276,10 @@ type MetaUsuario = {
 function MetaDiariaSection({
   metaPorUsuario,
   metaTotal,
+  metaFixa,
+  sugestaoMeta,
+  onDefinirMeta,
+  onLimparMeta,
 }: {
   metaPorUsuario: MetaUsuario[];
   metaTotal: {
@@ -1234,7 +1290,26 @@ function MetaDiariaSection({
     totalRestante: number;
     totalMeta: number;
   };
+  metaFixa: number | null;
+  sugestaoMeta: number;
+  onDefinirMeta: (valor: number) => void;
+  onLimparMeta: () => void;
 }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [valorInput, setValorInput] = useState<string>("");
+
+  const abrirDialog = () => {
+    setValorInput(String(metaFixa ?? sugestaoMeta));
+    setDialogOpen(true);
+  };
+
+  const confirmar = () => {
+    const n = parseInt(valorInput, 10);
+    if (!Number.isFinite(n) || n < 0) return;
+    onDefinirMeta(n);
+    setDialogOpen(false);
+  };
+
   return (
     <section className="space-y-4">
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -1244,14 +1319,70 @@ function MetaDiariaSection({
             Meta diária de emissão
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Distribuição automática das empresas aguardando emissão.
+            {metaFixa != null
+              ? `Meta fixada do dia: ${metaFixa} empresas (não muda com novos cadastros).`
+              : "Distribuição automática das empresas aguardando emissão."}
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          Atualização em tempo real
+        <div className="flex items-center gap-2 flex-wrap">
+          {metaFixa != null ? (
+            <>
+              <Badge variant="outline" className="text-xs gap-1">
+                <Target className="h-3 w-3" /> Meta fixa: {metaFixa}
+              </Badge>
+              <Button variant="outline" size="sm" onClick={abrirDialog}>
+                Editar meta
+              </Button>
+              <Button variant="ghost" size="sm" onClick={onLimparMeta}>
+                Limpar
+              </Button>
+            </>
+          ) : (
+            <Button variant="default" size="sm" onClick={abrirDialog}>
+              <Target className="h-4 w-4 mr-1" /> Definir meta do dia
+            </Button>
+          )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            Tempo real
+          </div>
         </div>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Definir meta diária de emissão</DialogTitle>
+            <DialogDescription>
+              A meta será congelada com este valor. Novas empresas adicionadas ao longo do dia
+              não alteram a distribuição entre os usuários.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label htmlFor="meta-input">Total de empresas para emitir hoje</Label>
+            <Input
+              id="meta-input"
+              type="number"
+              min={0}
+              value={valorInput}
+              onChange={(e) => setValorInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") confirmar();
+              }}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              Sugestão atual (aguardando + emitidas hoje): <strong>{sugestaoMeta}</strong>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmar}>Salvar meta</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Card resumo geral */}
