@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -27,6 +27,14 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const [motivo, setMotivo] = useState("");
   const [mode, setMode] = useState<"view" | "correcao" | "rejeicao">("view");
   const [atribuirOpen, setAtribuirOpen] = useState(false);
+  const [preview, setPreview] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [loadingAnexo, setLoadingAnexo] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (preview?.url) URL.revokeObjectURL(preview.url);
+    };
+  }, [preview?.url]);
 
   const { data: impl } = useQuery({
     queryKey: ["impl-analise", implantacaoId],
@@ -123,19 +131,18 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
       toast({ title: "Anexo sem caminho de arquivo", variant: "destructive" });
       return;
     }
+    setLoadingAnexo(path);
     const { data, error } = await supabase.storage
       .from("anexos-implantacao")
-      .createSignedUrl(path, 300, { download: false });
-    if (error || !data?.signedUrl) {
-      toast({ title: "Erro ao abrir anexo", description: error?.message, variant: "destructive" });
+      .download(path);
+    setLoadingAnexo(null);
+    if (error || !data) {
+      toast({ title: "Erro ao carregar anexo", description: error?.message, variant: "destructive" });
       return;
     }
-    // Abre em nova aba para visualizar (PDFs, imagens). O usuário pode salvar manualmente.
-    const win = window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-    if (!win) {
-      // Fallback caso o navegador bloqueie o popup
-      window.location.href = data.signedUrl;
-    }
+    const type = data.type || "application/octet-stream";
+    const url = URL.createObjectURL(data);
+    setPreview({ url, name, type });
   };
 
 
@@ -211,10 +218,10 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {visiveis.map((a: any) => (
-                          <button key={a.id} onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}
+                          <button key={a.id} onClick={() => handleDownload(a.storage_path, a.nome_arquivo)} disabled={loadingAnexo === a.storage_path}
                             className="flex items-center gap-2 text-left text-sm p-2 rounded-lg border hover:bg-accent transition-colors">
                             <FileText className="h-4 w-4 text-primary shrink-0" />
-                            <span className="truncate flex-1">{a.nome_arquivo}</span>
+                            <span className="truncate flex-1">{loadingAnexo === a.storage_path ? "Carregando anexo…" : a.nome_arquivo}</span>
                             {a.tipo && <Badge variant="secondary" className="text-[10px]">{a.tipo}</Badge>}
                           </button>
                         ))}
@@ -318,6 +325,32 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
         onConfirm={(userId, userNome) => aprovar.mutate({ userId, userNome })}
         loading={aprovar.isPending}
       />
+      <Dialog open={!!preview} onOpenChange={(v) => !v && setPreview(null)}>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="truncate">{preview?.name || "Anexo"}</DialogTitle>
+            <DialogDescription>Visualização do anexo sem abrir o domínio do arquivo em outra aba.</DialogDescription>
+          </DialogHeader>
+          {preview && preview.type.startsWith("image/") ? (
+            <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-muted/30 p-3">
+              <img src={preview.url} alt={preview.name} className="mx-auto max-h-full max-w-full object-contain" />
+            </div>
+          ) : preview && preview.type === "application/pdf" ? (
+            <iframe title={preview.name} src={preview.url} className="min-h-0 flex-1 rounded-lg border" />
+          ) : (
+            <div className="flex min-h-0 flex-1 items-center justify-center rounded-lg border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+              Este tipo de arquivo não tem pré-visualização no navegador. Use o botão abaixo para baixar.
+            </div>
+          )}
+          {preview && (
+            <div className="flex justify-end">
+              <Button asChild variant="outline">
+                <a href={preview.url} download={preview.name}>Baixar anexo</a>
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

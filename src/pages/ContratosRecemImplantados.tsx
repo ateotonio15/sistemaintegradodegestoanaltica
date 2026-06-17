@@ -91,14 +91,21 @@ export default function ContratosRecemImplantados() {
   }, [anexosImpl]);
 
   const handleDownloadAnexo = async (a: any) => {
-    const { data: signed, error } = await supabase.storage
+    const { data: arquivo, error } = await supabase.storage
       .from("anexos-implantacao")
-      .createSignedUrl(a.storage_path, 60);
-    if (error || !signed?.signedUrl) {
-      toast.error("Não foi possível abrir o arquivo");
+      .download(a.storage_path);
+    if (error || !arquivo) {
+      toast.error("Não foi possível baixar o arquivo");
       return;
     }
-    window.open(signed.signedUrl, "_blank");
+    const url = URL.createObjectURL(arquivo);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = a.nome_arquivo || "anexo";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const filtered = useMemo(() => {

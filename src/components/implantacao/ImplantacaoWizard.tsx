@@ -217,10 +217,21 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   };
 
   const handleDownload = async (a: any) => {
-    const { data: signed } = await supabase.storage
+    const { data: arquivo, error } = await supabase.storage
       .from("anexos-implantacao")
-      .createSignedUrl(a.storage_path, 60);
-    if (signed?.signedUrl) window.open(signed.signedUrl, "_blank");
+      .download(a.storage_path);
+    if (error || !arquivo) {
+      toast.error("Não foi possível baixar o arquivo");
+      return;
+    }
+    const url = URL.createObjectURL(arquivo);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = a.nome_arquivo || "anexo";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const anexo1 = useMemo(() => anexos.find((a) => a.tipo === "anexo_1"), [anexos]);
@@ -716,12 +727,11 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
     setVerificando(true);
     setProgresso(0);
     try {
-      const { data: signed } = await supabase.storage
+      const { data: arquivo, error } = await supabase.storage
         .from("anexos-implantacao")
-        .createSignedUrl(relAnexo.storage_path, 60);
-      if (!signed?.signedUrl) throw new Error("Falha ao baixar arquivo");
-      const resp = await fetch(signed.signedUrl);
-      const buffer = await resp.arrayBuffer();
+        .download(relAnexo.storage_path);
+      if (error || !arquivo) throw new Error("Falha ao baixar arquivo");
+      const buffer = await arquivo.arrayBuffer();
       // Verifica assinatura ZIP (xlsx é um zip: PK\x03\x04)
       const sig = new Uint8Array(buffer.slice(0, 4));
       if (!(sig[0] === 0x50 && sig[1] === 0x4b)) {
