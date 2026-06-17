@@ -118,35 +118,70 @@ export function AvaliacoesRHDashboard({ form }: Props) {
       });
   }, [respostas, form]);
 
-  // Ranking executivas
+  // Normaliza nome para agrupar: remove acentos, caracteres especiais,
+  // espaços extras e diferenças de caixa. "Márcia"/"marcia"/"MARCIA " -> "marcia".
+  const normalizeKey = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+
+  // Escolhe o melhor rótulo entre as variações: prioriza versões com acentos
+  // e evita TUDO MAIÚSCULO, capitalizando a primeira letra de cada palavra.
+  const prettyLabel = (variantes: string[]) => {
+    const limpos = variantes.map(v => v.replace(/\s+/g, " ").trim()).filter(Boolean);
+    if (!limpos.length) return "";
+    const score = (s: string) => {
+      const temAcento = /[\u00C0-\u017F]/.test(s) ? 2 : 0;
+      const letras = s.replace(/[^a-zA-Z]/g, "").length || 1;
+      const ratioMin = s.replace(/[^a-z]/g, "").length / letras;
+      return temAcento + ratioMin;
+    };
+    const best = [...limpos].sort((a, b) => score(b) - score(a))[0];
+    return best
+      .toLowerCase()
+      .split(" ")
+      .map(w => (w ? w[0].toUpperCase() + w.slice(1) : w))
+      .join(" ");
+  };
+
+  // Ranking executivas (consolida nomes equivalentes)
   const rankingExecutivas = useMemo(() => {
-    const map = new Map<string, { soma: number; qtd: number }>();
+    const map = new Map<string, { variantes: string[]; soma: number; qtd: number }>();
     respostas.forEach(r => {
-      const nome = (r.nome_executiva || "").trim();
+      const raw = (r.nome_executiva || "").trim();
       const n = Number(r.nota_media);
-      if (!nome || !n) return;
-      const ex = map.get(nome) || { soma: 0, qtd: 0 };
+      if (!raw || !n) return;
+      const key = normalizeKey(raw);
+      if (!key) return;
+      const ex = map.get(key) || { variantes: [], soma: 0, qtd: 0 };
+      ex.variantes.push(raw);
       ex.soma += n; ex.qtd += 1;
-      map.set(nome, ex);
+      map.set(key, ex);
     });
-    return Array.from(map.entries())
-      .map(([nome, v]) => ({ nome, media: Number((v.soma / v.qtd).toFixed(2)), qtd: v.qtd }))
+    return Array.from(map.values())
+      .map(v => ({ nome: prettyLabel(v.variantes), media: Number((v.soma / v.qtd).toFixed(2)), qtd: v.qtd }))
       .sort((a, b) => b.media - a.media || b.qtd - a.qtd);
   }, [respostas]);
 
-  // Ranking de EMPRESAS que mais concluíram avaliações
+  // Ranking de EMPRESAS (consolida nomes equivalentes)
   const rankingVolume = useMemo(() => {
-    const map = new Map<string, { label: string; qtd: number }>();
+    const map = new Map<string, { variantes: string[]; qtd: number }>();
     respostas.forEach(r => {
       const raw = (r.nome_empresa || "").trim();
       if (!raw) return;
-      const key = raw.toLowerCase();
-      const cur = map.get(key) || { label: raw, qtd: 0 };
+      const key = normalizeKey(raw);
+      if (!key) return;
+      const cur = map.get(key) || { variantes: [], qtd: 0 };
+      cur.variantes.push(raw);
       cur.qtd += 1;
       map.set(key, cur);
     });
     return Array.from(map.values())
-      .map(v => ({ nome: v.label, qtd: v.qtd }))
+      .map(v => ({ nome: prettyLabel(v.variantes), qtd: v.qtd }))
       .sort((a, b) => b.qtd - a.qtd);
   }, [respostas]);
 
