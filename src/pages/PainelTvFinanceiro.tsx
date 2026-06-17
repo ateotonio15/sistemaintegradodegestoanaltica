@@ -693,7 +693,7 @@ export default function PainelTvFinanceiro() {
           });
           if (buf.length) rows.push(buf);
           // Altura fixa para mostrar ~5 empresas por card (scroll se houver mais).
-          const listHeight = `320px`;
+          const listHeight = `460px`;
 
           const renderCard = (key: ListKey) => {
             if (key === "aguardando")
