@@ -351,14 +351,19 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
               label="Resolvido pelo setor?"
               value={!!form.resolvido_setor}
               onChange={(v) => {
-                set("resolvido_setor", v);
-                if (v && !form.data_resolucao_setor) {
-                  set("data_resolucao_setor", format(new Date(), "yyyy-MM-dd"));
-                }
+                setForm((p) => ({
+                  ...p,
+                  resolvido_setor: v,
+                  data_resolucao_setor: v
+                    ? p.data_resolucao_setor || format(new Date(), "yyyy-MM-dd")
+                    : "",
+                  // se setor não resolveu, executiva também não pode ter resolvido
+                  ...(v ? {} : { resolvido_executiva: false, data_resolucao_executiva: "" }),
+                }));
               }}
             />
             {form.resolvido_setor && (
-              <Field label="Data resolução (setor)">
+              <Field label="Data resolução (setor) *">
                 <Input
                   type="date"
                   value={form.data_resolucao_setor || ""}
@@ -371,19 +376,24 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
               label="Resolvido pela executiva?"
               value={!!form.resolvido_executiva}
               onChange={(v) => {
-                set("resolvido_executiva", v);
-                if (v && !form.data_resolucao_executiva) {
-                  set("data_resolucao_executiva", format(new Date(), "yyyy-MM-dd"));
-                }
+                setForm((p) => ({
+                  ...p,
+                  resolvido_executiva: v,
+                  data_resolucao_executiva: v
+                    ? p.data_resolucao_executiva || format(new Date(), "yyyy-MM-dd")
+                    : "",
+                }));
               }}
             />
-            <Field label="Data resolução (executiva)" className="md:col-span-2">
-              <Input
-                type="date"
-                value={form.data_resolucao_executiva || ""}
-                onChange={(e) => set("data_resolucao_executiva", e.target.value)}
-              />
-            </Field>
+            {form.resolvido_executiva && (
+              <Field label="Data resolução (executiva) *" className="md:col-span-2">
+                <Input
+                  type="date"
+                  value={form.data_resolucao_executiva || ""}
+                  onChange={(e) => set("data_resolucao_executiva", e.target.value)}
+                />
+              </Field>
+            )}
           </div>
 
         </div>
