@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Share2, Loader2 } from "lucide-react";
+import { Copy, Share2, Loader2, Pencil } from "lucide-react";
 import { RatingScale } from "../components/RatingScale";
 import { AvaliacoesRHDashboard } from "../components/AvaliacoesRHDashboard";
+import { EditarFormularioRHDialog } from "../components/EditarFormularioRHDialog";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 const db = supabase as any;
@@ -26,6 +28,9 @@ const TEMPLATE_RH = {
 export default function AvaliacoesRH() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<any>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const { isAdmin, isExecutivo, isDiretora } = useAuth();
+  const podeEditar = isAdmin || isExecutivo || isDiretora;
 
   useEffect(() => {
     (async () => {
@@ -35,15 +40,6 @@ export default function AvaliacoesRH() {
       if (!f) {
         const { data: ins } = await db.from("cs_avaliacao_formularios").insert(TEMPLATE_RH).select().single();
         f = ins;
-      } else {
-        // sincroniza perguntas
-        const { data: upd } = await db
-          .from("cs_avaliacao_formularios")
-          .update({ titulo: TEMPLATE_RH.titulo, instrucoes: TEMPLATE_RH.instrucoes, perguntas: TEMPLATE_RH.perguntas })
-          .eq("id", f.id)
-          .select()
-          .single();
-        f = upd || f;
       }
       setForm(f);
       setLoading(false);
@@ -86,7 +82,14 @@ export default function AvaliacoesRH() {
       <AvaliacoesRHDashboard form={form} />
 
       <Card className="p-4 space-y-4">
-        <h3 className="font-semibold">Preview do formulário</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold">Preview do formulário</h3>
+          {podeEditar && (
+            <Button size="sm" variant="outline" onClick={() => setEditorOpen(true)}>
+              <Pencil className="h-4 w-4 mr-1" /> Editar perguntas
+            </Button>
+          )}
+        </div>
         {form.perguntas && form.perguntas.length > 0 ? (
           form.perguntas.map((p: any, i: number) => (
             <div key={p.id} className="space-y-1">
@@ -99,6 +102,15 @@ export default function AvaliacoesRH() {
           <p className="text-sm text-muted-foreground">Nenhuma pergunta cadastrada.</p>
         )}
       </Card>
+
+      {podeEditar && (
+        <EditarFormularioRHDialog
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          form={form}
+          onSaved={(f) => setForm(f)}
+        />
+      )}
     </div>
   );
 }
