@@ -558,14 +558,17 @@ export default function PainelTvFinanceiro() {
     const counts: Record<string, number> = {};
     USUARIOS_META.forEach((u) => (counts[u] = 0));
     const todayStr = new Date().toLocaleDateString("en-CA");
+    // Quando a meta está definida, conta apenas notas enviadas a partir do início da meta.
+    const iniciadaEm = metaDiariaRow?.iniciada_em ? new Date(metaDiariaRow.iniciada_em).getTime() : 0;
     Object.values(anexosMap as Record<string, any[]>).forEach((list) => {
       list.forEach((a) => {
         const isPdf =
           (a.mime_type || "").toLowerCase().includes("pdf") ||
           (a.nome_arquivo || "").toLowerCase().endsWith(".pdf");
         if (!isPdf || !a.uploaded_by || !a.created_at) return;
-        const created = new Date(a.created_at).toLocaleDateString("en-CA");
-        if (created !== todayStr) return;
+        const createdDate = new Date(a.created_at);
+        if (createdDate.toLocaleDateString("en-CA") !== todayStr) return;
+        if (iniciadaEm > 0 && createdDate.getTime() < iniciadaEm) return;
         const name = ((profileNameMap as any)[a.uploaded_by] || "")
           .trim()
           .toLowerCase();
@@ -580,7 +583,7 @@ export default function PainelTvFinanceiro() {
       });
     });
     return counts;
-  }, [anexosMap, profileNameMap, USUARIOS_META]);
+  }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow]);
 
   const metaPorUsuario = useMemo(() => {
     const totalAguardando = aguardandoEmissao.length;
