@@ -170,7 +170,7 @@ export function AvaliacoesRHDashboard({ form }: Props) {
     return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando dashboard...</div>;
   }
 
-  if (respostas.length === 0) {
+  if (todasRespostas.length === 0) {
     return (
       <Card className="p-8 text-center text-muted-foreground">
         <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-40" />
@@ -182,6 +182,34 @@ export function AvaliacoesRHDashboard({ form }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Filtrar por mês:</span>
+          <Select value={mesFiltro} onValueChange={setMesFiltro}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os meses</SelectItem>
+              {mesesDisponiveis.map(m => (
+                <SelectItem key={m} value={m}>{formatMesLabel(m)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          Exibindo {respostas.length} de {todasRespostas.length} avaliações
+        </span>
+      </div>
+
+      {respostas.length === 0 ? (
+        <Card className="p-8 text-center text-muted-foreground">
+          <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-40" />
+          <p className="text-sm">Nenhuma avaliação neste mês.</p>
+        </Card>
+      ) : (
+      <>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={Users} label="Total de avaliações" value={stats.total} />
         <StatCard icon={Star} label="Nota média geral" value={stats.media.toFixed(2)} hint="escala 1-5" />
