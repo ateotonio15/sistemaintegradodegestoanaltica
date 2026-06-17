@@ -2734,6 +2734,27 @@ export type Database = {
           },
         ]
       }
+      painel_tv_meta_diaria: {
+        Row: {
+          created_at: string
+          data: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       plantoes: {
         Row: {
           created_at: string
