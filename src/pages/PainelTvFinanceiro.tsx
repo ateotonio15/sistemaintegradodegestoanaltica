@@ -490,7 +490,7 @@ export default function PainelTvFinanceiro() {
         console.error("[meta-diaria] erro ao carregar:", error);
         return null;
       }
-      return data as { valor: number; usuarios: string[] } | null;
+      return (data as unknown) as { valor: number; usuarios: string[] } | null;
     },
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
