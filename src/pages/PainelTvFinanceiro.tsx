@@ -1506,9 +1506,14 @@ function MetaDiariaSection({
             Defina a meta do dia para distribuir entre os usuários da escala.
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="flex flex-wrap justify-center gap-3">
             {metaPorUsuario.map((u) => (
-              <UsuarioMetaMini key={u.nome} usuario={u} />
+              <div
+                key={u.nome}
+                className="flex-1 min-w-[260px] max-w-[420px] basis-[260px]"
+              >
+                <UsuarioMetaMini usuario={u} />
+              </div>
             ))}
           </div>
         )}
