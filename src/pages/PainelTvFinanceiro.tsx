@@ -589,9 +589,9 @@ export default function PainelTvFinanceiro() {
     };
   }, [metaPorUsuario, aguardandoEmissao.length, USUARIOS_META]);
 
-  const sugestaoMetaDinamica =
-    aguardandoEmissao.length +
-    USUARIOS_META.reduce((acc, u) => acc + (emitidasHojePorUsuario[u] || 0), 0);
+  // Sugestão: apenas empresas atualmente em "Aguardando emissão".
+  // Empresas que já estavam em faturamento antes da meta NÃO entram no cálculo.
+  const sugestaoMetaDinamica = aguardandoEmissao.length;
 
   const definirMetaDoDia = async (valor: number, usuarios: string[]) => {
     const v = Math.max(0, Math.floor(valor));
