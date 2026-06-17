@@ -1268,7 +1268,7 @@ function ListaCard<T>({
       {isCarrossel && (
         <div className="px-4 py-2 border-t border-border/60 bg-muted/20 flex items-center justify-between text-xs text-muted-foreground">
           <span className="tabular-nums">
-            Página {currentPage + 1}/{totalPages} · {rows.length} empresas
+            Página {currentPage + 1}/{totalPages} · {rows.length} Contratos
           </span>
           <div className="flex gap-1">
             {Array.from({ length: totalPages }).map((_, i) => (
