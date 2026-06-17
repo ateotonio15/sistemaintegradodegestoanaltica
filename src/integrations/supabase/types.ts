@@ -2738,6 +2738,7 @@ export type Database = {
         Row: {
           created_at: string
           data: string
+          iniciada_em: string
           updated_at: string
           usuarios: Json
           valor: number
@@ -2745,6 +2746,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data: string
+          iniciada_em?: string
           updated_at?: string
           usuarios?: Json
           valor: number
@@ -2752,6 +2754,7 @@ export type Database = {
         Update: {
           created_at?: string
           data?: string
+          iniciada_em?: string
           updated_at?: string
           usuarios?: Json
           valor?: number
