@@ -564,13 +564,27 @@ export default function PainelTvFinanceiro() {
     return fromDb;
   }, [metaDiariaRow]);
 
+  // IDs das empresas (movimentações) congeladas no momento em que a meta foi definida.
+  // Apenas estas contam para meta/emissões. Empresas que já estavam em
+  // "Em faturamento" ou "Faturado" antes da meta NÃO entram.
+  const snapshotIds = useMemo<string[]>(() => {
+    const raw = (metaDiariaRow as any)?.empresas_snapshot;
+    return Array.isArray(raw) ? (raw as string[]) : [];
+  }, [metaDiariaRow]);
+  const snapshotSet = useMemo(() => new Set(snapshotIds), [snapshotIds]);
+  const hasSnapshot = snapshotIds.length > 0;
+
+
+
+
   const emitidasHojePorUsuario = useMemo(() => {
     const counts: Record<string, number> = {};
     USUARIOS_META.forEach((u) => (counts[u] = 0));
     const todayStr = new Date().toLocaleDateString("en-CA");
-    // Quando a meta está definida, conta apenas notas enviadas a partir do início da meta.
     const iniciadaEm = metaDiariaRow?.iniciada_em ? new Date(metaDiariaRow.iniciada_em).getTime() : 0;
-    Object.values(anexosMap as Record<string, any[]>).forEach((list) => {
+    Object.entries(anexosMap as Record<string, any[]>).forEach(([movId, list]) => {
+      // Restringe ao snapshot quando a meta tem snapshot definido.
+      if (hasSnapshot && !snapshotSet.has(movId)) return;
       list.forEach((a) => {
         const isPdf =
           (a.mime_type || "").toLowerCase().includes("pdf") ||
@@ -593,16 +607,22 @@ export default function PainelTvFinanceiro() {
       });
     });
     return counts;
-  }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow]);
+  }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow, hasSnapshot, snapshotSet]);
 
-  const metaPorUsuario = useMemo(() => {
-    const totalAguardando = aguardandoEmissao.length;
+  // Universo de empresas considerado pela meta:
+  // - Se houver snapshot: tamanho do snapshot (fixo desde a definição da meta).
+  // - Caso contrário: cálculo dinâmico anterior.
+  const universoMeta = useMemo(() => {
+    if (hasSnapshot) return snapshotIds.length;
     const totalEmitidasHoje = USUARIOS_META.reduce(
       (acc, u) => acc + (emitidasHojePorUsuario[u] || 0),
       0,
     );
-    const totalDinamico = totalAguardando + totalEmitidasHoje;
-    const totalBase = metaDiariaFixa != null ? metaDiariaFixa : totalDinamico;
+    return aguardandoEmissao.length + totalEmitidasHoje;
+  }, [hasSnapshot, snapshotIds.length, aguardandoEmissao.length, emitidasHojePorUsuario, USUARIOS_META]);
+
+  const metaPorUsuario = useMemo(() => {
+    const totalBase = metaDiariaFixa != null ? metaDiariaFixa : universoMeta;
     const n = USUARIOS_META.length;
     if (n === 0) return [] as { nome: string; meta: number; emitidas: number; restante: number; pct: number }[];
     const base = Math.floor(totalBase / n);
@@ -614,25 +634,26 @@ export default function PainelTvFinanceiro() {
       const pct = meta > 0 ? Math.min(100, Math.round((emitidas / meta) * 100)) : 0;
       return { nome: u, meta, emitidas, restante, pct };
     });
-  }, [aguardandoEmissao.length, emitidasHojePorUsuario, metaDiariaFixa, USUARIOS_META]);
+  }, [universoMeta, emitidasHojePorUsuario, metaDiariaFixa, USUARIOS_META]);
 
   const metaTotal = useMemo(() => {
     const totalEmitidas = metaPorUsuario.reduce((a, m) => a + m.emitidas, 0);
     const totalMeta = metaPorUsuario.reduce((a, m) => a + m.meta, 0);
     const totalRestante = metaPorUsuario.reduce((a, m) => a + m.restante, 0);
     return {
-      totalAguardando: aguardandoEmissao.length,
+      totalAguardando: hasSnapshot ? snapshotIds.length : aguardandoEmissao.length,
       usuarios: USUARIOS_META.length,
       mediaPorUsuario: USUARIOS_META.length > 0 ? Math.round(totalMeta / USUARIOS_META.length) : 0,
       totalEmitidas,
       totalRestante,
       totalMeta,
     };
-  }, [metaPorUsuario, aguardandoEmissao.length, USUARIOS_META]);
+  }, [metaPorUsuario, aguardandoEmissao.length, USUARIOS_META, hasSnapshot, snapshotIds.length]);
 
   // Sugestão: apenas empresas atualmente em "Aguardando emissão".
   // Empresas que já estavam em faturamento antes da meta NÃO entram no cálculo.
   const sugestaoMetaDinamica = aguardandoEmissao.length;
+
 
   const definirMetaDoDia = async (valor: number, usuarios: string[]) => {
     const v = Math.max(0, Math.floor(valor));
@@ -641,10 +662,20 @@ export default function PainelTvFinanceiro() {
       toast({ title: "Selecione ao menos um usuário", variant: "destructive" });
       return;
     }
+    // Congela as empresas atualmente em "Aguardando emissão".
+    // Empresas em "Em faturamento"/"Faturado" no momento da definição ficam de fora.
+    const snapshot = aguardandoEmissao.map((r) => r.id);
     const { error } = await supabase
       .from("painel_tv_meta_diaria" as any)
       .upsert(
-        { data: todayKey, valor: v, usuarios: us, iniciada_em: new Date().toISOString(), updated_at: new Date().toISOString() },
+        {
+          data: todayKey,
+          valor: v,
+          usuarios: us,
+          empresas_snapshot: snapshot,
+          iniciada_em: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
         { onConflict: "data" },
       );
     if (error) {
@@ -653,8 +684,12 @@ export default function PainelTvFinanceiro() {
       return;
     }
     await refetchMetaDiaria();
-    toast({ title: "Meta do dia definida", description: `${v} empresas distribuídas entre ${us.length} usuário(s).` });
+    toast({
+      title: "Meta do dia definida",
+      description: `${snapshot.length} empresa(s) em Aguardando emissão congeladas, distribuídas entre ${us.length} usuário(s).`,
+    });
   };
+
 
   const limparMetaDoDia = async () => {
     const { error } = await supabase
