@@ -1548,7 +1548,7 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-xl border px-4 py-3",
+        "flex items-center gap-4 rounded-2xl border px-6 py-5",
         concluida
           ? "border-emerald-500/40 bg-emerald-500/5"
           : usuario.emitidas > 0
@@ -1559,7 +1559,7 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
     >
       <span
         className={cn(
-          "h-11 w-11 rounded-full grid place-items-center text-sm font-bold shrink-0",
+          "h-16 w-16 rounded-full grid place-items-center text-lg font-bold shrink-0",
           concluida ? "bg-emerald-500 text-white" : "bg-primary/15 text-primary",
         )}
       >
@@ -1567,15 +1567,15 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold truncate">{usuario.nome}</span>
-          <span className="text-xs tabular-nums text-muted-foreground shrink-0">
+          <span className="text-lg font-semibold truncate">{usuario.nome}</span>
+          <span className="text-base tabular-nums text-muted-foreground shrink-0">
             {usuario.pct}%
           </span>
         </div>
-        <div className="flex items-center gap-3 text-xs tabular-nums leading-tight mt-0.5">
+        <div className="flex items-center gap-4 text-base tabular-nums leading-tight mt-1">
           <span>
             <span className="text-muted-foreground">Meta</span>{" "}
-            <strong className="text-foreground text-sm">{usuario.meta}</strong>
+            <strong className="text-foreground text-lg">{usuario.meta}</strong>
           </span>
           <span className="text-emerald-600 dark:text-emerald-500 font-semibold">
             ✓ {usuario.emitidas}
@@ -1584,11 +1584,12 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
             • {usuario.restante}
           </span>
         </div>
-        <Progress value={usuario.pct} className="h-1.5 mt-2" />
+        <Progress value={usuario.pct} className="h-2.5 mt-3" />
       </div>
     </div>
   );
 }
+
 
 
 
