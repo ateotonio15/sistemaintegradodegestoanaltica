@@ -474,7 +474,39 @@ export default function PainelTvFinanceiro() {
   void now;
 
   // ============= META DIÁRIA DE EMISSÃO POR USUÁRIO =============
-  const USUARIOS_META = ["João Victor", "Karen", "Maria Lucena"];
+  const USUARIOS_DISPONIVEIS = ["João Victor", "Karen", "Maria Lucena"];
+
+  // Meta fixa do dia (persistida no banco, compartilhada entre todos os dispositivos).
+  const todayKey = new Date().toLocaleDateString("en-CA");
+  const { data: metaDiariaRow, refetch: refetchMetaDiaria } = useQuery({
+    queryKey: ["painel-tv-meta-diaria", todayKey],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("painel_tv_meta_diaria" as any)
+        .select("valor, usuarios")
+        .eq("data", todayKey)
+        .maybeSingle();
+      if (error) {
+        console.error("[meta-diaria] erro ao carregar:", error);
+        return null;
+      }
+      return data as { valor: number; usuarios: string[] } | null;
+    },
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+  });
+
+  const metaDiariaFixa =
+    metaDiariaRow && typeof metaDiariaRow.valor === "number" && metaDiariaRow.valor >= 0
+      ? metaDiariaRow.valor
+      : null;
+
+  const USUARIOS_META = useMemo(() => {
+    const fromDb = Array.isArray(metaDiariaRow?.usuarios) ? (metaDiariaRow!.usuarios as string[]) : [];
+    const filtrados = fromDb.filter((u) => USUARIOS_DISPONIVEIS.includes(u));
+    return filtrados.length > 0 ? filtrados : USUARIOS_DISPONIVEIS;
+  }, [metaDiariaRow]);
+
   const emitidasHojePorUsuario = useMemo(() => {
     const counts: Record<string, number> = {};
     USUARIOS_META.forEach((u) => (counts[u] = 0));
@@ -501,28 +533,7 @@ export default function PainelTvFinanceiro() {
       });
     });
     return counts;
-  }, [anexosMap, profileNameMap]);
-
-  // Meta fixa do dia (persistida no banco, compartilhada entre todos os dispositivos).
-  const todayKey = new Date().toLocaleDateString("en-CA");
-  const { data: metaDiariaFixa = null, refetch: refetchMetaDiaria } = useQuery({
-    queryKey: ["painel-tv-meta-diaria", todayKey],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("painel_tv_meta_diaria" as any)
-        .select("valor")
-        .eq("data", todayKey)
-        .maybeSingle();
-      if (error) {
-        console.error("[meta-diaria] erro ao carregar:", error);
-        return null;
-      }
-      const v = (data as any)?.valor;
-      return typeof v === "number" && v >= 0 ? v : null;
-    },
-    refetchInterval: 15000,
-    refetchOnWindowFocus: true,
-  });
+  }, [anexosMap, profileNameMap, USUARIOS_META]);
 
   const metaPorUsuario = useMemo(() => {
     const totalAguardando = aguardandoEmissao.length;
@@ -533,6 +544,7 @@ export default function PainelTvFinanceiro() {
     const totalDinamico = totalAguardando + totalEmitidasHoje;
     const totalBase = metaDiariaFixa != null ? metaDiariaFixa : totalDinamico;
     const n = USUARIOS_META.length;
+    if (n === 0) return [] as { nome: string; meta: number; emitidas: number; restante: number; pct: number }[];
     const base = Math.floor(totalBase / n);
     const sobra = totalBase % n;
     return USUARIOS_META.map((u, i) => {
@@ -542,7 +554,7 @@ export default function PainelTvFinanceiro() {
       const pct = meta > 0 ? Math.min(100, Math.round((emitidas / meta) * 100)) : 0;
       return { nome: u, meta, emitidas, restante, pct };
     });
-  }, [aguardandoEmissao.length, emitidasHojePorUsuario, metaDiariaFixa]);
+  }, [aguardandoEmissao.length, emitidasHojePorUsuario, metaDiariaFixa, USUARIOS_META]);
 
   const metaTotal = useMemo(() => {
     const totalEmitidas = metaPorUsuario.reduce((a, m) => a + m.emitidas, 0);
@@ -556,24 +568,32 @@ export default function PainelTvFinanceiro() {
       totalRestante,
       totalMeta,
     };
-  }, [metaPorUsuario, aguardandoEmissao.length]);
+  }, [metaPorUsuario, aguardandoEmissao.length, USUARIOS_META]);
 
   const sugestaoMetaDinamica =
     aguardandoEmissao.length +
     USUARIOS_META.reduce((acc, u) => acc + (emitidasHojePorUsuario[u] || 0), 0);
 
-  const definirMetaDoDia = async (valor: number) => {
+  const definirMetaDoDia = async (valor: number, usuarios: string[]) => {
     const v = Math.max(0, Math.floor(valor));
+    const us = usuarios.filter((u) => USUARIOS_DISPONIVEIS.includes(u));
+    if (us.length === 0) {
+      toast({ title: "Selecione ao menos um usuário", variant: "destructive" });
+      return;
+    }
     const { error } = await supabase
       .from("painel_tv_meta_diaria" as any)
-      .upsert({ data: todayKey, valor: v, updated_at: new Date().toISOString() }, { onConflict: "data" });
+      .upsert(
+        { data: todayKey, valor: v, usuarios: us, updated_at: new Date().toISOString() },
+        { onConflict: "data" },
+      );
     if (error) {
       console.error("[meta-diaria] erro ao salvar:", error);
       toast({ title: "Erro ao salvar meta", description: error.message, variant: "destructive" });
       return;
     }
     await refetchMetaDiaria();
-    toast({ title: "Meta do dia definida", description: `${v} empresas distribuídas entre os usuários.` });
+    toast({ title: "Meta do dia definida", description: `${v} empresas distribuídas entre ${us.length} usuário(s).` });
   };
 
   const limparMetaDoDia = async () => {
