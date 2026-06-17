@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Activity,
@@ -38,26 +39,14 @@ import {
   Minimize2,
   RefreshCw,
   Send,
+  Target,
   TimerReset,
   TrendingUp,
+  Trophy,
+  User as UserIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip as RTooltip,
-  Legend,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  RadialBarChart,
-  RadialBar,
-  PolarAngleAxis,
-} from "recharts";
+
 
 type Row = {
   id: string;
@@ -473,6 +462,70 @@ export default function PainelTvFinanceiro() {
 
   void now;
 
+  // ============= META DIÁRIA DE EMISSÃO POR USUÁRIO =============
+  const USUARIOS_META = ["João Victor", "Karen", "Maria Lucena"];
+  const emitidasHojePorUsuario = useMemo(() => {
+    const counts: Record<string, number> = {};
+    USUARIOS_META.forEach((u) => (counts[u] = 0));
+    const todayStr = new Date().toLocaleDateString("en-CA");
+    Object.values(anexosMap as Record<string, any[]>).forEach((list) => {
+      list.forEach((a) => {
+        const isPdf =
+          (a.mime_type || "").toLowerCase().includes("pdf") ||
+          (a.nome_arquivo || "").toLowerCase().endsWith(".pdf");
+        if (!isPdf || !a.uploaded_by || !a.created_at) return;
+        const created = new Date(a.created_at).toLocaleDateString("en-CA");
+        if (created !== todayStr) return;
+        const name = ((profileNameMap as any)[a.uploaded_by] || "")
+          .trim()
+          .toLowerCase();
+        if (!name) return;
+        for (const u of USUARIOS_META) {
+          const target = u.toLowerCase();
+          if (name === target || name.includes(target) || target.includes(name.split(" ")[0])) {
+            counts[u]++;
+            break;
+          }
+        }
+      });
+    });
+    return counts;
+  }, [anexosMap, profileNameMap]);
+
+  const metaPorUsuario = useMemo(() => {
+    const totalAguardando = aguardandoEmissao.length;
+    const totalEmitidasHoje = USUARIOS_META.reduce(
+      (acc, u) => acc + (emitidasHojePorUsuario[u] || 0),
+      0,
+    );
+    const totalBase = totalAguardando + totalEmitidasHoje;
+    const n = USUARIOS_META.length;
+    const base = Math.floor(totalBase / n);
+    const sobra = totalBase % n;
+    return USUARIOS_META.map((u, i) => {
+      const meta = base + (i < sobra ? 1 : 0);
+      const emitidas = emitidasHojePorUsuario[u] || 0;
+      const restante = Math.max(0, meta - emitidas);
+      const pct = meta > 0 ? Math.min(100, Math.round((emitidas / meta) * 100)) : 0;
+      return { nome: u, meta, emitidas, restante, pct };
+    });
+  }, [aguardandoEmissao.length, emitidasHojePorUsuario]);
+
+  const metaTotal = useMemo(() => {
+    const totalEmitidas = metaPorUsuario.reduce((a, m) => a + m.emitidas, 0);
+    const totalMeta = metaPorUsuario.reduce((a, m) => a + m.meta, 0);
+    const totalRestante = metaPorUsuario.reduce((a, m) => a + m.restante, 0);
+    return {
+      totalAguardando: aguardandoEmissao.length,
+      usuarios: USUARIOS_META.length,
+      mediaPorUsuario: USUARIOS_META.length > 0 ? Math.round(totalMeta / USUARIOS_META.length) : 0,
+      totalEmitidas,
+      totalRestante,
+      totalMeta,
+    };
+  }, [metaPorUsuario, aguardandoEmissao.length]);
+  // ==============================================================
+
   if (!podeVer) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -480,6 +533,7 @@ export default function PainelTvFinanceiro() {
       </div>
     );
   }
+
 
   const hora = new Date(lastUpdate).toLocaleTimeString("pt-BR");
 
@@ -578,6 +632,14 @@ export default function PainelTvFinanceiro() {
           />
         </section>
 
+        {/* META DIÁRIA DE EMISSÃO */}
+        <MetaDiariaSection
+          metaPorUsuario={metaPorUsuario}
+          metaTotal={metaTotal}
+        />
+
+
+
 
         {/* LAYOUT preset selector */}
         {listOrder.length > 1 && (
@@ -631,7 +693,7 @@ export default function PainelTvFinanceiro() {
           });
           if (buf.length) rows.push(buf);
           // Altura fixa para mostrar ~5 empresas por card (scroll se houver mais).
-          const listHeight = `320px`;
+          const listHeight = `460px`;
 
           const renderCard = (key: ListKey) => {
             if (key === "aguardando")
@@ -790,24 +852,25 @@ function RowItem({
   accentDot: string;
 }) {
   return (
-    <div className="group flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/40 transition-colors border-b border-border/30 last:border-0 min-w-0 w-full">
+    <div className="group flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted/40 transition-colors border-b border-border/30 last:border-0 min-w-0 w-full">
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <span className="text-xs font-mono font-semibold text-muted-foreground tabular-nums w-6 text-right shrink-0">
+        <span className="text-sm font-mono font-semibold text-muted-foreground tabular-nums w-7 text-right shrink-0">
           {String(index + 1).padStart(2, "0")}
         </span>
-        <span className={cn("h-8 w-1 rounded-full shrink-0", accentDot)} />
+        <span className={cn("h-10 w-1.5 rounded-full shrink-0", accentDot)} />
         <div className="min-w-0 flex-1">
-          <div className="font-semibold truncate leading-tight">{title}</div>
-          <div className="text-sm text-muted-foreground truncate mt-0.5">{subtitle}</div>
+          <div className="font-semibold truncate leading-tight text-lg">{title}</div>
+          <div className="text-base text-muted-foreground truncate mt-0.5">{subtitle}</div>
         </div>
       </div>
-      <div className="flex flex-col items-end shrink-0 ml-2 min-w-[72px]">
-        <Badge className={cn("font-medium whitespace-nowrap", badgeClass)}>{badgeText}</Badge>
-        <div className="text-[11px] text-muted-foreground mt-1 tabular-nums whitespace-nowrap">{timeText}</div>
+      <div className="flex flex-col items-end shrink-0 ml-2 min-w-[92px]">
+        <Badge className={cn("font-semibold whitespace-nowrap text-sm px-2.5 py-0.5", badgeClass)}>{badgeText}</Badge>
+        <div className="text-xs text-muted-foreground mt-1 tabular-nums whitespace-nowrap">{timeText}</div>
       </div>
     </div>
   );
 }
+
 
 function HeroKpi({
   label,
@@ -879,26 +942,27 @@ function HeroKpi({
           : undefined
       }
       className={cn(
-        "relative p-4 bg-card border border-border/60 shadow-none transition-colors",
+        "relative p-5 bg-card border border-border/60 shadow-none transition-colors",
         selectable && "cursor-pointer hover:border-border",
         selected && t.selectedRing,
         pulse && !selected && "ring-1 ring-emerald-400/50",
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
-        <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground leading-tight">
+        <span className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground leading-tight">
           {label}
         </span>
-        <div className={cn("h-6 w-6 rounded-md flex items-center justify-center shrink-0", t.iconWrap)}>
-          <Icon className="h-3 w-3" />
+        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", t.iconWrap)}>
+          <Icon className="h-4 w-4" />
         </div>
       </div>
-      <div className={cn("text-3xl font-semibold tabular-nums leading-none tracking-tight", t.value)}>
+      <div className={cn("text-5xl font-bold tabular-nums leading-none tracking-tight", t.value)}>
         {value}
       </div>
       {hint && (
-        <div className="mt-2 text-[11px] text-muted-foreground leading-snug">{hint}</div>
+        <div className="mt-3 text-sm text-muted-foreground leading-snug">{hint}</div>
       )}
+
       {pulse && (
         <span className="absolute top-2 right-2 flex h-1.5 w-1.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -960,13 +1024,13 @@ function ListaCard<T>({
       <span className={cn("absolute left-0 top-0 bottom-0 w-1", a.stripe)} aria-hidden />
       <div className="p-5 border-b border-border/60 bg-gradient-to-b from-muted/30 to-transparent cursor-grab active:cursor-grabbing select-none">
         <div className="flex items-center gap-3">
-          <GripVertical className="h-4 w-4 text-muted-foreground/60 shrink-0" />
-          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", a.iconWrap)}>
-            <Icon className="h-5 w-5" />
+          <GripVertical className="h-5 w-5 text-muted-foreground/60 shrink-0" />
+          <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center", a.iconWrap)}>
+            <Icon className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-semibold text-lg leading-tight truncate">{title}</h2>
-            {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
+            <h2 className="font-bold text-2xl leading-tight truncate">{title}</h2>
+            {subtitle && <p className="text-sm text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
           </div>
           <button
             type="button"
@@ -980,7 +1044,7 @@ function ListaCard<T>({
                 : undefined
             }
             className={cn(
-              "inline-flex items-center gap-1 rounded-md text-base font-bold tabular-nums px-3 py-1 shrink-0 border transition-colors",
+              "inline-flex items-center gap-1.5 rounded-md text-2xl font-bold tabular-nums px-4 py-1.5 shrink-0 border transition-colors",
               a.badge,
               onBadgeClick && "hover:brightness-110 cursor-pointer",
             )}
@@ -988,12 +1052,13 @@ function ListaCard<T>({
             {rows.length}
             {onBadgeClick && (
               sortDir === "desc"
-                ? <ArrowDown className="h-3.5 w-3.5 opacity-80" />
-                : <ArrowUp className="h-3.5 w-3.5 opacity-80" />
+                ? <ArrowDown className="h-4 w-4 opacity-80" />
+                : <ArrowUp className="h-4 w-4 opacity-80" />
             )}
           </button>
         </div>
       </div>
+
       <div
         style={contentHeight ? { height: contentHeight, minHeight: 220 } : { height: 400 }}
         className="overflow-y-auto overflow-x-hidden"
@@ -1146,3 +1211,208 @@ function CompetenciaPeriodoPicker({
     </Popover>
   );
 }
+
+// ============= META DIÁRIA DE EMISSÃO =============
+type MetaUsuario = {
+  nome: string;
+  meta: number;
+  emitidas: number;
+  restante: number;
+  pct: number;
+};
+
+function MetaDiariaSection({
+  metaPorUsuario,
+  metaTotal,
+}: {
+  metaPorUsuario: MetaUsuario[];
+  metaTotal: {
+    totalAguardando: number;
+    usuarios: number;
+    mediaPorUsuario: number;
+    totalEmitidas: number;
+    totalRestante: number;
+    totalMeta: number;
+  };
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Target className="h-6 w-6 text-primary" />
+            Meta diária de emissão
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Distribuição automática das empresas aguardando emissão.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          Atualização em tempo real
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Card resumo geral */}
+        <Card className="p-5 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 lg:col-span-1">
+          <div className="flex items-center gap-2 mb-3">
+            <Trophy className="h-5 w-5 text-primary" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Meta total do dia
+            </span>
+          </div>
+          <div className="space-y-3">
+            <ResumoLinha label="Aguardando emissão" value={metaTotal.totalAguardando} />
+            <ResumoLinha label="Usuários na escala" value={metaTotal.usuarios} />
+            <ResumoLinha label="Meta média / usuário" value={metaTotal.mediaPorUsuario} highlight />
+            <div className="h-px bg-border my-2" />
+            <ResumoLinha label="Emitidas hoje" value={metaTotal.totalEmitidas} tone="green" />
+            <ResumoLinha label="Restantes" value={metaTotal.totalRestante} tone="amber" />
+            <div className="pt-2">
+              <Progress
+                value={
+                  metaTotal.totalMeta > 0
+                    ? Math.min(100, Math.round((metaTotal.totalEmitidas / metaTotal.totalMeta) * 100))
+                    : 0
+                }
+                className="h-2"
+              />
+              <div className="text-xs text-muted-foreground mt-1 text-right tabular-nums">
+                {metaTotal.totalMeta > 0
+                  ? Math.min(100, Math.round((metaTotal.totalEmitidas / metaTotal.totalMeta) * 100))
+                  : 0}
+                % concluído
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Cards individuais */}
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {metaPorUsuario.map((u) => (
+            <MetaUsuarioCard key={u.nome} usuario={u} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ResumoLinha({
+  label,
+  value,
+  highlight,
+  tone,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+  tone?: "green" | "amber";
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span
+        className={cn(
+          "font-bold tabular-nums",
+          highlight ? "text-2xl text-primary" : "text-lg",
+          tone === "green" && "text-emerald-600 dark:text-emerald-400",
+          tone === "amber" && "text-amber-600 dark:text-amber-400",
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function getIniciais(nome: string): string {
+  const parts = nome.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function MetaUsuarioCard({ usuario }: { usuario: MetaUsuario }) {
+  const { nome, meta, emitidas, restante, pct } = usuario;
+  const statusInfo =
+    meta === 0
+      ? { label: "Sem meta", color: "text-muted-foreground", bg: "bg-muted", ring: "ring-border" }
+      : pct >= 100
+      ? {
+          label: "Meta concluída",
+          color: "text-emerald-700 dark:text-emerald-300",
+          bg: "bg-emerald-500/15",
+          ring: "ring-emerald-500/40",
+        }
+      : pct >= 50
+      ? {
+          label: "Em andamento",
+          color: "text-blue-700 dark:text-blue-300",
+          bg: "bg-blue-500/15",
+          ring: "ring-blue-500/40",
+        }
+      : pct > 0
+      ? {
+          label: "Atenção",
+          color: "text-amber-700 dark:text-amber-300",
+          bg: "bg-amber-500/15",
+          ring: "ring-amber-500/40",
+        }
+      : {
+          label: "Não iniciado",
+          color: "text-red-700 dark:text-red-300",
+          bg: "bg-red-500/15",
+          ring: "ring-red-500/40",
+        };
+
+  return (
+    <Card className={cn("p-5 border border-border/60 ring-1 transition-all", statusInfo.ring)}>
+      <div className="flex items-center gap-3 mb-4">
+        <div
+          className={cn(
+            "h-12 w-12 rounded-full flex items-center justify-center font-bold text-lg shrink-0",
+            statusInfo.bg,
+            statusInfo.color,
+          )}
+        >
+          {getIniciais(nome)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-bold text-lg leading-tight truncate">{nome}</div>
+          <Badge className={cn("mt-1 font-medium", statusInfo.bg, statusInfo.color, "border-0")}>
+            {statusInfo.label}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="text-center">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Meta</div>
+          <div className="text-2xl font-bold tabular-nums mt-0.5">{meta}</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Emitidas</div>
+          <div className="text-2xl font-bold tabular-nums mt-0.5 text-emerald-600 dark:text-emerald-400">
+            {emitidas}
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Restante</div>
+          <div className="text-2xl font-bold tabular-nums mt-0.5 text-amber-600 dark:text-amber-400">
+            {restante}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between text-xs mb-1.5">
+          <span className="text-muted-foreground">Progresso</span>
+          <span className="font-bold tabular-nums">{pct}%</span>
+        </div>
+        <Progress value={pct} className="h-2.5" />
+      </div>
+    </Card>
+  );
+}
+
