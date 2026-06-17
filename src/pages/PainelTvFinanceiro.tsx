@@ -1413,9 +1413,9 @@ function MetaDiariaSection({
 
   return (
     <section className="space-y-2">
-      <Card className="p-3">
+      <Card className="p-3 space-y-3">
+        {/* Linha 1: título + totais + ações */}
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Título + resumo compacto */}
           <div className="flex items-center gap-2 min-w-0">
             <Target className="h-5 w-5 text-primary shrink-0" />
             <span className="font-semibold text-sm whitespace-nowrap">Meta diária</span>
@@ -1428,22 +1428,11 @@ function MetaDiariaSection({
               <Trophy className="h-3 w-3 text-primary" />
               {metaTotal.totalEmitidas}/{metaTotal.totalMeta}
             </Badge>
+            <Badge variant="outline" className="text-[11px] h-6">
+              Aguardando: <strong className="ml-1">{metaTotal.totalAguardando}</strong>
+            </Badge>
           </div>
 
-          {/* Chips de usuários — tudo na mesma linha */}
-          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-            {metaPorUsuario.length === 0 ? (
-              <span className="text-xs text-muted-foreground italic">
-                Defina a meta do dia para distribuir entre os usuários.
-              </span>
-            ) : (
-              metaPorUsuario.map((u) => (
-                <UsuarioMetaPill key={u.nome} usuario={u} />
-              ))
-            )}
-          </div>
-
-          {/* Ações */}
           <div className="flex items-center gap-1 ml-auto shrink-0">
             {metaFixa != null ? (
               <>
@@ -1462,7 +1451,21 @@ function MetaDiariaSection({
             <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
           </div>
         </div>
+
+        {/* Linha 2: cards compactos por usuário */}
+        {metaPorUsuario.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">
+            Defina a meta do dia para distribuir entre os usuários da escala.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            {metaPorUsuario.map((u) => (
+              <UsuarioMetaMini key={u.nome} usuario={u} />
+            ))}
+          </div>
+        )}
       </Card>
+
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
