@@ -503,13 +503,29 @@ export default function PainelTvFinanceiro() {
     return counts;
   }, [anexosMap, profileNameMap]);
 
+  // Meta fixa do dia (snapshot persistido em localStorage por data).
+  const todayKey = new Date().toLocaleDateString("en-CA");
+  const metaStorageKey = `painel-tv-meta-diaria-${todayKey}`;
+  const [metaDiariaFixa, setMetaDiariaFixa] = useState<number | null>(() => {
+    try {
+      const raw = localStorage.getItem(`painel-tv-meta-diaria-${new Date().toLocaleDateString("en-CA")}`);
+      if (raw == null) return null;
+      const n = parseInt(raw, 10);
+      return Number.isFinite(n) && n >= 0 ? n : null;
+    } catch {
+      return null;
+    }
+  });
+
   const metaPorUsuario = useMemo(() => {
     const totalAguardando = aguardandoEmissao.length;
     const totalEmitidasHoje = USUARIOS_META.reduce(
       (acc, u) => acc + (emitidasHojePorUsuario[u] || 0),
       0,
     );
-    const totalBase = totalAguardando + totalEmitidasHoje;
+    const totalDinamico = totalAguardando + totalEmitidasHoje;
+    // Se a meta foi fixada, usa o valor congelado; caso contrário, dinâmico.
+    const totalBase = metaDiariaFixa != null ? metaDiariaFixa : totalDinamico;
     const n = USUARIOS_META.length;
     const base = Math.floor(totalBase / n);
     const sobra = totalBase % n;
@@ -520,7 +536,7 @@ export default function PainelTvFinanceiro() {
       const pct = meta > 0 ? Math.min(100, Math.round((emitidas / meta) * 100)) : 0;
       return { nome: u, meta, emitidas, restante, pct };
     });
-  }, [aguardandoEmissao.length, emitidasHojePorUsuario]);
+  }, [aguardandoEmissao.length, emitidasHojePorUsuario, metaDiariaFixa]);
 
   const metaTotal = useMemo(() => {
     const totalEmitidas = metaPorUsuario.reduce((a, m) => a + m.emitidas, 0);
@@ -535,6 +551,27 @@ export default function PainelTvFinanceiro() {
       totalMeta,
     };
   }, [metaPorUsuario, aguardandoEmissao.length]);
+
+  const sugestaoMetaDinamica =
+    aguardandoEmissao.length +
+    USUARIOS_META.reduce((acc, u) => acc + (emitidasHojePorUsuario[u] || 0), 0);
+
+  const definirMetaDoDia = (valor: number) => {
+    const v = Math.max(0, Math.floor(valor));
+    try {
+      localStorage.setItem(metaStorageKey, String(v));
+    } catch {}
+    setMetaDiariaFixa(v);
+    toast({ title: "Meta do dia definida", description: `${v} empresas distribuídas entre os usuários.` });
+  };
+
+  const limparMetaDoDia = () => {
+    try {
+      localStorage.removeItem(metaStorageKey);
+    } catch {}
+    setMetaDiariaFixa(null);
+    toast({ title: "Meta do dia removida", description: "Voltando ao cálculo automático em tempo real." });
+  };
   // ==============================================================
 
   if (!podeVer) {
