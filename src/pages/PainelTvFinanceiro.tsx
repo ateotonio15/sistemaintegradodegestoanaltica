@@ -479,17 +479,27 @@ export default function PainelTvFinanceiro() {
   const { data: USUARIOS_DISPONIVEIS = [] } = useQuery({
     queryKey: ["tv-fin-usuarios-escala"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: roles, error: errRoles } = await supabase
         .from("user_roles")
-        .select("user_id, role, profiles!inner(display_name, username)")
+        .select("user_id, role")
         .in("role", ["financeiro", "admin"]);
-      if (error) {
-        console.error("[escala] erro ao carregar usuários:", error);
+      if (errRoles) {
+        console.error("[escala] erro ao carregar user_roles:", errRoles);
+        return [] as string[];
+      }
+      const ids = Array.from(new Set((roles || []).map((r: any) => r.user_id).filter(Boolean)));
+      if (ids.length === 0) return [] as string[];
+      const { data: profs, error: errProfs } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, username")
+        .in("user_id", ids);
+      if (errProfs) {
+        console.error("[escala] erro ao carregar profiles:", errProfs);
         return [] as string[];
       }
       const nomes = new Set<string>();
-      (data as any[]).forEach((r) => {
-        const nome = (r.profiles?.display_name || r.profiles?.username || "").trim();
+      (profs || []).forEach((p: any) => {
+        const nome = (p.display_name || p.username || "").trim();
         if (nome) nomes.add(nome);
       });
       return Array.from(nomes).sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -513,9 +523,26 @@ export default function PainelTvFinanceiro() {
       }
       return (data as unknown) as { valor: number; usuarios: string[] } | null;
     },
-    refetchInterval: 15000,
+    refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
+
+  // Realtime: propaga imediatamente quando outro usuário define/edita a meta.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`painel-tv-meta-diaria-${todayKey}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "painel_tv_meta_diaria", filter: `data=eq.${todayKey}` },
+        () => {
+          refetchMetaDiaria();
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [todayKey, refetchMetaDiaria]);
 
   const metaDiariaFixa =
     metaDiariaRow && typeof metaDiariaRow.valor === "number" && metaDiariaRow.valor >= 0
