@@ -1413,9 +1413,9 @@ function MetaDiariaSection({
 
   return (
     <section className="space-y-2">
-      <Card className="p-3">
+      <Card className="p-3 space-y-3">
+        {/* Linha 1: título + totais + ações */}
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Título + resumo compacto */}
           <div className="flex items-center gap-2 min-w-0">
             <Target className="h-5 w-5 text-primary shrink-0" />
             <span className="font-semibold text-sm whitespace-nowrap">Meta diária</span>
@@ -1428,22 +1428,11 @@ function MetaDiariaSection({
               <Trophy className="h-3 w-3 text-primary" />
               {metaTotal.totalEmitidas}/{metaTotal.totalMeta}
             </Badge>
+            <Badge variant="outline" className="text-[11px] h-6">
+              Aguardando: <strong className="ml-1">{metaTotal.totalAguardando}</strong>
+            </Badge>
           </div>
 
-          {/* Chips de usuários — tudo na mesma linha */}
-          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-            {metaPorUsuario.length === 0 ? (
-              <span className="text-xs text-muted-foreground italic">
-                Defina a meta do dia para distribuir entre os usuários.
-              </span>
-            ) : (
-              metaPorUsuario.map((u) => (
-                <UsuarioMetaPill key={u.nome} usuario={u} />
-              ))
-            )}
-          </div>
-
-          {/* Ações */}
           <div className="flex items-center gap-1 ml-auto shrink-0">
             {metaFixa != null ? (
               <>
@@ -1462,7 +1451,21 @@ function MetaDiariaSection({
             <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
           </div>
         </div>
+
+        {/* Linha 2: cards compactos por usuário */}
+        {metaPorUsuario.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">
+            Defina a meta do dia para distribuir entre os usuários da escala.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            {metaPorUsuario.map((u) => (
+              <UsuarioMetaMini key={u.nome} usuario={u} />
+            ))}
+          </div>
+        )}
       </Card>
+
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -1534,7 +1537,7 @@ function MetaDiariaSection({
   );
 }
 
-function UsuarioMetaPill({ usuario }: { usuario: MetaUsuario }) {
+function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
   const concluida = usuario.meta > 0 && usuario.emitidas >= usuario.meta;
   const iniciais = usuario.nome
     .split(" ")
@@ -1545,31 +1548,48 @@ function UsuarioMetaPill({ usuario }: { usuario: MetaUsuario }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-full border px-2 py-1 text-xs",
+        "flex items-center gap-2 rounded-lg border px-2.5 py-1.5",
         concluida
-          ? "border-emerald-500/40 bg-emerald-500/10"
+          ? "border-emerald-500/40 bg-emerald-500/5"
           : usuario.emitidas > 0
-            ? "border-amber-500/40 bg-amber-500/10"
-            : "border-border bg-muted/40",
+            ? "border-amber-500/40 bg-amber-500/5"
+            : "border-border bg-muted/30",
       )}
-      title={`${usuario.nome} · ${usuario.emitidas}/${usuario.meta}`}
+      title={`${usuario.nome} · ${usuario.emitidas}/${usuario.meta} (faltam ${usuario.restante})`}
     >
       <span
         className={cn(
-          "h-5 w-5 rounded-full grid place-items-center text-[10px] font-bold shrink-0",
+          "h-7 w-7 rounded-full grid place-items-center text-[10px] font-bold shrink-0",
           concluida ? "bg-emerald-500 text-white" : "bg-primary/15 text-primary",
         )}
       >
         {iniciais || "?"}
       </span>
-      <span className="font-medium truncate max-w-[110px]">{usuario.nome}</span>
-      <span className="tabular-nums font-semibold">
-        {usuario.emitidas}
-        <span className="text-muted-foreground">/{usuario.meta}</span>
-      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium truncate">{usuario.nome}</span>
+          <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">
+            {usuario.pct}%
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] tabular-nums leading-tight">
+          <span>
+            <span className="text-muted-foreground">Meta</span>{" "}
+            <strong className="text-foreground">{usuario.meta}</strong>
+          </span>
+          <span className="text-emerald-600 dark:text-emerald-500">
+            ✓ {usuario.emitidas}
+          </span>
+          <span className="text-amber-600 dark:text-amber-500">
+            • {usuario.restante}
+          </span>
+        </div>
+        <Progress value={usuario.pct} className="h-1 mt-1" />
+      </div>
     </div>
   );
 }
+
 
 
 function ResumoLinha({
