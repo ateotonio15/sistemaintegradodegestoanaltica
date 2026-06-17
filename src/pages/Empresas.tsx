@@ -1502,8 +1502,8 @@ export default function Empresas() {
                     <TableHead className="font-semibold">CNPJ</TableHead>
                     <TableHead className="font-semibold text-right">Vidas Ativas</TableHead>
                     <TableHead className="font-semibold">Corretora</TableHead>
-                    <TableHead className="font-semibold">Tipo</TableHead>
-                    <TableHead className="font-semibold">Período / Corte</TableHead>
+                    <TableHead className="font-semibold">TIPO DE MOVIMENTAÇÃO</TableHead>
+                    <TableHead className="font-semibold">PERÍODO DE MOVIMENTAÇÃO</TableHead>
                     <TableHead className="font-semibold">Implantação</TableHead>
                     <TableHead className="font-semibold">Venc. Fatura</TableHead>
                     <TableHead className="font-semibold">Emissão Fatura</TableHead>
