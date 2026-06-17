@@ -1276,6 +1276,10 @@ type MetaUsuario = {
 function MetaDiariaSection({
   metaPorUsuario,
   metaTotal,
+  metaFixa,
+  sugestaoMeta,
+  onDefinirMeta,
+  onLimparMeta,
 }: {
   metaPorUsuario: MetaUsuario[];
   metaTotal: {
@@ -1286,7 +1290,26 @@ function MetaDiariaSection({
     totalRestante: number;
     totalMeta: number;
   };
+  metaFixa: number | null;
+  sugestaoMeta: number;
+  onDefinirMeta: (valor: number) => void;
+  onLimparMeta: () => void;
 }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [valorInput, setValorInput] = useState<string>("");
+
+  const abrirDialog = () => {
+    setValorInput(String(metaFixa ?? sugestaoMeta));
+    setDialogOpen(true);
+  };
+
+  const confirmar = () => {
+    const n = parseInt(valorInput, 10);
+    if (!Number.isFinite(n) || n < 0) return;
+    onDefinirMeta(n);
+    setDialogOpen(false);
+  };
+
   return (
     <section className="space-y-4">
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -1296,14 +1319,70 @@ function MetaDiariaSection({
             Meta diária de emissão
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Distribuição automática das empresas aguardando emissão.
+            {metaFixa != null
+              ? `Meta fixada do dia: ${metaFixa} empresas (não muda com novos cadastros).`
+              : "Distribuição automática das empresas aguardando emissão."}
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          Atualização em tempo real
+        <div className="flex items-center gap-2 flex-wrap">
+          {metaFixa != null ? (
+            <>
+              <Badge variant="outline" className="text-xs gap-1">
+                <Target className="h-3 w-3" /> Meta fixa: {metaFixa}
+              </Badge>
+              <Button variant="outline" size="sm" onClick={abrirDialog}>
+                Editar meta
+              </Button>
+              <Button variant="ghost" size="sm" onClick={onLimparMeta}>
+                Limpar
+              </Button>
+            </>
+          ) : (
+            <Button variant="default" size="sm" onClick={abrirDialog}>
+              <Target className="h-4 w-4 mr-1" /> Definir meta do dia
+            </Button>
+          )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            Tempo real
+          </div>
         </div>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Definir meta diária de emissão</DialogTitle>
+            <DialogDescription>
+              A meta será congelada com este valor. Novas empresas adicionadas ao longo do dia
+              não alteram a distribuição entre os usuários.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label htmlFor="meta-input">Total de empresas para emitir hoje</Label>
+            <Input
+              id="meta-input"
+              type="number"
+              min={0}
+              value={valorInput}
+              onChange={(e) => setValorInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") confirmar();
+              }}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              Sugestão atual (aguardando + emitidas hoje): <strong>{sugestaoMeta}</strong>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmar}>Salvar meta</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Card resumo geral */}
