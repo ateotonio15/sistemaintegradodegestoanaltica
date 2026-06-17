@@ -110,9 +110,9 @@ export function FinanceiroTable({
             <TableHead className="font-semibold text-center">Contrato</TableHead>
             <TableHead className="font-semibold text-center">CNPJ</TableHead>
             <TableHead className="font-semibold text-center">Número de vidas</TableHead>
-            <TableHead className="font-semibold text-center">Período / Corte</TableHead>
+            <TableHead className="font-semibold text-center">PERÍODO DE MOVIMENTAÇÃO</TableHead>
             <TableHead className="font-semibold text-center">Responsável</TableHead>
-            <TableHead className="font-semibold text-center">Tipo</TableHead>
+            <TableHead className="font-semibold text-center">TIPO DE MOVIMENTAÇÃO</TableHead>
             <TableHead className="font-semibold text-center">Emissão</TableHead>
             <TableHead className="font-semibold text-center">Status</TableHead>
             <TableHead className="font-semibold text-center">Usuário</TableHead>
