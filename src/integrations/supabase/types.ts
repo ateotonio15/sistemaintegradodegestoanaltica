@@ -2739,18 +2739,21 @@ export type Database = {
           created_at: string
           data: string
           updated_at: string
+          usuarios: Json
           valor: number
         }
         Insert: {
           created_at?: string
           data: string
           updated_at?: string
+          usuarios?: Json
           valor: number
         }
         Update: {
           created_at?: string
           data?: string
           updated_at?: string
+          usuarios?: Json
           valor?: number
         }
         Relationships: []
