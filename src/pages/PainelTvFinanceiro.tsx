@@ -574,12 +574,8 @@ export default function PainelTvFinanceiro() {
   const snapshotSet = useMemo(() => new Set(snapshotIds), [snapshotIds]);
   const hasSnapshot = snapshotIds.length > 0;
 
-  // Mapa: movimentacao_id -> empresa_id (para filtrar anexos pelo snapshot).
-  const movToEmpresaId = useMemo(() => {
-    const m: Record<string, string> = {};
-    rows.forEach((r) => { m[r.id] = r.empresa_id; });
-    return m;
-  }, [rows]);
+
+
 
   const emitidasHojePorUsuario = useMemo(() => {
     const counts: Record<string, number> = {};
