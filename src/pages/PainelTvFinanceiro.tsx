@@ -1412,43 +1412,57 @@ function MetaDiariaSection({
   };
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Target className="h-6 w-6 text-primary" />
-            Meta diária de emissão
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {metaFixa != null
-              ? `Meta fixada do dia: ${metaFixa} empresas (não muda com novos cadastros).`
-              : "Distribuição automática das empresas aguardando emissão."}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {metaFixa != null ? (
-            <>
-              <Badge variant="outline" className="text-xs gap-1">
-                <Target className="h-3 w-3" /> Meta fixa: {metaFixa}
+    <section className="space-y-2">
+      <Card className="p-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Título + resumo compacto */}
+          <div className="flex items-center gap-2 min-w-0">
+            <Target className="h-5 w-5 text-primary shrink-0" />
+            <span className="font-semibold text-sm whitespace-nowrap">Meta diária</span>
+            {metaFixa != null && (
+              <Badge variant="outline" className="text-[11px] gap-1 h-6">
+                Meta: <strong>{metaFixa}</strong>
               </Badge>
-              <Button variant="outline" size="sm" onClick={abrirDialog}>
-                Editar meta
+            )}
+            <Badge variant="outline" className="text-[11px] h-6 gap-1">
+              <Trophy className="h-3 w-3 text-primary" />
+              {metaTotal.totalEmitidas}/{metaTotal.totalMeta}
+            </Badge>
+          </div>
+
+          {/* Chips de usuários — tudo na mesma linha */}
+          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+            {metaPorUsuario.length === 0 ? (
+              <span className="text-xs text-muted-foreground italic">
+                Defina a meta do dia para distribuir entre os usuários.
+              </span>
+            ) : (
+              metaPorUsuario.map((u) => (
+                <UsuarioMetaPill key={u.nome} usuario={u} />
+              ))
+            )}
+          </div>
+
+          {/* Ações */}
+          <div className="flex items-center gap-1 ml-auto shrink-0">
+            {metaFixa != null ? (
+              <>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={abrirDialog}>
+                  Editar
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onLimparMeta}>
+                  Limpar
+                </Button>
+              </>
+            ) : (
+              <Button variant="default" size="sm" className="h-7 px-2 text-xs" onClick={abrirDialog}>
+                <Target className="h-3 w-3 mr-1" /> Definir meta
               </Button>
-              <Button variant="ghost" size="sm" onClick={onLimparMeta}>
-                Limpar
-              </Button>
-            </>
-          ) : (
-            <Button variant="default" size="sm" onClick={abrirDialog}>
-              <Target className="h-4 w-4 mr-1" /> Definir meta do dia
-            </Button>
-          )}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            Tempo real
+            )}
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
           </div>
         </div>
-      </div>
+      </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -1474,7 +1488,7 @@ function MetaDiariaSection({
                 autoFocus
               />
               <p className="text-xs text-muted-foreground">
-                Sugestão atual (aguardando + emitidas hoje): <strong>{sugestaoMeta}</strong>
+                Sugestão atual (aguardando emissão): <strong>{sugestaoMeta}</strong>
               </p>
             </div>
 
@@ -1516,54 +1530,47 @@ function MetaDiariaSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Card resumo geral */}
-        <Card className="p-5 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 lg:col-span-1">
-          <div className="flex items-center gap-2 mb-3">
-            <Trophy className="h-5 w-5 text-primary" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Meta total do dia
-            </span>
-          </div>
-          <div className="space-y-3">
-            <ResumoLinha label="Aguardando emissão" value={metaTotal.totalAguardando} />
-            <ResumoLinha label="Usuários na escala" value={metaTotal.usuarios} />
-            <ResumoLinha label="Meta média / usuário" value={metaTotal.mediaPorUsuario} highlight />
-            <div className="h-px bg-border my-2" />
-            <ResumoLinha label="Emitidas hoje" value={metaTotal.totalEmitidas} tone="green" />
-            <ResumoLinha label="Restantes" value={metaTotal.totalRestante} tone="amber" />
-            <div className="pt-2">
-              <Progress
-                value={
-                  metaTotal.totalMeta > 0
-                    ? Math.min(100, Math.round((metaTotal.totalEmitidas / metaTotal.totalMeta) * 100))
-                    : 0
-                }
-                className="h-2"
-              />
-              <div className="text-xs text-muted-foreground mt-1 text-right tabular-nums">
-                {metaTotal.totalMeta > 0
-                  ? Math.min(100, Math.round((metaTotal.totalEmitidas / metaTotal.totalMeta) * 100))
-                  : 0}
-                % concluído
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Cards individuais */}
-        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {metaPorUsuario.map((u) => (
-            <MetaUsuarioCard key={u.nome} usuario={u} />
-          ))}
-        </div>
-      </div>
     </section>
   );
 }
+
+function UsuarioMetaPill({ usuario }: { usuario: MetaUsuario }) {
+  const concluida = usuario.meta > 0 && usuario.emitidas >= usuario.meta;
+  const iniciais = usuario.nome
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-full border px-2 py-1 text-xs",
+        concluida
+          ? "border-emerald-500/40 bg-emerald-500/10"
+          : usuario.emitidas > 0
+            ? "border-amber-500/40 bg-amber-500/10"
+            : "border-border bg-muted/40",
+      )}
+      title={`${usuario.nome} · ${usuario.emitidas}/${usuario.meta}`}
+    >
+      <span
+        className={cn(
+          "h-5 w-5 rounded-full grid place-items-center text-[10px] font-bold shrink-0",
+          concluida ? "bg-emerald-500 text-white" : "bg-primary/15 text-primary",
+        )}
+      >
+        {iniciais || "?"}
+      </span>
+      <span className="font-medium truncate max-w-[110px]">{usuario.nome}</span>
+      <span className="tabular-nums font-semibold">
+        {usuario.emitidas}
+        <span className="text-muted-foreground">/{usuario.meta}</span>
+      </span>
+    </div>
+  );
+}
+
 
 function ResumoLinha({
   label,
