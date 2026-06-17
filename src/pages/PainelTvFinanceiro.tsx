@@ -1460,7 +1460,7 @@ function MetaDiariaSection({
 
   return (
     <section className="space-y-2">
-      <Card className="p-5 space-y-4 w-fit max-w-full mx-auto">
+      <Card className="p-5 space-y-4">
         {/* Linha 1: título + totais + ações */}
         <div className="flex items-center gap-3 flex-wrap">
           <Target className="h-7 w-7 text-primary shrink-0" />
@@ -1478,7 +1478,7 @@ function MetaDiariaSection({
             Aguardando: <strong className="ml-1">{metaTotal.totalAguardando}</strong>
           </Badge>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 ml-auto shrink-0">
             {metaFixa != null ? (
               <>
                 <Button variant="outline" size="sm" className="h-9 px-3 text-sm" onClick={abrirDialog}>
@@ -1498,21 +1498,20 @@ function MetaDiariaSection({
         </div>
 
 
-
-        {/* Linha 2: cards compactos por usuário */}
+        {/* Linha 2: cards por usuário — colunas se ajustam à quantidade (máx 4) */}
         {metaPorUsuario.length === 0 ? (
           <p className="text-xs text-muted-foreground italic">
             Defina a meta do dia para distribuir entre os usuários da escala.
           </p>
         ) : (
-          <div className="flex flex-wrap justify-center gap-3">
+          <div
+            className="grid gap-3"
+            style={{
+              gridTemplateColumns: `repeat(${Math.min(metaPorUsuario.length, 4)}, minmax(0, 1fr))`,
+            }}
+          >
             {metaPorUsuario.map((u) => (
-              <div
-                key={u.nome}
-                className="flex-1 min-w-[260px] max-w-[420px] basis-[260px]"
-              >
-                <UsuarioMetaMini usuario={u} />
-              </div>
+              <UsuarioMetaMini key={u.nome} usuario={u} />
             ))}
           </div>
         )}
