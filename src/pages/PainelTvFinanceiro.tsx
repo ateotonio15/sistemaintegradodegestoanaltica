@@ -1621,7 +1621,7 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
       ) : (
         <span
           className={cn(
-            "h-16 w-16 rounded-full grid place-items-center text-lg font-bold shrink-0",
+            "h-16 w-16 rounded-full grid place-items-center text-xl font-bold shrink-0",
             concluida ? "bg-emerald-500 text-white" : "bg-primary/15 text-primary",
           )}
         >
@@ -1630,22 +1630,22 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-lg font-semibold truncate">
+          <span className="text-2xl font-semibold truncate">
             {usuario.nome}
             {sonic && (
-              <span className="ml-2 animate-sonic-text uppercase tracking-wider text-base">
+              <span className="ml-2 animate-sonic-text uppercase tracking-wider text-xl">
                 Sonic
               </span>
             )}
           </span>
-          <span className="text-base tabular-nums text-muted-foreground shrink-0">
+          <span className="text-xl tabular-nums text-muted-foreground shrink-0">
             {usuario.pct}%
           </span>
         </div>
-        <div className="flex items-center gap-4 text-base tabular-nums leading-tight mt-1">
+        <div className="flex items-center gap-4 text-xl tabular-nums leading-tight mt-1">
           <span>
             <span className="text-muted-foreground">Meta</span>{" "}
-            <strong className="text-foreground text-lg">{usuario.meta}</strong>
+            <strong className="text-foreground text-2xl">{usuario.meta}</strong>
           </span>
           <span className="text-emerald-600 dark:text-emerald-500 font-semibold">
             ✓ {usuario.emitidas}
@@ -1655,6 +1655,7 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
           </span>
         </div>
         <Progress value={usuario.pct} className="h-2.5 mt-3" />
+
       </div>
     </div>
   );
