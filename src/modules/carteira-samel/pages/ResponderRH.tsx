@@ -61,7 +61,7 @@ export default function ResponderRH() {
       compartilhamento_id: compartilhamentoId || null,
     });
     setEnviando(false);
-    if (error) { toast.error("Erro ao enviar"); return; }
+    if (error) { console.error("Erro ao enviar avaliação:", error); toast.error(`Erro ao enviar: ${error.message || error.code || "desconhecido"}`); return; }
     setEnviado(true);
   };
 
