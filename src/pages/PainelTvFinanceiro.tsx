@@ -46,6 +46,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  History,
   Maximize2,
   Minimize2,
   RefreshCw,
