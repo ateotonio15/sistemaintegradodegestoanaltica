@@ -666,10 +666,20 @@ export default function PainelTvFinanceiro() {
       toast({ title: "Selecione ao menos um usuário", variant: "destructive" });
       return;
     }
+    // Congela as empresas atualmente em "Aguardando emissão".
+    // Empresas em "Em faturamento"/"Faturado" no momento da definição ficam de fora.
+    const snapshot = aguardandoEmissao.map((r) => r.id);
     const { error } = await supabase
       .from("painel_tv_meta_diaria" as any)
       .upsert(
-        { data: todayKey, valor: v, usuarios: us, iniciada_em: new Date().toISOString(), updated_at: new Date().toISOString() },
+        {
+          data: todayKey,
+          valor: v,
+          usuarios: us,
+          empresas_snapshot: snapshot,
+          iniciada_em: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
         { onConflict: "data" },
       );
     if (error) {
@@ -678,8 +688,12 @@ export default function PainelTvFinanceiro() {
       return;
     }
     await refetchMetaDiaria();
-    toast({ title: "Meta do dia definida", description: `${v} empresas distribuídas entre ${us.length} usuário(s).` });
+    toast({
+      title: "Meta do dia definida",
+      description: `${snapshot.length} empresa(s) em Aguardando emissão congeladas, distribuídas entre ${us.length} usuário(s).`,
+    });
   };
+
 
   const limparMetaDoDia = async () => {
     const { error } = await supabase
