@@ -673,6 +673,7 @@ export default function PainelTvFinanceiro() {
               selections={selections}
               onChange={setSelections}
             />
+            {isAdmin && <MetaHistoricoButton />}
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-1" /> Atualizar
             </Button>
