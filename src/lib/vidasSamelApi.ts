@@ -59,7 +59,7 @@ export async function login(credentials?: Credentials): Promise<string> {
   if (!credentials || !credentials.username || !credentials.password) {
     throw new Error("Credenciais necessárias para login");
   }
-  const res = await fetch(`${VIDAS_API_BASE_URL}/auth/login`, {
+  const res = await fetch(`${ensureBaseUrl()}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
@@ -90,7 +90,7 @@ async function authedFetch(path: string, init: RequestInit = {}, retried = false
   headers.set("Authorization", `Bearer ${token}`);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
-  const res = await fetch(`${VIDAS_API_BASE_URL}${path}`, { ...init, headers });
+  const res = await fetch(`${ensureBaseUrl()}${path}`, { ...init, headers });
   if (res.status === 401 && !retried) {
     clearToken();
     if (onUnauthorized) onUnauthorized();
