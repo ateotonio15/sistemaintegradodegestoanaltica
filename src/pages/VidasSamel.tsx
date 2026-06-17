@@ -21,8 +21,12 @@ import { HeartPulse, Users as UsersIcon, User, Search, Filter, RefreshCcw, Chevr
 import { toast } from "sonner";
 import {
   listVidas, login, setUnauthorizedHandler, getSavedCredentials, saveCredentials, getToken,
+  listAllVidasParaContratos,
 } from "@/lib/vidasSamelApi";
 import type { Beneficiario, VidasFilters } from "@/types/vidasSamel";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Download } from "lucide-react";
+
 
 function formatDateBR(s?: string | null): string {
   if (!s) return "—";
