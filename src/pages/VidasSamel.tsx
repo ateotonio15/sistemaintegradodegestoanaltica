@@ -471,3 +471,217 @@ function DetailSection({ title, rows }: { title: string; rows: Array<[string, an
     </div>
   );
 }
+
+interface ContratoAgg {
+  NR_CONTRATO: string;
+  NM_ESTIPULANTE: string;
+  DS_CLASSIFICACAO: string;
+  CD_CLASSIF_CONTRATO?: string;
+  DT_CONTRATO?: string;
+  qtdVidas: number;
+  situacaoPredominante: string;
+}
+
+function ContratosClassificacaoTab() {
+  const [classif, setClassif] = useState("4");
+  const [appliedClassif, setAppliedClassif] = useState("4");
+  const [search, setSearch] = useState("");
+  const [progress, setProgress] = useState<{ loaded: number; total: number } | null>(null);
+
+  const query = useQuery({
+    queryKey: ["vidas-samel-contratos-classif", appliedClassif],
+    queryFn: async () => {
+      setProgress({ loaded: 0, total: 0 });
+      const vidas = await listAllVidasParaContratos({
+        classificacao: appliedClassif,
+        onProgress: (loaded, total) => setProgress({ loaded, total }),
+      });
+      // Agrupa por NR_CONTRATO
+      const map = new Map<string, ContratoAgg & { _situacoes: Record<string, number> }>();
+      for (const v of vidas) {
+        const key = String(v.NR_CONTRATO ?? "—");
+        let agg = map.get(key);
+        if (!agg) {
+          agg = {
+            NR_CONTRATO: key,
+            NM_ESTIPULANTE: v.NM_ESTIPULANTE ?? "—",
+            DS_CLASSIFICACAO: v.DS_CLASSIFICACAO ?? "—",
+            CD_CLASSIF_CONTRATO: (v as any).CD_CLASSIF_CONTRATO != null ? String((v as any).CD_CLASSIF_CONTRATO) : undefined,
+            DT_CONTRATO: v.DT_CONTRATO,
+            qtdVidas: 0,
+            situacaoPredominante: "—",
+            _situacoes: {},
+          };
+          map.set(key, agg);
+        }
+        agg.qtdVidas += 1;
+        const s = (v.DS_SITUACAO_ATUAL ?? "—").toString();
+        agg._situacoes[s] = (agg._situacoes[s] ?? 0) + 1;
+      }
+      const list: ContratoAgg[] = Array.from(map.values()).map((a) => {
+        const sit = Object.entries(a._situacoes).sort((x, y) => y[1] - x[1])[0];
+        return { ...a, situacaoPredominante: sit ? sit[0] : "—" };
+      });
+      list.sort((a, b) => b.qtdVidas - a.qtdVidas);
+      return list;
+    },
+    enabled: !!getToken(),
+    staleTime: 10 * 60_000,
+    retry: 1,
+  });
+
+  useEffect(() => {
+    if (query.error) toast.error((query.error as Error).message);
+  }, [query.error]);
+
+  const rows = useMemo(() => {
+    const all = query.data ?? [];
+    const s = search.trim().toLowerCase();
+    if (!s) return all;
+    return all.filter(
+      (r) =>
+        r.NR_CONTRATO.toLowerCase().includes(s) ||
+        r.NM_ESTIPULANTE.toLowerCase().includes(s),
+    );
+  }, [query.data, search]);
+
+  const totalVidas = useMemo(() => rows.reduce((a, b) => a + b.qtdVidas, 0), [rows]);
+
+  function exportarCsv() {
+    const header = [
+      "NR_CONTRATO",
+      "NM_ESTIPULANTE",
+      "DS_CLASSIFICACAO",
+      "CD_CLASSIF_CONTRATO",
+      "DT_CONTRATO",
+      "QTD_VIDAS",
+      "SITUACAO_PREDOMINANTE",
+    ];
+    const lines = [header.join(";")];
+    for (const r of rows) {
+      lines.push(
+        [
+          r.NR_CONTRATO,
+          `"${(r.NM_ESTIPULANTE ?? "").replace(/"/g, '""')}"`,
+          `"${(r.DS_CLASSIFICACAO ?? "").replace(/"/g, '""')}"`,
+          r.CD_CLASSIF_CONTRATO ?? "",
+          r.DT_CONTRATO ?? "",
+          String(r.qtdVidas),
+          `"${(r.situacaoPredominante ?? "").replace(/"/g, '""')}"`,
+        ].join(";"),
+      );
+    }
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `contratos-classificacao-${appliedClassif || "todos"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <Card className="rounded-xl shadow-sm">
+      <CardContent className="p-4 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-end gap-3">
+          <Field label="Classificação (CD_CLASSIF_CONTRATO ou DS_CLASSIFICACAO)">
+            <Input
+              value={classif}
+              onChange={(e) => setClassif(e.target.value)}
+              placeholder="Ex.: 4"
+              className="w-[260px]"
+            />
+          </Field>
+          <Field label="Buscar contrato / estipulante">
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filtrar a lista carregada"
+              className="w-[280px]"
+            />
+          </Field>
+          <div className="flex gap-2 md:ml-auto">
+            <Button
+              onClick={() => setAppliedClassif(classif.trim())}
+              disabled={query.isFetching}
+            >
+              <Search className="h-4 w-4 mr-1" />
+              {query.isFetching ? "Carregando..." : "Buscar"}
+            </Button>
+            <Button variant="outline" onClick={() => query.refetch()} disabled={query.isFetching}>
+              <RefreshCcw className="h-4 w-4 mr-1" /> Atualizar
+            </Button>
+            <Button variant="outline" onClick={exportarCsv} disabled={rows.length === 0}>
+              <Download className="h-4 w-4 mr-1" /> CSV
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <span>
+            Contratos: <b className="text-foreground">{rows.length.toLocaleString("pt-BR")}</b>
+          </span>
+          <span>
+            Total de vidas: <b className="text-foreground">{totalVidas.toLocaleString("pt-BR")}</b>
+          </span>
+          {query.isFetching && progress && (
+            <span>
+              Lendo API… {progress.loaded.toLocaleString("pt-BR")}
+              {progress.total ? ` / ${progress.total.toLocaleString("pt-BR")}` : ""}
+            </span>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>NR_CONTRATO</TableHead>
+                <TableHead className="min-w-[260px]">NM_ESTIPULANTE</TableHead>
+                <TableHead className="min-w-[200px]">DS_CLASSIFICACAO</TableHead>
+                <TableHead>CD_CLASSIF_CONTRATO</TableHead>
+                <TableHead>DT_CONTRATO</TableHead>
+                <TableHead className="text-right">Qtd vidas</TableHead>
+                <TableHead>Situação predominante</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {query.isLoading || query.isFetching ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 7 }).map((__, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                    Nenhum contrato encontrado para classificação "{appliedClassif}".
+                  </TableCell>
+                </TableRow>
+              ) : (
+                rows.map((r) => (
+                  <TableRow key={r.NR_CONTRATO}>
+                    <TableCell className="font-medium">{r.NR_CONTRATO}</TableCell>
+                    <TableCell>{r.NM_ESTIPULANTE}</TableCell>
+                    <TableCell>{r.DS_CLASSIFICACAO}</TableCell>
+                    <TableCell>{r.CD_CLASSIF_CONTRATO ?? "—"}</TableCell>
+                    <TableCell>
+                      {r.DT_CONTRATO ? formatDateBR(r.DT_CONTRATO) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {r.qtdVidas.toLocaleString("pt-BR")}
+                    </TableCell>
+                    <TableCell>{situacaoBadge(r.situacaoPredominante)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
