@@ -18,7 +18,7 @@ import { Card } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { CalendarRange, Check, ChevronDown, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
+import { CalendarRange, Check, ChevronDown, GripVertical, ArrowUp, ArrowDown, Pin, PinOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -116,9 +116,18 @@ export default function PainelTvFinanceiro() {
   const podeVer = isAdmin || isFinanceiro || role === "diretora";
 
   // Seleção: { mes_referencia: [periodos...] }. Periodos = subset de PERIODOS_FIN.
-  const [selections, setSelections] = useState<Record<string, string[]>>(() => ({
-    [getCurrentMesReferencia()]: [...PERIODOS_FIN],
-  }));
+  const [selections, setSelections] = useState<Record<string, string[]>>(() => {
+    try {
+      const raw = localStorage.getItem("painel-tv-fin:competencias-fixadas");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+          return parsed as Record<string, string[]>;
+        }
+      }
+    } catch {}
+    return { [getCurrentMesReferencia()]: [...PERIODOS_FIN] };
+  });
   const mesesSelecionados = useMemo(
     () => Object.keys(selections).filter((m) => selections[m]?.length > 0).sort(),
     [selections],
@@ -1259,6 +1268,33 @@ function CompetenciaPeriodoPicker({
   const limpar = () => onChange({});
   const mesAtual = () => onChange({ [getCurrentMesReferencia()]: [...PERIODOS_FIN] });
 
+  const FIX_KEY = "painel-tv-fin:competencias-fixadas";
+  const [fixado, setFixado] = useState<boolean>(() => {
+    try {
+      return !!localStorage.getItem(FIX_KEY);
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleFixar = () => {
+    try {
+      if (fixado) {
+        localStorage.removeItem(FIX_KEY);
+        setFixado(false);
+        toast({ title: "Seleção desafixada", description: "Ao reabrir, voltará ao mês atual." });
+      } else {
+        if (totalMeses === 0) {
+          toast({ title: "Selecione ao menos uma competência", variant: "destructive" });
+          return;
+        }
+        localStorage.setItem(FIX_KEY, JSON.stringify(selections));
+        setFixado(true);
+        toast({ title: "Seleção fixada", description: "Será carregada sempre que abrir o painel." });
+      }
+    } catch {}
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -1270,6 +1306,7 @@ function CompetenciaPeriodoPicker({
                 ? "Selecionar competências"
                 : `${totalMeses} competência${totalMeses > 1 ? "s" : ""}`}
             </span>
+            {fixado && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
           </span>
           <ChevronDown className="h-4 w-4 opacity-60" />
         </Button>
@@ -1283,6 +1320,16 @@ function CompetenciaPeriodoPicker({
             </div>
           </div>
           <div className="flex gap-1">
+            <Button
+              variant={fixado ? "default" : "ghost"}
+              size="sm"
+              className="h-7 px-2 text-xs gap-1"
+              onClick={toggleFixar}
+              title={fixado ? "Desafixar seleção salva" : "Fixar esta seleção como padrão"}
+            >
+              {fixado ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+              {fixado ? "Desafixar" : "Fixar"}
+            </Button>
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={mesAtual}>
               Mês atual
             </Button>
@@ -1413,44 +1460,45 @@ function MetaDiariaSection({
 
   return (
     <section className="space-y-2">
-      <Card className="p-3 space-y-3">
+      <Card className="p-5 space-y-4">
         {/* Linha 1: título + totais + ações */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 min-w-0">
-            <Target className="h-5 w-5 text-primary shrink-0" />
-            <span className="font-semibold text-sm whitespace-nowrap">Meta diária</span>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <Target className="h-7 w-7 text-primary shrink-0" />
+            <span className="font-semibold text-xl whitespace-nowrap">Meta diária</span>
             {metaFixa != null && (
-              <Badge variant="outline" className="text-[11px] gap-1 h-6">
+              <Badge variant="outline" className="text-base gap-1 h-9 px-3">
                 Meta: <strong>{metaFixa}</strong>
               </Badge>
             )}
-            <Badge variant="outline" className="text-[11px] h-6 gap-1">
-              <Trophy className="h-3 w-3 text-primary" />
+            <Badge variant="outline" className="text-base h-9 gap-1.5 px-3">
+              <Trophy className="h-4 w-4 text-primary" />
               {metaTotal.totalEmitidas}/{metaTotal.totalMeta}
             </Badge>
-            <Badge variant="outline" className="text-[11px] h-6">
+            <Badge variant="outline" className="text-base h-9 px-3">
               Aguardando: <strong className="ml-1">{metaTotal.totalAguardando}</strong>
             </Badge>
           </div>
 
-          <div className="flex items-center gap-1 ml-auto shrink-0">
+          <div className="flex items-center gap-2 ml-auto shrink-0">
             {metaFixa != null ? (
               <>
-                <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={abrirDialog}>
+                <Button variant="outline" size="sm" className="h-9 px-3 text-sm" onClick={abrirDialog}>
                   Editar
                 </Button>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onLimparMeta}>
+                <Button variant="ghost" size="sm" className="h-9 px-3 text-sm" onClick={onLimparMeta}>
                   Limpar
                 </Button>
               </>
             ) : (
-              <Button variant="default" size="sm" className="h-7 px-2 text-xs" onClick={abrirDialog}>
-                <Target className="h-3 w-3 mr-1" /> Definir meta
+              <Button variant="default" size="sm" className="h-9 px-3 text-sm" onClick={abrirDialog}>
+                <Target className="h-4 w-4 mr-1.5" /> Definir meta
               </Button>
             )}
-            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
+            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse ml-1" />
           </div>
         </div>
+
 
         {/* Linha 2: cards compactos por usuário */}
         {metaPorUsuario.length === 0 ? (
