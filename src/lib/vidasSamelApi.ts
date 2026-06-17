@@ -126,3 +126,48 @@ export async function getVida(cd_pessoa_fisica: string): Promise<PaginatedRespon
   }
   return res.json();
 }
+
+/**
+ * Pagina /vidas-contrato e devolve todas as vidas, opcionalmente filtrando
+ * localmente por classificação (compara DS_CLASSIFICACAO ou CD_CLASSIF_CONTRATO
+ * se vier no payload). Para de paginar quando atinge `maxRows` (default 50.000).
+ */
+export async function listAllVidasParaContratos(opts: {
+  classificacao?: string;
+  maxRows?: number;
+  pageSize?: number;
+  onProgress?: (loaded: number, total: number) => void;
+} = {}): Promise<Beneficiario[]> {
+  const pageSize = opts.pageSize ?? 500;
+  const maxRows = opts.maxRows ?? 50000;
+  const wanted = (opts.classificacao ?? "").trim().toUpperCase();
+
+  const matches = (b: Beneficiario): boolean => {
+    if (!wanted) return true;
+    const cd = (b as any).CD_CLASSIF_CONTRATO;
+    if (cd !== undefined && cd !== null && String(cd).trim() === wanted) return true;
+    const ds = (b.DS_CLASSIFICACAO ?? "").toString().toUpperCase().trim();
+    if (!ds) return false;
+    if (ds === wanted) return true;
+    // Padrões "4", "4 - EMPRESARIAL", "4-EMPRESARIAL"
+    const head = ds.split(/[\s\-]+/)[0];
+    return head === wanted;
+  };
+
+  const out: Beneficiario[] = [];
+  let page = 1;
+  let totalPages = 1;
+  let loaded = 0;
+  do {
+    const resp = await listVidas({ page, pageSize });
+    const batch = resp.data ?? [];
+    loaded += batch.length;
+    totalPages = resp.pagination?.totalPages ?? 1;
+    for (const b of batch) if (matches(b)) out.push(b);
+    opts.onProgress?.(loaded, resp.pagination?.total ?? loaded);
+    if (loaded >= maxRows) break;
+    page += 1;
+  } while (page <= totalPages);
+  return out;
+}
+
