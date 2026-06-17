@@ -1591,6 +1591,7 @@ function MetaDiariaSection({
 
 function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
   const concluida = usuario.meta > 0 && usuario.emitidas >= usuario.meta;
+  const sonic = usuario.meta > 0 && usuario.emitidas > usuario.meta;
   const iniciais = usuario.nome
     .split(" ")
     .filter(Boolean)
@@ -1600,26 +1601,43 @@ function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-4 rounded-2xl border px-6 py-5",
-        concluida
-          ? "border-emerald-500/40 bg-emerald-500/5"
-          : usuario.emitidas > 0
-            ? "border-amber-500/40 bg-amber-500/5"
-            : "border-border bg-muted/30",
+        "relative flex items-center gap-4 rounded-2xl border px-6 py-5 transition-all",
+        sonic
+          ? "animate-sonic-invincible bg-gradient-to-br from-blue-500/10 via-yellow-400/10 to-red-500/10"
+          : concluida
+            ? "border-emerald-500/40 bg-emerald-500/5"
+            : usuario.emitidas > 0
+              ? "border-amber-500/40 bg-amber-500/5"
+              : "border-border bg-muted/30",
       )}
       title={`${usuario.nome} · ${usuario.emitidas}/${usuario.meta} (faltam ${usuario.restante})`}
     >
-      <span
-        className={cn(
-          "h-16 w-16 rounded-full grid place-items-center text-lg font-bold shrink-0",
-          concluida ? "bg-emerald-500 text-white" : "bg-primary/15 text-primary",
-        )}
-      >
-        {iniciais || "?"}
-      </span>
+      {sonic ? (
+        <img
+          src={sonicImg}
+          alt="Sonic"
+          className="h-16 w-16 rounded-full object-cover shrink-0 ring-4 ring-blue-500/60 animate-sonic-bounce bg-white"
+        />
+      ) : (
+        <span
+          className={cn(
+            "h-16 w-16 rounded-full grid place-items-center text-lg font-bold shrink-0",
+            concluida ? "bg-emerald-500 text-white" : "bg-primary/15 text-primary",
+          )}
+        >
+          {iniciais || "?"}
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-lg font-semibold truncate">{usuario.nome}</span>
+          <span className="text-lg font-semibold truncate">
+            {usuario.nome}
+            {sonic && (
+              <span className="ml-2 animate-sonic-text uppercase tracking-wider text-base">
+                Sonic
+              </span>
+            )}
+          </span>
           <span className="text-base tabular-nums text-muted-foreground shrink-0">
             {usuario.pct}%
           </span>
