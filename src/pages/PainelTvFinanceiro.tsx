@@ -852,24 +852,25 @@ function RowItem({
   accentDot: string;
 }) {
   return (
-    <div className="group flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/40 transition-colors border-b border-border/30 last:border-0 min-w-0 w-full">
+    <div className="group flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted/40 transition-colors border-b border-border/30 last:border-0 min-w-0 w-full">
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <span className="text-xs font-mono font-semibold text-muted-foreground tabular-nums w-6 text-right shrink-0">
+        <span className="text-sm font-mono font-semibold text-muted-foreground tabular-nums w-7 text-right shrink-0">
           {String(index + 1).padStart(2, "0")}
         </span>
-        <span className={cn("h-8 w-1 rounded-full shrink-0", accentDot)} />
+        <span className={cn("h-10 w-1.5 rounded-full shrink-0", accentDot)} />
         <div className="min-w-0 flex-1">
-          <div className="font-semibold truncate leading-tight">{title}</div>
-          <div className="text-sm text-muted-foreground truncate mt-0.5">{subtitle}</div>
+          <div className="font-semibold truncate leading-tight text-lg">{title}</div>
+          <div className="text-base text-muted-foreground truncate mt-0.5">{subtitle}</div>
         </div>
       </div>
-      <div className="flex flex-col items-end shrink-0 ml-2 min-w-[72px]">
-        <Badge className={cn("font-medium whitespace-nowrap", badgeClass)}>{badgeText}</Badge>
-        <div className="text-[11px] text-muted-foreground mt-1 tabular-nums whitespace-nowrap">{timeText}</div>
+      <div className="flex flex-col items-end shrink-0 ml-2 min-w-[92px]">
+        <Badge className={cn("font-semibold whitespace-nowrap text-sm px-2.5 py-0.5", badgeClass)}>{badgeText}</Badge>
+        <div className="text-xs text-muted-foreground mt-1 tabular-nums whitespace-nowrap">{timeText}</div>
       </div>
     </div>
   );
 }
+
 
 function HeroKpi({
   label,
