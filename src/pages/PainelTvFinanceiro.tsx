@@ -474,7 +474,27 @@ export default function PainelTvFinanceiro() {
   void now;
 
   // ============= META DIÁRIA DE EMISSÃO POR USUÁRIO =============
-  const USUARIOS_DISPONIVEIS = ["João Victor", "Karen", "Maria Lucena"];
+  // Lista dinâmica de usuários disponíveis para a escala (admins + financeiro).
+  const { data: USUARIOS_DISPONIVEIS = [] } = useQuery({
+    queryKey: ["tv-fin-usuarios-escala"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("user_id, role, profiles!inner(display_name, username)")
+        .in("role", ["financeiro", "admin"]);
+      if (error) {
+        console.error("[escala] erro ao carregar usuários:", error);
+        return [] as string[];
+      }
+      const nomes = new Set<string>();
+      (data as any[]).forEach((r) => {
+        const nome = (r.profiles?.display_name || r.profiles?.username || "").trim();
+        if (nome) nomes.add(nome);
+      });
+      return Array.from(nomes).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Meta fixa do dia (persistida no banco, compartilhada entre todos os dispositivos).
   const todayKey = new Date().toLocaleDateString("en-CA");
@@ -503,9 +523,8 @@ export default function PainelTvFinanceiro() {
 
   const USUARIOS_META = useMemo(() => {
     const fromDb = Array.isArray(metaDiariaRow?.usuarios) ? (metaDiariaRow!.usuarios as string[]) : [];
-    const filtrados = fromDb.filter((u) => USUARIOS_DISPONIVEIS.includes(u));
-    return filtrados.length > 0 ? filtrados : USUARIOS_DISPONIVEIS;
-  }, [metaDiariaRow]);
+    return fromDb.length > 0 ? fromDb : USUARIOS_DISPONIVEIS;
+  }, [metaDiariaRow, USUARIOS_DISPONIVEIS]);
 
   const emitidasHojePorUsuario = useMemo(() => {
     const counts: Record<string, number> = {};
