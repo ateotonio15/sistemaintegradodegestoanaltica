@@ -37,6 +37,8 @@ import { cn } from "@/lib/utils";
 import { useDemandas } from "@/hooks/useDemandas";
 import {
   getStatus,
+  isOpen,
+
   getDiasAberto,
   parseLocalDate,
   formatDate,
