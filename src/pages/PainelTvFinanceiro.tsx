@@ -1317,6 +1317,8 @@ function MetaDiariaSection({
   metaTotal,
   metaFixa,
   sugestaoMeta,
+  usuariosDisponiveis,
+  usuariosSelecionados,
   onDefinirMeta,
   onLimparMeta,
 }: {
@@ -1331,21 +1333,30 @@ function MetaDiariaSection({
   };
   metaFixa: number | null;
   sugestaoMeta: number;
-  onDefinirMeta: (valor: number) => void;
+  usuariosDisponiveis: string[];
+  usuariosSelecionados: string[];
+  onDefinirMeta: (valor: number, usuarios: string[]) => void;
   onLimparMeta: () => void;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [valorInput, setValorInput] = useState<string>("");
+  const [escalaSel, setEscalaSel] = useState<string[]>(usuariosSelecionados);
 
   const abrirDialog = () => {
     setValorInput(String(metaFixa ?? sugestaoMeta));
+    setEscalaSel(usuariosSelecionados.length > 0 ? usuariosSelecionados : usuariosDisponiveis);
     setDialogOpen(true);
+  };
+
+  const toggleUsuario = (u: string) => {
+    setEscalaSel((prev) => (prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]));
   };
 
   const confirmar = () => {
     const n = parseInt(valorInput, 10);
     if (!Number.isFinite(n) || n < 0) return;
-    onDefinirMeta(n);
+    if (escalaSel.length === 0) return;
+    onDefinirMeta(n, escalaSel);
     setDialogOpen(false);
   };
 
@@ -1393,35 +1404,69 @@ function MetaDiariaSection({
           <DialogHeader>
             <DialogTitle>Definir meta diária de emissão</DialogTitle>
             <DialogDescription>
-              A meta será congelada com este valor. Novas empresas adicionadas ao longo do dia
-              não alteram a distribuição entre os usuários.
+              A meta será congelada com este valor e distribuída apenas entre os usuários
+              selecionados na escala do dia.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Label htmlFor="meta-input">Total de empresas para emitir hoje</Label>
-            <Input
-              id="meta-input"
-              type="number"
-              min={0}
-              value={valorInput}
-              onChange={(e) => setValorInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") confirmar();
-              }}
-              autoFocus
-            />
-            <p className="text-xs text-muted-foreground">
-              Sugestão atual (aguardando + emitidas hoje): <strong>{sugestaoMeta}</strong>
-            </p>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="meta-input">Total de empresas para emitir hoje</Label>
+              <Input
+                id="meta-input"
+                type="number"
+                min={0}
+                value={valorInput}
+                onChange={(e) => setValorInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") confirmar();
+                }}
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                Sugestão atual (aguardando + emitidas hoje): <strong>{sugestaoMeta}</strong>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Usuários na escala de hoje</Label>
+              <div className="space-y-2 rounded-md border p-3">
+                {usuariosDisponiveis.map((u) => {
+                  const checked = escalaSel.includes(u);
+                  return (
+                    <label
+                      key={u}
+                      className="flex items-center gap-2 text-sm cursor-pointer select-none"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggleUsuario(u)}
+                      />
+                      <span>{u}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {escalaSel.length === 0 ? (
+                <p className="text-xs text-destructive">Selecione ao menos um usuário.</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {escalaSel.length} usuário(s) na escala — a meta será dividida entre eles.
+                </p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={confirmar}>Salvar meta</Button>
+            <Button onClick={confirmar} disabled={escalaSel.length === 0}>
+              Salvar meta
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Card resumo geral */}
