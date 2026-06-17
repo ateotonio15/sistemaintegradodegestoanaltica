@@ -1,49 +1,32 @@
-## Objetivo
+## Editor de perguntas do formulário de Avaliação RH
 
-Mostrar a lista de **contratos** (não vidas) onde a classificação é igual a **4**, a partir do endpoint autenticado `/vidas-contrato` da API Samel.
+Permitir que **Admin, Executivo (Diretora) e Executivas** editem o "Preview do formulário" — alterar perguntas existentes, adicionar novas e remover.
 
-## Observação importante sobre o campo
+### Funcionalidades
+- Botão **"Editar perguntas"** no card de preview (visível apenas para perfis permitidos).
+- Modo de edição inline com:
+  - Editar título e descrição de cada pergunta
+  - Trocar tipo (Nota 1-5 / Texto livre)
+  - Marcar como obrigatória
+  - Reordenar (subir/descer)
+  - Remover pergunta
+  - **+ Adicionar pergunta** (gera id único `q<timestamp>`)
+- Editar também título e instruções do formulário
+- Botões **Salvar** / **Cancelar** ao final
 
-A API `/vidas-contrato` que o projeto consome hoje retorna `DS_CLASSIFICACAO` (texto). Não há campo `CD_CLASSIF_CONTRATO` no payload conhecido. Vou tratar o filtro como **classificação = "4"** comparando contra `DS_CLASSIFICACAO` (igualdade exata + também conferindo se a string começa com `"4"` ou contém `"4 -"`, padrão comum em códigos da Samel tipo `"4 - EMPRESARIAL"`).
+### Permissões
+Frontend: gate por perfil via `useAuth` (roles: `admin`, `executivo`, mais o nome da executiva via `profiles`). Usuários sem permissão veem o preview apenas em leitura (como hoje).
 
-Se quando rodar a primeira chamada o valor real vier diferente (ex.: `CD_CLASSIF_CONTRATO` separado), eu ajusto o filtro — mas a estrutura da tela continua igual.
+Backend: política RLS de UPDATE em `cs_avaliacao_formularios` restrita a `admin` ou `executivo` (via `has_role`). SELECT continua público.
 
-## Onde aparece
+### Mudança crítica
+Hoje o `useEffect` em `AvaliacoesRH.tsx` **sobrescreve as perguntas com o TEMPLATE a cada mount**, o que apagaria qualquer edição. Vou remover essa sincronização: o TEMPLATE só será usado quando não existir nenhum formulário ainda (insert inicial).
 
-Nova aba **"Contratos por classificação"** dentro de `/vidas` (página `VidasSamel`), ao lado da listagem atual de vidas. Mantém o mesmo login/credenciais já usados.
+### Arquivos afetados
+- `src/modules/carteira-samel/pages/AvaliacoesRH.tsx` — remover sync forçado, adicionar botão de editar + dialog/seção de edição, gate de permissão.
+- Novo: `src/modules/carteira-samel/components/EditarFormularioRHDialog.tsx` — dialog com editor de perguntas (drag-free, botões ↑↓).
+- Migration: política RLS de UPDATE em `cs_avaliacao_formularios` para admin/executivo.
 
-## O que a aba mostra
-
-Tabela de contratos únicos (deduplicados por `NR_CONTRATO`) com colunas:
-
-- NR_CONTRATO
-- NM_ESTIPULANTE
-- DS_CLASSIFICACAO (valor cru, pra você conferir o "4")
-- DT_CONTRATO
-- Qtde de vidas no contrato (contagem após dedupe)
-- Situação predominante
-
-Filtro fixo no topo: **Classificação =** `4` (editável; default `4`).
-Busca livre por nome do estipulante / nº contrato.
-Botão **Exportar CSV** da lista filtrada.
-
-## Como os dados são obtidos
-
-`/vidas-contrato` é paginado por vidas, não por contrato. Para listar contratos:
-
-1. Buscar página a página (`pageSize=500`) **todas** as vidas (ou até atingir limite configurável — default 20.000 vidas).
-2. Filtrar localmente por classificação = `4`.
-3. Agrupar por `NR_CONTRATO` para produzir a lista de contratos.
-
-Cache via React Query (`staleTime: 10min`), com botão **Atualizar**.
-
-## Arquivos afetados (resumo técnico)
-
-- `src/lib/vidasSamelApi.ts` — nova função `listAllVidasParaContratos({ classificacao, maxRows })` que pagina e devolve `Beneficiario[]`.
-- `src/pages/VidasSamel.tsx` — adicionar `Tabs` (Vidas | Contratos por classificação) e novo componente interno `ContratosClassificacaoTab`.
-- Sem mudanças de banco. Sem mudanças na edge function.
-
-## Fora do escopo
-
-- Não altera o card `VidasOperadoraResumo` nem `/vidas-operadora`.
-- Não cria nova rota nem nova tabela no Supabase.
+### Pontos a confirmar durante build
+- Validar pelo menos 1 pergunta antes de salvar.
+- Ao salvar, `setForm` com o retorno do update para refletir imediatamente no preview e no dashboard.
