@@ -1537,7 +1537,7 @@ function MetaDiariaSection({
   );
 }
 
-function UsuarioMetaPill({ usuario }: { usuario: MetaUsuario }) {
+function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
   const concluida = usuario.meta > 0 && usuario.emitidas >= usuario.meta;
   const iniciais = usuario.nome
     .split(" ")
@@ -1548,31 +1548,48 @@ function UsuarioMetaPill({ usuario }: { usuario: MetaUsuario }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-full border px-2 py-1 text-xs",
+        "flex items-center gap-2 rounded-lg border px-2.5 py-1.5",
         concluida
-          ? "border-emerald-500/40 bg-emerald-500/10"
+          ? "border-emerald-500/40 bg-emerald-500/5"
           : usuario.emitidas > 0
-            ? "border-amber-500/40 bg-amber-500/10"
-            : "border-border bg-muted/40",
+            ? "border-amber-500/40 bg-amber-500/5"
+            : "border-border bg-muted/30",
       )}
-      title={`${usuario.nome} · ${usuario.emitidas}/${usuario.meta}`}
+      title={`${usuario.nome} · ${usuario.emitidas}/${usuario.meta} (faltam ${usuario.restante})`}
     >
       <span
         className={cn(
-          "h-5 w-5 rounded-full grid place-items-center text-[10px] font-bold shrink-0",
+          "h-7 w-7 rounded-full grid place-items-center text-[10px] font-bold shrink-0",
           concluida ? "bg-emerald-500 text-white" : "bg-primary/15 text-primary",
         )}
       >
         {iniciais || "?"}
       </span>
-      <span className="font-medium truncate max-w-[110px]">{usuario.nome}</span>
-      <span className="tabular-nums font-semibold">
-        {usuario.emitidas}
-        <span className="text-muted-foreground">/{usuario.meta}</span>
-      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium truncate">{usuario.nome}</span>
+          <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">
+            {usuario.pct}%
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] tabular-nums leading-tight">
+          <span>
+            <span className="text-muted-foreground">Meta</span>{" "}
+            <strong className="text-foreground">{usuario.meta}</strong>
+          </span>
+          <span className="text-emerald-600 dark:text-emerald-500">
+            ✓ {usuario.emitidas}
+          </span>
+          <span className="text-amber-600 dark:text-amber-500">
+            • {usuario.restante}
+          </span>
+        </div>
+        <Progress value={usuario.pct} className="h-1 mt-1" />
+      </div>
     </div>
   );
 }
+
 
 
 function ResumoLinha({
