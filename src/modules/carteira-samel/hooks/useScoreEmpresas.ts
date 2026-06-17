@@ -16,7 +16,7 @@ export function useScoreEmpresas() {
         .from("cs_score_empresas" as any)
         .select("empresa_id, incluida_em");
       if (error) throw error;
-      return (data ?? []) as { empresa_id: string; incluida_em: string }[];
+      return (data ?? []) as unknown as { empresa_id: string; incluida_em: string }[];
     },
   });
 
