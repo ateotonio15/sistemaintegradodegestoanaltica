@@ -265,8 +265,8 @@ const SHORTCUTS: Shortcut[] = [
   },
   {
     to: "/empresas",
-    label: "Empresas",
-    description: "Cadastro, movimentações, implantação e vidas",
+    label: "Contratos",
+    description: "Empresas, Movimentações, Implantação, Primeira Vigência, Vidas",
     icon: Building2,
     group: "funcoes",
     show: () => true,
