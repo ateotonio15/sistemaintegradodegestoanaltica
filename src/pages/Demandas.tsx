@@ -137,8 +137,12 @@ export default function Demandas() {
       if (empresa !== "__all__" && d.empresa !== empresa) return false;
       if (setor !== "__all__" && d.setor_responsavel !== setor) return false;
       if (executiva !== "__all__" && d.executiva !== executiva) return false;
-      if (status === "aberto" && d.resolvido_executiva) return false;
-      if (status === "resolvido" && !d.resolvido_executiva) return false;
+      if (status !== "todos") {
+        const st = getStatus(d);
+        if (status === "pendente" && st !== "Pendente") return false;
+        if (status === "resolvida" && st !== "Resolvida") return false;
+        if (status === "finalizada" && st !== "Finalizada") return false;
+      }
       if (reclamacaoParam && d.reclamacao !== reclamacaoParam) return false;
       if (q && !d.nome_cliente.toLowerCase().includes(q)) return false;
       return true;
