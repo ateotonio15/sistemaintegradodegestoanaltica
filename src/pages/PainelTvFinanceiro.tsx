@@ -462,19 +462,12 @@ export default function PainelTvFinanceiro() {
 
   void now;
 
-  if (!podeVer) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Acesso restrito ao setor financeiro.</p>
-      </div>
-  );
-
   // ============= META DIÁRIA DE EMISSÃO POR USUÁRIO =============
   const USUARIOS_META = ["João Victor", "Karen", "Maria Lucena"];
   const emitidasHojePorUsuario = useMemo(() => {
     const counts: Record<string, number> = {};
     USUARIOS_META.forEach((u) => (counts[u] = 0));
-    const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local
+    const todayStr = new Date().toLocaleDateString("en-CA");
     Object.values(anexosMap as Record<string, any[]>).forEach((list) => {
       list.forEach((a) => {
         const isPdf =
@@ -525,7 +518,7 @@ export default function PainelTvFinanceiro() {
     return {
       totalAguardando: aguardandoEmissao.length,
       usuarios: USUARIOS_META.length,
-      mediaPorUsuario: Math.round(totalMeta / USUARIOS_META.length),
+      mediaPorUsuario: USUARIOS_META.length > 0 ? Math.round(totalMeta / USUARIOS_META.length) : 0,
       totalEmitidas,
       totalRestante,
       totalMeta,
@@ -533,7 +526,14 @@ export default function PainelTvFinanceiro() {
   }, [metaPorUsuario, aguardandoEmissao.length]);
   // ==============================================================
 
+  if (!podeVer) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Acesso restrito ao setor financeiro.</p>
+      </div>
+    );
   }
+
 
   const hora = new Date(lastUpdate).toLocaleTimeString("pt-BR");
 
