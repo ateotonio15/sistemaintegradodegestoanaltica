@@ -1211,3 +1211,208 @@ function CompetenciaPeriodoPicker({
     </Popover>
   );
 }
+
+// ============= META DIÁRIA DE EMISSÃO =============
+type MetaUsuario = {
+  nome: string;
+  meta: number;
+  emitidas: number;
+  restante: number;
+  pct: number;
+};
+
+function MetaDiariaSection({
+  metaPorUsuario,
+  metaTotal,
+}: {
+  metaPorUsuario: MetaUsuario[];
+  metaTotal: {
+    totalAguardando: number;
+    usuarios: number;
+    mediaPorUsuario: number;
+    totalEmitidas: number;
+    totalRestante: number;
+    totalMeta: number;
+  };
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Target className="h-6 w-6 text-primary" />
+            Meta diária de emissão
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Distribuição automática das empresas aguardando emissão.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          Atualização em tempo real
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Card resumo geral */}
+        <Card className="p-5 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 lg:col-span-1">
+          <div className="flex items-center gap-2 mb-3">
+            <Trophy className="h-5 w-5 text-primary" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Meta total do dia
+            </span>
+          </div>
+          <div className="space-y-3">
+            <ResumoLinha label="Aguardando emissão" value={metaTotal.totalAguardando} />
+            <ResumoLinha label="Usuários na escala" value={metaTotal.usuarios} />
+            <ResumoLinha label="Meta média / usuário" value={metaTotal.mediaPorUsuario} highlight />
+            <div className="h-px bg-border my-2" />
+            <ResumoLinha label="Emitidas hoje" value={metaTotal.totalEmitidas} tone="green" />
+            <ResumoLinha label="Restantes" value={metaTotal.totalRestante} tone="amber" />
+            <div className="pt-2">
+              <Progress
+                value={
+                  metaTotal.totalMeta > 0
+                    ? Math.min(100, Math.round((metaTotal.totalEmitidas / metaTotal.totalMeta) * 100))
+                    : 0
+                }
+                className="h-2"
+              />
+              <div className="text-xs text-muted-foreground mt-1 text-right tabular-nums">
+                {metaTotal.totalMeta > 0
+                  ? Math.min(100, Math.round((metaTotal.totalEmitidas / metaTotal.totalMeta) * 100))
+                  : 0}
+                % concluído
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Cards individuais */}
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {metaPorUsuario.map((u) => (
+            <MetaUsuarioCard key={u.nome} usuario={u} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ResumoLinha({
+  label,
+  value,
+  highlight,
+  tone,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+  tone?: "green" | "amber";
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span
+        className={cn(
+          "font-bold tabular-nums",
+          highlight ? "text-2xl text-primary" : "text-lg",
+          tone === "green" && "text-emerald-600 dark:text-emerald-400",
+          tone === "amber" && "text-amber-600 dark:text-amber-400",
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function getIniciais(nome: string): string {
+  const parts = nome.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function MetaUsuarioCard({ usuario }: { usuario: MetaUsuario }) {
+  const { nome, meta, emitidas, restante, pct } = usuario;
+  const statusInfo =
+    meta === 0
+      ? { label: "Sem meta", color: "text-muted-foreground", bg: "bg-muted", ring: "ring-border" }
+      : pct >= 100
+      ? {
+          label: "Meta concluída",
+          color: "text-emerald-700 dark:text-emerald-300",
+          bg: "bg-emerald-500/15",
+          ring: "ring-emerald-500/40",
+        }
+      : pct >= 50
+      ? {
+          label: "Em andamento",
+          color: "text-blue-700 dark:text-blue-300",
+          bg: "bg-blue-500/15",
+          ring: "ring-blue-500/40",
+        }
+      : pct > 0
+      ? {
+          label: "Atenção",
+          color: "text-amber-700 dark:text-amber-300",
+          bg: "bg-amber-500/15",
+          ring: "ring-amber-500/40",
+        }
+      : {
+          label: "Não iniciado",
+          color: "text-red-700 dark:text-red-300",
+          bg: "bg-red-500/15",
+          ring: "ring-red-500/40",
+        };
+
+  return (
+    <Card className={cn("p-5 border border-border/60 ring-1 transition-all", statusInfo.ring)}>
+      <div className="flex items-center gap-3 mb-4">
+        <div
+          className={cn(
+            "h-12 w-12 rounded-full flex items-center justify-center font-bold text-lg shrink-0",
+            statusInfo.bg,
+            statusInfo.color,
+          )}
+        >
+          {getIniciais(nome)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-bold text-lg leading-tight truncate">{nome}</div>
+          <Badge className={cn("mt-1 font-medium", statusInfo.bg, statusInfo.color, "border-0")}>
+            {statusInfo.label}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="text-center">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Meta</div>
+          <div className="text-2xl font-bold tabular-nums mt-0.5">{meta}</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Emitidas</div>
+          <div className="text-2xl font-bold tabular-nums mt-0.5 text-emerald-600 dark:text-emerald-400">
+            {emitidas}
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Restante</div>
+          <div className="text-2xl font-bold tabular-nums mt-0.5 text-amber-600 dark:text-amber-400">
+            {restante}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between text-xs mb-1.5">
+          <span className="text-muted-foreground">Progresso</span>
+          <span className="font-bold tabular-nums">{pct}%</span>
+        </div>
+        <Progress value={pct} className="h-2.5" />
+      </div>
+    </Card>
+  );
+}
+
