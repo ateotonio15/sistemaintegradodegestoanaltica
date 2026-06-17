@@ -1460,44 +1460,45 @@ function MetaDiariaSection({
 
   return (
     <section className="space-y-2">
-      <Card className="p-3 space-y-3">
+      <Card className="p-5 space-y-4">
         {/* Linha 1: título + totais + ações */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 min-w-0">
-            <Target className="h-5 w-5 text-primary shrink-0" />
-            <span className="font-semibold text-sm whitespace-nowrap">Meta diária</span>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <Target className="h-7 w-7 text-primary shrink-0" />
+            <span className="font-semibold text-xl whitespace-nowrap">Meta diária</span>
             {metaFixa != null && (
-              <Badge variant="outline" className="text-[11px] gap-1 h-6">
+              <Badge variant="outline" className="text-base gap-1 h-9 px-3">
                 Meta: <strong>{metaFixa}</strong>
               </Badge>
             )}
-            <Badge variant="outline" className="text-[11px] h-6 gap-1">
-              <Trophy className="h-3 w-3 text-primary" />
+            <Badge variant="outline" className="text-base h-9 gap-1.5 px-3">
+              <Trophy className="h-4 w-4 text-primary" />
               {metaTotal.totalEmitidas}/{metaTotal.totalMeta}
             </Badge>
-            <Badge variant="outline" className="text-[11px] h-6">
+            <Badge variant="outline" className="text-base h-9 px-3">
               Aguardando: <strong className="ml-1">{metaTotal.totalAguardando}</strong>
             </Badge>
           </div>
 
-          <div className="flex items-center gap-1 ml-auto shrink-0">
+          <div className="flex items-center gap-2 ml-auto shrink-0">
             {metaFixa != null ? (
               <>
-                <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={abrirDialog}>
+                <Button variant="outline" size="sm" className="h-9 px-3 text-sm" onClick={abrirDialog}>
                   Editar
                 </Button>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onLimparMeta}>
+                <Button variant="ghost" size="sm" className="h-9 px-3 text-sm" onClick={onLimparMeta}>
                   Limpar
                 </Button>
               </>
             ) : (
-              <Button variant="default" size="sm" className="h-7 px-2 text-xs" onClick={abrirDialog}>
-                <Target className="h-3 w-3 mr-1" /> Definir meta
+              <Button variant="default" size="sm" className="h-9 px-3 text-sm" onClick={abrirDialog}>
+                <Target className="h-4 w-4 mr-1.5" /> Definir meta
               </Button>
             )}
-            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
+            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse ml-1" />
           </div>
         </div>
+
 
         {/* Linha 2: cards compactos por usuário */}
         {metaPorUsuario.length === 0 ? (
