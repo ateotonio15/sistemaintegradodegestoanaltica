@@ -380,10 +380,12 @@ export default function Demandas() {
                       <td className="py-2.5 px-3">
                         <Badge
                           className={cn(
-                            "text-[10px] uppercase tracking-wider font-semibold",
-                            st === "Resolvido"
-                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-transparent"
-                              : "bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-transparent",
+                            "text-[10px] uppercase tracking-wider font-semibold border-transparent",
+                            st === "Finalizada"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                              : st === "Resolvida"
+                              ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20"
+                              : "bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20",
                           )}
                         >
                           {st}
