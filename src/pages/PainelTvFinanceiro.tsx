@@ -1652,3 +1652,154 @@ function MetaUsuarioCard({ usuario }: { usuario: MetaUsuario }) {
   );
 }
 
+// ============= HISTÓRICO DE METAS (ADMIN) =============
+function MetaHistoricoButton() {
+  const [open, setOpen] = useState(false);
+
+  const { data: historico = [], isLoading } = useQuery({
+    queryKey: ["painel-tv-meta-historico", open],
+    enabled: open,
+    queryFn: async () => {
+      // 1) carregar últimas 60 metas definidas
+      const { data: metas, error: errMetas } = await supabase
+        .from("painel_tv_meta_diaria" as any)
+        .select("data, valor, usuarios")
+        .order("data", { ascending: false })
+        .limit(60);
+      if (errMetas) throw errMetas;
+      const metasList = (metas || []) as Array<{ data: string; valor: number; usuarios: string[] }>;
+      if (metasList.length === 0) return [] as any[];
+
+      const dataMin = metasList[metasList.length - 1].data;
+      const dataMax = metasList[0].data;
+
+      // 2) carregar PDFs de anexos_financeiro no intervalo
+      const { data: anexos, error: errAnx } = await supabase
+        .from("anexos_financeiro")
+        .select("uploaded_by, created_at, mime_type, nome_arquivo")
+        .gte("created_at", `${dataMin}T00:00:00`)
+        .lte("created_at", `${dataMax}T23:59:59.999`);
+      if (errAnx) throw errAnx;
+
+      // 3) mapear uploaders -> nomes
+      const uploaderIds = Array.from(
+        new Set(((anexos || []) as any[]).map((a) => a.uploaded_by).filter(Boolean)),
+      );
+      let nomesMap: Record<string, string> = {};
+      if (uploaderIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, display_name, username")
+          .in("user_id", uploaderIds);
+        (profs || []).forEach((p: any) => {
+          nomesMap[p.user_id] = (p.display_name || p.username || "—").trim();
+        });
+      }
+
+      // 4) por data, contar PDFs por uploader
+      const porData: Record<string, Record<string, number>> = {};
+      ((anexos || []) as any[]).forEach((a) => {
+        const isPdf =
+          (a.mime_type || "").toLowerCase().includes("pdf") ||
+          (a.nome_arquivo || "").toLowerCase().endsWith(".pdf");
+        if (!isPdf || !a.uploaded_by || !a.created_at) return;
+        const d = new Date(a.created_at).toLocaleDateString("en-CA");
+        const nome = nomesMap[a.uploaded_by];
+        if (!nome) return;
+        porData[d] = porData[d] || {};
+        porData[d][nome] = (porData[d][nome] || 0) + 1;
+      });
+
+      return metasList.map((m) => {
+        const counts = porData[m.data] || {};
+        const usuarios = (m.usuarios || []).map((nome) => ({
+          nome,
+          emitidas: counts[nome] || 0,
+        }));
+        // inclui também quem emitiu mesmo sem estar na escala salva
+        Object.keys(counts).forEach((nome) => {
+          if (!usuarios.find((u) => u.nome === nome)) {
+            usuarios.push({ nome, emitidas: counts[nome] });
+          }
+        });
+        const totalEmitidas = usuarios.reduce((s, u) => s + u.emitidas, 0);
+        return { data: m.data, valor: m.valor, usuarios, totalEmitidas };
+      });
+    },
+  });
+
+  const formatarData = (s: string) => {
+    const [y, mo, d] = s.split("-");
+    return `${d}/${mo}/${y}`;
+  };
+
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <History className="h-4 w-4 mr-1" /> Histórico
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Histórico de metas diárias</DialogTitle>
+            <DialogDescription>
+              Metas definidas em cada dia e quantas notas cada usuário emitiu (PDFs enviados).
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] pr-3">
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">Carregando…</p>
+            ) : historico.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">
+                Nenhuma meta registrada ainda.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {historico.map((h: any) => (
+                  <Card key={h.data} className="p-4">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {formatarData(h.data)}
+                        </Badge>
+                        <span className="text-sm">
+                          Meta: <strong>{h.valor}</strong>
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Emitidas: <strong className="text-foreground">{h.totalEmitidas}</strong> /{" "}
+                        {h.valor}
+                      </div>
+                    </div>
+                    {h.usuarios.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Sem usuários na escala.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {h.usuarios.map((u: any) => (
+                          <div
+                            key={u.nome}
+                            className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                          >
+                            <span className="truncate">{u.nome}</span>
+                            <span className="tabular-nums font-semibold">{u.emitidas}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+
