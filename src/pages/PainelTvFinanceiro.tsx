@@ -116,9 +116,18 @@ export default function PainelTvFinanceiro() {
   const podeVer = isAdmin || isFinanceiro || role === "diretora";
 
   // Seleção: { mes_referencia: [periodos...] }. Periodos = subset de PERIODOS_FIN.
-  const [selections, setSelections] = useState<Record<string, string[]>>(() => ({
-    [getCurrentMesReferencia()]: [...PERIODOS_FIN],
-  }));
+  const [selections, setSelections] = useState<Record<string, string[]>>(() => {
+    try {
+      const raw = localStorage.getItem("painel-tv-fin:competencias-fixadas");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+          return parsed as Record<string, string[]>;
+        }
+      }
+    } catch {}
+    return { [getCurrentMesReferencia()]: [...PERIODOS_FIN] };
+  });
   const mesesSelecionados = useMemo(
     () => Object.keys(selections).filter((m) => selections[m]?.length > 0).sort(),
     [selections],
