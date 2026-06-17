@@ -1,8 +1,16 @@
 import type { Beneficiario, PaginatedResponse, VidasFilters } from "@/types/vidasSamel";
 
 export const VIDAS_API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ||
-  "https://7d89d067-237e-4701-b281-3359d59c0e84-00-2zicaaljfkz2e.worf.replit.dev/api";
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) || "";
+
+function ensureBaseUrl(): string {
+  if (!VIDAS_API_BASE_URL) {
+    throw new Error(
+      "VITE_API_BASE_URL não configurada. Defina o endpoint da API antes de usar Vidas Samel."
+    );
+  }
+  return VIDAS_API_BASE_URL;
+}
 
 const TOKEN_KEY = "vidas_samel_token";
 const USER_KEY = "vidas_samel_user";
@@ -51,7 +59,7 @@ export async function login(credentials?: Credentials): Promise<string> {
   if (!credentials || !credentials.username || !credentials.password) {
     throw new Error("Credenciais necessárias para login");
   }
-  const res = await fetch(`${VIDAS_API_BASE_URL}/auth/login`, {
+  const res = await fetch(`${ensureBaseUrl()}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
@@ -82,7 +90,7 @@ async function authedFetch(path: string, init: RequestInit = {}, retried = false
   headers.set("Authorization", `Bearer ${token}`);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
-  const res = await fetch(`${VIDAS_API_BASE_URL}${path}`, { ...init, headers });
+  const res = await fetch(`${ensureBaseUrl()}${path}`, { ...init, headers });
   if (res.status === 401 && !retried) {
     clearToken();
     if (onUnauthorized) onUnauthorized();
