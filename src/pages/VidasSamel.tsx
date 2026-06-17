@@ -332,7 +332,14 @@ export default function VidasSamel() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="contratos" className="space-y-4">
+            <ContratosClassificacaoTab />
+          </TabsContent>
+        </Tabs>
       </div>
+
 
       {/* Detalhes Drawer */}
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
