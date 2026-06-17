@@ -551,8 +551,8 @@ export default function PainelTvFinanceiro() {
 
   const USUARIOS_META = useMemo(() => {
     const fromDb = Array.isArray(metaDiariaRow?.usuarios) ? (metaDiariaRow!.usuarios as string[]) : [];
-    return fromDb.length > 0 ? fromDb : USUARIOS_DISPONIVEIS;
-  }, [metaDiariaRow, USUARIOS_DISPONIVEIS]);
+    return fromDb;
+  }, [metaDiariaRow]);
 
   const emitidasHojePorUsuario = useMemo(() => {
     const counts: Record<string, number> = {};
