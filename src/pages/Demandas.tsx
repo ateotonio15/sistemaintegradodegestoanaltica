@@ -299,8 +299,9 @@ export default function Demandas() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="aberto">Em aberto</SelectItem>
-                <SelectItem value="resolvido">Resolvido</SelectItem>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="resolvida">Resolvida</SelectItem>
+                <SelectItem value="finalizada">Finalizada</SelectItem>
               </SelectContent>
             </Select>
           </div>
