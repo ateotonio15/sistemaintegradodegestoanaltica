@@ -1024,13 +1024,13 @@ function ListaCard<T>({
       <span className={cn("absolute left-0 top-0 bottom-0 w-1", a.stripe)} aria-hidden />
       <div className="p-5 border-b border-border/60 bg-gradient-to-b from-muted/30 to-transparent cursor-grab active:cursor-grabbing select-none">
         <div className="flex items-center gap-3">
-          <GripVertical className="h-4 w-4 text-muted-foreground/60 shrink-0" />
-          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", a.iconWrap)}>
-            <Icon className="h-5 w-5" />
+          <GripVertical className="h-5 w-5 text-muted-foreground/60 shrink-0" />
+          <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center", a.iconWrap)}>
+            <Icon className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-semibold text-lg leading-tight truncate">{title}</h2>
-            {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
+            <h2 className="font-bold text-2xl leading-tight truncate">{title}</h2>
+            {subtitle && <p className="text-sm text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
           </div>
           <button
             type="button"
@@ -1044,7 +1044,7 @@ function ListaCard<T>({
                 : undefined
             }
             className={cn(
-              "inline-flex items-center gap-1 rounded-md text-base font-bold tabular-nums px-3 py-1 shrink-0 border transition-colors",
+              "inline-flex items-center gap-1.5 rounded-md text-2xl font-bold tabular-nums px-4 py-1.5 shrink-0 border transition-colors",
               a.badge,
               onBadgeClick && "hover:brightness-110 cursor-pointer",
             )}
@@ -1052,12 +1052,13 @@ function ListaCard<T>({
             {rows.length}
             {onBadgeClick && (
               sortDir === "desc"
-                ? <ArrowDown className="h-3.5 w-3.5 opacity-80" />
-                : <ArrowUp className="h-3.5 w-3.5 opacity-80" />
+                ? <ArrowDown className="h-4 w-4 opacity-80" />
+                : <ArrowUp className="h-4 w-4 opacity-80" />
             )}
           </button>
         </div>
       </div>
+
       <div
         style={contentHeight ? { height: contentHeight, minHeight: 220 } : { height: 400 }}
         className="overflow-y-auto overflow-x-hidden"
