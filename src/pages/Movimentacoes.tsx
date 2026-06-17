@@ -273,8 +273,8 @@ export default function Movimentacoes() {
         "CNPJ": m.empresas?.cnpj ?? "",
         "Empresa": m.empresas?.nome ?? "",
         "Resp. Contrato": m.empresas?.responsavel_contrato ?? "",
-        "Tipo": tipo,
-        "Período": formatPeriodoEmpresa(m.empresas as any),
+        "TIPO DE MOVIMENTAÇÃO": tipo,
+        "PERÍODO DE MOVIMENTAÇÃO": formatPeriodoEmpresa(m.empresas as any),
         "Envio Empresa": m.data_envio_empresa ?? "",
         "Financeiro": m.data_envio_financeiro ?? "",
         "Nota Enviada": dataNota,
@@ -673,8 +673,8 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Empresa</TableHead>
                     <TableHead className="font-semibold">Cód. Contrato</TableHead>
                     <TableHead className="font-semibold">Resp. Contrato</TableHead>
-                    <TableHead className="font-semibold">Tipo</TableHead>
-                    <TableHead className="font-semibold">Período</TableHead>
+                    <TableHead className="font-semibold">TIPO DE MOVIMENTAÇÃO</TableHead>
+                    <TableHead className="font-semibold">PERÍODO DE MOVIMENTAÇÃO</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
                     <TableHead className="font-semibold">Resp. Mov.</TableHead>
                     {activeTab !== "administradoras" && <TableHead className="font-semibold">Envio Empresa</TableHead>}
