@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Loader2, Star, Users, MessageSquare, TrendingUp, Building2, Award } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Star, Users, MessageSquare, TrendingUp, Building2, Award, Calendar } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
@@ -40,7 +41,8 @@ function StatCard({ icon: Icon, label, value, hint }: any) {
 
 export function AvaliacoesRHDashboard({ form }: Props) {
   const [loading, setLoading] = useState(true);
-  const [respostas, setRespostas] = useState<Resposta[]>([]);
+  const [todasRespostas, setTodasRespostas] = useState<Resposta[]>([]);
+  const [mesFiltro, setMesFiltro] = useState<string>("todos");
 
   useEffect(() => {
     if (!form?.id) return;
@@ -51,10 +53,35 @@ export function AvaliacoesRHDashboard({ form }: Props) {
         .select("id, nota_media, comentario, nome_empresa, nome_executiva, respostas, created_at")
         .eq("formulario_id", form.id)
         .order("created_at", { ascending: false });
-      setRespostas(data || []);
+      setTodasRespostas(data || []);
       setLoading(false);
     })();
   }, [form?.id]);
+
+  // Lista de meses disponíveis (YYYY-MM)
+  const mesesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    todasRespostas.forEach(r => {
+      const d = new Date(r.created_at);
+      set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [todasRespostas]);
+
+  const respostas = useMemo(() => {
+    if (mesFiltro === "todos") return todasRespostas;
+    return todasRespostas.filter(r => {
+      const d = new Date(r.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      return key === mesFiltro;
+    });
+  }, [todasRespostas, mesFiltro]);
+
+  const formatMesLabel = (key: string) => {
+    const [y, m] = key.split("-");
+    const nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    return `${nomes[Number(m) - 1]}/${y}`;
+  };
 
   const stats = useMemo(() => {
     const total = respostas.length;
@@ -143,7 +170,7 @@ export function AvaliacoesRHDashboard({ form }: Props) {
     return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando dashboard...</div>;
   }
 
-  if (respostas.length === 0) {
+  if (todasRespostas.length === 0) {
     return (
       <Card className="p-8 text-center text-muted-foreground">
         <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-40" />
@@ -155,6 +182,34 @@ export function AvaliacoesRHDashboard({ form }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Filtrar por mês:</span>
+          <Select value={mesFiltro} onValueChange={setMesFiltro}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os meses</SelectItem>
+              {mesesDisponiveis.map(m => (
+                <SelectItem key={m} value={m}>{formatMesLabel(m)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          Exibindo {respostas.length} de {todasRespostas.length} avaliações
+        </span>
+      </div>
+
+      {respostas.length === 0 ? (
+        <Card className="p-8 text-center text-muted-foreground">
+          <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-40" />
+          <p className="text-sm">Nenhuma avaliação neste mês.</p>
+        </Card>
+      ) : (
+      <>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={Users} label="Total de avaliações" value={stats.total} />
         <StatCard icon={Star} label="Nota média geral" value={stats.media.toFixed(2)} hint="escala 1-5" />
@@ -280,6 +335,8 @@ export function AvaliacoesRHDashboard({ form }: Props) {
           </Card>
         );
       })()}
+      </>
+      )}
     </div>
   );
 }
