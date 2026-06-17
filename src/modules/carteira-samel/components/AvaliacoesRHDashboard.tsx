@@ -335,6 +335,8 @@ export function AvaliacoesRHDashboard({ form }: Props) {
           </Card>
         );
       })()}
+      </>
+      )}
     </div>
   );
 }
