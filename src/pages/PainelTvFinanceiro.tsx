@@ -723,6 +723,8 @@ export default function PainelTvFinanceiro() {
           metaTotal={metaTotal}
           metaFixa={metaDiariaFixa}
           sugestaoMeta={sugestaoMetaDinamica}
+          usuariosDisponiveis={USUARIOS_DISPONIVEIS}
+          usuariosSelecionados={USUARIOS_META}
           onDefinirMeta={definirMetaDoDia}
           onLimparMeta={limparMetaDoDia}
         />
