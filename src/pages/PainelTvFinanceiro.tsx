@@ -1591,9 +1591,7 @@ function MetaDiariaSection({
 
 function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
   const concluida = usuario.meta > 0 && usuario.emitidas >= usuario.meta;
-  // TESTE: forçar modo Sonic para João Victor
-  const isJoaoVictorTeste = /joao\s*victor|joão\s*victor/i.test(usuario.nome);
-  const sonic = isJoaoVictorTeste || (usuario.meta > 0 && usuario.emitidas > usuario.meta);
+  const sonic = usuario.meta > 0 && usuario.emitidas > usuario.meta;
   const iniciais = usuario.nome
     .split(" ")
     .filter(Boolean)
