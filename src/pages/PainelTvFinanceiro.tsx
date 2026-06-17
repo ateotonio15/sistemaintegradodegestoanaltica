@@ -1171,6 +1171,27 @@ function ListaCard<T>({
     },
   };
   const a = accentMap[accent];
+
+  // Rotação automática: 5 por página, troca a cada 9s
+  const PAGE_SIZE = 5;
+  const ROTATE_MS = 9000;
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const [page, setPage] = useState(0);
+  useEffect(() => {
+    if (page >= totalPages) setPage(0);
+  }, [totalPages, page]);
+  useEffect(() => {
+    if (totalPages <= 1) return;
+    const id = setInterval(() => {
+      setPage((p) => (p + 1) % totalPages);
+    }, ROTATE_MS);
+    return () => clearInterval(id);
+  }, [totalPages]);
+  const currentPage = Math.min(page, totalPages - 1);
+  const pagedRows = totalPages > 1
+    ? rows.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
+    : rows;
+
   return (
     <Card className="relative flex flex-col overflow-hidden border border-border/60 shadow-sm">
       <span className={cn("absolute left-0 top-0 bottom-0 w-1", a.stripe)} aria-hidden />
@@ -1213,16 +1234,35 @@ function ListaCard<T>({
 
       <div
         style={contentHeight ? { height: contentHeight, minHeight: 220 } : { height: 400 }}
-        className="overflow-y-auto overflow-x-hidden"
+        className={cn("overflow-hidden", totalPages <= 1 && "overflow-y-auto")}
       >
         <div className="p-3">
           {rows.length === 0 ? (
             <div className="text-sm text-muted-foreground text-center py-12 px-4">{empty}</div>
           ) : (
-            rows.map((r, i) => renderRow(r, i))
+            pagedRows.map((r, i) => renderRow(r, currentPage * PAGE_SIZE + i))
           )}
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="px-4 py-2 border-t border-border/60 bg-muted/20 flex items-center justify-between text-xs text-muted-foreground">
+          <span className="tabular-nums">
+            Página {currentPage + 1}/{totalPages} · {rows.length} empresas
+          </span>
+          <div className="flex gap-1">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "h-1.5 w-4 rounded-full transition-colors",
+                  i === currentPage ? "bg-foreground/70" : "bg-foreground/15",
+                )}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
