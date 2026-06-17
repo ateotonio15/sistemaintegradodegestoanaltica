@@ -171,12 +171,20 @@ export default function VidasSamel() {
           </div>
         </div>
 
+        <Tabs defaultValue="vidas" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="vidas">Vidas</TabsTrigger>
+            <TabsTrigger value="contratos">Contratos por classificação</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="vidas" className="space-y-6">
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <KpiCard label="Vidas Ativas" value={totalVidas} icon={HeartPulse} accent="text-primary" bg="bg-primary/10" loading={titularesQuery.isLoading || dependentesQuery.isLoading} />
           <KpiCard label="Titulares" value={titulares} icon={User} accent="text-success" bg="bg-success/10" loading={titularesQuery.isLoading} />
           <KpiCard label="Dependentes" value={dependentes} icon={UsersIcon} accent="text-info" bg="bg-info/10" loading={dependentesQuery.isLoading} />
         </div>
+
 
         {/* Filtros */}
         <Card className="rounded-xl shadow-sm">
