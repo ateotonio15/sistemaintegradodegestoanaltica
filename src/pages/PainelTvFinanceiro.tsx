@@ -632,6 +632,14 @@ export default function PainelTvFinanceiro() {
           />
         </section>
 
+        {/* META DIÁRIA DE EMISSÃO */}
+        <MetaDiariaSection
+          metaPorUsuario={metaPorUsuario}
+          metaTotal={metaTotal}
+        />
+
+
+
 
         {/* LAYOUT preset selector */}
         {listOrder.length > 1 && (
