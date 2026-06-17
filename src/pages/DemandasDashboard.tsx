@@ -37,6 +37,8 @@ import { cn } from "@/lib/utils";
 import { useDemandas } from "@/hooks/useDemandas";
 import {
   getStatus,
+  isOpen,
+
   getDiasAberto,
   parseLocalDate,
   formatDate,
@@ -125,7 +127,7 @@ export default function DemandasDashboard() {
 
   // ===== KPIs =====
   const total = filtered.length;
-  const resolvidas = filtered.filter((d) => getStatus(d) === "Resolvido");
+  const resolvidas = filtered.filter((d) => getStatus(d) === "Finalizada");
   const slaPct =
     resolvidas.length === 0
       ? 0
@@ -140,7 +142,7 @@ export default function DemandasDashboard() {
             100,
         );
   const backlogCritico = filtered.filter(
-    (d) => getStatus(d) === "Em aberto" && getDiasAberto(d) > 5,
+    (d) => isOpen(d) && getDiasAberto(d) > 5,
   ).length;
   const tempos = resolvidas
     .map((d) => {
@@ -180,7 +182,7 @@ export default function DemandasDashboard() {
       const b = buckets.get(key);
       if (!b) return;
       b.total++;
-      if (getStatus(d) === "Resolvido") {
+      if (getStatus(d) === "Finalizada") {
         b.resolvidas++;
         const rf = parseLocalDate(d.data_resolucao_executiva || "");
         if (rf && diff(rf, x) <= 5) b.sla++;
@@ -286,7 +288,7 @@ export default function DemandasDashboard() {
       const t = d.tipo_reclamacao || "—";
       const cur = map.get(t) ?? { count: 0, tempoSum: 0, tempoN: 0 };
       cur.count++;
-      if (getStatus(d) === "Resolvido") {
+      if (getStatus(d) === "Finalizada") {
         const ri = parseLocalDate(d.data_reclamacao);
         const rf = parseLocalDate(d.data_resolucao_executiva || "");
         if (ri && rf) {
@@ -310,7 +312,7 @@ export default function DemandasDashboard() {
   const alertas = useMemo(
     () =>
       filtered
-        .filter((d) => getStatus(d) === "Em aberto" && getDiasAberto(d) > 5)
+        .filter((d) => isOpen(d) && getDiasAberto(d) > 5)
         .sort((a, b) => getDiasAberto(b) - getDiasAberto(a))
         .slice(0, 20),
     [filtered],

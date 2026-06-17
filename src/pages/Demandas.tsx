@@ -53,7 +53,7 @@ import DemandaFormDialog from "@/components/demandas/DemandaFormDialog";
 import ImportarDemandasDialog from "@/components/demandas/ImportarDemandasDialog";
 import HistoricoImportacoesDialog from "@/components/demandas/HistoricoImportacoesDialog";
 
-type StatusFilter = "todos" | "aberto" | "resolvido";
+type StatusFilter = "todos" | "pendente" | "resolvida" | "finalizada";
 
 export default function Demandas() {
   const { isAdmin, isDiretora, isViewOnly, user } = useAuth();
@@ -137,8 +137,12 @@ export default function Demandas() {
       if (empresa !== "__all__" && d.empresa !== empresa) return false;
       if (setor !== "__all__" && d.setor_responsavel !== setor) return false;
       if (executiva !== "__all__" && d.executiva !== executiva) return false;
-      if (status === "aberto" && d.resolvido_executiva) return false;
-      if (status === "resolvido" && !d.resolvido_executiva) return false;
+      if (status !== "todos") {
+        const st = getStatus(d);
+        if (status === "pendente" && st !== "Pendente") return false;
+        if (status === "resolvida" && st !== "Resolvida") return false;
+        if (status === "finalizada" && st !== "Finalizada") return false;
+      }
       if (reclamacaoParam && d.reclamacao !== reclamacaoParam) return false;
       if (q && !d.nome_cliente.toLowerCase().includes(q)) return false;
       return true;
@@ -295,8 +299,9 @@ export default function Demandas() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="aberto">Em aberto</SelectItem>
-                <SelectItem value="resolvido">Resolvido</SelectItem>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="resolvida">Resolvida</SelectItem>
+                <SelectItem value="finalizada">Finalizada</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -375,10 +380,12 @@ export default function Demandas() {
                       <td className="py-2.5 px-3">
                         <Badge
                           className={cn(
-                            "text-[10px] uppercase tracking-wider font-semibold",
-                            st === "Resolvido"
-                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-transparent"
-                              : "bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-transparent",
+                            "text-[10px] uppercase tracking-wider font-semibold border-transparent",
+                            st === "Finalizada"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                              : st === "Resolvida"
+                              ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20"
+                              : "bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20",
                           )}
                         >
                           {st}

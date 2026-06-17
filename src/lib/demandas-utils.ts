@@ -35,10 +35,28 @@ export type ImportacaoLote = {
   created_at: string;
 };
 
-export type DemandaStatus = "Resolvido" | "Em aberto";
+export type DemandaStatus = "Pendente" | "Resolvida" | "Finalizada";
 
-export function getStatus(d: Pick<Demanda, "resolvido_executiva">): DemandaStatus {
-  return d.resolvido_executiva ? "Resolvido" : "Em aberto";
+/**
+ * Regras:
+ * - Resolvido pela executiva = SIM  -> Finalizada
+ * - Resolvido pelo setor = SIM (e executiva NÃO) -> Resolvida
+ * - Nenhum dos dois -> Pendente
+ */
+export function getStatus(
+  d: Pick<Demanda, "resolvido_executiva" | "resolvido_setor">,
+): DemandaStatus {
+  if (d.resolvido_executiva) return "Finalizada";
+  if (d.resolvido_setor) return "Resolvida";
+  return "Pendente";
+}
+
+export function isOpen(d: Pick<Demanda, "resolvido_executiva" | "resolvido_setor">): boolean {
+  return getStatus(d) !== "Finalizada";
+}
+
+export function isPendente(d: Pick<Demanda, "resolvido_executiva" | "resolvido_setor">): boolean {
+  return getStatus(d) === "Pendente";
 }
 
 /** Dias em aberto: hoje - data_reclamacao quando aberto; resolucao - reclamacao quando fechado. */
@@ -62,8 +80,9 @@ export function getSlaDias(d: Pick<Demanda, "setor_responsavel" | "tipo_reclamac
 }
 
 export function isOverSla(d: Demanda): boolean {
-  return getStatus(d) === "Em aberto" && getDiasAberto(d) > 5;
+  return isOpen(d) && getDiasAberto(d) > 5;
 }
+
 
 /** Converte "" para null antes de salvar em campos opcionais. */
 export function emptyToNull<T extends Record<string, any>>(obj: T): T {
