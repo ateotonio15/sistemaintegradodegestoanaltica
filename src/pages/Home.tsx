@@ -192,7 +192,7 @@ const isGroup = (s: Shortcut): s is GroupShortcut & { group: "funcoes" | "utilit
 const EMPRESAS_CHILDREN: LeafShortcut[] = [
   {
     to: "/empresas",
-    label: "Empresas",
+    label: "Contratos",
     description: "Cadastro e gestão de contratos",
     icon: Building2,
     show: () => true,
