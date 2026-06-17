@@ -942,26 +942,27 @@ function HeroKpi({
           : undefined
       }
       className={cn(
-        "relative p-4 bg-card border border-border/60 shadow-none transition-colors",
+        "relative p-5 bg-card border border-border/60 shadow-none transition-colors",
         selectable && "cursor-pointer hover:border-border",
         selected && t.selectedRing,
         pulse && !selected && "ring-1 ring-emerald-400/50",
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
-        <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground leading-tight">
+        <span className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground leading-tight">
           {label}
         </span>
-        <div className={cn("h-6 w-6 rounded-md flex items-center justify-center shrink-0", t.iconWrap)}>
-          <Icon className="h-3 w-3" />
+        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", t.iconWrap)}>
+          <Icon className="h-4 w-4" />
         </div>
       </div>
-      <div className={cn("text-3xl font-semibold tabular-nums leading-none tracking-tight", t.value)}>
+      <div className={cn("text-5xl font-bold tabular-nums leading-none tracking-tight", t.value)}>
         {value}
       </div>
       {hint && (
-        <div className="mt-2 text-[11px] text-muted-foreground leading-snug">{hint}</div>
+        <div className="mt-3 text-sm text-muted-foreground leading-snug">{hint}</div>
       )}
+
       {pulse && (
         <span className="absolute top-2 right-2 flex h-1.5 w-1.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
