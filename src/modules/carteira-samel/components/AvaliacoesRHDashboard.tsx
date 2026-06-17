@@ -40,7 +40,8 @@ function StatCard({ icon: Icon, label, value, hint }: any) {
 
 export function AvaliacoesRHDashboard({ form }: Props) {
   const [loading, setLoading] = useState(true);
-  const [respostas, setRespostas] = useState<Resposta[]>([]);
+  const [todasRespostas, setTodasRespostas] = useState<Resposta[]>([]);
+  const [mesFiltro, setMesFiltro] = useState<string>("todos");
 
   useEffect(() => {
     if (!form?.id) return;
@@ -51,10 +52,35 @@ export function AvaliacoesRHDashboard({ form }: Props) {
         .select("id, nota_media, comentario, nome_empresa, nome_executiva, respostas, created_at")
         .eq("formulario_id", form.id)
         .order("created_at", { ascending: false });
-      setRespostas(data || []);
+      setTodasRespostas(data || []);
       setLoading(false);
     })();
   }, [form?.id]);
+
+  // Lista de meses disponíveis (YYYY-MM)
+  const mesesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    todasRespostas.forEach(r => {
+      const d = new Date(r.created_at);
+      set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [todasRespostas]);
+
+  const respostas = useMemo(() => {
+    if (mesFiltro === "todos") return todasRespostas;
+    return todasRespostas.filter(r => {
+      const d = new Date(r.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      return key === mesFiltro;
+    });
+  }, [todasRespostas, mesFiltro]);
+
+  const formatMesLabel = (key: string) => {
+    const [y, m] = key.split("-");
+    const nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    return `${nomes[Number(m) - 1]}/${y}`;
+  };
 
   const stats = useMemo(() => {
     const total = respostas.length;
