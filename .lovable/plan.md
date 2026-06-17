@@ -1,48 +1,35 @@
-## Avaliação RH — restauração e ajustes
+## Objetivo
 
-Recoloca o formulário com as 5 perguntas em escala 1–5, adiciona os campos extras pedidos e permite resposta pública (sem login) via link único.
+A tela **Score de Risco** (`/carteira-samel/score`) hoje lista automaticamente todas as empresas ativas EMPRESARIAL. Você quer que ela comece **vazia** e que cada usuário/administrador **inclua manualmente** as empresas que quiser acompanhar.
 
-### 1. Banco de dados (migração)
+## O que será feito
 
-Tabela `cs_avaliacao_respostas` — adicionar colunas:
-- `nota_media` (numeric) — média das respostas de rating
-- `comentario` (text, opcional)
-- `nome_empresa` (text, obrigatório no envio)
-- `nome_executiva` (text, obrigatório no envio)
-- `compartilhamento_id` (uuid, opcional) — para distinguir origem do link compartilhado
+### 1. Nova tabela `cs_score_empresas`
+Guarda apenas as empresas que foram explicitamente incluídas no Score de Risco.
 
-RLS:
-- Manter leitura restrita a admin/diretora/executivo
-- **Adicionar política de INSERT pública (anon + authenticated)** para que o link funcione sem login
+Campos: `empresa_id` (referência à empresa), `incluida_por`, `incluida_em`.
 
-### 2. Template do formulário (`AvaliacoesRH.tsx`)
+Acesso: leitura para todos autenticados; inclusão/remoção apenas para perfis admin, diretora e executivo (mesma régua das outras telas da carteira).
 
-Repopular `TEMPLATE_RH` com:
+### 2. Página Score de Risco
+- Não busca mais "todas as empresas EMPRESARIAL".
+- Lista somente as empresas presentes em `cs_score_empresas`.
+- Mantém os mesmos cálculos (score, semáforo, ações) sobre essa lista.
+- Estado vazio: mensagem "Nenhuma empresa no acompanhamento de risco" + botão **Adicionar empresa**.
+- Novo botão no topo: **Adicionar empresa** → dialog com busca para escolher entre as empresas ativas da base e incluir no Score.
+- Botão de remover (lixeira) em cada card/linha para tirar a empresa do Score (não exclui a empresa do sistema, só do acompanhamento).
 
-| # | Título | Descrição |
-|---|---|---|
-| 1 | Relacionamento e cordialidade | A qualidade do relacionamento, cordialidade e profissionalismo demonstrados pela executiva durante os atendimentos. |
-| 2 | Proatividade e comprometimento | A executiva demonstra iniciativa e presteza para auxiliá-los para as demandas apresentadas? |
-| 3 | Agilidade e efetividade | O tempo de resposta e a capacidade de conduzir as demandas de forma eficiente até sua resolução. |
-| 4 | Disponibilidade e suporte | A facilidade de contato e o suporte prestado sempre que sua empresa necessita de auxílio. |
-| 5 | Satisfação geral | Considerando sua experiência como um todo, qual sua avaliação sobre o atendimento prestado pela executiva? |
+### 3. Compatibilidade com outras abas da Carteira
+As demais páginas da Carteira Samel (Visão Geral, Sinistralidade, Avaliações RH etc.) continuam usando todas as empresas como hoje — a restrição vale **só** para a aba Score de Risco.
 
-Instruções: "Em uma escala de 1 a 5, sendo 1 = Insatisfatório e 5 = Excelente, como você avalia:"
+## Detalhes técnicos
 
-Todas tipo `rating`, obrigatórias. O comentário deixa de ser uma pergunta e vira campo fixo no responder.
+- Migração cria `public.cs_score_empresas (empresa_id uuid PK, incluida_por uuid, incluida_em timestamptz)` com FK para `empresas(id) on delete cascade`, GRANTs para `authenticated` e `service_role`, RLS habilitado e políticas usando `has_role`.
+- Novo hook `useScoreEmpresas` para listar/incluir/remover.
+- `ScoreRisco.tsx` deixa de consumir `useEmpresasCarteira().ativas` e passa a usar a lista curada + `getById` para resolver os dados de cada empresa.
+- Novo componente `AdicionarEmpresaScoreDialog` reutiliza o `Command`/`Combobox` do shadcn para busca por nome ou contrato.
 
-### 3. Página pública (`ResponderRH.tsx`)
+## Confirmação
 
-- Remover o campo "Seu nome (opcional)"
-- Adicionar dois inputs **obrigatórios** no topo: **Nome da Empresa** e **Executiva Avaliada**
-- Adicionar **Comentário (opcional)** como textarea após as 5 perguntas
-- Ao enviar:
-  - calcular `nota_media` = média das 5 respostas
-  - gravar `nome_empresa`, `nome_executiva`, `comentario`, `nota_media`, `respostas`, `compartilhamento_id` (lido de query string `?s=<uuid>` quando presente)
-- Validar empresa/executiva preenchidos antes de enviar
-
-### 4. Não incluído nesta etapa
-- Tela de listagem/análise das respostas (rankings, médias por executiva) — pode ser próxima iteração
-- Geração/gestão de links com `compartilhamento_id` distintos — por ora apenas captura se vier na URL
-
-Confirma para eu implementar?
+Posso seguir com essa abordagem (esvazia e deixa adicionar manualmente, com persistência no banco para todos verem a mesma lista)?  
+Ou prefere que seja **só na sua tela** (sem salvar no banco, lista local por usuário)?

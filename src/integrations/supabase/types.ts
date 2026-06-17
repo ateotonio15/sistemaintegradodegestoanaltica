@@ -740,6 +740,32 @@ export type Database = {
         }
         Relationships: []
       }
+      cs_score_empresas: {
+        Row: {
+          empresa_id: string
+          incluida_em: string
+          incluida_por: string | null
+        }
+        Insert: {
+          empresa_id: string
+          incluida_em?: string
+          incluida_por?: string | null
+        }
+        Update: {
+          empresa_id?: string
+          incluida_em?: string
+          incluida_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_score_empresas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cs_sinistralidade_historico: {
         Row: {
           ano: number
