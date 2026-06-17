@@ -503,18 +503,25 @@ export default function PainelTvFinanceiro() {
     return counts;
   }, [anexosMap, profileNameMap]);
 
-  // Meta fixa do dia (snapshot persistido em localStorage por data).
+  // Meta fixa do dia (persistida no banco, compartilhada entre todos os dispositivos).
   const todayKey = new Date().toLocaleDateString("en-CA");
-  const metaStorageKey = `painel-tv-meta-diaria-${todayKey}`;
-  const [metaDiariaFixa, setMetaDiariaFixa] = useState<number | null>(() => {
-    try {
-      const raw = localStorage.getItem(`painel-tv-meta-diaria-${new Date().toLocaleDateString("en-CA")}`);
-      if (raw == null) return null;
-      const n = parseInt(raw, 10);
-      return Number.isFinite(n) && n >= 0 ? n : null;
-    } catch {
-      return null;
-    }
+  const { data: metaDiariaFixa = null, refetch: refetchMetaDiaria } = useQuery({
+    queryKey: ["painel-tv-meta-diaria", todayKey],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("painel_tv_meta_diaria" as any)
+        .select("valor")
+        .eq("data", todayKey)
+        .maybeSingle();
+      if (error) {
+        console.error("[meta-diaria] erro ao carregar:", error);
+        return null;
+      }
+      const v = (data as any)?.valor;
+      return typeof v === "number" && v >= 0 ? v : null;
+    },
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
 
   const metaPorUsuario = useMemo(() => {
@@ -524,7 +531,6 @@ export default function PainelTvFinanceiro() {
       0,
     );
     const totalDinamico = totalAguardando + totalEmitidasHoje;
-    // Se a meta foi fixada, usa o valor congelado; caso contrário, dinâmico.
     const totalBase = metaDiariaFixa != null ? metaDiariaFixa : totalDinamico;
     const n = USUARIOS_META.length;
     const base = Math.floor(totalBase / n);
@@ -556,20 +562,31 @@ export default function PainelTvFinanceiro() {
     aguardandoEmissao.length +
     USUARIOS_META.reduce((acc, u) => acc + (emitidasHojePorUsuario[u] || 0), 0);
 
-  const definirMetaDoDia = (valor: number) => {
+  const definirMetaDoDia = async (valor: number) => {
     const v = Math.max(0, Math.floor(valor));
-    try {
-      localStorage.setItem(metaStorageKey, String(v));
-    } catch {}
-    setMetaDiariaFixa(v);
+    const { error } = await supabase
+      .from("painel_tv_meta_diaria" as any)
+      .upsert({ data: todayKey, valor: v, updated_at: new Date().toISOString() }, { onConflict: "data" });
+    if (error) {
+      console.error("[meta-diaria] erro ao salvar:", error);
+      toast({ title: "Erro ao salvar meta", description: error.message, variant: "destructive" });
+      return;
+    }
+    await refetchMetaDiaria();
     toast({ title: "Meta do dia definida", description: `${v} empresas distribuídas entre os usuários.` });
   };
 
-  const limparMetaDoDia = () => {
-    try {
-      localStorage.removeItem(metaStorageKey);
-    } catch {}
-    setMetaDiariaFixa(null);
+  const limparMetaDoDia = async () => {
+    const { error } = await supabase
+      .from("painel_tv_meta_diaria" as any)
+      .delete()
+      .eq("data", todayKey);
+    if (error) {
+      console.error("[meta-diaria] erro ao limpar:", error);
+      toast({ title: "Erro ao remover meta", description: error.message, variant: "destructive" });
+      return;
+    }
+    await refetchMetaDiaria();
     toast({ title: "Meta do dia removida", description: "Voltando ao cálculo automático em tempo real." });
   };
   // ==============================================================
