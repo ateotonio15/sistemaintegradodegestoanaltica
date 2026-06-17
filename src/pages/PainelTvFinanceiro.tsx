@@ -1667,7 +1667,7 @@ function MetaHistoricoButton() {
         .order("data", { ascending: false })
         .limit(60);
       if (errMetas) throw errMetas;
-      const metasList = (metas || []) as Array<{ data: string; valor: number; usuarios: string[] }>;
+      const metasList = ((metas || []) as unknown) as Array<{ data: string; valor: number; usuarios: string[] }>;
       if (metasList.length === 0) return [] as any[];
 
       const dataMin = metasList[metasList.length - 1].data;
