@@ -634,7 +634,7 @@ export default function PainelTvFinanceiro() {
     const { error } = await supabase
       .from("painel_tv_meta_diaria" as any)
       .upsert(
-        { data: todayKey, valor: v, usuarios: us, updated_at: new Date().toISOString() },
+        { data: todayKey, valor: v, usuarios: us, iniciada_em: new Date().toISOString(), updated_at: new Date().toISOString() },
         { onConflict: "data" },
       );
     if (error) {
