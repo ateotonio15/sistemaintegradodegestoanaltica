@@ -1,0 +1,1 @@
+ALTER TABLE public.painel_tv_meta_diaria ADD COLUMN IF NOT EXISTS empresas_snapshot jsonb NOT NULL DEFAULT '[]'::jsonb;
