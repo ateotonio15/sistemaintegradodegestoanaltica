@@ -514,14 +514,14 @@ export default function PainelTvFinanceiro() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("painel_tv_meta_diaria" as any)
-        .select("valor, usuarios")
+        .select("valor, usuarios, iniciada_em")
         .eq("data", todayKey)
         .maybeSingle();
       if (error) {
         console.error("[meta-diaria] erro ao carregar:", error);
         return null;
       }
-      return (data as unknown) as { valor: number; usuarios: string[] } | null;
+      return (data as unknown) as { valor: number; usuarios: string[]; iniciada_em: string } | null;
     },
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
@@ -558,14 +558,17 @@ export default function PainelTvFinanceiro() {
     const counts: Record<string, number> = {};
     USUARIOS_META.forEach((u) => (counts[u] = 0));
     const todayStr = new Date().toLocaleDateString("en-CA");
+    // Quando a meta está definida, conta apenas notas enviadas a partir do início da meta.
+    const iniciadaEm = metaDiariaRow?.iniciada_em ? new Date(metaDiariaRow.iniciada_em).getTime() : 0;
     Object.values(anexosMap as Record<string, any[]>).forEach((list) => {
       list.forEach((a) => {
         const isPdf =
           (a.mime_type || "").toLowerCase().includes("pdf") ||
           (a.nome_arquivo || "").toLowerCase().endsWith(".pdf");
         if (!isPdf || !a.uploaded_by || !a.created_at) return;
-        const created = new Date(a.created_at).toLocaleDateString("en-CA");
-        if (created !== todayStr) return;
+        const createdDate = new Date(a.created_at);
+        if (createdDate.toLocaleDateString("en-CA") !== todayStr) return;
+        if (iniciadaEm > 0 && createdDate.getTime() < iniciadaEm) return;
         const name = ((profileNameMap as any)[a.uploaded_by] || "")
           .trim()
           .toLowerCase();
@@ -580,7 +583,7 @@ export default function PainelTvFinanceiro() {
       });
     });
     return counts;
-  }, [anexosMap, profileNameMap, USUARIOS_META]);
+  }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow]);
 
   const metaPorUsuario = useMemo(() => {
     const totalAguardando = aguardandoEmissao.length;
@@ -631,7 +634,7 @@ export default function PainelTvFinanceiro() {
     const { error } = await supabase
       .from("painel_tv_meta_diaria" as any)
       .upsert(
-        { data: todayKey, valor: v, usuarios: us, updated_at: new Date().toISOString() },
+        { data: todayKey, valor: v, usuarios: us, iniciada_em: new Date().toISOString(), updated_at: new Date().toISOString() },
         { onConflict: "data" },
       );
     if (error) {
