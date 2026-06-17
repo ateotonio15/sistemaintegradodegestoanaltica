@@ -3,31 +3,40 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Grid3x3, List, ArrowRight } from "lucide-react";
+import { Grid3x3, List, ArrowRight, Plus, Trash2, ShieldAlert } from "lucide-react";
 import { useEmpresasCarteira } from "../context/EmpresasContext";
+import { useScoreEmpresas } from "../hooks/useScoreEmpresas";
 import { scoreSimplificado, acoesRecomendadas } from "../lib/risco";
 import { SemaforoBadge } from "../components/SemaforoBadge";
 import { EmpresaDetailsDrawer } from "../components/EmpresaDetailsDrawer";
+import { AdicionarEmpresaScoreDialog } from "../components/AdicionarEmpresaScoreDialog";
 import { EmpresaCarteira } from "../data/mockData";
 import { cn } from "@/lib/utils";
 
 export default function ScoreRisco() {
-  const { ativas } = useEmpresasCarteira();
+  const { empresas } = useEmpresasCarteira();
+  const { ids: incluidasIds, remove } = useScoreEmpresas();
   const [view, setView] = useState<"grid" | "lista">("grid");
   const [busca, setBusca] = useState("");
   const [grupo, setGrupo] = useState<string>("todos");
   const [filtroClass, setFiltroClass] = useState<string>("todas");
   const [selecionada, setSelecionada] = useState<EmpresaCarteira | null>(null);
+  const [openAdd, setOpenAdd] = useState(false);
 
-  // mock de reclamações por empresa
+  // Apenas as empresas explicitamente incluídas no Score de Risco.
+  const empresasIncluidas = useMemo(() => {
+    const map = new Map(empresas.map((e) => [e.id, e]));
+    return incluidasIds.map((id) => map.get(id)).filter(Boolean) as EmpresaCarteira[];
+  }, [empresas, incluidasIds]);
+
   const reclamacoesPorEmpresa = useMemo(() => {
     const map: Record<string, number> = {};
-    ativas.forEach((e, i) => { map[e.id] = (i * 3) % 6; });
+    empresasIncluidas.forEach((e, i) => { map[e.id] = (i * 3) % 6; });
     return map;
-  }, [ativas]);
+  }, [empresasIncluidas]);
 
   const dados = useMemo(() => {
-    let arr = ativas.map((e) => {
+    let arr = empresasIncluidas.map((e) => {
       const rec = reclamacoesPorEmpresa[e.id] ?? 0;
       const s = scoreSimplificado(rec, e.vigenciaInicio);
       return { empresa: e, rec, ...s };
@@ -37,7 +46,7 @@ export default function ScoreRisco() {
     if (filtroClass !== "todas") arr = arr.filter((d) => d.semaforo === filtroClass);
     arr.sort((a, b) => b.total - a.total);
     return arr;
-  }, [ativas, busca, grupo, filtroClass, reclamacoesPorEmpresa]);
+  }, [empresasIncluidas, busca, grupo, filtroClass, reclamacoesPorEmpresa]);
 
   return (
     <div className="space-y-4">
@@ -61,24 +70,51 @@ export default function ScoreRisco() {
             <SelectItem value="Vermelho">Vermelho</SelectItem>
           </SelectContent>
         </Select>
-        <div className="ml-auto flex gap-1">
+        <div className="ml-auto flex gap-2">
+          <Button size="sm" onClick={() => setOpenAdd(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Adicionar empresa
+          </Button>
           <Button size="icon" variant={view === "grid" ? "default" : "outline"} onClick={() => setView("grid")}><Grid3x3 className="h-4 w-4" /></Button>
           <Button size="icon" variant={view === "lista" ? "default" : "outline"} onClick={() => setView("lista")}><List className="h-4 w-4" /></Button>
         </div>
       </Card>
 
-      {view === "grid" ? (
+      {empresasIncluidas.length === 0 ? (
+        <Card className="p-10 text-center space-y-3">
+          <ShieldAlert className="h-10 w-10 mx-auto text-muted-foreground" />
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold">Nenhuma empresa no acompanhamento de risco</h3>
+            <p className="text-sm text-muted-foreground">
+              Adicione manualmente as empresas que devem aparecer no Score de Risco.
+            </p>
+          </div>
+          <Button onClick={() => setOpenAdd(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Adicionar empresa
+          </Button>
+        </Card>
+      ) : view === "grid" ? (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {dados.map((d) => {
             const acoes = acoesRecomendadas(d.semaforo);
             return (
               <Card key={d.empresa.id} className={cn("p-4 space-y-2 border-l-4", d.semaforo === "Verde" ? "border-l-emerald-500" : d.semaforo === "Amarelo" ? "border-l-amber-500" : "border-l-red-500")}>
-                <div className="flex items-start justify-between">
-                  <div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
                     <h3 className="font-semibold truncate">{d.empresa.nome}</h3>
                     <p className="text-xs text-muted-foreground">Contrato {d.empresa.contrato}</p>
                   </div>
-                  <SemaforoBadge semaforo={d.semaforo} label={`Score ${d.total}`} />
+                  <div className="flex items-center gap-1 shrink-0">
+                    <SemaforoBadge semaforo={d.semaforo} label={`Score ${d.total}`} />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => remove.mutate(d.empresa.id)}
+                      title="Remover do Score de Risco"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded bg-muted/40 p-2"><div className="text-muted-foreground">Reclamações 30d</div><div className="font-semibold">{d.rec}</div></div>
@@ -114,7 +150,20 @@ export default function ScoreRisco() {
                   <td className="px-3 py-2"><SemaforoBadge semaforo={d.semaforo} label={`${d.total}`} /></td>
                   <td className="px-3 py-2">{d.rec}</td>
                   <td className="px-3 py-2">{d.diasReajuste}</td>
-                  <td className="px-3 py-2 text-right"><Button size="sm" variant="outline" onClick={() => setSelecionada(d.empresa)}>Detalhes</Button></td>
+                  <td className="px-3 py-2 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="outline" onClick={() => setSelecionada(d.empresa)}>Detalhes</Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => remove.mutate(d.empresa.id)}
+                        title="Remover do Score de Risco"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -123,6 +172,7 @@ export default function ScoreRisco() {
       )}
 
       <EmpresaDetailsDrawer empresa={selecionada} open={!!selecionada} onOpenChange={(o) => !o && setSelecionada(null)} />
+      <AdicionarEmpresaScoreDialog open={openAdd} onOpenChange={setOpenAdd} />
     </div>
   );
 }
