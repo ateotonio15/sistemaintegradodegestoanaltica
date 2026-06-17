@@ -1460,27 +1460,25 @@ function MetaDiariaSection({
 
   return (
     <section className="space-y-2">
-      <Card className="p-5 space-y-4">
+      <Card className="p-5 space-y-4 w-fit max-w-full mx-auto">
         {/* Linha 1: título + totais + ações */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-3 min-w-0">
-            <Target className="h-7 w-7 text-primary shrink-0" />
-            <span className="font-semibold text-xl whitespace-nowrap">Meta diária</span>
-            {metaFixa != null && (
-              <Badge variant="outline" className="text-base gap-1 h-9 px-3">
-                Meta: <strong>{metaFixa}</strong>
-              </Badge>
-            )}
-            <Badge variant="outline" className="text-base h-9 gap-1.5 px-3">
-              <Trophy className="h-4 w-4 text-primary" />
-              {metaTotal.totalEmitidas}/{metaTotal.totalMeta}
+        <div className="flex items-center gap-3 flex-wrap">
+          <Target className="h-7 w-7 text-primary shrink-0" />
+          <span className="font-semibold text-xl whitespace-nowrap">Meta diária</span>
+          {metaFixa != null && (
+            <Badge variant="outline" className="text-base gap-1 h-9 px-3">
+              Meta: <strong>{metaFixa}</strong>
             </Badge>
-            <Badge variant="outline" className="text-base h-9 px-3">
-              Aguardando: <strong className="ml-1">{metaTotal.totalAguardando}</strong>
-            </Badge>
-          </div>
+          )}
+          <Badge variant="outline" className="text-base h-9 gap-1.5 px-3">
+            <Trophy className="h-4 w-4 text-primary" />
+            {metaTotal.totalEmitidas}/{metaTotal.totalMeta}
+          </Badge>
+          <Badge variant="outline" className="text-base h-9 px-3">
+            Aguardando: <strong className="ml-1">{metaTotal.totalAguardando}</strong>
+          </Badge>
 
-          <div className="flex items-center gap-2 ml-auto shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {metaFixa != null ? (
               <>
                 <Button variant="outline" size="sm" className="h-9 px-3 text-sm" onClick={abrirDialog}>
@@ -1498,6 +1496,7 @@ function MetaDiariaSection({
             <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse ml-1" />
           </div>
         </div>
+
 
 
         {/* Linha 2: cards compactos por usuário */}
