@@ -595,7 +595,7 @@ export default function PainelTvFinanceiro() {
 
   const definirMetaDoDia = async (valor: number, usuarios: string[]) => {
     const v = Math.max(0, Math.floor(valor));
-    const us = usuarios.filter((u) => USUARIOS_DISPONIVEIS.includes(u));
+    const us = usuarios.map((u) => u.trim()).filter(Boolean);
     if (us.length === 0) {
       toast({ title: "Selecione ao menos um usuário", variant: "destructive" });
       return;
