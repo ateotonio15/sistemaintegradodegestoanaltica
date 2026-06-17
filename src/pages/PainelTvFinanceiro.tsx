@@ -523,9 +523,26 @@ export default function PainelTvFinanceiro() {
       }
       return (data as unknown) as { valor: number; usuarios: string[] } | null;
     },
-    refetchInterval: 15000,
+    refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
+
+  // Realtime: propaga imediatamente quando outro usuário define/edita a meta.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`painel-tv-meta-diaria-${todayKey}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "painel_tv_meta_diaria", filter: `data=eq.${todayKey}` },
+        () => {
+          refetchMetaDiaria();
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [todayKey, refetchMetaDiaria]);
 
   const metaDiariaFixa =
     metaDiariaRow && typeof metaDiariaRow.valor === "number" && metaDiariaRow.valor >= 0
