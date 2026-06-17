@@ -119,19 +119,23 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   });
 
   const handleDownload = async (path: string, name: string) => {
-    const { data, error } = await supabase.storage.from("anexos-implantacao").createSignedUrl(path, 300);
+    if (!path) {
+      toast({ title: "Anexo sem caminho de arquivo", variant: "destructive" });
+      return;
+    }
+    const { data, error } = await supabase.storage
+      .from("anexos-implantacao")
+      .createSignedUrl(path, 300, { download: false });
     if (error || !data?.signedUrl) {
       toast({ title: "Erro ao abrir anexo", description: error?.message, variant: "destructive" });
       return;
     }
-    const a = document.createElement("a");
-    a.href = data.signedUrl;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Abre em nova aba para visualizar (PDFs, imagens). O usuário pode salvar manualmente.
+    const win = window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    if (!win) {
+      // Fallback caso o navegador bloqueie o popup
+      window.location.href = data.signedUrl;
+    }
   };
 
 
