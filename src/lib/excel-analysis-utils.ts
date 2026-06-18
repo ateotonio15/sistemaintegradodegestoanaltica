@@ -1128,7 +1128,7 @@ export async function analisarExcelFinanceiroPorCnpj(
   await wb.xlsx.load(buffer);
 
   const viaResumo = analisarResumoSheet(wb);
-  if (viaResumo && viaResumo.length > 0) return viaResumo;
+  if (viaResumo && viaResumo.length > 0) return mesclarBlocosPorNomeForcado(viaResumo);
 
   const ws = wb.worksheets[0];
   if (!ws) return [];
@@ -1201,6 +1201,15 @@ export async function analisarExcelFinanceiroPorCnpj(
 
   const grupos = new Map<string, Acc>();
   const ehCnpjPlaceholder = (c: string) => !c || c.length !== 14 || /0{6,}$/.test(c);
+  // Regra especial: alguns pagadores têm múltiplos CNPJs (matriz + filiais)
+  // mas a análise deve consolidar tudo num único bloco usando o nome.
+  // Ex.: "PIONEIRO COMBUSTIVEIS LTD" — todos os beneficiários com esse
+  // subestipulante contam como uma só empresa, independente do CNPJ.
+  const FORCE_GROUP_BY_NAME = ["pioneiro combustiveis"];
+  const forceByName = (nome: string) => {
+    const n = norm(nome);
+    return FORCE_GROUP_BY_NAME.some((p) => n.includes(p));
+  };
   const getGrupo = (cnpj: string, nome: string): Acc => {
     // Chave preferencial: CNPJ válido. Pagadores distintos com a mesma
     // razão social (matriz + filial) ficam em blocos separados. Linhas
@@ -1209,7 +1218,10 @@ export async function analisarExcelFinanceiroPorCnpj(
     // o agrupamento por nome só é usado como último recurso.
     const nomeKey = norm(nome);
     const cnpjValido = !ehCnpjPlaceholder(cnpj);
-    const key = cnpjValido
+    const usarNome = forceByName(nome);
+    const key = usarNome && nomeKey
+      ? `__nome::${nomeKey}`
+      : cnpjValido
       ? `__cnpj::${cnpj}`
       : nomeKey
       ? `__nome::${nomeKey}`
@@ -1430,7 +1442,76 @@ export async function analisarExcelFinanceiroPorCnpj(
   }
 
 
-  return blocos;
+  return mesclarBlocosPorNomeForcado(blocos);
+}
+
+/**
+ * Consolida múltiplos blocos por-CNPJ num único bloco por-nome para pagadores
+ * que têm regra especial (matriz + filiais com mesmo subestipulante).
+ * Ex.: "PIONEIRO COMBUSTIVEIS LTD" → 1 bloco somando todos os CNPJs.
+ */
+function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[] {
+  const FORCE_GROUP_BY_NAME = ["pioneiro combustiveis"];
+  const matchForce = (nome: string) => {
+    const n = norm(nome);
+    return FORCE_GROUP_BY_NAME.find((p) => n.includes(p)) || null;
+  };
+  const grupos = new Map<string, AnalisePorCnpj[]>();
+  const ordem: AnalisePorCnpj[] = [];
+  for (const b of blocos) {
+    const tag = matchForce(b.nome);
+    if (!tag) { ordem.push(b); continue; }
+    const list = grupos.get(tag) || [];
+    list.push(b);
+    grupos.set(tag, list);
+  }
+  if (grupos.size === 0) return blocos;
+
+  const somaCat = (arr: AnalisePorCnpj[], cat: "enfermaria" | "apartamento"): CategoriaResultado => {
+    const beneficiarios = arr.reduce((s, x) => s + (x[cat]?.beneficiarios || 0), 0);
+    const total = arr.reduce((s, x) => s + (x[cat]?.total || 0), 0);
+    const mensalidade = beneficiarios > 0 ? total / beneficiarios : 0;
+    return { beneficiarios, mensalidade, total };
+  };
+  const somaQT = (arr: AnalisePorCnpj[], key: "inclusoes" | "retroativas" | "exclusoes" | "devolucoes" | "taxaAdesao") => {
+    const items = arr.map((x) => (x as any)[key]).filter(Boolean) as { quantidade: number; total: number }[];
+    if (items.length === 0) return undefined;
+    return { quantidade: items.reduce((s, x) => s + x.quantidade, 0), total: items.reduce((s, x) => s + x.total, 0) };
+  };
+
+  const merged: AnalisePorCnpj[] = [];
+  for (const [, arr] of grupos) {
+    const principal = arr[0];
+    const faixasMap = new Map<string, FaixaEtariaResumo>();
+    arr.forEach((b) => (b.faixasEtarias || []).forEach((f) => {
+      const k = `${f.idadeInicial}-${f.idadeFinal ?? "+"}`;
+      const prev = faixasMap.get(k) || { ...f, quantidade: 0, total: 0 };
+      prev.quantidade += f.quantidade;
+      prev.total += f.total;
+      faixasMap.set(k, prev);
+    }));
+    const cnpjs = Array.from(new Set(arr.map((x) => x.cnpj).filter(Boolean)));
+    const novoBloco: AnalisePorCnpj = {
+      cnpj: principal.cnpj,
+      nome: principal.nome,
+      nomeExibicao: principal.nome,
+      enfermaria: somaCat(arr, "enfermaria"),
+      apartamento: somaCat(arr, "apartamento"),
+      inclusoes: somaQT(arr, "inclusoes") || { quantidade: 0, total: 0 },
+      avisos: [
+        ...(cnpjs.length > 1 ? [`Consolidado por nome — ${cnpjs.length} CNPJs agrupados (${cnpjs.join(", ")}).`] : []),
+      ],
+    };
+    const retro = somaQT(arr, "retroativas"); if (retro) novoBloco.retroativas = retro;
+    const exc = somaQT(arr, "exclusoes"); if (exc) novoBloco.exclusoes = exc;
+    const dev = somaQT(arr, "devolucoes"); if (dev) novoBloco.devolucoes = dev;
+    const ade = somaQT(arr, "taxaAdesao"); if (ade) novoBloco.taxaAdesao = ade;
+    if (faixasMap.size > 0) {
+      novoBloco.faixasEtarias = Array.from(faixasMap.values()).sort((a, b) => a.idadeInicial - b.idadeInicial);
+    }
+    merged.push(novoBloco);
+  }
+  return [...ordem, ...merged];
 }
 
 
