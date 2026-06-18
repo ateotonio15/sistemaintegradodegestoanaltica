@@ -17,10 +17,17 @@ export interface VidasOperadoraResponse {
   };
 }
 
-export async function fetchVidasOperadoraAgrupado(): Promise<VidasOperadoraResponse["data"]> {
+export async function fetchVidasOperadoraAgrupado(
+  dsClassificacao?: string,
+): Promise<VidasOperadoraResponse["data"]> {
   const { data, error } = await supabase.functions.invoke<VidasOperadoraResponse>(
     "vidas-operadora-proxy",
-    { method: "GET" },
+    {
+      method: "POST",
+      body: dsClassificacao && dsClassificacao !== "TODOS"
+        ? { ds_classificacao: dsClassificacao }
+        : {},
+    },
   );
   if (error) throw new Error(error.message);
   if (!data?.status || !data?.data) throw new Error(data?.message || "Resposta inválida");

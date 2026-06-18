@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Building2, Users, PieChart as PieIcon, RefreshCw, Briefcase, Building, Layers } from "lucide-react";
+import { Activity, Building2, Users, PieChart as PieIcon, RefreshCw, Briefcase, Building, Layers, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useState, useMemo } from "react";
 import {
   Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -13,10 +16,14 @@ import { fetchVidasOperadoraAgrupado } from "@/lib/vidasOperadoraApi";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--info))", "hsl(var(--warning))", "hsl(var(--success))", "hsl(var(--destructive))", "hsl(var(--accent))"];
 
+const CLASSIFICACOES = ["TODOS", "Empresarial", "PME", "Plural", "Adesão", "Individual"];
+
 export default function VidasOperadora() {
+  const [classificacao, setClassificacao] = useState<string>("TODOS");
+
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["vidas-operadora-agrupado"],
-    queryFn: fetchVidasOperadoraAgrupado,
+    queryKey: ["vidas-operadora-agrupado", classificacao],
+    queryFn: () => fetchVidasOperadoraAgrupado(classificacao),
     staleTime: 5 * 60_000,
   });
 
@@ -69,10 +76,29 @@ export default function VidasOperadora() {
             Quantitativo agrupado por empresa, faixa etária e classificação (fonte: API Samel).
           </p>
         </div>
-        <Button variant="outline" onClick={() => refetch()} disabled={isFetching} className="rounded-lg">
-          <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={classificacao} onValueChange={setClassificacao}>
+              <SelectTrigger className="w-[200px] rounded-lg">
+                <SelectValue placeholder="Classificação" />
+              </SelectTrigger>
+              <SelectContent>
+                {CLASSIFICACOES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c === "TODOS" ? "Todas as classificações" : c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button variant="outline" onClick={() => refetch()} disabled={isFetching} className="rounded-lg">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
+          </Button>
+        </div>
       </div>
+
+
 
       {error && (
         <Card className="border-destructive/40">
