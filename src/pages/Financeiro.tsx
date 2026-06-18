@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
-import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2 } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import {
