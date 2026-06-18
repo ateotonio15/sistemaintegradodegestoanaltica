@@ -432,16 +432,25 @@ function AdicionarEmpresaGrupoDialog({
     enabled: open,
     queryFn: async () => {
       const termo = busca.trim();
+      const termoNumerico = termo.replace(/\D/g, "");
+      const filtros = [
+        `nome.ilike.%${termo}%`,
+        `codigo_contrato.ilike.%${termo}%`,
+        `cnpj.ilike.%${termo}%`,
+      ];
+
+      if (termoNumerico && termoNumerico !== termo) {
+        filtros.push(`codigo_contrato.ilike.%${termoNumerico}%`, `cnpj.ilike.%${termoNumerico}%`);
+      }
+
       let q = (supabase as any)
         .from("empresas")
-        .select("id, nome_empresa, codigo_contrato, cnpj, status_empresa")
+        .select("id, nome_empresa:nome, codigo_contrato, cnpj, status_empresa")
         .eq("status_empresa", "Ativa")
-        .order("nome_empresa", { ascending: true })
+        .order("nome", { ascending: true })
         .limit(50);
       if (termo) {
-        q = q.or(
-          `nome_empresa.ilike.%${termo}%,codigo_contrato.ilike.%${termo}%,cnpj.ilike.%${termo}%`
-        );
+        q = q.or(filtros.join(","));
       }
       const { data, error } = await q;
       if (error) throw error;
