@@ -1206,7 +1206,7 @@ export async function analisarExcelFinanceiroPorCnpj(
   // mas a análise deve consolidar tudo num único bloco usando o nome.
   // Ex.: "PIONEIRO COMBUSTIVEIS LTD" — todos os beneficiários com esse
   // subestipulante contam como uma só empresa, independente do CNPJ.
-  const FORCE_GROUP_BY_NAME = ["pioneiro combustiveis"];
+  const FORCE_GROUP_BY_NAME = getForceGroupByNamePatterns();
   const forceByName = (nome: string) => {
     const n = norm(nome);
     return FORCE_GROUP_BY_NAME.some((p) => n.includes(p));
