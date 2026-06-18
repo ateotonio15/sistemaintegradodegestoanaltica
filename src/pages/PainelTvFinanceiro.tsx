@@ -1865,7 +1865,7 @@ function MetaHistoricoButton() {
   const [open, setOpen] = useState(false);
 
   const { data: historico = [], isLoading } = useQuery({
-    queryKey: ["painel-tv-meta-historico-v2", open],
+    queryKey: ["painel-tv-meta-historico-v3", open],
     enabled: open,
     queryFn: async () => {
       // 1) últimas 60 metas (incluindo snapshot e horário de início para
