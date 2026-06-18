@@ -117,9 +117,10 @@ export default function PainelTvFinanceiro() {
   const podeVer = isAdmin || isFinanceiro || role === "diretora";
 
   // Seleção: { mes_referencia: [periodos...] }. Periodos = subset de PERIODOS_FIN.
+  const SELECTIONS_KEY = "painel-tv-fin:competencias-fixadas";
   const [selections, setSelections] = useState<Record<string, string[]>>(() => {
     try {
-      const raw = localStorage.getItem("painel-tv-fin:competencias-fixadas");
+      const raw = localStorage.getItem(SELECTIONS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
@@ -129,6 +130,17 @@ export default function PainelTvFinanceiro() {
     } catch {}
     return { [getCurrentMesReferencia()]: [...PERIODOS_FIN] };
   });
+  // Auto-persiste qualquer alteração na seleção, garantindo que ao reabrir o
+  // painel as competências/períodos escolhidos sejam restaurados.
+  useEffect(() => {
+    try {
+      if (Object.keys(selections).length === 0) {
+        localStorage.removeItem(SELECTIONS_KEY);
+      } else {
+        localStorage.setItem(SELECTIONS_KEY, JSON.stringify(selections));
+      }
+    } catch {}
+  }, [selections]);
   const mesesSelecionados = useMemo(
     () => Object.keys(selections).filter((m) => selections[m]?.length > 0).sort(),
     [selections],
