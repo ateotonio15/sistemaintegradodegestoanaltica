@@ -505,6 +505,7 @@ function AdicionarEmpresaGrupoDialog({
                         </div>
                       </div>
                       <Button
+                        type="button"
                         size="sm"
                         variant={jaVinculada ? "outline" : "default"}
                         disabled={jaVinculada || adicionar.isPending}
@@ -520,7 +521,7 @@ function AdicionarEmpresaGrupoDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
