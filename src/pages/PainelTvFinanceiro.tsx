@@ -946,15 +946,15 @@ export default function PainelTvFinanceiro() {
                   subtitle="Operacional já enviou — emitir nota fiscal"
                   accent="yellow"
                   icon={TimerReset}
-                  rows={aguardandoEmissao}
+                  rows={aguardandoEmissaoExpandida}
                   contentHeight={listHeight}
                   sortDir={sortDirs.aguardando}
                   onBadgeClick={() => toggleSort("aguardando")}
-                  renderRow={(r, i) => (
+                  renderRow={(r: any, i) => (
                     <RowItem
                       key={r.id}
                       index={i}
-                      title={r.empresa_nome}
+                      title={r.pagador_nome ? `${r.empresa_nome} — ${r.pagador_nome}` : r.empresa_nome}
                       subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
                       badgeText="Emitir"
                       badgeClass="bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30"
