@@ -126,7 +126,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
               </div>
             </div>
             {podeGerenciar && (
-              <Button variant="outline" size="sm" onClick={() => setEditarOpen(true)}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setEditarOpen(true)}>
                 Gerenciar grupo
               </Button>
             )}
@@ -137,6 +137,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
               <span>Contratos vinculados ({contratos.length})</span>
               {podeGerenciar && (
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   className="h-7"
