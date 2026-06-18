@@ -97,11 +97,10 @@ export default function VidasOperadora() {
               <SelectTrigger className="w-[200px] rounded-lg">
                 <SelectValue placeholder="Classificação" />
               </SelectTrigger>
-              <SelectContent>
-                {CLASSIFICACOES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c === "TODOS" ? "Todas as classificações" : c}
-                  </SelectItem>
+              <SelectContent className="max-h-80">
+                <SelectItem value="TODOS">Todas as classificações</SelectItem>
+                {classificacoesOptions.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
