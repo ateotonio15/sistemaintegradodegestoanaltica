@@ -521,6 +521,23 @@ export default function PainelTvFinanceiro() {
     sortDirs.aguardando,
   );
 
+  // Expansão visual: 1 linha por pagador cadastrado (mantém contagem por mov
+  // intacta no resto do painel — esta lista é só para renderização do card).
+  const aguardandoEmissaoExpandida = useMemo(() => {
+    const out: Array<typeof aguardandoEmissao[number] & { pagador_nome?: string | null }> = [];
+    aguardandoEmissao.forEach((r) => {
+      const pags = (pagadoresPorEmpresa as any)[r.empresa_id] || [];
+      if (pags.length <= 1) {
+        out.push({ ...r, pagador_nome: pags[0]?.nome || null });
+      } else {
+        pags.forEach((p: any) => {
+          out.push({ ...r, id: `${r.id}|${p.nome}`, pagador_nome: p.nome });
+        });
+      }
+    });
+    return out;
+  }, [aguardandoEmissao, pagadoresPorEmpresa]);
+
   void now;
 
   // ============= META DIÁRIA DE EMISSÃO POR USUÁRIO =============
