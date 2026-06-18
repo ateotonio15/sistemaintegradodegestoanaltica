@@ -158,6 +158,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
                   </div>
                   {podeGerenciar && c.empresa_id !== empresaId && (
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive"
@@ -174,6 +175,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
 
           {podeGerenciar && (
             <Button
+              type="button"
               variant="outline"
               size="sm"
               className="text-destructive"
