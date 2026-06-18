@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Building2, Users, PieChart as PieIcon, RefreshCw, Briefcase, Building, Layers } from "lucide-react";
+import { Activity, Building2, Users, PieChart as PieIcon, RefreshCw, Briefcase, Building, Layers, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useState, useMemo } from "react";
 import {
   Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -13,10 +16,14 @@ import { fetchVidasOperadoraAgrupado } from "@/lib/vidasOperadoraApi";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--info))", "hsl(var(--warning))", "hsl(var(--success))", "hsl(var(--destructive))", "hsl(var(--accent))"];
 
+const CLASSIFICACOES = ["TODOS", "Empresarial", "PME", "Plural", "Adesão", "Individual"];
+
 export default function VidasOperadora() {
+  const [classificacao, setClassificacao] = useState<string>("TODOS");
+
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["vidas-operadora-agrupado"],
-    queryFn: fetchVidasOperadoraAgrupado,
+    queryKey: ["vidas-operadora-agrupado", classificacao],
+    queryFn: () => fetchVidasOperadoraAgrupado(classificacao),
     staleTime: 5 * 60_000,
   });
 
