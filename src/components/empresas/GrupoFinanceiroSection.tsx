@@ -190,6 +190,13 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
             onOpenChange={setEditarOpen}
             grupoId={grupo.id}
           />
+          <AdicionarEmpresaGrupoDialog
+            open={adicionarOpen}
+            onOpenChange={setAdicionarOpen}
+            grupoId={grupo.id}
+            grupoNome={grupo.nome_grupo}
+            empresasJaVinculadas={contratos.map((c) => c.empresa_id)}
+          />
         </div>
       ) : (
         <div className="space-y-3">
