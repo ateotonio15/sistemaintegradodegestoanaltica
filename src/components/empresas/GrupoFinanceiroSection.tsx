@@ -29,6 +29,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
   const [grupoSelecionado, setGrupoSelecionado] = useState<string>("");
   const [novoNome, setNovoNome] = useState("");
   const [editarOpen, setEditarOpen] = useState(false);
+  const [adicionarOpen, setAdicionarOpen] = useState(false);
 
   const grupo = data?.grupo;
   const contratos = data?.contratos ?? [];
