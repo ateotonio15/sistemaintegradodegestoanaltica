@@ -16,7 +16,7 @@ import { fetchVidasOperadoraAgrupado } from "@/lib/vidasOperadoraApi";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--info))", "hsl(var(--warning))", "hsl(var(--success))", "hsl(var(--destructive))", "hsl(var(--accent))"];
 
-const CLASSIFICACOES = ["TODOS", "Empresarial", "PME", "Plural", "Adesão", "Individual"];
+
 
 export default function VidasOperadora() {
   const [classificacao, setClassificacao] = useState<string>("TODOS");
