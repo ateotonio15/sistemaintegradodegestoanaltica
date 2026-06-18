@@ -1376,33 +1376,6 @@ function CompetenciaPeriodoPicker({
   const limpar = () => onChange({});
   const mesAtual = () => onChange({ [getCurrentMesReferencia()]: [...PERIODOS_FIN] });
 
-  const FIX_KEY = "painel-tv-fin:competencias-fixadas";
-  const [fixado, setFixado] = useState<boolean>(() => {
-    try {
-      return !!localStorage.getItem(FIX_KEY);
-    } catch {
-      return false;
-    }
-  });
-
-  const toggleFixar = () => {
-    try {
-      if (fixado) {
-        localStorage.removeItem(FIX_KEY);
-        setFixado(false);
-        toast({ title: "Seleção desafixada", description: "Ao reabrir, voltará ao mês atual." });
-      } else {
-        if (totalMeses === 0) {
-          toast({ title: "Selecione ao menos uma competência", variant: "destructive" });
-          return;
-        }
-        localStorage.setItem(FIX_KEY, JSON.stringify(selections));
-        setFixado(true);
-        toast({ title: "Seleção fixada", description: "Será carregada sempre que abrir o painel." });
-      }
-    } catch {}
-  };
-
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -1414,7 +1387,7 @@ function CompetenciaPeriodoPicker({
                 ? "Selecionar competências"
                 : `${totalMeses} competência${totalMeses > 1 ? "s" : ""}`}
             </span>
-            {fixado && <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />}
+            <Pin className="h-3 w-3 text-primary fill-primary shrink-0" />
           </span>
           <ChevronDown className="h-4 w-4 opacity-60" />
         </Button>
@@ -1423,21 +1396,12 @@ function CompetenciaPeriodoPicker({
         <div className="p-3 border-b border-border flex items-center justify-between gap-2">
           <div>
             <div className="font-semibold text-sm">Competências e períodos</div>
-            <div className="text-xs text-muted-foreground">
-              Selecione meses completos ou períodos específicos.
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <Pin className="h-3 w-3 text-primary fill-primary" />
+              Sua seleção é salva automaticamente
             </div>
           </div>
           <div className="flex gap-1">
-            <Button
-              variant={fixado ? "default" : "ghost"}
-              size="sm"
-              className="h-7 px-2 text-xs gap-1"
-              onClick={toggleFixar}
-              title={fixado ? "Desafixar seleção salva" : "Fixar esta seleção como padrão"}
-            >
-              {fixado ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
-              {fixado ? "Desafixar" : "Fixar"}
-            </Button>
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={mesAtual}>
               Mês atual
             </Button>
