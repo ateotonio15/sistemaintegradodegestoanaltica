@@ -126,7 +126,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
               </div>
             </div>
             {podeGerenciar && (
-              <Button variant="outline" size="sm" onClick={() => setEditarOpen(true)}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setEditarOpen(true)}>
                 Gerenciar grupo
               </Button>
             )}
@@ -137,6 +137,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
               <span>Contratos vinculados ({contratos.length})</span>
               {podeGerenciar && (
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   className="h-7"
@@ -157,6 +158,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
                   </div>
                   {podeGerenciar && c.empresa_id !== empresaId && (
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive"
@@ -173,6 +175,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
 
           {podeGerenciar && (
             <Button
+              type="button"
               variant="outline"
               size="sm"
               className="text-destructive"
@@ -502,6 +505,7 @@ function AdicionarEmpresaGrupoDialog({
                         </div>
                       </div>
                       <Button
+                        type="button"
                         size="sm"
                         variant={jaVinculada ? "outline" : "default"}
                         disabled={jaVinculada || adicionar.isPending}
@@ -517,7 +521,7 @@ function AdicionarEmpresaGrupoDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
