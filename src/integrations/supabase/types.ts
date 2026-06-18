@@ -3710,6 +3710,15 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      can_access_triagem_row: {
+        Args: {
+          _acao_id: string
+          _created_by: string
+          _empresa_id: string
+          _uid: string
+        }
+        Returns: boolean
+      }
       can_read_triagem: {
         Args: { _empresa_id: string; _uid: string }
         Returns: boolean
