@@ -840,7 +840,7 @@ export default function PainelTvFinanceiro() {
           />
           <HeroKpi
             label="Aguardando emissão"
-            value={aguardandoEmissao.length}
+            value={aguardandoEmissaoExpandida.length}
             icon={TimerReset}
             tone="amber"
             hint="Operacional enviou — emitir nota"
