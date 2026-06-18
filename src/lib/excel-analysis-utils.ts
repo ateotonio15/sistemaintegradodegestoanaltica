@@ -1452,7 +1452,7 @@ export async function analisarExcelFinanceiroPorCnpj(
  * Ex.: "PIONEIRO COMBUSTIVEIS LTD" → 1 bloco somando todos os CNPJs.
  */
 function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[] {
-  const FORCE_GROUP_BY_NAME = ["pioneiro combustiveis"];
+  const FORCE_GROUP_BY_NAME = getForceGroupByNamePatterns();
   const matchForce = (nome: string) => {
     const n = norm(nome);
     return FORCE_GROUP_BY_NAME.find((p) => n.includes(p)) || null;
