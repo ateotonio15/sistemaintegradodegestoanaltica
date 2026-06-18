@@ -16,16 +16,30 @@ import { fetchVidasOperadoraAgrupado } from "@/lib/vidasOperadoraApi";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--info))", "hsl(var(--warning))", "hsl(var(--success))", "hsl(var(--destructive))", "hsl(var(--accent))"];
 
-const CLASSIFICACOES = ["TODOS", "Empresarial", "PME", "Plural", "Adesão", "Individual"];
+
 
 export default function VidasOperadora() {
   const [classificacao, setClassificacao] = useState<string>("TODOS");
+
+  // Lista completa (sem filtro) para popular o dropdown de classificações
+  const { data: dataFull } = useQuery({
+    queryKey: ["vidas-operadora-agrupado", "TODOS"],
+    queryFn: () => fetchVidasOperadoraAgrupado(),
+    staleTime: 5 * 60_000,
+  });
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["vidas-operadora-agrupado", classificacao],
     queryFn: () => fetchVidasOperadoraAgrupado(classificacao),
     staleTime: 5 * 60_000,
   });
+
+  const classificacoesOptions = useMemo(() => {
+    const list = (dataFull?.porClassificacao ?? [])
+      .map((c) => c.DS_CLASSIFICACAO)
+      .filter(Boolean);
+    return Array.from(new Set(list)).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [dataFull]);
 
   const [search, setSearch] = useState("");
 
@@ -83,11 +97,10 @@ export default function VidasOperadora() {
               <SelectTrigger className="w-[200px] rounded-lg">
                 <SelectValue placeholder="Classificação" />
               </SelectTrigger>
-              <SelectContent>
-                {CLASSIFICACOES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c === "TODOS" ? "Todas as classificações" : c}
-                  </SelectItem>
+              <SelectContent className="max-h-80">
+                <SelectItem value="TODOS">Todas as classificações</SelectItem>
+                {classificacoesOptions.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
