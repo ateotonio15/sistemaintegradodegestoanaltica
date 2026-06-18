@@ -542,14 +542,14 @@ export default function PainelTvFinanceiro() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("painel_tv_meta_diaria" as any)
-        .select("valor, usuarios, iniciada_em")
+        .select("valor, usuarios, iniciada_em, empresas_snapshot")
         .eq("data", todayKey)
         .maybeSingle();
       if (error) {
         console.error("[meta-diaria] erro ao carregar:", error);
         return null;
       }
-      return (data as unknown) as { valor: number; usuarios: string[]; iniciada_em: string } | null;
+      return (data as unknown) as { valor: number; usuarios: string[]; iniciada_em: string; empresas_snapshot: string[] } | null;
     },
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
