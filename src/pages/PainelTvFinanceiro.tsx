@@ -299,6 +299,27 @@ export default function PainelTvFinanceiro() {
     },
   });
 
+  // Pagadores cadastrados por empresa (para expandir "Aguardando emissão"
+  // em 1 linha por pagador, alinhado ao comportamento da aba Financeiro).
+  const { data: pagadoresPorEmpresa = {} } = useQuery({
+    queryKey: ["tv-fin-pagadores", empresaIds.sort().join(",")],
+    enabled: empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_pagadores")
+        .select("empresa_id, nome_pagador, cnpj, ativo")
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      const m: Record<string, Array<{ nome: string; cnpj: string | null }>> = {};
+      (data || []).forEach((p: any) => {
+        if (p.ativo === false) return;
+        m[p.empresa_id] = m[p.empresa_id] || [];
+        m[p.empresa_id].push({ nome: p.nome_pagador, cnpj: p.cnpj });
+      });
+      return m;
+    },
+  });
+
   const { data: anexosMap = {} } = useQuery({
     queryKey: ["tv-fin-anexos", movIds.sort().join(",")],
     enabled: movIds.length > 0,
@@ -499,6 +520,23 @@ export default function PainelTvFinanceiro() {
     (r) => r.aguardando_nota_em || r.updated_at,
     sortDirs.aguardando,
   );
+
+  // Expansão visual: 1 linha por pagador cadastrado (mantém contagem por mov
+  // intacta no resto do painel — esta lista é só para renderização do card).
+  const aguardandoEmissaoExpandida = useMemo(() => {
+    const out: Array<typeof aguardandoEmissao[number] & { pagador_nome?: string | null }> = [];
+    aguardandoEmissao.forEach((r) => {
+      const pags = (pagadoresPorEmpresa as any)[r.empresa_id] || [];
+      if (pags.length <= 1) {
+        out.push({ ...r, pagador_nome: pags[0]?.nome || null });
+      } else {
+        pags.forEach((p: any) => {
+          out.push({ ...r, id: `${r.id}|${p.nome}`, pagador_nome: p.nome });
+        });
+      }
+    });
+    return out;
+  }, [aguardandoEmissao, pagadoresPorEmpresa]);
 
   void now;
 
@@ -908,15 +946,15 @@ export default function PainelTvFinanceiro() {
                   subtitle="Operacional já enviou — emitir nota fiscal"
                   accent="yellow"
                   icon={TimerReset}
-                  rows={aguardandoEmissao}
+                  rows={aguardandoEmissaoExpandida}
                   contentHeight={listHeight}
                   sortDir={sortDirs.aguardando}
                   onBadgeClick={() => toggleSort("aguardando")}
-                  renderRow={(r, i) => (
+                  renderRow={(r: any, i) => (
                     <RowItem
                       key={r.id}
                       index={i}
-                      title={r.empresa_nome}
+                      title={r.pagador_nome ? `${r.empresa_nome} — ${r.pagador_nome}` : r.empresa_nome}
                       subtitle={`${r.empresa_codigo || "—"} · ${r.periodo}${r.responsavel ? ` · ${r.responsavel}` : ""}`}
                       badgeText="Emitir"
                       badgeClass="bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30"
@@ -1865,7 +1903,7 @@ function MetaHistoricoButton() {
   const [open, setOpen] = useState(false);
 
   const { data: historico = [], isLoading } = useQuery({
-    queryKey: ["painel-tv-meta-historico-v2", open],
+    queryKey: ["painel-tv-meta-historico-v3", open],
     enabled: open,
     queryFn: async () => {
       // 1) últimas 60 metas (incluindo snapshot e horário de início para
@@ -1991,19 +2029,29 @@ function MetaHistoricoButton() {
         if (gruposEnvolvidos.length > 0) {
           const { data: vinculosAll } = await supabase
             .from("grupos_financeiros_contratos")
-            .select("grupo_id, empresa_id, empresas:empresa_id(id, nome, cnpj)")
+            .select("grupo_id, empresa_id")
             .in("grupo_id", gruposEnvolvidos);
-          // grupo_id -> lista de companhias
+          // Carrega dados das empresas vinculadas (fetch separado p/ evitar
+          // dependência de embed/FK no PostgREST).
+          const todasEmpresasGrupo = Array.from(
+            new Set((vinculosAll || []).map((v: any) => v.empresa_id).filter(Boolean)),
+          );
+          const empMapExtra: Record<string, { id: string; nome: string; cnpj: string }> = {};
+          if (todasEmpresasGrupo.length > 0) {
+            const { data: empsExtra } = await supabase
+              .from("empresas")
+              .select("id, nome, cnpj")
+              .in("id", todasEmpresasGrupo);
+            (empsExtra || []).forEach((e: any) => {
+              empMapExtra[e.id] = { id: e.id, nome: e.nome || "", cnpj: onlyDigits(e.cnpj) };
+            });
+          }
           const porGrupo: Record<string, Array<{ id: string; nome: string; cnpj: string }>> = {};
           (vinculosAll || []).forEach((v: any) => {
-            const e = v.empresas;
+            const e = empMapExtra[v.empresa_id];
             if (!e) return;
             porGrupo[v.grupo_id] = porGrupo[v.grupo_id] || [];
-            porGrupo[v.grupo_id].push({
-              id: e.id,
-              nome: e.nome || "",
-              cnpj: onlyDigits(e.cnpj),
-            });
+            porGrupo[v.grupo_id].push(e);
           });
           (vinculosBase || []).forEach((v: any) => {
             grupoCompanhiasPorEmpresa[v.empresa_id] = porGrupo[v.grupo_id] || [];
