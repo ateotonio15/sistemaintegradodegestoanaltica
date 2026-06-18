@@ -1974,6 +1974,43 @@ function MetaHistoricoButton() {
         });
       }
 
+      // 4d) Grupos financeiros: para cada empresa, lista de empresas do mesmo grupo
+      // (necessário para resolver o nome correto quando o anexo é compartilhado).
+      const grupoCompanhiasPorEmpresa: Record<
+        string,
+        Array<{ id: string; nome: string; cnpj: string }>
+      > = {};
+      if (empresaIds.size > 0) {
+        const { data: vinculosBase } = await supabase
+          .from("grupos_financeiros_contratos")
+          .select("grupo_id, empresa_id")
+          .in("empresa_id", Array.from(empresaIds));
+        const gruposEnvolvidos = Array.from(
+          new Set((vinculosBase || []).map((v: any) => v.grupo_id).filter(Boolean)),
+        );
+        if (gruposEnvolvidos.length > 0) {
+          const { data: vinculosAll } = await supabase
+            .from("grupos_financeiros_contratos")
+            .select("grupo_id, empresa_id, empresas:empresa_id(id, nome, cnpj)")
+            .in("grupo_id", gruposEnvolvidos);
+          // grupo_id -> lista de companhias
+          const porGrupo: Record<string, Array<{ id: string; nome: string; cnpj: string }>> = {};
+          (vinculosAll || []).forEach((v: any) => {
+            const e = v.empresas;
+            if (!e) return;
+            porGrupo[v.grupo_id] = porGrupo[v.grupo_id] || [];
+            porGrupo[v.grupo_id].push({
+              id: e.id,
+              nome: e.nome || "",
+              cnpj: onlyDigits(e.cnpj),
+            });
+          });
+          (vinculosBase || []).forEach((v: any) => {
+            grupoCompanhiasPorEmpresa[v.empresa_id] = porGrupo[v.grupo_id] || [];
+          });
+        }
+      }
+
       // 5) movimentações operacionais para inclusão/exclusão
       const opMap: Record<string, any> = {};
       if (empresaIds.size > 0) {
@@ -1992,6 +2029,16 @@ function MetaHistoricoButton() {
         }
       }
 
+      // Normaliza para comparação por filename: minúsculas, sem acentos e só alfanum/espaço
+      const normalizar = (s: string) =>
+        (s || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9 ]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
       // helper: nome do pagador para um anexo (fallback: nome da empresa)
       const resolverPagador = (movId: string, nomeArquivo: string, empresaId: string | null): string => {
         const emp = empresaId ? empMap[empresaId] : null;
@@ -2004,8 +2051,32 @@ function MetaHistoricoButton() {
           if (onlyDigits(emp?.cnpj) === cnpj) return empNome;
           const hit = lista.find((p) => p.cnpj && p.cnpj === cnpj);
           if (hit) return hit.nome;
+          // Grupo financeiro: confere se o CNPJ pertence a outra empresa do grupo
+          const grupo = grupoCompanhiasPorEmpresa[empresaId] || [];
+          const hitGrupo = grupo.find((g) => g.cnpj && g.cnpj === cnpj);
+          if (hitGrupo) return hitGrupo.nome;
         }
-        // Sem CNPJ identificado: se houver apenas 1 pagador cadastrado, usa ele
+        // Sem CNPJ identificado: tenta casar pelo nome do arquivo
+        // contra as empresas do grupo financeiro (anexos compartilhados).
+        const grupo = grupoCompanhiasPorEmpresa[empresaId] || [];
+        if (grupo.length > 1 && nomeArquivo) {
+          const arq = normalizar(nomeArquivo);
+          // Ranking: empresa cujo nome (ou tokens significativos) aparecem no arquivo
+          const candidatos = grupo
+            .map((g) => {
+              const nomeNorm = normalizar(g.nome);
+              if (!nomeNorm) return { g, score: 0 };
+              if (arq.includes(nomeNorm)) return { g, score: nomeNorm.length };
+              // Casa por tokens (≥4 chars) presentes no filename
+              const tokens = nomeNorm.split(" ").filter((t) => t.length >= 4);
+              const hits = tokens.filter((t) => arq.includes(t));
+              return { g, score: hits.join("").length };
+            })
+            .filter((c) => c.score > 0)
+            .sort((a, b) => b.score - a.score);
+          if (candidatos.length > 0) return candidatos[0].g.nome;
+        }
+        // Se houver apenas 1 pagador cadastrado, usa ele
         if (lista.length === 1) return lista[0].nome;
         return empNome;
       };
