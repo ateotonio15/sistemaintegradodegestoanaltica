@@ -1662,7 +1662,8 @@ function MetaDiariaSection({
 
 function UsuarioMetaMini({ usuario }: { usuario: MetaUsuario }) {
   const concluida = usuario.meta > 0 && usuario.emitidas >= usuario.meta;
-  const sonic = usuario.meta > 0 && usuario.emitidas > usuario.meta;
+  // Sonic só aparece quando o usuário emite o DOBRO da meta definida.
+  const sonic = usuario.meta > 0 && usuario.emitidas >= usuario.meta * 2;
   const iniciais = usuario.nome
     .split(" ")
     .filter(Boolean)
