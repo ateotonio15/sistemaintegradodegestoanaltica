@@ -435,7 +435,7 @@ function AdicionarEmpresaGrupoDialog({
       let q = (supabase as any)
         .from("empresas")
         .select("id, nome_empresa, codigo_contrato, cnpj, status_empresa")
-        .eq("status_empresa", "Ativo")
+        .eq("status_empresa", "Ativa")
         .order("nome_empresa", { ascending: true })
         .limit(50);
       if (termo) {
