@@ -482,7 +482,7 @@ function AdicionarEmpresaGrupoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Adicionar empresa ao grupo "{grupoNome}"</DialogTitle>
         </DialogHeader>
