@@ -527,9 +527,11 @@ export default function PainelTvFinanceiro() {
     const out: Array<typeof aguardandoEmissao[number] & { pagador_nome?: string | null }> = [];
     aguardandoEmissao.forEach((r) => {
       const pags = (pagadoresPorEmpresa as any)[r.empresa_id] || [];
-      if (pags.length <= 1) {
-        out.push({ ...r, pagador_nome: pags[0]?.nome || null });
+      if (pags.length === 0) {
+        out.push({ ...r, pagador_nome: null });
       } else {
+        // A própria empresa também é um pagador (padrão), além dos cadastrados em financeiro_pagadores.
+        out.push({ ...r, id: `${r.id}|__origem__`, pagador_nome: null });
         pags.forEach((p: any) => {
           out.push({ ...r, id: `${r.id}|${p.nome}`, pagador_nome: p.nome });
         });
