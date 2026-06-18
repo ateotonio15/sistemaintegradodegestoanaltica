@@ -96,6 +96,9 @@ export default function VidasOperadora() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
           </Button>
         </div>
+      </div>
+
+
 
       {error && (
         <Card className="border-destructive/40">
