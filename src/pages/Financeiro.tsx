@@ -108,6 +108,7 @@ export default function Financeiro() {
     temXls: boolean;
   }>>(new Map());
   const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [regrasEmpresariaisOpen, setRegrasEmpresariaisOpen] = useState(false);
   const [historicoRow, setHistoricoRow] = useState<FinanceiroRow | null>(null);
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
 
