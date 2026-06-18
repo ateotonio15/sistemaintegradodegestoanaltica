@@ -1862,20 +1862,27 @@ function MetaHistoricoButton() {
     queryKey: ["painel-tv-meta-historico-v2", open],
     enabled: open,
     queryFn: async () => {
-      // 1) últimas 60 metas
+      // 1) últimas 60 metas (incluindo snapshot e horário de início para
+      // replicar a mesma contagem do painel ao vivo)
       const { data: metas, error: errMetas } = await supabase
         .from("painel_tv_meta_diaria" as any)
-        .select("data, valor, usuarios")
+        .select("data, valor, usuarios, iniciada_em, empresas_snapshot")
         .order("data", { ascending: false })
         .limit(60);
       if (errMetas) throw errMetas;
-      const metasList = ((metas || []) as unknown) as Array<{ data: string; valor: number; usuarios: string[] }>;
+      const metasList = ((metas || []) as unknown) as Array<{
+        data: string;
+        valor: number;
+        usuarios: string[];
+        iniciada_em: string | null;
+        empresas_snapshot: string[] | null;
+      }>;
       if (metasList.length === 0) return [] as any[];
 
       const dataMin = metasList[metasList.length - 1].data;
       const dataMax = metasList[0].data;
 
-      // 2) PDFs anexados no intervalo (com financeiro_movimentacao_id para enriquecer)
+      // 2) PDFs anexados no intervalo
       const { data: anexos, error: errAnx } = await supabase
         .from("anexos_financeiro")
         .select("uploaded_by, created_at, mime_type, nome_arquivo, financeiro_movimentacao_id")
@@ -1887,7 +1894,7 @@ function MetaHistoricoButton() {
         const isPdf =
           (a.mime_type || "").toLowerCase().includes("pdf") ||
           (a.nome_arquivo || "").toLowerCase().endsWith(".pdf");
-        return isPdf && a.uploaded_by && a.created_at && a.financeiro_movimentacao_id;
+        return isPdf && a.uploaded_by && a.created_at;
       });
 
       // 3) mapear uploaders -> nomes
@@ -1903,8 +1910,10 @@ function MetaHistoricoButton() {
         });
       }
 
-      // 4) carregar movimentações financeiras correspondentes
-      const movIds = Array.from(new Set(pdfs.map((a) => a.financeiro_movimentacao_id)));
+      // 4) movimentações financeiras (para empresa/cobrança/lançamento)
+      const movIds = Array.from(
+        new Set(pdfs.map((a) => a.financeiro_movimentacao_id).filter(Boolean)),
+      );
       const movMap: Record<string, any> = {};
       const empresaIds = new Set<string>();
       if (movIds.length > 0) {
@@ -1918,7 +1927,6 @@ function MetaHistoricoButton() {
         });
       }
 
-      // 5) carregar empresas
       const empMap: Record<string, any> = {};
       if (empresaIds.size > 0) {
         const { data: emps } = await supabase
@@ -1928,17 +1936,12 @@ function MetaHistoricoButton() {
         (emps || []).forEach((e: any) => (empMap[e.id] = e));
       }
 
-      // 6) carregar movimentações operacionais (tipo_movimentacao: Diária/Fechada e qtd inclusões/exclusões)
-      // Buscamos por empresa + mes + periodo correspondente aos PDFs.
-      const movKeys = new Set<string>();
-      Object.values(movMap).forEach((m: any) => {
-        if (m.empresa_id && m.mes_referencia && m.periodo) {
-          movKeys.add(`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`);
-        }
-      });
+      // 5) movimentações operacionais para inclusão/exclusão
       const opMap: Record<string, any> = {};
       if (empresaIds.size > 0) {
-        const mesesUnicos = Array.from(new Set(Object.values(movMap).map((m: any) => m.mes_referencia).filter(Boolean)));
+        const mesesUnicos = Array.from(
+          new Set(Object.values(movMap).map((m: any) => m.mes_referencia).filter(Boolean)),
+        );
         if (mesesUnicos.length > 0) {
           const { data: ops } = await supabase
             .from("movimentacoes")
@@ -1951,7 +1954,21 @@ function MetaHistoricoButton() {
         }
       }
 
-      // 7) por data, deduplicar (um PDF por movimentação) e agrupar por usuário
+      // 6) Atribuição por usuário com a MESMA lógica do contador ao vivo:
+      //    fuzzy match contra a escala salva no dia (`m.usuarios`).
+      //    Sem dedup por movimentação — cada PDF conta exatamente como conta no painel.
+      const attributeName = (uploaderName: string, escala: string[]): string | null => {
+        const name = uploaderName.trim().toLowerCase();
+        if (!name) return null;
+        for (const u of escala) {
+          const target = u.toLowerCase();
+          if (name === target || name.includes(target) || target.includes(name.split(" ")[0])) {
+            return u;
+          }
+        }
+        return uploaderName; // mantém quem emitiu mesmo sem estar na escala
+      };
+
       type Item = {
         empresa: string;
         codigo: string | null;
@@ -1962,44 +1979,53 @@ function MetaHistoricoButton() {
         tipo_movimentacao: string | null;
         hora: string;
       };
-      const porDataUsuario: Record<string, Record<string, Item[]>> = {};
-      const vistos = new Set<string>();
-      // ordena por created_at asc para "primeiro envio" definir a hora
-      pdfs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      pdfs.forEach((a) => {
-        const d = new Date(a.created_at).toLocaleDateString("en-CA");
-        const nome = nomesMap[a.uploaded_by];
-        if (!nome) return;
-        const dedupKey = `${d}|${a.financeiro_movimentacao_id}`;
-        if (vistos.has(dedupKey)) return;
-        vistos.add(dedupKey);
-        const m = movMap[a.financeiro_movimentacao_id];
-        const emp = m?.empresa_id ? empMap[m.empresa_id] : null;
-        const op = m ? opMap[`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`] : null;
-        porDataUsuario[d] = porDataUsuario[d] || {};
-        porDataUsuario[d][nome] = porDataUsuario[d][nome] || [];
-        porDataUsuario[d][nome].push({
-          empresa: emp?.nome || "—",
-          codigo: emp?.codigo_contrato ?? null,
-          mes: m?.mes_referencia ?? null,
-          periodo: m?.periodo ?? null,
-          tipo_cobranca: m?.tipo_cobranca ?? null,
-          tipo_lancamento: m?.tipo_lancamento ?? null,
-          tipo_movimentacao: op?.tipo_movimentacao ?? null,
-          hora: new Date(a.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-        });
-      });
 
-      return metasList.map((m) => {
-        const usuariosMap = porDataUsuario[m.data] || {};
-        const nomesAtivos = new Set<string>([...(m.usuarios || []), ...Object.keys(usuariosMap)]);
+      pdfs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      return metasList.map((meta) => {
+        const escala = meta.usuarios || [];
+        const snapshot = Array.isArray(meta.empresas_snapshot) ? meta.empresas_snapshot : [];
+        const snapshotSet = new Set(snapshot);
+        const hasSnapshot = snapshot.length > 0;
+        const iniciadaEm = meta.iniciada_em ? new Date(meta.iniciada_em).getTime() : 0;
+
+        const porUsuario: Record<string, Item[]> = {};
+        pdfs.forEach((a) => {
+          const created = new Date(a.created_at);
+          if (created.toLocaleDateString("en-CA") !== meta.data) return;
+          if (iniciadaEm > 0 && created.getTime() < iniciadaEm) return;
+          if (hasSnapshot && !snapshotSet.has(a.financeiro_movimentacao_id)) return;
+
+          const uploaderName = nomesMap[a.uploaded_by];
+          if (!uploaderName) return;
+          const nome = attributeName(uploaderName, escala);
+          if (!nome) return;
+
+          const m = movMap[a.financeiro_movimentacao_id];
+          const emp = m?.empresa_id ? empMap[m.empresa_id] : null;
+          const op = m ? opMap[`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`] : null;
+
+          porUsuario[nome] = porUsuario[nome] || [];
+          porUsuario[nome].push({
+            empresa: emp?.nome || "—",
+            codigo: emp?.codigo_contrato ?? null,
+            mes: m?.mes_referencia ?? null,
+            periodo: m?.periodo ?? null,
+            tipo_cobranca: m?.tipo_cobranca ?? null,
+            tipo_lancamento: m?.tipo_lancamento ?? null,
+            tipo_movimentacao: op?.tipo_movimentacao ?? null,
+            hora: created.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          });
+        });
+
+        const nomesAtivos = new Set<string>([...escala, ...Object.keys(porUsuario)]);
         const usuarios = Array.from(nomesAtivos).map((nome) => ({
           nome,
-          itens: usuariosMap[nome] || [],
+          itens: porUsuario[nome] || [],
         }));
         usuarios.sort((a, b) => b.itens.length - a.itens.length || a.nome.localeCompare(b.nome));
         const totalEmitidas = usuarios.reduce((s, u) => s + u.itens.length, 0);
-        return { data: m.data, valor: m.valor, usuarios, totalEmitidas };
+        return { data: meta.data, valor: meta.valor, usuarios, totalEmitidas };
       });
     },
   });
