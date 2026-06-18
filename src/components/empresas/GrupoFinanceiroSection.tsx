@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Users, Plus, X, Link2 } from "lucide-react";
+import { Users, Plus, X, Link2, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useGrupoFinanceiro, useGruposFinanceirosAtivos } from "@/hooks/useGrupoFinanceiro";
 
