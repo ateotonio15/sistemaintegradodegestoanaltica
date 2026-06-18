@@ -1414,18 +1414,43 @@ export default function Financeiro() {
         // Aviso quando há PDFs anexados, mas nenhum casou com este bloco do Excel
         // (tomador do PDF diverge do CNPJ do pagador → análise completa fica inviável).
         if (pdfsValidos.length > 0 && !cmp?.arquivoPdf) {
-          const tomadores = pdfsValidos
-            .map((p) => {
-              const cnpjFmt = p.tomadorCnpj
-                ? `${p.tomadorCnpj.slice(0, 2)}.${p.tomadorCnpj.slice(2, 5)}.${p.tomadorCnpj.slice(5, 8)}/${p.tomadorCnpj.slice(8, 12)}-${p.tomadorCnpj.slice(12)}`
-                : "(sem CNPJ)";
-              return `${p.tomadorNome || p.arquivo} — ${cnpjFmt}`;
-            })
-            .join("; ");
-          avisos.push(
-            `Anexo não confere: o tomador do PDF (${tomadores}) é diferente do pagador do Excel. ` +
-              `Por isso a Análise Completa não pode ser realizada para esta linha.`,
+          // Suprime o aviso quando a empresa tem regra "agrupar por nome"
+          // (ex.: Pioneiro Combustíveis) e o bloco/tomador combina com o padrão:
+          // nesses contratos os Excels/PDFs são compartilhados entre múltiplos
+          // pagadores e a divergência de CNPJ é esperada/intencional.
+          const _norm = (s: string) =>
+            (s || "")
+              .toString()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .toLowerCase()
+              .trim();
+          const _padroes = getForceGroupByNamePatterns();
+          const _empresaTemRegra = _padroes.some((p) =>
+            _norm(row.empresa_nome || "").includes(p),
           );
+          const _blocoCombinaRegra = _padroes.some((p) =>
+            _norm(b.nomeExibicao || b.nome || "").includes(p),
+          );
+          const _algumPdfCombinaRegra = pdfsValidos.some((p) =>
+            _padroes.some((pat) => _norm(p.tomadorNome || "").includes(pat)),
+          );
+          const suprimir =
+            _empresaTemRegra && (_blocoCombinaRegra || _algumPdfCombinaRegra);
+          if (!suprimir) {
+            const tomadores = pdfsValidos
+              .map((p) => {
+                const cnpjFmt = p.tomadorCnpj
+                  ? `${p.tomadorCnpj.slice(0, 2)}.${p.tomadorCnpj.slice(2, 5)}.${p.tomadorCnpj.slice(5, 8)}/${p.tomadorCnpj.slice(8, 12)}-${p.tomadorCnpj.slice(12)}`
+                  : "(sem CNPJ)";
+                return `${p.tomadorNome || p.arquivo} — ${cnpjFmt}`;
+              })
+              .join("; ");
+            avisos.push(
+              `Anexo não confere: o tomador do PDF (${tomadores}) é diferente do pagador do Excel. ` +
+                `Por isso a Análise Completa não pode ser realizada para esta linha.`,
+            );
+          }
         }
 
         const out: any = {
