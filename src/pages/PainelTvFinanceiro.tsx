@@ -531,7 +531,7 @@ export default function PainelTvFinanceiro() {
         out.push({ ...r, pagador_nome: null });
       } else {
         // A própria empresa também é um pagador (padrão), além dos cadastrados em financeiro_pagadores.
-        out.push({ ...r, id: `${r.id}|__origem__`, pagador_nome: r.empresa_nome });
+        out.push({ ...r, id: `${r.id}|__origem__`, pagador_nome: null });
         pags.forEach((p: any) => {
           out.push({ ...r, id: `${r.id}|${p.nome}`, pagador_nome: p.nome });
         });
