@@ -1128,7 +1128,7 @@ export async function analisarExcelFinanceiroPorCnpj(
   await wb.xlsx.load(buffer);
 
   const viaResumo = analisarResumoSheet(wb);
-  if (viaResumo && viaResumo.length > 0) return viaResumo;
+  if (viaResumo && viaResumo.length > 0) return mesclarBlocosPorNomeForcado(viaResumo);
 
   const ws = wb.worksheets[0];
   if (!ws) return [];
