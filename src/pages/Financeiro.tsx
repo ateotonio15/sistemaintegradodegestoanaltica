@@ -1553,18 +1553,37 @@ export default function Financeiro() {
         });
 
         if (blocosUtilizaveis.length > 0) {
-          const resultadosComAviso = blocosUtilizaveis.map((r: any) => {
-            const blocoCnpj = onlyDigits(r?.cnpj);
-            const blocoNome = r?.nomeExibicao || r?.pagador || "—";
-            const mesmoCnpj = !!blocoCnpj && !!cnpjAlvo && blocoCnpj === cnpjAlvo;
-            if (mesmoCnpj) return r;
-            const aviso =
-              `Atenção: CNPJ ${blocoCnpj ? fmtCnpj(blocoCnpj) : "(não informado)"} (tomador "${blocoNome}") ` +
-              `pertence a outra empresa — não confere com o CNPJ do contrato ` +
-              `${cnpjAlvo ? fmtCnpj(cnpjAlvo) : "(não cadastrado)"} (${row.empresa_nome}). ` +
-              `A análise foi feita com os dados encontrados na planilha/PDF.`;
-            return { ...r, avisos: [...(r?.avisos || []), aviso] };
-          });
+        const normalizar = (s: string) =>
+          (s || "")
+            .toString()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .trim();
+        const padroesAgrupar = getForceGroupByNamePatterns();
+        const empresaTemRegra = padroesAgrupar.some((p) => {
+          const n = normalizar(row.empresa_nome || "");
+          return n.includes(p);
+        });
+        const resultadosComAviso = blocosUtilizaveis.map((r: any) => {
+          const blocoCnpj = onlyDigits(r?.cnpj);
+          const blocoNome = r?.nomeExibicao || r?.pagador || "—";
+          const mesmoCnpj = !!blocoCnpj && !!cnpjAlvo && blocoCnpj === cnpjAlvo;
+          if (mesmoCnpj) return r;
+          // Suprime aviso de CNPJ divergente quando o pagador combina com
+          // uma regra "agrupar por nome" (ex.: Pioneiro Combustíveis): a
+          // divergência de CNPJ é esperada e intencional.
+          const blocoCombinaRegra = padroesAgrupar.some((p) =>
+            normalizar(blocoNome).includes(p),
+          );
+          if (empresaTemRegra && blocoCombinaRegra) return r;
+          const aviso =
+            `Atenção: CNPJ ${blocoCnpj ? fmtCnpj(blocoCnpj) : "(não informado)"} (tomador "${blocoNome}") ` +
+            `pertence a outra empresa — não confere com o CNPJ do contrato ` +
+            `${cnpjAlvo ? fmtCnpj(cnpjAlvo) : "(não cadastrado)"} (${row.empresa_nome}). ` +
+            `A análise foi feita com os dados encontrados na planilha/PDF.`;
+          return { ...r, avisos: [...(r?.avisos || []), aviso] };
+        });
           return {
             resultados: resultadosComAviso,
             comparacoes: mother.comparacoes.slice(),
