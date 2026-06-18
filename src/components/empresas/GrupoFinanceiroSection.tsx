@@ -133,8 +133,18 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
           </div>
 
           <div className="rounded-lg border">
-            <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-b">
-              Contratos vinculados ({contratos.length})
+            <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-b flex items-center justify-between">
+              <span>Contratos vinculados ({contratos.length})</span>
+              {podeGerenciar && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7"
+                  onClick={() => setAdicionarOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar empresa ao grupo
+                </Button>
+              )}
             </div>
             <ul className="divide-y">
               {contratos.map((c) => (
