@@ -2059,7 +2059,7 @@ function MetaHistoricoButton() {
 
           porUsuario[nome] = porUsuario[nome] || [];
           porUsuario[nome].push({
-            empresa: emp?.nome || "—",
+            empresa: resolverPagador(a.financeiro_movimentacao_id, a.nome_arquivo, m?.empresa_id ?? null),
             codigo: emp?.codigo_contrato ?? null,
             mes: m?.mes_referencia ?? null,
             periodo: m?.periodo ?? null,
