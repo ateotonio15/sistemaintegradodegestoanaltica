@@ -1991,19 +1991,29 @@ function MetaHistoricoButton() {
         if (gruposEnvolvidos.length > 0) {
           const { data: vinculosAll } = await supabase
             .from("grupos_financeiros_contratos")
-            .select("grupo_id, empresa_id, empresas:empresa_id(id, nome, cnpj)")
+            .select("grupo_id, empresa_id")
             .in("grupo_id", gruposEnvolvidos);
-          // grupo_id -> lista de companhias
+          // Carrega dados das empresas vinculadas (fetch separado p/ evitar
+          // dependência de embed/FK no PostgREST).
+          const todasEmpresasGrupo = Array.from(
+            new Set((vinculosAll || []).map((v: any) => v.empresa_id).filter(Boolean)),
+          );
+          const empMapExtra: Record<string, { id: string; nome: string; cnpj: string }> = {};
+          if (todasEmpresasGrupo.length > 0) {
+            const { data: empsExtra } = await supabase
+              .from("empresas")
+              .select("id, nome, cnpj")
+              .in("id", todasEmpresasGrupo);
+            (empsExtra || []).forEach((e: any) => {
+              empMapExtra[e.id] = { id: e.id, nome: e.nome || "", cnpj: onlyDigits(e.cnpj) };
+            });
+          }
           const porGrupo: Record<string, Array<{ id: string; nome: string; cnpj: string }>> = {};
           (vinculosAll || []).forEach((v: any) => {
-            const e = v.empresas;
+            const e = empMapExtra[v.empresa_id];
             if (!e) return;
             porGrupo[v.grupo_id] = porGrupo[v.grupo_id] || [];
-            porGrupo[v.grupo_id].push({
-              id: e.id,
-              nome: e.nome || "",
-              cnpj: onlyDigits(e.cnpj),
-            });
+            porGrupo[v.grupo_id].push(e);
           });
           (vinculosBase || []).forEach((v: any) => {
             grupoCompanhiasPorEmpresa[v.empresa_id] = porGrupo[v.grupo_id] || [];
