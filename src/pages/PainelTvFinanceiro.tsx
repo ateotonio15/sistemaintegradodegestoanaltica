@@ -600,6 +600,10 @@ export default function PainelTvFinanceiro() {
     USUARIOS_META.forEach((u) => (counts[u] = 0));
     const todayStr = new Date().toLocaleDateString("en-CA");
     const iniciadaEm = metaDiariaRow?.iniciada_em ? new Date(metaDiariaRow.iniciada_em).getTime() : 0;
+    // Dedupe: cada movimentação (empresa) conta apenas uma vez por usuário,
+    // mesmo que tenham sido enviados múltiplos PDFs na mesma movimentação.
+    const movsPorUsuario: Record<string, Set<string>> = {};
+    USUARIOS_META.forEach((u) => (movsPorUsuario[u] = new Set()));
     Object.entries(anexosMap as Record<string, any[]>).forEach(([movId, list]) => {
       // Restringe ao snapshot quando a meta tem snapshot definido.
       if (hasSnapshot && !snapshotSet.has(movId)) return;
@@ -618,12 +622,13 @@ export default function PainelTvFinanceiro() {
         for (const u of USUARIOS_META) {
           const target = u.toLowerCase();
           if (name === target || name.includes(target) || target.includes(name.split(" ")[0])) {
-            counts[u]++;
+            movsPorUsuario[u].add(movId);
             break;
           }
         }
       });
     });
+    USUARIOS_META.forEach((u) => (counts[u] = movsPorUsuario[u].size));
     return counts;
   }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow, hasSnapshot, snapshotSet]);
 
