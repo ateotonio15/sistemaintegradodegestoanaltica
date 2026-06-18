@@ -1931,9 +1931,41 @@ function MetaHistoricoButton() {
       if (empresaIds.size > 0) {
         const { data: emps } = await supabase
           .from("empresas")
-          .select("id, nome, codigo_contrato")
+          .select("id, nome, codigo_contrato, cnpj")
           .in("id", Array.from(empresaIds));
         (emps || []).forEach((e: any) => (empMap[e.id] = e));
+      }
+
+      // 4b) pagadores cadastrados por empresa (para resolver o nome do pagador)
+      const onlyDigits = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
+      const pagadoresPorEmpresa: Record<string, Array<{ nome: string; cnpj: string }>> = {};
+      if (empresaIds.size > 0) {
+        const { data: pags } = await supabase
+          .from("financeiro_pagadores")
+          .select("empresa_id, nome_pagador, cnpj, ativo")
+          .in("empresa_id", Array.from(empresaIds));
+        (pags || []).forEach((p: any) => {
+          if (p.ativo === false) return;
+          pagadoresPorEmpresa[p.empresa_id] = pagadoresPorEmpresa[p.empresa_id] || [];
+          pagadoresPorEmpresa[p.empresa_id].push({
+            nome: p.nome_pagador,
+            cnpj: onlyDigits(p.cnpj),
+          });
+        });
+      }
+
+      // 4c) análises (financeiro_analises) → CNPJ do pagador por (mov, arquivo PDF)
+      const cnpjPorAnexo: Record<string, string> = {};
+      if (movIds.length > 0) {
+        const { data: analises } = await supabase
+          .from("financeiro_analises")
+          .select("financeiro_movimentacao_id, nome_arquivo_pdf, pagador_cnpj")
+          .in("financeiro_movimentacao_id", movIds);
+        (analises || []).forEach((r: any) => {
+          const cnpj = onlyDigits(r.pagador_cnpj);
+          if (!cnpj || !r.financeiro_movimentacao_id || !r.nome_arquivo_pdf) return;
+          cnpjPorAnexo[`${r.financeiro_movimentacao_id}|${r.nome_arquivo_pdf}`] = cnpj;
+        });
       }
 
       // 5) movimentações operacionais para inclusão/exclusão
@@ -1953,6 +1985,26 @@ function MetaHistoricoButton() {
           });
         }
       }
+
+      // helper: nome do pagador para um anexo (fallback: nome da empresa)
+      const resolverPagador = (movId: string, nomeArquivo: string, empresaId: string | null): string => {
+        const emp = empresaId ? empMap[empresaId] : null;
+        const empNome = emp?.nome || "—";
+        const cnpj = cnpjPorAnexo[`${movId}|${nomeArquivo}`];
+        if (!empresaId) return empNome;
+        const lista = pagadoresPorEmpresa[empresaId] || [];
+        if (cnpj) {
+          // CNPJ próprio da empresa → usa o nome da empresa
+          if (onlyDigits(emp?.cnpj) === cnpj) return empNome;
+          const hit = lista.find((p) => p.cnpj && p.cnpj === cnpj);
+          if (hit) return hit.nome;
+        }
+        // Sem CNPJ identificado: se houver apenas 1 pagador cadastrado, usa ele
+        if (lista.length === 1) return lista[0].nome;
+        return empNome;
+      };
+
+
 
       // 6) Atribuição por usuário com a MESMA lógica do contador ao vivo:
       //    fuzzy match contra a escala salva no dia (`m.usuarios`).
