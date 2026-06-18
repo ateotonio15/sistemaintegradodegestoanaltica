@@ -110,13 +110,13 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
           contrato: r.contrato.trim(),
           cnpj: normalizeCnpj(r.cnpj),
         }))
-        .filter((r) => r.empresa && r.contrato),
+        .filter((r) => r.empresa && r.contrato && r.cnpj),
     [rows]
   );
 
   const handleImport = async () => {
     if (validRows.length === 0) {
-      toast.error("Preencha pelo menos uma linha com Empresa e Contrato");
+      toast.error("Preencha Empresa, Contrato e CNPJ em pelo menos uma linha");
       return;
     }
     setImporting(true);
@@ -152,7 +152,7 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
           <DialogTitle>Adicionar pagadores</DialogTitle>
           <DialogDescription>
             Preencha as colunas <strong>Empresa</strong>, <strong>Contrato</strong> e{" "}
-            <strong>CNPJ</strong> (opcional). Pagadores irmãos compartilham o mesmo Contrato.
+            <strong>CNPJ</strong>. Todos os campos são obrigatórios. Pagadores irmãos compartilham o mesmo Contrato.
           </DialogDescription>
         </DialogHeader>
 
@@ -186,7 +186,7 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
                     <tr className="text-left text-xs text-muted-foreground">
                       <th className="px-2 py-2 font-medium">Empresa *</th>
                       <th className="px-2 py-2 font-medium w-40">Contrato *</th>
-                      <th className="px-2 py-2 font-medium w-48">CNPJ</th>
+                      <th className="px-2 py-2 font-medium w-48">CNPJ *</th>
                       <th className="px-2 py-2 w-10"></th>
                     </tr>
                   </thead>
@@ -215,7 +215,7 @@ export function ImportPagadoresDialog({ open, onOpenChange }: Props) {
                           <Input
                             value={r.cnpj}
                             onChange={(e) => updateRow(idx, "cnpj", e.target.value)}
-                            placeholder="Opcional"
+                            placeholder="Obrigatório"
                             className="h-8"
                             disabled={importing}
                           />
