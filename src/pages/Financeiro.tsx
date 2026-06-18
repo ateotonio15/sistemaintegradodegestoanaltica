@@ -1941,6 +1941,16 @@ export default function Financeiro() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setRegrasEmpresariaisOpen(true)}
+              className="gap-1.5"
+              title="Regras especiais aplicadas durante a análise (ex.: Pioneiro)"
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              Regras Empresariais
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setHistoricoOpen(true)}
               className="gap-1.5"
               title="Ver histórico de análises Excel × PDF salvas"
