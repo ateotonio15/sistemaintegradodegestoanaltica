@@ -542,14 +542,14 @@ export default function PainelTvFinanceiro() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("painel_tv_meta_diaria" as any)
-        .select("valor, usuarios, iniciada_em")
+        .select("valor, usuarios, iniciada_em, empresas_snapshot")
         .eq("data", todayKey)
         .maybeSingle();
       if (error) {
         console.error("[meta-diaria] erro ao carregar:", error);
         return null;
       }
-      return (data as unknown) as { valor: number; usuarios: string[]; iniciada_em: string } | null;
+      return (data as unknown) as { valor: number; usuarios: string[]; iniciada_em: string; empresas_snapshot: string[] } | null;
     },
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
@@ -600,10 +600,6 @@ export default function PainelTvFinanceiro() {
     USUARIOS_META.forEach((u) => (counts[u] = 0));
     const todayStr = new Date().toLocaleDateString("en-CA");
     const iniciadaEm = metaDiariaRow?.iniciada_em ? new Date(metaDiariaRow.iniciada_em).getTime() : 0;
-    // Dedupe: cada movimentação (empresa) conta apenas uma vez por usuário,
-    // mesmo que tenham sido enviados múltiplos PDFs na mesma movimentação.
-    const movsPorUsuario: Record<string, Set<string>> = {};
-    USUARIOS_META.forEach((u) => (movsPorUsuario[u] = new Set()));
     Object.entries(anexosMap as Record<string, any[]>).forEach(([movId, list]) => {
       // Restringe ao snapshot quando a meta tem snapshot definido.
       if (hasSnapshot && !snapshotSet.has(movId)) return;
@@ -622,13 +618,12 @@ export default function PainelTvFinanceiro() {
         for (const u of USUARIOS_META) {
           const target = u.toLowerCase();
           if (name === target || name.includes(target) || target.includes(name.split(" ")[0])) {
-            movsPorUsuario[u].add(movId);
+            counts[u]++;
             break;
           }
         }
       });
     });
-    USUARIOS_META.forEach((u) => (counts[u] = movsPorUsuario[u].size));
     return counts;
   }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow, hasSnapshot, snapshotSet]);
 
