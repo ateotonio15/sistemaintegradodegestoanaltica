@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 export function VidasOperadoraResumo() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["vidas-operadora-agrupado"],
-    queryFn: fetchVidasOperadoraAgrupado,
+    queryFn: () => fetchVidasOperadoraAgrupado(),
     staleTime: 5 * 60_000,
   });
 
