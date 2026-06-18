@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    // Require authenticated user (admin or diretora)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ status: false, message: "Unauthorized" }), {
@@ -50,7 +49,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    const r = await fetch(UPSTREAM, { method: "GET" });
+    // Aceita ds_classificacao via query string OU body JSON
+    let dsClassificacao: string | null = null;
+    const url = new URL(req.url);
+    dsClassificacao = url.searchParams.get("ds_classificacao");
+    if (!dsClassificacao && (req.method === "POST" || req.method === "PUT")) {
+      try {
+        const body = await req.json();
+        if (body && typeof body.ds_classificacao === "string") {
+          dsClassificacao = body.ds_classificacao;
+        }
+      } catch {
+        // ignora body inválido
+      }
+    }
+
+    const upstreamUrl = new URL(UPSTREAM);
+    if (dsClassificacao && dsClassificacao.trim() && dsClassificacao !== "TODOS") {
+      upstreamUrl.searchParams.set("ds_classificacao", dsClassificacao);
+    }
+
+    const r = await fetch(upstreamUrl.toString(), { method: "GET" });
     const body = await r.text();
     return new Response(body, {
       status: r.status,
