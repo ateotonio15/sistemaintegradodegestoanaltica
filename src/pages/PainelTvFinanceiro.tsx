@@ -1859,10 +1859,10 @@ function MetaHistoricoButton() {
   const [open, setOpen] = useState(false);
 
   const { data: historico = [], isLoading } = useQuery({
-    queryKey: ["painel-tv-meta-historico", open],
+    queryKey: ["painel-tv-meta-historico-v2", open],
     enabled: open,
     queryFn: async () => {
-      // 1) carregar últimas 60 metas definidas
+      // 1) últimas 60 metas
       const { data: metas, error: errMetas } = await supabase
         .from("painel_tv_meta_diaria" as any)
         .select("data, valor, usuarios")
@@ -1875,19 +1875,24 @@ function MetaHistoricoButton() {
       const dataMin = metasList[metasList.length - 1].data;
       const dataMax = metasList[0].data;
 
-      // 2) carregar PDFs de anexos_financeiro no intervalo
+      // 2) PDFs anexados no intervalo (com financeiro_movimentacao_id para enriquecer)
       const { data: anexos, error: errAnx } = await supabase
         .from("anexos_financeiro")
-        .select("uploaded_by, created_at, mime_type, nome_arquivo")
+        .select("uploaded_by, created_at, mime_type, nome_arquivo, financeiro_movimentacao_id")
         .gte("created_at", `${dataMin}T00:00:00`)
         .lte("created_at", `${dataMax}T23:59:59.999`);
       if (errAnx) throw errAnx;
 
+      const pdfs = ((anexos || []) as any[]).filter((a) => {
+        const isPdf =
+          (a.mime_type || "").toLowerCase().includes("pdf") ||
+          (a.nome_arquivo || "").toLowerCase().endsWith(".pdf");
+        return isPdf && a.uploaded_by && a.created_at && a.financeiro_movimentacao_id;
+      });
+
       // 3) mapear uploaders -> nomes
-      const uploaderIds = Array.from(
-        new Set(((anexos || []) as any[]).map((a) => a.uploaded_by).filter(Boolean)),
-      );
-      let nomesMap: Record<string, string> = {};
+      const uploaderIds = Array.from(new Set(pdfs.map((a) => a.uploaded_by)));
+      const nomesMap: Record<string, string> = {};
       if (uploaderIds.length > 0) {
         const { data: profs } = await supabase
           .from("profiles")
@@ -1898,33 +1903,102 @@ function MetaHistoricoButton() {
         });
       }
 
-      // 4) por data, contar PDFs por uploader
-      const porData: Record<string, Record<string, number>> = {};
-      ((anexos || []) as any[]).forEach((a) => {
-        const isPdf =
-          (a.mime_type || "").toLowerCase().includes("pdf") ||
-          (a.nome_arquivo || "").toLowerCase().endsWith(".pdf");
-        if (!isPdf || !a.uploaded_by || !a.created_at) return;
+      // 4) carregar movimentações financeiras correspondentes
+      const movIds = Array.from(new Set(pdfs.map((a) => a.financeiro_movimentacao_id)));
+      const movMap: Record<string, any> = {};
+      const empresaIds = new Set<string>();
+      if (movIds.length > 0) {
+        const { data: movs } = await supabase
+          .from("financeiro_movimentacoes")
+          .select("id, empresa_id, mes_referencia, periodo, tipo_cobranca, tipo_lancamento")
+          .in("id", movIds);
+        (movs || []).forEach((m: any) => {
+          movMap[m.id] = m;
+          if (m.empresa_id) empresaIds.add(m.empresa_id);
+        });
+      }
+
+      // 5) carregar empresas
+      const empMap: Record<string, any> = {};
+      if (empresaIds.size > 0) {
+        const { data: emps } = await supabase
+          .from("empresas")
+          .select("id, nome, codigo_contrato")
+          .in("id", Array.from(empresaIds));
+        (emps || []).forEach((e: any) => (empMap[e.id] = e));
+      }
+
+      // 6) carregar movimentações operacionais (tipo_movimentacao: Diária/Fechada e qtd inclusões/exclusões)
+      // Buscamos por empresa + mes + periodo correspondente aos PDFs.
+      const movKeys = new Set<string>();
+      Object.values(movMap).forEach((m: any) => {
+        if (m.empresa_id && m.mes_referencia && m.periodo) {
+          movKeys.add(`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`);
+        }
+      });
+      const opMap: Record<string, any> = {};
+      if (empresaIds.size > 0) {
+        const mesesUnicos = Array.from(new Set(Object.values(movMap).map((m: any) => m.mes_referencia).filter(Boolean)));
+        if (mesesUnicos.length > 0) {
+          const { data: ops } = await supabase
+            .from("movimentacoes")
+            .select("empresa_id, mes_referencia, periodo, tipo_movimentacao")
+            .in("empresa_id", Array.from(empresaIds))
+            .in("mes_referencia", mesesUnicos);
+          (ops || []).forEach((o: any) => {
+            opMap[`${o.empresa_id}|${o.mes_referencia}|${o.periodo}`] = o;
+          });
+        }
+      }
+
+      // 7) por data, deduplicar (um PDF por movimentação) e agrupar por usuário
+      type Item = {
+        empresa: string;
+        codigo: string | null;
+        mes: string | null;
+        periodo: string | null;
+        tipo_cobranca: string | null;
+        tipo_lancamento: string | null;
+        tipo_movimentacao: string | null;
+        hora: string;
+      };
+      const porDataUsuario: Record<string, Record<string, Item[]>> = {};
+      const vistos = new Set<string>();
+      // ordena por created_at asc para "primeiro envio" definir a hora
+      pdfs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      pdfs.forEach((a) => {
         const d = new Date(a.created_at).toLocaleDateString("en-CA");
         const nome = nomesMap[a.uploaded_by];
         if (!nome) return;
-        porData[d] = porData[d] || {};
-        porData[d][nome] = (porData[d][nome] || 0) + 1;
+        const dedupKey = `${d}|${a.financeiro_movimentacao_id}`;
+        if (vistos.has(dedupKey)) return;
+        vistos.add(dedupKey);
+        const m = movMap[a.financeiro_movimentacao_id];
+        const emp = m?.empresa_id ? empMap[m.empresa_id] : null;
+        const op = m ? opMap[`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`] : null;
+        porDataUsuario[d] = porDataUsuario[d] || {};
+        porDataUsuario[d][nome] = porDataUsuario[d][nome] || [];
+        porDataUsuario[d][nome].push({
+          empresa: emp?.nome || "—",
+          codigo: emp?.codigo_contrato ?? null,
+          mes: m?.mes_referencia ?? null,
+          periodo: m?.periodo ?? null,
+          tipo_cobranca: m?.tipo_cobranca ?? null,
+          tipo_lancamento: m?.tipo_lancamento ?? null,
+          tipo_movimentacao: op?.tipo_movimentacao ?? null,
+          hora: new Date(a.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        });
       });
 
       return metasList.map((m) => {
-        const counts = porData[m.data] || {};
-        const usuarios = (m.usuarios || []).map((nome) => ({
+        const usuariosMap = porDataUsuario[m.data] || {};
+        const nomesAtivos = new Set<string>([...(m.usuarios || []), ...Object.keys(usuariosMap)]);
+        const usuarios = Array.from(nomesAtivos).map((nome) => ({
           nome,
-          emitidas: counts[nome] || 0,
+          itens: usuariosMap[nome] || [],
         }));
-        // inclui também quem emitiu mesmo sem estar na escala salva
-        Object.keys(counts).forEach((nome) => {
-          if (!usuarios.find((u) => u.nome === nome)) {
-            usuarios.push({ nome, emitidas: counts[nome] });
-          }
-        });
-        const totalEmitidas = usuarios.reduce((s, u) => s + u.emitidas, 0);
+        usuarios.sort((a, b) => b.itens.length - a.itens.length || a.nome.localeCompare(b.nome));
+        const totalEmitidas = usuarios.reduce((s, u) => s + u.itens.length, 0);
         return { data: m.data, valor: m.valor, usuarios, totalEmitidas };
       });
     },
@@ -1935,20 +2009,39 @@ function MetaHistoricoButton() {
     return `${d}/${mo}/${y}`;
   };
 
+  const labelLancamento = (t: string | null) => {
+    if (!t) return null;
+    const map: Record<string, string> = {
+      normal: "Não-prorata",
+      primeira_mensalidade: "Primeira mensalidade",
+      fechamento_periodo: "Fechamento de período",
+      prorata: "Prorata",
+    };
+    return map[t] || t;
+  };
+
+  const corTipoMov = (t: string | null) => {
+    const norm = (t || "").toLowerCase();
+    if (norm.includes("inclus")) return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30";
+    if (norm.includes("exclus")) return "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30";
+    return "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30";
+  };
+
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <History className="h-4 w-4 mr-1" /> Histórico
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Histórico de metas diárias</DialogTitle>
             <DialogDescription>
-              Metas definidas em cada dia e quantas notas cada usuário emitiu (PDFs enviados).
+              Detalhamento das empresas emitidas por cada usuário, com tipo de cobrança, tipo de
+              movimentação (inclusão/exclusão) e tipo de lançamento (prorata/não-prorata).
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pr-3">
+          <ScrollArea className="max-h-[70vh] pr-3">
             {isLoading ? (
               <p className="text-sm text-muted-foreground py-6 text-center">Carregando…</p>
             ) : historico.length === 0 ? (
@@ -1956,40 +2049,113 @@ function MetaHistoricoButton() {
                 Nenhuma meta registrada ainda.
               </p>
             ) : (
-              <div className="space-y-3">
-                {historico.map((h: any) => (
-                  <Card key={h.data} className="p-4">
-                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {formatarData(h.data)}
-                        </Badge>
-                        <span className="text-sm">
-                          Meta: <strong>{h.valor}</strong>
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Emitidas: <strong className="text-foreground">{h.totalEmitidas}</strong> /{" "}
-                        {h.valor}
-                      </div>
-                    </div>
-                    {h.usuarios.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">Sem usuários na escala.</p>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                        {h.usuarios.map((u: any) => (
-                          <div
-                            key={u.nome}
-                            className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                          >
-                            <span className="truncate">{u.nome}</span>
-                            <span className="tabular-nums font-semibold">{u.emitidas}</span>
+              <div className="space-y-4">
+                {historico.map((h: any) => {
+                  const pct = h.valor > 0 ? Math.min(100, Math.round((h.totalEmitidas / h.valor) * 100)) : 0;
+                  return (
+                    <Card key={h.data} className="p-5 border-l-4 border-l-primary/60">
+                      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-11 w-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                            <CalendarRange className="h-5 w-5" />
                           </div>
-                        ))}
+                          <div>
+                            <div className="font-bold text-base">{formatarData(h.data)}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {h.usuarios.length} usuário{h.usuarios.length !== 1 ? "s" : ""} ativo{h.usuarios.length !== 1 ? "s" : ""}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider">Meta</div>
+                            <div className="text-xl font-bold tabular-nums">{h.valor}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider">Emitidas</div>
+                            <div className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                              {h.totalEmitidas}
+                            </div>
+                          </div>
+                          <div className="text-right min-w-[60px]">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider">%</div>
+                            <div className={cn(
+                              "text-xl font-bold tabular-nums",
+                              pct >= 100 ? "text-emerald-600 dark:text-emerald-400" :
+                              pct >= 50 ? "text-blue-600 dark:text-blue-400" :
+                              "text-amber-600 dark:text-amber-400"
+                            )}>
+                              {pct}%
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </Card>
-                ))}
+                      <Progress value={pct} className="h-2 mb-4" />
+
+                      {h.usuarios.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Sem usuários na escala.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {h.usuarios.map((u: any) => (
+                            <div key={u.nome} className="rounded-lg border border-border bg-muted/20 overflow-hidden">
+                              <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold">
+                                    {getIniciais(u.nome)}
+                                  </span>
+                                  <span className="font-semibold">{u.nome}</span>
+                                </div>
+                                <Badge variant="secondary" className="tabular-nums">
+                                  {u.itens.length} empresa{u.itens.length !== 1 ? "s" : ""}
+                                </Badge>
+                              </div>
+                              {u.itens.length === 0 ? (
+                                <p className="px-4 py-3 text-xs text-muted-foreground italic">
+                                  Nenhuma nota emitida.
+                                </p>
+                              ) : (
+                                <ul className="divide-y divide-border">
+                                  {u.itens.map((it: any, i: number) => (
+                                    <li key={i} className="px-4 py-2.5 hover:bg-muted/30 transition-colors">
+                                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                                        <div className="min-w-0 flex-1">
+                                          <div className="font-medium text-sm truncate">{it.empresa}</div>
+                                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                                            {it.codigo || "—"}
+                                            {it.mes && ` · ${formatMesReferencia(it.mes)}`}
+                                            {it.periodo && ` · ${it.periodo}`}
+                                            <span className="ml-2">⏱ {it.hora}</span>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+                                          {it.tipo_movimentacao && (
+                                            <Badge variant="outline" className={cn("text-[10px] h-5", corTipoMov(it.tipo_movimentacao))}>
+                                              {it.tipo_movimentacao}
+                                            </Badge>
+                                          )}
+                                          {it.tipo_cobranca && (
+                                            <Badge variant="outline" className="text-[10px] h-5 bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30">
+                                              {it.tipo_cobranca}
+                                            </Badge>
+                                          )}
+                                          {it.tipo_lancamento && (
+                                            <Badge variant="outline" className="text-[10px] h-5 bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/30">
+                                              {labelLancamento(it.tipo_lancamento)}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </ScrollArea>
