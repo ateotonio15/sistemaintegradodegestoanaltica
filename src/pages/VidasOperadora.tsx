@@ -76,10 +76,26 @@ export default function VidasOperadora() {
             Quantitativo agrupado por empresa, faixa etária e classificação (fonte: API Samel).
           </p>
         </div>
-        <Button variant="outline" onClick={() => refetch()} disabled={isFetching} className="rounded-lg">
-          <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
-        </Button>
-      </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={classificacao} onValueChange={setClassificacao}>
+              <SelectTrigger className="w-[200px] rounded-lg">
+                <SelectValue placeholder="Classificação" />
+              </SelectTrigger>
+              <SelectContent>
+                {CLASSIFICACOES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c === "TODOS" ? "Todas as classificações" : c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button variant="outline" onClick={() => refetch()} disabled={isFetching} className="rounded-lg">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
+          </Button>
+        </div>
 
       {error && (
         <Card className="border-destructive/40">
