@@ -407,3 +407,119 @@ function EditarGrupoDialog({
     </Dialog>
   );
 }
+
+function AdicionarEmpresaGrupoDialog({
+  open,
+  onOpenChange,
+  grupoId,
+  grupoNome,
+  empresasJaVinculadas,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  grupoId: string;
+  grupoNome: string;
+  empresasJaVinculadas: string[];
+}) {
+  const qc = useQueryClient();
+  const [busca, setBusca] = useState("");
+
+  const { data: empresas, isLoading } = useQuery({
+    queryKey: ["empresas-busca-grupo", busca],
+    enabled: open,
+    queryFn: async () => {
+      const termo = busca.trim();
+      let q = (supabase as any)
+        .from("empresas")
+        .select("id, nome_empresa, codigo_contrato, cnpj, status")
+        .eq("status", "Ativo")
+        .order("nome_empresa", { ascending: true })
+        .limit(50);
+      if (termo) {
+        q = q.or(
+          `nome_empresa.ilike.%${termo}%,codigo_contrato.ilike.%${termo}%,cnpj.ilike.%${termo}%`
+        );
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string;
+        nome_empresa: string | null;
+        codigo_contrato: string | null;
+        cnpj: string | null;
+      }>;
+    },
+  });
+
+  const adicionar = useMutation({
+    mutationFn: async (empresaId: string) => {
+      const { error } = await supabase.rpc("adicionar_contrato_grupo" as any, {
+        p_grupo_id: grupoId,
+        p_empresa_id: empresaId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Empresa adicionada ao grupo" });
+      qc.invalidateQueries({ queryKey: ["grupo-financeiro"] });
+      qc.invalidateQueries({ queryKey: ["grupos-financeiros"] });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Adicionar empresa ao grupo "{grupoNome}"</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, contrato ou CNPJ..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <div className="rounded-lg border max-h-80 overflow-y-auto">
+            {isLoading ? (
+              <div className="p-3 text-sm text-muted-foreground">Carregando...</div>
+            ) : (empresas ?? []).length === 0 ? (
+              <div className="p-3 text-sm text-muted-foreground">Nenhuma empresa encontrada.</div>
+            ) : (
+              <ul className="divide-y">
+                {(empresas ?? []).map((e) => {
+                  const jaVinculada = empresasJaVinculadas.includes(e.id);
+                  return (
+                    <li key={e.id} className="flex items-center justify-between px-3 py-2 text-sm gap-2">
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{e.nome_empresa ?? "—"}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {e.codigo_contrato ?? "—"} · {e.cnpj ?? "—"}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={jaVinculada ? "outline" : "default"}
+                        disabled={jaVinculada || adicionar.isPending}
+                        onClick={() => adicionar.mutate(e.id)}
+                      >
+                        {jaVinculada ? "Já no grupo" : (<><Plus className="h-3.5 w-3.5 mr-1" />Adicionar</>)}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
