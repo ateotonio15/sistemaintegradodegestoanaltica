@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { getForceGroupByNamePatterns } from "@/lib/regras-empresariais";
 
 export interface CategoriaResultado {
   beneficiarios: number;
