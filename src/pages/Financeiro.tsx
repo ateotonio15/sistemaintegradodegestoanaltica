@@ -29,6 +29,7 @@ import {
   listarAnalisesComErro,
 } from "@/lib/financeiro-analise-cache";
 import { HistoricoAnalisesDialog } from "@/components/financeiro/HistoricoAnalisesDialog";
+import { RegrasEmpresariaisDialog } from "@/components/financeiro/RegrasEmpresariaisDialog";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { formatDateBR, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 
