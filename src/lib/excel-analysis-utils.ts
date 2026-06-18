@@ -1201,6 +1201,15 @@ export async function analisarExcelFinanceiroPorCnpj(
 
   const grupos = new Map<string, Acc>();
   const ehCnpjPlaceholder = (c: string) => !c || c.length !== 14 || /0{6,}$/.test(c);
+  // Regra especial: alguns pagadores têm múltiplos CNPJs (matriz + filiais)
+  // mas a análise deve consolidar tudo num único bloco usando o nome.
+  // Ex.: "PIONEIRO COMBUSTIVEIS LTD" — todos os beneficiários com esse
+  // subestipulante contam como uma só empresa, independente do CNPJ.
+  const FORCE_GROUP_BY_NAME = ["pioneiro combustiveis"];
+  const forceByName = (nome: string) => {
+    const n = norm(nome);
+    return FORCE_GROUP_BY_NAME.some((p) => n.includes(p));
+  };
   const getGrupo = (cnpj: string, nome: string): Acc => {
     // Chave preferencial: CNPJ válido. Pagadores distintos com a mesma
     // razão social (matriz + filial) ficam em blocos separados. Linhas
@@ -1209,7 +1218,10 @@ export async function analisarExcelFinanceiroPorCnpj(
     // o agrupamento por nome só é usado como último recurso.
     const nomeKey = norm(nome);
     const cnpjValido = !ehCnpjPlaceholder(cnpj);
-    const key = cnpjValido
+    const usarNome = forceByName(nome);
+    const key = usarNome && nomeKey
+      ? `__nome::${nomeKey}`
+      : cnpjValido
       ? `__cnpj::${cnpj}`
       : nomeKey
       ? `__nome::${nomeKey}`
