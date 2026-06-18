@@ -507,9 +507,9 @@ function AdicionarEmpresaGrupoDialog({
                   const jaVinculada = empresasJaVinculadas.includes(e.id);
                   return (
                     <li key={e.id} className="flex items-center justify-between px-3 py-2 text-sm gap-2">
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{e.nome_empresa ?? "—"}</div>
-                        <div className="text-xs text-muted-foreground">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="font-medium truncate" title={e.nome_empresa ?? undefined}>{e.nome_empresa ?? "—"}</div>
+                        <div className="text-xs text-muted-foreground truncate">
                           {e.codigo_contrato ?? "—"} · {e.cnpj ?? "—"}
                         </div>
                       </div>
@@ -519,6 +519,7 @@ function AdicionarEmpresaGrupoDialog({
                         variant={jaVinculada ? "outline" : "default"}
                         disabled={jaVinculada || adicionar.isPending}
                         onClick={() => adicionar.mutate(e.id)}
+                        className="flex-shrink-0"
                       >
                         {jaVinculada ? "Já no grupo" : (<><Plus className="h-3.5 w-3.5 mr-1" />Adicionar</>)}
                       </Button>
