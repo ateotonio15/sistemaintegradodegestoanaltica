@@ -299,6 +299,27 @@ export default function PainelTvFinanceiro() {
     },
   });
 
+  // Pagadores cadastrados por empresa (para expandir "Aguardando emissão"
+  // em 1 linha por pagador, alinhado ao comportamento da aba Financeiro).
+  const { data: pagadoresPorEmpresa = {} } = useQuery({
+    queryKey: ["tv-fin-pagadores", empresaIds.sort().join(",")],
+    enabled: empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_pagadores")
+        .select("empresa_id, nome_pagador, cnpj, ativo")
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      const m: Record<string, Array<{ nome: string; cnpj: string | null }>> = {};
+      (data || []).forEach((p: any) => {
+        if (p.ativo === false) return;
+        m[p.empresa_id] = m[p.empresa_id] || [];
+        m[p.empresa_id].push({ nome: p.nome_pagador, cnpj: p.cnpj });
+      });
+      return m;
+    },
+  });
+
   const { data: anexosMap = {} } = useQuery({
     queryKey: ["tv-fin-anexos", movIds.sort().join(",")],
     enabled: movIds.length > 0,
