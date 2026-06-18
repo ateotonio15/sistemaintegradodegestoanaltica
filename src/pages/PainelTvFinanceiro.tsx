@@ -488,8 +488,14 @@ export default function PainelTvFinanceiro() {
     (r) => r.faturamento_iniciado_em || r.updated_at,
     sortDirs.faturamento,
   );
+  // Contratos do tipo permuta — não devem aparecer em "Aguardando emissão"
+  const CONTRATOS_PERMUTA_EXCLUIR = new Set(["2120"]);
   const aguardandoEmissao = sortByTime(
-    rows.filter((r) => r.status === "Aguardando nota"),
+    rows.filter(
+      (r) =>
+        r.status === "Aguardando nota" &&
+        !CONTRATOS_PERMUTA_EXCLUIR.has((r.empresa_codigo || "").trim()),
+    ),
     (r) => r.aguardando_nota_em || r.updated_at,
     sortDirs.aguardando,
   );
