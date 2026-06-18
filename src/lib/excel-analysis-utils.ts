@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { getForceGroupByNamePatterns } from "@/lib/regras-empresariais";
 
 export interface CategoriaResultado {
   beneficiarios: number;
@@ -1205,7 +1206,7 @@ export async function analisarExcelFinanceiroPorCnpj(
   // mas a análise deve consolidar tudo num único bloco usando o nome.
   // Ex.: "PIONEIRO COMBUSTIVEIS LTD" — todos os beneficiários com esse
   // subestipulante contam como uma só empresa, independente do CNPJ.
-  const FORCE_GROUP_BY_NAME = ["pioneiro combustiveis"];
+  const FORCE_GROUP_BY_NAME = getForceGroupByNamePatterns();
   const forceByName = (nome: string) => {
     const n = norm(nome);
     return FORCE_GROUP_BY_NAME.some((p) => n.includes(p));
@@ -1451,7 +1452,7 @@ export async function analisarExcelFinanceiroPorCnpj(
  * Ex.: "PIONEIRO COMBUSTIVEIS LTD" → 1 bloco somando todos os CNPJs.
  */
 function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[] {
-  const FORCE_GROUP_BY_NAME = ["pioneiro combustiveis"];
+  const FORCE_GROUP_BY_NAME = getForceGroupByNamePatterns();
   const matchForce = (nome: string) => {
     const n = norm(nome);
     return FORCE_GROUP_BY_NAME.find((p) => n.includes(p)) || null;

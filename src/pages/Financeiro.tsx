@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
-import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2 } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import {
@@ -29,6 +29,7 @@ import {
   listarAnalisesComErro,
 } from "@/lib/financeiro-analise-cache";
 import { HistoricoAnalisesDialog } from "@/components/financeiro/HistoricoAnalisesDialog";
+import { RegrasEmpresariaisDialog } from "@/components/financeiro/RegrasEmpresariaisDialog";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { formatDateBR, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 
@@ -107,6 +108,7 @@ export default function Financeiro() {
     temXls: boolean;
   }>>(new Map());
   const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [regrasEmpresariaisOpen, setRegrasEmpresariaisOpen] = useState(false);
   const [historicoRow, setHistoricoRow] = useState<FinanceiroRow | null>(null);
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
 
@@ -1939,6 +1941,16 @@ export default function Financeiro() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setRegrasEmpresariaisOpen(true)}
+              className="gap-1.5"
+              title="Regras especiais aplicadas durante a análise (ex.: Pioneiro)"
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              Regras Empresariais
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setHistoricoOpen(true)}
               className="gap-1.5"
               title="Ver histórico de análises Excel × PDF salvas"
@@ -2229,6 +2241,12 @@ export default function Financeiro() {
           onOpenChange={setHistoricoOpen}
           mes={mes}
           empresasMap={empresasMap as any}
+          canManage={!!canManageFinanceiro}
+        />
+
+        <RegrasEmpresariaisDialog
+          open={regrasEmpresariaisOpen}
+          onOpenChange={setRegrasEmpresariaisOpen}
           canManage={!!canManageFinanceiro}
         />
 
