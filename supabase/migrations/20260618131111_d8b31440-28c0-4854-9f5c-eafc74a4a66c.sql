@@ -1,0 +1,2 @@
+DELETE FROM public.anexos_financeiro WHERE financeiro_movimentacao_id = '96dc9929-9507-48f2-a946-91782e0d49ed';
+DELETE FROM public.financeiro_movimentacoes WHERE id = '96dc9929-9507-48f2-a946-91782e0d49ed';
