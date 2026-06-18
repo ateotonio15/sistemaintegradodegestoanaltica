@@ -2244,6 +2244,12 @@ export default function Financeiro() {
           canManage={!!canManageFinanceiro}
         />
 
+        <RegrasEmpresariaisDialog
+          open={regrasEmpresariaisOpen}
+          onOpenChange={setRegrasEmpresariaisOpen}
+          canManage={!!canManageFinanceiro}
+        />
+
         {canManageFinanceiro && (
           <GerarHistoricoDialog
             open={historicoDialogOpen}
