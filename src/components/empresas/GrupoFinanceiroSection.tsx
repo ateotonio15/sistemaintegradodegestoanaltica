@@ -482,21 +482,21 @@ function AdicionarEmpresaGrupoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:w-[42rem] max-w-none overflow-hidden">
         <DialogHeader>
           <DialogTitle>Adicionar empresa ao grupo "{grupoNome}"</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
-          <div className="relative">
+        <div className="space-y-3 min-w-0 overflow-hidden">
+          <div className="relative min-w-0">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome, contrato ou CNPJ..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="pl-8"
+              className="pl-8 w-full"
             />
           </div>
-          <div className="rounded-lg border max-h-80 overflow-y-auto">
+          <div className="rounded-lg border max-h-80 overflow-y-auto overflow-x-hidden min-w-0">
             {isLoading ? (
               <div className="p-3 text-sm text-muted-foreground">Carregando...</div>
             ) : (empresas ?? []).length === 0 ? (
@@ -506,7 +506,7 @@ function AdicionarEmpresaGrupoDialog({
                 {(empresas ?? []).map((e) => {
                   const jaVinculada = empresasJaVinculadas.includes(e.id);
                   return (
-                    <li key={e.id} className="flex items-center justify-between px-3 py-2 text-sm gap-2">
+                    <li key={e.id} className="flex w-full min-w-0 items-center justify-between px-3 py-2 text-sm gap-3">
                       <div className="flex-1 min-w-0 overflow-hidden">
                         <div className="font-medium truncate" title={e.nome_empresa ?? undefined}>{e.nome_empresa ?? "—"}</div>
                         <div className="text-xs text-muted-foreground truncate">
@@ -519,7 +519,7 @@ function AdicionarEmpresaGrupoDialog({
                         variant={jaVinculada ? "outline" : "default"}
                         disabled={jaVinculada || adicionar.isPending}
                         onClick={() => adicionar.mutate(e.id)}
-                        className="flex-shrink-0"
+                        className="flex-shrink-0 whitespace-nowrap"
                       >
                         {jaVinculada ? "Já no grupo" : (<><Plus className="h-3.5 w-3.5 mr-1" />Adicionar</>)}
                       </Button>
