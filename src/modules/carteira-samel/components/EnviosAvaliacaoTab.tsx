@@ -169,7 +169,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
                   return (
                     <tr key={emp.id} className="border-t hover:bg-muted/20">
                       <td className="px-3 py-2 font-medium">{emp.nome}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{emp.responsavel_contrato || "—"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{emp.executiva_nome || "—"}</td>
                       <td className="px-3 py-2">
                         {!env ? (
                           <Badge variant="outline">Não enviado</Badge>
