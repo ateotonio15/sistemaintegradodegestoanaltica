@@ -11,8 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePlantaoEmpresas, usePlantoes, usePlantaoMutations, usePlantoesRealtime, type Plantao } from "@/hooks/usePlantoes";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { PlantaoDetalheDialog } from "@/components/plantoes/PlantaoDetalheDialog";
-
-const TIPOS_DEMANDA = ["Consulta", "Exames", "Reclamação", "Outros"] as const;
+import { InlineDemandaForm } from "@/components/plantoes/InlineDemandaForm";
 
 export default function PlantoesEmpresa() {
   const { empresaId } = useParams<{ empresaId: string }>();
