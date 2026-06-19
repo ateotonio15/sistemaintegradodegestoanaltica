@@ -46,11 +46,33 @@ export function PlantaoDialog({
   defaultEmpresaId?: string;
   defaultData?: string;
 }) {
-  const { data: empresas = [] } = usePlantaoEmpresas();
+  const { user, loading: authLoading } = useAuth();
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["empresas-ativas-plantao"],
+    enabled: !authLoading && !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome, responsavel_contrato, status_empresa")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []).filter((e: any) => (e.status_empresa ?? "Ativa") === "Ativa");
+    },
+  });
+  // Quando editando, carrega o nome a partir de plantoes_empresas para casar com a lista
+  const { data: plantaoEmpresaNome } = useQuery({
+    queryKey: ["plantao-empresa-nome", plantao?.empresa_id],
+    enabled: !!plantao?.empresa_id,
+    queryFn: async () => {
+      const { data } = await supabase.from("plantoes_empresas").select("nome").eq("id", plantao!.empresa_id).maybeSingle();
+      return data?.nome ?? "";
+    },
+  });
   const { upsertPlantao } = usePlantaoMutations();
   const isEdit = !!plantao;
 
-  const [empresaId, setEmpresaId] = useState(plantao?.empresa_id ?? defaultEmpresaId ?? "");
+  // Agora guardamos o NOME da empresa (id vem do "empresas"), e resolvemos para plantoes_empresas no save
+  const [empresaNomeSel, setEmpresaNomeSel] = useState<string>("");
   const initialDates: string[] = plantao?.data
     ? [plantao.data]
     : defaultData
