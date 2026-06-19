@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
-import { usePlantaoEmpresas, usePlantaoMutations, type Plantao } from "@/hooks/usePlantoes";
+import { usePlantaoMutations, type Plantao } from "@/hooks/usePlantoes";
+import { useAuth } from "@/hooks/useAuth";
 import { ptBR } from "date-fns/locale";
 
 const TURNOS = ["integral", "manhã", "tarde", "noite"];
