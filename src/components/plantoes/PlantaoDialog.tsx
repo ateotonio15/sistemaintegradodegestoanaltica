@@ -257,7 +257,7 @@ export function PlantaoDialog({
               value={plantonista}
               readOnly
               disabled
-              placeholder={empresaId ? "Sem executiva vinculada ao contrato" : "Selecione a empresa"}
+              placeholder={empresaNomeSel ? "Sem executiva vinculada ao contrato" : "Selecione a empresa"}
               className="bg-muted/50"
             />
           </div>
