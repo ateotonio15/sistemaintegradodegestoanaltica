@@ -159,9 +159,9 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
 
   useEffect(() => {
     if (open) {
-      setForm(demanda ? { ...demanda } : empty());
+      setForm(demanda ? { ...demanda } : { ...empty(), ...(initialValues || {}) });
     }
-  }, [open, demanda]);
+  }, [open, demanda, initialValues]);
 
 
 
