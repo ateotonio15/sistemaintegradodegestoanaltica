@@ -122,8 +122,8 @@ const RECLAMACOES = [
 
 
 
-export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props) {
-  const [form, setForm] = useState<Partial<Demanda>>(empty());
+export default function DemandaFormDialog({ open, onOpenChange, demanda, initialValues, plantaoContext, onSaved }: Props) {
+  const [form, setForm] = useState<Partial<Demanda>>({ ...empty(), ...(initialValues || {}) });
   const create = useCreateDemanda();
   const update = useUpdateDemanda();
   const isEdit = !!demanda?.id;
