@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Share2, Loader2, Pencil } from "lucide-react";
+import { Copy, Share2, Loader2, Pencil, Mail, Building2, CalendarClock } from "lucide-react";
 import { RatingScale } from "../components/RatingScale";
 import { AvaliacoesRHDashboard } from "../components/AvaliacoesRHDashboard";
 import { EditarFormularioRHDialog } from "../components/EditarFormularioRHDialog";
