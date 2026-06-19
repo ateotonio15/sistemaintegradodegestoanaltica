@@ -154,38 +154,14 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
 
                 {demandasOpen && (
                   <div className="space-y-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800 dark:border-pink-900/50 dark:text-pink-300 dark:hover:bg-pink-950/30">
-                          <Plus className="h-4 w-4 mr-1" /> Adicionar demanda
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-48">
-                        {TIPOS_DEMANDA.map((tipo) => (
-                          <DropdownMenuItem
-                            key={tipo}
-                            onClick={() =>
-                              navigate("/demandas/nova", {
-                                state: {
-                                  plantao_id: active.id,
-                                  empresa_id: active.empresa_id,
-                                  returnTo: location.pathname,
-                                  initial: {
-                                    empresa: empresaNome ?? "",
-                                    executiva: active.plantonista ?? "",
-                                    data_reclamacao: active.data,
-                                    tipo_reclamacao: tipo,
-                                    atendimento: (active as any).modalidade ?? "presencial",
-                                  },
-                                },
-                              })
-                            }
-                          >
-                            {tipo}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <InlineDemandaForm
+                      plantaoIds={[active.id]}
+                      defaultPlantaoId={active.id}
+                      empresaNome={empresaNome}
+                      empresaId={active.empresa_id}
+                      executivaNome={active.plantonista ?? undefined}
+                      dataPlantao={active.data}
+                    />
                     <div className="divide-y border rounded-md">
                       {atendimentos.length === 0 && (
                         <div className="p-4 text-sm text-muted-foreground text-center">Nenhuma demanda registrada.</div>
