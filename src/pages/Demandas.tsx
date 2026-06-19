@@ -57,6 +57,7 @@ type StatusFilter = "todos" | "pendente" | "resolvida" | "finalizada";
 
 export default function Demandas() {
   const { isAdmin, isDiretora, isViewOnly, user } = useAuth();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const reclamacaoParam = params.get("reclamacao");
   const idParam = params.get("id");
