@@ -141,19 +141,21 @@ export function InlineDemandaForm({
           </div>
           <Input placeholder="Beneficiário" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={120} />
           <Input placeholder="CPF" value={cpf} onChange={(e) => setCpf(e.target.value)} maxLength={20} />
-          <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-2">
             <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue placeholder="Tipo" /></SelectTrigger>
               <SelectContent>{TIPOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
             </Select>
-            <Select value={canal} onValueChange={(v) => setCanal(v as Canal)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{CANAIS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-            </Select>
-            <Select value={status} onValueChange={(v) => setStatus(v as Status)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{STATUS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-            </Select>
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={canal} onValueChange={(v) => setCanal(v as Canal)}>
+                <SelectTrigger><SelectValue placeholder="Canal" /></SelectTrigger>
+                <SelectContent>{CANAIS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={status} onValueChange={(v) => setStatus(v as Status)}>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>{STATUS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
           </div>
           <Textarea
             placeholder="Observação (opcional)"
@@ -175,7 +177,7 @@ export function InlineDemandaForm({
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Kpi label="Atendimentos" value={total} color="text-emerald-600" />
         <Kpi label="Consultas" value={consultas} />
         <Kpi label="Pendências" value={pendencias} color={pendencias > 0 ? "text-amber-600" : ""} />
