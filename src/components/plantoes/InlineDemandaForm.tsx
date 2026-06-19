@@ -177,7 +177,7 @@ export function InlineDemandaForm({
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Kpi label="Atendimentos" value={total} color="text-emerald-600" />
         <Kpi label="Consultas" value={consultas} />
         <Kpi label="Pendências" value={pendencias} color={pendencias > 0 ? "text-amber-600" : ""} />
