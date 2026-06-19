@@ -4,9 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { usePlantaoMutations, type PlantaoAtendimento } from "@/hooks/usePlantoes";
+import { useCreateDemanda } from "@/hooks/useDemandas";
+import { toast } from "sonner";
 
-const TIPOS = ["Consulta", "Exame", "Reclamação", "Dúvida", "Outro"];
+const TIPOS = ["Consulta", "Exames", "Reclamação", "Outros"];
 const CANAIS = ["Presencial", "WhatsApp"];
 const STATUS = ["Pendente", "Em andamento", "Resolvido", "Cancelado"] as const;
 type Status = (typeof STATUS)[number];
@@ -33,6 +37,7 @@ export function AtendimentoDialog({
   atendimento?: PlantaoAtendimento | null;
 }) {
   const { upsertAtendimento } = usePlantaoMutations();
+  const createDemanda = useCreateDemanda();
   const initial = parseAssunto(atendimento?.assunto, atendimento?.resolvido);
   const [nome, setNome] = useState(atendimento?.nome_cliente ?? "");
   const [cpf, setCpf] = useState(atendimento?.cpf ?? "");
@@ -40,6 +45,21 @@ export function AtendimentoDialog({
   const [canal, setCanal] = useState(initial.canal);
   const [status, setStatus] = useState<Status>(initial.status);
   const [observacao, setObservacao] = useState(atendimento?.observacao ?? "");
+
+  // Busca o plantão para obter contexto (empresa/executiva/data) — usado para vincular ao Relatório de Demandas
+  const { data: plantaoCtx } = useQuery({
+    queryKey: ["plantao-ctx", plantaoId],
+    enabled: open && !!plantaoId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("plantoes")
+        .select("id, data, plantonista, empresa:plantoes_empresas(nome)")
+        .eq("id", plantaoId)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+  });
 
   const now = new Date();
   const horaAtual = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
@@ -80,19 +100,46 @@ export function AtendimentoDialog({
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
-            disabled={!nome.trim() || upsertAtendimento.isPending}
+            disabled={!nome.trim() || upsertAtendimento.isPending || createDemanda.isPending}
             onClick={async () => {
-              await upsertAtendimento.mutateAsync({
-                id: atendimento?.id,
-                plantao_id: plantaoId,
-                hora: atendimento?.hora ?? horaAtual,
-                nome_cliente: nome.trim(),
-                cpf: cpf.trim(),
-                assunto: `${tipo} · ${canal} · ${status}`,
-                resolvido: status === "Resolvido",
-                observacao: observacao.trim(),
-              });
-              onOpenChange(false);
+              try {
+                await upsertAtendimento.mutateAsync({
+                  id: atendimento?.id,
+                  plantao_id: plantaoId,
+                  hora: atendimento?.hora ?? horaAtual,
+                  nome_cliente: nome.trim(),
+                  cpf: cpf.trim(),
+                  assunto: `${tipo} · ${canal} · ${status}`,
+                  resolvido: status === "Resolvido",
+                  observacao: observacao.trim(),
+                });
+
+                // Se for Reclamação e for novo registro, gera demanda vinculada ao Relatório de Demandas
+                if (!atendimento && tipo === "Reclamação") {
+                  try {
+                    await createDemanda.mutateAsync({
+                      data_reclamacao: plantaoCtx?.data || new Date().toISOString().slice(0, 10),
+                      nome_cliente: nome.trim(),
+                      cpf: cpf.trim() || null,
+                      empresa: plantaoCtx?.empresa?.nome || "",
+                      executiva: plantaoCtx?.plantonista || "",
+                      setor_responsavel: "Atendimento",
+                      tipo_reclamacao: "Reclamação",
+                      reclamacao: "Reclamação",
+                      detalhamento: observacao.trim() || null,
+                      resolvido_executiva: status === "Resolvido",
+                      data_resolucao_executiva: status === "Resolvido" ? new Date().toISOString().slice(0, 10) : null,
+                    } as any);
+                    toast.success("Demanda adicionada e vinculada ao relatório");
+                  } catch (err: any) {
+                    toast.error("Atendimento salvo, mas falhou vincular ao relatório: " + (err?.message || ""));
+                  }
+                }
+
+                onOpenChange(false);
+              } catch (e: any) {
+                toast.error(e?.message || "Erro ao salvar");
+              }
             }}
           >
             Salvar
