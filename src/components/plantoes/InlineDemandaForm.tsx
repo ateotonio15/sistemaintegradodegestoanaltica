@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlantaoMutations, type PlantaoAtendimento } from "@/hooks/usePlantoes";
+import { useCreateDemanda } from "@/hooks/useDemandas";
 import { parseAssunto } from "@/components/plantoes/AtendimentoDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
