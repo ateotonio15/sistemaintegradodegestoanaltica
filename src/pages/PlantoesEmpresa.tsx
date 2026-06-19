@@ -133,6 +133,7 @@ export default function PlantoesEmpresa() {
                         plantaoIds={lista.map((p) => p.id)}
                         defaultPlantaoId={primeiro.id}
                         empresaNome={empresa?.nome}
+                        empresaId={empresaId}
                         executivaNome={primeiro.plantonista ?? undefined}
                         dataPlantao={data}
                       />

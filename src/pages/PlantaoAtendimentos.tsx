@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAtendimentos, usePlantaoMutations, usePlantoesRealtime, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 import { AtendimentoDialog } from "@/components/plantoes/AtendimentoDialog";
+import DemandaFormDialog from "@/components/demandas/DemandaFormDialog";
+import { format } from "date-fns";
 
 export default function PlantaoAtendimentos() {
   const { plantaoId } = useParams<{ plantaoId: string }>();
@@ -80,7 +82,19 @@ export default function PlantaoAtendimentos() {
       </CardContent></Card>
 
       {edit && plantaoId && <AtendimentoDialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)} plantaoId={plantaoId} atendimento={edit} />}
-      {novo && plantaoId && <AtendimentoDialog open={novo} onOpenChange={setNovo} plantaoId={plantaoId} />}
+      {novo && plantaoId && (
+        <DemandaFormDialog
+          open={novo}
+          onOpenChange={setNovo}
+          plantaoContext={{ plantao_id: plantaoId, empresa_id: plantao?.empresa_id }}
+          initialValues={{
+            data_reclamacao: plantao?.data || format(new Date(), "yyyy-MM-dd"),
+            empresa: plantao?.empresa?.nome || "",
+            executiva: plantao?.plantonista || "",
+            tipo_reclamacao: "Reclamação",
+          }}
+        />
+      )}
     </div>
   );
 }
