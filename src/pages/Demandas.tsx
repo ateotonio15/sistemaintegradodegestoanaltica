@@ -247,10 +247,17 @@ export default function Demandas() {
               <Button
                 size="sm"
                 className="gap-1.5"
-                onClick={() => {
-                  setEditing(null);
-                  setOpenForm(true);
-                }}
+                onClick={() =>
+                  navigate("/demandas/nova", {
+                    state: {
+                      returnTo: "/demandas",
+                      initial: {
+                        tipo_reclamacao: "Reclamação",
+                        executiva: profile?.display_name || "",
+                      },
+                    },
+                  })
+                }
               >
                 <Plus className="h-4 w-4" />
                 Nova demanda
