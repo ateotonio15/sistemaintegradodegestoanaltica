@@ -339,6 +339,60 @@ export type Database = {
         }
         Relationships: []
       }
+      avaliacoes_envios: {
+        Row: {
+          created_at: string
+          data_envio: string
+          data_resposta: string | null
+          email_destino: string
+          empresa_id: string | null
+          formulario_id: string | null
+          id: string
+          status: string
+          token_unico: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_envio?: string
+          data_resposta?: string | null
+          email_destino: string
+          empresa_id?: string | null
+          formulario_id?: string | null
+          id?: string
+          status?: string
+          token_unico?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_envio?: string
+          data_resposta?: string | null
+          email_destino?: string
+          empresa_id?: string | null
+          formulario_id?: string | null
+          id?: string
+          status?: string
+          token_unico?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_envios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_envios_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "cs_avaliacao_formularios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cobrancas: {
         Row: {
           created_at: string
