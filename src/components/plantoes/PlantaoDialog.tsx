@@ -105,23 +105,23 @@ export function PlantaoDialog({
   }, [defaultEmpresaNome]);
 
   const empresaNome = empresaNomeSel;
-  const { data: executivaContrato = "" } = useQuery({
-    queryKey: ["plantao_executiva_contrato", empresaNome],
-    enabled: !!empresaNome,
+  // Executiva = usuário logado (display_name) — não vem mais do cadastro da empresa
+  const { data: meuNome = "" } = useQuery({
+    queryKey: ["meu-perfil-nome", user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
       const { data } = await supabase
-        .from("empresas")
-        .select("responsavel_contrato")
-        .ilike("nome", empresaNome)
-        .limit(1)
+        .from("profiles")
+        .select("display_name, username")
+        .eq("user_id", user!.id)
         .maybeSingle();
-      return data?.responsavel_contrato ?? "";
+      return (data?.display_name || data?.username || "") as string;
     },
   });
 
   useEffect(() => {
-    setPlantonista(executivaContrato ?? "");
-  }, [executivaContrato]);
+    if (!isEdit && meuNome) setPlantonista(meuNome);
+  }, [meuNome, isEdit]);
 
   const selectedDates = datas.map(isoToDate);
 
