@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Pencil, FileSpreadsheet, FileText, User, MapPin, ChevronRight, MessageCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Pencil, FileSpreadsheet, FileText, User, MapPin, ChevronRight, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlantaoEmpresas, usePlantoes, usePlantaoMutations, usePlantoesRealtime, type Plantao } from "@/hooks/usePlantoes";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { PlantaoDetalheDialog } from "@/components/plantoes/PlantaoDetalheDialog";
+
+const TIPOS_DEMANDA = ["Reclamação", "Solicitação", "Dúvida", "Elogio", "Outros"] as const;
 
 export default function PlantoesEmpresa() {
   const { empresaId } = useParams<{ empresaId: string }>();
@@ -162,31 +165,46 @@ export default function PlantoesEmpresa() {
                     </div>
 
                     {canCreateDemanda && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        title="Registrar atendimento para este plantão"
-                        className="w-full gap-1.5 border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800 dark:border-pink-900/50 dark:text-pink-300 dark:hover:bg-pink-950/30"
-                        onClick={() =>
-                          navigate("/demandas/nova", {
-                            state: {
-                              plantao_id: primeiro.id,
-                              empresa_id: empresaId,
-                              returnTo: location.pathname,
-                              initial: {
-                                empresa: empresa?.nome ?? "",
-                                executiva: primeiro.plantonista ?? "",
-                                data_reclamacao: data,
-                                tipo_reclamacao: "",
-                                atendimento: (primeiro as any).modalidade ?? "presencial",
-                              },
-                            },
-                          })
-                        }
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        Nova consulta
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            title="Adicionar nova demanda para este plantão"
+                            className="w-full gap-1.5 border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800 dark:border-pink-900/50 dark:text-pink-300 dark:hover:bg-pink-950/30"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                            Adicionar demanda
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuLabel>Tipo de demanda</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {TIPOS_DEMANDA.map((tipo) => (
+                            <DropdownMenuItem
+                              key={tipo}
+                              onClick={() =>
+                                navigate("/demandas/nova", {
+                                  state: {
+                                    plantao_id: primeiro.id,
+                                    empresa_id: empresaId,
+                                    returnTo: location.pathname,
+                                    initial: {
+                                      empresa: empresa?.nome ?? "",
+                                      executiva: primeiro.plantonista ?? "",
+                                      data_reclamacao: data,
+                                      tipo_reclamacao: tipo,
+                                      atendimento: (primeiro as any).modalidade ?? "presencial",
+                                    },
+                                  },
+                                })
+                              }
+                            >
+                              {tipo}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </CardContent>
                 </Card>
