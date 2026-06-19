@@ -82,17 +82,16 @@ export default function PlantaoAtendimentos() {
 
       {edit && plantaoId && <AtendimentoDialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)} plantaoId={plantaoId} atendimento={edit} />}
       {novo && plantaoId && (
-        <DemandaFormDialog
-          open={novo}
-          onOpenChange={setNovo}
-          plantaoContext={{ plantao_id: plantaoId, empresa_id: plantao?.empresa_id }}
-          initialValues={{
-            data_reclamacao: plantao?.data || format(new Date(), "yyyy-MM-dd"),
-            empresa: plantao?.empresa?.nome || "",
-            executiva: plantao?.plantonista || "",
-            tipo_reclamacao: "Reclamação",
-          }}
-        />
+        <div className="rounded-md border p-3 bg-card">
+          <InlineDemandaForm
+            plantaoIds={[plantaoId]}
+            defaultPlantaoId={plantaoId}
+            empresaNome={plantao?.empresa?.nome}
+            empresaId={plantao?.empresa_id}
+            executivaNome={plantao?.plantonista}
+            dataPlantao={plantao?.data}
+          />
+        </div>
       )}
     </div>
   );
