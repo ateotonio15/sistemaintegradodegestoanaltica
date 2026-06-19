@@ -14,6 +14,7 @@ import { useAtendimentos, usePlantaoMutations, usePlantoes, type Plantao, type P
 import { AtendimentoDialog, parseAssunto } from "@/components/plantoes/AtendimentoDialog";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { AdicionarExecutivaDialog } from "@/components/plantoes/AdicionarExecutivaDialog";
+import { InlineDemandaForm } from "@/components/plantoes/InlineDemandaForm";
 
 const STATUS_COLORS: Record<string, string> = {
   "Pendente": "bg-amber-100 text-amber-700 hover:bg-amber-100 border-0",
