@@ -165,7 +165,8 @@ export default function PlantoesEmpresa() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full gap-1.5"
+                        title="Registrar atendimento para este plantão"
+                        className="w-full gap-1.5 border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800 dark:border-pink-900/50 dark:text-pink-300 dark:hover:bg-pink-950/30"
                         onClick={() =>
                           navigate("/demandas/nova", {
                             state: {
@@ -176,14 +177,15 @@ export default function PlantoesEmpresa() {
                                 empresa: empresa?.nome ?? "",
                                 executiva: primeiro.plantonista ?? "",
                                 data_reclamacao: data,
-                                tipo_reclamacao: "Reclamação",
+                                tipo_reclamacao: "",
+                                atendimento: (primeiro as any).modalidade ?? "presencial",
                               },
                             },
                           })
                         }
                       >
-                        <MessageSquareWarning className="h-4 w-4" />
-                        Nova demanda
+                        <MessageCircle className="h-4 w-4" />
+                        Nova consulta
                       </Button>
                     )}
                   </CardContent>
