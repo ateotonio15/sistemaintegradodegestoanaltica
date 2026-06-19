@@ -3910,6 +3910,13 @@ export type Database = {
         }[]
       }
       get_email_by_username: { Args: { _username: string }; Returns: string }
+      get_user_display_names: {
+        Args: { _ids: string[] }
+        Returns: {
+          display_name: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
