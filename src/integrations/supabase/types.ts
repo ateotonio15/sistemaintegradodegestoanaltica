@@ -339,6 +339,47 @@ export type Database = {
         }
         Relationships: []
       }
+      avaliacoes_config: {
+        Row: {
+          dia_envio: number
+          dias_para_lembrete: number
+          envio_mensal_ativo: boolean
+          formulario_id: string | null
+          id: string
+          lembrete_ativo: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          dia_envio?: number
+          dias_para_lembrete?: number
+          envio_mensal_ativo?: boolean
+          formulario_id?: string | null
+          id?: string
+          lembrete_ativo?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          dia_envio?: number
+          dias_para_lembrete?: number
+          envio_mensal_ativo?: boolean
+          formulario_id?: string | null
+          id?: string
+          lembrete_ativo?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_config_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "cs_avaliacao_formularios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avaliacoes_envios: {
         Row: {
           created_at: string
@@ -346,8 +387,14 @@ export type Database = {
           data_resposta: string | null
           email_destino: string
           empresa_id: string | null
+          empresa_nome: string | null
+          executiva_nome: string | null
+          executiva_user_id: string | null
           formulario_id: string | null
           id: string
+          lembrete_enviado_em: string | null
+          mes_referencia: string | null
+          resposta_id: string | null
           status: string
           token_unico: string
           updated_at: string
@@ -358,8 +405,14 @@ export type Database = {
           data_resposta?: string | null
           email_destino: string
           empresa_id?: string | null
+          empresa_nome?: string | null
+          executiva_nome?: string | null
+          executiva_user_id?: string | null
           formulario_id?: string | null
           id?: string
+          lembrete_enviado_em?: string | null
+          mes_referencia?: string | null
+          resposta_id?: string | null
           status?: string
           token_unico?: string
           updated_at?: string
@@ -370,8 +423,14 @@ export type Database = {
           data_resposta?: string | null
           email_destino?: string
           empresa_id?: string | null
+          empresa_nome?: string | null
+          executiva_nome?: string | null
+          executiva_user_id?: string | null
           formulario_id?: string | null
           id?: string
+          lembrete_enviado_em?: string | null
+          mes_referencia?: string | null
+          resposta_id?: string | null
           status?: string
           token_unico?: string
           updated_at?: string
@@ -671,6 +730,7 @@ export type Database = {
           comentario: string | null
           compartilhamento_id: string | null
           created_at: string
+          envio_id: string | null
           formulario_id: string
           id: string
           nome_empresa: string | null
@@ -683,6 +743,7 @@ export type Database = {
           comentario?: string | null
           compartilhamento_id?: string | null
           created_at?: string
+          envio_id?: string | null
           formulario_id: string
           id?: string
           nome_empresa?: string | null
@@ -695,6 +756,7 @@ export type Database = {
           comentario?: string | null
           compartilhamento_id?: string | null
           created_at?: string
+          envio_id?: string | null
           formulario_id?: string
           id?: string
           nome_empresa?: string | null
@@ -704,6 +766,13 @@ export type Database = {
           respostas?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "cs_avaliacao_respostas_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "avaliacoes_envios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cs_avaliacao_respostas_formulario_id_fkey"
             columns: ["formulario_id"]
@@ -3858,6 +3927,7 @@ export type Database = {
         Args: { p_empresa_id: string; p_motivo: string; p_observacoes?: string }
         Returns: string
       }
+      processar_avaliacoes_envios: { Args: never; Returns: Json }
       processar_retorno_ferias: { Args: never; Returns: number }
       rejeitar_implantacao: {
         Args: { p_impl: string; p_motivo: string }
