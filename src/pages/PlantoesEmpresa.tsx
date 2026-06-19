@@ -160,6 +160,32 @@ export default function PlantoesEmpresa() {
                         </div>
                       )}
                     </div>
+
+                    {canCreateDemanda && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-1.5"
+                        onClick={() =>
+                          navigate("/demandas/nova", {
+                            state: {
+                              plantao_id: primeiro.id,
+                              empresa_id: empresaId,
+                              returnTo: location.pathname,
+                              initial: {
+                                empresa: empresa?.nome ?? "",
+                                executiva: primeiro.plantonista ?? "",
+                                data_reclamacao: data,
+                                tipo_reclamacao: "Reclamação",
+                              },
+                            },
+                          })
+                        }
+                      >
+                        <MessageSquareWarning className="h-4 w-4" />
+                        Nova demanda
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               );
