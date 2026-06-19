@@ -23,12 +23,19 @@ type Status = (typeof STATUS)[number];
 export function InlineDemandaForm({
   plantaoIds,
   defaultPlantaoId,
+  empresaNome,
+  executivaNome,
+  dataPlantao,
 }: {
   plantaoIds: string[];
   defaultPlantaoId: string;
+  empresaNome?: string;
+  executivaNome?: string;
+  dataPlantao?: string;
 }) {
   const { user, loading } = useAuth();
   const { upsertAtendimento } = usePlantaoMutations();
+  const createDemanda = useCreateDemanda();
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
