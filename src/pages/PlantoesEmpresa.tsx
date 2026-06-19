@@ -12,7 +12,7 @@ import { usePlantaoEmpresas, usePlantoes, usePlantaoMutations, usePlantoesRealti
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { PlantaoDetalheDialog } from "@/components/plantoes/PlantaoDetalheDialog";
 
-const TIPOS_DEMANDA = ["Reclamação", "Solicitação", "Dúvida", "Elogio", "Outros"] as const;
+const TIPOS_DEMANDA = ["Consulta", "Exames", "Reclamação", "Outros"] as const;
 
 export default function PlantoesEmpresa() {
   const { empresaId } = useParams<{ empresaId: string }>();
