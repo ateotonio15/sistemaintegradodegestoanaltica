@@ -30,6 +30,9 @@ type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   demanda?: Demanda | null;
+  initialValues?: Partial<Demanda>;
+  plantaoContext?: { plantao_id: string; empresa_id?: string } | null;
+  onSaved?: (demanda: Demanda) => void;
 };
 
 const empty = (): Partial<Demanda> => ({
