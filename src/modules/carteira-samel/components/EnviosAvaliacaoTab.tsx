@@ -34,14 +34,12 @@ export function EnviosAvaliacaoTab({ form }: Props) {
         .order("nome");
       if (error) throw error;
       const ids = Array.from(new Set((data ?? []).map((e: any) => e.executiva_user_id).filter(Boolean)));
-      let nameMap = new Map<string, string>();
+      const nameMap = new Map<string, string>();
       if (ids.length) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, display_name, username")
-          .in("user_id", ids as string[]);
-        (profs ?? []).forEach((p: any) => nameMap.set(p.user_id, p.display_name || p.username || ""));
+        const { data: profs } = await db.rpc("get_user_display_names", { _ids: ids });
+        (profs ?? []).forEach((p: any) => nameMap.set(p.user_id, p.display_name || ""));
       }
+
       return (data ?? []).map((e: any) => ({
         ...e,
         executiva_nome: e.executiva_user_id ? (nameMap.get(e.executiva_user_id) || "—") : "—",
