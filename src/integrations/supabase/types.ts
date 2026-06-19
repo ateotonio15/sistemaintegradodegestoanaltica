@@ -3870,6 +3870,7 @@ export type Database = {
         Returns: string
       }
       demanda_can_edit: { Args: { _executiva: string }; Returns: boolean }
+      ensure_plantao_empresa: { Args: { p_nome: string }; Returns: string }
       enviar_implantacao_diretoria: {
         Args: { p_impl: string }
         Returns: string
