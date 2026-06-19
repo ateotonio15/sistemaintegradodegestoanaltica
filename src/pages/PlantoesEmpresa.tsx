@@ -128,16 +128,7 @@ export default function PlantoesEmpresa() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="rounded-md border p-2">
-                        <div className="text-lg font-bold">{atend}</div>
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Consultas</div>
-                      </div>
-                      <div className="rounded-md border p-2">
-                        <div className="text-lg font-bold">0</div>
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Pendências</div>
-                      </div>
-                    </div>
+                    {canCreateDemanda && <InlineDemandaForm plantaoId={primeiro.id} />}
 
                     <div className="flex items-center justify-between pt-2 border-t">
                       <button onClick={() => setDetalhe(primeiro)} className="text-sm text-primary inline-flex items-center hover:underline">
@@ -162,49 +153,6 @@ export default function PlantoesEmpresa() {
                         </div>
                       )}
                     </div>
-
-                    {canCreateDemanda && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            title="Adicionar nova demanda para este plantão"
-                            className="w-full gap-1.5 border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800 dark:border-pink-900/50 dark:text-pink-300 dark:hover:bg-pink-950/30"
-                          >
-                            <PlusCircle className="h-4 w-4" />
-                            Adicionar demanda
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuLabel>Tipo de demanda</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {TIPOS_DEMANDA.map((tipo) => (
-                            <DropdownMenuItem
-                              key={tipo}
-                              onClick={() =>
-                                navigate("/demandas/nova", {
-                                  state: {
-                                    plantao_id: primeiro.id,
-                                    empresa_id: empresaId,
-                                    returnTo: location.pathname,
-                                    initial: {
-                                      empresa: empresa?.nome ?? "",
-                                      executiva: primeiro.plantonista ?? "",
-                                      data_reclamacao: data,
-                                      tipo_reclamacao: tipo,
-                                      atendimento: (primeiro as any).modalidade ?? "presencial",
-                                    },
-                                  },
-                                })
-                              }
-                            >
-                              {tipo}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
                   </CardContent>
                 </Card>
               );
