@@ -171,11 +171,11 @@ export function PlantaoDialog({
         <div className="space-y-3">
           <div>
             <Label>Empresa *</Label>
-            <Select value={empresaId} onValueChange={setEmpresaId}>
+            <Select value={empresaNomeSel} onValueChange={setEmpresaNomeSel}>
               <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
-              <SelectContent>
-                {empresas.filter((e) => e.ativo).map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+              <SelectContent className="max-h-72">
+                {empresas.map((e: any) => (
+                  <SelectItem key={e.id} value={e.nome}>{e.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
