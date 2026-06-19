@@ -15,6 +15,9 @@ export default function PlantoesEmpresa() {
   const { empresaId } = useParams<{ empresaId: string }>();
   const { role } = useAuth();
   const isAdmin = role === "admin";
+  const navigate = useNavigate();
+  const location = useLocation();
+  const canCreateDemanda = role !== "visualizacao" && role !== "diretora";
   usePlantoesRealtime();
   const { data: empresas = [] } = usePlantaoEmpresas();
   const empresa = empresas.find((e) => e.id === empresaId);
