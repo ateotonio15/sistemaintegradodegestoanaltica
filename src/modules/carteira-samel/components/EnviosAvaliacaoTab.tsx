@@ -80,8 +80,8 @@ export function EnviosAvaliacaoTab({ form }: Props) {
       empresa_id: emp.id,
       empresa_nome: emp.nome,
       email_destino: emp.email_empresa || "",
-      executiva_user_id: emp.responsavel_user_id,
-      executiva_nome: emp.responsavel_contrato,
+      executiva_user_id: emp.executiva_user_id,
+      executiva_nome: emp.executiva_nome,
       formulario_id: form?.id,
       mes_referencia: mesAtual,
       status: "enviado",
@@ -105,7 +105,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
     if (pendentes.length === 0) { toast.info("Todas as empresas já possuem envio neste mês"); return; }
     const rows = pendentes.map((emp: any) => ({
       empresa_id: emp.id, empresa_nome: emp.nome, email_destino: emp.email_empresa || "",
-      executiva_user_id: emp.responsavel_user_id, executiva_nome: emp.responsavel_contrato,
+      executiva_user_id: emp.executiva_user_id, executiva_nome: emp.executiva_nome,
       formulario_id: form?.id, mes_referencia: mesAtual, status: "enviado",
     }));
     const { error } = await db.from("avaliacoes_envios").insert(rows);
@@ -113,6 +113,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
     toast.success(`${rows.length} links gerados`);
     qc.invalidateQueries({ queryKey: ["avaliacoes-envios"] });
   };
+
 
   const loading = loadEmp || loadEnv;
 
