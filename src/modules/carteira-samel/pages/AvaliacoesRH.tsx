@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Share2, Loader2, Pencil } from "lucide-react";
+import { Copy, Share2, Loader2, Pencil, Mail, Building2, CalendarClock } from "lucide-react";
 import { RatingScale } from "../components/RatingScale";
 import { AvaliacoesRHDashboard } from "../components/AvaliacoesRHDashboard";
 import { EditarFormularioRHDialog } from "../components/EditarFormularioRHDialog";
@@ -69,12 +69,25 @@ export default function AvaliacoesRH() {
       <Card className="p-4 space-y-3">
         <h2 className="font-semibold">{form.titulo}</h2>
         <p className="text-sm text-muted-foreground">{form.instrucoes}</p>
-        <div className="rounded-lg bg-muted/40 p-3">
-          <p className="text-xs font-semibold text-muted-foreground mb-2">Link público para resposta</p>
+        <div className="rounded-lg bg-muted/40 p-3 space-y-3">
           <div className="flex flex-wrap gap-2">
-            <Input readOnly value={link} className="flex-1 min-w-[260px]" />
-            <Button onClick={copiar} variant="outline"><Copy className="h-4 w-4 mr-1" /> Copiar</Button>
-            <Button onClick={compartilhar}><Share2 className="h-4 w-4 mr-1" /> Compartilhar</Button>
+            <Button variant="outline" onClick={() => toast.info("Em breve: envio por e-mail")}>
+              <Mail className="h-4 w-4 mr-1" /> Enviar por E-mail
+            </Button>
+            <Button variant="outline" onClick={() => toast.info("Em breve: envio para empresas selecionadas")}>
+              <Building2 className="h-4 w-4 mr-1" /> Enviar para Empresas Selecionadas
+            </Button>
+            <Button variant="outline" onClick={() => toast.info("Em breve: agendamento de envio mensal")}>
+              <CalendarClock className="h-4 w-4 mr-1" /> Agendar Envio Mensal
+            </Button>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Link público para resposta</p>
+            <div className="flex flex-wrap gap-2">
+              <Input readOnly value={link} className="flex-1 min-w-[260px]" />
+              <Button onClick={copiar} variant="outline"><Copy className="h-4 w-4 mr-1" /> Copiar</Button>
+              <Button onClick={compartilhar}><Share2 className="h-4 w-4 mr-1" /> Compartilhar</Button>
+            </div>
           </div>
         </div>
       </Card>
