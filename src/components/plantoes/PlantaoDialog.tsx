@@ -87,7 +87,24 @@ export function PlantaoDialog({
   const [calOpen, setCalOpen] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(initialDates[0] ? isoToDate(initialDates[0]) : new Date());
 
-  const empresaNome = empresas.find((e) => e.id === empresaId)?.nome ?? "";
+  // Inicializa nome ao editar
+  useEffect(() => {
+    if (plantaoEmpresaNome && !empresaNomeSel) setEmpresaNomeSel(plantaoEmpresaNome);
+  }, [plantaoEmpresaNome]);
+  // defaultEmpresaId (vem como plantoes_empresas.id) → carrega nome para pré-seleção
+  const { data: defaultEmpresaNome } = useQuery({
+    queryKey: ["plantao-empresa-nome-default", defaultEmpresaId],
+    enabled: !!defaultEmpresaId && !plantao,
+    queryFn: async () => {
+      const { data } = await supabase.from("plantoes_empresas").select("nome").eq("id", defaultEmpresaId!).maybeSingle();
+      return data?.nome ?? "";
+    },
+  });
+  useEffect(() => {
+    if (defaultEmpresaNome && !empresaNomeSel) setEmpresaNomeSel(defaultEmpresaNome);
+  }, [defaultEmpresaNome]);
+
+  const empresaNome = empresaNomeSel;
   const { data: executivaContrato = "" } = useQuery({
     queryKey: ["plantao_executiva_contrato", empresaNome],
     enabled: !!empresaNome,
@@ -102,7 +119,6 @@ export function PlantaoDialog({
     },
   });
 
-  // Sincroniza executiva responsável quando empresa muda (mantém edição se já houver valor diferente em edição manual? Não — congelada à empresa)
   useEffect(() => {
     setPlantonista(executivaContrato ?? "");
   }, [executivaContrato]);
@@ -117,7 +133,7 @@ export function PlantaoDialog({
   const removeChip = (iso: string) => setDatas(datas.filter((d) => d !== iso));
 
   const canSave =
-    !!empresaId &&
+    !!empresaNomeSel &&
     datas.length > 0 &&
     !!horaInicio &&
     !!horaFim &&
@@ -125,10 +141,16 @@ export function PlantaoDialog({
     !upsertPlantao.isPending;
 
   const handleSave = async () => {
+    // Resolve (cria se faltar) a empresa em plantoes_empresas a partir do nome selecionado
+    const { data: empresaIdResolved, error: rpcErr } = await supabase.rpc("ensure_plantao_empresa", { p_nome: empresaNomeSel });
+    if (rpcErr || !empresaIdResolved) {
+      console.error(rpcErr);
+      return;
+    }
     for (const data of datas) {
       await upsertPlantao.mutateAsync({
         id: isEdit ? plantao?.id : undefined,
-        empresa_id: empresaId,
+        empresa_id: empresaIdResolved as string,
         data,
         hora_inicio: horaInicio,
         hora_fim: horaFim,
