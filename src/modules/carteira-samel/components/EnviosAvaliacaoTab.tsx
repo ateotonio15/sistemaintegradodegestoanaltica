@@ -26,16 +26,29 @@ export function EnviosAvaliacaoTab({ form }: Props) {
       const hoje = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, email_empresa, responsavel_user_id, responsavel_contrato")
+        .select("id, nome, email_empresa, responsavel_user_id, responsavel_contrato, executiva_user_id")
         .eq("status_empresa", "Ativa")
         .eq("tipo_contrato", "EMPRESARIAL")
         .lte("data_implantacao", hoje)
         .is("data_rescisao", null)
         .order("nome");
       if (error) throw error;
-      return data ?? [];
+      const ids = Array.from(new Set((data ?? []).map((e: any) => e.executiva_user_id).filter(Boolean)));
+      let nameMap = new Map<string, string>();
+      if (ids.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, display_name, username")
+          .in("user_id", ids as string[]);
+        (profs ?? []).forEach((p: any) => nameMap.set(p.user_id, p.display_name || p.username || ""));
+      }
+      return (data ?? []).map((e: any) => ({
+        ...e,
+        executiva_nome: e.executiva_user_id ? (nameMap.get(e.executiva_user_id) || "—") : "—",
+      }));
     },
   });
+
 
   const { data: envios, isLoading: loadEnv } = useQuery({
     queryKey: ["avaliacoes-envios", mesAtual],
@@ -67,8 +80,8 @@ export function EnviosAvaliacaoTab({ form }: Props) {
       empresa_id: emp.id,
       empresa_nome: emp.nome,
       email_destino: emp.email_empresa || "",
-      executiva_user_id: emp.responsavel_user_id,
-      executiva_nome: emp.responsavel_contrato,
+      executiva_user_id: emp.executiva_user_id,
+      executiva_nome: emp.executiva_nome,
       formulario_id: form?.id,
       mes_referencia: mesAtual,
       status: "enviado",
@@ -92,7 +105,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
     if (pendentes.length === 0) { toast.info("Todas as empresas já possuem envio neste mês"); return; }
     const rows = pendentes.map((emp: any) => ({
       empresa_id: emp.id, empresa_nome: emp.nome, email_destino: emp.email_empresa || "",
-      executiva_user_id: emp.responsavel_user_id, executiva_nome: emp.responsavel_contrato,
+      executiva_user_id: emp.executiva_user_id, executiva_nome: emp.executiva_nome,
       formulario_id: form?.id, mes_referencia: mesAtual, status: "enviado",
     }));
     const { error } = await db.from("avaliacoes_envios").insert(rows);
@@ -100,6 +113,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
     toast.success(`${rows.length} links gerados`);
     qc.invalidateQueries({ queryKey: ["avaliacoes-envios"] });
   };
+
 
   const loading = loadEmp || loadEnv;
 
@@ -155,7 +169,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
                   return (
                     <tr key={emp.id} className="border-t hover:bg-muted/20">
                       <td className="px-3 py-2 font-medium">{emp.nome}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{emp.responsavel_contrato || "—"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{emp.executiva_nome || "—"}</td>
                       <td className="px-3 py-2">
                         {!env ? (
                           <Badge variant="outline">Não enviado</Badge>
