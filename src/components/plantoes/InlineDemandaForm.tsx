@@ -91,7 +91,31 @@ export function InlineDemandaForm({
         resolvido: status === "Resolvido",
         observacao: observacao.trim(),
       });
-      toast.success("Demanda adicionada");
+
+      // Se for Reclamação, gera demanda vinculada no Relatório de Demandas
+      if (tipo === "Reclamação") {
+        try {
+          await createDemanda.mutateAsync({
+            data_reclamacao: dataPlantao || new Date().toISOString().slice(0, 10),
+            nome_cliente: nome.trim(),
+            cpf: cpf.trim() || null,
+            empresa: empresaNome || "",
+            executiva: executivaNome || "",
+            setor_responsavel: "Atendimento",
+            tipo_reclamacao: "Reclamação",
+            reclamacao: "Reclamação",
+            detalhamento: observacao.trim() || null,
+            resolvido_executiva: status === "Resolvido",
+            data_resolucao_executiva: status === "Resolvido" ? new Date().toISOString().slice(0, 10) : null,
+          } as any);
+          toast.success("Demanda adicionada e vinculada ao relatório");
+        } catch (err: any) {
+          toast.error("Atendimento salvo, mas falhou vincular ao relatório: " + (err?.message || ""));
+        }
+      } else {
+        toast.success("Demanda adicionada");
+      }
+
       reset();
       setOpen(false);
     } catch (e: any) {
