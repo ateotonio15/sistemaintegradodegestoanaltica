@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Pencil, FileSpreadsheet, FileText, User, MapPin, ChevronRight, MessageSquareWarning } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Pencil, FileSpreadsheet, FileText, User, MapPin, ChevronRight, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
