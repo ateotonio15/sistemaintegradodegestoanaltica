@@ -103,9 +103,8 @@ export default function ResponderRH() {
           </div>
 
           {form.perguntas.map((p: any, i: number) => (
-            <div key={p.id} className="space-y-1.5 pt-2 border-t">
+            <div key={p.id} className="space-y-2 pt-2 border-t">
               <p className="text-sm font-medium">{i + 1}. {p.titulo} {p.obrigatoria && <span className="text-red-500">*</span>}</p>
-              <p className="text-xs text-muted-foreground mb-2">{p.descricao}</p>
               {p.tipo === "rating" ? (
                 <RatingScale value={respostas[p.id] ?? null} onChange={(v) => setRespostas({ ...respostas, [p.id]: v })} />
               ) : (
@@ -119,6 +118,7 @@ export default function ResponderRH() {
               )}
             </div>
           ))}
+
 
           <div className="pt-2 border-t space-y-1.5">
             <label className="text-sm font-medium">Comentários e sugestões (opcional)</label>
