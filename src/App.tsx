@@ -31,6 +31,7 @@ import CSSinistralidade from "./modules/carteira-samel/pages/Sinistralidade";
 import CSScore from "./modules/carteira-samel/pages/ScoreRisco";
 import CSAvaliacoesRH from "./modules/carteira-samel/pages/AvaliacoesRH";
 import CSResponderRH from "./modules/carteira-samel/pages/ResponderRH";
+import CSResponderToken from "./modules/carteira-samel/pages/ResponderPorToken";
 import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import InteligenciaModulo from "./pages/InteligenciaModulo";
 import Demandas from "./pages/Demandas";
@@ -122,6 +123,7 @@ const AppRoutes = () => (
     <Route path="/auth" element={<AuthRoute />} />
     <Route path="/financeiro/painel-tv" element={<PainelTvFinanceiro />} />
     <Route path="/carteira-samel/avaliacoes/rh/responder/:formId" element={<CSResponderRH />} />
+    <Route path="/avaliar/:token" element={<CSResponderToken />} />
     <Route element={<AppShell />}>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/dashboard" element={<HomeRoute />} />
