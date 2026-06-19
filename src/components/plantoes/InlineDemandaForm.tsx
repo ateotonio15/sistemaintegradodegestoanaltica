@@ -1,11 +1,14 @@
 import { useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAtendimentos, usePlantaoMutations } from "@/hooks/usePlantoes";
+import { supabase } from "@/integrations/supabase/client";
+import { usePlantaoMutations, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 import { parseAssunto } from "@/components/plantoes/AtendimentoDialog";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 const TIPOS = ["Consulta", "Exames", "Reclamação", "Outros"] as const;
@@ -16,8 +19,14 @@ type Tipo = (typeof TIPOS)[number];
 type Canal = (typeof CANAIS)[number];
 type Status = (typeof STATUS)[number];
 
-export function InlineDemandaForm({ plantaoId }: { plantaoId: string }) {
-  const { data: atendimentos = [] } = useAtendimentos(plantaoId);
+export function InlineDemandaForm({
+  plantaoIds,
+  defaultPlantaoId,
+}: {
+  plantaoIds: string[];
+  defaultPlantaoId: string;
+}) {
+  const { user, loading } = useAuth();
   const { upsertAtendimento } = usePlantaoMutations();
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
@@ -27,6 +36,22 @@ export function InlineDemandaForm({ plantaoId }: { plantaoId: string }) {
   const [status, setStatus] = useState<Status>("Pendente");
   const [observacao, setObservacao] = useState("");
 
+  const queries = useQueries({
+    queries: plantaoIds.map((id) => ({
+      queryKey: ["plantoes", "atendimentos", id],
+      enabled: !loading && !!user && !!id,
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from("plantoes_atendimentos")
+          .select("*")
+          .eq("plantao_id", id);
+        if (error) throw error;
+        return data as PlantaoAtendimento[];
+      },
+    })),
+  });
+
+  const atendimentos = queries.flatMap((q) => q.data ?? []);
   const total = atendimentos.length;
   let consultas = 0;
   let pendencias = 0;
@@ -35,9 +60,7 @@ export function InlineDemandaForm({ plantaoId }: { plantaoId: string }) {
     const meta = parseAssunto(a.assunto, a.resolvido);
     const t = meta.tipo.toLowerCase();
     if (t.startsWith("consulta")) consultas++;
-    if (t.startsWith("exame")) {
-      if (meta.status === "Resolvido") examesAutoriz++;
-    }
+    if (t.startsWith("exame") && meta.status === "Resolvido") examesAutoriz++;
     if (meta.status !== "Resolvido" && meta.status !== "Cancelado") pendencias++;
   });
 
@@ -52,7 +75,7 @@ export function InlineDemandaForm({ plantaoId }: { plantaoId: string }) {
     const hora = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     try {
       await upsertAtendimento.mutateAsync({
-        plantao_id: plantaoId,
+        plantao_id: defaultPlantaoId,
         hora,
         nome_cliente: nome.trim(),
         cpf: cpf.trim(),
