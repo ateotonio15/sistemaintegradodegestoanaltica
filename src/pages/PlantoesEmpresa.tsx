@@ -128,7 +128,12 @@ export default function PlantoesEmpresa() {
                       </div>
                     </div>
 
-                    {canCreateDemanda && <InlineDemandaForm plantaoId={primeiro.id} />}
+                    {canCreateDemanda && (
+                      <InlineDemandaForm
+                        plantaoIds={lista.map((p) => p.id)}
+                        defaultPlantaoId={primeiro.id}
+                      />
+                    )}
 
                     <div className="flex items-center justify-between pt-2 border-t">
                       <button onClick={() => setDetalhe(primeiro)} className="text-sm text-primary inline-flex items-center hover:underline">
