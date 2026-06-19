@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAtendimentos, usePlantaoMutations, usePlantoesRealtime, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 import { AtendimentoDialog } from "@/components/plantoes/AtendimentoDialog";
+import DemandaFormDialog from "@/components/demandas/DemandaFormDialog";
+import { format } from "date-fns";
 
 export default function PlantaoAtendimentos() {
   const { plantaoId } = useParams<{ plantaoId: string }>();
