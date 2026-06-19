@@ -36,6 +36,7 @@ import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import InteligenciaModulo from "./pages/InteligenciaModulo";
 import Demandas from "./pages/Demandas";
 import DemandasDashboard from "./pages/DemandasDashboard";
+import NovaDemanda from "./pages/NovaDemanda";
 import Plantoes from "./pages/Plantoes";
 import PlantoesCalendario from "./pages/PlantoesCalendario";
 import PlantoesEmpresa from "./pages/PlantoesEmpresa";
@@ -177,6 +178,7 @@ const AppRoutes = () => (
       <Route path="/inteligencia/:slug" element={<InteligenciaModulo />} />
       <Route path="/mailing-brindes" element={<MailingBrindes />} />
       <Route path="/demandas" element={<Demandas />} />
+      <Route path="/demandas/nova" element={<NovaDemanda />} />
       <Route path="/demandas/dashboard" element={<DemandasDashboard />} />
 
       <Route path="/plantoes" element={<Plantoes />} />

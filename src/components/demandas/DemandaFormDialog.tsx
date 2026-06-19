@@ -30,6 +30,9 @@ type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   demanda?: Demanda | null;
+  initialValues?: Partial<Demanda>;
+  plantaoContext?: { plantao_id: string; empresa_id?: string } | null;
+  onSaved?: (demanda: Demanda) => void;
 };
 
 const empty = (): Partial<Demanda> => ({
@@ -119,8 +122,8 @@ const RECLAMACOES = [
 
 
 
-export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props) {
-  const [form, setForm] = useState<Partial<Demanda>>(empty());
+export default function DemandaFormDialog({ open, onOpenChange, demanda, initialValues, plantaoContext, onSaved }: Props) {
+  const [form, setForm] = useState<Partial<Demanda>>({ ...empty(), ...(initialValues || {}) });
   const create = useCreateDemanda();
   const update = useUpdateDemanda();
   const isEdit = !!demanda?.id;
@@ -156,9 +159,9 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
 
   useEffect(() => {
     if (open) {
-      setForm(demanda ? { ...demanda } : empty());
+      setForm(demanda ? { ...demanda } : { ...empty(), ...(initialValues || {}) });
     }
-  }, [open, demanda]);
+  }, [open, demanda, initialValues]);
 
 
 
@@ -204,13 +207,35 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda }: Props
     };
 
     try {
+      let saved: Demanda;
       if (isEdit && demanda) {
-        await update.mutateAsync({ id: demanda.id, patch: payload });
+        saved = await update.mutateAsync({ id: demanda.id, patch: payload });
         toast.success("Demanda atualizada");
       } else {
-        await create.mutateAsync(payload);
+        saved = await create.mutateAsync(payload);
         toast.success("Demanda criada");
+
+        // Vincula automaticamente ao plantão de origem, se houver
+        if (plantaoContext?.plantao_id) {
+          try {
+            const now = new Date();
+            const hora = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+            await supabase.from("plantoes_atendimentos").insert({
+              plantao_id: plantaoContext.plantao_id,
+              demanda_id: saved.id,
+              nome_cliente: saved.nome_cliente,
+              cpf: saved.cpf ?? null,
+              hora,
+              assunto: `Reclamação · Presencial · Resolvido`,
+              resolvido: true,
+              observacao: saved.detalhamento ?? null,
+            });
+          } catch (err: any) {
+            toast.error("Demanda criada, mas falhou vincular ao plantão: " + (err?.message || ""));
+          }
+        }
       }
+      onSaved?.(saved);
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e?.message || "Erro ao salvar");

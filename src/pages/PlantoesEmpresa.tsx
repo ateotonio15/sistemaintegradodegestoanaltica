@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Pencil, FileSpreadsheet, FileText, User, MapPin, ChevronRight } from "lucide-react";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft, Plus, Trash2, Pencil, FileSpreadsheet, FileText, User, MapPin, ChevronRight, MessageSquareWarning } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,9 @@ export default function PlantoesEmpresa() {
   const { empresaId } = useParams<{ empresaId: string }>();
   const { role } = useAuth();
   const isAdmin = role === "admin";
+  const navigate = useNavigate();
+  const location = useLocation();
+  const canCreateDemanda = role !== "visualizacao" && role !== "diretora";
   usePlantoesRealtime();
   const { data: empresas = [] } = usePlantaoEmpresas();
   const empresa = empresas.find((e) => e.id === empresaId);
@@ -157,6 +160,32 @@ export default function PlantoesEmpresa() {
                         </div>
                       )}
                     </div>
+
+                    {canCreateDemanda && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-1.5"
+                        onClick={() =>
+                          navigate("/demandas/nova", {
+                            state: {
+                              plantao_id: primeiro.id,
+                              empresa_id: empresaId,
+                              returnTo: location.pathname,
+                              initial: {
+                                empresa: empresa?.nome ?? "",
+                                executiva: primeiro.plantonista ?? "",
+                                data_reclamacao: data,
+                                tipo_reclamacao: "Reclamação",
+                              },
+                            },
+                          })
+                        }
+                      >
+                        <MessageSquareWarning className="h-4 w-4" />
+                        Nova demanda
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               );

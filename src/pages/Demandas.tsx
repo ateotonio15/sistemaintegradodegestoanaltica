@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
@@ -57,6 +57,7 @@ type StatusFilter = "todos" | "pendente" | "resolvida" | "finalizada";
 
 export default function Demandas() {
   const { isAdmin, isDiretora, isViewOnly, user } = useAuth();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const reclamacaoParam = params.get("reclamacao");
   const idParam = params.get("id");
@@ -246,10 +247,17 @@ export default function Demandas() {
               <Button
                 size="sm"
                 className="gap-1.5"
-                onClick={() => {
-                  setEditing(null);
-                  setOpenForm(true);
-                }}
+                onClick={() =>
+                  navigate("/demandas/nova", {
+                    state: {
+                      returnTo: "/demandas",
+                      initial: {
+                        tipo_reclamacao: "Reclamação",
+                        executiva: profile?.display_name || "",
+                      },
+                    },
+                  })
+                }
               >
                 <Plus className="h-4 w-4" />
                 Nova demanda
