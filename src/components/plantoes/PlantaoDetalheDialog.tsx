@@ -38,7 +38,7 @@ function canalDe(a: PlantaoAtendimento): "Presencial" | "WhatsApp" {
 export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome, isAdmin }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const TIPOS_DEMANDA = ["Reclamação", "Solicitação", "Dúvida", "Elogio", "Outros"] as const;
+  const TIPOS_DEMANDA = ["Consulta", "Exames", "Reclamação", "Outros"] as const;
   const { data: plantoesDia = [] } = usePlantoes({
     empresaId: plantao.empresa_id,
     from: plantao.data,
