@@ -132,6 +132,9 @@ export default function PlantoesEmpresa() {
                       <InlineDemandaForm
                         plantaoIds={lista.map((p) => p.id)}
                         defaultPlantaoId={primeiro.id}
+                        empresaNome={empresa?.nome}
+                        executivaNome={primeiro.plantonista ?? undefined}
+                        dataPlantao={data}
                       />
                     )}
 
