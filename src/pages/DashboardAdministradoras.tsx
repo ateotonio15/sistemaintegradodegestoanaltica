@@ -713,12 +713,15 @@ function EnvioFinanceiroDialog({
         const periodo = getPeriodoAdministradora(empresa);
         const { data, error } = await supabase
           .from("movimentacoes")
-          .insert({
-            empresa_id: empresa.id,
-            mes_referencia: mesRef,
-            periodo,
-            data_envio_financeiro: editEnvio || null,
-          })
+          .upsert(
+            {
+              empresa_id: empresa.id,
+              mes_referencia: mesRef,
+              periodo,
+              data_envio_financeiro: editEnvio || null,
+            },
+            { onConflict: "empresa_id,mes_referencia,periodo" }
+          )
           .select("id")
           .single();
         if (error) throw error;
