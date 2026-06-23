@@ -585,7 +585,7 @@ export default function DashboardAdministradoras() {
                       filtered.map((e) => {
                         const mov = movsPorEmpresa[e.id];
                         const enviado = !!mov?.data_envio_financeiro;
-                        const qtdAnexos = mov ? (anexosCount[mov.id] ?? 0) : 0;
+                        const qtdAnexos = anexosCount[e.id] ?? 0;
                         const es = entradasSaidasPorEmpresa[e.id];
                         return (
                         <TableRow
