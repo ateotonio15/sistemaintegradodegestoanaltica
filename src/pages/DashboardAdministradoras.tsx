@@ -124,6 +124,29 @@ export default function DashboardAdministradoras() {
     },
   });
 
+  // Nota enviada (financeiro) por empresa para o mês de referência
+  const { data: notaEnviadaPorEmpresa = {} } = useQuery({
+    queryKey: ["fin-nota-administradoras", mesRef, empresaIds.join(",")],
+    enabled: empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("empresa_id, data_envio_nota, created_at")
+        .in("empresa_id", empresaIds)
+        .eq("mes_referencia", mesRef)
+        .not("data_envio_nota", "is", null);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((r: any) => {
+        const cur = map[r.empresa_id];
+        if (!cur || (r.data_envio_nota && r.data_envio_nota > cur)) {
+          map[r.empresa_id] = r.data_envio_nota;
+        }
+      });
+      return map;
+    },
+  });
+
   // Histórico de entradas/saídas para o mês selecionado
   const { data: historicoMes = [] } = useQuery({
     queryKey: ["vidas-historico-adm", mesRef, empresaIds.join(",")],
@@ -511,7 +534,7 @@ export default function DashboardAdministradoras() {
                   <TableHeader>
                     <TableRow className="bg-accent/20 hover:bg-accent/20">
                       <TableHead className="font-semibold">Nome</TableHead>
-                      <TableHead className="font-semibold">CNPJ</TableHead>
+                      <TableHead className="font-semibold">Nota Enviada</TableHead>
                       <TableHead className="font-semibold">Código</TableHead>
                       <TableHead className="font-semibold text-center">Vidas Ativas</TableHead>
                       <TableHead className="font-semibold text-center">Entradas</TableHead>
@@ -545,7 +568,15 @@ export default function DashboardAdministradoras() {
                           }}
                         >
                           <TableCell className="font-medium">{e.nome}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{e.cnpj || "—"}</TableCell>
+                          <TableCell>
+                            {notaEnviadaPorEmpresa[e.id] ? (
+                              <Badge variant="outline" className="rounded-md border-success/40 text-success">
+                                {formatDateBR(notaEnviadaPorEmpresa[e.id])}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-center tabular-nums">{(e.vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
                           <TableCell className="text-center tabular-nums">
