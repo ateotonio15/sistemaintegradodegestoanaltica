@@ -89,6 +89,8 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   faixas_etarias: null,
   periodo_especifico_cobranca: false,
   periodo_cobranca_inicio: null,
+  contrato_via_portal: false,
+
 
 } as any;
 
@@ -569,6 +571,8 @@ export default function Empresas() {
       faixas_etarias: (e as any).faixas_etarias ?? null,
       periodo_especifico_cobranca: (e as any).periodo_especifico_cobranca ?? false,
       periodo_cobranca_inicio: (e as any).periodo_cobranca_inicio ?? null,
+      contrato_via_portal: (e as any).contrato_via_portal ?? false,
+
 
     } as any);
     setDataImplantacao((e as any).data_implantacao ?? "");
@@ -1064,6 +1068,21 @@ export default function Empresas() {
                           </span>
                         </div>
                       </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label className="text-sm font-medium">Contrato pelo Portal</Label>
+                        <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                          <Switch
+                            checked={!!(form as any).contrato_via_portal}
+                            onCheckedChange={(v) => setForm({ ...form, contrato_via_portal: v } as any)}
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {(form as any).contrato_via_portal
+                              ? "Sim — movimentação é feita pelo portal"
+                              : "Não"}
+                          </span>
+                        </div>
+                      </div>
+
                       {(form as any).tipo_contrato !== "ADMINISTRADORA" && !(form as any).contrato_faixa_etaria && (
                         <>
                           <div className="space-y-2">
