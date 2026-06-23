@@ -3893,6 +3893,18 @@ export type Database = {
         Args: { p_empresa_id: string }
         Returns: number
       }
+      get_avaliacao_envio_por_token: {
+        Args: { p_token: string }
+        Returns: {
+          data_resposta: string
+          empresa_id: string
+          empresa_nome: string
+          executiva_nome: string
+          formulario_id: string
+          id: string
+          mes_referencia: string
+        }[]
+      }
       get_cadastro_workload: {
         Args: never
         Returns: {
@@ -3952,6 +3964,15 @@ export type Database = {
       remover_prioridade_maxima: {
         Args: { p_empresa_id: string; p_motivo_remocao?: string }
         Returns: undefined
+      }
+      responder_avaliacao_por_token: {
+        Args: {
+          p_comentario: string
+          p_nota_media: number
+          p_respostas: Json
+          p_token: string
+        }
+        Returns: string
       }
       simular_redistribuicao_ferias: {
         Args: { p_user_id: string }
