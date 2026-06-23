@@ -69,15 +69,12 @@ export default function ResponderPorToken() {
     const notaMedia = ratings.length ? Number((ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(2)) : null;
 
     setEnviando(true);
-    const { data: resp, error: errResp } = await db.from("cs_avaliacao_respostas").insert({
-      formulario_id: form.id,
-      respostas,
-      nota_media: notaMedia,
-      comentario: comentario.trim() || null,
-      nome_empresa: envio.empresa_nome,
-      nome_executiva: envio.executiva_nome,
-      envio_id: envio.id,
-    }).select("id").single();
+    const { error: errResp } = await db.rpc("responder_avaliacao_por_token", {
+      p_token: token,
+      p_respostas: respostas,
+      p_comentario: comentario.trim() || null,
+      p_nota_media: notaMedia,
+    });
 
     if (errResp) {
       setEnviando(false);
@@ -85,11 +82,6 @@ export default function ResponderPorToken() {
       return;
     }
 
-    await db.from("avaliacoes_envios").update({
-      data_resposta: new Date().toISOString(),
-      status: "respondido",
-      resposta_id: resp.id,
-    }).eq("id", envio.id);
 
     setEnviando(false);
     setEnviado(true);
