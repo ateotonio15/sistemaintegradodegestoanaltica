@@ -98,7 +98,7 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, tipo_contrato, status_implantacao, primeira_competencia_financeira, prioridade_maxima_id)")
+        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, tipo_contrato, status_implantacao, primeira_competencia_financeira, prioridade_maxima_id, contrato_via_portal)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -712,9 +712,19 @@ export default function Movimentacoes() {
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2 flex-wrap">
                               {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
+                              {(m.empresas as any)?.contrato_via_portal && (
+                                <span
+                                  className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"
+                                  title="Movimentação realizada pelo portal"
+                                >
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                  Portal
+                                </span>
+                              )}
                               {temPrio && <PrioridadeBadge variant="compact" intense={prioIntensa} />}
                             </div>
                           </TableCell>
+
                           <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
                           <TableCell><Badge variant="outline" className="rounded-md">{tipo}</Badge></TableCell>

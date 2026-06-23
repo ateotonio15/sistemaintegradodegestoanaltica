@@ -1247,6 +1247,7 @@ export type Database = {
           contato_empresa: string | null
           contrato_faixa_etaria: boolean
           contrato_suspenso: boolean
+          contrato_via_portal: boolean
           created_at: string
           data_corte: number | null
           data_emissao_fatura: number | null
@@ -1305,6 +1306,7 @@ export type Database = {
           contato_empresa?: string | null
           contrato_faixa_etaria?: boolean
           contrato_suspenso?: boolean
+          contrato_via_portal?: boolean
           created_at?: string
           data_corte?: number | null
           data_emissao_fatura?: number | null
@@ -1363,6 +1365,7 @@ export type Database = {
           contato_empresa?: string | null
           contrato_faixa_etaria?: boolean
           contrato_suspenso?: boolean
+          contrato_via_portal?: boolean
           created_at?: string
           data_corte?: number | null
           data_emissao_fatura?: number | null
