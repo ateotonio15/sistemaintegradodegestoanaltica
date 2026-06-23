@@ -58,7 +58,7 @@ export function CadastroEmpresasPopover() {
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span
-                    className="text-xs tabular-nums text-muted-foreground/60 w-7 shrink-0"
+                    className={`text-xs tabular-nums w-7 shrink-0 ${diff ? "text-primary" : "text-muted-foreground/60"}`}
                     title="Empresas atuais (considerando férias)"
                   >
                     {r.empresa_count_atual}
@@ -66,7 +66,7 @@ export function CadastroEmpresasPopover() {
                   <span className="text-sm truncate">{r.display_name}</span>
                 </div>
                 <span
-                  className={`text-sm font-semibold tabular-nums ml-2 ${diff ? "text-primary" : ""}`}
+                  className="text-sm font-semibold tabular-nums ml-2"
                   title="Empresas reais (responsável original)"
                 >
                   {r.empresa_count}
