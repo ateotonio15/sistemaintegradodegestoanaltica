@@ -29,13 +29,24 @@ export function EditarFeriasEmpresasDialog({ open, onOpenChange, feriasId, respo
     queryKey: ["ferias-empresas-edit", feriasId],
     enabled: !!feriasId && open,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: fce, error } = await supabase
         .from("ferias_cadastro_empresas" as any)
-        .select("id, status, responsavel_temporario_user_id, responsavel_temporario_nome, empresa:empresas(id, nome_empresa, codigo_contrato)")
+        .select("id, empresa_id, status, responsavel_temporario_user_id, responsavel_temporario_nome")
         .eq("ferias_id", feriasId!)
         .order("created_at");
       if (error) throw error;
-      return data as any[];
+      const rows = (fce ?? []) as any[];
+      const ids = Array.from(new Set(rows.map((r) => r.empresa_id)));
+      let empMap = new Map<string, any>();
+      if (ids.length > 0) {
+        const { data: emps, error: e2 } = await supabase
+          .from("empresas")
+          .select("id, nome_empresa, codigo_contrato")
+          .in("id", ids);
+        if (e2) throw e2;
+        empMap = new Map((emps ?? []).map((e: any) => [e.id, e]));
+      }
+      return rows.map((r) => ({ ...r, empresa: empMap.get(r.empresa_id) ?? null }));
     },
   });
 
