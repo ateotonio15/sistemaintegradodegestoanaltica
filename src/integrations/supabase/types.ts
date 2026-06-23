@@ -3760,6 +3760,10 @@ export type Database = {
         Args: { p_empresa: Database["public"]["Tables"]["empresas"]["Row"] }
         Returns: string
       }
+      acao_saude_pertence_empresa: {
+        Args: { _acao_id: string; _empresa_id: string }
+        Returns: boolean
+      }
       adicionar_contrato_grupo: {
         Args: { p_empresa_id: string; p_grupo_id: string }
         Returns: string
@@ -3847,6 +3851,10 @@ export type Database = {
       }
       can_read_triagem: {
         Args: { _empresa_id: string; _uid: string }
+        Returns: boolean
+      }
+      can_update_triagem_row: {
+        Args: { _acao_id: string; _empresa_id: string; _uid: string }
         Returns: boolean
       }
       cancelar_ferias_cadastro: { Args: { p_ferias_id: string }; Returns: Json }
