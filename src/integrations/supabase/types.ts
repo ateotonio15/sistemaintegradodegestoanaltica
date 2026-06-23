@@ -3953,6 +3953,10 @@ export type Database = {
       }
       processar_avaliacoes_envios: { Args: never; Returns: Json }
       processar_retorno_ferias: { Args: never; Returns: number }
+      reatribuir_ferias_empresa: {
+        Args: { p_fce_id: string; p_new_user_id: string }
+        Returns: Json
+      }
       rejeitar_implantacao: {
         Args: { p_impl: string; p_motivo: string }
         Returns: string
