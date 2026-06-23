@@ -49,31 +49,28 @@ export function CadastroEmpresasPopover() {
           {!isLoading && sorted.length === 0 && (
             <p className="px-4 py-6 text-sm text-muted-foreground text-center">Nenhum usuário.</p>
           )}
-          {sorted.map((r) => {
-            const diff = r.empresa_count_atual !== r.empresa_count;
-            return (
-              <div
-                key={r.user_id}
-                className="flex items-center justify-between px-4 py-2 hover:bg-accent/50"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className={`text-xs tabular-nums w-7 shrink-0 ${diff ? "text-primary" : "text-muted-foreground/60"}`}
-                    title="Empresas atuais (considerando férias)"
-                  >
-                    {r.empresa_count_atual}
-                  </span>
-                  <span className="text-sm truncate">{r.display_name}</span>
-                </div>
+          {sorted.map((r) => (
+            <div
+              key={r.user_id}
+              className="flex items-center justify-between px-4 py-2 hover:bg-accent/50"
+            >
+              <div className="flex items-center gap-2 min-w-0">
                 <span
-                  className="text-sm font-semibold tabular-nums ml-2"
+                  className="text-xs tabular-nums w-7 shrink-0 text-muted-foreground/60"
                   title="Empresas reais (responsável original)"
                 >
                   {r.empresa_count}
                 </span>
+                <span className="text-sm truncate">{r.display_name}</span>
               </div>
-            );
-          })}
+              <span
+                className="text-sm font-semibold tabular-nums ml-2 text-primary"
+                title="Empresas atuais (considerando férias)"
+              >
+                {r.empresa_count_atual}
+              </span>
+            </div>
+          ))}
         </div>
       </PopoverContent>
     </Popover>
