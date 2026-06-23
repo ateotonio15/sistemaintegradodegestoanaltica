@@ -82,16 +82,45 @@ export function EditarFeriasEmpresasDialog({ open, onOpenChange, feriasId, respo
 
   const opcoes = cadastros.filter((c) => c.user_id !== responsavelOriginalUserId);
 
+  const resumo = (() => {
+    const map = new Map<string, { nome: string; count: number }>();
+    empresas.forEach((e) => {
+      const uid = e.responsavel_temporario_user_id ?? "—";
+      const nome = e.responsavel_temporario_nome ?? "—";
+      const cur = map.get(uid) ?? { nome, count: 0 };
+      cur.count++;
+      map.set(uid, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Editar redistribuição</DialogTitle>
           <DialogDescription>
             Altere quem está cuidando de cada contrato durante as férias{responsavelOriginalNome ? ` de ${responsavelOriginalNome}` : ""}.
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[60vh] overflow-y-auto space-y-2">
+
+        {resumo.length > 0 && (
+          <div className="border rounded-lg p-3 bg-muted/30">
+            <p className="text-xs font-semibold text-muted-foreground mb-2">
+              Resumo por Cadastro ({empresas.length} contratos)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {resumo.map((r) => (
+                <Badge key={r.nome} variant="outline" className="gap-1.5">
+                  <span>{r.nome}</span>
+                  <span className="font-bold tabular-nums text-primary">{r.count}</span>
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="max-h-[55vh] overflow-y-auto space-y-2 pr-1">
           {isLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           ) : empresas.length === 0 ? (
@@ -105,7 +134,7 @@ export function EditarFeriasEmpresasDialog({ open, onOpenChange, feriasId, respo
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{e.empresa?.nome_empresa ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">
-                      {e.empresa?.codigo_contrato ? `#${e.empresa.codigo_contrato} · ` : ""}atual: {e.responsavel_temporario_nome ?? "—"}
+                      {e.empresa?.codigo_contrato ? `#${e.empresa.codigo_contrato} · ` : ""}atual: <span className="font-medium text-foreground">{e.responsavel_temporario_nome ?? "—"}</span>
                     </p>
                   </div>
                   <Badge variant="outline" className={s.cls}>{s.label}</Badge>
