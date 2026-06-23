@@ -419,6 +419,15 @@ export default function Movimentacoes() {
 
 
 
+  if (activeTab === "administradoras") {
+    return (
+      <div className="space-y-6">
+        {tabs}
+        <DashboardAdministradoras />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-6">
