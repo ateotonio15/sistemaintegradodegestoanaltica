@@ -86,6 +86,15 @@ export function FeriasSection() {
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant="outline" className={s.cls}>{s.label}</Badge>
                       {podeCancelar && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditar({ id: f.id, nome: f.responsavel_original_nome, userId: f.responsavel_original_user_id })}
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" />Editar
+                        </Button>
+                      )}
+                      {podeCancelar && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" disabled={cancelar.isPending}>
@@ -116,6 +125,13 @@ export function FeriasSection() {
         </CardContent>
       </Card>
       <NovaFeriasDialog open={open} onClose={() => setOpen(false)} />
+      <EditarFeriasEmpresasDialog
+        open={!!editar}
+        onOpenChange={(v) => !v && setEditar(null)}
+        feriasId={editar?.id ?? null}
+        responsavelOriginalNome={editar?.nome}
+        responsavelOriginalUserId={editar?.userId}
+      />
     </>
   );
 }
