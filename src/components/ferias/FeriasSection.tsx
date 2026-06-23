@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plane, Plus, X, Loader2 } from "lucide-react";
+import { Plane, Plus, X, Loader2, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { NovaFeriasDialog } from "./NovaFeriasDialog";
+import { EditarFeriasEmpresasDialog } from "./EditarFeriasEmpresasDialog";
 import { formatDateBR } from "@/lib/date-utils";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -22,6 +23,7 @@ export function FeriasSection() {
   const { user, isAdmin, isDiretora, isComum } = useAuth();
   const podeCriar = isAdmin || isDiretora || isComum;
   const [open, setOpen] = useState(false);
+  const [editar, setEditar] = useState<{ id: string; nome: string; userId: string } | null>(null);
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -84,6 +86,15 @@ export function FeriasSection() {
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant="outline" className={s.cls}>{s.label}</Badge>
                       {podeCancelar && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditar({ id: f.id, nome: f.responsavel_original_nome, userId: f.responsavel_original_user_id })}
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" />Editar
+                        </Button>
+                      )}
+                      {podeCancelar && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" disabled={cancelar.isPending}>
@@ -114,6 +125,13 @@ export function FeriasSection() {
         </CardContent>
       </Card>
       <NovaFeriasDialog open={open} onClose={() => setOpen(false)} />
+      <EditarFeriasEmpresasDialog
+        open={!!editar}
+        onOpenChange={(v) => !v && setEditar(null)}
+        feriasId={editar?.id ?? null}
+        responsavelOriginalNome={editar?.nome}
+        responsavelOriginalUserId={editar?.userId}
+      />
     </>
   );
 }
