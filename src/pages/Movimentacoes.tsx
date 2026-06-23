@@ -86,7 +86,7 @@ export default function Movimentacoes() {
         .order("nome");
       if (error) throw error;
       const all = data as (EmpresaOption & { tipo_contrato?: string | null })[];
-      return false
+      return activeTab === "administradoras"
         ? all.filter((e) => (e.tipo_contrato ?? "") === "ADMINISTRADORA")
         : all.filter((e) => (e.tipo_contrato ?? "") !== "ADMINISTRADORA");
     },
@@ -103,7 +103,7 @@ export default function Movimentacoes() {
         .order("created_at", { ascending: false });
       if (error) throw error;
       const rows = data as (Movimentacao & { empresas?: { responsavel_contrato: string | null; tipo_contrato?: string | null } | null })[];
-      return false
+      return activeTab === "administradoras"
         ? rows.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "") === "ADMINISTRADORA")
         : rows.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "") !== "ADMINISTRADORA");
     },
@@ -406,7 +406,7 @@ export default function Movimentacoes() {
           type="button"
           onClick={() => setActiveTab("administradoras")}
           className={
-            false
+            activeTab === "administradoras"
               ? "rounded-full bg-primary px-5 py-1.5 text-sm font-medium text-primary-foreground shadow"
               : "rounded-full px-5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           }
@@ -419,7 +419,7 @@ export default function Movimentacoes() {
 
 
 
-  if (false) {
+  if (activeTab === "administradoras") {
     return (
       <div className="space-y-6">
         {tabs}
