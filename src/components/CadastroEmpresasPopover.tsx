@@ -48,12 +48,17 @@ export function CadastroEmpresasPopover() {
           {!isLoading && sorted.length === 0 && (
             <p className="px-4 py-6 text-sm text-muted-foreground text-center">Nenhum usuário.</p>
           )}
-          {sorted.map((r) => (
+          {sorted.map((r, i) => (
             <div
               key={r.user_id}
               className="flex items-center justify-between px-4 py-2 hover:bg-accent/50"
             >
-              <span className="text-sm truncate">{r.display_name}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs tabular-nums text-muted-foreground/50 w-6 shrink-0">
+                  #{i + 1}
+                </span>
+                <span className="text-sm truncate">{r.display_name}</span>
+              </div>
               <span className="text-sm font-semibold tabular-nums ml-2">{r.empresa_count}</span>
             </div>
           ))}
