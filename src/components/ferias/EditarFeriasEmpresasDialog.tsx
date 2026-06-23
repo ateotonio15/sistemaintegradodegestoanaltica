@@ -41,7 +41,7 @@ export function EditarFeriasEmpresasDialog({ open, onOpenChange, feriasId, respo
       if (ids.length > 0) {
         const { data: emps, error: e2 } = await supabase
           .from("empresas")
-          .select("id, nome_empresa, codigo_contrato")
+          .select("id, nome, codigo_contrato")
           .in("id", ids);
         if (e2) throw e2;
         empMap = new Map((emps ?? []).map((e: any) => [e.id, e]));
@@ -132,7 +132,7 @@ export function EditarFeriasEmpresasDialog({ open, onOpenChange, feriasId, respo
               return (
                 <div key={e.id} className="flex items-center gap-3 border rounded-lg p-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{e.empresa?.nome_empresa ?? "—"}</p>
+                    <p className="text-sm font-medium truncate">{e.empresa?.nome ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">
                       {e.empresa?.codigo_contrato ? `#${e.empresa.codigo_contrato} · ` : ""}atual: <span className="font-medium text-foreground">{e.responsavel_temporario_nome ?? "—"}</span>
                     </p>
