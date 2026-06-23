@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plane, Plus, X, Loader2 } from "lucide-react";
+import { Plane, Plus, X, Loader2, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { NovaFeriasDialog } from "./NovaFeriasDialog";
+import { EditarFeriasEmpresasDialog } from "./EditarFeriasEmpresasDialog";
 import { formatDateBR } from "@/lib/date-utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -32,6 +33,7 @@ export function FeriasButton() {
   const { user, isAdmin, isDiretora, isComum } = useAuth();
   const podeCriar = isAdmin || isDiretora || isComum;
   const [novaOpen, setNovaOpen] = useState(false);
+  const [editar, setEditar] = useState<{ id: string; nome: string; userId: string } | null>(null);
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -113,7 +115,15 @@ export function FeriasButton() {
                         <Badge variant="outline" className={`${s.cls} shrink-0`}>{s.label}</Badge>
                       </div>
                       {podeCancelar && (
-                        <div className="flex justify-end mt-2">
+                        <div className="flex justify-end gap-1 mt-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7"
+                            onClick={() => setEditar({ id: f.id, nome: f.responsavel_original_nome, userId: f.responsavel_original_user_id })}
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-1" />Editar
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button size="sm" variant="ghost" className="h-7 text-destructive hover:text-destructive" disabled={cancelar.isPending}>
@@ -145,6 +155,13 @@ export function FeriasButton() {
         </PopoverContent>
       </Popover>
       <NovaFeriasDialog open={novaOpen} onClose={() => setNovaOpen(false)} />
+      <EditarFeriasEmpresasDialog
+        open={!!editar}
+        onOpenChange={(v) => !v && setEditar(null)}
+        feriasId={editar?.id ?? null}
+        responsavelOriginalNome={editar?.nome}
+        responsavelOriginalUserId={editar?.userId}
+      />
     </>
   );
 }
