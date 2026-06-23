@@ -31,6 +31,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 
 import ExcelJS from "exceljs";
 
@@ -85,7 +86,7 @@ export default function Movimentacoes() {
         .order("nome");
       if (error) throw error;
       const all = data as (EmpresaOption & { tipo_contrato?: string | null })[];
-      return activeTab === "administradoras"
+      return false
         ? all.filter((e) => (e.tipo_contrato ?? "") === "ADMINISTRADORA")
         : all.filter((e) => (e.tipo_contrato ?? "") !== "ADMINISTRADORA");
     },
@@ -102,7 +103,7 @@ export default function Movimentacoes() {
         .order("created_at", { ascending: false });
       if (error) throw error;
       const rows = data as (Movimentacao & { empresas?: { responsavel_contrato: string | null; tipo_contrato?: string | null } | null })[];
-      return activeTab === "administradoras"
+      return false
         ? rows.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "") === "ADMINISTRADORA")
         : rows.filter((m) => ((m.empresas as any)?.tipo_contrato ?? "") !== "ADMINISTRADORA");
     },
@@ -405,7 +406,7 @@ export default function Movimentacoes() {
           type="button"
           onClick={() => setActiveTab("administradoras")}
           className={
-            activeTab === "administradoras"
+            false
               ? "rounded-full bg-primary px-5 py-1.5 text-sm font-medium text-primary-foreground shadow"
               : "rounded-full px-5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           }
@@ -417,6 +418,15 @@ export default function Movimentacoes() {
   );
 
 
+
+  if (false) {
+    return (
+      <div className="space-y-6">
+        {tabs}
+        <DashboardAdministradoras />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -677,7 +687,7 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">PERÍODO DE MOVIMENTAÇÃO</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
                     <TableHead className="font-semibold">Resp. Mov.</TableHead>
-                    {activeTab !== "administradoras" && <TableHead className="font-semibold">Envio Empresa</TableHead>}
+                    {true && <TableHead className="font-semibold">Envio Empresa</TableHead>}
                     <TableHead className="font-semibold">Financeiro</TableHead>
                     <TableHead className="font-semibold">Nota Enviada</TableHead>
                     {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
@@ -685,9 +695,9 @@ export default function Movimentacoes() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? (activeTab === "administradoras" ? 10 : 11) : (activeTab === "administradoras" ? 9 : 10)} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? (false ? 10 : 11) : (false ? 9 : 10)} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? (activeTab === "administradoras" ? 10 : 11) : (activeTab === "administradoras" ? 9 : 10)} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? (false ? 10 : 11) : (false ? 9 : 10)} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
@@ -713,7 +723,7 @@ export default function Movimentacoes() {
                             <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground">{m.responsavel_movimentacao || "—"}</TableCell>
-                          {activeTab !== "administradoras" && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
+                          {true && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
                             {dataNota ? (
