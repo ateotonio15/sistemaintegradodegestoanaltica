@@ -25,11 +25,8 @@ export default function ResponderPorToken() {
     (async () => {
       if (!token) return;
       setLoading(true);
-      const { data: env, error } = await db
-        .from("avaliacoes_envios")
-        .select("id, empresa_id, empresa_nome, executiva_nome, data_resposta, formulario_id, mes_referencia")
-        .eq("token_unico", token)
-        .maybeSingle();
+      const { data: rows, error } = await db.rpc("get_avaliacao_envio_por_token", { p_token: token });
+      const env = Array.isArray(rows) ? rows[0] : rows;
       if (error || !env) {
         setErro("Link inválido ou expirado.");
         setLoading(false);
