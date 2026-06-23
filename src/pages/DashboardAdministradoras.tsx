@@ -108,18 +108,48 @@ export default function DashboardAdministradoras() {
   const movIds = useMemo(() => movsMes.map((m) => m.id), [movsMes]);
 
   const { data: anexosCount = {} } = useQuery({
-    queryKey: ["anexos-count-administradoras", movIds.join(",")],
-    enabled: movIds.length > 0,
+    queryKey: ["anexos-count-administradoras", mesRef, movIds.join(","), empresaIds.join(",")],
+    enabled: empresaIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("anexos_movimentacao")
-        .select("movimentacao_id")
-        .in("movimentacao_id", movIds);
-      if (error) throw error;
       const counts: Record<string, number> = {};
-      (data ?? []).forEach((a: any) => {
-        counts[a.movimentacao_id] = (counts[a.movimentacao_id] ?? 0) + 1;
-      });
+
+      // 1) Anexos vinculados a movimentacoes (cadastro)
+      if (movIds.length > 0) {
+        const { data: anxMov, error: errMov } = await supabase
+          .from("anexos_movimentacao")
+          .select("movimentacao_id")
+          .in("movimentacao_id", movIds);
+        if (errMov) throw errMov;
+        const movToEmpresa: Record<string, string> = {};
+        for (const m of movsMes) movToEmpresa[m.id] = m.empresa_id;
+        (anxMov ?? []).forEach((a: any) => {
+          const empId = movToEmpresa[a.movimentacao_id];
+          if (empId) counts[empId] = (counts[empId] ?? 0) + 1;
+        });
+      }
+
+      // 2) Anexos vinculados a financeiro_movimentacoes (financeiro/nota)
+      const { data: finMovs, error: errFin } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("id, empresa_id")
+        .in("empresa_id", empresaIds)
+        .eq("mes_referencia", mesRef);
+      if (errFin) throw errFin;
+      const finIds = (finMovs ?? []).map((f: any) => f.id);
+      const finToEmpresa: Record<string, string> = {};
+      (finMovs ?? []).forEach((f: any) => { finToEmpresa[f.id] = f.empresa_id; });
+      if (finIds.length > 0) {
+        const { data: anxFin, error: errAnxFin } = await supabase
+          .from("anexos_financeiro")
+          .select("financeiro_movimentacao_id")
+          .in("financeiro_movimentacao_id", finIds);
+        if (errAnxFin) throw errAnxFin;
+        (anxFin ?? []).forEach((a: any) => {
+          const empId = finToEmpresa[a.financeiro_movimentacao_id];
+          if (empId) counts[empId] = (counts[empId] ?? 0) + 1;
+        });
+      }
+
       return counts;
     },
   });
@@ -555,7 +585,7 @@ export default function DashboardAdministradoras() {
                       filtered.map((e) => {
                         const mov = movsPorEmpresa[e.id];
                         const enviado = !!mov?.data_envio_financeiro;
-                        const qtdAnexos = mov ? (anexosCount[mov.id] ?? 0) : 0;
+                        const qtdAnexos = anexosCount[e.id] ?? 0;
                         const es = entradasSaidasPorEmpresa[e.id];
                         return (
                         <TableRow
