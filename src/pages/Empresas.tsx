@@ -1408,7 +1408,7 @@ export default function Empresas() {
                     </div>
 
                     {(editingId || draftEmpresaId) && (
-                      <EmpresaAnexosImplantacao empresaId={(editingId || draftEmpresaId)!} required={!!dataImplantacao} />
+                      <EmpresaAnexosImplantacao empresaId={(editingId || draftEmpresaId)!} required={(() => { if (!dataImplantacao) return false; const [y,m,d] = String(dataImplantacao).split("-").map(Number); if(!y||!m||!d) return false; const impl = new Date(y, m-1, d); const hoje = new Date(); hoje.setHours(0,0,0,0); return impl.getTime() >= hoje.getTime(); })()} />
                     )}
 
                     </div>
