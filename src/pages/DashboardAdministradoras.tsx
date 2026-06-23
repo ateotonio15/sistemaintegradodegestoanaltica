@@ -673,13 +673,25 @@ function EnvioFinanceiroDialog({
     (async () => {
       try {
         const periodo = getPeriodoAdministradora(empresa);
+        // Busca existente primeiro (evita violar unique empresa+mes+periodo)
+        const { data: existing, error: selErr } = await supabase
+          .from("movimentacoes")
+          .select("id")
+          .eq("empresa_id", empresa.id)
+          .eq("mes_referencia", mesRef)
+          .eq("periodo", periodo)
+          .maybeSingle();
+        if (selErr) throw selErr;
+        if (existing?.id) {
+          setMovId(existing.id);
+          return;
+        }
         const { data, error } = await supabase
           .from("movimentacoes")
-          .insert({
-            empresa_id: empresa.id,
-            mes_referencia: mesRef,
-            periodo,
-          })
+          .upsert(
+            { empresa_id: empresa.id, mes_referencia: mesRef, periodo },
+            { onConflict: "empresa_id,mes_referencia,periodo" }
+          )
           .select("id")
           .single();
         if (error) throw error;
@@ -701,12 +713,15 @@ function EnvioFinanceiroDialog({
         const periodo = getPeriodoAdministradora(empresa);
         const { data, error } = await supabase
           .from("movimentacoes")
-          .insert({
-            empresa_id: empresa.id,
-            mes_referencia: mesRef,
-            periodo,
-            data_envio_financeiro: editEnvio || null,
-          })
+          .upsert(
+            {
+              empresa_id: empresa.id,
+              mes_referencia: mesRef,
+              periodo,
+              data_envio_financeiro: editEnvio || null,
+            },
+            { onConflict: "empresa_id,mes_referencia,periodo" }
+          )
           .select("id")
           .single();
         if (error) throw error;
