@@ -74,6 +74,9 @@ export function EditarFeriasEmpresasDialog({ open, onOpenChange, feriasId, respo
       qc.invalidateQueries({ queryKey: ["ferias-empresas-edit", feriasId] });
       qc.invalidateQueries({ queryKey: ["ferias-list"] });
       qc.invalidateQueries({ queryKey: ["ferias-em-andamento"] });
+      qc.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      qc.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      qc.invalidateQueries({ queryKey: ["movimentacoes"] });
       qc.invalidateQueries({ queryKey: ["empresas"] });
       qc.invalidateQueries({ queryKey: ["comum-users-empresa-count"] });
     },
