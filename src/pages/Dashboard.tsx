@@ -961,7 +961,7 @@ export default function Dashboard() {
                         <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
 
                         <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{m.responsavel_movimentacao || (m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || m.responsavel_movimentacao || "—"}</TableCell>
                         <TableCell className="text-muted-foreground">{(m.empresas as any)?.vidas ?? "—"}</TableCell>
                         <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                         <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
@@ -1035,7 +1035,7 @@ export default function Dashboard() {
 
                           <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
                           <TableCell>{m.empresas?.tipo_movimentacao || "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">{m.responsavel_movimentacao || (m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || m.responsavel_movimentacao || "—"}</TableCell>
                           <TableCell className="text-muted-foreground">{(m.empresas as any)?.vidas ?? "—"}</TableCell>
                           <TableCell>{formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                           <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>
