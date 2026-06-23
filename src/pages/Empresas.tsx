@@ -1398,8 +1398,9 @@ export default function Empresas() {
                     </div>
 
                     {(editingId || draftEmpresaId) && (
-                      <EmpresaAnexosImplantacao empresaId={(editingId || draftEmpresaId)!} />
+                      <EmpresaAnexosImplantacao empresaId={(editingId || draftEmpresaId)!} required={!!dataImplantacao} />
                     )}
+
                     </div>
 
                     <div className="px-6 py-3 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 flex justify-end gap-2">
