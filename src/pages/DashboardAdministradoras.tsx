@@ -534,15 +534,14 @@ export default function DashboardAdministradoras() {
                   <TableHeader>
                     <TableRow className="bg-accent/20 hover:bg-accent/20">
                       <TableHead className="font-semibold">Nome</TableHead>
-                      <TableHead className="font-semibold">Nota Enviada</TableHead>
                       <TableHead className="font-semibold">Código</TableHead>
                       <TableHead className="font-semibold text-center">Vidas Ativas</TableHead>
                       <TableHead className="font-semibold text-center">Entradas</TableHead>
                       <TableHead className="font-semibold text-center">Saídas</TableHead>
-                        
                       <TableHead className="font-semibold">Corte</TableHead>
                       <TableHead className="font-semibold">Implantação</TableHead>
                       <TableHead className="font-semibold">Enviado Financ.</TableHead>
+                      <TableHead className="font-semibold">Nota Enviada</TableHead>
                       <TableHead className="font-semibold text-center">Anexos</TableHead>
                       <TableHead className="font-semibold text-right">Status</TableHead>
                     </TableRow>
@@ -568,15 +567,6 @@ export default function DashboardAdministradoras() {
                           }}
                         >
                           <TableCell className="font-medium">{e.nome}</TableCell>
-                          <TableCell>
-                            {notaEnviadaPorEmpresa[e.id] ? (
-                              <Badge variant="outline" className="rounded-md border-success/40 text-success">
-                                {formatDateBR(notaEnviadaPorEmpresa[e.id])}
-                              </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
                           <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-center tabular-nums">{(e.vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
                           <TableCell className="text-center tabular-nums">
@@ -603,6 +593,15 @@ export default function DashboardAdministradoras() {
                             {enviado ? (
                               <Badge variant="outline" className="rounded-md border-success/40 text-success">
                                 {formatDateBR(mov!.data_envio_financeiro)}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {notaEnviadaPorEmpresa[e.id] ? (
+                              <Badge variant="outline" className="rounded-md border-success/40 text-success">
+                                {formatDateBR(notaEnviadaPorEmpresa[e.id])}
                               </Badge>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
