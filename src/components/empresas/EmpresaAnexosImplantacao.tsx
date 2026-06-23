@@ -9,9 +9,11 @@ import { toast } from "sonner";
 interface Props {
   empresaId: string;
   readOnly?: boolean;
+  required?: boolean;
 }
 
-export function EmpresaAnexosImplantacao({ empresaId, readOnly }: Props) {
+export function EmpresaAnexosImplantacao({ empresaId, readOnly, required = true }: Props) {
+
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
 
@@ -125,12 +127,15 @@ export function EmpresaAnexosImplantacao({ empresaId, readOnly }: Props) {
       {isLoading ? (
         <p className="text-xs text-muted-foreground">Carregando...</p>
       ) : anexos.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-destructive/40 bg-background/50 p-6 text-center">
+        <div className={`rounded-lg border border-dashed ${required ? "border-destructive/40" : "border-muted-foreground/30"} bg-background/50 p-6 text-center`}>
           <FileText className="h-6 w-6 mx-auto mb-2 text-muted-foreground/60" />
           <p className="text-xs text-muted-foreground">
-            Nenhum arquivo anexado. É obrigatório anexar pelo menos 1 arquivo para salvar.
+            {required
+              ? "Nenhum arquivo anexado. É obrigatório anexar pelo menos 1 arquivo para salvar."
+              : "Nenhum arquivo anexado. Anexos são opcionais até preencher a Data de Implantação."}
           </p>
         </div>
+
       ) : (
         <div className="space-y-1">
           {anexos.map((a) => (

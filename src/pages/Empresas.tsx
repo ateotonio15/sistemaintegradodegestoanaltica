@@ -320,8 +320,8 @@ export default function Empresas() {
         if (error) throw error;
         return;
       }
-      // Validação: ao cadastrar nova empresa exige pelo menos 1 anexo
-      if (!editingId && draftEmpresaId) {
+      // Validação: ao cadastrar nova empresa exige pelo menos 1 anexo APENAS se houver Data de Implantação
+      if (!editingId && draftEmpresaId && dataImplantacao) {
         const { count } = await supabase
           .from("implantacao_anexos" as any)
           .select("id", { count: "exact", head: true })
@@ -330,6 +330,7 @@ export default function Empresas() {
           throw new Error("Anexe pelo menos 1 arquivo da implantação antes de salvar.");
         }
       }
+
       const payload: any = { ...values };
 
       if (payload.tipo_contrato === "ADMINISTRADORA") {
@@ -1397,8 +1398,9 @@ export default function Empresas() {
                     </div>
 
                     {(editingId || draftEmpresaId) && (
-                      <EmpresaAnexosImplantacao empresaId={(editingId || draftEmpresaId)!} />
+                      <EmpresaAnexosImplantacao empresaId={(editingId || draftEmpresaId)!} required={!!dataImplantacao} />
                     )}
+
                     </div>
 
                     <div className="px-6 py-3 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 flex justify-end gap-2">
