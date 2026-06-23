@@ -379,10 +379,87 @@ export default function DashboardAdministradoras() {
         </CardContent>
       </Card>
 
-      {/* Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left: Filters + Table */}
-        <div className="lg:col-span-3 space-y-6">
+      {/* Top row: Pending alert + Schedules (horizontal) */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <Card className="rounded-xl border-primary/30 bg-primary/5 relative overflow-hidden lg:col-span-1">
+          <CardContent className="p-5 relative">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              <h4 className="text-[11px] font-bold uppercase tracking-widest text-primary">
+                Movimentações Pendentes
+              </h4>
+            </div>
+            {movsPendentes.length === 0 ? (
+              <>
+                <p className="text-2xl font-bold">0</p>
+                <p className="text-xs text-muted-foreground mt-1">Nenhuma pendência neste mês.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl font-bold">{movsPendentes.length} pendência{movsPendentes.length > 1 ? "s" : ""}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-tight">
+                  — {mesRef}. Aguardando envio ao financeiro.
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-xl shadow-sm lg:col-span-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <CalendarClock className="h-3.5 w-3.5" />
+              Próximos Fechamentos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {CORTE_OPTIONS.map((dia) => {
+                const list = proximosFechamentosPorCorte[dia] ?? [];
+                const has = list.length > 0;
+                const isActive = corteFilter === String(dia);
+                return (
+                  <button
+                    key={dia}
+                    type="button"
+                    onClick={() => setCorteFilter(isActive ? "all" : String(dia))}
+                    className={`text-left flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                      isActive
+                        ? "bg-primary/20 border-primary ring-1 ring-primary"
+                        : has
+                          ? "bg-primary/10 border-primary/20 hover:bg-primary/15"
+                          : "bg-accent/10 border-border/40 opacity-60 hover:opacity-80"
+                    }`}
+                  >
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Dia {String(dia).padStart(2, "0")}
+                      </p>
+                      <p className={`text-sm font-semibold ${has ? "text-foreground" : "text-muted-foreground"}`}>
+                        {has ? `${list.length} contrato${list.length > 1 ? "s" : ""}` : "Nenhuma"}
+                      </p>
+                    </div>
+                    {has && <span className={`w-1 h-8 rounded-full ${isActive ? "bg-primary" : "bg-primary/70"}`} />}
+                  </button>
+                );
+              })}
+            </div>
+            {corteFilter !== "all" && (
+              <button
+                type="button"
+                onClick={() => setCorteFilter("all")}
+                className="mt-2 w-full text-center text-xs text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-accent/30 transition-colors"
+              >
+                Limpar filtro
+              </button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters + Table (full width) */}
+      <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-6">
           <Card className="rounded-xl shadow-sm">
             <CardContent className="p-3 flex flex-wrap items-center gap-2">
               <div className="relative flex-1 min-w-[260px]">
@@ -533,85 +610,8 @@ export default function DashboardAdministradoras() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Right: Sidebar alerts + schedules */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Pending Alert */}
-          <Card className="rounded-xl border-primary/30 bg-primary/5 relative overflow-hidden">
-            <CardContent className="p-5 relative">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <h4 className="text-[11px] font-bold uppercase tracking-widest text-primary">
-                  Movimentações Pendentes
-                </h4>
-              </div>
-              {movsPendentes.length === 0 ? (
-                <>
-                  <p className="text-2xl font-bold">0</p>
-                  <p className="text-xs text-muted-foreground mt-1">Nenhuma pendência neste mês.</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-2xl font-bold">{movsPendentes.length} pendência{movsPendentes.length > 1 ? "s" : ""}</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-tight">
-                    — {mesRef}. Aguardando envio ao financeiro.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Schedules */}
-          <Card className="rounded-xl shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <CalendarClock className="h-3.5 w-3.5" />
-                Próximos Fechamentos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2.5">
-              {CORTE_OPTIONS.map((dia) => {
-                const list = proximosFechamentosPorCorte[dia] ?? [];
-                const has = list.length > 0;
-                const isActive = corteFilter === String(dia);
-                return (
-                  <button
-                    key={dia}
-                    type="button"
-                    onClick={() => setCorteFilter(isActive ? "all" : String(dia))}
-                    className={`w-full text-left flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                      isActive
-                        ? "bg-primary/20 border-primary ring-1 ring-primary"
-                        : has
-                          ? "bg-primary/10 border-primary/20 hover:bg-primary/15"
-                          : "bg-accent/10 border-border/40 opacity-60 hover:opacity-80"
-                    }`}
-                  >
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Dia {String(dia).padStart(2, "0")}
-                      </p>
-                      <p className={`text-sm font-semibold ${has ? "text-foreground" : "text-muted-foreground"}`}>
-                        {has ? `${list.length} contrato${list.length > 1 ? "s" : ""}` : "Nenhuma"}
-                      </p>
-                    </div>
-                    {has && <span className={`w-1 h-8 rounded-full ${isActive ? "bg-primary" : "bg-primary/70"}`} />}
-                  </button>
-                );
-              })}
-              {corteFilter !== "all" && (
-                <button
-                  type="button"
-                  onClick={() => setCorteFilter("all")}
-                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-accent/30 transition-colors"
-                >
-                  Limpar filtro
-                </button>
-              )}
-            </CardContent>
-          </Card>
-        </div>
       </div>
+
 
       <EnvioFinanceiroDialog
         empresa={selectedEmpresa}
