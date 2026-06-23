@@ -3922,6 +3922,7 @@ export type Database = {
         Returns: {
           display_name: string
           empresa_count: number
+          empresa_count_atual: number
           user_id: string
         }[]
       }
