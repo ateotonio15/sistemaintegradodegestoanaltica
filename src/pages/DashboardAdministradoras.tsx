@@ -568,7 +568,15 @@ export default function DashboardAdministradoras() {
                           }}
                         >
                           <TableCell className="font-medium">{e.nome}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{e.cnpj || "—"}</TableCell>
+                          <TableCell>
+                            {notaEnviadaPorEmpresa[e.id] ? (
+                              <Badge variant="outline" className="rounded-md border-success/40 text-success">
+                                {formatDateBR(notaEnviadaPorEmpresa[e.id])}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-center tabular-nums">{(e.vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
                           <TableCell className="text-center tabular-nums">
