@@ -124,6 +124,29 @@ export default function DashboardAdministradoras() {
     },
   });
 
+  // Nota enviada (financeiro) por empresa para o mês de referência
+  const { data: notaEnviadaPorEmpresa = {} } = useQuery({
+    queryKey: ["fin-nota-administradoras", mesRef, empresaIds.join(",")],
+    enabled: empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("empresa_id, data_envio_nota, created_at")
+        .in("empresa_id", empresaIds)
+        .eq("mes_referencia", mesRef)
+        .not("data_envio_nota", "is", null);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((r: any) => {
+        const cur = map[r.empresa_id];
+        if (!cur || (r.data_envio_nota && r.data_envio_nota > cur)) {
+          map[r.empresa_id] = r.data_envio_nota;
+        }
+      });
+      return map;
+    },
+  });
+
   // Histórico de entradas/saídas para o mês selecionado
   const { data: historicoMes = [] } = useQuery({
     queryKey: ["vidas-historico-adm", mesRef, empresaIds.join(",")],
