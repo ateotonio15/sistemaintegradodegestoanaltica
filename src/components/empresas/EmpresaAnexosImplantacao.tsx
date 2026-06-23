@@ -9,9 +9,11 @@ import { toast } from "sonner";
 interface Props {
   empresaId: string;
   readOnly?: boolean;
+  required?: boolean;
 }
 
-export function EmpresaAnexosImplantacao({ empresaId, readOnly }: Props) {
+export function EmpresaAnexosImplantacao({ empresaId, readOnly, required = true }: Props) {
+
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
 
