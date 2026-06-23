@@ -534,7 +534,7 @@ export default function DashboardAdministradoras() {
                   <TableHeader>
                     <TableRow className="bg-accent/20 hover:bg-accent/20">
                       <TableHead className="font-semibold">Nome</TableHead>
-                      <TableHead className="font-semibold">CNPJ</TableHead>
+                      <TableHead className="font-semibold">Nota Enviada</TableHead>
                       <TableHead className="font-semibold">Código</TableHead>
                       <TableHead className="font-semibold text-center">Vidas Ativas</TableHead>
                       <TableHead className="font-semibold text-center">Entradas</TableHead>
