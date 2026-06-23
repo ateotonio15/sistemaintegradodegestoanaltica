@@ -320,8 +320,17 @@ export default function Empresas() {
         if (error) throw error;
         return;
       }
-      // Validação: ao cadastrar nova empresa exige pelo menos 1 anexo APENAS se houver Data de Implantação
-      if (!editingId && draftEmpresaId && dataImplantacao) {
+      // Validação: anexo obrigatório APENAS quando a Data de Implantação for hoje ou futura
+      const implFutura = (() => {
+        if (!dataImplantacao) return false;
+        const [y, m, d] = String(dataImplantacao).split("-").map(Number);
+        if (!y || !m || !d) return false;
+        const impl = new Date(y, m - 1, d);
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        return impl.getTime() >= hoje.getTime();
+      })();
+      if (!editingId && draftEmpresaId && implFutura) {
         const { count } = await supabase
           .from("implantacao_anexos" as any)
           .select("id", { count: "exact", head: true })
@@ -330,6 +339,7 @@ export default function Empresas() {
           throw new Error("Anexe pelo menos 1 arquivo da implantação antes de salvar.");
         }
       }
+
 
       const payload: any = { ...values };
 
@@ -1398,7 +1408,7 @@ export default function Empresas() {
                     </div>
 
                     {(editingId || draftEmpresaId) && (
-                      <EmpresaAnexosImplantacao empresaId={(editingId || draftEmpresaId)!} required={!!dataImplantacao} />
+                      <EmpresaAnexosImplantacao empresaId={(editingId || draftEmpresaId)!} required={(() => { if (!dataImplantacao) return false; const [y,m,d] = String(dataImplantacao).split("-").map(Number); if(!y||!m||!d) return false; const impl = new Date(y, m-1, d); const hoje = new Date(); hoje.setHours(0,0,0,0); return impl.getTime() >= hoje.getTime(); })()} />
                     )}
 
                     </div>
