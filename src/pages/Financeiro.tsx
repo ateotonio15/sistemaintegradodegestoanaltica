@@ -729,9 +729,18 @@ export default function Financeiro() {
       if (ocultosSet.has(r.empresa_id)) return false;
       if (r.status === "Enviada") return false;
       // Se o usuário cancelou o faturamento, o status volta para "Pendente"
-      // (sem faturamento_iniciado_em e sem anexos). Nesse caso, removemos o
-      // chip "Faturando" automaticamente para não deixar o usuário preso.
-      if (r.status === "Pendente") return false;
+      // / "Aguardando Emissão" / "Fora do prazo" (sem faturamento_iniciado_em
+      // e sem anexos). Nesse caso, removemos o chip "Faturando"
+      // automaticamente para não deixar o usuário preso.
+      if (
+        !r.faturamento_iniciado_em &&
+        (r.status === "Pendente" ||
+          r.status === "Aguardando nota" ||
+          r.status === "Fora do prazo")
+      ) {
+        return false;
+      }
+
       const finalizado =
         r.status === "Nota emitida" ||
         r.status === "Aguardando validação";
