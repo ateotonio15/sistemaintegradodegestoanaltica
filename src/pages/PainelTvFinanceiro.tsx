@@ -407,6 +407,8 @@ export default function PainelTvFinanceiro() {
   }, [fin, anexosMap, envioOpMap]);
 
   const rows: Row[] = useMemo(() => {
+    const nowD = new Date();
+    const currentYM = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}`;
     return (fin as any[]).map((f) => {
       const emp = (empresasMap as any)[f.empresa_id];
       const anexos = (anexosMap as any)[f.id] || [];
@@ -417,6 +419,8 @@ export default function PainelTvFinanceiro() {
         anexos,
         !!emp?.exige_po_pc,
       );
+      const faturadoAntecipado =
+        f.dia_emissao === 1 && typeof f.mes_referencia === "string" && f.mes_referencia > currentYM;
       return {
         id: f.id,
         empresa_id: f.empresa_id,
@@ -436,6 +440,9 @@ export default function PainelTvFinanceiro() {
         enviado_por_nome: (pdfUploaderByMov as any)[f.id]
           ? (profileNameMap as any)[(pdfUploaderByMov as any)[f.id]] || null
           : null,
+        dia_emissao: f.dia_emissao ?? null,
+        mes_referencia: f.mes_referencia,
+        faturado_antecipado: faturadoAntecipado,
       };
     });
   }, [fin, empresasMap, anexosMap, envioOpMap, pdfUploaderByMov, profileNameMap]);
