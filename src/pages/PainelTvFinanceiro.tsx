@@ -419,8 +419,13 @@ export default function PainelTvFinanceiro() {
         anexos,
         !!emp?.exige_po_pc,
       );
+      // Faturado antecipado: emissão dia 01 sendo faturada ANTES do mês de emissão.
+      // Para mes_referencia=YYYY-MM com dia_emissao=01, a emissão ocorre em (MM+1)/01.
+      // Portanto, qualquer faturamento feito enquanto current month <= mes_referencia
+      // é antecipado (estamos faturando antes do mês de emissão).
       const faturadoAntecipado =
-        f.dia_emissao === 1 && typeof f.mes_referencia === "string" && f.mes_referencia > currentYM;
+        f.dia_emissao === 1 && typeof f.mes_referencia === "string" && f.mes_referencia >= currentYM;
+
       return {
         id: f.id,
         empresa_id: f.empresa_id,
