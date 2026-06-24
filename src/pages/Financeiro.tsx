@@ -550,6 +550,22 @@ export default function Financeiro() {
       const uploaderId = pdfUploaderByMov[f.id];
       const anexosAll = anexosMap[f.id] || [];
       const cnpjsDoContrato = cnpjsPorContrato.get(f.id) ?? new Set<string>();
+      // Tokens do nome da empresa para fallback de match por nome de arquivo
+      // (usado quando o anexo compartilhado ainda não passou pela análise de CNPJ).
+      const nomeTokens = (emp?.nome || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .split(/[^a-z0-9]+/)
+        .filter((t) => t.length >= 3 && !["ltda", "indu", "industria", "comercio", "brasil", "eireli", "servicos", "do", "da", "de"].includes(t));
+      const matchPorNomeArquivo = (nomeArquivo: string | null | undefined) => {
+        if (!nomeArquivo) return false;
+        const nm = nomeArquivo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        // CNPJ próprio ou de pagador dentro do nome
+        for (const c of cnpjsDoContrato) if (c && nm.replace(/\D/g, "").includes(c)) return true;
+        // Token significativo do nome da empresa
+        return nomeTokens.some((t) => nm.includes(t));
+      };
       // Anexos vindos de Reajuste/Cobrança Retroativa não alteram o status.
       // Anexos compartilhados pelo grupo só contam para o status DESTE contrato
       // se alguma análise (na origem física do anexo OU neste contrato) identificou
@@ -565,10 +581,14 @@ export default function Financeiro() {
         addCnpjsDetectados(a._compartilhado_grupo ? a._origem_mov_id : f.id);
         if (a._compartilhado_grupo) addCnpjsDetectados(f.id);
         if (a._compartilhado_grupo) {
-          // compartilhado: só conta se o CNPJ detectado pertence a este contrato
-          if (!cnpjsDoArquivo || cnpjsDoArquivo.size === 0) return false;
-          for (const c of cnpjsDoArquivo) if (cnpjsDoContrato.has(c)) return true;
-          return false;
+          // compartilhado: conta se o CNPJ detectado pertence a este contrato
+          if (cnpjsDoArquivo.size > 0) {
+            for (const c of cnpjsDoArquivo) if (cnpjsDoContrato.has(c)) return true;
+            return false;
+          }
+          // Fallback: arquivo ainda não analisado — match por nome do arquivo
+          // (CNPJ ou token significativo do nome da empresa).
+          return matchPorNomeArquivo(a.nome_arquivo);
         }
         // próprio: se o CNPJ já foi detectado e NÃO pertence a este contrato, ignora
         if (cnpjsDoArquivo && cnpjsDoArquivo.size > 0) {
@@ -577,6 +597,7 @@ export default function Financeiro() {
         }
         return true;
       });
+
       const temRetroativo = anexosAll.some((a: any) => a.origem === "retroativo");
       return {
         ...f,
