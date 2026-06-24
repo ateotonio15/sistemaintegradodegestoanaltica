@@ -819,7 +819,15 @@ export default function Financeiro() {
         const g = empresaGrupoMap?.get(r.empresa_id);
         if (!g || g.grupo_id !== filtroGrupo) return false;
       }
-      if (filtroAcompanhamento && r.empresa_id !== filtroAcompanhamento) return false;
+      if (filtroAcompanhamento) {
+        const focusGrupo = empresaGrupoMap?.get(filtroAcompanhamento)?.grupo_id;
+        if (focusGrupo) {
+          const rowGrupo = empresaGrupoMap?.get(r.empresa_id)?.grupo_id;
+          if (r.empresa_id !== filtroAcompanhamento && rowGrupo !== focusGrupo) return false;
+        } else if (r.empresa_id !== filtroAcompanhamento) {
+          return false;
+        }
+      }
 
       return true;
     }).map((r) => {
@@ -2143,10 +2151,20 @@ export default function Financeiro() {
                     <button
                       type="button"
                       onClick={() =>
-                        setFiltroAcompanhamento((cur) => (cur === r.empresa_id ? null : r.empresa_id))
+                        setFiltroAcompanhamento((cur) => {
+                          const next = cur === r.empresa_id ? null : r.empresa_id;
+                          if (next) {
+                            setFiltroStatus([]);
+                            setFiltroTipo([]);
+                            setSomenteOverdue(false);
+                            setFiltroPeriodo(null);
+                            setFiltroGrupo(null);
+                          }
+                          return next;
+                        })
                       }
                       className="inline-flex items-center gap-2"
-                      title="Clique para filtrar apenas esta empresa"
+                      title="Clique para filtrar apenas esta empresa (e o grupo, se houver)"
                     >
                       <Loader2 className="h-3 w-3 animate-spin" />
                       <span>
