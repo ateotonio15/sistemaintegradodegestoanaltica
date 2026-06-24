@@ -2159,8 +2159,9 @@ export default function Financeiro() {
                           setFiltroPeriodo(null);
                           setFiltroGrupo(null);
                           setBusca("");
-                          setFiltroAnexadoPor("todos");
-                          setFiltroTipoAnexo("todos");
+                          setFiltroAnexadoPor(null);
+                          setFiltroTipoAnexo(null);
+
                           setFiltroAcompanhamento(r.empresa_id);
                         } else {
                           setFiltroAcompanhamento(null);
