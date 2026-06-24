@@ -761,10 +761,20 @@ export default function PainelTvFinanceiro() {
     }
     // Congela "Aguardando emissão" + faturamentos antecipados (emissão dia 01
     // sendo faturados no mês anterior — contam para a produção do dia).
-    const snapshot = [
+    // Se a meta já existe (edição), preserva o snapshot anterior e apenas
+    // adiciona novas empresas — assim quem já foi contabilizado permanece.
+    const novoSnapshot = [
       ...aguardandoEmissao.map((r) => r.id),
       ...faturadosAntecipados.map((r) => r.id),
     ];
+    const snapshotAnterior = Array.isArray((metaDiariaRow as any)?.empresas_snapshot)
+      ? ((metaDiariaRow as any).empresas_snapshot as string[])
+      : [];
+    const snapshot = Array.from(new Set([...snapshotAnterior, ...novoSnapshot]));
+    const iniciadaEm = metaDiariaRow?.iniciada_em
+      ? metaDiariaRow.iniciada_em
+      : new Date().toISOString();
+
     const { error } = await supabase
       .from("painel_tv_meta_diaria" as any)
       .upsert(
@@ -773,7 +783,7 @@ export default function PainelTvFinanceiro() {
           valor: v,
           usuarios: us,
           empresas_snapshot: snapshot,
-          iniciada_em: new Date().toISOString(),
+          iniciada_em: iniciadaEm,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "data" },
