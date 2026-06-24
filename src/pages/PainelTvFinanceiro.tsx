@@ -783,7 +783,7 @@ export default function PainelTvFinanceiro() {
           valor: v,
           usuarios: us,
           empresas_snapshot: snapshot,
-          iniciada_em: new Date().toISOString(),
+          iniciada_em: iniciadaEm,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "data" },
