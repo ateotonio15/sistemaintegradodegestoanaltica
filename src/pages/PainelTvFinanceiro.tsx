@@ -76,6 +76,9 @@ type Row = {
   updated_at: string;
   faturamento_iniciado_por_nome: string | null;
   enviado_por_nome: string | null;
+  dia_emissao: number | null;
+  mes_referencia: string;
+  faturado_antecipado: boolean;
 };
 
 function tempoDesde(iso: string | null | undefined): string {
