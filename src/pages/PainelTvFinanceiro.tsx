@@ -76,6 +76,9 @@ type Row = {
   updated_at: string;
   faturamento_iniciado_por_nome: string | null;
   enviado_por_nome: string | null;
+  dia_emissao: number | null;
+  mes_referencia: string;
+  faturado_antecipado: boolean;
 };
 
 function tempoDesde(iso: string | null | undefined): string {
@@ -404,6 +407,8 @@ export default function PainelTvFinanceiro() {
   }, [fin, anexosMap, envioOpMap]);
 
   const rows: Row[] = useMemo(() => {
+    const nowD = new Date();
+    const currentYM = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}`;
     return (fin as any[]).map((f) => {
       const emp = (empresasMap as any)[f.empresa_id];
       const anexos = (anexosMap as any)[f.id] || [];
@@ -414,6 +419,8 @@ export default function PainelTvFinanceiro() {
         anexos,
         !!emp?.exige_po_pc,
       );
+      const faturadoAntecipado =
+        f.dia_emissao === 1 && typeof f.mes_referencia === "string" && f.mes_referencia > currentYM;
       return {
         id: f.id,
         empresa_id: f.empresa_id,
@@ -433,6 +440,9 @@ export default function PainelTvFinanceiro() {
         enviado_por_nome: (pdfUploaderByMov as any)[f.id]
           ? (profileNameMap as any)[(pdfUploaderByMov as any)[f.id]] || null
           : null,
+        dia_emissao: f.dia_emissao ?? null,
+        mes_referencia: f.mes_referencia,
+        faturado_antecipado: faturadoAntecipado,
       };
     });
   }, [fin, empresasMap, anexosMap, envioOpMap, pdfUploaderByMov, profileNameMap]);
@@ -540,6 +550,18 @@ export default function PainelTvFinanceiro() {
     return out;
   }, [aguardandoEmissao, pagadoresPorEmpresa]);
 
+  // Faturamento antecipado: contratos com emissão dia 01 que estão sendo
+  // faturados ANTES (no mês anterior). Ficam como "Faturado" mas devem
+  // entrar na meta do dia (a ação do faturamento conta como produção).
+  const faturadosAntecipados = useMemo(
+    () => rows.filter((r) => r.faturado_antecipado && r.status === "Faturado"),
+    [rows],
+  );
+  const faturadosAntecipadosIds = useMemo(
+    () => new Set(faturadosAntecipados.map((r) => r.id)),
+    [faturadosAntecipados],
+  );
+
   void now;
 
   // ============= META DIÁRIA DE EMISSÃO POR USUÁRIO =============
@@ -643,11 +665,22 @@ export default function PainelTvFinanceiro() {
     Object.entries(anexosMap as Record<string, any[]>).forEach(([movId, list]) => {
       // Restringe ao snapshot quando a meta tem snapshot definido.
       if (hasSnapshot && !snapshotSet.has(movId)) return;
+      // Para faturamento antecipado (emissão dia 01 sendo faturada no mês anterior),
+      // o anexo XLS conta como produção do dia (não há PDF, pois a nota só será emitida no dia 01).
+      const isAntecipado = faturadosAntecipadosIds.has(movId);
       list.forEach((a) => {
-        const isPdf =
-          (a.mime_type || "").toLowerCase().includes("pdf") ||
-          (a.nome_arquivo || "").toLowerCase().endsWith(".pdf");
-        if (!isPdf || !a.uploaded_by || !a.created_at) return;
+        const nome = (a.nome_arquivo || "").toLowerCase();
+        const mime = (a.mime_type || "").toLowerCase();
+        const isPdf = mime.includes("pdf") || nome.endsWith(".pdf");
+        const isXls =
+          mime.includes("spreadsheet") ||
+          mime.includes("excel") ||
+          mime === "text/csv" ||
+          nome.endsWith(".xlsx") ||
+          nome.endsWith(".xls") ||
+          nome.endsWith(".csv");
+        const conta = isPdf || (isAntecipado && isXls);
+        if (!conta || !a.uploaded_by || !a.created_at) return;
         const createdDate = new Date(a.created_at);
         if (createdDate.toLocaleDateString("en-CA") !== todayStr) return;
         if (iniciadaEm > 0 && createdDate.getTime() < iniciadaEm) return;
@@ -665,19 +698,19 @@ export default function PainelTvFinanceiro() {
       });
     });
     return counts;
-  }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow, hasSnapshot, snapshotSet]);
+  }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow, hasSnapshot, snapshotSet, faturadosAntecipadosIds]);
 
   // Universo de empresas considerado pela meta:
   // - Se houver snapshot: tamanho do snapshot (fixo desde a definição da meta).
-  // - Caso contrário: cálculo dinâmico anterior.
+  // - Caso contrário: cálculo dinâmico anterior + faturamentos antecipados.
   const universoMeta = useMemo(() => {
     if (hasSnapshot) return snapshotIds.length;
     const totalEmitidasHoje = USUARIOS_META.reduce(
       (acc, u) => acc + (emitidasHojePorUsuario[u] || 0),
       0,
     );
-    return aguardandoEmissao.length + totalEmitidasHoje;
-  }, [hasSnapshot, snapshotIds.length, aguardandoEmissao.length, emitidasHojePorUsuario, USUARIOS_META]);
+    return aguardandoEmissao.length + faturadosAntecipados.length + totalEmitidasHoje;
+  }, [hasSnapshot, snapshotIds.length, aguardandoEmissao.length, faturadosAntecipados.length, emitidasHojePorUsuario, USUARIOS_META]);
 
   const metaPorUsuario = useMemo(() => {
     const totalBase = metaDiariaFixa != null ? metaDiariaFixa : universoMeta;
@@ -699,18 +732,19 @@ export default function PainelTvFinanceiro() {
     const totalMeta = metaPorUsuario.reduce((a, m) => a + m.meta, 0);
     const totalRestante = metaPorUsuario.reduce((a, m) => a + m.restante, 0);
     return {
-      totalAguardando: hasSnapshot ? snapshotIds.length : aguardandoEmissao.length,
+      totalAguardando: hasSnapshot
+        ? snapshotIds.length
+        : aguardandoEmissao.length + faturadosAntecipados.length,
       usuarios: USUARIOS_META.length,
       mediaPorUsuario: USUARIOS_META.length > 0 ? Math.round(totalMeta / USUARIOS_META.length) : 0,
       totalEmitidas,
       totalRestante,
       totalMeta,
     };
-  }, [metaPorUsuario, aguardandoEmissao.length, USUARIOS_META, hasSnapshot, snapshotIds.length]);
+  }, [metaPorUsuario, aguardandoEmissao.length, faturadosAntecipados.length, USUARIOS_META, hasSnapshot, snapshotIds.length]);
 
-  // Sugestão: apenas empresas atualmente em "Aguardando emissão".
-  // Empresas que já estavam em faturamento antes da meta NÃO entram no cálculo.
-  const sugestaoMetaDinamica = aguardandoEmissao.length;
+  // Sugestão: empresas em "Aguardando emissão" + faturamentos antecipados (emissão dia 01).
+  const sugestaoMetaDinamica = aguardandoEmissao.length + faturadosAntecipados.length;
 
 
   const definirMetaDoDia = async (valor: number, usuarios: string[]) => {
@@ -720,9 +754,12 @@ export default function PainelTvFinanceiro() {
       toast({ title: "Selecione ao menos um usuário", variant: "destructive" });
       return;
     }
-    // Congela as empresas atualmente em "Aguardando emissão".
-    // Empresas em "Em faturamento"/"Faturado" no momento da definição ficam de fora.
-    const snapshot = aguardandoEmissao.map((r) => r.id);
+    // Congela "Aguardando emissão" + faturamentos antecipados (emissão dia 01
+    // sendo faturados no mês anterior — contam para a produção do dia).
+    const snapshot = [
+      ...aguardandoEmissao.map((r) => r.id),
+      ...faturadosAntecipados.map((r) => r.id),
+    ];
     const { error } = await supabase
       .from("painel_tv_meta_diaria" as any)
       .upsert(
