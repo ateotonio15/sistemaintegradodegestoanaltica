@@ -2150,19 +2150,23 @@ export default function Financeiro() {
                   >
                     <button
                       type="button"
-                      onClick={() =>
-                        setFiltroAcompanhamento((cur) => {
-                          const next = cur === r.empresa_id ? null : r.empresa_id;
-                          if (next) {
-                            setFiltroStatus([]);
-                            setFiltroTipo([]);
-                            setSomenteOverdue(false);
-                            setFiltroPeriodo(null);
-                            setFiltroGrupo(null);
-                          }
-                          return next;
-                        })
-                      }
+                      onClick={() => {
+                        const willActivate = filtroAcompanhamento !== r.empresa_id;
+                        if (willActivate) {
+                          setFiltroStatus([]);
+                          setFiltroTipo([]);
+                          setSomenteOverdue(false);
+                          setFiltroPeriodo(null);
+                          setFiltroGrupo(null);
+                          setBusca("");
+                          setFiltroAnexadoPor("todos");
+                          setFiltroTipoAnexo("todos");
+                          setFiltroAcompanhamento(r.empresa_id);
+                        } else {
+                          setFiltroAcompanhamento(null);
+                        }
+                      }}
+
                       className="inline-flex items-center gap-2"
                       title="Clique para filtrar apenas esta empresa (e o grupo, se houver)"
                     >
