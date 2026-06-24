@@ -550,6 +550,18 @@ export default function PainelTvFinanceiro() {
     return out;
   }, [aguardandoEmissao, pagadoresPorEmpresa]);
 
+  // Faturamento antecipado: contratos com emissão dia 01 que estão sendo
+  // faturados ANTES (no mês anterior). Ficam como "Faturado" mas devem
+  // entrar na meta do dia (a ação do faturamento conta como produção).
+  const faturadosAntecipados = useMemo(
+    () => rows.filter((r) => r.faturado_antecipado && r.status === "Faturado"),
+    [rows],
+  );
+  const faturadosAntecipadosIds = useMemo(
+    () => new Set(faturadosAntecipados.map((r) => r.id)),
+    [faturadosAntecipados],
+  );
+
   void now;
 
   // ============= META DIÁRIA DE EMISSÃO POR USUÁRIO =============
