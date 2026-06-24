@@ -754,9 +754,12 @@ export default function PainelTvFinanceiro() {
       toast({ title: "Selecione ao menos um usuário", variant: "destructive" });
       return;
     }
-    // Congela as empresas atualmente em "Aguardando emissão".
-    // Empresas em "Em faturamento"/"Faturado" no momento da definição ficam de fora.
-    const snapshot = aguardandoEmissao.map((r) => r.id);
+    // Congela "Aguardando emissão" + faturamentos antecipados (emissão dia 01
+    // sendo faturados no mês anterior — contam para a produção do dia).
+    const snapshot = [
+      ...aguardandoEmissao.map((r) => r.id),
+      ...faturadosAntecipados.map((r) => r.id),
+    ];
     const { error } = await supabase
       .from("painel_tv_meta_diaria" as any)
       .upsert(
