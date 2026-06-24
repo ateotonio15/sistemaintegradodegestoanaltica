@@ -665,11 +665,22 @@ export default function PainelTvFinanceiro() {
     Object.entries(anexosMap as Record<string, any[]>).forEach(([movId, list]) => {
       // Restringe ao snapshot quando a meta tem snapshot definido.
       if (hasSnapshot && !snapshotSet.has(movId)) return;
+      // Para faturamento antecipado (emissão dia 01 sendo faturada no mês anterior),
+      // o anexo XLS conta como produção do dia (não há PDF, pois a nota só será emitida no dia 01).
+      const isAntecipado = faturadosAntecipadosIds.has(movId);
       list.forEach((a) => {
-        const isPdf =
-          (a.mime_type || "").toLowerCase().includes("pdf") ||
-          (a.nome_arquivo || "").toLowerCase().endsWith(".pdf");
-        if (!isPdf || !a.uploaded_by || !a.created_at) return;
+        const nome = (a.nome_arquivo || "").toLowerCase();
+        const mime = (a.mime_type || "").toLowerCase();
+        const isPdf = mime.includes("pdf") || nome.endsWith(".pdf");
+        const isXls =
+          mime.includes("spreadsheet") ||
+          mime.includes("excel") ||
+          mime === "text/csv" ||
+          nome.endsWith(".xlsx") ||
+          nome.endsWith(".xls") ||
+          nome.endsWith(".csv");
+        const conta = isPdf || (isAntecipado && isXls);
+        if (!conta || !a.uploaded_by || !a.created_at) return;
         const createdDate = new Date(a.created_at);
         if (createdDate.toLocaleDateString("en-CA") !== todayStr) return;
         if (iniciadaEm > 0 && createdDate.getTime() < iniciadaEm) return;
@@ -687,19 +698,19 @@ export default function PainelTvFinanceiro() {
       });
     });
     return counts;
-  }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow, hasSnapshot, snapshotSet]);
+  }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow, hasSnapshot, snapshotSet, faturadosAntecipadosIds]);
 
   // Universo de empresas considerado pela meta:
   // - Se houver snapshot: tamanho do snapshot (fixo desde a definição da meta).
-  // - Caso contrário: cálculo dinâmico anterior.
+  // - Caso contrário: cálculo dinâmico anterior + faturamentos antecipados.
   const universoMeta = useMemo(() => {
     if (hasSnapshot) return snapshotIds.length;
     const totalEmitidasHoje = USUARIOS_META.reduce(
       (acc, u) => acc + (emitidasHojePorUsuario[u] || 0),
       0,
     );
-    return aguardandoEmissao.length + totalEmitidasHoje;
-  }, [hasSnapshot, snapshotIds.length, aguardandoEmissao.length, emitidasHojePorUsuario, USUARIOS_META]);
+    return aguardandoEmissao.length + faturadosAntecipados.length + totalEmitidasHoje;
+  }, [hasSnapshot, snapshotIds.length, aguardandoEmissao.length, faturadosAntecipados.length, emitidasHojePorUsuario, USUARIOS_META]);
 
   const metaPorUsuario = useMemo(() => {
     const totalBase = metaDiariaFixa != null ? metaDiariaFixa : universoMeta;
@@ -721,18 +732,19 @@ export default function PainelTvFinanceiro() {
     const totalMeta = metaPorUsuario.reduce((a, m) => a + m.meta, 0);
     const totalRestante = metaPorUsuario.reduce((a, m) => a + m.restante, 0);
     return {
-      totalAguardando: hasSnapshot ? snapshotIds.length : aguardandoEmissao.length,
+      totalAguardando: hasSnapshot
+        ? snapshotIds.length
+        : aguardandoEmissao.length + faturadosAntecipados.length,
       usuarios: USUARIOS_META.length,
       mediaPorUsuario: USUARIOS_META.length > 0 ? Math.round(totalMeta / USUARIOS_META.length) : 0,
       totalEmitidas,
       totalRestante,
       totalMeta,
     };
-  }, [metaPorUsuario, aguardandoEmissao.length, USUARIOS_META, hasSnapshot, snapshotIds.length]);
+  }, [metaPorUsuario, aguardandoEmissao.length, faturadosAntecipados.length, USUARIOS_META, hasSnapshot, snapshotIds.length]);
 
-  // Sugestão: apenas empresas atualmente em "Aguardando emissão".
-  // Empresas que já estavam em faturamento antes da meta NÃO entram no cálculo.
-  const sugestaoMetaDinamica = aguardandoEmissao.length;
+  // Sugestão: empresas em "Aguardando emissão" + faturamentos antecipados (emissão dia 01).
+  const sugestaoMetaDinamica = aguardandoEmissao.length + faturadosAntecipados.length;
 
 
   const definirMetaDoDia = async (valor: number, usuarios: string[]) => {
