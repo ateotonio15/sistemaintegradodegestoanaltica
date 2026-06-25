@@ -2363,7 +2363,7 @@ export default function Financeiro() {
                             e.stopPropagation();
                             desfazerGrupo(g.id);
                           }}
-                          className="ml-1 rounded-full p-0.5 hover:bg-indigo-500/30"
+                          className="ml-1 rounded-full p-0.5 hover:bg-blue-500/30"
                           title="Desfazer agrupamento"
                         >
                           <X className="h-3 w-3" />
