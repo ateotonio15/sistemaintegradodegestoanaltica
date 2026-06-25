@@ -122,7 +122,7 @@ function AuthRoute() {
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute />} />
-    <Route path="/financeiro/painel-tv" element={<PainelTvFinanceiro />} />
+    
     <Route path="/carteira-samel/avaliacoes/rh/responder/:formId" element={<CSResponderRH />} />
     <Route path="/avaliar/:token" element={<CSResponderToken />} />
     <Route element={<AppShell />}>
@@ -135,6 +135,10 @@ const AppRoutes = () => (
       </Route>
       <Route element={<RoleGate allow={["admin", "financeiro"]} />}>
         <Route path="/dashboard/financeiro" element={<DashboardFinanceiro />} />
+      </Route>
+
+      <Route element={<RoleGate allow={["admin", "financeiro", "diretora"]} />}>
+        <Route path="/financeiro/painel-tv" element={<PainelTvFinanceiro />} />
       </Route>
 
       <Route element={<EmpresasGroupLayout />}>
