@@ -2370,7 +2370,7 @@ export default function Financeiro() {
                         </button>
                       </div>
                       {expandido && (
-                        <div className="ml-2 pl-2 border-l-2 border-indigo-500/30 flex flex-wrap gap-2 py-1">
+                        <div className="ml-2 pl-2 border-l-2 border-blue-500/30 flex flex-wrap gap-2 py-1">
                           {membros.map((r) => renderChipEmpresa(r, { dentroDeGrupo: true }))}
                         </div>
                       )}
