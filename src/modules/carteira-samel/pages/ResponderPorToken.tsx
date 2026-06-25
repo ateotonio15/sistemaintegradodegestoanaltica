@@ -77,8 +77,9 @@ export default function ResponderPorToken() {
     });
 
     if (errResp) {
+      console.error("survey submit error:", errResp);
       setEnviando(false);
-      toast.error(`Erro ao enviar: ${errResp.message || "desconhecido"}`);
+      toast.error("Não foi possível enviar sua avaliação. Tente novamente.");
       return;
     }
 
