@@ -2210,65 +2210,191 @@ export default function Financeiro() {
                   </button>
                 </div>
               )}
-              {faturandoRows.map((r) => {
-                const ativo = filtroAcompanhamento === r.empresa_id;
-                return (
-                  <div
-                    key={r.empresa_id}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors",
-                      ativo
-                        ? "border-blue-500 bg-blue-500/20 text-blue-800 dark:text-blue-200 ring-1 ring-blue-500/40"
-                        : "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const willActivate = filtroAcompanhamento !== r.empresa_id;
-                        if (willActivate) {
-                          setFiltroStatus([]);
-                          setFiltroTipo([]);
-                          setSomenteOverdue(false);
-                          setFiltroPeriodo(null);
-                          setFiltroGrupo(null);
-                          setBusca("");
-                          setFiltroAnexadoPor(null);
-                          setFiltroTipoAnexo(null);
+              {(() => {
+                const rowsById = new Map(faturandoRows.map((r) => [r.empresa_id, r]));
+                const renderedEmpresas = new Set<string>();
+                const renderedGrupos = new Set<string>();
 
-                          setFiltroAcompanhamento(r.empresa_id);
-                        } else {
-                          setFiltroAcompanhamento(null);
+                const ativarFiltroEmpresa = (empresaId: string) => {
+                  const willActivate = filtroAcompanhamento !== empresaId;
+                  if (willActivate) {
+                    setFiltroStatus([]);
+                    setFiltroTipo([]);
+                    setSomenteOverdue(false);
+                    setFiltroPeriodo(null);
+                    setFiltroGrupo(null);
+                    setBusca("");
+                    setFiltroAnexadoPor(null);
+                    setFiltroTipoAnexo(null);
+                    setFiltroAcompanhamento(empresaId);
+                  } else {
+                    setFiltroAcompanhamento(null);
+                  }
+                };
+
+                const renderChipEmpresa = (r: FinanceiroRow, opts?: { dentroDeGrupo?: boolean }) => {
+                  const ativo = filtroAcompanhamento === r.empresa_id;
+                  const isDragOver = dragOverChipId === r.empresa_id;
+                  return (
+                    <div
+                      key={r.empresa_id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("application/x-fin-chip", r.empresa_id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        if (e.dataTransfer.types.includes("application/x-fin-chip")) {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          setDragOverChipId(r.empresa_id);
                         }
                       }}
-
-                      className="inline-flex items-center gap-2"
-                      title="Clique para filtrar apenas esta empresa (e o grupo, se houver)"
+                      onDragLeave={() => setDragOverChipId((cur) => (cur === r.empresa_id ? null : cur))}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const draggedId = e.dataTransfer.getData("application/x-fin-chip");
+                        setDragOverChipId(null);
+                        if (!draggedId || draggedId === r.empresa_id) return;
+                        const grpDestino = grupoDeEmpresa(r.empresa_id);
+                        if (grpDestino) adicionarAoGrupo(grpDestino.id, draggedId);
+                        else criarGrupo(r.empresa_id, draggedId);
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors cursor-grab active:cursor-grabbing",
+                        ativo
+                          ? "border-blue-500 bg-blue-500/20 text-blue-800 dark:text-blue-200 ring-1 ring-blue-500/40"
+                          : "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20",
+                        isDragOver && "ring-2 ring-blue-400 border-blue-400",
+                      )}
                     >
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>
-                        Faturando: <strong>{r.empresa_nome}</strong>
-                      </span>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-current">
-                        {labelStatusFinanceiro(r.status)}
-                      </Badge>
-                    </button>
-                    {(r.status === "Nota emitida" || r.status === "Aguardando validação") && (
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removerAcompanhamento(r.empresa_id);
-                        }}
-                        className="ml-1 rounded-full p-0.5 hover:bg-blue-500/30"
-                        title="Parar de acompanhar"
+                        onClick={() => ativarFiltroEmpresa(r.empresa_id)}
+                        className="inline-flex items-center gap-2"
+                        title="Clique para filtrar apenas esta empresa (e o grupo, se houver). Arraste para outro chip para agrupar."
                       >
-                        <X className="h-3 w-3" />
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>
+                          Faturando: <strong>{r.empresa_nome}</strong>
+                        </span>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-current">
+                          {labelStatusFinanceiro(r.status)}
+                        </Badge>
                       </button>
-                    )}
-                  </div>
-                );
-              })}
+                      {opts?.dentroDeGrupo && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removerDoGrupo(r.empresa_id);
+                          }}
+                          className="ml-1 rounded-full p-0.5 hover:bg-blue-500/30"
+                          title="Remover do grupo"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                      {!opts?.dentroDeGrupo && (r.status === "Nota emitida" || r.status === "Aguardando validação") && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removerAcompanhamento(r.empresa_id);
+                          }}
+                          className="ml-1 rounded-full p-0.5 hover:bg-blue-500/30"
+                          title="Parar de acompanhar"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                };
+
+                const renderChipGrupo = (g: ChipGrupo) => {
+                  const membros = g.empresaIds.map((id) => rowsById.get(id)).filter(Boolean) as FinanceiroRow[];
+                  if (membros.length < 2) return null;
+                  const expandido = grupoExpandidoId === g.id;
+                  const isDragOver = dragOverChipId === g.id;
+                  return (
+                    <div key={g.id} className="inline-flex flex-col gap-1">
+                      <div
+                        onDragOver={(e) => {
+                          if (e.dataTransfer.types.includes("application/x-fin-chip")) {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                            setDragOverChipId(g.id);
+                          }
+                        }}
+                        onDragLeave={() => setDragOverChipId((cur) => (cur === g.id ? null : cur))}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const draggedId = e.dataTransfer.getData("application/x-fin-chip");
+                          setDragOverChipId(null);
+                          if (!draggedId) return;
+                          if (g.empresaIds.includes(draggedId)) return;
+                          adicionarAoGrupo(g.id, draggedId);
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors",
+                          "border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/20",
+                          isDragOver && "ring-2 ring-indigo-400 border-indigo-500",
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setGrupoExpandidoId((cur) => (cur === g.id ? null : g.id))}
+                          className="inline-flex items-center gap-2"
+                          title="Clique para ver os chips agrupados. Arraste outro chip Faturado para adicionar."
+                        >
+                          <Users className="h-3 w-3" />
+                          <span>
+                            Grupo de faturamento
+                          </span>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-current">
+                            {membros.length}
+                          </Badge>
+                          <span className="text-[10px] opacity-70">{expandido ? "▴" : "▾"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            desfazerGrupo(g.id);
+                          }}
+                          className="ml-1 rounded-full p-0.5 hover:bg-indigo-500/30"
+                          title="Desfazer agrupamento"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                      {expandido && (
+                        <div className="ml-2 pl-2 border-l-2 border-indigo-500/30 flex flex-wrap gap-2 py-1">
+                          {membros.map((r) => renderChipEmpresa(r, { dentroDeGrupo: true }))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                };
+
+                const nodes: React.ReactNode[] = [];
+                faturandoRows.forEach((r) => {
+                  if (renderedEmpresas.has(r.empresa_id)) return;
+                  const grp = grupoDeEmpresa(r.empresa_id);
+                  if (grp) {
+                    if (renderedGrupos.has(grp.id)) return;
+                    renderedGrupos.add(grp.id);
+                    grp.empresaIds.forEach((id) => renderedEmpresas.add(id));
+                    const node = renderChipGrupo(grp);
+                    if (node) nodes.push(node);
+                  } else {
+                    renderedEmpresas.add(r.empresa_id);
+                    nodes.push(renderChipEmpresa(r));
+                  }
+                });
+                return nodes;
+              })()}
             </div>
           )}
           <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
