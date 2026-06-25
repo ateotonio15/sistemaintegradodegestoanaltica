@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Permitir resposta anonima" ON public.cs_avaliacao_respostas;
