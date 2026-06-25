@@ -748,6 +748,80 @@ export default function Financeiro() {
     });
   }, [allRows, acompanhandoIds, dispensadosIds, mes, ocultosSet]);
 
+  // ===== Agrupamento de chips de Faturados (drag & drop) =====
+  type ChipGrupo = { id: string; empresaIds: string[] };
+  const [gruposPorMes, setGruposPorMes] = useSessionState<Record<string, ChipGrupo[]>>(
+    "financeiro:chipGruposPorMes",
+    {},
+  );
+  const chipGrupos: ChipGrupo[] = gruposPorMes[mes] ?? [];
+  const setChipGrupos = (updater: ChipGrupo[] | ((prev: ChipGrupo[]) => ChipGrupo[])) => {
+    setGruposPorMes((prev) => {
+      const atual = prev[mes] ?? [];
+      const novo = typeof updater === "function" ? (updater as any)(atual) : updater;
+      return { ...prev, [mes]: novo };
+    });
+  };
+  const [grupoExpandidoId, setGrupoExpandidoId] = useState<string | null>(null);
+  const [dragOverChipId, setDragOverChipId] = useState<string | null>(null);
+
+  // Limpa grupos cujos membros não existem mais
+  useEffect(() => {
+    const validIds = new Set(faturandoRows.map((r) => r.empresa_id));
+    const limpos = chipGrupos
+      .map((g) => ({ ...g, empresaIds: g.empresaIds.filter((id) => validIds.has(id)) }))
+      .filter((g) => g.empresaIds.length >= 2);
+    if (
+      limpos.length !== chipGrupos.length ||
+      limpos.some((g, i) => g.empresaIds.length !== chipGrupos[i].empresaIds.length)
+    ) {
+      setChipGrupos(limpos);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [faturandoRows]);
+
+  const grupoDeEmpresa = (empresaId: string) =>
+    chipGrupos.find((g) => g.empresaIds.includes(empresaId));
+
+  const adicionarAoGrupo = (grupoId: string, empresaId: string) => {
+    setChipGrupos((prev) =>
+      prev
+        .map((g) => ({
+          ...g,
+          empresaIds: g.id === grupoId
+            ? Array.from(new Set([...g.empresaIds, empresaId]))
+            : g.empresaIds.filter((id) => id !== empresaId),
+        }))
+        .filter((g) => g.empresaIds.length >= 2),
+    );
+  };
+
+  const criarGrupo = (empresaIdA: string, empresaIdB: string) => {
+    if (empresaIdA === empresaIdB) return;
+    const novoId = `grp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setChipGrupos((prev) => {
+      // Remove ambas de qualquer grupo existente
+      const limpos = prev
+        .map((g) => ({ ...g, empresaIds: g.empresaIds.filter((id) => id !== empresaIdA && id !== empresaIdB) }))
+        .filter((g) => g.empresaIds.length >= 2);
+      return [...limpos, { id: novoId, empresaIds: [empresaIdA, empresaIdB] }];
+    });
+    setGrupoExpandidoId(novoId);
+  };
+
+  const removerDoGrupo = (empresaId: string) => {
+    setChipGrupos((prev) =>
+      prev
+        .map((g) => ({ ...g, empresaIds: g.empresaIds.filter((id) => id !== empresaId) }))
+        .filter((g) => g.empresaIds.length >= 2),
+    );
+  };
+
+  const desfazerGrupo = (grupoId: string) => {
+    setChipGrupos((prev) => prev.filter((g) => g.id !== grupoId));
+    if (grupoExpandidoId === grupoId) setGrupoExpandidoId(null);
+  };
+
   // Se o chip ativo (filtroAcompanhamento) saiu da lista de faturandoRows
   // (ex.: usuário enviou a nota e status virou "Enviada"), limpa o filtro
   // automaticamente para não deixar o usuário "preso" numa tabela vazia.
