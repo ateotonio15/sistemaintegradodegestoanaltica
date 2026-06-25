@@ -759,7 +759,7 @@ export default function PainelTvFinanceiro() {
     const totalRestante = metaPorUsuario.reduce((a, m) => a + m.restante, 0);
     return {
       totalAguardando: hasSnapshot
-        ? snapshotIds.length
+        ? snapshotIds.length + posMetaIds.size
         : aguardandoEmissao.length + faturadosAntecipados.length,
       usuarios: USUARIOS_META.length,
       mediaPorUsuario: USUARIOS_META.length > 0 ? Math.round(totalMeta / USUARIOS_META.length) : 0,
@@ -767,7 +767,7 @@ export default function PainelTvFinanceiro() {
       totalRestante,
       totalMeta,
     };
-  }, [metaPorUsuario, aguardandoEmissao.length, faturadosAntecipados.length, USUARIOS_META, hasSnapshot, snapshotIds.length]);
+  }, [metaPorUsuario, aguardandoEmissao.length, faturadosAntecipados.length, USUARIOS_META, hasSnapshot, snapshotIds.length, posMetaIds.size]);
 
   // Sugestão: empresas em "Aguardando emissão" + faturamentos antecipados (emissão dia 01).
   const sugestaoMetaDinamica = aguardandoEmissao.length + faturadosAntecipados.length;
