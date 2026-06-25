@@ -1927,6 +1927,33 @@ export type Database = {
         }
         Relationships: []
       }
+      financeiro_chip_grupos: {
+        Row: {
+          competencia: string
+          created_at: string
+          created_by: string | null
+          empresa_ids: string[]
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          empresa_ids?: string[]
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_ids?: string[]
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       financeiro_chips_ocultos: {
         Row: {
           competencia: string
