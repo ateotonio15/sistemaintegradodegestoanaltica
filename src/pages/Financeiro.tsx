@@ -2338,8 +2338,8 @@ export default function Financeiro() {
                         }}
                         className={cn(
                           "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors",
-                          "border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/20",
-                          isDragOver && "ring-2 ring-indigo-400 border-indigo-500",
+                          "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20",
+                          isDragOver && "ring-2 ring-blue-400 border-blue-500",
                         )}
                       >
                         <button
