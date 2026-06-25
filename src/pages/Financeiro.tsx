@@ -749,78 +749,131 @@ export default function Financeiro() {
   }, [allRows, acompanhandoIds, dispensadosIds, mes, ocultosSet]);
 
   // ===== Agrupamento de chips de Faturados (drag & drop) =====
+  // Persistido em public.financeiro_chip_grupos (compartilhado entre usuários)
   type ChipGrupo = { id: string; empresaIds: string[] };
-  const [gruposPorMes, setGruposPorMes] = useSessionState<Record<string, ChipGrupo[]>>(
-    "financeiro:chipGruposPorMes",
-    {},
-  );
-  const chipGrupos: ChipGrupo[] = gruposPorMes[mes] ?? [];
-  const setChipGrupos = (updater: ChipGrupo[] | ((prev: ChipGrupo[]) => ChipGrupo[])) => {
-    setGruposPorMes((prev) => {
-      const atual = prev[mes] ?? [];
-      const novo = typeof updater === "function" ? (updater as any)(atual) : updater;
-      return { ...prev, [mes]: novo };
-    });
-  };
+
+  const { data: chipGruposDb = [] } = useQuery({
+    queryKey: ["financeiro-chip-grupos", mes],
+    enabled: !!user?.id && !!mes,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_chip_grupos" as any)
+        .select("id, empresa_ids")
+        .eq("competencia", mes);
+      if (error) throw error;
+      return ((data as any[]) ?? []).map((r) => ({
+        id: r.id as string,
+        empresaIds: (r.empresa_ids as string[]) ?? [],
+      })) as ChipGrupo[];
+    },
+  });
+
+  const chipGrupos: ChipGrupo[] = chipGruposDb;
   const [grupoExpandidoId, setGrupoExpandidoId] = useState<string | null>(null);
   const [dragOverChipId, setDragOverChipId] = useState<string | null>(null);
 
-  // Limpa grupos cujos membros não existem mais
+  const invalidateGrupos = () =>
+    queryClient.invalidateQueries({ queryKey: ["financeiro-chip-grupos", mes] });
+
+  // Limpa grupos cujos membros não existem mais (e remove grupos com <2)
   useEffect(() => {
+    if (!chipGruposDb.length) return;
     const validIds = new Set(faturandoRows.map((r) => r.empresa_id));
-    const limpos = chipGrupos
-      .map((g) => ({ ...g, empresaIds: g.empresaIds.filter((id) => validIds.has(id)) }))
-      .filter((g) => g.empresaIds.length >= 2);
-    if (
-      limpos.length !== chipGrupos.length ||
-      limpos.some((g, i) => g.empresaIds.length !== chipGrupos[i].empresaIds.length)
-    ) {
-      setChipGrupos(limpos);
-    }
+    (async () => {
+      for (const g of chipGruposDb) {
+        const filtrados = g.empresaIds.filter((id) => validIds.has(id));
+        if (filtrados.length < 2) {
+          await supabase.from("financeiro_chip_grupos" as any).delete().eq("id", g.id);
+        } else if (filtrados.length !== g.empresaIds.length) {
+          await supabase
+            .from("financeiro_chip_grupos" as any)
+            .update({ empresa_ids: filtrados })
+            .eq("id", g.id);
+        }
+      }
+      invalidateGrupos();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [faturandoRows]);
+  }, [faturandoRows, chipGruposDb]);
 
   const grupoDeEmpresa = (empresaId: string) =>
     chipGrupos.find((g) => g.empresaIds.includes(empresaId));
 
-  const adicionarAoGrupo = (grupoId: string, empresaId: string) => {
-    setChipGrupos((prev) =>
-      prev
-        .map((g) => ({
-          ...g,
-          empresaIds: g.id === grupoId
-            ? Array.from(new Set([...g.empresaIds, empresaId]))
-            : g.empresaIds.filter((id) => id !== empresaId),
-        }))
-        .filter((g) => g.empresaIds.length >= 2),
-    );
+  const adicionarAoGrupo = async (grupoId: string, empresaId: string) => {
+    const alvo = chipGrupos.find((g) => g.id === grupoId);
+    if (!alvo) return;
+    const novoIds = Array.from(new Set([...alvo.empresaIds, empresaId]));
+    // Remove de outros grupos
+    const outros = chipGrupos.filter((g) => g.id !== grupoId && g.empresaIds.includes(empresaId));
+    for (const o of outros) {
+      const restante = o.empresaIds.filter((id) => id !== empresaId);
+      if (restante.length < 2) {
+        await supabase.from("financeiro_chip_grupos" as any).delete().eq("id", o.id);
+      } else {
+        await supabase
+          .from("financeiro_chip_grupos" as any)
+          .update({ empresa_ids: restante })
+          .eq("id", o.id);
+      }
+    }
+    await supabase
+      .from("financeiro_chip_grupos" as any)
+      .update({ empresa_ids: novoIds })
+      .eq("id", grupoId);
+    invalidateGrupos();
   };
 
-  const criarGrupo = (empresaIdA: string, empresaIdB: string) => {
+  const criarGrupo = async (empresaIdA: string, empresaIdB: string) => {
     if (empresaIdA === empresaIdB) return;
-    const novoId = `grp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    setChipGrupos((prev) => {
-      // Remove ambas de qualquer grupo existente
-      const limpos = prev
-        .map((g) => ({ ...g, empresaIds: g.empresaIds.filter((id) => id !== empresaIdA && id !== empresaIdB) }))
-        .filter((g) => g.empresaIds.length >= 2);
-      return [...limpos, { id: novoId, empresaIds: [empresaIdA, empresaIdB] }];
-    });
-    setGrupoExpandidoId(novoId);
+    // Remove ambas de qualquer grupo existente
+    for (const g of chipGrupos) {
+      if (g.empresaIds.includes(empresaIdA) || g.empresaIds.includes(empresaIdB)) {
+        const restante = g.empresaIds.filter((id) => id !== empresaIdA && id !== empresaIdB);
+        if (restante.length < 2) {
+          await supabase.from("financeiro_chip_grupos" as any).delete().eq("id", g.id);
+        } else {
+          await supabase
+            .from("financeiro_chip_grupos" as any)
+            .update({ empresa_ids: restante })
+            .eq("id", g.id);
+        }
+      }
+    }
+    const { data, error } = await supabase
+      .from("financeiro_chip_grupos" as any)
+      .insert({
+        competencia: mes,
+        empresa_ids: [empresaIdA, empresaIdB],
+        created_by: user?.id ?? null,
+      })
+      .select("id")
+      .single();
+    if (!error && data) setGrupoExpandidoId((data as any).id);
+    invalidateGrupos();
   };
 
-  const removerDoGrupo = (empresaId: string) => {
-    setChipGrupos((prev) =>
-      prev
-        .map((g) => ({ ...g, empresaIds: g.empresaIds.filter((id) => id !== empresaId) }))
-        .filter((g) => g.empresaIds.length >= 2),
-    );
+  const removerDoGrupo = async (empresaId: string) => {
+    for (const g of chipGrupos) {
+      if (!g.empresaIds.includes(empresaId)) continue;
+      const restante = g.empresaIds.filter((id) => id !== empresaId);
+      if (restante.length < 2) {
+        await supabase.from("financeiro_chip_grupos" as any).delete().eq("id", g.id);
+      } else {
+        await supabase
+          .from("financeiro_chip_grupos" as any)
+          .update({ empresa_ids: restante })
+          .eq("id", g.id);
+      }
+    }
+    invalidateGrupos();
   };
 
-  const desfazerGrupo = (grupoId: string) => {
-    setChipGrupos((prev) => prev.filter((g) => g.id !== grupoId));
+  const desfazerGrupo = async (grupoId: string) => {
+    await supabase.from("financeiro_chip_grupos" as any).delete().eq("id", grupoId);
     if (grupoExpandidoId === grupoId) setGrupoExpandidoId(null);
+    invalidateGrupos();
   };
+
 
   // Se o chip ativo (filtroAcompanhamento) saiu da lista de faturandoRows
   // (ex.: usuário enviou a nota e status virou "Enviada"), limpa o filtro
