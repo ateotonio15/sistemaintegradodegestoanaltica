@@ -659,6 +659,26 @@ export default function PainelTvFinanceiro() {
   const snapshotSet = useMemo(() => new Set(snapshotIds), [snapshotIds]);
   const hasSnapshot = snapshotIds.length > 0;
 
+  // Empresas que entraram em "Em faturamento" APÓS a meta ter sido definida.
+  // Estas não estavam no snapshot original, mas devem contar para a meta do dia
+  // (a ação do faturamento ocorreu durante o ciclo da meta vigente).
+  const posMetaIds = useMemo<Set<string>>(() => {
+    if (!hasSnapshot) return new Set();
+    const iniciadaEmMs = metaDiariaRow?.iniciada_em
+      ? new Date(metaDiariaRow.iniciada_em).getTime()
+      : 0;
+    if (!iniciadaEmMs) return new Set();
+    const out = new Set<string>();
+    rows.forEach((r) => {
+      if (snapshotSet.has(r.id)) return;
+      if (!r.faturamento_iniciado_em) return;
+      const t = new Date(r.faturamento_iniciado_em).getTime();
+      if (!Number.isFinite(t)) return;
+      if (t >= iniciadaEmMs) out.add(r.id);
+    });
+    return out;
+  }, [rows, hasSnapshot, snapshotSet, metaDiariaRow]);
+
 
 
 
@@ -668,8 +688,9 @@ export default function PainelTvFinanceiro() {
     const todayStr = new Date().toLocaleDateString("en-CA");
     const iniciadaEm = metaDiariaRow?.iniciada_em ? new Date(metaDiariaRow.iniciada_em).getTime() : 0;
     Object.entries(anexosMap as Record<string, any[]>).forEach(([movId, list]) => {
-      // Restringe ao snapshot quando a meta tem snapshot definido.
-      if (hasSnapshot && !snapshotSet.has(movId)) return;
+      // Restringe ao snapshot quando a meta tem snapshot definido,
+      // mas permite empresas que entraram em faturamento APÓS a meta (posMetaIds).
+      if (hasSnapshot && !snapshotSet.has(movId) && !posMetaIds.has(movId)) return;
       // Para faturamento antecipado (emissão dia 01 sendo faturada no mês anterior),
       // o anexo XLS conta como produção do dia (não há PDF, pois a nota só será emitida no dia 01).
       const isAntecipado = faturadosAntecipadosIds.has(movId);
@@ -703,19 +724,19 @@ export default function PainelTvFinanceiro() {
       });
     });
     return counts;
-  }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow, hasSnapshot, snapshotSet, faturadosAntecipadosIds]);
+  }, [anexosMap, profileNameMap, USUARIOS_META, metaDiariaRow, hasSnapshot, snapshotSet, posMetaIds, faturadosAntecipadosIds]);
 
   // Universo de empresas considerado pela meta:
-  // - Se houver snapshot: tamanho do snapshot (fixo desde a definição da meta).
+  // - Se houver snapshot: tamanho do snapshot + empresas que entraram após a meta.
   // - Caso contrário: cálculo dinâmico anterior + faturamentos antecipados.
   const universoMeta = useMemo(() => {
-    if (hasSnapshot) return snapshotIds.length;
+    if (hasSnapshot) return snapshotIds.length + posMetaIds.size;
     const totalEmitidasHoje = USUARIOS_META.reduce(
       (acc, u) => acc + (emitidasHojePorUsuario[u] || 0),
       0,
     );
     return aguardandoEmissao.length + faturadosAntecipados.length + totalEmitidasHoje;
-  }, [hasSnapshot, snapshotIds.length, aguardandoEmissao.length, faturadosAntecipados.length, emitidasHojePorUsuario, USUARIOS_META]);
+  }, [hasSnapshot, snapshotIds.length, posMetaIds.size, aguardandoEmissao.length, faturadosAntecipados.length, emitidasHojePorUsuario, USUARIOS_META]);
 
   const metaPorUsuario = useMemo(() => {
     const totalBase = metaDiariaFixa != null ? metaDiariaFixa : universoMeta;
@@ -738,7 +759,7 @@ export default function PainelTvFinanceiro() {
     const totalRestante = metaPorUsuario.reduce((a, m) => a + m.restante, 0);
     return {
       totalAguardando: hasSnapshot
-        ? snapshotIds.length
+        ? snapshotIds.length + posMetaIds.size
         : aguardandoEmissao.length + faturadosAntecipados.length,
       usuarios: USUARIOS_META.length,
       mediaPorUsuario: USUARIOS_META.length > 0 ? Math.round(totalMeta / USUARIOS_META.length) : 0,
@@ -746,7 +767,7 @@ export default function PainelTvFinanceiro() {
       totalRestante,
       totalMeta,
     };
-  }, [metaPorUsuario, aguardandoEmissao.length, faturadosAntecipados.length, USUARIOS_META, hasSnapshot, snapshotIds.length]);
+  }, [metaPorUsuario, aguardandoEmissao.length, faturadosAntecipados.length, USUARIOS_META, hasSnapshot, snapshotIds.length, posMetaIds.size]);
 
   // Sugestão: empresas em "Aguardando emissão" + faturamentos antecipados (emissão dia 01).
   const sugestaoMetaDinamica = aguardandoEmissao.length + faturadosAntecipados.length;
