@@ -2338,8 +2338,8 @@ export default function Financeiro() {
                         }}
                         className={cn(
                           "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors",
-                          "border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/20",
-                          isDragOver && "ring-2 ring-indigo-400 border-indigo-500",
+                          "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20",
+                          isDragOver && "ring-2 ring-blue-400 border-blue-500",
                         )}
                       >
                         <button
@@ -2363,14 +2363,14 @@ export default function Financeiro() {
                             e.stopPropagation();
                             desfazerGrupo(g.id);
                           }}
-                          className="ml-1 rounded-full p-0.5 hover:bg-indigo-500/30"
+                          className="ml-1 rounded-full p-0.5 hover:bg-blue-500/30"
                           title="Desfazer agrupamento"
                         >
                           <X className="h-3 w-3" />
                         </button>
                       </div>
                       {expandido && (
-                        <div className="ml-2 pl-2 border-l-2 border-indigo-500/30 flex flex-wrap gap-2 py-1">
+                        <div className="ml-2 pl-2 border-l-2 border-blue-500/30 flex flex-wrap gap-2 py-1">
                           {membros.map((r) => renderChipEmpresa(r, { dentroDeGrupo: true }))}
                         </div>
                       )}
