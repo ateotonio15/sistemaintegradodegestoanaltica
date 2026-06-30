@@ -82,7 +82,8 @@ export default function UberCorridas() {
       Responsável: c.responsavel ?? "",
       "Criado por": c.criado_por ?? "",
       Valor: Number(c.valor || 0),
-      Reembolso: Number(c.reembolso || 0),
+      "Tem reembolso": c.tem_reembolso ? "Sim" : "Não",
+      Reembolso: Number(c.valor_reembolso ?? c.reembolso ?? 0),
       Cancelada: c.cancelada ? "Sim" : "Não",
     }));
     const ws = XLSX.utils.json_to_sheet(data);
