@@ -1,11 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useUpsertCorrida, type UberCorrida } from "@/hooks/useUberCorridas";
 
 interface Props {
@@ -35,6 +41,20 @@ const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
 export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const upsert = useUpsertCorrida();
   const [form, setForm] = useState<Partial<UberCorrida>>({});
+  const [empresaOpen, setEmpresaOpen] = useState(false);
+
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["empresas-uber-select"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
     if (open) {
@@ -97,7 +117,42 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div className="sm:col-span-2">
             <Label>Empresa</Label>
-            <Input value={form.empresa ?? ""} onChange={(e) => set("empresa", e.target.value)} />
+            <Popover open={empresaOpen} onOpenChange={setEmpresaOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  className={cn("w-full justify-between font-normal", !form.empresa && "text-muted-foreground")}
+                >
+                  {form.empresa || "Selecione a empresa"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar empresa..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
+                    <CommandGroup>
+                      {empresas.map((e) => (
+                        <CommandItem
+                          key={e.id}
+                          value={e.nome}
+                          onSelect={() => {
+                            set("empresa", e.nome);
+                            setEmpresaOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", form.empresa === e.nome ? "opacity-100" : "opacity-0")} />
+                          {e.nome}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <Label>Forma de pagamento</Label>
