@@ -18,6 +18,8 @@ export interface UberCorrida {
   responsavel: string | null;
   criado_por: string | null;
   valor: number;
+  tem_reembolso: boolean;
+  valor_reembolso: number;
   reembolso: number;
   cancelada: boolean;
   observacao: string | null;

@@ -3654,9 +3654,11 @@ export type Database = {
           origem: string | null
           reembolso: number | null
           responsavel: string | null
+          tem_reembolso: boolean
           tipo: string | null
           updated_at: string
           valor: number | null
+          valor_reembolso: number
         }
         Insert: {
           cancelada?: boolean
@@ -3675,9 +3677,11 @@ export type Database = {
           origem?: string | null
           reembolso?: number | null
           responsavel?: string | null
+          tem_reembolso?: boolean
           tipo?: string | null
           updated_at?: string
           valor?: number | null
+          valor_reembolso?: number
         }
         Update: {
           cancelada?: boolean
@@ -3696,9 +3700,11 @@ export type Database = {
           origem?: string | null
           reembolso?: number | null
           responsavel?: string | null
+          tem_reembolso?: boolean
           tipo?: string | null
           updated_at?: string
           valor?: number | null
+          valor_reembolso?: number
         }
         Relationships: []
       }

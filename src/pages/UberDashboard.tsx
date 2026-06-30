@@ -27,22 +27,27 @@ export default function UberDashboard() {
   const kpis = useMemo(() => {
     const validas = filtered.filter((c) => !c.cancelada);
     const totalValor = validas.reduce((s, c) => s + Number(c.valor || 0), 0);
+    const totalReembolso = validas.reduce((s, c) => s + Number(c.valor_reembolso ?? c.reembolso ?? 0), 0);
     const ticket = validas.length ? totalValor / validas.length : 0;
     return {
       total: filtered.length,
       ativas: validas.length,
       canceladas: filtered.length - validas.length,
       valor: totalValor,
+      reembolso: totalReembolso,
+      liquido: totalValor - totalReembolso,
       ticket,
       colaboradores: new Set(filtered.map((c) => c.colaborador)).size,
     };
   }, [filtered]);
 
   const porDia = useMemo(() => {
-    const map = new Map<string, { data: string; qtd: number; valor: number }>();
+    const map = new Map<string, { data: string; qtd: number; valor: number; reembolso: number }>();
     filtered.filter((c) => !c.cancelada).forEach((c) => {
-      const cur = map.get(c.data) ?? { data: c.data, qtd: 0, valor: 0 };
-      cur.qtd += 1; cur.valor += Number(c.valor || 0);
+      const cur = map.get(c.data) ?? { data: c.data, qtd: 0, valor: 0, reembolso: 0 };
+      cur.qtd += 1;
+      cur.valor += Number(c.valor || 0);
+      cur.reembolso += Number(c.valor_reembolso ?? c.reembolso ?? 0);
       map.set(c.data, cur);
     });
     return Array.from(map.values())
@@ -108,11 +113,13 @@ export default function UberDashboard() {
         <Card className="p-8 text-center text-muted-foreground">Carregando...</Card>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
             <Card className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Car className="h-3.5 w-3.5" />Corridas</div><div className="text-2xl font-bold mt-1">{kpis.total}</div></Card>
             <Card className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><TrendingUp className="h-3.5 w-3.5" />Ativas</div><div className="text-2xl font-bold mt-1 text-emerald-600">{kpis.ativas}</div></Card>
             <Card className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Ban className="h-3.5 w-3.5" />Canceladas</div><div className="text-2xl font-bold mt-1 text-rose-600">{kpis.canceladas}</div></Card>
             <Card className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><DollarSign className="h-3.5 w-3.5" />Gasto total</div><div className="text-xl font-bold mt-1">{fmtMoney(kpis.valor)}</div></Card>
+            <Card className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><DollarSign className="h-3.5 w-3.5" />Reembolso Total</div><div className="text-xl font-bold mt-1 text-slate-500">{fmtMoney(kpis.reembolso)}</div></Card>
+            <Card className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><DollarSign className="h-3.5 w-3.5" />Gasto líquido</div><div className="text-xl font-bold mt-1 text-emerald-700">{fmtMoney(kpis.liquido)}</div></Card>
             <Card className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><DollarSign className="h-3.5 w-3.5" />Ticket médio</div><div className="text-xl font-bold mt-1">{fmtMoney(kpis.ticket)}</div></Card>
             <Card className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="h-3.5 w-3.5" />Colaboradores</div><div className="text-2xl font-bold mt-1">{kpis.colaboradores}</div></Card>
           </div>
@@ -128,7 +135,8 @@ export default function UberDashboard() {
                 <RTooltip formatter={(v: any, n) => n === "valor" ? fmtMoney(Number(v)) : v} />
                 <Legend />
                 <Line yAxisId="left" type="monotone" dataKey="qtd" name="Corridas" stroke="#3b82f6" strokeWidth={2} />
-                <Line yAxisId="right" type="monotone" dataKey="valor" name="Valor (R$)" stroke="#10b981" strokeWidth={2} />
+                <Line yAxisId="right" type="monotone" dataKey="valor" name="Gasto (R$)" stroke="#10b981" strokeWidth={2} />
+                <Line yAxisId="right" type="monotone" dataKey="reembolso" name="Reembolso (R$)" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 5" />
               </LineChart>
             </ResponsiveContainer>
           </Card>

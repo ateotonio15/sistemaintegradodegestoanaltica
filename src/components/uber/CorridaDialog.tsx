@@ -38,7 +38,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
 
   useEffect(() => {
     if (open) {
-      setForm(corrida ?? { data: new Date().toISOString().slice(0, 10), cancelada: false, valor: 0, reembolso: 0 });
+      setForm(corrida ?? { data: new Date().toISOString().slice(0, 10), cancelada: false, valor: 0, tem_reembolso: false, valor_reembolso: 0, reembolso: 0 });
     }
   }, [open, corrida]);
 
@@ -117,8 +117,38 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
             <Input type="number" step="0.01" value={form.valor ?? 0} onChange={(e) => set("valor", Number(e.target.value))} />
           </div>
           <div>
-            <Label>Reembolso (R$)</Label>
-            <Input type="number" step="0.01" value={form.reembolso ?? 0} onChange={(e) => set("reembolso", Number(e.target.value))} />
+            <Label>Tem reembolso?</Label>
+            <Select
+              value={form.tem_reembolso ? "sim" : "nao"}
+              onValueChange={(v) => {
+                const tem = v === "sim";
+                setForm((p) => {
+                  const anterior = Number(p.valor_reembolso ?? p.reembolso ?? 0);
+                  const valor = Number(p.valor ?? 0);
+                  const novoVal = tem ? (anterior > 0 ? anterior : valor) : 0;
+                  return { ...p, tem_reembolso: tem, valor_reembolso: novoVal, reembolso: novoVal };
+                });
+              }}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nao">Não</SelectItem>
+                <SelectItem value="sim">Sim</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Valor do reembolso (R$)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              disabled={!form.tem_reembolso}
+              value={form.valor_reembolso ?? 0}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setForm((p) => ({ ...p, valor_reembolso: v, reembolso: v }));
+              }}
+            />
           </div>
           <div className="flex items-center gap-2 pt-6">
             <Switch checked={!!form.cancelada} onCheckedChange={(v) => set("cancelada", v)} />
