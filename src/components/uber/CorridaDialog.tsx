@@ -31,9 +31,9 @@ const MOTIVOS = [
   "Ação de Saúde",
   "Palestra",
   "Coleta de sangue",
-  "Taxa de destaque",
+  "Taxa cancelamento",
   "Implantação",
-  "Portal de Treinamento",
+  "Treinamento Portal",
   "Integração",
   "Gravação da Palestra",
 ];
