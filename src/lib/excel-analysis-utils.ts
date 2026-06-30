@@ -929,7 +929,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         (h.includes("mensalidade") || h.includes("valor unit") || h.includes("valor unitario"))
       )
         mens = c;
-      else if (val < 0 && (h === "valor" || h.includes("valor total"))) val = c;
+      else if (val < 0 && (h === "valor" || h === "total" || h.includes("valor total"))) val = c;
     }
     if (lbl >= 0 && val >= 0) {
       headerIdx = i; idxLabel = lbl; idxQtd = qtd; idxMens = mens; idxValor = val;
@@ -985,7 +985,12 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     const m = labelRaw.match(reCnpj);
     if (m) {
       const cnpj = normalizarCnpj(m[1]);
-      const nome = labelRaw.slice(0, m.index).trim().replace(/[-–—:]\s*$/, "").trim();
+      const nome = labelRaw
+        .slice(0, m.index)
+        .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*$/i, "")
+        .trim()
+        .replace(/[-–—:]\s*$/, "")
+        .trim();
       cur = {
         cnpj, nome: nome || "Sem nome",
         enfValores: [], enfQtd: 0, enfMens: 0,
