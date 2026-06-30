@@ -24,6 +24,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCreateDemanda, useUpdateDemanda } from "@/hooks/useDemandas";
 import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
+import {
+  SETORES,
+  TIPOS,
+  RECLAMACOES,
+  getReclamacoesDisponiveis,
+  normalizarReclamacao,
+  isReclamacaoCirurgica,
+} from "@/lib/constants";
 
 
 type Props = {
@@ -49,23 +57,15 @@ const empty = (): Partial<Demanda> => ({
   data_entrada: "",
   nome_medico: "",
   nome_procedimento: "",
-  encaminhado_setor: false,
+  encaminhado_setor: true,
   resolvido_setor: false,
   data_resolucao_setor: "",
   resolvido_executiva: false,
   data_resolucao_executiva: "",
 });
 
-const SURGICAL = ["aprazamento cirurgico", "cancelamento cirurgico"];
-function normalize(s: string | null | undefined) {
-  return String(s ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .trim();
-}
 function isSurgical(reclamacao: string | null | undefined) {
-  return SURGICAL.includes(normalize(reclamacao));
+  return isReclamacaoCirurgica(reclamacao);
 }
 function maskCpf(v: string) {
   const d = String(v).replace(/\D/g, "").slice(0, 11);
