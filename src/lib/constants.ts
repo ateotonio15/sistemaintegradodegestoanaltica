@@ -10,7 +10,7 @@ export const SETORES = [
   "Direção Clínica",
   "Financeiro",
   "T.I",
-] as const;
+];
 
 export const TIPOS = [
   "Aplicativo Samel",
@@ -23,7 +23,7 @@ export const TIPOS = [
   "Portal",
   "Reclamação",
   "T.I",
-] as const;
+];
 
 // Lista geral (fallback final)
 export const RECLAMACOES = [
@@ -47,7 +47,7 @@ export const RECLAMACOES = [
   "Indisponibilidade de dados",
   "Telemedicina",
   "Aplicativo",
-] as const;
+];
 
 // Fallback por tipo (chave = tipo)
 export const RECLAMACOES_POR_TIPO: Record<string, string[]> = {
