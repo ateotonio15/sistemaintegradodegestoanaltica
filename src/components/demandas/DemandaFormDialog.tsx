@@ -155,9 +155,17 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
       return toast.error("Informe a data de resolução (executiva)");
     }
 
-    // Normaliza: NÃO -> limpa datas; consistência setor/executiva
+    // Normalização final antes de persistir
+    const reclamacaoCanon = normalizarReclamacao(form.reclamacao);
+    const cirurgico = isReclamacaoCirurgica(reclamacaoCanon);
     const payload: Partial<Demanda> = {
       ...form,
+      reclamacao: reclamacaoCanon,
+      // Campos cirúrgicos só persistem quando aplicável
+      cpf: cirurgico ? (form.cpf || null) : null,
+      data_entrada: cirurgico ? (form.data_entrada || null) : null,
+      nome_medico: cirurgico ? (form.nome_medico || null) : null,
+      nome_procedimento: cirurgico ? (form.nome_procedimento || null) : null,
       data_resolucao_setor: form.resolvido_setor ? form.data_resolucao_setor || null : null,
       data_resolucao_executiva: form.resolvido_executiva
         ? form.data_resolucao_executiva || null
