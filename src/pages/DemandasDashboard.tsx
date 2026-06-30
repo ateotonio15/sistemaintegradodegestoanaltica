@@ -726,7 +726,7 @@ function SubMetric({ titulo, sub, valor, foraPct }: { titulo: string; sub: strin
 }
 
 function TrendLineCard({
-  title, subtitle, icon, data, tone, unit = "", decimals = 0, meta, inverse, delay = 0, footer,
+  title, subtitle, icon, data, tone, unit = "", decimals = 0, meta, inverse, delay = 0, footer, actionHref, actionLabel,
 }: {
   title: string;
   subtitle: string;
@@ -739,6 +739,8 @@ function TrendLineCard({
   inverse?: boolean;
   delay?: number;
   footer?: string;
+  actionHref?: string;
+  actionLabel?: string;
 }) {
   const t = toneClasses[tone];
   // Garante segmento visível se tiver só 1 ponto
