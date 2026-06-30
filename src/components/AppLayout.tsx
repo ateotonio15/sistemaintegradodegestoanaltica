@@ -50,7 +50,7 @@ const allNavItems = [
   { to: "/vidas", label: "Vidas", icon: Activity },
   { to: "/demandas", label: "Registro de Reclamações", icon: MessageSquareWarning, adminOnly: true },
   { to: "/demandas/dashboard", label: "Dashboard Reclamações", icon: LayoutDashboard, adminOnly: true },
-  { to: "/plantoes", label: "Plantões 24h", icon: Phone, adminOnly: true },
+  { to: "/plantoes", label: "Plantão nas empresas", icon: Phone, adminOnly: true },
   { to: "/plantoes/calendario", label: "Calendário Plantões", icon: Calendar, adminOnly: true },
   { to: "/uber", label: "Uber Corporativo", icon: Car, adminOnly: true },
   { to: "/uber/dashboard", label: "Dashboard Uber", icon: LayoutDashboard, adminOnly: true },
