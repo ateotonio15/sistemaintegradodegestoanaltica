@@ -1,0 +1,1 @@
+UPDATE public.financeiro_pagadores SET nome_pagador = 'ELGIN INDUSTRIAL DA AMAZÔNIA LTDA - F', updated_at = now() WHERE id = '03e50629-ab2c-4237-a9e1-a424ba3afa31';
