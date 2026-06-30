@@ -172,7 +172,7 @@ export default function UberDashboard() {
               <div className="text-sm font-semibold mb-3">Distribuição por motivo</div>
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={porMotivo} dataKey="valor" nameKey="nome" outerRadius={100} label={(e) => `${e.nome} (${e.valor})`}>
+                  <Pie data={porMotivo} dataKey="valor" nameKey="nome" outerRadius={100} label={(e: any) => `${e.nome} (${e.valor})`}>
                     {porMotivo.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <RTooltip />
