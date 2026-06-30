@@ -425,11 +425,6 @@ export default function DemandasDashboard() {
               <ArrowLeft className="h-3 w-3" />
               Voltar para registros
             </Link>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/demandas/fora-do-prazo">
-                Devolutivas fora do prazo
-              </Link>
-            </Button>
           </div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Painel Executivo
@@ -598,6 +593,8 @@ export default function DemandasDashboard() {
                 tone="danger"
                 inverse
                 data={monthlySeries.map((m) => ({ label: m.label, value: m.fora }))}
+                actionHref="/demandas/fora-do-prazo"
+                actionLabel="Ver detalhes"
                 unit="%"
                 meta={META_FORA_PRAZO}
                 footer="Meta: ≤ 8%"
@@ -729,7 +726,7 @@ function SubMetric({ titulo, sub, valor, foraPct }: { titulo: string; sub: strin
 }
 
 function TrendLineCard({
-  title, subtitle, icon, data, tone, unit = "", decimals = 0, meta, inverse, delay = 0, footer,
+  title, subtitle, icon, data, tone, unit = "", decimals = 0, meta, inverse, delay = 0, footer, actionHref, actionLabel,
 }: {
   title: string;
   subtitle: string;
@@ -742,6 +739,8 @@ function TrendLineCard({
   inverse?: boolean;
   delay?: number;
   footer?: string;
+  actionHref?: string;
+  actionLabel?: string;
 }) {
   const t = toneClasses[tone];
   // Garante segmento visível se tiver só 1 ponto
@@ -803,7 +802,17 @@ function TrendLineCard({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      {footer && <p className="text-[11px] text-muted-foreground mt-2">{footer}</p>}
+      <div className="mt-2 flex items-center justify-between gap-2">
+        {footer ? <p className="text-[11px] text-muted-foreground">{footer}</p> : <span />}
+        {actionHref && (
+          <Link
+            to={actionHref}
+            className="text-[11px] font-medium text-primary hover:underline inline-flex items-center gap-1"
+          >
+            {actionLabel ?? "Ver detalhes"} →
+          </Link>
+        )}
+      </div>
     </Card>
   );
 }
