@@ -36,6 +36,7 @@ import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import InteligenciaModulo from "./pages/InteligenciaModulo";
 import Demandas from "./pages/Demandas";
 import DemandasDashboard from "./pages/DemandasDashboard";
+import DemandasForaDoPrazo from "./pages/DemandasForaDoPrazo";
 import NovaDemanda from "./pages/NovaDemanda";
 import Plantoes from "./pages/Plantoes";
 import PlantoesCalendario from "./pages/PlantoesCalendario";
