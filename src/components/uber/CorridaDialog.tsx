@@ -41,6 +41,7 @@ const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
 
 export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const upsert = useUpsertCorrida();
+  const { user } = useAuth();
   const [form, setForm] = useState<Partial<UberCorrida>>({});
   const [empresaOpen, setEmpresaOpen] = useState(false);
 
@@ -57,11 +58,34 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: meuNome = "" } = useQuery({
+    queryKey: ["meu-perfil-nome-uber", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, username")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return (data?.display_name || data?.username || "") as string;
+    },
+  });
+
   useEffect(() => {
     if (open) {
-      setForm(corrida ?? { data: new Date().toISOString().slice(0, 10), cancelada: false, valor: 0, tem_reembolso: false, valor_reembolso: 0, reembolso: 0 });
+      setForm(
+        corrida ?? {
+          data: new Date().toISOString().slice(0, 10),
+          cancelada: false,
+          valor: 0,
+          tem_reembolso: false,
+          valor_reembolso: 0,
+          reembolso: 0,
+          responsavel: meuNome,
+        }
+      );
     }
-  }, [open, corrida]);
+  }, [open, corrida, meuNome]);
 
   const set = (k: keyof UberCorrida, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
