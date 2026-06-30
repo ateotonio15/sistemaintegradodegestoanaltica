@@ -75,50 +75,8 @@ function maskCpf(v: string) {
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 
-const SETORES = [
-  "Agenda Cirúrgica",
-  "Atendimento",
-  "Auditoria",
-  "Cadastro",
-  "Clínica Externa",
-  "Direção Clínica",
-  "Financeiro",
-  "T.I",
-];
-const TIPOS = [
-  "Aplicativo Samel",
-  "Aprazamento",
-  "Cancelamento",
-  "Assistencial",
-  "Conduta Médica",
-  "Falha Cadastral",
-  "Nota Fiscal",
-  "Portal",
-  "Reclamação",
-  "T.I",
-];
-const RECLAMACOES = [
-  "Aprazamento cirúrgico",
-  "Aprazamento de consulta",
-  "Aprazamento de exame",
-  "Aprazamento de neuro pediatra",
-  "Aprazamento de ortopedista",
-  "Aprazamento de terapia adulto",
-  "Aprazamento de terapia infantil",
-  "Aprazamento fisioterapia ortopédica",
-  "Aprazamento fisioterapia pediátrica",
-  "Cancelamento cirúrgico",
-  "Cancelamento de consulta",
-  "Cancelamento de exame",
-  "Cancelamento de terapia adulto",
-  "Atraso na emissão da nota",
-  "Atraso na medicação",
-  "Despreparo assistencial",
-  "Falha de processo",
-  "Indisponibilidade de dados",
-  "Telemedicina",
-  "Aplicativo",
-];
+
+
 
 
 
