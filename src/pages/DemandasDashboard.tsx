@@ -425,11 +425,6 @@ export default function DemandasDashboard() {
               <ArrowLeft className="h-3 w-3" />
               Voltar para registros
             </Link>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/demandas/fora-do-prazo">
-                Devolutivas fora do prazo
-              </Link>
-            </Button>
           </div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Painel Executivo
