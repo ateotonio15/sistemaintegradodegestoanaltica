@@ -775,33 +775,14 @@ export default function Financeiro() {
   const invalidateGrupos = () =>
     queryClient.invalidateQueries({ queryKey: ["financeiro-chip-grupos", mes] });
 
-  // Limpa grupos cujos membros não existem mais (e remove grupos com <2).
-  // IMPORTANTE: só roda depois que `allRows` terminar de carregar, senão
-  // após F5 a lista vem vazia e o efeito apaga todos os grupos persistidos.
-  useEffect(() => {
-    if (isLoading) return;
-    if (!chipGruposDb.length) return;
-    if (allRows.length === 0) return;
-    const validIds = new Set(faturandoRows.map((r) => r.empresa_id));
-    (async () => {
-      let mudou = false;
-      for (const g of chipGruposDb) {
-        const filtrados = g.empresaIds.filter((id) => validIds.has(id));
-        if (filtrados.length < 2) {
-          await supabase.from("financeiro_chip_grupos" as any).delete().eq("id", g.id);
-          mudou = true;
-        } else if (filtrados.length !== g.empresaIds.length) {
-          await supabase
-            .from("financeiro_chip_grupos" as any)
-            .update({ empresa_ids: filtrados })
-            .eq("id", g.id);
-          mudou = true;
-        }
-      }
-      if (mudou) invalidateGrupos();
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [faturandoRows, chipGruposDb, isLoading, allRows.length]);
+  // NÃO fazemos auto-limpeza dos grupos persistidos.
+  // Motivo: `faturandoRows` exclui empresas cujo status mudou (ex.: nota
+  // foi enviada → "Enviada", ou faturamento cancelado → "Pendente"). Se
+  // pruna o grupo com base nesse conjunto, basta um membro mudar de
+  // status para o grupo ser apagado inteiro do banco — depois de F5 todos
+  // os chips voltam soltos. O render abaixo já ignora visualmente grupos
+  // com <2 membros visíveis, e o usuário tem o botão "Desfazer grupo"
+  // para remover manualmente quando desejar.
 
   const grupoDeEmpresa = (empresaId: string) =>
     chipGrupos.find((g) => g.empresaIds.includes(empresaId));
