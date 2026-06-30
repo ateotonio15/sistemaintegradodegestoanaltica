@@ -135,7 +135,8 @@ export default function UberDashboard() {
                 <RTooltip formatter={(v: any, n) => n === "valor" ? fmtMoney(Number(v)) : v} />
                 <Legend />
                 <Line yAxisId="left" type="monotone" dataKey="qtd" name="Corridas" stroke="#3b82f6" strokeWidth={2} />
-                <Line yAxisId="right" type="monotone" dataKey="valor" name="Valor (R$)" stroke="#10b981" strokeWidth={2} />
+                <Line yAxisId="right" type="monotone" dataKey="valor" name="Gasto (R$)" stroke="#10b981" strokeWidth={2} />
+                <Line yAxisId="right" type="monotone" dataKey="reembolso" name="Reembolso (R$)" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 5" />
               </LineChart>
             </ResponsiveContainer>
           </Card>
