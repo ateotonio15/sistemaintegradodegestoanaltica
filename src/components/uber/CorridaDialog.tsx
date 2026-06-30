@@ -38,7 +38,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
 
   useEffect(() => {
     if (open) {
-      setForm(corrida ?? { data: new Date().toISOString().slice(0, 10), cancelada: false, valor: 0, reembolso: 0 });
+      setForm(corrida ?? { data: new Date().toISOString().slice(0, 10), cancelada: false, valor: 0, tem_reembolso: false, valor_reembolso: 0, reembolso: 0 });
     }
   }, [open, corrida]);
 
