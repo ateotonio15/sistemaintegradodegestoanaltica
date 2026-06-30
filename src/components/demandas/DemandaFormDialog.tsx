@@ -213,7 +213,15 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
           <Field label="Setor responsável *">
             <Select
               value={form.setor_responsavel || ""}
-              onValueChange={(v) => set("setor_responsavel", v)}
+              onValueChange={(v) =>
+                setForm((p) => ({
+                  ...p,
+                  setor_responsavel: v,
+                  // cascata: troca de setor limpa tipo e reclamação
+                  tipo_reclamacao: "",
+                  reclamacao: "",
+                }))
+              }
             >
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>
@@ -227,9 +235,19 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
           <Field label="Tipo de reclamação *">
             <Select
               value={form.tipo_reclamacao || ""}
-              onValueChange={(v) => set("tipo_reclamacao", v)}
+              onValueChange={(v) =>
+                setForm((p) => ({
+                  ...p,
+                  tipo_reclamacao: v,
+                  // cascata: troca de tipo limpa reclamação
+                  reclamacao: "",
+                }))
+              }
+              disabled={!form.setor_responsavel}
             >
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder={form.setor_responsavel ? "Selecione..." : "Selecione um setor primeiro"} />
+              </SelectTrigger>
               <SelectContent>
                 {TIPOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 {form.tipo_reclamacao && !TIPOS.includes(form.tipo_reclamacao) && (
@@ -239,19 +257,28 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
             </Select>
           </Field>
           <Field label="Reclamação *">
-            <Select
-              value={form.reclamacao || ""}
-              onValueChange={(v) => set("reclamacao", v)}
-            >
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                {RECLAMACOES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                {form.reclamacao && !RECLAMACOES.includes(form.reclamacao) && (
-                  <SelectItem value={form.reclamacao}>{form.reclamacao}</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+            {(() => {
+              const opcoes = getReclamacoesDisponiveis(form.setor_responsavel, form.tipo_reclamacao);
+              return (
+                <Select
+                  value={form.reclamacao || ""}
+                  onValueChange={(v) => set("reclamacao", normalizarReclamacao(v))}
+                  disabled={!form.tipo_reclamacao}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={form.tipo_reclamacao ? "Selecione..." : "Selecione um tipo primeiro"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {opcoes.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    {form.reclamacao && !opcoes.includes(form.reclamacao) && (
+                      <SelectItem value={form.reclamacao}>{form.reclamacao}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              );
+            })()}
           </Field>
+
           <Field label="Data da reclamação *">
             <Input
               type="date"
