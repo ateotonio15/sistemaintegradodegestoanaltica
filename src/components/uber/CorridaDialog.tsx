@@ -41,6 +41,20 @@ const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
 export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const upsert = useUpsertCorrida();
   const [form, setForm] = useState<Partial<UberCorrida>>({});
+  const [empresaOpen, setEmpresaOpen] = useState(false);
+
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["empresas-uber-select"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
     if (open) {
