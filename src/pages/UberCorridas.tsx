@@ -64,7 +64,7 @@ export default function UberCorridas() {
       ativas: validas.length,
       canceladas: filtered.length - validas.length,
       valor: validas.reduce((s, c) => s + Number(c.valor || 0), 0),
-      reembolso: validas.reduce((s, c) => s + Number(c.reembolso || 0), 0),
+      reembolso: validas.reduce((s, c) => s + Number(c.valor_reembolso ?? c.reembolso ?? 0), 0),
     };
   }, [filtered]);
 
