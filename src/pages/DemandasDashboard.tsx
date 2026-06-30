@@ -417,13 +417,20 @@ export default function DemandasDashboard() {
       <div className="container mx-auto px-4 lg:px-8 py-6 max-w-[1600px] space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
-          <Link
-            to="/demandas"
-            className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 w-fit"
-          >
-            <ArrowLeft className="h-3 w-3" />
-            Voltar para registros
-          </Link>
+          <div className="flex items-start justify-between gap-3">
+            <Link
+              to="/demandas"
+              className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 w-fit"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Voltar para registros
+            </Link>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/demandas/fora-do-prazo">
+                Devolutivas fora do prazo
+              </Link>
+            </Button>
+          </div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Painel Executivo
           </p>
