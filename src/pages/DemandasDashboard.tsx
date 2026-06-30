@@ -593,6 +593,8 @@ export default function DemandasDashboard() {
                 tone="danger"
                 inverse
                 data={monthlySeries.map((m) => ({ label: m.label, value: m.fora }))}
+                actionHref="/demandas/fora-do-prazo"
+                actionLabel="Ver detalhes"
                 unit="%"
                 meta={META_FORA_PRAZO}
                 footer="Meta: ≤ 8%"
