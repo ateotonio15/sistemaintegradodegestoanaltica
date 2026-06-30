@@ -929,7 +929,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         (h.includes("mensalidade") || h.includes("valor unit") || h.includes("valor unitario"))
       )
         mens = c;
-      else if (val < 0 && (h === "valor" || h === "total" || h.includes("valor total") || h.includes("total mensalidade") || h.includes("total geral"))) val = c;
+      else if (val < 0 && (h === "valor" || h === "total" || h.includes("valor total"))) val = c;
     }
     if (lbl >= 0 && val >= 0) {
       headerIdx = i; idxLabel = lbl; idxQtd = qtd; idxMens = mens; idxValor = val;
