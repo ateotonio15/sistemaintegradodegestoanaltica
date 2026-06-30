@@ -27,12 +27,15 @@ export default function UberDashboard() {
   const kpis = useMemo(() => {
     const validas = filtered.filter((c) => !c.cancelada);
     const totalValor = validas.reduce((s, c) => s + Number(c.valor || 0), 0);
+    const totalReembolso = validas.reduce((s, c) => s + Number(c.valor_reembolso ?? c.reembolso ?? 0), 0);
     const ticket = validas.length ? totalValor / validas.length : 0;
     return {
       total: filtered.length,
       ativas: validas.length,
       canceladas: filtered.length - validas.length,
       valor: totalValor,
+      reembolso: totalReembolso,
+      liquido: totalValor - totalReembolso,
       ticket,
       colaboradores: new Set(filtered.map((c) => c.colaborador)).size,
     };
