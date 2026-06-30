@@ -190,7 +190,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div>
             <Label>Responsável</Label>
-            <Input value={form.responsavel ?? ""} onChange={(e) => set("responsavel", e.target.value)} />
+            <Input value={form.responsavel ?? meuNome} readOnly disabled />
           </div>
           <div>
             <Label>Valor (R$)</Label>
