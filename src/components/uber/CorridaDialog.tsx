@@ -79,7 +79,12 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div>
             <Label>Motivo</Label>
-            <Input value={form.motivo ?? ""} onChange={(e) => set("motivo", e.target.value)} />
+            <Select value={form.motivo ?? ""} onValueChange={(v) => set("motivo", v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {MOTIVOS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Tipo</Label>
