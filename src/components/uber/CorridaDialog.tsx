@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpsertCorrida, type UberCorrida } from "@/hooks/useUberCorridas";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   open: boolean;
