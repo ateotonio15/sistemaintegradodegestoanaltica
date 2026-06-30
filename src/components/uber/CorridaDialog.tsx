@@ -15,6 +15,22 @@ interface Props {
 }
 
 const TIPOS = ["Ida", "Volta", "Ida e Volta"];
+const MOTIVOS = [
+  "Plantão de Atendimento",
+  "Envio de Material",
+  "Técnica Honda",
+  "Coleta de Preventivo",
+  "Coleta de PSA",
+  "Ação de Saúde",
+  "Palestra",
+  "Coleta de sangue",
+  "Taxa de destaque",
+  "Implantação",
+  "Portal de Treinamento",
+  "Integração",
+  "Gravação da Palestra",
+];
+const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
 
 export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const upsert = useUpsertCorrida();
@@ -63,7 +79,12 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div>
             <Label>Motivo</Label>
-            <Input value={form.motivo ?? ""} onChange={(e) => set("motivo", e.target.value)} />
+            <Select value={form.motivo ?? ""} onValueChange={(v) => set("motivo", v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {MOTIVOS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Tipo</Label>
@@ -80,7 +101,12 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div>
             <Label>Forma de pagamento</Label>
-            <Input value={form.forma_pagamento ?? ""} onChange={(e) => set("forma_pagamento", e.target.value)} />
+            <Select value={form.forma_pagamento ?? ""} onValueChange={(v) => set("forma_pagamento", v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {FORMAS_PAGAMENTO.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Responsável</Label>
