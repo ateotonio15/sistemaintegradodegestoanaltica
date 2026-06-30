@@ -985,7 +985,12 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     const m = labelRaw.match(reCnpj);
     if (m) {
       const cnpj = normalizarCnpj(m[1]);
-      const nome = labelRaw.slice(0, m.index).trim().replace(/[-–—:]\s*$/, "").trim();
+      const nome = labelRaw
+        .slice(0, m.index)
+        .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*$/i, "")
+        .trim()
+        .replace(/[-–—:]\s*$/, "")
+        .trim();
       cur = {
         cnpj, nome: nome || "Sem nome",
         enfValores: [], enfQtd: 0, enfMens: 0,
