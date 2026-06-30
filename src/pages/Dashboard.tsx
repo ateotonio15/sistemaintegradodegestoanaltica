@@ -305,7 +305,7 @@ export default function Dashboard() {
         if (!emp.grupo_contrato) { updateData.grupo_contrato = "Não informado"; corrigidosEmp++; }
 
         if (Object.keys(updateData).length > 0) {
-          const { error: updateError } = await supabase.from("empresas").update(updateData).eq("id", emp.id);
+          const { error: updateError } = await supabase.from("empresas").update(updateData as any).eq("id", emp.id);
           if (updateError) { console.error("Erro ao atualizar empresa:", emp.nome, updateError); errosEmp++; }
           else {
             Object.assign(emp, updateData);
@@ -402,7 +402,7 @@ export default function Dashboard() {
         }
 
         if (Object.keys(updateMov).length > 0) {
-          const { error: updErr } = await supabase.from("movimentacoes").update(updateMov).eq("id", mov.id);
+          const { error: updErr } = await supabase.from("movimentacoes").update(updateMov as any).eq("id", mov.id);
           if (updErr) { console.error("Erro ao atualizar mov:", mov.id, updErr); errosMov++; }
           else { corrigidosMov++; }
         }
