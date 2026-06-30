@@ -24,6 +24,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCreateDemanda, useUpdateDemanda } from "@/hooks/useDemandas";
 import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
+import {
+  SETORES,
+  TIPOS,
+  RECLAMACOES,
+  getReclamacoesDisponiveis,
+  normalizarReclamacao,
+  isReclamacaoCirurgica,
+} from "@/lib/constants";
 
 
 type Props = {
@@ -49,23 +57,15 @@ const empty = (): Partial<Demanda> => ({
   data_entrada: "",
   nome_medico: "",
   nome_procedimento: "",
-  encaminhado_setor: false,
+  encaminhado_setor: true,
   resolvido_setor: false,
   data_resolucao_setor: "",
   resolvido_executiva: false,
   data_resolucao_executiva: "",
 });
 
-const SURGICAL = ["aprazamento cirurgico", "cancelamento cirurgico"];
-function normalize(s: string | null | undefined) {
-  return String(s ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .trim();
-}
 function isSurgical(reclamacao: string | null | undefined) {
-  return SURGICAL.includes(normalize(reclamacao));
+  return isReclamacaoCirurgica(reclamacao);
 }
 function maskCpf(v: string) {
   const d = String(v).replace(/\D/g, "").slice(0, 11);
@@ -75,50 +75,8 @@ function maskCpf(v: string) {
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 
-const SETORES = [
-  "Agenda Cirúrgica",
-  "Atendimento",
-  "Auditoria",
-  "Cadastro",
-  "Clínica Externa",
-  "Direção Clínica",
-  "Financeiro",
-  "T.I",
-];
-const TIPOS = [
-  "Aplicativo Samel",
-  "Aprazamento",
-  "Cancelamento",
-  "Assistencial",
-  "Conduta Médica",
-  "Falha Cadastral",
-  "Nota Fiscal",
-  "Portal",
-  "Reclamação",
-  "T.I",
-];
-const RECLAMACOES = [
-  "Aprazamento cirúrgico",
-  "Aprazamento de consulta",
-  "Aprazamento de exame",
-  "Aprazamento de neuro pediatra",
-  "Aprazamento de ortopedista",
-  "Aprazamento de terapia adulto",
-  "Aprazamento de terapia infantil",
-  "Aprazamento fisioterapia ortopédica",
-  "Aprazamento fisioterapia pediátrica",
-  "Cancelamento cirúrgico",
-  "Cancelamento de consulta",
-  "Cancelamento de exame",
-  "Cancelamento de terapia adulto",
-  "Atraso na emissão da nota",
-  "Atraso na medicação",
-  "Despreparo assistencial",
-  "Falha de processo",
-  "Indisponibilidade de dados",
-  "Telemedicina",
-  "Aplicativo",
-];
+
+
 
 
 
@@ -197,9 +155,17 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
       return toast.error("Informe a data de resolução (executiva)");
     }
 
-    // Normaliza: NÃO -> limpa datas; consistência setor/executiva
+    // Normalização final antes de persistir
+    const reclamacaoCanon = normalizarReclamacao(form.reclamacao);
+    const cirurgico = isReclamacaoCirurgica(reclamacaoCanon);
     const payload: Partial<Demanda> = {
       ...form,
+      reclamacao: reclamacaoCanon,
+      // Campos cirúrgicos só persistem quando aplicável
+      cpf: cirurgico ? (form.cpf || null) : null,
+      data_entrada: cirurgico ? (form.data_entrada || null) : null,
+      nome_medico: cirurgico ? (form.nome_medico || null) : null,
+      nome_procedimento: cirurgico ? (form.nome_procedimento || null) : null,
       data_resolucao_setor: form.resolvido_setor ? form.data_resolucao_setor || null : null,
       data_resolucao_executiva: form.resolvido_executiva
         ? form.data_resolucao_executiva || null
@@ -255,7 +221,15 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
           <Field label="Setor responsável *">
             <Select
               value={form.setor_responsavel || ""}
-              onValueChange={(v) => set("setor_responsavel", v)}
+              onValueChange={(v) =>
+                setForm((p) => ({
+                  ...p,
+                  setor_responsavel: v,
+                  // cascata: troca de setor limpa tipo e reclamação
+                  tipo_reclamacao: "",
+                  reclamacao: "",
+                }))
+              }
             >
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>
@@ -269,9 +243,19 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
           <Field label="Tipo de reclamação *">
             <Select
               value={form.tipo_reclamacao || ""}
-              onValueChange={(v) => set("tipo_reclamacao", v)}
+              onValueChange={(v) =>
+                setForm((p) => ({
+                  ...p,
+                  tipo_reclamacao: v,
+                  // cascata: troca de tipo limpa reclamação
+                  reclamacao: "",
+                }))
+              }
+              disabled={!form.setor_responsavel}
             >
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder={form.setor_responsavel ? "Selecione..." : "Selecione um setor primeiro"} />
+              </SelectTrigger>
               <SelectContent>
                 {TIPOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 {form.tipo_reclamacao && !TIPOS.includes(form.tipo_reclamacao) && (
@@ -281,19 +265,28 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
             </Select>
           </Field>
           <Field label="Reclamação *">
-            <Select
-              value={form.reclamacao || ""}
-              onValueChange={(v) => set("reclamacao", v)}
-            >
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                {RECLAMACOES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                {form.reclamacao && !RECLAMACOES.includes(form.reclamacao) && (
-                  <SelectItem value={form.reclamacao}>{form.reclamacao}</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+            {(() => {
+              const opcoes = getReclamacoesDisponiveis(form.setor_responsavel, form.tipo_reclamacao);
+              return (
+                <Select
+                  value={form.reclamacao || ""}
+                  onValueChange={(v) => set("reclamacao", normalizarReclamacao(v))}
+                  disabled={!form.tipo_reclamacao}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={form.tipo_reclamacao ? "Selecione..." : "Selecione um tipo primeiro"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {opcoes.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    {form.reclamacao && !opcoes.includes(form.reclamacao) && (
+                      <SelectItem value={form.reclamacao}>{form.reclamacao}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              );
+            })()}
           </Field>
+
           <Field label="Data da reclamação *">
             <Input
               type="date"
