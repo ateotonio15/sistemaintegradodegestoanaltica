@@ -802,7 +802,17 @@ function TrendLineCard({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      {footer && <p className="text-[11px] text-muted-foreground mt-2">{footer}</p>}
+      <div className="mt-2 flex items-center justify-between gap-2">
+        {footer ? <p className="text-[11px] text-muted-foreground">{footer}</p> : <span />}
+        {actionHref && (
+          <Link
+            to={actionHref}
+            className="text-[11px] font-medium text-primary hover:underline inline-flex items-center gap-1"
+          >
+            {actionLabel ?? "Ver detalhes"} →
+          </Link>
+        )}
+      </div>
     </Card>
   );
 }
