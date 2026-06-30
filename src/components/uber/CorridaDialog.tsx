@@ -117,7 +117,42 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div className="sm:col-span-2">
             <Label>Empresa</Label>
-            <Input value={form.empresa ?? ""} onChange={(e) => set("empresa", e.target.value)} />
+            <Popover open={empresaOpen} onOpenChange={setEmpresaOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  className={cn("w-full justify-between font-normal", !form.empresa && "text-muted-foreground")}
+                >
+                  {form.empresa || "Selecione a empresa"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar empresa..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
+                    <CommandGroup>
+                      {empresas.map((e) => (
+                        <CommandItem
+                          key={e.id}
+                          value={e.nome}
+                          onSelect={() => {
+                            set("empresa", e.nome);
+                            setEmpresaOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", form.empresa === e.nome ? "opacity-100" : "opacity-0")} />
+                          {e.nome}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <Label>Forma de pagamento</Label>
