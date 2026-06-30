@@ -42,10 +42,12 @@ export default function UberDashboard() {
   }, [filtered]);
 
   const porDia = useMemo(() => {
-    const map = new Map<string, { data: string; qtd: number; valor: number }>();
+    const map = new Map<string, { data: string; qtd: number; valor: number; reembolso: number }>();
     filtered.filter((c) => !c.cancelada).forEach((c) => {
-      const cur = map.get(c.data) ?? { data: c.data, qtd: 0, valor: 0 };
-      cur.qtd += 1; cur.valor += Number(c.valor || 0);
+      const cur = map.get(c.data) ?? { data: c.data, qtd: 0, valor: 0, reembolso: 0 };
+      cur.qtd += 1;
+      cur.valor += Number(c.valor || 0);
+      cur.reembolso += Number(c.valor_reembolso ?? c.reembolso ?? 0);
       map.set(c.data, cur);
     });
     return Array.from(map.values())
