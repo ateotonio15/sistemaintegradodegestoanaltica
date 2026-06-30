@@ -15,6 +15,22 @@ interface Props {
 }
 
 const TIPOS = ["Ida", "Volta", "Ida e Volta"];
+const MOTIVOS = [
+  "Plantão de Atendimento",
+  "Envio de Material",
+  "Técnica Honda",
+  "Coleta de Preventivo",
+  "Coleta de PSA",
+  "Ação de Saúde",
+  "Palestra",
+  "Coleta de sangue",
+  "Taxa de destaque",
+  "Implantação",
+  "Portal de Treinamento",
+  "Integração",
+  "Gravação da Palestra",
+];
+const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
 
 export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const upsert = useUpsertCorrida();
