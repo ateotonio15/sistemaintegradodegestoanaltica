@@ -169,6 +169,7 @@ export default function SaudeEmpresasLista() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button asChild variant="outline"><Link to="/saude-empresas/preventivas"><CalendarDays className="h-4 w-4 mr-1" />Calendário preventivas</Link></Button>
           <Button asChild variant="outline"><Link to="/saude-empresas/visao-geral"><BarChart3 className="h-4 w-4 mr-1" />Visão geral</Link></Button>
           {canCreate && (
             <Button onClick={() => setModalOpen(true)}>
