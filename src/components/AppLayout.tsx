@@ -56,6 +56,7 @@ const allNavItems = [
   { to: "/uber/dashboard", label: "Dashboard Uber", icon: LayoutDashboard, adminOnly: true },
   { to: "/saude-empresas", label: "Saúde nas Empresas", icon: Stethoscope },
   { to: "/saude-empresas/visao-geral", label: "Visão Geral · Saúde", icon: Activity },
+  { to: "/saude-empresas/preventivas", label: "Calendário Preventivas", icon: CalendarClock },
 ];
 
 interface Notificacao {
