@@ -118,12 +118,6 @@ export function PalestraDialog({
     if (!isEdit && empresa && !endereco) setEndereco(empresa.endereco ?? "");
   }, [empresa, isEdit, endereco]);
 
-  // Sugestão de tema pelo mês selecionado
-  const temaSugerido = useMemo(() => {
-    const d = datas[0];
-    if (!d) return "";
-    return GESTANTES_2026[d.getMonth()] ?? "";
-  }, [datas]);
 
   const handleSelectDatas = (ds: Date[] | undefined) => {
     const list = ds ?? [];
@@ -149,6 +143,10 @@ export function PalestraDialog({
     if (!empresaId) { toast.error("Selecione a empresa"); return; }
     if (!endereco.trim()) { toast.error("Informe o endereço"); return; }
     if (datas.length === 0) { toast.error("Selecione ao menos uma data"); return; }
+    if (!horarioInicio) { toast.error("Informe o horário de início"); return; }
+    if (!horarioFim) { toast.error("Informe o horário de fim"); return; }
+    if (horarioFim <= horarioInicio) { toast.error("Horário de fim deve ser maior que o de início"); return; }
+    if (!executivaUserId) { toast.error("Selecione a executiva responsável"); return; }
     if (status === "cancelado" && !motivo.trim()) {
       toast.error("Informe o motivo do cancelamento"); return;
     }
