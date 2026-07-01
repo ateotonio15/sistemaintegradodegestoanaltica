@@ -43,6 +43,73 @@ export function FormatarFaturamentoCard() {
     setFile(f);
   }
 
+  async function normalizeBrToXlsxBuffer(buf: ArrayBuffer): Promise<ArrayBuffer> {
+    // Sempre passa pela normalização do SheetJS para corrigir datas/valores em texto BR
+    // (evita dia/mês trocados em MM/DD e vírgula decimal ignorada nos .xls/.xlsx).
+    const XLSX = await import("xlsx");
+    const wb = XLSX.read(buf, { type: "array", cellDates: false, raw: true });
+    wb.SheetNames.forEach((sn) => {
+      const ws = wb.Sheets[sn];
+      if (!ws || !ws["!ref"]) return;
+      const range = XLSX.utils.decode_range(ws["!ref"]);
+      const competCols = new Set<number>();
+      for (let R = range.s.r; R <= Math.min(range.s.r + 20, range.e.r); R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[addr];
+          const txt = cell && cell.v != null ? String(cell.v).trim().toLowerCase() : "";
+          if (/^compet/.test(txt)) competCols.add(C);
+        }
+        if (competCols.size) break;
+      }
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[addr];
+          if (!cell || cell.t !== "s" || typeof cell.v !== "string") continue;
+          const s = cell.v.trim();
+          const md = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+          if (md) {
+            if (competCols.has(C)) continue;
+            const dn = parseInt(md[1], 10);
+            const mn = parseInt(md[2], 10);
+            let yn = parseInt(md[3], 10);
+            if (yn < 100) yn += 2000;
+            if (mn >= 1 && mn <= 12 && dn >= 1 && dn <= 31) {
+              const dt = new Date(Date.UTC(yn, mn - 1, dn, 12, 0, 0));
+              if (!isNaN(dt.getTime())) {
+                cell.t = "d";
+                cell.v = dt;
+                cell.z = "dd/mm/yyyy";
+                continue;
+              }
+            }
+          }
+          if (/^-?(?:\d{1,3}(?:\.\d{3})+|\d+),\d+$/.test(s)) {
+            const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
+            if (!isNaN(n)) {
+              cell.t = "n";
+              cell.v = n;
+              delete cell.w;
+            }
+          }
+        }
+      }
+    });
+    return XLSX.write(wb, { type: "array", bookType: "xlsx", cellDates: true }) as ArrayBuffer;
+  }
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleProcess() {
     if (!file) {
       toast.error("Selecione o arquivo do faturamento (.xlsx ou .xls).");
@@ -50,75 +117,9 @@ export function FormatarFaturamentoCard() {
     }
     try {
       setProcessing(true);
-      let buf = await file.arrayBuffer();
-      // Sempre passa pela normalização do SheetJS para corrigir datas/valores em texto BR
-      // (evita dia/mês trocados em MM/DD e vírgula decimal ignorada nos .xls/.xlsx).
-      const XLSX = await import("xlsx");
-      const wb = XLSX.read(buf, { type: "array", cellDates: false, raw: true });
-      wb.SheetNames.forEach((sn) => {
-        const ws = wb.Sheets[sn];
-        if (!ws || !ws["!ref"]) return;
-        const range = XLSX.utils.decode_range(ws["!ref"]);
-        // Detecta a coluna "Competência" para preservá-la como texto literal
-        // (o usuário exige que "01/07/2026" permaneça idêntico ao arquivo original).
-        const competCols = new Set<number>();
-        for (let R = range.s.r; R <= Math.min(range.s.r + 20, range.e.r); R++) {
-          for (let C = range.s.c; C <= range.e.c; C++) {
-            const addr = XLSX.utils.encode_cell({ r: R, c: C });
-            const cell = ws[addr];
-            const txt = cell && cell.v != null ? String(cell.v).trim().toLowerCase() : "";
-            if (/^compet/.test(txt)) competCols.add(C);
-          }
-          if (competCols.size) break;
-        }
-        for (let R = range.s.r; R <= range.e.r; R++) {
-          for (let C = range.s.c; C <= range.e.c; C++) {
-            const addr = XLSX.utils.encode_cell({ r: R, c: C });
-            const cell = ws[addr];
-            if (!cell || cell.t !== "s" || typeof cell.v !== "string") continue;
-            const s = cell.v.trim();
-            // Data BR: DD/MM/YYYY (constrói em UTC para preservar o dia)
-            const md = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-            if (md) {
-              // Competência: mantém como TEXTO literal (não vira Date)
-              if (competCols.has(C)) continue;
-              const dn = parseInt(md[1], 10);
-              const mn = parseInt(md[2], 10);
-              let yn = parseInt(md[3], 10);
-              if (yn < 100) yn += 2000;
-              if (mn >= 1 && mn <= 12 && dn >= 1 && dn <= 31) {
-                const dt = new Date(Date.UTC(yn, mn - 1, dn, 12, 0, 0));
-                if (!isNaN(dt.getTime())) {
-                  cell.t = "d";
-                  cell.v = dt;
-                  cell.z = "dd/mm/yyyy";
-                  continue;
-                }
-              }
-            }
-            // Número BR: 274,18  |  1.234,56  (não confundir com CPF/CNPJ/matrícula puros)
-            if (/^-?(?:\d{1,3}(?:\.\d{3})+|\d+),\d+$/.test(s)) {
-              const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
-              if (!isNaN(n)) {
-                cell.t = "n";
-                cell.v = n;
-                delete cell.w;
-              }
-            }
-          }
-        }
-      });
-      buf = XLSX.write(wb, { type: "array", bookType: "xlsx", cellDates: true }) as ArrayBuffer;
-
+      const buf = await normalizeBrToXlsxBuffer(await file.arrayBuffer());
       const { blob, filename } = await formatarFaturamentoExcel(buf, modo);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, filename);
       toast.success(`Arquivo formatado: ${filename}`);
       setFile(null);
       if (inputRef.current) inputRef.current.value = "";
@@ -129,6 +130,43 @@ export function FormatarFaturamentoCard() {
       setProcessing(false);
     }
   }
+
+  function pickExtra(f: File | null | undefined, setter: (f: File | null) => void) {
+    if (!f) return;
+    if (!/\.(xlsx|xls)$/i.test(f.name)) {
+      toast.error("Envie um arquivo .xlsx ou .xls.");
+      return;
+    }
+    setter(f);
+  }
+
+  async function handleAdicionarExclusoes() {
+    if (!brutoFile || !exclFile) {
+      toast.error("Selecione o arquivo bruto e o arquivo de exclusões.");
+      return;
+    }
+    try {
+      setExclProcessing(true);
+      const brutoBuf = await normalizeBrToXlsxBuffer(await brutoFile.arrayBuffer());
+      const exclBuf = await normalizeBrToXlsxBuffer(await exclFile.arrayBuffer());
+      const mergedBuf = await adicionarExclusoesAoBruto(brutoBuf, exclBuf);
+      const finalBuf = await normalizeBrToXlsxBuffer(mergedBuf);
+      const { blob, filename } = await formatarFaturamentoExcel(finalBuf, exclModo);
+      downloadBlob(blob, filename);
+      toast.success(`Exclusões adicionadas e formatação aplicada: ${filename}`);
+      setBrutoFile(null);
+      setExclFile(null);
+      if (brutoRef.current) brutoRef.current.value = "";
+      if (exclRef.current) exclRef.current.value = "";
+      setExclOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(`Falha ao adicionar exclusões: ${err instanceof Error ? err.message : "erro desconhecido"}`);
+    } finally {
+      setExclProcessing(false);
+    }
+  }
+
 
   return (
     <Card className="rounded-2xl border-border/60 shadow-sm h-full">
