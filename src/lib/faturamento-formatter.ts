@@ -323,11 +323,11 @@ export async function formatarFaturamentoExcel(
       col.width = WIDTHS[header];
       return;
     }
-    let max = 10;
-    col.eachCell?.({ includeEmpty: false }, (cell) => {
-      const l = String(cellText(cell)).length;
+    let max = String(finalHeaders[idx] ?? "").length;
+    for (let r = 2; r <= totalRowsOut; r++) {
+      const l = String(cellText(wsOut.getRow(r).getCell(idx + 1))).length;
       if (l > max) max = l;
-    });
+    }
     // fator 0.9 para fonte 8pt
     col.width = Math.min(Math.max(Math.round(max * 0.9) + 2, 10), 42);
   });
