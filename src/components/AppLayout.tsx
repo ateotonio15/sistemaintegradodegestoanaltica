@@ -151,7 +151,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
       if (item.to === "/vidas" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
       if (isEnfermeira) {
-        const allowed = ["/empresas", "/reajustes", "/saude-empresas", "/saude-empresas/visao-geral"];
+        const allowed = ["/empresas", "/reajustes", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas"];
         return allowed.includes(item.to);
       }
       return true;
