@@ -156,83 +156,33 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
               </Popover>
             </div>
           )}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Data *</Label>
-              <Input type="date" value={dataAcao} onChange={(e) => setDataAcao(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Início</Label>
-              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Fim</Label>
-              <Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Tipo *</Label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v as AcaoSaudeTipo)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="triagem">Triagem</SelectItem>
-                  <SelectItem value="palestra">Palestra</SelectItem>
-                  <SelectItem value="preventiva">Preventiva</SelectItem>
-                  <SelectItem value="bioimpedancia">Bioimpedância</SelectItem>
-                  <SelectItem value="outro">Outro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as AcaoSaudeStatus)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="agendada">Agendada</SelectItem>
-                  <SelectItem value="em_andamento">Em andamento</SelectItem>
-                  <SelectItem value="concluida">Concluída</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
           <div className="grid gap-1.5">
-            <Label>Título</Label>
-            <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Triagem cardiometabólica Q2" />
+            <Label>Data da ação *</Label>
+            <Input type="date" value={dataAcao} onChange={(e) => setDataAcao(e.target.value)} />
           </div>
-          <div className="grid gap-1.5">
-            <Label>Local</Label>
-            <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Endereço ou sala" />
-          </div>
-          <div className="grid gap-1.5">
-            <Label>Observações</Label>
-            <Textarea rows={3} value={obs} onChange={(e) => setObs(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label>Serviços incluídos na ação</Label>
-            <div className="grid grid-cols-3 gap-3">
-              <label className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer">
-                <Switch checked={temPa} onCheckedChange={setTemPa} />
-                <span className="text-sm">Pressão Arterial</span>
-              </label>
-              <label className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer">
-                <Switch checked={temGli} onCheckedChange={setTemGli} />
-                <span className="text-sm">Glicemia</span>
-              </label>
-              <label className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer">
-                <Switch checked={temBio} onCheckedChange={setTemBio} />
-                <span className="text-sm">Bioimpedância</span>
-              </label>
+          <div className="border-t pt-4 grid gap-3">
+            <Label>Ações disponíveis</Label>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Aferição de PA</span>
+              <Switch checked={temPa} onCheckedChange={setTemPa} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Glicemia</span>
+              <Switch checked={temGli} onCheckedChange={setTemGli} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Bioimpedância</span>
+              <Switch checked={temBio} onCheckedChange={setTemBio} />
             </div>
           </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={submit} disabled={!empresaId || !dataAcao || upsertAcao.isPending}>
-            {upsertAcao.isPending ? "Salvando..." : "Salvar"}
+            {upsertAcao.isPending ? "Salvando..." : acao ? "Salvar" : "Criar ação"}
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
