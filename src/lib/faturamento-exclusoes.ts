@@ -13,25 +13,44 @@ function normHeader(s: unknown): string {
     .trim();
 }
 
+/** Normaliza texto para comparação (upper, sem acento, sem "PJ - ", trim). */
+function normText(s: unknown): string {
+  return String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/^\s*PJ\s*[-–]\s*/i, "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Padroniza o nome do plano removendo protocolo ANS e variações. */
+function normalizarPlano(s: unknown): string {
+  const raw = String(s ?? "")
+    .replace(/\s*[-–]\s*Protocolo\s*ANS[:\s]*\d+/i, "")
+    .trim();
+  const lower = raw.toLowerCase();
+  if (lower.includes("master executivo")) return "Master Executivo";
+  if (lower.includes("coletivo empresarial master")) return "Coletivo Empresarial Master";
+  return raw;
+}
+
 /**
  * Mapeamento explícito Bruto ← Exclusões
- * (chave = cabeçalho no BRUTO normalizado; valor = lista de cabeçalhos aceitos na PLANILHA DE EXCLUSÕES)
  */
 const BRUTO_FROM_EXCL: Record<string, string[]> = {
-  "tipo cobranca": [], // fixado como "Exclusão"
-  "valor": [],         // sempre vazio
-  "competencia": [],   // calculado (mês anterior à mensalidade)
-  "fx etaria": [],     // replicado do bruto ("0 à 999")
+  "tipo cobranca": [],
+  "valor": [],
+  "competencia": [],
+  "fx etaria": [],
+  "cnpj": [], // preenchido pelo mapa pagador→CNPJ
 
-  // Mapeamentos explícitos solicitados pelo usuário
   "titularidade": ["tipo"],
   "dt": ["dt nascimento", "dt_nascimento", "data nascimento", "data de nascimento", "nascimento"],
   "pagador": ["subestipulante"],
 
-  // Fallbacks úteis (mesmo nome)
   "beneficiario": ["beneficiario", "nome beneficiario", "nome"],
   "cpf": ["cpf", "cpf beneficiario"],
-  "cnpj": ["cnpj"],
   "matricula": ["matricula", "matricula ans", "carteirinha", "carteira"],
   "plano": ["plano"],
   "contr": ["contr", "contrato"],
@@ -40,7 +59,6 @@ const BRUTO_FROM_EXCL: Record<string, string[]> = {
   "dt rescisao": ["dt rescisao", "data rescisao"],
 };
 
-/** Encontra o valor de uma linha da exclusão para o cabeçalho do bruto */
 function pickFromExcl(
   brutoHeader: string,
   linhaExc: unknown[],
@@ -62,7 +80,6 @@ function sheetToAOA(ws: XLSX.WorkSheet): unknown[][] {
   return XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true });
 }
 
-/** Formata data como DD/MM/YYYY (ano completo) */
 function fmtDataBR(d: Date): string {
   const dd = String(d.getUTCDate()).padStart(2, "0");
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
@@ -70,12 +87,10 @@ function fmtDataBR(d: Date): string {
   return `${dd}/${mm}/${yy}`;
 }
 
-/** Retorna Date da célula, aceitando Date real, serial Excel ou string DD/MM/YYYY */
 function toDateSafe(v: unknown): Date | null {
   if (v instanceof Date && !isNaN(v.getTime())) return v;
   if (v == null || v === "") return null;
   if (typeof v === "number" && isFinite(v)) {
-    // Serial do Excel (base 1899-12-30)
     const ms = Math.round((v - 25569) * 86400 * 1000);
     const d = new Date(ms);
     return isNaN(d.getTime()) ? null : d;
@@ -91,16 +106,24 @@ function toDateSafe(v: unknown): Date | null {
   return isNaN(tmp.getTime()) ? null : tmp;
 }
 
-/**
- * Junta as linhas do arquivo de exclusões ao final do arquivo bruto seguindo as regras:
- *  - Tipo Cobrança  = "Exclusão"
- *  - Valor          = vazio
- *  - Competência    = mês anterior à mensalidade do bruto (dia 01)
- *  - Fx Etária      = mesma faixa do bruto (ex.: "0 à 999")
- *  - Titularidade   ← coluna "Tipo" das exclusões
- *  - Dt             ← coluna "DT_NASCIMENTO" das exclusões
- *  - Pagador        ← "SUBESTIPULANTE" das exclusões, removendo prefixo "PJ - "
- */
+/** Converte valor numérico BR/US para number. */
+function toNumberSafe(v: unknown): number | null {
+  if (v == null || v === "") return null;
+  if (typeof v === "number" && isFinite(v)) return v;
+  const s = String(v).trim().replace(/[R$\s]/g, "");
+  // remove milhar "." quando há vírgula decimal
+  const norm = s.includes(",")
+    ? s.replace(/\./g, "").replace(",", ".")
+    : s;
+  const n = Number(norm);
+  return isFinite(n) ? n : null;
+}
+
+/** Dias totais do mês da data. */
+function diasDoMes(d: Date): number {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+}
+
 export async function adicionarExclusoesAoBruto(
   brutoBuf: ArrayBuffer,
   exclusoesBuf: ArrayBuffer,
@@ -124,7 +147,6 @@ export async function adicionarExclusoesAoBruto(
   const normExcMap = new Map<string, number>();
   headersExc.forEach((h, i) => normExcMap.set(normHeader(h), i));
 
-  // Índice das colunas de destino no bruto
   const findBrutoIdx = (key: string) =>
     headersBruto.findIndex((h) => normHeader(h) === key);
   const idxTipo = findBrutoIdx("tipo cobranca");
@@ -132,8 +154,57 @@ export async function adicionarExclusoesAoBruto(
   const idxComp = headersBruto.findIndex((h) => /^compet/.test(normHeader(h)));
   const idxFx = findBrutoIdx("fx etaria");
   const idxPagador = findBrutoIdx("pagador");
+  const idxCnpj = findBrutoIdx("cnpj");
+  const idxPlano = findBrutoIdx("plano");
 
-  // Descobre a competência da mensalidade (a mais recente presente no bruto)
+  // Normaliza a coluna Plano no bruto (in-place na AOA)
+  if (idxPlano >= 0) {
+    for (let r = 1; r < aoaBruto.length; r++) {
+      const linha = aoaBruto[r] as unknown[];
+      if (linha[idxPlano]) linha[idxPlano] = normalizarPlano(linha[idxPlano]);
+    }
+  }
+
+  // Mapa pagador (normalizado) → CNPJ, a partir do bruto
+  const pagadorCnpjMap = new Map<string, string>();
+  if (idxPagador >= 0 && idxCnpj >= 0) {
+    for (let r = 1; r < aoaBruto.length; r++) {
+      const linha = aoaBruto[r] as unknown[];
+      const pag = normText(linha[idxPagador]);
+      const cnpj = String(linha[idxCnpj] ?? "").trim();
+      if (pag && cnpj && !pagadorCnpjMap.has(pag)) pagadorCnpjMap.set(pag, cnpj);
+    }
+  }
+
+  // Detecta mensalidade por plano (moda dos valores em linhas de Mensalidade)
+  const mensalidadePorPlano = new Map<string, number>();
+  if (idxTipo >= 0 && idxPlano >= 0 && idxValor >= 0) {
+    const counts = new Map<string, Map<number, number>>();
+    for (let r = 1; r < aoaBruto.length; r++) {
+      const linha = aoaBruto[r] as unknown[];
+      const tipo = normText(linha[idxTipo]);
+      if (!tipo.includes("MENSALIDADE")) continue;
+      const plano = normalizarPlano(linha[idxPlano]);
+      const val = toNumberSafe(linha[idxValor]);
+      if (!plano || val == null || val <= 0) continue;
+      if (!counts.has(plano)) counts.set(plano, new Map());
+      const inner = counts.get(plano)!;
+      inner.set(val, (inner.get(val) ?? 0) + 1);
+    }
+    for (const [plano, valMap] of counts) {
+      let bestVal = 0;
+      let bestCount = 0;
+      for (const [v, c] of valMap) {
+        if (c > bestCount || (c === bestCount && v > bestVal)) {
+          bestVal = v;
+          bestCount = c;
+        }
+      }
+      if (bestVal > 0) mensalidadePorPlano.set(plano, bestVal);
+    }
+  }
+
+  // Competência da mensalidade (a mais recente presente no bruto)
   let maxComp: Date | null = null;
   if (idxComp >= 0) {
     for (let r = 1; r < aoaBruto.length; r++) {
@@ -146,7 +217,7 @@ export async function adicionarExclusoesAoBruto(
     ? new Date(Date.UTC(maxComp.getUTCFullYear(), maxComp.getUTCMonth() - 1, 1, 12))
     : null;
 
-  // Fx etária mais comum no bruto (default "0 à 999")
+  // Fx etária mais comum
   let fxEtariaBruto = "0 à 999";
   if (idxFx >= 0) {
     const cnt = new Map<string, number>();
@@ -161,28 +232,65 @@ export async function adicionarExclusoesAoBruto(
 
   const compExclusaoStr = compExclusao ? fmtDataBR(compExclusao) : "";
 
-  // Converte exclusões em linhas alinhadas ao cabeçalho do bruto
+  // Índice do cabeçalho "Dt Rescisão" nas exclusões (para calcular proporcional)
+  const idxRescExc =
+    normExcMap.get("dt rescisao") ??
+    normExcMap.get("data rescisao") ??
+    normExcMap.get("dt_rescisao");
+
   const novasLinhas: unknown[][] = [];
   for (let r = 1; r < aoaExc.length; r++) {
     const linhaExc = aoaExc[r] as unknown[];
     if (!linhaExc || linhaExc.every((v) => v === "" || v == null)) continue;
 
+    // Descobre plano e valor proporcional da linha
+    const planoRaw = idxPlano >= 0 ? pickFromExcl(headersBruto[idxPlano], linhaExc, normExcMap) : "";
+    const planoNorm = normalizarPlano(planoRaw);
+    const mensalidade = planoNorm ? mensalidadePorPlano.get(planoNorm) ?? null : null;
+    let valorProporcional: number | "" = "";
+    if (mensalidade != null && idxRescExc != null) {
+      const dResc = toDateSafe(linhaExc[idxRescExc]);
+      if (dResc) {
+        const totalDias = diasDoMes(dResc);
+        const diasProp = totalDias - dResc.getUTCDate() + 1;
+        if (diasProp > 0) {
+          const v = -1 * (mensalidade / totalDias) * diasProp;
+          valorProporcional = Math.round(v * 100) / 100;
+        }
+      }
+    }
+
     const nova: unknown[] = headersBruto.map((h, ci) => {
       if (ci === idxTipo) return "Exclusão";
-      if (ci === idxValor) return "";
+      if (ci === idxValor) return valorProporcional;
       if (ci === idxComp) return compExclusaoStr;
       if (ci === idxFx) return fxEtariaBruto;
+      if (ci === idxPlano) return planoNorm;
 
       let val = pickFromExcl(h, linhaExc, normExcMap);
 
-      // Regra especial: Pagador ← SUBESTIPULANTE (remove "PJ - ")
       if (ci === idxPagador && typeof val === "string") {
         val = val.replace(/^\s*PJ\s*[-–]\s*/i, "").trim();
       }
 
+      // CNPJ: se veio vazio, buscar via mapa pagador→CNPJ
+      if (ci === idxCnpj && (val === "" || val == null)) {
+        const pagVal =
+          idxPagador >= 0
+            ? String(pickFromExcl(headersBruto[idxPagador], linhaExc, normExcMap) ?? "")
+            : "";
+        const key = normText(pagVal);
+        const cnpj = key ? pagadorCnpjMap.get(key) : undefined;
+        if (cnpj) val = cnpj;
+      }
+
       // Datas: garante formato DD/MM/YYYY como texto
       const hNorm = normHeader(h);
-      if ((hNorm === "dt" || hNorm.startsWith("dt ") || hNorm.startsWith("data")) && val !== "" && val != null) {
+      if (
+        (hNorm === "dt" || hNorm.startsWith("dt ") || hNorm.startsWith("data")) &&
+        val !== "" &&
+        val != null
+      ) {
         const d = toDateSafe(val);
         if (d) val = fmtDataBR(d);
       }
@@ -192,8 +300,11 @@ export async function adicionarExclusoesAoBruto(
     novasLinhas.push(nova);
   }
 
-  // Anexa ao final da aba bruta
-  XLSX.utils.sheet_add_aoa(wsBruto, novasLinhas, { origin: -1 });
+  // Regrava a aba do bruto (para persistir a normalização de Plano)
+  const wsAtualizado = XLSX.utils.aoa_to_sheet(aoaBruto);
+  wbBruto.Sheets[brutoName] = wsAtualizado;
+
+  XLSX.utils.sheet_add_aoa(wsAtualizado, novasLinhas, { origin: -1 });
 
   const out = XLSX.write(wbBruto, {
     type: "array",
