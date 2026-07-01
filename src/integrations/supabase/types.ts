@@ -3892,13 +3892,10 @@ export type Database = {
       }
       cancelar_ferias_cadastro: { Args: { p_ferias_id: string }; Returns: Json }
       classificar_glicemia: {
-        Args: { p_jejum: boolean; p_valor: number }
+        Args: { g: number; jejum: boolean }
         Returns: string
       }
-      classificar_pa: {
-        Args: { p_pad: number; p_pas: number }
-        Returns: string
-      }
+      classificar_pa: { Args: { pad: number; pas: number }; Returns: string }
       confirmar_reajuste_cadastro: {
         Args: { p_id: string }
         Returns: undefined

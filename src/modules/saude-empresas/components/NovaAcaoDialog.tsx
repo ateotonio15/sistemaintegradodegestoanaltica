@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -37,6 +38,9 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
   const [local, setLocal] = useState("");
   const [obs, setObs] = useState("");
   const [popOpen, setPopOpen] = useState(false);
+  const [temPa, setTemPa] = useState(true);
+  const [temGli, setTemGli] = useState(true);
+  const [temBio, setTemBio] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["profile_me", user?.id],
@@ -72,6 +76,9 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
       setTitulo(acao.titulo ?? "");
       setLocal(acao.local ?? "");
       setObs(acao.observacoes ?? "");
+      setTemPa(acao.tem_pa ?? true);
+      setTemGli(acao.tem_glicemia ?? true);
+      setTemBio(acao.tem_bioimpedancia ?? false);
     } else {
       setEmpresaId(empresaIdLock ?? "");
       setDataAcao(new Date().toISOString().slice(0, 10));
@@ -82,6 +89,9 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
       setTitulo("");
       setLocal("");
       setObs("");
+      setTemPa(true);
+      setTemGli(true);
+      setTemBio(false);
     }
   }, [open, acao, empresaIdLock]);
 
@@ -100,6 +110,9 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
       observacoes: obs || null,
       enfermeira_user_id: acao?.enfermeira_user_id ?? user?.id ?? null,
       enfermeira_nome: acao?.enfermeira_nome ?? profile?.display_name ?? null,
+      tem_pa: temPa,
+      tem_glicemia: temGli,
+      tem_bioimpedancia: temBio,
     });
     onOpenChange(false);
     if (res?.id) onSaved?.(res.id);
@@ -195,6 +208,23 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
           <div className="grid gap-1.5">
             <Label>Observações</Label>
             <Textarea rows={3} value={obs} onChange={(e) => setObs(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <Label>Serviços incluídos na ação</Label>
+            <div className="grid grid-cols-3 gap-3">
+              <label className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer">
+                <Switch checked={temPa} onCheckedChange={setTemPa} />
+                <span className="text-sm">Pressão Arterial</span>
+              </label>
+              <label className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer">
+                <Switch checked={temGli} onCheckedChange={setTemGli} />
+                <span className="text-sm">Glicemia</span>
+              </label>
+              <label className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer">
+                <Switch checked={temBio} onCheckedChange={setTemBio} />
+                <span className="text-sm">Bioimpedância</span>
+              </label>
+            </div>
           </div>
         </div>
         <DialogFooter>
