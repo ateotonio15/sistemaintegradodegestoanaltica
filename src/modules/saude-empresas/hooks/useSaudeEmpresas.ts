@@ -71,6 +71,7 @@ export interface Triagem {
   classificacao_glicemia: string | null;
   tem_has: boolean;
   tem_dm: boolean;
+  tem_bio: boolean;
   usa_medicacao: boolean;
   medicamentos: string | null;
   risco_geral: "alto" | "medio" | "baixo" | null;
