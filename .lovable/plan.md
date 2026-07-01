@@ -1,72 +1,61 @@
-## Calendário de Ações Preventivas
+## Objetivo
+Ampliar `src/lib/faturamento-exclusoes.ts` (usado no card "Adicionar Exclusões ao faturamento") para:
+1. Padronizar nome do plano.
+2. Preencher CNPJ do pagador cruzando com o arquivo bruto.
+3. Calcular valor proporcional NEGATIVO da exclusão com base na mensalidade detectada no próprio bruto.
 
-Nova aba dentro do módulo Saúde nas Empresas para agendar visualmente 3 tipos de ações preventivas (Sinais Vitais, Coleta de Preventivo, Coleta de PSA) num calendário mensal seg–sex.
+Nenhuma mudança de schema, apenas lógica no arquivo `.ts` de mesclagem.
 
-### Navegação
-- Rota nova: `/saude-empresas/preventivas` (link no menu lateral do módulo Saúde).
-- Nível 1 — sem `?tipo=`: 3 cards clicáveis (grid md:3) com ícones em gradiente.
-- Nível 2 — com `?tipo=<slug>`: cabeçalho + banner (só PSA) + filtros + calendário + modal.
+---
 
-### Banco de dados
-Nova tabela `acoes_preventivas` (via migration):
-- `tipo` enum: `sinais_vitais | preventivo | psa`
-- `empresa`, `endereco`, `data`, `horario_inicio`, `horario_fim`
-- `responsavel`, `executiva`, `observacao`
-- `status` enum: `a_confirmar | confirmado | concluido | cancelado`
-- `motivo_cancelamento`, `criado_por`, `editado_por`
-- Padrão: id, created_at, updated_at + trigger de updated_at
+## 1. Normalização do Plano
 
-RLS:
-- SELECT: enfermeira, executivo_interno, coordenadora, diretora, admin
-- INSERT/UPDATE/DELETE: enfermeira, executivo_interno, coordenadora, admin (diretora e demais = read-only)
-- GRANT SELECT/INSERT/UPDATE/DELETE para `authenticated`; ALL para `service_role`
+Ao ler cada linha (bruto e exclusão), aplicar:
+- Se contém `master executivo` (case-insensitive) → `"Master Executivo"`
+- Se contém `coletivo empresarial master` → `"Coletivo Empresarial Master"`
+- Remover qualquer sufixo `- Protocolo ANS: XXXXX`.
 
-### Regras de negócio
-- Grade mostra apenas segunda–sexta (`getDay 1..5`).
-- Feriados (`isFeriado` de `@/lib/feriados`) bloqueiam criação — toast e abort. Validação também no save.
-- PSA restrito a novembro: mês inicial `new Date(ano, 10, 1)`, navegação de mês desabilitada, criação em outros meses = erro.
-- Cancelados escondidos da grade (mantidos no banco para export/auditoria).
-- Criação múltipla: DayPicker `mode="multiple"` → 1 insert por data. Edição = data única.
-- `motivo_cancelamento` obrigatório se status = cancelado.
-- Empresa via `EmpresaAutocomplete` existente.
+Aplicar tanto nas linhas do bruto (regravar coluna Plano) quanto nas novas linhas de exclusão.
 
-### Arquivos a criar
-```
-src/modules/saude-empresas/pages/PreventivasCalendario.tsx  (rota)
-src/modules/saude-empresas/components/preventivas/
-  TipoSelector.tsx         (nível 1)
-  CalendarioGrid.tsx       (grade mensal seg-sex)
-  PreventivaEventoDialog.tsx (modal CRUD)
-  StatusBadge.tsx
-src/modules/saude-empresas/hooks/useAcoesPreventivas.ts
-```
+## 2. CNPJ do pagador (nas exclusões)
 
-### Filtros e barra
-- Filtros: Empresa (autocomplete), Executiva (`useExecutivas`), Status, botão Limpar.
-- Barra: ChevronLeft | Hoje/Novembro | ChevronRight; centro = mês/ano capitalizado; direita = spacer `w-32`.
+Antes do merge, construir mapa `pagadorNormalizado → CNPJ` a partir das linhas do bruto:
+- Chave: nome do pagador normalizado (upper, sem acento, sem "PJ - ", trim).
+- Valor: CNPJ da mesma linha.
 
-### Modal
-- Campos conforme spec, com `mode="multiple"` na criação e `single` na edição.
-- Cancelamento mostra campo motivo obrigatório.
-- Rodapé: Excluir (AlertDialog, só edição) | Cancelar | Salvar.
-- Executiva default = usuário logado.
+Ao gerar cada linha de exclusão, após obter o `Pagador` (do `SUBESTIPULANTE` sem "PJ - "), procurar no mapa e preencher a coluna `CNPJ` do bruto.
 
-### Exportação
-Botão "Exportar Excel" chama `exportToExcel` de `@/lib/export-utils`, nome `calendario-<tipo>-YYYY-MM.xlsx` com todas as colunas listadas.
+## 3. Detecção automática dos valores de mensalidade
 
-### Permissões
-Reusa `usePermissoesSaude`:
-- `podeEditar` → CRUD completo
-- `isReadOnly` (diretora) → visualiza, sem botões
-- outros → rota sem acesso (redirect + toast)
+Percorrer o bruto e, para cada linha cujo `Tipo Cobrança` seja `Mensalidade` (ou similar — normalizar), agrupar por plano normalizado e coletar o valor. Escolher o **valor mais frequente (moda)** por plano para blindar contra proporcionais/reajustes.
 
-### Design tokens
-- Cores só via tokens semânticos do `index.css`.
-- Badges de status com as classes exatas da spec (única exceção hardcoded permitida).
-- Gradientes só nos 3 cards do Nível 1.
-- Números tabulares (`tabular-nums`) nos horários.
+Resultado: `Map<PlanoNormalizado, number>` (ex.: `Master Executivo → 362.41`, `Coletivo Empresarial Master → 258.87`). Se um plano não for encontrado, o valor da exclusão fica vazio (não quebrar).
 
-### Ordem de execução
-1. Migration (tabela + enums + RLS + grants + trigger).
-2. Arquivos de UI + hook + rota + link no menu.
-3. Verificação de build.
+## 4. Cálculo do proporcional
+
+Para cada linha de exclusão:
+1. Ler `Dt_rescisão` (`DT_RESCISAO` na exclusão). Se ausente/ inválida → valor vazio.
+2. `diasNoMes` = total de dias do mês da rescisão (28/29/30/31).
+3. `diasProporcionais` = `diasNoMes - dia_rescisao + 1` (inclui o dia da rescisão — 27→30 = 4 dias, conforme exemplo).
+4. `mensalidade` = valor detectado para o plano da linha.
+5. `valor = -1 * (mensalidade / diasNoMes) * diasProporcionais`, arredondado a 2 casas **só no final** (`Math.round(v*100)/100`).
+6. Gravar na coluna `Valor` do bruto (como número, não string, para preservar formato).
+
+## 5. Ajustes de output
+
+- Manter regras já existentes (Tipo Cobrança="Exclusão", Competência = mês anterior, Fx Etária replicada, formatação de datas como texto `DD/MM/YYYY`, sem aba Resumo).
+- Novo: normalização do Plano aplicada também às linhas originais do bruto na aba final (reescrever coluna Plano linha a linha).
+
+---
+
+## Arquivo alterado
+- `src/lib/faturamento-exclusoes.ts` — adiciona:
+  - `normalizarPlano(s)`
+  - `construirMapaCNPJ(aoaBruto, headers)`
+  - `detectarMensalidadesPorPlano(aoaBruto, headers)`
+  - `calcularProporcionalExclusao(mensalidade, dtRescisao)`
+  - integração no loop de geração das linhas + reescrita da coluna Plano do bruto.
+
+## Fora de escopo
+- UI do modal (nada muda visualmente).
+- Persistência em banco / configuração por empresa (detecção é 100% via arquivo bruto).
