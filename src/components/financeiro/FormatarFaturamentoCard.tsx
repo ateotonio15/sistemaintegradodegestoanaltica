@@ -17,8 +17,8 @@ export function FormatarFaturamentoCard() {
 
   function pickFile(f: File | null | undefined) {
     if (!f) return;
-    if (!/\.xlsx$/i.test(f.name)) {
-      toast.error("Envie um arquivo .xlsx do faturamento.");
+    if (!/\.(xlsx|xls)$/i.test(f.name)) {
+      toast.error("Envie um arquivo .xlsx ou .xls do faturamento.");
       return;
     }
     setFile(f);
