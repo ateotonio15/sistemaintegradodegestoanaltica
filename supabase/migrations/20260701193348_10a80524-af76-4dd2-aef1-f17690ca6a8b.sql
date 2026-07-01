@@ -1,0 +1,1 @@
+ALTER TABLE public.acoes_preventivas ADD COLUMN IF NOT EXISTS responsavel text;

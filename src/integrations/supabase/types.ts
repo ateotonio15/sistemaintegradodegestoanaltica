@@ -29,6 +29,7 @@ export type Database = {
           id: string
           motivo_cancelamento: string | null
           observacao: string | null
+          responsavel: string | null
           status: Database["public"]["Enums"]["acao_preventiva_status"]
           tipo: Database["public"]["Enums"]["acao_preventiva_tipo"]
           updated_at: string
@@ -49,6 +50,7 @@ export type Database = {
           id?: string
           motivo_cancelamento?: string | null
           observacao?: string | null
+          responsavel?: string | null
           status?: Database["public"]["Enums"]["acao_preventiva_status"]
           tipo: Database["public"]["Enums"]["acao_preventiva_tipo"]
           updated_at?: string
@@ -69,6 +71,7 @@ export type Database = {
           id?: string
           motivo_cancelamento?: string | null
           observacao?: string | null
+          responsavel?: string | null
           status?: Database["public"]["Enums"]["acao_preventiva_status"]
           tipo?: Database["public"]["Enums"]["acao_preventiva_tipo"]
           updated_at?: string

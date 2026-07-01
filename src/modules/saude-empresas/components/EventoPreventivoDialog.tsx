@@ -56,18 +56,12 @@ export function EventoPreventivoDialog({
   const { data: executivas = [] } = useExecutivas();
   const { createMany, updateOne, deleteOne } = useAcaoPreventivaMutations();
 
-  const podeEscolherExecutiva = userUsername === "mayara.meireles" || isReadOnly === false && !!user && (
-    // admins também podem escolher
-    false
-  );
-  // Regra estrita conforme spec: somente mayara.meireles vê o Select.
-  const mayaraOnly = userUsername === "mayara.meireles";
-
   const [empresaId, setEmpresaId] = useState<string>("");
   const [endereco, setEndereco] = useState("");
   const [datas, setDatas] = useState<Date[]>([]);
   const [horarioInicio, setHorarioInicio] = useState("");
   const [horarioFim, setHorarioFim] = useState("");
+  const [responsavel, setResponsavel] = useState("");
   const [executivaUserId, setExecutivaUserId] = useState<string>("");
   const [executivaNome, setExecutivaNome] = useState<string>("");
   const [observacao, setObservacao] = useState("");
@@ -85,6 +79,7 @@ export function EventoPreventivoDialog({
       setDatas([new Date(y, m - 1, d)]);
       setHorarioInicio(editing.horario_inicio?.slice(0, 5) ?? "");
       setHorarioFim(editing.horario_fim?.slice(0, 5) ?? "");
+      setResponsavel(editing.responsavel ?? "");
       setExecutivaUserId(editing.executiva_user_id ?? "");
       setExecutivaNome(editing.executiva_nome ?? "");
       setObservacao(editing.observacao ?? "");
@@ -96,13 +91,15 @@ export function EventoPreventivoDialog({
       setDatas(preselect ?? []);
       setHorarioInicio("");
       setHorarioFim("");
-      setExecutivaUserId(mayaraOnly ? "" : user?.id ?? "");
-      setExecutivaNome(mayaraOnly ? "" : userNome ?? "");
+      setResponsavel("");
+      // Default = usuário logado
+      setExecutivaUserId(user?.id ?? "");
+      setExecutivaNome(userNome ?? "");
       setObservacao("");
       setStatus("a_confirmar");
       setMotivo("");
     }
-  }, [open, editing, preselect, user?.id, userNome, mayaraOnly]);
+  }, [open, editing, preselect, user?.id, userNome]);
 
   const empresa = useMemo(() => empresas.find((e) => e.id === empresaId), [empresas, empresaId]);
   // auto endereço quando trocar empresa em modo novo (se vazio)
@@ -142,6 +139,7 @@ export function EventoPreventivoDialog({
       endereco: endereco || null,
       horario_inicio: horarioInicio || null,
       horario_fim: horarioFim || null,
+      responsavel: responsavel || null,
       executiva_user_id: executivaUserId || null,
       executiva_nome: executivaNome || null,
       observacao: observacao || null,
@@ -255,27 +253,33 @@ export function EventoPreventivoDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label>Executiva responsável</Label>
-            {mayaraOnly ? (
-              <Select
-                value={executivaUserId}
-                onValueChange={(v) => {
-                  setExecutivaUserId(v);
-                  const ex = executivas.find((e) => e.user_id === v);
-                  setExecutivaNome(ex?.display_name ?? "");
-                }}
-                disabled={dis}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
-                <SelectContent>
-                  {executivas.map((e) => (
-                    <SelectItem key={e.user_id} value={e.user_id}>{e.display_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input value={executivaNome} disabled />
-            )}
+            <Label>Responsável *</Label>
+            <Input
+              value={responsavel}
+              onChange={(e) => setResponsavel(e.target.value)}
+              disabled={dis}
+              placeholder="Profissional que executa a ação"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Executiva responsável *</Label>
+            <Select
+              value={executivaUserId}
+              onValueChange={(v) => {
+                setExecutivaUserId(v);
+                const ex = executivas.find((e) => e.user_id === v);
+                setExecutivaNome(ex?.display_name ?? "");
+              }}
+              disabled={dis}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
+              <SelectContent>
+                {executivas.map((e) => (
+                  <SelectItem key={e.user_id} value={e.user_id}>{e.display_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-2">
