@@ -256,9 +256,13 @@ export async function formatarFaturamentoExcel(
   wsOut.addRow(finalHeaders);
   finalRows.forEach((r) => wsOut.addRow(r));
 
-  wsOut.eachRow((row) => {
+  const totalColsOut = finalHeaders.length;
+  const totalRowsOut = wsOut.rowCount;
+  for (let r = 1; r <= totalRowsOut; r++) {
+    const row = wsOut.getRow(r);
     row.height = 15;
-    row.eachCell({ includeEmpty: false }, (cell) => {
+    for (let c = 1; c <= totalColsOut; c++) {
+      const cell = row.getCell(c);
       cell.font = { ...(cell.font || {}), size: 8 };
       cell.border = {
         top: { style: "thin" },
@@ -266,8 +270,8 @@ export async function formatarFaturamentoExcel(
         right: { style: "thin" },
         bottom: { style: "thin" },
       };
-    });
-  });
+    }
+  }
   const headerRowOut = wsOut.getRow(1);
   headerRowOut.eachCell((cell) => {
     cell.font = { bold: true, size: 8, color: { argb: "FF000000" } };
