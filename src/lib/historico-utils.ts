@@ -89,6 +89,7 @@ export function gerarHistoricoTexto(
   let totalInc = 0;
   let totalExc = 0;
   let totalAdesao = 0;
+  let totalRetro = 0;
 
   resultados.forEach((r) => {
     if (r.enfermaria.beneficiarios > 0 || r.enfermaria.total > 0) {
@@ -104,7 +105,12 @@ export function gerarHistoricoTexto(
     if (r.inclusoes?.total) totalInc += r.inclusoes.total;
     if (r.exclusoes?.total) totalExc += r.exclusoes.total;
     if (r.taxaAdesao?.total) totalAdesao += r.taxaAdesao.total;
+    if ((r as any).retroativas?.total) totalRetro += (r as any).retroativas.total;
   });
+
+  // Inclusão agregada já contém as retroativas — separar para exibir cada uma
+  const totalIncSemRetro = totalInc - totalRetro;
+
 
   const ehFaixaEtaria = (opts.tipoAnalise || "").toLowerCase() === "faixa_etaria";
 
@@ -120,9 +126,9 @@ export function gerarHistoricoTexto(
     linhas.push(`Período de ${cabecalho}${resumoProdutos.length ? ` ${resumoProdutos.join(" / ")}` : ""}.`);
 
 
-    if (totalInc > 0) {
+    if (totalIncSemRetro > 0) {
       linhas.push("");
-      linhas.push(`Inclusão= ${fmtBR(totalInc)}`);
+      linhas.push(`Inclusão= ${fmtBR(totalIncSemRetro)}`);
     }
     if (totalAdesao > 0) {
       linhas.push(`Taxa de Adesão= ${fmtBR(totalAdesao)}`);
@@ -130,6 +136,9 @@ export function gerarHistoricoTexto(
     if (totalExc !== 0) {
       const v = Math.abs(totalExc);
       linhas.push(`Exclusão: (${fmtBR(v)}).`);
+    }
+    if (totalRetro > 0) {
+      linhas.push(`C.Retroativa: ${fmtBR(totalRetro)}`);
     }
   } else {
     linhas.push(`Período de: ${cabecalho}.`);
@@ -141,17 +150,21 @@ export function gerarHistoricoTexto(
     if (benefApt > 0 || totalApt > 0) {
       linhas.push(`Apartamento: ${benefApt}x${fmtBR(mensApt)}= ${fmtBR(totalApt)} /`);
     }
-    if (totalInc > 0) {
-      linhas.push(`Inclusão= ${fmtBR(totalInc)} /`);
+    if (totalIncSemRetro > 0) {
+      linhas.push(`Inclusão= ${fmtBR(totalIncSemRetro)} /`);
     }
     if (totalAdesao > 0) {
       linhas.push(`Taxa de Adesão= ${fmtBR(totalAdesao)} /`);
     }
     if (totalExc !== 0) {
       const v = Math.abs(totalExc);
-      linhas.push(`Exclusão: (${fmtBR(v)}).`);
+      linhas.push(`Exclusão: (${fmtBR(v)})`);
+    }
+    if (totalRetro > 0) {
+      linhas.push(`C.Retroativa: ${fmtBR(totalRetro)}`);
     }
   }
+
 
   linhas.push("");
   linhas.push(`Data de Vencimento: ${opts.dataVencimento}.`);
