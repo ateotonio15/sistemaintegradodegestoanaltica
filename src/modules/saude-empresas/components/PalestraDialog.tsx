@@ -268,13 +268,38 @@ export function PalestraDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label>Tema</Label>
+            <Label htmlFor="tema-palestra">Tema</Label>
             <Input
+              id="tema-palestra"
               value={tema}
               onChange={(e) => setTema(e.target.value)}
               disabled={dis}
-              placeholder={temaSugerido ? `Sugestão do mês: ${temaSugerido}` : "Tema livre"}
+              placeholder="Digite ou escolha uma sugestão abaixo"
             />
+            <div className="rounded-lg border bg-muted/40 p-2 space-y-1.5">
+              <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Sparkles className="h-3.5 w-3.5" /> Sugestões para {MESES_PT[mesSugestao]}
+              </div>
+              <button
+                type="button"
+                disabled={dis}
+                onClick={() => aplicarSugestao(sugGestantes)}
+                className="w-full text-left text-xs rounded border-l-4 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 disabled:opacity-60"
+              >
+                <span className="font-semibold text-emerald-800 dark:text-emerald-300">Encontro com Gestantes:</span>{" "}
+                <span className="text-foreground">{sugGestantes}</span>
+              </button>
+              <button
+                type="button"
+                disabled={dis}
+                onClick={() => aplicarSugestao(sugCampanha.tema)}
+                className="w-full text-left text-xs rounded border-l-4 px-2 py-1.5 hover:bg-accent/40 disabled:opacity-60"
+                style={{ borderLeftColor: sugCampanha.hex, background: `${sugCampanha.hex}14` }}
+              >
+                <span className="font-semibold" style={{ color: sugCampanha.hex }}>Campanha do mês ({sugCampanha.cor}):</span>{" "}
+                <span className="text-foreground">{sugCampanha.tema}</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid gap-2">
