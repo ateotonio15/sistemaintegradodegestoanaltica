@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, CalendarIcon } from "lucide-react";
+import { Trash2, CalendarIcon, Sparkles, X } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +16,13 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Palestra, PalestraStatus, usePalestraMutations,
 } from "../hooks/usePalestras";
 import { useEmpresasAtivas, useExecutivas } from "../hooks/useAcoesPreventivas";
 import { feriadoEm } from "../lib/feriados";
-import { GESTANTES_2026 } from "../lib/palestras-calendario";
+import { GESTANTES_2026, CAMPANHAS, MESES_PT } from "../lib/palestras-calendario";
 
 const STATUS_OPTIONS: { v: PalestraStatus; label: string }[] = [
   { v: "a_confirmar", label: "A confirmar" },
@@ -48,6 +49,7 @@ export function PalestraDialog({
   open, onOpenChange, editing, preselect, canEdit, isReadOnly, userNome, bloqueiosFn,
 }: Props) {
   const isEdit = !!editing;
+  const { user } = useAuth();
   const { data: empresas = [] } = useEmpresasAtivas();
   const { data: executivas = [] } = useExecutivas();
   const { createMany, updateOne, deleteOne } = usePalestraMutations();
@@ -87,25 +89,35 @@ export function PalestraDialog({
       setHorarioInicio("");
       setHorarioFim("");
       setTema("");
-      setExecutivaUserId("");
-      setExecutivaNome("");
+      setExecutivaUserId(user?.id ?? "");
+      setExecutivaNome(userNome ?? "");
       setObservacao("");
       setStatus("a_confirmar");
       setMotivo("");
     }
-  }, [open, editing, preselect]);
+  }, [open, editing, preselect, user?.id, userNome]);
+
+  // Mês para sugestões (primeiro dado ou mês corrente)
+  const mesSugestao = useMemo(() => (datas[0] ?? new Date()).getMonth(), [datas]);
+  const sugGestantes = GESTANTES_2026[mesSugestao] ?? "";
+  const sugCampanha = CAMPANHAS[mesSugestao];
+
+  const aplicarSugestao = (texto: string) => {
+    if (tema.trim() && tema !== texto) {
+      if (!window.confirm("Substituir o tema atual pela sugestão?")) return;
+    }
+    setTema(texto);
+  };
+
+  const removerData = (d: Date) => {
+    setDatas((prev) => prev.filter((x) => x.getTime() !== d.getTime()));
+  };
 
   const empresa = useMemo(() => empresas.find((e) => e.id === empresaId), [empresas, empresaId]);
   useEffect(() => {
     if (!isEdit && empresa && !endereco) setEndereco(empresa.endereco ?? "");
   }, [empresa, isEdit, endereco]);
 
-  // Sugestão de tema pelo mês selecionado
-  const temaSugerido = useMemo(() => {
-    const d = datas[0];
-    if (!d) return "";
-    return GESTANTES_2026[d.getMonth()] ?? "";
-  }, [datas]);
 
   const handleSelectDatas = (ds: Date[] | undefined) => {
     const list = ds ?? [];
@@ -131,6 +143,10 @@ export function PalestraDialog({
     if (!empresaId) { toast.error("Selecione a empresa"); return; }
     if (!endereco.trim()) { toast.error("Informe o endereço"); return; }
     if (datas.length === 0) { toast.error("Selecione ao menos uma data"); return; }
+    if (!horarioInicio) { toast.error("Informe o horário de início"); return; }
+    if (!horarioFim) { toast.error("Informe o horário de fim"); return; }
+    if (horarioFim <= horarioInicio) { toast.error("Horário de fim deve ser maior que o de início"); return; }
+    if (!executivaUserId) { toast.error("Selecione a executiva responsável"); return; }
     if (status === "cancelado" && !motivo.trim()) {
       toast.error("Informe o motivo do cancelamento"); return;
     }
@@ -231,10 +247,18 @@ export function PalestraDialog({
                 )}
               </PopoverContent>
             </Popover>
-            {datas.length > 1 && (
-              <div className="text-xs text-muted-foreground flex flex-wrap gap-1">
+            {datas.length > 1 && !isEdit && (
+              <div className="text-xs text-muted-foreground flex flex-wrap gap-1 items-center">
+                <span>{datas.length} data(s) selecionada(s):</span>
                 {datas.map((d) => (
-                  <Badge key={d.toISOString()} variant="secondary">{format(d, "dd/MM", { locale: ptBR })}</Badge>
+                  <Badge key={d.toISOString()} variant="secondary" className="gap-1">
+                    {format(d, "dd/MM", { locale: ptBR })}
+                    {!dis && (
+                      <button type="button" onClick={() => removerData(d)} aria-label={`Remover ${format(d, "dd/MM")}`} className="hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </Badge>
                 ))}
               </div>
             )}
@@ -252,13 +276,38 @@ export function PalestraDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label>Tema</Label>
+            <Label htmlFor="tema-palestra">Tema</Label>
             <Input
+              id="tema-palestra"
               value={tema}
               onChange={(e) => setTema(e.target.value)}
               disabled={dis}
-              placeholder={temaSugerido ? `Sugestão do mês: ${temaSugerido}` : "Tema livre"}
+              placeholder="Digite ou escolha uma sugestão abaixo"
             />
+            <div className="rounded-lg border bg-muted/40 p-2 space-y-1.5">
+              <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Sparkles className="h-3.5 w-3.5" /> Sugestões para {MESES_PT[mesSugestao]}
+              </div>
+              <button
+                type="button"
+                disabled={dis}
+                onClick={() => aplicarSugestao(sugGestantes)}
+                className="w-full text-left text-xs rounded border-l-4 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 disabled:opacity-60"
+              >
+                <span className="font-semibold text-emerald-800 dark:text-emerald-300">Encontro com Gestantes:</span>{" "}
+                <span className="text-foreground">{sugGestantes}</span>
+              </button>
+              <button
+                type="button"
+                disabled={dis}
+                onClick={() => aplicarSugestao(sugCampanha.tema)}
+                className="w-full text-left text-xs rounded border-l-4 px-2 py-1.5 hover:bg-accent/40 disabled:opacity-60"
+                style={{ borderLeftColor: sugCampanha.hex, background: `${sugCampanha.hex}14` }}
+              >
+                <span className="font-semibold" style={{ color: sugCampanha.hex }}>Campanha do mês ({sugCampanha.cor}):</span>{" "}
+                <span className="text-foreground">{sugCampanha.tema}</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid gap-2">
