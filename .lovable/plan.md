@@ -1,32 +1,72 @@
-## Editor de perguntas do formulário de Avaliação RH
+## Calendário de Ações Preventivas
 
-Permitir que **Admin, Executivo (Diretora) e Executivas** editem o "Preview do formulário" — alterar perguntas existentes, adicionar novas e remover.
+Nova aba dentro do módulo Saúde nas Empresas para agendar visualmente 3 tipos de ações preventivas (Sinais Vitais, Coleta de Preventivo, Coleta de PSA) num calendário mensal seg–sex.
 
-### Funcionalidades
-- Botão **"Editar perguntas"** no card de preview (visível apenas para perfis permitidos).
-- Modo de edição inline com:
-  - Editar título e descrição de cada pergunta
-  - Trocar tipo (Nota 1-5 / Texto livre)
-  - Marcar como obrigatória
-  - Reordenar (subir/descer)
-  - Remover pergunta
-  - **+ Adicionar pergunta** (gera id único `q<timestamp>`)
-- Editar também título e instruções do formulário
-- Botões **Salvar** / **Cancelar** ao final
+### Navegação
+- Rota nova: `/saude-empresas/preventivas` (link no menu lateral do módulo Saúde).
+- Nível 1 — sem `?tipo=`: 3 cards clicáveis (grid md:3) com ícones em gradiente.
+- Nível 2 — com `?tipo=<slug>`: cabeçalho + banner (só PSA) + filtros + calendário + modal.
+
+### Banco de dados
+Nova tabela `acoes_preventivas` (via migration):
+- `tipo` enum: `sinais_vitais | preventivo | psa`
+- `empresa`, `endereco`, `data`, `horario_inicio`, `horario_fim`
+- `responsavel`, `executiva`, `observacao`
+- `status` enum: `a_confirmar | confirmado | concluido | cancelado`
+- `motivo_cancelamento`, `criado_por`, `editado_por`
+- Padrão: id, created_at, updated_at + trigger de updated_at
+
+RLS:
+- SELECT: enfermeira, executivo_interno, coordenadora, diretora, admin
+- INSERT/UPDATE/DELETE: enfermeira, executivo_interno, coordenadora, admin (diretora e demais = read-only)
+- GRANT SELECT/INSERT/UPDATE/DELETE para `authenticated`; ALL para `service_role`
+
+### Regras de negócio
+- Grade mostra apenas segunda–sexta (`getDay 1..5`).
+- Feriados (`isFeriado` de `@/lib/feriados`) bloqueiam criação — toast e abort. Validação também no save.
+- PSA restrito a novembro: mês inicial `new Date(ano, 10, 1)`, navegação de mês desabilitada, criação em outros meses = erro.
+- Cancelados escondidos da grade (mantidos no banco para export/auditoria).
+- Criação múltipla: DayPicker `mode="multiple"` → 1 insert por data. Edição = data única.
+- `motivo_cancelamento` obrigatório se status = cancelado.
+- Empresa via `EmpresaAutocomplete` existente.
+
+### Arquivos a criar
+```
+src/modules/saude-empresas/pages/PreventivasCalendario.tsx  (rota)
+src/modules/saude-empresas/components/preventivas/
+  TipoSelector.tsx         (nível 1)
+  CalendarioGrid.tsx       (grade mensal seg-sex)
+  PreventivaEventoDialog.tsx (modal CRUD)
+  StatusBadge.tsx
+src/modules/saude-empresas/hooks/useAcoesPreventivas.ts
+```
+
+### Filtros e barra
+- Filtros: Empresa (autocomplete), Executiva (`useExecutivas`), Status, botão Limpar.
+- Barra: ChevronLeft | Hoje/Novembro | ChevronRight; centro = mês/ano capitalizado; direita = spacer `w-32`.
+
+### Modal
+- Campos conforme spec, com `mode="multiple"` na criação e `single` na edição.
+- Cancelamento mostra campo motivo obrigatório.
+- Rodapé: Excluir (AlertDialog, só edição) | Cancelar | Salvar.
+- Executiva default = usuário logado.
+
+### Exportação
+Botão "Exportar Excel" chama `exportToExcel` de `@/lib/export-utils`, nome `calendario-<tipo>-YYYY-MM.xlsx` com todas as colunas listadas.
 
 ### Permissões
-Frontend: gate por perfil via `useAuth` (roles: `admin`, `executivo`, mais o nome da executiva via `profiles`). Usuários sem permissão veem o preview apenas em leitura (como hoje).
+Reusa `usePermissoesSaude`:
+- `podeEditar` → CRUD completo
+- `isReadOnly` (diretora) → visualiza, sem botões
+- outros → rota sem acesso (redirect + toast)
 
-Backend: política RLS de UPDATE em `cs_avaliacao_formularios` restrita a `admin` ou `executivo` (via `has_role`). SELECT continua público.
+### Design tokens
+- Cores só via tokens semânticos do `index.css`.
+- Badges de status com as classes exatas da spec (única exceção hardcoded permitida).
+- Gradientes só nos 3 cards do Nível 1.
+- Números tabulares (`tabular-nums`) nos horários.
 
-### Mudança crítica
-Hoje o `useEffect` em `AvaliacoesRH.tsx` **sobrescreve as perguntas com o TEMPLATE a cada mount**, o que apagaria qualquer edição. Vou remover essa sincronização: o TEMPLATE só será usado quando não existir nenhum formulário ainda (insert inicial).
-
-### Arquivos afetados
-- `src/modules/carteira-samel/pages/AvaliacoesRH.tsx` — remover sync forçado, adicionar botão de editar + dialog/seção de edição, gate de permissão.
-- Novo: `src/modules/carteira-samel/components/EditarFormularioRHDialog.tsx` — dialog com editor de perguntas (drag-free, botões ↑↓).
-- Migration: política RLS de UPDATE em `cs_avaliacao_formularios` para admin/executivo.
-
-### Pontos a confirmar durante build
-- Validar pelo menos 1 pergunta antes de salvar.
-- Ao salvar, `setForm` com o retorno do update para refletir imediatamente no preview e no dashboard.
+### Ordem de execução
+1. Migration (tabela + enums + RLS + grants + trigger).
+2. Arquivos de UI + hook + rota + link no menu.
+3. Verificação de build.
