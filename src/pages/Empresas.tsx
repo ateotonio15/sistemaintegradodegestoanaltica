@@ -100,6 +100,7 @@ export default function Empresas() {
   const [showInativas, setShowInativas] = useState(false);
   const [respFilter, setRespFilter] = useState<string>("all");
   const [corretoraFilter, setCorretoraFilter] = useState<string>("all");
+  const [executivaFilter, setExecutivaFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailEmpresa, setDetailEmpresa] = useState<Empresa | null>(null);
   const [rescisaoDate, setRescisaoDate] = useState("");
