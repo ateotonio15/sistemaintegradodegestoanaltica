@@ -477,3 +477,17 @@ function haMultiplasModalidadesArr(rows: any[][], colIdx: number): boolean {
   }
   return false;
 }
+
+function pagadorTemMultiplosCNPJsArr(rows: any[][], iPag: number, iCNPJ: number): boolean {
+  if (iPag < 0 || iCNPJ < 0) return false;
+  const map = new Map<string, Set<string>>();
+  for (const r of rows) {
+    const p = norm(r[iPag]);
+    const c = norm(r[iCNPJ]);
+    if (!p || !c) continue;
+    if (!map.has(p)) map.set(p, new Set());
+    map.get(p)!.add(c);
+    if (map.get(p)!.size > 1) return true;
+  }
+  return false;
+}
