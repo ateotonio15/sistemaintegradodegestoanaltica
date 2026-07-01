@@ -253,27 +253,33 @@ export function EventoPreventivoDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label>Executiva responsável</Label>
-            {mayaraOnly ? (
-              <Select
-                value={executivaUserId}
-                onValueChange={(v) => {
-                  setExecutivaUserId(v);
-                  const ex = executivas.find((e) => e.user_id === v);
-                  setExecutivaNome(ex?.display_name ?? "");
-                }}
-                disabled={dis}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
-                <SelectContent>
-                  {executivas.map((e) => (
-                    <SelectItem key={e.user_id} value={e.user_id}>{e.display_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input value={executivaNome} disabled />
-            )}
+            <Label>Responsável *</Label>
+            <Input
+              value={responsavel}
+              onChange={(e) => setResponsavel(e.target.value)}
+              disabled={dis}
+              placeholder="Profissional que executa a ação"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Executiva responsável *</Label>
+            <Select
+              value={executivaUserId}
+              onValueChange={(v) => {
+                setExecutivaUserId(v);
+                const ex = executivas.find((e) => e.user_id === v);
+                setExecutivaNome(ex?.display_name ?? "");
+              }}
+              disabled={dis}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
+              <SelectContent>
+                {executivas.map((e) => (
+                  <SelectItem key={e.user_id} value={e.user_id}>{e.display_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-2">
