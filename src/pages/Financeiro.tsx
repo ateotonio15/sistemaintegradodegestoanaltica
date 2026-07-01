@@ -35,6 +35,7 @@ import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { formatDateBR, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 
 import { KpiCards } from "@/components/financeiro/KpiCards";
+import { FormatarFaturamentoCard } from "@/components/financeiro/FormatarFaturamentoCard";
 import { StatusChart } from "@/components/financeiro/StatusChart";
 import { PeriodSummary } from "@/components/financeiro/PeriodSummary";
 import { FinanceiroTable, type FinanceiroRow } from "@/components/financeiro/FinanceiroTable";
@@ -2237,6 +2238,10 @@ export default function Financeiro() {
 
         {/* KPIs */}
         <KpiCards {...kpis} />
+
+        {/* Formatador de faturamento (VBA prorata / não prorata) */}
+        {canManageFinanceiro && <FormatarFaturamentoCard />}
+
 
         {/* Período + Reajuste/Cobrança + Gráfico */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
