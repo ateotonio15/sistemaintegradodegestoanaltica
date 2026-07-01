@@ -232,6 +232,25 @@ export default function Financeiro() {
   const operacionaisMap = operacionaisData?.envioMap ?? {};
   const anexosCadastroCountMap = operacionaisData?.anexosCountMap ?? {};
 
+  // Anexos de implantação (rótulo "Contrato") — contados por empresa
+  const { data: anexosImplantacaoCountMap = {} } = useQuery({
+    queryKey: ["financeiro-anexos-implantacao", empresaIds.sort().join(",")],
+    queryFn: async () => {
+      if (empresaIds.length === 0) return {} as Record<string, number>;
+      const { data, error } = await supabase
+        .from("implantacao_anexos" as any)
+        .select("empresa_id")
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data || []).forEach((a: any) => {
+        if (a.empresa_id) map[a.empresa_id] = (map[a.empresa_id] || 0) + 1;
+      });
+      return map;
+    },
+    enabled: empresaIds.length > 0,
+  });
+
   // Pagadores cadastrados (financeiro_pagadores) por empresa
   const { data: pagadoresCadastradosMap = {} } = useQuery({
     queryKey: ["financeiro-pagadores-all", empresaIds.sort().join(",")],
@@ -607,7 +626,10 @@ export default function Financeiro() {
         empresa_vidas: emp?.vidas ?? 0,
         periodo_corte: periodoCorte,
         status: calcularStatusFinanceiro(f, envioOperacional, anexosParaStatus, !!emp?.exige_po_pc),
-        anexos_count: anexosAll.length + (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0),
+        anexos_count:
+          anexosAll.length +
+          (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0) +
+          ((anexosImplantacaoCountMap as Record<string, number>)[f.empresa_id] || 0),
         enviado_por_nome: uploaderId ? uploaderMap[uploaderId] || null : null,
         faturamento_iniciado_por: (f as any).faturamento_iniciado_por ?? null,
         faturamento_iniciado_por_nome: (f as any).faturamento_iniciado_por_nome ?? null,
@@ -618,7 +640,7 @@ export default function Financeiro() {
       };
     });
 
-  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosMap, pdfUploaderByMov, uploaderMap, cnpjsPorContrato, cnpjsPorAnexoOrigem]);
+  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosImplantacaoCountMap, anexosMap, pdfUploaderByMov, uploaderMap, cnpjsPorContrato, cnpjsPorAnexoOrigem]);
 
   // Tipos únicos para o filtro
   const tiposUnicos = useMemo(() => {
