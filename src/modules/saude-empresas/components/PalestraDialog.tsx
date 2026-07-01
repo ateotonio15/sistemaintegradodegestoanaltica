@@ -49,6 +49,7 @@ export function PalestraDialog({
   open, onOpenChange, editing, preselect, canEdit, isReadOnly, userNome, bloqueiosFn,
 }: Props) {
   const isEdit = !!editing;
+  const { user } = useAuth();
   const { data: empresas = [] } = useEmpresasAtivas();
   const { data: executivas = [] } = useExecutivas();
   const { createMany, updateOne, deleteOne } = usePalestraMutations();
@@ -88,13 +89,29 @@ export function PalestraDialog({
       setHorarioInicio("");
       setHorarioFim("");
       setTema("");
-      setExecutivaUserId("");
-      setExecutivaNome("");
+      setExecutivaUserId(user?.id ?? "");
+      setExecutivaNome(userNome ?? "");
       setObservacao("");
       setStatus("a_confirmar");
       setMotivo("");
     }
-  }, [open, editing, preselect]);
+  }, [open, editing, preselect, user?.id, userNome]);
+
+  // Mês para sugestões (primeiro dado ou mês corrente)
+  const mesSugestao = useMemo(() => (datas[0] ?? new Date()).getMonth(), [datas]);
+  const sugGestantes = GESTANTES_2026[mesSugestao] ?? "";
+  const sugCampanha = CAMPANHAS[mesSugestao];
+
+  const aplicarSugestao = (texto: string) => {
+    if (tema.trim() && tema !== texto) {
+      if (!window.confirm("Substituir o tema atual pela sugestão?")) return;
+    }
+    setTema(texto);
+  };
+
+  const removerData = (d: Date) => {
+    setDatas((prev) => prev.filter((x) => x.getTime() !== d.getTime()));
+  };
 
   const empresa = useMemo(() => empresas.find((e) => e.id === empresaId), [empresas, empresaId]);
   useEffect(() => {
