@@ -57,6 +57,7 @@ const allNavItems = [
   { to: "/saude-empresas", label: "Saúde nas Empresas", icon: Stethoscope },
   { to: "/saude-empresas/visao-geral", label: "Visão Geral · Saúde", icon: Activity },
   { to: "/saude-empresas/preventivas", label: "Calendário Preventivas", icon: CalendarClock },
+  { to: "/saude-empresas/palestras", label: "Calendário Palestras", icon: Mic },
 ];
 
 interface Notificacao {
@@ -151,7 +152,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
       if (item.to === "/vidas" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
       if (isEnfermeira) {
-        const allowed = ["/empresas", "/reajustes", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas"];
+        const allowed = ["/empresas", "/reajustes", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras"];
         return allowed.includes(item.to);
       }
       return true;

@@ -2955,6 +2955,110 @@ export type Database = {
         }
         Relationships: []
       }
+      palestras_bloqueios: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_nome: string | null
+          data: string
+          id: string
+          motivo: string
+          periodo: Database["public"]["Enums"]["bloqueio_periodo"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data: string
+          id?: string
+          motivo: string
+          periodo?: Database["public"]["Enums"]["bloqueio_periodo"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data?: string
+          id?: string
+          motivo?: string
+          periodo?: Database["public"]["Enums"]["bloqueio_periodo"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      palestras_saude: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_nome: string | null
+          data: string
+          empresa_id: string
+          endereco: string
+          executiva_nome: string | null
+          executiva_user_id: string | null
+          horario_fim: string | null
+          horario_inicio: string | null
+          id: string
+          motivo_cancelamento: string | null
+          observacao: string | null
+          status: Database["public"]["Enums"]["palestra_status"]
+          tema: string | null
+          updated_at: string
+          updated_by: string | null
+          updated_by_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data: string
+          empresa_id: string
+          endereco: string
+          executiva_nome?: string | null
+          executiva_user_id?: string | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["palestra_status"]
+          tema?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data?: string
+          empresa_id?: string
+          endereco?: string
+          executiva_nome?: string | null
+          executiva_user_id?: string | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["palestra_status"]
+          tema?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "palestras_saude_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantoes: {
         Row: {
           created_at: string
@@ -4076,6 +4180,7 @@ export type Database = {
         | "administradoras"
         | "coordenadora"
         | "diretora_saude"
+      bloqueio_periodo: "dia_todo" | "manha" | "tarde"
       ferias_empresa_status:
         | "pendente_inicio"
         | "redistribuida"
@@ -4098,6 +4203,7 @@ export type Database = {
         | "enviado_cadastro"
         | "rejeitado"
         | "necessita_correcao"
+      palestra_status: "a_confirmar" | "confirmado" | "concluido" | "cancelado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4253,6 +4359,7 @@ export const Constants = {
         "coordenadora",
         "diretora_saude",
       ],
+      bloqueio_periodo: ["dia_todo", "manha", "tarde"],
       ferias_empresa_status: [
         "pendente_inicio",
         "redistribuida",
@@ -4278,6 +4385,7 @@ export const Constants = {
         "rejeitado",
         "necessita_correcao",
       ],
+      palestra_status: ["a_confirmar", "confirmado", "concluido", "cancelado"],
     },
   },
 } as const
