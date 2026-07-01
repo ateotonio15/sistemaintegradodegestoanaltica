@@ -540,13 +540,13 @@ function autoFitColumns(ws: ExcelJS.Worksheet, totalCols: number, fontSize: numb
 
   const headerRow = ws.getRow(1);
 
-  // Formata datas de forma curta para não alargar a coluna
+  // Formata datas sempre com ano completo (dd/mm/yyyy) — nunca abrevia
   for (let c = 1; c <= totalCols; c++) {
     const colObj = ws.getColumn(c);
     const h = norm(cellText(headerRow.getCell(c))).toLowerCase();
-    if (h.startsWith("dt") || h.startsWith("data")) {
+    if (h.startsWith("dt") || h.startsWith("data") || h.startsWith("compet")) {
       if (!colObj.numFmt || /d.*m.*y/i.test(colObj.numFmt) || colObj.numFmt === "General") {
-        colObj.numFmt = "dd/mm/yy";
+        colObj.numFmt = "dd/mm/yyyy";
       }
     }
   }
@@ -554,7 +554,7 @@ function autoFitColumns(ws: ExcelJS.Worksheet, totalCols: number, fontSize: numb
   const fmtCellLen = (cell: ExcelJS.Cell): number => {
     const raw = cell.value;
     if (raw === null || raw === undefined || raw === "") return 0;
-    if (raw instanceof Date) return 8; // dd/mm/yy
+    if (raw instanceof Date) return 10; // dd/mm/yyyy
     if (typeof raw === "number") {
       const fmt = String(cell.numFmt || "");
       if (fmt.includes("#,##0.00")) {
