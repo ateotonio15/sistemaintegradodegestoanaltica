@@ -14,9 +14,10 @@ export interface AcaoPreventiva {
   empresa_id: string;
   endereco: string | null;
   tipo: AcaoPreventivaTipo;
-  data: string; // YYYY-MM-DD
+  data: string;
   horario_inicio: string | null;
   horario_fim: string | null;
+  responsavel: string | null;
   executiva_user_id: string | null;
   executiva_nome: string | null;
   observacao: string | null;
@@ -121,6 +122,7 @@ export function useAcaoPreventivaMutations() {
         data: d,
         horario_inicio: payload.base.horario_inicio ?? null,
         horario_fim: payload.base.horario_fim ?? null,
+        responsavel: payload.base.responsavel ?? null,
         executiva_user_id: payload.base.executiva_user_id ?? null,
         executiva_nome: payload.base.executiva_nome ?? null,
         observacao: payload.base.observacao ?? null,
