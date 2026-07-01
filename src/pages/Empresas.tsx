@@ -145,7 +145,7 @@ export default function Empresas() {
         if (!emp.grupo_contrato) { updateData.grupo_contrato = "Não informado"; corrigidosEmp++; }
 
         if (Object.keys(updateData).length > 0) {
-          const { error: updateError } = await supabase.from("empresas").update(updateData).eq("id", emp.id);
+          const { error: updateError } = await supabase.from("empresas").update(updateData as any).eq("id", emp.id);
           if (updateError) { console.error("Erro ao atualizar empresa:", emp.nome, updateError); errosEmp++; }
           else { Object.assign(emp, updateData); empresaMap.set(emp.id, emp); }
         }
