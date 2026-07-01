@@ -229,6 +229,9 @@ export function useSaudeMutations() {
         observacoes: a.observacoes ?? null,
         enfermeira_user_id: a.enfermeira_user_id ?? user?.id ?? null,
         enfermeira_nome: a.enfermeira_nome ?? null,
+        tem_pa: a.tem_pa ?? true,
+        tem_glicemia: a.tem_glicemia ?? true,
+        tem_bioimpedancia: a.tem_bioimpedancia ?? false,
       };
       if (a.id) {
         const { data, error } = await sb.from("acoes_saude").update(payload).eq("id", a.id).select().single();
