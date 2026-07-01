@@ -466,15 +466,8 @@ export async function formatarFaturamentoExcel(
     }
   }
 
-  // Ajuste automático de largura por coluna (fonte 11)
-  for (let c = 1; c <= totalColsRes; c++) {
-    let max = 10;
-    for (let r = 1; r <= totalRowsRes; r++) {
-      const l = String(cellText(wsRes.getRow(r).getCell(c))).length;
-      if (l > max) max = l;
-    }
-    wsRes.getColumn(c).width = Math.min(Math.max(max + 3, 12), 45);
-  }
+  // Seleciona Tudo + AutoAjuste de largura das colunas (fonte 11)
+  autoFitColumns(wsRes, totalColsRes, 11);
 
   // Contrato row
   const contratoRow = wsRes.addRow([]);
