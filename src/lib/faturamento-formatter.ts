@@ -395,8 +395,9 @@ export async function formatarFaturamentoExcel(
     "JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO",
   ];
   const competenciaStr = maxDate
-    ? `${meses[maxDate.getMonth()]}${maxDate.getFullYear()}`
+    ? `${meses[maxDate.getUTCMonth()]}${maxDate.getUTCFullYear()}`
     : "COMPETENCIA-NAO-ENCONTRADA";
+
 
   // Build RESUMO
   const wsRes = wbOut.addWorksheet("RESUMO", { views: [{ showGridLines: false }] });
