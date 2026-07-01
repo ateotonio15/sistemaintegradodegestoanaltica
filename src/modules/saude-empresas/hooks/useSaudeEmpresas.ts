@@ -23,6 +23,9 @@ export interface AcaoSaude {
   local: string | null;
   observacoes: string | null;
   total_atendidos: number;
+  tem_pa: boolean;
+  tem_glicemia: boolean;
+  tem_bioimpedancia: boolean;
   created_at: string;
   updated_at: string;
   empresa?: { id: string; nome: string; codigo_contrato: string | null; cnpj: string | null };
