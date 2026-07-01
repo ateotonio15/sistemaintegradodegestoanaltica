@@ -2236,11 +2236,12 @@ export default function Financeiro() {
           </Alert>
         )}
 
-        {/* KPIs */}
-        <KpiCards {...kpis} />
+        {/* KPIs + Formatador de faturamento lado a lado */}
+        <div className={cn("grid gap-3", canManageFinanceiro ? "grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)]" : "grid-cols-1")}>
+          <KpiCards {...kpis} />
+          {canManageFinanceiro && <FormatarFaturamentoCard />}
+        </div>
 
-        {/* Formatador de faturamento (VBA prorata / não prorata) */}
-        {canManageFinanceiro && <FormatarFaturamentoCard />}
 
 
         {/* Período + Reajuste/Cobrança + Gráfico */}
