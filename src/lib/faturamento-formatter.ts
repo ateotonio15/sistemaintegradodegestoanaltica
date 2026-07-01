@@ -513,17 +513,49 @@ function pagadorTemMultiplosCNPJsArr(rows: any[][], iPag: number, iCNPJ: number)
 
 /**
  * Simula o "Selecionar Tudo" + duplo-clique na borda da coluna do Excel:
- * mede o conteúdo de cada célula (respeitando numFmt para datas/valores)
- * e define a largura mínima que caiba tudo — sem cortes e sem folga excessiva.
+ * mede o conteúdo real de cada célula do intervalo usado e define a largura
+ * mínima que caiba tudo, aplicando um teto por tipo de coluna para evitar
+ * colunas exageradamente largas.
+ *
+ * - Colunas pequenas (Contr, Família, Idade, QTD, Valor, CNPJ, datas, códigos): teto ~14
+ * - Colunas médias (Plano, Tipo, Fx Etária, Pagador, Competência, Titularidade): teto ~24
+ * - Colunas de texto longo (Beneficiário, Titular, Endereço, Observação): teto ~34
+ * - Datas usam formato curto dd/mm/yy para não alargar demais
  */
 function autoFitColumns(ws: ExcelJS.Worksheet, totalCols: number, fontSize: number) {
   const totalRows = ws.rowCount;
-  const factor = fontSize <= 8 ? 0.85 : fontSize <= 9 ? 0.92 : 1.05;
+  // fator largura-por-caractere (aprox. equivalente ao AutoFit do Excel para Calibri/Arial)
+  const factor = fontSize <= 8 ? 0.95 : fontSize <= 9 ? 1.0 : 1.1;
+
+  const SMALL = new Set([
+    "contr", "família", "familia", "idade", "qtd", "valor", "cnpj",
+    "matricula", "matrícula", "código", "codigo", "sexo", "id",
+    "dt_nasc", "dt nasc", "dt_adesão", "dt_adesao", "dt adesão", "dt adesao",
+    "dt_rescisão", "dt_rescisao", "dt rescisão", "dt rescisao",
+    "data", "competência", "competencia", "cpf",
+  ]);
+  const LONG = new Set([
+    "beneficiário", "beneficiario", "titular", "endereço", "endereco",
+    "observação", "observacao", "pagador", "nome",
+  ]);
+
+  const headerRow = ws.getRow(1);
+
+  // Formata datas de forma curta para não alargar a coluna
+  for (let c = 1; c <= totalCols; c++) {
+    const colObj = ws.getColumn(c);
+    const h = norm(cellText(headerRow.getCell(c))).toLowerCase();
+    if (h.startsWith("dt") || h.startsWith("data")) {
+      if (!colObj.numFmt || /d.*m.*y/i.test(colObj.numFmt) || colObj.numFmt === "General") {
+        colObj.numFmt = "dd/mm/yy";
+      }
+    }
+  }
 
   const fmtCellLen = (cell: ExcelJS.Cell): number => {
     const raw = cell.value;
     if (raw === null || raw === undefined || raw === "") return 0;
-    if (raw instanceof Date) return 10; // dd/mm/yyyy
+    if (raw instanceof Date) return 8; // dd/mm/yy
     if (typeof raw === "number") {
       const fmt = String(cell.numFmt || "");
       if (fmt.includes("#,##0.00")) {
@@ -536,12 +568,20 @@ function autoFitColumns(ws: ExcelJS.Worksheet, totalCols: number, fontSize: numb
   };
 
   for (let c = 1; c <= totalCols; c++) {
+    const h = norm(cellText(headerRow.getCell(c))).toLowerCase();
+    let cap = 24; // médio (default)
+    if (SMALL.has(h)) cap = 14;
+    else if (LONG.has(h)) cap = 34;
+
     let max = 0;
     for (let r = 1; r <= totalRows; r++) {
       const l = fmtCellLen(ws.getRow(r).getCell(c));
       if (l > max) max = l;
     }
-    const w = Math.min(Math.max(Math.round(max * factor) + 2, 6), 50);
+    // largura ideal = conteúdo * fator + pequena folga, limitada pelo teto
+    const ideal = Math.round(max * factor) + 1;
+    const w = Math.min(Math.max(ideal, 5), cap);
     ws.getColumn(c).width = w;
   }
 }
+
