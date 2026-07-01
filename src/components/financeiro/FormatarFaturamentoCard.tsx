@@ -3,10 +3,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { FileSpreadsheet, Loader2, Download, UploadCloud, X } from "lucide-react";
+import { FileSpreadsheet, Loader2, Download, UploadCloud, X, FilePlus2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatarFaturamentoExcel, type ModoFaturamento } from "@/lib/faturamento-formatter";
+import { adicionarExclusoesAoBruto } from "@/lib/faturamento-exclusoes";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export function FormatarFaturamentoCard() {
   const [modo, setModo] = useState<ModoFaturamento>("nao_prorata");
@@ -14,6 +23,16 @@ export function FormatarFaturamentoCard() {
   const [processing, setProcessing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Estado da função "Adicionar Exclusões"
+  const [exclOpen, setExclOpen] = useState(false);
+  const [exclProcessing, setExclProcessing] = useState(false);
+  const [brutoFile, setBrutoFile] = useState<File | null>(null);
+  const [exclFile, setExclFile] = useState<File | null>(null);
+  const [exclModo, setExclModo] = useState<ModoFaturamento>("nao_prorata");
+  const brutoRef = useRef<HTMLInputElement>(null);
+  const exclRef = useRef<HTMLInputElement>(null);
+
 
   function pickFile(f: File | null | undefined) {
     if (!f) return;
@@ -24,6 +43,73 @@ export function FormatarFaturamentoCard() {
     setFile(f);
   }
 
+  async function normalizeBrToXlsxBuffer(buf: ArrayBuffer): Promise<ArrayBuffer> {
+    // Sempre passa pela normalização do SheetJS para corrigir datas/valores em texto BR
+    // (evita dia/mês trocados em MM/DD e vírgula decimal ignorada nos .xls/.xlsx).
+    const XLSX = await import("xlsx");
+    const wb = XLSX.read(buf, { type: "array", cellDates: false, raw: true });
+    wb.SheetNames.forEach((sn) => {
+      const ws = wb.Sheets[sn];
+      if (!ws || !ws["!ref"]) return;
+      const range = XLSX.utils.decode_range(ws["!ref"]);
+      const competCols = new Set<number>();
+      for (let R = range.s.r; R <= Math.min(range.s.r + 20, range.e.r); R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[addr];
+          const txt = cell && cell.v != null ? String(cell.v).trim().toLowerCase() : "";
+          if (/^compet/.test(txt)) competCols.add(C);
+        }
+        if (competCols.size) break;
+      }
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[addr];
+          if (!cell || cell.t !== "s" || typeof cell.v !== "string") continue;
+          const s = cell.v.trim();
+          const md = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+          if (md) {
+            if (competCols.has(C)) continue;
+            const dn = parseInt(md[1], 10);
+            const mn = parseInt(md[2], 10);
+            let yn = parseInt(md[3], 10);
+            if (yn < 100) yn += 2000;
+            if (mn >= 1 && mn <= 12 && dn >= 1 && dn <= 31) {
+              const dt = new Date(Date.UTC(yn, mn - 1, dn, 12, 0, 0));
+              if (!isNaN(dt.getTime())) {
+                cell.t = "d";
+                cell.v = dt;
+                cell.z = "dd/mm/yyyy";
+                continue;
+              }
+            }
+          }
+          if (/^-?(?:\d{1,3}(?:\.\d{3})+|\d+),\d+$/.test(s)) {
+            const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
+            if (!isNaN(n)) {
+              cell.t = "n";
+              cell.v = n;
+              delete cell.w;
+            }
+          }
+        }
+      }
+    });
+    return XLSX.write(wb, { type: "array", bookType: "xlsx", cellDates: true }) as ArrayBuffer;
+  }
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleProcess() {
     if (!file) {
       toast.error("Selecione o arquivo do faturamento (.xlsx ou .xls).");
@@ -31,75 +117,9 @@ export function FormatarFaturamentoCard() {
     }
     try {
       setProcessing(true);
-      let buf = await file.arrayBuffer();
-      // Sempre passa pela normalização do SheetJS para corrigir datas/valores em texto BR
-      // (evita dia/mês trocados em MM/DD e vírgula decimal ignorada nos .xls/.xlsx).
-      const XLSX = await import("xlsx");
-      const wb = XLSX.read(buf, { type: "array", cellDates: false, raw: true });
-      wb.SheetNames.forEach((sn) => {
-        const ws = wb.Sheets[sn];
-        if (!ws || !ws["!ref"]) return;
-        const range = XLSX.utils.decode_range(ws["!ref"]);
-        // Detecta a coluna "Competência" para preservá-la como texto literal
-        // (o usuário exige que "01/07/2026" permaneça idêntico ao arquivo original).
-        const competCols = new Set<number>();
-        for (let R = range.s.r; R <= Math.min(range.s.r + 20, range.e.r); R++) {
-          for (let C = range.s.c; C <= range.e.c; C++) {
-            const addr = XLSX.utils.encode_cell({ r: R, c: C });
-            const cell = ws[addr];
-            const txt = cell && cell.v != null ? String(cell.v).trim().toLowerCase() : "";
-            if (/^compet/.test(txt)) competCols.add(C);
-          }
-          if (competCols.size) break;
-        }
-        for (let R = range.s.r; R <= range.e.r; R++) {
-          for (let C = range.s.c; C <= range.e.c; C++) {
-            const addr = XLSX.utils.encode_cell({ r: R, c: C });
-            const cell = ws[addr];
-            if (!cell || cell.t !== "s" || typeof cell.v !== "string") continue;
-            const s = cell.v.trim();
-            // Data BR: DD/MM/YYYY (constrói em UTC para preservar o dia)
-            const md = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-            if (md) {
-              // Competência: mantém como TEXTO literal (não vira Date)
-              if (competCols.has(C)) continue;
-              const dn = parseInt(md[1], 10);
-              const mn = parseInt(md[2], 10);
-              let yn = parseInt(md[3], 10);
-              if (yn < 100) yn += 2000;
-              if (mn >= 1 && mn <= 12 && dn >= 1 && dn <= 31) {
-                const dt = new Date(Date.UTC(yn, mn - 1, dn, 12, 0, 0));
-                if (!isNaN(dt.getTime())) {
-                  cell.t = "d";
-                  cell.v = dt;
-                  cell.z = "dd/mm/yyyy";
-                  continue;
-                }
-              }
-            }
-            // Número BR: 274,18  |  1.234,56  (não confundir com CPF/CNPJ/matrícula puros)
-            if (/^-?(?:\d{1,3}(?:\.\d{3})+|\d+),\d+$/.test(s)) {
-              const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
-              if (!isNaN(n)) {
-                cell.t = "n";
-                cell.v = n;
-                delete cell.w;
-              }
-            }
-          }
-        }
-      });
-      buf = XLSX.write(wb, { type: "array", bookType: "xlsx", cellDates: true }) as ArrayBuffer;
-
+      const buf = await normalizeBrToXlsxBuffer(await file.arrayBuffer());
       const { blob, filename } = await formatarFaturamentoExcel(buf, modo);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, filename);
       toast.success(`Arquivo formatado: ${filename}`);
       setFile(null);
       if (inputRef.current) inputRef.current.value = "";
@@ -110,6 +130,43 @@ export function FormatarFaturamentoCard() {
       setProcessing(false);
     }
   }
+
+  function pickExtra(f: File | null | undefined, setter: (f: File | null) => void) {
+    if (!f) return;
+    if (!/\.(xlsx|xls)$/i.test(f.name)) {
+      toast.error("Envie um arquivo .xlsx ou .xls.");
+      return;
+    }
+    setter(f);
+  }
+
+  async function handleAdicionarExclusoes() {
+    if (!brutoFile || !exclFile) {
+      toast.error("Selecione o arquivo bruto e o arquivo de exclusões.");
+      return;
+    }
+    try {
+      setExclProcessing(true);
+      const brutoBuf = await normalizeBrToXlsxBuffer(await brutoFile.arrayBuffer());
+      const exclBuf = await normalizeBrToXlsxBuffer(await exclFile.arrayBuffer());
+      const mergedBuf = await adicionarExclusoesAoBruto(brutoBuf, exclBuf);
+      const finalBuf = await normalizeBrToXlsxBuffer(mergedBuf);
+      const { blob, filename } = await formatarFaturamentoExcel(finalBuf, exclModo);
+      downloadBlob(blob, filename);
+      toast.success(`Exclusões adicionadas e formatação aplicada: ${filename}`);
+      setBrutoFile(null);
+      setExclFile(null);
+      if (brutoRef.current) brutoRef.current.value = "";
+      if (exclRef.current) exclRef.current.value = "";
+      setExclOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(`Falha ao adicionar exclusões: ${err instanceof Error ? err.message : "erro desconhecido"}`);
+    } finally {
+      setExclProcessing(false);
+    }
+  }
+
 
   return (
     <Card className="rounded-2xl border-border/60 shadow-sm h-full">
@@ -223,9 +280,161 @@ export function FormatarFaturamentoCard() {
               )}
               Formatar e baixar
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setExclOpen(true)}
+            >
+              <FilePlus2 className="h-4 w-4 mr-2" />
+              Adicionar Exclusões
+            </Button>
           </div>
         </div>
       </CardContent>
+
+      <Dialog open={exclOpen} onOpenChange={setExclOpen}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Adicionar Exclusões ao Faturamento</DialogTitle>
+            <DialogDescription>
+              Envie o arquivo bruto (ex.: começa com "hNr8B1") e o arquivo de exclusões (ex.: começa com "A05MV").
+              As linhas de exclusões serão adicionadas ao final do bruto com <strong>Tipo Cobrança = "Exclusão"</strong> e <strong>Valor</strong> em branco. A formatação padrão é aplicada em seguida.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {/* Bruto */}
+            <div>
+              <Label className="text-xs">Arquivo Bruto</Label>
+              <button
+                type="button"
+                onClick={() => brutoRef.current?.click()}
+                className={cn(
+                  "mt-1 w-full flex items-center gap-3 rounded-lg border-2 border-dashed px-3 py-3 text-left",
+                  brutoFile ? "border-primary/60 bg-primary/5" : "border-border/70 bg-muted/30 hover:bg-muted/50",
+                )}
+              >
+                <input
+                  ref={brutoRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={(e) => pickExtra(e.target.files?.[0], setBrutoFile)}
+                />
+                <UploadCloud className={cn("h-5 w-5 shrink-0", brutoFile ? "text-primary" : "text-muted-foreground")} />
+                <div className="min-w-0 flex-1">
+                  {brutoFile ? (
+                    <>
+                      <p className="text-sm font-medium truncate">{brutoFile.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {(brutoFile.size / 1024).toFixed(0)} KB · clique para trocar
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm">Selecionar arquivo bruto (.xlsx / .xls)</p>
+                  )}
+                </div>
+                {brutoFile && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setBrutoFile(null);
+                      if (brutoRef.current) brutoRef.current.value = "";
+                    }}
+                    className="rounded-md p-1 hover:bg-muted"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Exclusões */}
+            <div>
+              <Label className="text-xs">Arquivo de Exclusões</Label>
+              <button
+                type="button"
+                onClick={() => exclRef.current?.click()}
+                className={cn(
+                  "mt-1 w-full flex items-center gap-3 rounded-lg border-2 border-dashed px-3 py-3 text-left",
+                  exclFile ? "border-primary/60 bg-primary/5" : "border-border/70 bg-muted/30 hover:bg-muted/50",
+                )}
+              >
+                <input
+                  ref={exclRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={(e) => pickExtra(e.target.files?.[0], setExclFile)}
+                />
+                <UploadCloud className={cn("h-5 w-5 shrink-0", exclFile ? "text-primary" : "text-muted-foreground")} />
+                <div className="min-w-0 flex-1">
+                  {exclFile ? (
+                    <>
+                      <p className="text-sm font-medium truncate">{exclFile.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {(exclFile.size / 1024).toFixed(0)} KB · clique para trocar
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm">Selecionar arquivo de exclusões (.xlsx / .xls)</p>
+                  )}
+                </div>
+                {exclFile && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExclFile(null);
+                      if (exclRef.current) exclRef.current.value = "";
+                    }}
+                    className="rounded-md p-1 hover:bg-muted"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div>
+              <Label className="text-xs">Modo de formatação final</Label>
+              <RadioGroup
+                value={exclModo}
+                onValueChange={(v) => setExclModo(v as ModoFaturamento)}
+                className="mt-1 flex items-center gap-4"
+              >
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="nao_prorata" id="excl-np" />
+                  <Label htmlFor="excl-np" className="text-xs cursor-pointer">Não Prorata</Label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="prorata" id="excl-pr" />
+                  <Label htmlFor="excl-pr" className="text-xs cursor-pointer">Prorata</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExclOpen(false)} disabled={exclProcessing}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAdicionarExclusoes} disabled={!brutoFile || !exclFile || exclProcessing}>
+              {exclProcessing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Gerar arquivo final
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
