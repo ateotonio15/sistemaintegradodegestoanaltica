@@ -378,7 +378,7 @@ export async function formatarFaturamentoExcel(
         if (m) {
           let y = parseInt(m[3], 10);
           if (y < 100) y += 2000;
-          d = new Date(Date.UTC(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10)));
+          d = new Date(Date.UTC(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10), 12));
         } else if (s) {
           const tmp = new Date(s);
           if (!isNaN(tmp.getTime())) d = tmp;
