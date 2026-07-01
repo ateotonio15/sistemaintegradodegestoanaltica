@@ -545,4 +545,3 @@ function autoFitColumns(ws: ExcelJS.Worksheet, totalCols: number, fontSize: numb
     ws.getColumn(c).width = w;
   }
 }
-}
