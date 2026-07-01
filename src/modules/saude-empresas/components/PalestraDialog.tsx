@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, CalendarIcon } from "lucide-react";
+import { Trash2, CalendarIcon, Sparkles, X } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +16,13 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Palestra, PalestraStatus, usePalestraMutations,
 } from "../hooks/usePalestras";
 import { useEmpresasAtivas, useExecutivas } from "../hooks/useAcoesPreventivas";
 import { feriadoEm } from "../lib/feriados";
-import { GESTANTES_2026 } from "../lib/palestras-calendario";
+import { GESTANTES_2026, CAMPANHAS, MESES_PT } from "../lib/palestras-calendario";
 
 const STATUS_OPTIONS: { v: PalestraStatus; label: string }[] = [
   { v: "a_confirmar", label: "A confirmar" },
