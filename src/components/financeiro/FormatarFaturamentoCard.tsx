@@ -100,7 +100,7 @@ export function FormatarFaturamentoCard() {
             <input
               ref={inputRef}
               type="file"
-              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
               onChange={(e) => pickFile(e.target.files?.[0])}
               className="hidden"
             />
@@ -117,7 +117,7 @@ export function FormatarFaturamentoCard() {
                 <>
                   <p className="text-sm font-medium">Arraste o Excel do faturamento aqui</p>
                   <p className="text-[11px] text-muted-foreground">
-                    ou clique para selecionar um arquivo .xlsx bruto
+                    ou clique para selecionar um arquivo .xlsx ou .xls bruto
                   </p>
                 </>
               )}
