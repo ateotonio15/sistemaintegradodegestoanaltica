@@ -32,12 +32,50 @@ export function FormatarFaturamentoCard() {
     try {
       setProcessing(true);
       let buf = await file.arrayBuffer();
-      // Converte .xls legado para .xlsx antes de formatar
-      if (/\.xls$/i.test(file.name)) {
-        const XLSX = await import("xlsx");
-        const wb = XLSX.read(buf, { type: "array", cellStyles: true, cellDates: true });
-        buf = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
-      }
+      // Sempre passa pela normalização do SheetJS para corrigir datas/valores em texto BR
+      // (evita dia/mês trocados em MM/DD e vírgula decimal ignorada nos .xls/.xlsx).
+      const XLSX = await import("xlsx");
+      const wb = XLSX.read(buf, { type: "array", cellDates: false, raw: true });
+      wb.SheetNames.forEach((sn) => {
+        const ws = wb.Sheets[sn];
+        if (!ws || !ws["!ref"]) return;
+        const range = XLSX.utils.decode_range(ws["!ref"]);
+        for (let R = range.s.r; R <= range.e.r; R++) {
+          for (let C = range.s.c; C <= range.e.c; C++) {
+            const addr = XLSX.utils.encode_cell({ r: R, c: C });
+            const cell = ws[addr];
+            if (!cell || cell.t !== "s" || typeof cell.v !== "string") continue;
+            const s = cell.v.trim();
+            // Data BR: DD/MM/YYYY (constrói em UTC para preservar o dia)
+            const md = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+            if (md) {
+              const dn = parseInt(md[1], 10);
+              const mn = parseInt(md[2], 10);
+              let yn = parseInt(md[3], 10);
+              if (yn < 100) yn += 2000;
+              if (mn >= 1 && mn <= 12 && dn >= 1 && dn <= 31) {
+                const dt = new Date(Date.UTC(yn, mn - 1, dn, 12, 0, 0));
+                if (!isNaN(dt.getTime())) {
+                  cell.t = "d";
+                  cell.v = dt;
+                  cell.z = "dd/mm/yyyy";
+                  continue;
+                }
+              }
+            }
+            // Número BR: 274,18  |  1.234,56  (não confundir com CPF/CNPJ/matrícula puros)
+            if (/^-?(?:\d{1,3}(?:\.\d{3})+|\d+),\d+$/.test(s)) {
+              const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
+              if (!isNaN(n)) {
+                cell.t = "n";
+                cell.v = n;
+                delete cell.w;
+              }
+            }
+          }
+        }
+      });
+      buf = XLSX.write(wb, { type: "array", bookType: "xlsx", cellDates: true }) as ArrayBuffer;
       const { blob, filename } = await formatarFaturamentoExcel(buf, modo);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
