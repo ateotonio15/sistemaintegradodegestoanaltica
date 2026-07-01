@@ -35,12 +35,15 @@ export default function SaudeEmpresasLista() {
 
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return empresas.filter((e: any) =>
-      !q ||
-      e.nome.toLowerCase().includes(q) ||
-      (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
-      (e.cnpj ?? "").toLowerCase().includes(q),
-    );
+    return empresas.filter((e: any) => {
+      if ((e.total_acoes ?? 0) === 0 && (e.total_triagens ?? 0) === 0) return false;
+      return (
+        !q ||
+        e.nome.toLowerCase().includes(q) ||
+        (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
+        (e.cnpj ?? "").toLowerCase().includes(q)
+      );
+    });
   }, [empresas, busca]);
 
   return (
