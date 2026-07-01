@@ -204,12 +204,6 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   }).length;
 
   // ============================================================
-  // Slide 1 — CAPA
-  // ============================================================
-  const s1 = pptx.addSlide();
-  s1.background = { color: COLORS.NAVY };
-  s1.addShape("rect", { x: 0, y: 3.2, w: 13.333, h: 1.1, fill: { color: COLORS.LIGHT }, line: { color: COLORS.LIGHT } });
-  // ============================================================
   // Slide 1 — CAPA (fundo Samel)
   // ============================================================
   const s1 = pptx.addSlide();
