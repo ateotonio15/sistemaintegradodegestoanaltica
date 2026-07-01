@@ -90,17 +90,19 @@ export function exportTriagensExcel(acao: AcaoSaude, triagens: Triagem[]) {
 // HELPERS DE LAYOUT
 // ============================================================
 function slideTitle(slide: any, titulo: string, subtitulo?: string) {
+  // Largura limitada para não sobrepor os logos no canto superior direito do template
   slide.addText(titulo, {
-    x: SAFE.x, y: 0.95, w: SAFE.w, h: 0.5,
-    fontSize: 28, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
+    x: SAFE.x, y: 0.7, w: 8.6, h: 0.5,
+    fontSize: 26, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
   });
   if (subtitulo) {
     slide.addText(subtitulo, {
-      x: SAFE.x, y: 1.45, w: SAFE.w, h: 0.35,
-      fontSize: 14, color: COLORS.GREY, fontFace: "Calibri",
+      x: SAFE.x, y: 1.2, w: 8.6, h: 0.35,
+      fontSize: 13, color: COLORS.GREEN, fontFace: "Calibri",
     });
   }
 }
+
 
 function kpiCard(
   slide: any,
