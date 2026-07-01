@@ -62,10 +62,24 @@ function sheetToAOA(ws: XLSX.WorkSheet): unknown[][] {
   return XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true });
 }
 
-/** Retorna Date da célula, aceitando Date real ou string DD/MM/YYYY */
+/** Formata data como DD/MM/YYYY (ano completo) */
+function fmtDataBR(d: Date): string {
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const yy = d.getUTCFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+
+/** Retorna Date da célula, aceitando Date real, serial Excel ou string DD/MM/YYYY */
 function toDateSafe(v: unknown): Date | null {
   if (v instanceof Date && !isNaN(v.getTime())) return v;
   if (v == null || v === "") return null;
+  if (typeof v === "number" && isFinite(v)) {
+    // Serial do Excel (base 1899-12-30)
+    const ms = Math.round((v - 25569) * 86400 * 1000);
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? null : d;
+  }
   const s = String(v).trim();
   const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
   if (m) {
