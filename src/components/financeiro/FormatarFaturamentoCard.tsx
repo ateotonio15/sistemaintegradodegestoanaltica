@@ -280,9 +280,161 @@ export function FormatarFaturamentoCard() {
               )}
               Formatar e baixar
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setExclOpen(true)}
+            >
+              <FilePlus2 className="h-4 w-4 mr-2" />
+              Adicionar Exclusões
+            </Button>
           </div>
         </div>
       </CardContent>
+
+      <Dialog open={exclOpen} onOpenChange={setExclOpen}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Adicionar Exclusões ao Faturamento</DialogTitle>
+            <DialogDescription>
+              Envie o arquivo bruto (ex.: começa com "hNr8B1") e o arquivo de exclusões (ex.: começa com "A05MV").
+              As linhas de exclusões serão adicionadas ao final do bruto com <strong>Tipo Cobrança = "Exclusão"</strong> e <strong>Valor</strong> em branco. A formatação padrão é aplicada em seguida.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {/* Bruto */}
+            <div>
+              <Label className="text-xs">Arquivo Bruto</Label>
+              <button
+                type="button"
+                onClick={() => brutoRef.current?.click()}
+                className={cn(
+                  "mt-1 w-full flex items-center gap-3 rounded-lg border-2 border-dashed px-3 py-3 text-left",
+                  brutoFile ? "border-primary/60 bg-primary/5" : "border-border/70 bg-muted/30 hover:bg-muted/50",
+                )}
+              >
+                <input
+                  ref={brutoRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={(e) => pickExtra(e.target.files?.[0], setBrutoFile)}
+                />
+                <UploadCloud className={cn("h-5 w-5 shrink-0", brutoFile ? "text-primary" : "text-muted-foreground")} />
+                <div className="min-w-0 flex-1">
+                  {brutoFile ? (
+                    <>
+                      <p className="text-sm font-medium truncate">{brutoFile.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {(brutoFile.size / 1024).toFixed(0)} KB · clique para trocar
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm">Selecionar arquivo bruto (.xlsx / .xls)</p>
+                  )}
+                </div>
+                {brutoFile && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setBrutoFile(null);
+                      if (brutoRef.current) brutoRef.current.value = "";
+                    }}
+                    className="rounded-md p-1 hover:bg-muted"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Exclusões */}
+            <div>
+              <Label className="text-xs">Arquivo de Exclusões</Label>
+              <button
+                type="button"
+                onClick={() => exclRef.current?.click()}
+                className={cn(
+                  "mt-1 w-full flex items-center gap-3 rounded-lg border-2 border-dashed px-3 py-3 text-left",
+                  exclFile ? "border-primary/60 bg-primary/5" : "border-border/70 bg-muted/30 hover:bg-muted/50",
+                )}
+              >
+                <input
+                  ref={exclRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={(e) => pickExtra(e.target.files?.[0], setExclFile)}
+                />
+                <UploadCloud className={cn("h-5 w-5 shrink-0", exclFile ? "text-primary" : "text-muted-foreground")} />
+                <div className="min-w-0 flex-1">
+                  {exclFile ? (
+                    <>
+                      <p className="text-sm font-medium truncate">{exclFile.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {(exclFile.size / 1024).toFixed(0)} KB · clique para trocar
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm">Selecionar arquivo de exclusões (.xlsx / .xls)</p>
+                  )}
+                </div>
+                {exclFile && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExclFile(null);
+                      if (exclRef.current) exclRef.current.value = "";
+                    }}
+                    className="rounded-md p-1 hover:bg-muted"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div>
+              <Label className="text-xs">Modo de formatação final</Label>
+              <RadioGroup
+                value={exclModo}
+                onValueChange={(v) => setExclModo(v as ModoFaturamento)}
+                className="mt-1 flex items-center gap-4"
+              >
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="nao_prorata" id="excl-np" />
+                  <Label htmlFor="excl-np" className="text-xs cursor-pointer">Não Prorata</Label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="prorata" id="excl-pr" />
+                  <Label htmlFor="excl-pr" className="text-xs cursor-pointer">Prorata</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExclOpen(false)} disabled={exclProcessing}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAdicionarExclusoes} disabled={!brutoFile || !exclFile || exclProcessing}>
+              {exclProcessing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Gerar arquivo final
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
