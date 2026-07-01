@@ -209,6 +209,23 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
             <Label>Observações</Label>
             <Textarea rows={3} value={obs} onChange={(e) => setObs(e.target.value)} />
           </div>
+          <div className="grid gap-2">
+            <Label>Serviços incluídos na ação</Label>
+            <div className="grid grid-cols-3 gap-3">
+              <label className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer">
+                <Switch checked={temPa} onCheckedChange={setTemPa} />
+                <span className="text-sm">Pressão Arterial</span>
+              </label>
+              <label className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer">
+                <Switch checked={temGli} onCheckedChange={setTemGli} />
+                <span className="text-sm">Glicemia</span>
+              </label>
+              <label className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer">
+                <Switch checked={temBio} onCheckedChange={setTemBio} />
+                <span className="text-sm">Bioimpedância</span>
+              </label>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
