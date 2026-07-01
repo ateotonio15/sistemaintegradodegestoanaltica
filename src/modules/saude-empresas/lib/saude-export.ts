@@ -266,7 +266,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // Slide 3 — PAINEL DE INDICADORES (2 doughnuts)
   // ============================================================
   const s3 = pptx.addSlide();
-  s3.background = { color: COLORS.LIGHT };
+  s3.background = conteudoBg;
   slideTitle(s3, "Painel de Indicadores", "Distribuição por categoria clínica");
 
   const chartW = (SAFE.w - 0.4) / 2;
@@ -300,7 +300,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // Slide 4 — Classificação PA (barra horizontal)
   // ============================================================
   const s4 = pptx.addSlide();
-  s4.background = { color: COLORS.LIGHT };
+  s4.background = conteudoBg;
   slideTitle(s4, "Classificação — Pressão Arterial", "Distribuição detalhada por categoria");
 
   const paLabels = ["Normal", "Pré-Hipertensão", "HA Estágio 1", "HA Estágio 2", "HA Estágio 3", "Não realizado"];
@@ -324,7 +324,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // Slide 5 — Classificação Glicemia (barra horizontal)
   // ============================================================
   const s5 = pptx.addSlide();
-  s5.background = { color: COLORS.LIGHT };
+  s5.background = conteudoBg;
   slideTitle(s5, "Classificação — Glicemia", "Distribuição detalhada por categoria");
 
   const gliLabels = ["Normal", "Pré-Diabetes", "Alterada pós-prandial", "Diabetes", "Não realizado"];
@@ -348,7 +348,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // Slide 6 — PRINCIPAIS ACHADOS
   // ============================================================
   const s6 = pptx.addSlide();
-  s6.background = { color: COLORS.LIGHT };
+  s6.background = conteudoBg;
   slideTitle(s6, "Principais Achados", "Síntese técnica da ação");
 
   painel(s6, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Observações Clínicas");
@@ -373,7 +373,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // Slide 7 — CONCLUSÃO TÉCNICA (2 colunas)
   // ============================================================
   const s7 = pptx.addSlide();
-  s7.background = { color: COLORS.LIGHT };
+  s7.background = conteudoBg;
   slideTitle(s7, "Conclusão Técnica", "Indicadores consolidados e recomendações");
 
   const colW = (SAFE.w - 0.3) / 2;
@@ -419,7 +419,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // ============================================================
   if (acao.observacoes && acao.observacoes.trim()) {
     const s8 = pptx.addSlide();
-    s8.background = { color: COLORS.LIGHT };
+    s8.background = conteudoBg;
     slideTitle(s8, "Observações", "Notas da enfermeira responsável");
     painel(s8, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Observações da Ação");
     s8.addText(acao.observacoes, {
