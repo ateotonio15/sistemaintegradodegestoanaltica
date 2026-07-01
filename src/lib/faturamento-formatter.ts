@@ -510,3 +510,39 @@ function pagadorTemMultiplosCNPJsArr(rows: any[][], iPag: number, iCNPJ: number)
   }
   return false;
 }
+
+/**
+ * Simula o "Selecionar Tudo" + duplo-clique na borda da coluna do Excel:
+ * mede o conteúdo de cada célula (respeitando numFmt para datas/valores)
+ * e define a largura mínima que caiba tudo — sem cortes e sem folga excessiva.
+ */
+function autoFitColumns(ws: ExcelJS.Worksheet, totalCols: number, fontSize: number) {
+  const totalRows = ws.rowCount;
+  const factor = fontSize <= 8 ? 0.85 : fontSize <= 9 ? 0.92 : 1.05;
+
+  const fmtCellLen = (cell: ExcelJS.Cell): number => {
+    const raw = cell.value;
+    if (raw === null || raw === undefined || raw === "") return 0;
+    if (raw instanceof Date) return 10; // dd/mm/yyyy
+    if (typeof raw === "number") {
+      const fmt = String(cell.numFmt || "");
+      if (fmt.includes("#,##0.00")) {
+        return raw.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).length;
+      }
+      if (fmt.includes("#,##0")) return raw.toLocaleString("pt-BR").length;
+      return String(raw).length;
+    }
+    return String(cellText(cell)).length;
+  };
+
+  for (let c = 1; c <= totalCols; c++) {
+    let max = 0;
+    for (let r = 1; r <= totalRows; r++) {
+      const l = fmtCellLen(ws.getRow(r).getCell(c));
+      if (l > max) max = l;
+    }
+    const w = Math.min(Math.max(Math.round(max * factor) + 2, 6), 50);
+    ws.getColumn(c).width = w;
+  }
+}
+}
