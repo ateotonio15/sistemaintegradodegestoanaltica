@@ -139,6 +139,7 @@ export function EventoPreventivoDialog({
       endereco: endereco || null,
       horario_inicio: horarioInicio || null,
       horario_fim: horarioFim || null,
+      responsavel: responsavel || null,
       executiva_user_id: executivaUserId || null,
       executiva_nome: executivaNome || null,
       observacao: observacao || null,
