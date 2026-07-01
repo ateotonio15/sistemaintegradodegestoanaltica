@@ -349,12 +349,7 @@ export async function formatarFaturamentoExcel(
 
   // Build RESUMO
   const wsRes = wbOut.addWorksheet("RESUMO", { views: [{ showGridLines: false }] });
-  const usaCNPJ = pagadorTemMultiplosCNPJs(
-    { getRow: (n: number) => ({ getCell: (c: number) => ({ value: (n === 1 ? finalHeaders : finalRows[n - 2])?.[c - 1] } as any) }) } as any,
-    1,
-    iPagFinal + 1,
-    iCNPJFinal + 1,
-  );
+  const usaCNPJ = pagadorTemMultiplosCNPJsArr(finalRows, iPagFinal, iCNPJFinal);
   const keyMainIdx = usaCNPJ && iCNPJFinal >= 0 ? iCNPJFinal : iPagFinal;
   const keyMainLabel = usaCNPJ && iCNPJFinal >= 0 ? "CNPJ" : "Pagador";
 
