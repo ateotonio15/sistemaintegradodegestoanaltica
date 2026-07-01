@@ -4139,6 +4139,17 @@ export type Database = {
         }
         Returns: string
       }
+      responder_avaliacao_publica: {
+        Args: {
+          p_comentario: string
+          p_formulario_id: string
+          p_nome_empresa: string
+          p_nome_executiva: string
+          p_nota_media: number
+          p_respostas: Json
+        }
+        Returns: string
+      }
       simular_redistribuicao_ferias: {
         Args: { p_user_id: string }
         Returns: Json
