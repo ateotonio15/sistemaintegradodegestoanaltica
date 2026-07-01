@@ -44,46 +44,74 @@ export function FormatarFaturamentoCard() {
   }
 
   async function normalizeBrToXlsxBuffer(buf: ArrayBuffer): Promise<ArrayBuffer> {
-    // Sempre passa pela normalização do SheetJS para corrigir datas/valores em texto BR
-    // (evita dia/mês trocados em MM/DD e vírgula decimal ignorada nos .xls/.xlsx).
+    // Sempre passa pela normalização do SheetJS para corrigir valores em texto BR.
+    // Datas precisam ficar como TEXTO DD/MM/YYYY: se forem gravadas como Date no XLSX
+    // intermediário, o ExcelJS interpreta o ano como serial Excel (ex.: 2026 => 18/07/1905).
     const XLSX = await import("xlsx");
     const wb = XLSX.read(buf, { type: "array", cellDates: false, raw: true });
+
+    const fmtSerialDate = (serial: number) => {
+      const parsed = XLSX.SSF.parse_date_code(serial);
+      if (!parsed) return "";
+      const dd = String(parsed.d).padStart(2, "0");
+      const mm = String(parsed.m).padStart(2, "0");
+      const yy = String(parsed.y).padStart(4, "0");
+      return `${dd}/${mm}/${yy}`;
+    };
+
+    const fmtBRDateString = (value: string) => {
+      const md = value.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (!md) return null;
+      const dn = parseInt(md[1], 10);
+      const mn = parseInt(md[2], 10);
+      let yn = parseInt(md[3], 10);
+      if (yn < 100) yn += 2000;
+      if (mn < 1 || mn > 12 || dn < 1 || dn > 31) return null;
+      const dt = new Date(Date.UTC(yn, mn - 1, dn, 12, 0, 0));
+      if (dt.getUTCFullYear() !== yn || dt.getUTCMonth() !== mn - 1 || dt.getUTCDate() !== dn) return null;
+      return `${String(dn).padStart(2, "0")}/${String(mn).padStart(2, "0")}/${yn}`;
+    };
+
     wb.SheetNames.forEach((sn) => {
       const ws = wb.Sheets[sn];
       if (!ws || !ws["!ref"]) return;
       const range = XLSX.utils.decode_range(ws["!ref"]);
-      const competCols = new Set<number>();
+      const dateCols = new Set<number>();
       for (let R = range.s.r; R <= Math.min(range.s.r + 20, range.e.r); R++) {
         for (let C = range.s.c; C <= range.e.c; C++) {
           const addr = XLSX.utils.encode_cell({ r: R, c: C });
           const cell = ws[addr];
           const txt = cell && cell.v != null ? String(cell.v).trim().toLowerCase() : "";
-          if (/^compet/.test(txt)) competCols.add(C);
+          if (/^compet|^dt\b|^dt[_\s-]|^data\b/.test(txt)) dateCols.add(C);
         }
-        if (competCols.size) break;
+        if (dateCols.size) break;
       }
       for (let R = range.s.r; R <= range.e.r; R++) {
         for (let C = range.s.c; C <= range.e.c; C++) {
           const addr = XLSX.utils.encode_cell({ r: R, c: C });
           const cell = ws[addr];
-          if (!cell || cell.t !== "s" || typeof cell.v !== "string") continue;
-          const s = cell.v.trim();
-          const md = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-          if (md) {
-            if (competCols.has(C)) continue;
-            const dn = parseInt(md[1], 10);
-            const mn = parseInt(md[2], 10);
-            let yn = parseInt(md[3], 10);
-            if (yn < 100) yn += 2000;
-            if (mn >= 1 && mn <= 12 && dn >= 1 && dn <= 31) {
-              const dt = new Date(Date.UTC(yn, mn - 1, dn, 12, 0, 0));
-              if (!isNaN(dt.getTime())) {
-                cell.t = "d";
-                cell.v = dt;
-                cell.z = "dd/mm/yyyy";
-                continue;
-              }
+          if (!cell) continue;
+
+          if (dateCols.has(C) && typeof cell.v === "number" && isFinite(cell.v)) {
+            const formatted = fmtSerialDate(cell.v);
+            if (formatted) {
+              cell.t = "s";
+              cell.v = formatted;
+              cell.w = formatted;
+              cell.z = "@";
+              continue;
             }
+          }
+
+          if (typeof cell.v !== "string") continue;
+          const s = cell.v.trim();
+          const brDate = fmtBRDateString(s);
+          if (brDate) {
+            cell.t = "s";
+            cell.v = brDate;
+            cell.w = brDate;
+            cell.z = "@";
+            continue;
           }
           if (/^-?(?:\d{1,3}(?:\.\d{3})+|\d+),\d+$/.test(s)) {
             const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
@@ -96,7 +124,7 @@ export function FormatarFaturamentoCard() {
         }
       }
     });
-    return XLSX.write(wb, { type: "array", bookType: "xlsx", cellDates: true }) as ArrayBuffer;
+    return XLSX.write(wb, { type: "array", bookType: "xlsx", cellDates: false }) as ArrayBuffer;
   }
 
   function downloadBlob(blob: Blob, filename: string) {
