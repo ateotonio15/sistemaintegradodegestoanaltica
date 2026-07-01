@@ -282,15 +282,52 @@ export async function formatarFaturamentoExcel(
   if (iQtdFinal >= 0) wsOut.getColumn(iQtdFinal + 1).numFmt = "0";
   if (iValorFinal >= 0) wsOut.getColumn(iValorFinal + 1).numFmt = "#,##0.00";
 
-  // Auto width
-  wsOut.columns.forEach((col) => {
-    let max = 8;
+  // Larguras específicas por coluna (fonte 8pt) — evita colunas espremidas
+  const WIDTHS: Record<string, number> = {
+    "carteirinha": 14,
+    "competência": 13,
+    "competencia": 13,
+    "contr": 8,
+    "beneficiário": 38,
+    "beneficiario": 38,
+    "titularidade": 16,
+    "titular": 28,
+    "família": 9,
+    "familia": 9,
+    "dt adesão": 12,
+    "dt adesao": 12,
+    "matricula": 12,
+    "matrícula": 12,
+    "fx etária": 10,
+    "fx etaria": 10,
+    "cpf": 14,
+    "dt": 12,
+    "dt_rescisão": 12,
+    "dt_rescisao": 12,
+    "idade": 7,
+    "tipo cobrança": 20,
+    "tipo cobranca": 20,
+    "cnpj": 18,
+    "pagador": 28,
+    "plano": 28,
+    "valor": 11,
+    "qtd": 6,
+  };
+  wsOut.columns.forEach((col, idx) => {
+    const header = String(finalHeaders[idx] ?? "").trim().toLowerCase();
+    if (WIDTHS[header] != null) {
+      col.width = WIDTHS[header];
+      return;
+    }
+    let max = 10;
     col.eachCell?.({ includeEmpty: false }, (cell) => {
       const l = String(cellText(cell)).length;
       if (l > max) max = l;
     });
-    col.width = Math.min(Math.max(max + 2, 8), 40);
+    // fator 0.9 para fonte 8pt
+    col.width = Math.min(Math.max(Math.round(max * 0.9) + 2, 10), 42);
   });
+
 
   // Determine key columns in the CLEANED data
   const iPagFinal = finalHeaders.findIndex((h) => headerKey(h) === "pagador");
