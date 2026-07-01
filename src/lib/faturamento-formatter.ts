@@ -365,17 +365,31 @@ export async function formatarFaturamentoExcel(
     for (const [k, v] of cnt) if (v > max) (max = v), (contratoStr = k);
   }
 
-  // Competência mais recente
+  // Competência mais recente (aceita string DD/MM/YYYY ou Date)
   let maxDate: Date | null = null;
   if (iCompFinal >= 0) {
     finalRows.forEach((r) => {
       const v = r[iCompFinal];
-      const d = v instanceof Date ? v : v ? new Date(String(v)) : null;
+      let d: Date | null = null;
+      if (v instanceof Date) d = v;
+      else if (v != null) {
+        const s = String(v).trim();
+        const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+        if (m) {
+          let y = parseInt(m[3], 10);
+          if (y < 100) y += 2000;
+          d = new Date(Date.UTC(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10)));
+        } else if (s) {
+          const tmp = new Date(s);
+          if (!isNaN(tmp.getTime())) d = tmp;
+        }
+      }
       if (d && !isNaN(d.getTime())) {
         if (!maxDate || d > maxDate) maxDate = d;
       }
     });
   }
+
   const meses = [
     "JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO",
     "JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO",
