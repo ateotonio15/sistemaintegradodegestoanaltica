@@ -637,6 +637,7 @@ export default function Empresas() {
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
       .filter((e) => respFilter === "all" || (e.responsavel_contrato ?? "").trim() === respFilter)
       .filter((e) => corretoraFilter === "all" || (e.operadora_plano ?? "").trim() === corretoraFilter)
+      .filter((e) => executivaFilter === "all" || ((e as any).executiva_user_id ?? "") === executivaFilter)
       .filter((e) => {
         if (filtroPrioridade === "todas") return true;
         if (filtroPrioridade === "somente" || filtroPrioridade === "ativas") return !!(e as any).prioridade_maxima_id;
