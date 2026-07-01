@@ -99,6 +99,9 @@ export type Database = {
           local: string | null
           observacoes: string | null
           status: Database["public"]["Enums"]["acao_saude_status"]
+          tem_bioimpedancia: boolean
+          tem_glicemia: boolean
+          tem_pa: boolean
           tipo: Database["public"]["Enums"]["acao_saude_tipo"]
           titulo: string | null
           total_atendidos: number
@@ -117,6 +120,9 @@ export type Database = {
           local?: string | null
           observacoes?: string | null
           status?: Database["public"]["Enums"]["acao_saude_status"]
+          tem_bioimpedancia?: boolean
+          tem_glicemia?: boolean
+          tem_pa?: boolean
           tipo?: Database["public"]["Enums"]["acao_saude_tipo"]
           titulo?: string | null
           total_atendidos?: number
@@ -135,6 +141,9 @@ export type Database = {
           local?: string | null
           observacoes?: string | null
           status?: Database["public"]["Enums"]["acao_saude_status"]
+          tem_bioimpedancia?: boolean
+          tem_glicemia?: boolean
+          tem_pa?: boolean
           tipo?: Database["public"]["Enums"]["acao_saude_tipo"]
           titulo?: string | null
           total_atendidos?: number
@@ -3514,6 +3523,7 @@ export type Database = {
           setor: string | null
           sexo: string | null
           telefone: string | null
+          tem_bio: boolean
           tem_dm: boolean
           tem_has: boolean
           temperatura_c: number | null
@@ -3563,6 +3573,7 @@ export type Database = {
           setor?: string | null
           sexo?: string | null
           telefone?: string | null
+          tem_bio?: boolean
           tem_dm?: boolean
           tem_has?: boolean
           temperatura_c?: number | null
@@ -3612,6 +3623,7 @@ export type Database = {
           setor?: string | null
           sexo?: string | null
           telefone?: string | null
+          tem_bio?: boolean
           tem_dm?: boolean
           tem_has?: boolean
           temperatura_c?: number | null
