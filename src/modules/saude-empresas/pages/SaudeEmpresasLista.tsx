@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Building2, Plus, Search, LayoutGrid, List, HeartPulse, Trash2, X, BarChart3, Stethoscope, CalendarDays } from "lucide-react";
+import { Building2, Plus, Search, LayoutGrid, List, HeartPulse, Trash2, X, BarChart3, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
