@@ -151,7 +151,7 @@ export function FormatarFaturamentoCard() {
       const exclBuf = await normalizeBrToXlsxBuffer(await exclFile.arrayBuffer());
       const mergedBuf = await adicionarExclusoesAoBruto(brutoBuf, exclBuf);
       const finalBuf = await normalizeBrToXlsxBuffer(mergedBuf);
-      const { blob, filename } = await formatarFaturamentoExcel(finalBuf, exclModo);
+      const { blob, filename } = await formatarFaturamentoExcel(finalBuf, exclModo, { pularResumo: true });
       downloadBlob(blob, filename);
       toast.success(`Exclusões adicionadas e formatação aplicada: ${filename}`);
       setBrutoFile(null);
