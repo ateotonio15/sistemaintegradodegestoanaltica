@@ -26,12 +26,18 @@ export function FormatarFaturamentoCard() {
 
   async function handleProcess() {
     if (!file) {
-      toast.error("Selecione o arquivo do faturamento (.xlsx).");
+      toast.error("Selecione o arquivo do faturamento (.xlsx ou .xls).");
       return;
     }
     try {
       setProcessing(true);
-      const buf = await file.arrayBuffer();
+      let buf = await file.arrayBuffer();
+      // Converte .xls legado para .xlsx antes de formatar
+      if (/\.xls$/i.test(file.name)) {
+        const XLSX = await import("xlsx");
+        const wb = XLSX.read(buf, { type: "array", cellStyles: true, cellDates: true });
+        buf = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+      }
       const { blob, filename } = await formatarFaturamentoExcel(buf, modo);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
