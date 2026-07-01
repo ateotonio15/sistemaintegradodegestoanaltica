@@ -361,7 +361,8 @@ export async function formatarFaturamentoExcel(
     : "COMPETENCIA-NAO-ENCONTRADA";
 
 
-  // Build RESUMO
+  // Build RESUMO (pode ser pulado quando o usuário adiciona exclusões)
+  if (!opts.pularResumo) {
   const wsRes = wbOut.addWorksheet("RESUMO", { views: [{ showGridLines: false }] });
   const usaCNPJ = pagadorTemMultiplosCNPJsArr(finalRows, iPagFinal, iCNPJFinal);
   const keyMainIdx = usaCNPJ && iCNPJFinal >= 0 ? iCNPJFinal : iPagFinal;
@@ -411,7 +412,6 @@ export async function formatarFaturamentoExcel(
     let subV = 0;
     if (secondIdx >= 0) {
       const keys2 = Array.from(inner.keys()).sort();
-      // Main row (subtotal placeholder to be filled)
       const mainRowRef = wsRes.addRow([k1, "", 0, 0]);
       for (const k2 of keys2) {
         const a = inner.get(k2)!;
@@ -437,7 +437,6 @@ export async function formatarFaturamentoExcel(
   totalRow.font = { bold: true, size: 11 };
 
   const totalColsRes = headerRes.length;
-  // Header row 1: fill and border apenas nas colunas usadas
   const hRow = wsRes.getRow(1);
   for (let c = 1; c <= totalColsRes; c++) {
     const cell = hRow.getCell(c);
@@ -450,7 +449,6 @@ export async function formatarFaturamentoExcel(
   wsRes.getColumn(qtdCol).numFmt = "0";
   wsRes.getColumn(valCol).numFmt = "#,##0.00";
 
-  // Bordas e fonte 11 em todas as células (incluindo vazias dentro do range)
   const totalRowsRes = wsRes.rowCount;
   for (let r = 1; r <= totalRowsRes; r++) {
     const row = wsRes.getRow(r);
@@ -467,14 +465,14 @@ export async function formatarFaturamentoExcel(
     }
   }
 
-  // Seleciona Tudo + AutoAjuste de largura das colunas (fonte 11)
   autoFitColumns(wsRes, totalColsRes, 11);
 
-  // Contrato row
   const contratoRow = wsRes.addRow([]);
   const cRow = wsRes.addRow([`Contrato: ${contratoStr}`]);
   cRow.getCell(1).font = { bold: true, size: 10 };
   void contratoRow;
+  }
+
 
   const nomeLimpo = nomePagadorCurto.replace(/[\\/:*?"<>|]/g, "");
   const filename = `FATURAMENTO ${nomeLimpo} - ${competenciaStr}.xlsx`;
