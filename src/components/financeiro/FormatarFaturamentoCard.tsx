@@ -3,15 +3,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { FileSpreadsheet, Upload, Loader2, Download } from "lucide-react";
+import { FileSpreadsheet, Loader2, Download, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatarFaturamentoExcel, type ModoFaturamento } from "@/lib/faturamento-formatter";
+import { cn } from "@/lib/utils";
 
 export function FormatarFaturamentoCard() {
   const [modo, setModo] = useState<ModoFaturamento>("nao_prorata");
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  function pickFile(f: File | null | undefined) {
+    if (!f) return;
+    if (!/\.xlsx$/i.test(f.name)) {
+      toast.error("Envie um arquivo .xlsx do faturamento.");
+      return;
+    }
+    setFile(f);
+  }
 
   async function handleProcess() {
     if (!file) {
@@ -42,71 +53,118 @@ export function FormatarFaturamentoCard() {
   }
 
   return (
-    <Card className="rounded-2xl border-border/60 shadow-sm">
-      <CardContent className="p-4 space-y-4">
+    <Card className="rounded-2xl border-border/60 shadow-sm h-full">
+      <CardContent className="p-4 h-full flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
             <FileSpreadsheet className="h-5 w-5 text-primary" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold">Formatar faturamento empresarial</p>
             <p className="text-xs text-muted-foreground">
-              Anexe o Excel do faturamento (bruto) e escolha o modo. O arquivo formatado será baixado
-              automaticamente.
+              Anexe o Excel do faturamento (bruto) e escolha o modo. O arquivo formatado é baixado automaticamente.
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-end">
-          <div>
-            <Label className="text-xs">Arquivo (.xlsx)</Label>
-            <div className="mt-1 flex items-center gap-2">
-              <input
-                ref={inputRef}
-                type="file"
-                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                className="block w-full text-xs file:mr-3 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-primary/90"
-              />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-stretch flex-1">
+          {/* Drop zone */}
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              pickFile(e.dataTransfer.files?.[0]);
+            }}
+            className={cn(
+              "relative flex items-center justify-center gap-3 rounded-xl border-2 border-dashed px-4 py-4 text-left transition-colors min-h-[92px]",
+              dragOver
+                ? "border-primary bg-primary/5"
+                : file
+                  ? "border-primary/60 bg-primary/5"
+                  : "border-border/70 bg-muted/30 hover:bg-muted/50",
+            )}
+          >
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={(e) => pickFile(e.target.files?.[0])}
+              className="hidden"
+            />
+            <UploadCloud className={cn("h-6 w-6 shrink-0", file ? "text-primary" : "text-muted-foreground")} />
+            <div className="min-w-0 flex-1">
+              {file ? (
+                <>
+                  <p className="text-sm font-medium truncate">{file.name}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {(file.size / 1024).toFixed(0)} KB · clique para trocar
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium">Arraste o Excel do faturamento aqui</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    ou clique para selecionar um arquivo .xlsx bruto
+                  </p>
+                </>
+              )}
             </div>
             {file && (
-              <p className="text-[11px] text-muted-foreground mt-1 truncate">
-                <Upload className="inline h-3 w-3 mr-1" />
-                {file.name}
-              </p>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFile(null);
+                  if (inputRef.current) inputRef.current.value = "";
+                }}
+                className="rounded-md p-1 hover:bg-muted"
+                title="Remover arquivo"
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </span>
             )}
-          </div>
+          </button>
 
-          <div>
-            <Label className="text-xs">Modo</Label>
-            <RadioGroup
-              value={modo}
-              onValueChange={(v) => setModo(v as ModoFaturamento)}
-              className="mt-1 flex items-center gap-3"
-            >
-              <div className="flex items-center gap-1.5">
-                <RadioGroupItem value="nao_prorata" id="mod-np" />
-                <Label htmlFor="mod-np" className="text-xs cursor-pointer">
-                  Não Prorata
-                </Label>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <RadioGroupItem value="prorata" id="mod-pr" />
-                <Label htmlFor="mod-pr" className="text-xs cursor-pointer">
-                  Prorata
-                </Label>
-              </div>
-            </RadioGroup>
+          {/* Modo + ação */}
+          <div className="flex flex-col justify-between gap-3 lg:min-w-[220px]">
+            <div>
+              <Label className="text-xs">Modo</Label>
+              <RadioGroup
+                value={modo}
+                onValueChange={(v) => setModo(v as ModoFaturamento)}
+                className="mt-1 flex items-center gap-3"
+              >
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="nao_prorata" id="mod-np" />
+                  <Label htmlFor="mod-np" className="text-xs cursor-pointer">
+                    Não Prorata
+                  </Label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="prorata" id="mod-pr" />
+                  <Label htmlFor="mod-pr" className="text-xs cursor-pointer">
+                    Prorata
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <Button onClick={handleProcess} disabled={!file || processing} size="sm" className="w-full">
+              {processing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Formatar e baixar
+            </Button>
           </div>
-
-          <Button onClick={handleProcess} disabled={!file || processing} size="sm">
-            {processing ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4 mr-2" />
-            )}
-            Formatar e baixar
-          </Button>
         </div>
       </CardContent>
     </Card>
