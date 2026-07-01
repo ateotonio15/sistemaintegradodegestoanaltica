@@ -51,14 +51,13 @@ export default function ResponderRH() {
       : null;
 
     setEnviando(true);
-    const { error } = await db.from("cs_avaliacao_respostas").insert({
-      formulario_id: form.id,
-      respostas,
-      nota_media: notaMedia,
-      comentario: comentario.trim() || null,
-      nome_empresa: nomeEmpresa.trim(),
-      nome_executiva: nomeExecutiva.trim(),
-      compartilhamento_id: compartilhamentoId || null,
+    const { error } = await db.rpc("responder_avaliacao_publica", {
+      p_formulario_id: form.id,
+      p_respostas: respostas,
+      p_comentario: comentario.trim() || null,
+      p_nota_media: notaMedia,
+      p_nome_empresa: nomeEmpresa.trim(),
+      p_nome_executiva: nomeExecutiva.trim(),
     });
     setEnviando(false);
     if (error) { console.error("Erro ao enviar avaliação:", error); toast.error("Não foi possível enviar sua avaliação. Tente novamente."); return; }
