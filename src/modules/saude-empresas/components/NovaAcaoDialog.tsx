@@ -76,6 +76,9 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
       setTitulo(acao.titulo ?? "");
       setLocal(acao.local ?? "");
       setObs(acao.observacoes ?? "");
+      setTemPa(acao.tem_pa ?? true);
+      setTemGli(acao.tem_glicemia ?? true);
+      setTemBio(acao.tem_bioimpedancia ?? false);
     } else {
       setEmpresaId(empresaIdLock ?? "");
       setDataAcao(new Date().toISOString().slice(0, 10));
@@ -86,6 +89,9 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
       setTitulo("");
       setLocal("");
       setObs("");
+      setTemPa(true);
+      setTemGli(true);
+      setTemBio(false);
     }
   }, [open, acao, empresaIdLock]);
 
@@ -104,6 +110,9 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
       observacoes: obs || null,
       enfermeira_user_id: acao?.enfermeira_user_id ?? user?.id ?? null,
       enfermeira_nome: acao?.enfermeira_nome ?? profile?.display_name ?? null,
+      tem_pa: temPa,
+      tem_glicemia: temGli,
+      tem_bioimpedancia: temBio,
     });
     onOpenChange(false);
     if (res?.id) onSaved?.(res.id);
