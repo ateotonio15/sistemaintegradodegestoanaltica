@@ -89,6 +89,7 @@ export function gerarHistoricoTexto(
   let totalInc = 0;
   let totalExc = 0;
   let totalAdesao = 0;
+  let totalRetro = 0;
 
   resultados.forEach((r) => {
     if (r.enfermaria.beneficiarios > 0 || r.enfermaria.total > 0) {
@@ -104,7 +105,12 @@ export function gerarHistoricoTexto(
     if (r.inclusoes?.total) totalInc += r.inclusoes.total;
     if (r.exclusoes?.total) totalExc += r.exclusoes.total;
     if (r.taxaAdesao?.total) totalAdesao += r.taxaAdesao.total;
+    if ((r as any).retroativas?.total) totalRetro += (r as any).retroativas.total;
   });
+
+  // Inclusão agregada já contém as retroativas — separar para exibir cada uma
+  const totalIncSemRetro = totalInc - totalRetro;
+
 
   const ehFaixaEtaria = (opts.tipoAnalise || "").toLowerCase() === "faixa_etaria";
 
