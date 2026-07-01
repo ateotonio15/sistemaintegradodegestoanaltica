@@ -654,7 +654,7 @@ export default function Empresas() {
         const pb = (b as any).prioridade_maxima_id ? 1 : 0;
         return pb - pa;
       });
-  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, filtroPrioridade]);
+  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, executivaFilter, filtroPrioridade]);
 
   async function exportarInativasExcel() {
     const inativas = empresas
