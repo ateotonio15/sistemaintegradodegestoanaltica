@@ -1491,6 +1491,15 @@ export default function Empresas() {
               {corretoraOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={executivaFilter} onValueChange={setExecutivaFilter}>
+            <SelectTrigger className="rounded-lg w-[220px]"><SelectValue placeholder="Executiva" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as executivas</SelectItem>
+              {executivoUsers.map((u) => (
+                <SelectItem key={u.user_id} value={u.user_id}>{u.display_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={filtroPrioridade} onValueChange={(v) => setFiltroPrioridade(v as any)}>
             <SelectTrigger className="rounded-lg w-[200px]"><SelectValue placeholder="Prioridade" /></SelectTrigger>
             <SelectContent>
@@ -1500,8 +1509,8 @@ export default function Empresas() {
               <SelectItem value="concluidas">Concluídas</SelectItem>
             </SelectContent>
           </Select>
-          {(respFilter !== "all" || corretoraFilter !== "all") && (
-            <Button variant="ghost" size="sm" onClick={() => { setRespFilter("all"); setCorretoraFilter("all"); }} className="rounded-lg">
+          {(respFilter !== "all" || corretoraFilter !== "all" || executivaFilter !== "all") && (
+            <Button variant="ghost" size="sm" onClick={() => { setRespFilter("all"); setCorretoraFilter("all"); setExecutivaFilter("all"); }} className="rounded-lg">
               Limpar filtros
             </Button>
           )}
