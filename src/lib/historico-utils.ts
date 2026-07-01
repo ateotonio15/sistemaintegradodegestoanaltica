@@ -126,9 +126,9 @@ export function gerarHistoricoTexto(
     linhas.push(`Período de ${cabecalho}${resumoProdutos.length ? ` ${resumoProdutos.join(" / ")}` : ""}.`);
 
 
-    if (totalInc > 0) {
+    if (totalIncSemRetro > 0) {
       linhas.push("");
-      linhas.push(`Inclusão= ${fmtBR(totalInc)}`);
+      linhas.push(`Inclusão= ${fmtBR(totalIncSemRetro)}`);
     }
     if (totalAdesao > 0) {
       linhas.push(`Taxa de Adesão= ${fmtBR(totalAdesao)}`);
@@ -136,6 +136,9 @@ export function gerarHistoricoTexto(
     if (totalExc !== 0) {
       const v = Math.abs(totalExc);
       linhas.push(`Exclusão: (${fmtBR(v)}).`);
+    }
+    if (totalRetro > 0) {
+      linhas.push(`C.Retroativa: ${fmtBR(totalRetro)}`);
     }
   } else {
     linhas.push(`Período de: ${cabecalho}.`);
@@ -147,17 +150,21 @@ export function gerarHistoricoTexto(
     if (benefApt > 0 || totalApt > 0) {
       linhas.push(`Apartamento: ${benefApt}x${fmtBR(mensApt)}= ${fmtBR(totalApt)} /`);
     }
-    if (totalInc > 0) {
-      linhas.push(`Inclusão= ${fmtBR(totalInc)} /`);
+    if (totalIncSemRetro > 0) {
+      linhas.push(`Inclusão= ${fmtBR(totalIncSemRetro)} /`);
     }
     if (totalAdesao > 0) {
       linhas.push(`Taxa de Adesão= ${fmtBR(totalAdesao)} /`);
     }
     if (totalExc !== 0) {
       const v = Math.abs(totalExc);
-      linhas.push(`Exclusão: (${fmtBR(v)}).`);
+      linhas.push(`Exclusão: (${fmtBR(v)})`);
+    }
+    if (totalRetro > 0) {
+      linhas.push(`C.Retroativa: ${fmtBR(totalRetro)}`);
     }
   }
+
 
   linhas.push("");
   linhas.push(`Data de Vencimento: ${opts.dataVencimento}.`);
