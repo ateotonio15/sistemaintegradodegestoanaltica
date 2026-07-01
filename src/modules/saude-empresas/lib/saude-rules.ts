@@ -1,15 +1,18 @@
-// Regras clínicas e classificações usadas em todo o módulo Saúde nas Empresas.
-// Mantenha em sincronia com as funções SQL `public.classificar_pa` / `classificar_glicemia` / `calcular_imc`.
+// Regras clínicas — sincronizadas com public.classificar_pa / classificar_glicemia / calcular_imc.
 
 export type PaCategoria =
-  | "Ótima"
   | "Normal"
-  | "Limítrofe"
+  | "Pré-Hipertensão"
   | "HA Estágio 1"
   | "HA Estágio 2"
-  | "HA Estágio 3";
+  | "HA Estágio 3"
+  | "Não realizado";
 
-export type GlicemiaCategoria = "Hipoglicemia" | "Normal" | "Pré-Diabetes" | "Diabetes";
+export type GlicemiaCategoria =
+  | "Normal"
+  | "Pré-Diabetes"
+  | "Alterada pós-prandial"
+  | "Diabetes";
 
 export type ImcCategoria =
   | "Baixo peso"
@@ -21,28 +24,29 @@ export type ImcCategoria =
 
 export type RiscoGeral = "alto" | "medio" | "baixo";
 
-export function classificarPa(pas?: number | null, pad?: number | null): PaCategoria | null {
-  if (pas == null || pad == null) return null;
+export function classificarPa(pas?: number | null, pad?: number | null): PaCategoria {
+  if (pas == null || pad == null || pas <= 0 || pad <= 0) return "Não realizado";
   if (pas >= 180 || pad >= 110) return "HA Estágio 3";
   if (pas >= 160 || pad >= 100) return "HA Estágio 2";
   if (pas >= 140 || pad >= 90) return "HA Estágio 1";
-  if (pas >= 130 || pad >= 85) return "Limítrofe";
-  if (pas >= 120 || pad >= 80) return "Normal";
-  return "Ótima";
+  if (pas >= 120 || pad >= 80) return "Pré-Hipertensão";
+  return "Normal";
 }
 
 export function classificarGlicemia(valor?: number | null, jejum?: boolean): GlicemiaCategoria | null {
-  if (valor == null) return null;
+  if (valor == null || valor <= 0) return null;
   if (jejum) {
-    if (valor < 70) return "Hipoglicemia";
     if (valor < 100) return "Normal";
     if (valor < 126) return "Pré-Diabetes";
     return "Diabetes";
   }
   if (valor < 140) return "Normal";
-  if (valor < 200) return "Pré-Diabetes";
+  if (valor < 200) return "Alterada pós-prandial";
   return "Diabetes";
 }
+
+export const PA_ALTERADAS: PaCategoria[] = ["Pré-Hipertensão", "HA Estágio 1", "HA Estágio 2", "HA Estágio 3"];
+export const PA_GRAVE: PaCategoria[] = ["HA Estágio 2", "HA Estágio 3"];
 
 export function calcularImc(pesoKg?: number | null, alturaCm?: number | null): number | null {
   if (!pesoKg || !alturaCm) return null;
@@ -62,16 +66,17 @@ export function classificarImc(imc?: number | null): ImcCategoria | null {
 
 export function corPa(cat?: PaCategoria | null): string {
   switch (cat) {
-    case "Ótima":
     case "Normal":
       return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30";
-    case "Limítrofe":
+    case "Pré-Hipertensão":
       return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
     case "HA Estágio 1":
       return "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30";
     case "HA Estágio 2":
     case "HA Estágio 3":
-      return "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
+      return "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30 animate-pulse";
+    case "Não realizado":
+      return "bg-muted text-muted-foreground border-border";
     default:
       return "bg-muted text-muted-foreground border-border";
   }
@@ -81,8 +86,8 @@ export function corGlicemia(cat?: GlicemiaCategoria | null): string {
   switch (cat) {
     case "Normal":
       return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
-    case "Hipoglicemia":
     case "Pré-Diabetes":
+    case "Alterada pós-prandial":
       return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400";
     case "Diabetes":
       return "bg-red-500/15 text-red-700 dark:text-red-400";
@@ -135,19 +140,16 @@ export function calcularRisco(input: {
     glicemia === "Diabetes" ||
     (imc != null && imc >= 30) ||
     (tem_has && tem_dm)
-  ) {
-    return "alto";
-  }
+  ) return "alto";
   if (
-    pa === "Limítrofe" ||
+    pa === "Pré-Hipertensão" ||
     pa === "HA Estágio 1" ||
     glicemia === "Pré-Diabetes" ||
+    glicemia === "Alterada pós-prandial" ||
     (imc != null && imc >= 25) ||
     tem_has ||
     tem_dm
-  ) {
-    return "medio";
-  }
+  ) return "medio";
   return "baixo";
 }
 
