@@ -38,6 +38,9 @@ export function NovaAcaoDialog({ open, onOpenChange, acao, empresaIdLock, onSave
   const [local, setLocal] = useState("");
   const [obs, setObs] = useState("");
   const [popOpen, setPopOpen] = useState(false);
+  const [temPa, setTemPa] = useState(true);
+  const [temGli, setTemGli] = useState(true);
+  const [temBio, setTemBio] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["profile_me", user?.id],
