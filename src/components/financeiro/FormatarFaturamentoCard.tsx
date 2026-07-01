@@ -40,6 +40,18 @@ export function FormatarFaturamentoCard() {
         const ws = wb.Sheets[sn];
         if (!ws || !ws["!ref"]) return;
         const range = XLSX.utils.decode_range(ws["!ref"]);
+        // Detecta a coluna "Competência" para preservá-la como texto literal
+        // (o usuário exige que "01/07/2026" permaneça idêntico ao arquivo original).
+        const competCols = new Set<number>();
+        for (let R = range.s.r; R <= Math.min(range.s.r + 20, range.e.r); R++) {
+          for (let C = range.s.c; C <= range.e.c; C++) {
+            const addr = XLSX.utils.encode_cell({ r: R, c: C });
+            const cell = ws[addr];
+            const txt = cell && cell.v != null ? String(cell.v).trim().toLowerCase() : "";
+            if (/^compet/.test(txt)) competCols.add(C);
+          }
+          if (competCols.size) break;
+        }
         for (let R = range.s.r; R <= range.e.r; R++) {
           for (let C = range.s.c; C <= range.e.c; C++) {
             const addr = XLSX.utils.encode_cell({ r: R, c: C });
@@ -49,6 +61,8 @@ export function FormatarFaturamentoCard() {
             // Data BR: DD/MM/YYYY (constrói em UTC para preservar o dia)
             const md = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
             if (md) {
+              // Competência: mantém como TEXTO literal (não vira Date)
+              if (competCols.has(C)) continue;
               const dn = parseInt(md[1], 10);
               const mn = parseInt(md[2], 10);
               let yn = parseInt(md[3], 10);
@@ -76,6 +90,7 @@ export function FormatarFaturamentoCard() {
         }
       });
       buf = XLSX.write(wb, { type: "array", bookType: "xlsx", cellDates: true }) as ArrayBuffer;
+
       const { blob, filename } = await formatarFaturamentoExcel(buf, modo);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
