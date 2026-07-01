@@ -100,6 +100,7 @@ export default function Empresas() {
   const [showInativas, setShowInativas] = useState(false);
   const [respFilter, setRespFilter] = useState<string>("all");
   const [corretoraFilter, setCorretoraFilter] = useState<string>("all");
+  const [executivaFilter, setExecutivaFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailEmpresa, setDetailEmpresa] = useState<Empresa | null>(null);
   const [rescisaoDate, setRescisaoDate] = useState("");
@@ -144,7 +145,7 @@ export default function Empresas() {
         if (!emp.grupo_contrato) { updateData.grupo_contrato = "Não informado"; corrigidosEmp++; }
 
         if (Object.keys(updateData).length > 0) {
-          const { error: updateError } = await supabase.from("empresas").update(updateData).eq("id", emp.id);
+          const { error: updateError } = await supabase.from("empresas").update(updateData as any).eq("id", emp.id);
           if (updateError) { console.error("Erro ao atualizar empresa:", emp.nome, updateError); errosEmp++; }
           else { Object.assign(emp, updateData); empresaMap.set(emp.id, emp); }
         }
@@ -209,7 +210,7 @@ export default function Empresas() {
         if (mov.tipo_movimentacao !== tipoCorreto) updateMov.tipo_movimentacao = tipoCorreto;
         if (!mov.responsavel_movimentacao && emp.responsavel_contrato) updateMov.responsavel_movimentacao = emp.responsavel_contrato;
         if (Object.keys(updateMov).length > 0) {
-          const { error: updErr } = await supabase.from("movimentacoes").update(updateMov).eq("id", mov.id);
+          const { error: updErr } = await supabase.from("movimentacoes").update(updateMov as any).eq("id", mov.id);
           if (updErr) { console.error("Erro ao atualizar mov:", mov.id, updErr); errosMov++; }
           else { corrigidosMov++; }
         }
@@ -636,6 +637,7 @@ export default function Empresas() {
       .filter((e) => showInativas ? e.status_empresa === "Inativa" : e.status_empresa !== "Inativa")
       .filter((e) => respFilter === "all" || (e.responsavel_contrato ?? "").trim() === respFilter)
       .filter((e) => corretoraFilter === "all" || (e.operadora_plano ?? "").trim() === corretoraFilter)
+      .filter((e) => executivaFilter === "all" || ((e as any).executiva_user_id ?? "") === executivaFilter)
       .filter((e) => {
         if (filtroPrioridade === "todas") return true;
         if (filtroPrioridade === "somente" || filtroPrioridade === "ativas") return !!(e as any).prioridade_maxima_id;
@@ -652,7 +654,7 @@ export default function Empresas() {
         const pb = (b as any).prioridade_maxima_id ? 1 : 0;
         return pb - pa;
       });
-  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, filtroPrioridade]);
+  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, executivaFilter, filtroPrioridade]);
 
   async function exportarInativasExcel() {
     const inativas = empresas
@@ -1489,6 +1491,15 @@ export default function Empresas() {
               {corretoraOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={executivaFilter} onValueChange={setExecutivaFilter}>
+            <SelectTrigger className="rounded-lg w-[220px]"><SelectValue placeholder="Executiva" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as executivas</SelectItem>
+              {executivoUsers.map((u) => (
+                <SelectItem key={u.user_id} value={u.user_id}>{u.display_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={filtroPrioridade} onValueChange={(v) => setFiltroPrioridade(v as any)}>
             <SelectTrigger className="rounded-lg w-[200px]"><SelectValue placeholder="Prioridade" /></SelectTrigger>
             <SelectContent>
@@ -1498,8 +1509,8 @@ export default function Empresas() {
               <SelectItem value="concluidas">Concluídas</SelectItem>
             </SelectContent>
           </Select>
-          {(respFilter !== "all" || corretoraFilter !== "all") && (
-            <Button variant="ghost" size="sm" onClick={() => { setRespFilter("all"); setCorretoraFilter("all"); }} className="rounded-lg">
+          {(respFilter !== "all" || corretoraFilter !== "all" || executivaFilter !== "all") && (
+            <Button variant="ghost" size="sm" onClick={() => { setRespFilter("all"); setCorretoraFilter("all"); setExecutivaFilter("all"); }} className="rounded-lg">
               Limpar filtros
             </Button>
           )}
