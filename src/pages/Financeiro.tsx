@@ -2236,15 +2236,10 @@ export default function Financeiro() {
           </Alert>
         )}
 
-        {/* KPIs + Formatador de faturamento lado a lado */}
-        <div className={cn("grid gap-3", canManageFinanceiro ? "grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)]" : "grid-cols-1")}>
-          <KpiCards {...kpis} />
-          {canManageFinanceiro && <FormatarFaturamentoCard />}
-        </div>
+        {/* KPIs full width */}
+        <KpiCards {...kpis} />
 
-
-
-        {/* Período + Reajuste/Cobrança + Gráfico */}
+        {/* Período + Reajuste/Cobrança + Formatador de faturamento */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-4">
             <PeriodSummary
@@ -2254,7 +2249,13 @@ export default function Financeiro() {
             />
             <ReajusteCobrancaRetroativa />
           </div>
+          {canManageFinanceiro && (
+            <div className="lg:col-span-1">
+              <FormatarFaturamentoCard />
+            </div>
+          )}
         </div>
+
 
         {/* Filtros da tabela */}
         <Card className="rounded-xl shadow-sm">
