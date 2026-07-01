@@ -165,6 +165,15 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   pptx.layout = "LAYOUT_WIDE"; // 13.333 x 7.5
   pptx.title = `Relatório de Saúde - ${acao.empresa?.nome ?? ""}`;
 
+  // Plano de fundo (template Samel — Programa Saúde nas Empresas)
+  const [bgCapa, bgConteudo] = await Promise.all([
+    fetchDataUri(bgCapaAsset.url),
+    fetchDataUri(bgConteudoAsset.url),
+  ]);
+  const capaBg = { data: bgCapa } as const;
+  const conteudoBg = { data: bgConteudo } as const;
+
+
   const empresaNome = (acao.empresa?.nome ?? "Empresa").toUpperCase();
   const dataBR = formatDateBR(acao.data_acao);
 
