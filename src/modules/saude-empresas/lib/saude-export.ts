@@ -1,6 +1,19 @@
 import * as XLSX from "xlsx";
 import type { Triagem, AcaoSaude } from "../hooks/useSaudeEmpresas";
 import { classificarImc, classificarPa, classificarGlicemia, PA_ALTERADAS } from "./saude-rules";
+import bgCapaAsset from "@/assets/saude_bg_capa.png.asset.json";
+import bgConteudoAsset from "@/assets/saude_bg_conteudo.png.asset.json";
+
+async function fetchDataUri(url: string): Promise<string> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onloadend = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
 
 // ============================================================
 // Paleta corporativa (fixa)
@@ -77,17 +90,19 @@ export function exportTriagensExcel(acao: AcaoSaude, triagens: Triagem[]) {
 // HELPERS DE LAYOUT
 // ============================================================
 function slideTitle(slide: any, titulo: string, subtitulo?: string) {
+  // Largura limitada para não sobrepor os logos no canto superior direito do template
   slide.addText(titulo, {
-    x: SAFE.x, y: 0.95, w: SAFE.w, h: 0.5,
-    fontSize: 28, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
+    x: SAFE.x, y: 0.7, w: 8.6, h: 0.5,
+    fontSize: 26, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
   });
   if (subtitulo) {
     slide.addText(subtitulo, {
-      x: SAFE.x, y: 1.45, w: SAFE.w, h: 0.35,
-      fontSize: 14, color: COLORS.GREY, fontFace: "Calibri",
+      x: SAFE.x, y: 1.2, w: 8.6, h: 0.35,
+      fontSize: 13, color: COLORS.GREEN, fontFace: "Calibri",
     });
   }
 }
+
 
 function kpiCard(
   slide: any,
@@ -150,6 +165,15 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   pptx.layout = "LAYOUT_WIDE"; // 13.333 x 7.5
   pptx.title = `Relatório de Saúde - ${acao.empresa?.nome ?? ""}`;
 
+  // Plano de fundo (template Samel — Programa Saúde nas Empresas)
+  const [bgCapa, bgConteudo] = await Promise.all([
+    fetchDataUri(bgCapaAsset.url),
+    fetchDataUri(bgConteudoAsset.url),
+  ]);
+  const capaBg = { data: bgCapa } as const;
+  const conteudoBg = { data: bgConteudo } as const;
+
+
   const empresaNome = (acao.empresa?.nome ?? "Empresa").toUpperCase();
   const dataBR = formatDateBR(acao.data_acao);
 
@@ -180,39 +204,42 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   }).length;
 
   // ============================================================
-  // Slide 1 — CAPA
+  // Slide 1 — CAPA (fundo Samel)
   // ============================================================
   const s1 = pptx.addSlide();
-  s1.background = { color: COLORS.NAVY };
-  s1.addShape("rect", { x: 0, y: 3.2, w: 13.333, h: 1.1, fill: { color: COLORS.LIGHT }, line: { color: COLORS.LIGHT } });
-  s1.addText("RELATÓRIO DE AÇÃO DE SAÚDE", {
-    x: 0.6, y: 1.4, w: 12.1, h: 0.6,
-    fontSize: 14, bold: true, color: COLORS.AMBER, charSpacing: 8, fontFace: "Calibri",
+  s1.background = capaBg;
+  // Textos posicionados na área livre (esquerda-inferior), evitando os logos
+  // no topo-esquerdo e a foto da profissional à direita.
+  s1.addText("PROGRAMA SAÚDE NAS EMPRESAS", {
+    x: 0.7, y: 3.05, w: 8.2, h: 0.4,
+    fontSize: 12, bold: true, color: COLORS.GREEN, charSpacing: 6, fontFace: "Calibri",
   });
-  s1.addText("Saúde Ocupacional & Medicina do Trabalho", {
-    x: 0.6, y: 2.0, w: 12.1, h: 0.6,
-    fontSize: 32, bold: true, color: COLORS.WHITE, fontFace: "Calibri",
+  s1.addText("Relatório de Ação de Saúde", {
+    x: 0.7, y: 3.45, w: 8.2, h: 0.7,
+    fontSize: 30, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
   });
   s1.addText(empresaNome, {
-    x: 0.6, y: 3.35, w: 12.1, h: 0.8,
-    fontSize: 26, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
+    x: 0.7, y: 4.2, w: 8.2, h: 0.6,
+    fontSize: 20, bold: true, color: COLORS.GREEN, fontFace: "Calibri",
   });
   const capaMeta = [
-    { text: `EMPRESA: ${empresaNome}\n`, options: { bold: true } },
-    { text: `DATA: ${dataBR}\n`, options: { bold: true } },
-    { text: `ENFERMEIRA: ${(acao.enfermeira_nome ?? "LORENN BRANDÃO — COREN-AM 977.099").toUpperCase()}`, options: { bold: true } },
+    { text: `Data da ação: ${dataBR}\n`, options: { bold: true } },
+    { text: `Enfermeira responsável: ${(acao.enfermeira_nome ?? "Lorenn Brandão — COREN-AM 977.099")}\n`, options: {} },
+    { text: `Total triado: ${total} colaboradores`, options: {} },
   ];
   s1.addText(capaMeta as any, {
-    x: 0.6, y: 5.45, w: 12.1, h: 1.3,
-    fontSize: 13, color: COLORS.WHITE, fontFace: "Courier New",
+    x: 0.7, y: 5.0, w: 8.2, h: 1.4,
+    fontSize: 13, color: COLORS.NAVY, fontFace: "Calibri",
+    paraSpaceAfter: 4,
   });
 
   // ============================================================
   // Slide 2 — RESUMO EXECUTIVO (KPI grid 3x2)
   // ============================================================
   const s2 = pptx.addSlide();
-  s2.background = { color: COLORS.LIGHT };
+  s2.background = conteudoBg;
   slideTitle(s2, "Resumo Executivo", `${empresaNome} · ${dataBR}`);
+
 
   const gap = 0.22;
   const cols = 3;
@@ -239,7 +266,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // Slide 3 — PAINEL DE INDICADORES (2 doughnuts)
   // ============================================================
   const s3 = pptx.addSlide();
-  s3.background = { color: COLORS.LIGHT };
+  s3.background = conteudoBg;
   slideTitle(s3, "Painel de Indicadores", "Distribuição por categoria clínica");
 
   const chartW = (SAFE.w - 0.4) / 2;
@@ -273,7 +300,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // Slide 4 — Classificação PA (barra horizontal)
   // ============================================================
   const s4 = pptx.addSlide();
-  s4.background = { color: COLORS.LIGHT };
+  s4.background = conteudoBg;
   slideTitle(s4, "Classificação — Pressão Arterial", "Distribuição detalhada por categoria");
 
   const paLabels = ["Normal", "Pré-Hipertensão", "HA Estágio 1", "HA Estágio 2", "HA Estágio 3", "Não realizado"];
@@ -297,7 +324,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // Slide 5 — Classificação Glicemia (barra horizontal)
   // ============================================================
   const s5 = pptx.addSlide();
-  s5.background = { color: COLORS.LIGHT };
+  s5.background = conteudoBg;
   slideTitle(s5, "Classificação — Glicemia", "Distribuição detalhada por categoria");
 
   const gliLabels = ["Normal", "Pré-Diabetes", "Alterada pós-prandial", "Diabetes", "Não realizado"];
@@ -321,7 +348,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // Slide 6 — PRINCIPAIS ACHADOS
   // ============================================================
   const s6 = pptx.addSlide();
-  s6.background = { color: COLORS.LIGHT };
+  s6.background = conteudoBg;
   slideTitle(s6, "Principais Achados", "Síntese técnica da ação");
 
   painel(s6, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Observações Clínicas");
@@ -346,7 +373,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // Slide 7 — CONCLUSÃO TÉCNICA (2 colunas)
   // ============================================================
   const s7 = pptx.addSlide();
-  s7.background = { color: COLORS.LIGHT };
+  s7.background = conteudoBg;
   slideTitle(s7, "Conclusão Técnica", "Indicadores consolidados e recomendações");
 
   const colW = (SAFE.w - 0.3) / 2;
@@ -392,7 +419,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // ============================================================
   if (acao.observacoes && acao.observacoes.trim()) {
     const s8 = pptx.addSlide();
-    s8.background = { color: COLORS.LIGHT };
+    s8.background = conteudoBg;
     slideTitle(s8, "Observações", "Notas da enfermeira responsável");
     painel(s8, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Observações da Ação");
     s8.addText(acao.observacoes, {
