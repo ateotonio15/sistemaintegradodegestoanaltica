@@ -17,8 +17,8 @@ export function FormatarFaturamentoCard() {
 
   function pickFile(f: File | null | undefined) {
     if (!f) return;
-    if (!/\.xlsx$/i.test(f.name)) {
-      toast.error("Envie um arquivo .xlsx do faturamento.");
+    if (!/\.(xlsx|xls)$/i.test(f.name)) {
+      toast.error("Envie um arquivo .xlsx ou .xls do faturamento.");
       return;
     }
     setFile(f);
@@ -26,12 +26,18 @@ export function FormatarFaturamentoCard() {
 
   async function handleProcess() {
     if (!file) {
-      toast.error("Selecione o arquivo do faturamento (.xlsx).");
+      toast.error("Selecione o arquivo do faturamento (.xlsx ou .xls).");
       return;
     }
     try {
       setProcessing(true);
-      const buf = await file.arrayBuffer();
+      let buf = await file.arrayBuffer();
+      // Converte .xls legado para .xlsx antes de formatar
+      if (/\.xls$/i.test(file.name)) {
+        const XLSX = await import("xlsx");
+        const wb = XLSX.read(buf, { type: "array", cellStyles: true, cellDates: true });
+        buf = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+      }
       const { blob, filename } = await formatarFaturamentoExcel(buf, modo);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -94,7 +100,7 @@ export function FormatarFaturamentoCard() {
             <input
               ref={inputRef}
               type="file"
-              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
               onChange={(e) => pickFile(e.target.files?.[0])}
               className="hidden"
             />
@@ -111,7 +117,7 @@ export function FormatarFaturamentoCard() {
                 <>
                   <p className="text-sm font-medium">Arraste o Excel do faturamento aqui</p>
                   <p className="text-[11px] text-muted-foreground">
-                    ou clique para selecionar um arquivo .xlsx bruto
+                    ou clique para selecionar um arquivo .xlsx ou .xls bruto
                   </p>
                 </>
               )}
