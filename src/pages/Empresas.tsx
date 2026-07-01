@@ -210,7 +210,7 @@ export default function Empresas() {
         if (mov.tipo_movimentacao !== tipoCorreto) updateMov.tipo_movimentacao = tipoCorreto;
         if (!mov.responsavel_movimentacao && emp.responsavel_contrato) updateMov.responsavel_movimentacao = emp.responsavel_contrato;
         if (Object.keys(updateMov).length > 0) {
-          const { error: updErr } = await supabase.from("movimentacoes").update(updateMov).eq("id", mov.id);
+          const { error: updErr } = await supabase.from("movimentacoes").update(updateMov as any).eq("id", mov.id);
           if (updErr) { console.error("Erro ao atualizar mov:", mov.id, updErr); errosMov++; }
           else { corrigidosMov++; }
         }
