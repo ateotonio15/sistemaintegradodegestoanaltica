@@ -159,6 +159,8 @@ export async function adicionarExclusoesAoBruto(
     for (const [k, v] of cnt) if (v > max) (max = v), (fxEtariaBruto = k);
   }
 
+  const compExclusaoStr = compExclusao ? fmtDataBR(compExclusao) : "";
+
   // Converte exclusões em linhas alinhadas ao cabeçalho do bruto
   const novasLinhas: unknown[][] = [];
   for (let r = 1; r < aoaExc.length; r++) {
@@ -168,7 +170,7 @@ export async function adicionarExclusoesAoBruto(
     const nova: unknown[] = headersBruto.map((h, ci) => {
       if (ci === idxTipo) return "Exclusão";
       if (ci === idxValor) return "";
-      if (ci === idxComp) return compExclusao ?? "";
+      if (ci === idxComp) return compExclusaoStr;
       if (ci === idxFx) return fxEtariaBruto;
 
       let val = pickFromExcl(h, linhaExc, normExcMap);
@@ -176,6 +178,13 @@ export async function adicionarExclusoesAoBruto(
       // Regra especial: Pagador ← SUBESTIPULANTE (remove "PJ - ")
       if (ci === idxPagador && typeof val === "string") {
         val = val.replace(/^\s*PJ\s*[-–]\s*/i, "").trim();
+      }
+
+      // Datas: garante formato DD/MM/YYYY como texto
+      const hNorm = normHeader(h);
+      if ((hNorm === "dt" || hNorm.startsWith("dt ") || hNorm.startsWith("data")) && val !== "" && val != null) {
+        const d = toDateSafe(val);
+        if (d) val = fmtDataBR(d);
       }
 
       return val == null ? "" : val;
