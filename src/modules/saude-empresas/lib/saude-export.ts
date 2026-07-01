@@ -209,34 +209,43 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   const s1 = pptx.addSlide();
   s1.background = { color: COLORS.NAVY };
   s1.addShape("rect", { x: 0, y: 3.2, w: 13.333, h: 1.1, fill: { color: COLORS.LIGHT }, line: { color: COLORS.LIGHT } });
-  s1.addText("RELATÓRIO DE AÇÃO DE SAÚDE", {
-    x: 0.6, y: 1.4, w: 12.1, h: 0.6,
-    fontSize: 14, bold: true, color: COLORS.AMBER, charSpacing: 8, fontFace: "Calibri",
+  // ============================================================
+  // Slide 1 — CAPA (fundo Samel)
+  // ============================================================
+  const s1 = pptx.addSlide();
+  s1.background = capaBg;
+  // Textos posicionados na área livre (esquerda-inferior), evitando os logos
+  // no topo-esquerdo e a foto da profissional à direita.
+  s1.addText("PROGRAMA SAÚDE NAS EMPRESAS", {
+    x: 0.7, y: 3.05, w: 8.2, h: 0.4,
+    fontSize: 12, bold: true, color: COLORS.GREEN, charSpacing: 6, fontFace: "Calibri",
   });
-  s1.addText("Saúde Ocupacional & Medicina do Trabalho", {
-    x: 0.6, y: 2.0, w: 12.1, h: 0.6,
-    fontSize: 32, bold: true, color: COLORS.WHITE, fontFace: "Calibri",
+  s1.addText("Relatório de Ação de Saúde", {
+    x: 0.7, y: 3.45, w: 8.2, h: 0.7,
+    fontSize: 30, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
   });
   s1.addText(empresaNome, {
-    x: 0.6, y: 3.35, w: 12.1, h: 0.8,
-    fontSize: 26, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
+    x: 0.7, y: 4.2, w: 8.2, h: 0.6,
+    fontSize: 20, bold: true, color: COLORS.GREEN, fontFace: "Calibri",
   });
   const capaMeta = [
-    { text: `EMPRESA: ${empresaNome}\n`, options: { bold: true } },
-    { text: `DATA: ${dataBR}\n`, options: { bold: true } },
-    { text: `ENFERMEIRA: ${(acao.enfermeira_nome ?? "LORENN BRANDÃO — COREN-AM 977.099").toUpperCase()}`, options: { bold: true } },
+    { text: `Data da ação: ${dataBR}\n`, options: { bold: true } },
+    { text: `Enfermeira responsável: ${(acao.enfermeira_nome ?? "Lorenn Brandão — COREN-AM 977.099")}\n`, options: {} },
+    { text: `Total triado: ${total} colaboradores`, options: {} },
   ];
   s1.addText(capaMeta as any, {
-    x: 0.6, y: 5.45, w: 12.1, h: 1.3,
-    fontSize: 13, color: COLORS.WHITE, fontFace: "Courier New",
+    x: 0.7, y: 5.0, w: 8.2, h: 1.4,
+    fontSize: 13, color: COLORS.NAVY, fontFace: "Calibri",
+    paraSpaceAfter: 4,
   });
 
   // ============================================================
   // Slide 2 — RESUMO EXECUTIVO (KPI grid 3x2)
   // ============================================================
   const s2 = pptx.addSlide();
-  s2.background = { color: COLORS.LIGHT };
+  s2.background = conteudoBg;
   slideTitle(s2, "Resumo Executivo", `${empresaNome} · ${dataBR}`);
+
 
   const gap = 0.22;
   const cols = 3;
