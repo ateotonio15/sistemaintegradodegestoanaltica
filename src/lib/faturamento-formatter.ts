@@ -282,15 +282,52 @@ export async function formatarFaturamentoExcel(
   if (iQtdFinal >= 0) wsOut.getColumn(iQtdFinal + 1).numFmt = "0";
   if (iValorFinal >= 0) wsOut.getColumn(iValorFinal + 1).numFmt = "#,##0.00";
 
-  // Auto width
-  wsOut.columns.forEach((col) => {
-    let max = 8;
+  // Larguras específicas por coluna (fonte 8pt) — evita colunas espremidas
+  const WIDTHS: Record<string, number> = {
+    "carteirinha": 14,
+    "competência": 13,
+    "competencia": 13,
+    "contr": 8,
+    "beneficiário": 38,
+    "beneficiario": 38,
+    "titularidade": 16,
+    "titular": 28,
+    "família": 9,
+    "familia": 9,
+    "dt adesão": 12,
+    "dt adesao": 12,
+    "matricula": 12,
+    "matrícula": 12,
+    "fx etária": 10,
+    "fx etaria": 10,
+    "cpf": 14,
+    "dt": 12,
+    "dt_rescisão": 12,
+    "dt_rescisao": 12,
+    "idade": 7,
+    "tipo cobrança": 20,
+    "tipo cobranca": 20,
+    "cnpj": 18,
+    "pagador": 28,
+    "plano": 28,
+    "valor": 11,
+    "qtd": 6,
+  };
+  wsOut.columns.forEach((col, idx) => {
+    const header = String(finalHeaders[idx] ?? "").trim().toLowerCase();
+    if (WIDTHS[header] != null) {
+      col.width = WIDTHS[header];
+      return;
+    }
+    let max = 10;
     col.eachCell?.({ includeEmpty: false }, (cell) => {
       const l = String(cellText(cell)).length;
       if (l > max) max = l;
     });
-    col.width = Math.min(Math.max(max + 2, 8), 40);
+    // fator 0.9 para fonte 8pt
+    col.width = Math.min(Math.max(Math.round(max * 0.9) + 2, 10), 42);
   });
+
 
   // Determine key columns in the CLEANED data
   const iPagFinal = finalHeaders.findIndex((h) => headerKey(h) === "pagador");
@@ -328,24 +365,39 @@ export async function formatarFaturamentoExcel(
     for (const [k, v] of cnt) if (v > max) (max = v), (contratoStr = k);
   }
 
-  // Competência mais recente
+  // Competência mais recente (aceita string DD/MM/YYYY ou Date)
   let maxDate: Date | null = null;
   if (iCompFinal >= 0) {
     finalRows.forEach((r) => {
       const v = r[iCompFinal];
-      const d = v instanceof Date ? v : v ? new Date(String(v)) : null;
+      let d: Date | null = null;
+      if (v instanceof Date) d = v;
+      else if (v != null) {
+        const s = String(v).trim();
+        const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+        if (m) {
+          let y = parseInt(m[3], 10);
+          if (y < 100) y += 2000;
+          d = new Date(Date.UTC(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10), 12));
+        } else if (s) {
+          const tmp = new Date(s);
+          if (!isNaN(tmp.getTime())) d = tmp;
+        }
+      }
       if (d && !isNaN(d.getTime())) {
         if (!maxDate || d > maxDate) maxDate = d;
       }
     });
   }
+
   const meses = [
     "JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO",
     "JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO",
   ];
   const competenciaStr = maxDate
-    ? `${meses[maxDate.getMonth()]}${maxDate.getFullYear()}`
+    ? `${meses[maxDate.getUTCMonth()]}${maxDate.getUTCFullYear()}`
     : "COMPETENCIA-NAO-ENCONTRADA";
+
 
   // Build RESUMO
   const wsRes = wbOut.addWorksheet("RESUMO", { views: [{ showGridLines: false }] });
