@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Building2, Plus, Search, LayoutGrid, List, HeartPulse, Trash2, X, BarChart3, Stethoscope, CalendarDays } from "lucide-react";
+import { Building2, Plus, Search, LayoutGrid, List, HeartPulse, Trash2, X, BarChart3, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -169,7 +169,6 @@ export default function SaudeEmpresasLista() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline"><Link to="/saude-empresas/preventivas"><CalendarDays className="h-4 w-4 mr-1" />Calendário preventivas</Link></Button>
           <Button asChild variant="outline"><Link to="/saude-empresas/visao-geral"><BarChart3 className="h-4 w-4 mr-1" />Visão geral</Link></Button>
           {canCreate && (
             <Button onClick={() => setModalOpen(true)}>
