@@ -232,6 +232,25 @@ export default function Financeiro() {
   const operacionaisMap = operacionaisData?.envioMap ?? {};
   const anexosCadastroCountMap = operacionaisData?.anexosCountMap ?? {};
 
+  // Anexos de implantação (rótulo "Contrato") — contados por empresa
+  const { data: anexosImplantacaoCountMap = {} } = useQuery({
+    queryKey: ["financeiro-anexos-implantacao", empresaIds.sort().join(",")],
+    queryFn: async () => {
+      if (empresaIds.length === 0) return {} as Record<string, number>;
+      const { data, error } = await supabase
+        .from("implantacao_anexos" as any)
+        .select("empresa_id")
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data || []).forEach((a: any) => {
+        if (a.empresa_id) map[a.empresa_id] = (map[a.empresa_id] || 0) + 1;
+      });
+      return map;
+    },
+    enabled: empresaIds.length > 0,
+  });
+
   // Pagadores cadastrados (financeiro_pagadores) por empresa
   const { data: pagadoresCadastradosMap = {} } = useQuery({
     queryKey: ["financeiro-pagadores-all", empresaIds.sort().join(",")],
