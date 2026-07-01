@@ -3,10 +3,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { FileSpreadsheet, Loader2, Download, UploadCloud, X } from "lucide-react";
+import { FileSpreadsheet, Loader2, Download, UploadCloud, X, FilePlus2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatarFaturamentoExcel, type ModoFaturamento } from "@/lib/faturamento-formatter";
+import { adicionarExclusoesAoBruto } from "@/lib/faturamento-exclusoes";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export function FormatarFaturamentoCard() {
   const [modo, setModo] = useState<ModoFaturamento>("nao_prorata");
@@ -14,6 +23,16 @@ export function FormatarFaturamentoCard() {
   const [processing, setProcessing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Estado da função "Adicionar Exclusões"
+  const [exclOpen, setExclOpen] = useState(false);
+  const [exclProcessing, setExclProcessing] = useState(false);
+  const [brutoFile, setBrutoFile] = useState<File | null>(null);
+  const [exclFile, setExclFile] = useState<File | null>(null);
+  const [exclModo, setExclModo] = useState<ModoFaturamento>("nao_prorata");
+  const brutoRef = useRef<HTMLInputElement>(null);
+  const exclRef = useRef<HTMLInputElement>(null);
+
 
   function pickFile(f: File | null | undefined) {
     if (!f) return;
