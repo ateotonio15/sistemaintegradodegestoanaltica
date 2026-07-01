@@ -256,9 +256,13 @@ export async function formatarFaturamentoExcel(
   wsOut.addRow(finalHeaders);
   finalRows.forEach((r) => wsOut.addRow(r));
 
-  wsOut.eachRow((row) => {
+  const totalColsOut = finalHeaders.length;
+  const totalRowsOut = wsOut.rowCount;
+  for (let r = 1; r <= totalRowsOut; r++) {
+    const row = wsOut.getRow(r);
     row.height = 15;
-    row.eachCell({ includeEmpty: false }, (cell) => {
+    for (let c = 1; c <= totalColsOut; c++) {
+      const cell = row.getCell(c);
       cell.font = { ...(cell.font || {}), size: 8 };
       cell.border = {
         top: { style: "thin" },
@@ -266,8 +270,8 @@ export async function formatarFaturamentoExcel(
         right: { style: "thin" },
         bottom: { style: "thin" },
       };
-    });
-  });
+    }
+  }
   const headerRowOut = wsOut.getRow(1);
   headerRowOut.eachCell((cell) => {
     cell.font = { bold: true, size: 8, color: { argb: "FF000000" } };
@@ -319,11 +323,11 @@ export async function formatarFaturamentoExcel(
       col.width = WIDTHS[header];
       return;
     }
-    let max = 10;
-    col.eachCell?.({ includeEmpty: false }, (cell) => {
-      const l = String(cellText(cell)).length;
+    let max = String(finalHeaders[idx] ?? "").length;
+    for (let r = 2; r <= totalRowsOut; r++) {
+      const l = String(cellText(wsOut.getRow(r).getCell(idx + 1))).length;
       if (l > max) max = l;
-    });
+    }
     // fator 0.9 para fonte 8pt
     col.width = Math.min(Math.max(Math.round(max * 0.9) + 2, 10), 42);
   });
@@ -459,7 +463,7 @@ export async function formatarFaturamentoExcel(
       }
       mainRowRef.getCell(3).value = subQ;
       mainRowRef.getCell(4).value = subV;
-      mainRowRef.font = { bold: true, size: 9 };
+      mainRowRef.font = { bold: true, size: 11 };
     } else {
       const a = inner.get("__total__")!;
       wsRes.addRow([k1, a.qtd, a.valor]);
@@ -472,35 +476,48 @@ export async function formatarFaturamentoExcel(
   const totalRow = wsRes.addRow(
     secondIdx >= 0 ? ["Total Geral", "", grandQtd, grandVal] : ["Total Geral", grandQtd, grandVal],
   );
-  totalRow.font = { bold: true, size: 9 };
+  totalRow.font = { bold: true, size: 11 };
 
-  wsRes.getRow(1).font = { bold: true, size: 9, color: { argb: "FF000000" } };
-  wsRes.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_FILL } };
+  const totalColsRes = headerRes.length;
+  // Header row 1: fill and border apenas nas colunas usadas
+  const hRow = wsRes.getRow(1);
+  for (let c = 1; c <= totalColsRes; c++) {
+    const cell = hRow.getCell(c);
+    cell.font = { bold: true, size: 11, color: { argb: "FF000000" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_FILL } };
+  }
 
   const qtdCol = secondIdx >= 0 ? 3 : 2;
   const valCol = secondIdx >= 0 ? 4 : 3;
   wsRes.getColumn(qtdCol).numFmt = "0";
   wsRes.getColumn(valCol).numFmt = "#,##0.00";
-  wsRes.columns.forEach((col) => {
-    let max = 10;
-    col.eachCell?.({ includeEmpty: false }, (cell) => {
-      const l = String(cellText(cell)).length;
-      if (l > max) max = l;
-    });
-    col.width = Math.min(Math.max(max + 2, 10), 40);
-  });
-  wsRes.eachRow((row) => {
-    row.eachCell({ includeEmpty: false }, (cell) => {
+
+  // Bordas e fonte 11 em todas as células (incluindo vazias dentro do range)
+  const totalRowsRes = wsRes.rowCount;
+  for (let r = 1; r <= totalRowsRes; r++) {
+    const row = wsRes.getRow(r);
+    for (let c = 1; c <= totalColsRes; c++) {
+      const cell = row.getCell(c);
       cell.border = {
         top: { style: "thin" },
         left: { style: "thin" },
         right: { style: "thin" },
         bottom: { style: "thin" },
       };
-      if (!cell.font) cell.font = { size: 9 };
-      else cell.font = { ...cell.font, size: cell.font.size ?? 9 };
-    });
-  });
+      const curFont = cell.font || {};
+      cell.font = { ...curFont, size: curFont.size ?? 11 };
+    }
+  }
+
+  // Ajuste automático de largura por coluna (fonte 11)
+  for (let c = 1; c <= totalColsRes; c++) {
+    let max = 10;
+    for (let r = 1; r <= totalRowsRes; r++) {
+      const l = String(cellText(wsRes.getRow(r).getCell(c))).length;
+      if (l > max) max = l;
+    }
+    wsRes.getColumn(c).width = Math.min(Math.max(max + 3, 12), 45);
+  }
 
   // Contrato row
   const contratoRow = wsRes.addRow([]);
