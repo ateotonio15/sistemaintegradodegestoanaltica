@@ -56,18 +56,12 @@ export function EventoPreventivoDialog({
   const { data: executivas = [] } = useExecutivas();
   const { createMany, updateOne, deleteOne } = useAcaoPreventivaMutations();
 
-  const podeEscolherExecutiva = userUsername === "mayara.meireles" || isReadOnly === false && !!user && (
-    // admins também podem escolher
-    false
-  );
-  // Regra estrita conforme spec: somente mayara.meireles vê o Select.
-  const mayaraOnly = userUsername === "mayara.meireles";
-
   const [empresaId, setEmpresaId] = useState<string>("");
   const [endereco, setEndereco] = useState("");
   const [datas, setDatas] = useState<Date[]>([]);
   const [horarioInicio, setHorarioInicio] = useState("");
   const [horarioFim, setHorarioFim] = useState("");
+  const [responsavel, setResponsavel] = useState("");
   const [executivaUserId, setExecutivaUserId] = useState<string>("");
   const [executivaNome, setExecutivaNome] = useState<string>("");
   const [observacao, setObservacao] = useState("");
@@ -85,6 +79,7 @@ export function EventoPreventivoDialog({
       setDatas([new Date(y, m - 1, d)]);
       setHorarioInicio(editing.horario_inicio?.slice(0, 5) ?? "");
       setHorarioFim(editing.horario_fim?.slice(0, 5) ?? "");
+      setResponsavel(editing.responsavel ?? "");
       setExecutivaUserId(editing.executiva_user_id ?? "");
       setExecutivaNome(editing.executiva_nome ?? "");
       setObservacao(editing.observacao ?? "");
@@ -96,13 +91,15 @@ export function EventoPreventivoDialog({
       setDatas(preselect ?? []);
       setHorarioInicio("");
       setHorarioFim("");
-      setExecutivaUserId(mayaraOnly ? "" : user?.id ?? "");
-      setExecutivaNome(mayaraOnly ? "" : userNome ?? "");
+      setResponsavel("");
+      // Default = usuário logado
+      setExecutivaUserId(user?.id ?? "");
+      setExecutivaNome(userNome ?? "");
       setObservacao("");
       setStatus("a_confirmar");
       setMotivo("");
     }
-  }, [open, editing, preselect, user?.id, userNome, mayaraOnly]);
+  }, [open, editing, preselect, user?.id, userNome]);
 
   const empresa = useMemo(() => empresas.find((e) => e.id === empresaId), [empresas, empresaId]);
   // auto endereço quando trocar empresa em modo novo (se vazio)
