@@ -247,10 +247,18 @@ export function PalestraDialog({
                 )}
               </PopoverContent>
             </Popover>
-            {datas.length > 1 && (
-              <div className="text-xs text-muted-foreground flex flex-wrap gap-1">
+            {datas.length > 1 && !isEdit && (
+              <div className="text-xs text-muted-foreground flex flex-wrap gap-1 items-center">
+                <span>{datas.length} data(s) selecionada(s):</span>
                 {datas.map((d) => (
-                  <Badge key={d.toISOString()} variant="secondary">{format(d, "dd/MM", { locale: ptBR })}</Badge>
+                  <Badge key={d.toISOString()} variant="secondary" className="gap-1">
+                    {format(d, "dd/MM", { locale: ptBR })}
+                    {!dis && (
+                      <button type="button" onClick={() => removerData(d)} aria-label={`Remover ${format(d, "dd/MM")}`} className="hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </Badge>
                 ))}
               </div>
             )}
