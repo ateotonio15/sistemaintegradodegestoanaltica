@@ -353,7 +353,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
 
   painel(s6, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Observações Clínicas");
 
-  const est = paCounts["HA Estágio 1"] + paCounts["HA Estágio 2"] + paCounts["HA Estágio 3"];
+  const est = paCounts["Hipertensão Estágio 1"] + paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
   const findings = [
     `${total} colaboradores avaliados na ação de ${dataBR}.`,
     `${paAlt} (${pct(paAlt, total)}%) apresentaram alteração pressórica — ${est} em estágio hipertensivo (HA 1/2/3).`,
