@@ -39,6 +39,7 @@ export type MailingBrinde = {
   observacoes: string | null;
   tipo_cesta: "A" | "B" | "C" | null;
   executiva: string | null;
+  data_nascimento: string | null;
   created_at: string;
   updated_at: string;
 };
