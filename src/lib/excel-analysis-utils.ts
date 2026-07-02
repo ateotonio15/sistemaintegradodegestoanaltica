@@ -1507,8 +1507,104 @@ export async function analisarExcelFinanceiroPorCnpj(
   }
 
 
+  // Varre TODAS as abas do workbook em busca de pivots/rótulos de
+  // "Cobrança Retroativa" que possam estar fora da aba principal
+  // (ex.: aba RESUMO com pivots no rodapé ou abas dedicadas
+  // "C.RETROATIVA MAR26", "C.RETROATIVA ABR26", ...).
+  // Acumula qtd/total e distribui entre os blocos (rateio proporcional).
+  let extraRetroQtd = 0;
+  let extraRetroTotal = 0;
+  let pivotEncontrado = false;
+
+  // Passo 1: procura pivots "Cobrança Retroativa <Mês>" em abas de resumo
+  wb.worksheets.forEach((sheet) => {
+    const nomeAba = norm(sheet.name || "");
+    const abaEhRetro = nomeAba.includes("retroativ");
+    if (abaEhRetro) return; // dedicated sheets tratadas no passo 2
+    const rowsSheet: unknown[][] = [];
+    sheet.eachRow({ includeEmpty: false }, (row) => rowsSheet.push((row.values as unknown[]).slice(1)));
+    for (let i = 0; i < rowsSheet.length; i++) {
+      const r = rowsSheet[i] || [];
+      if (r.some((c) => norm(c).startsWith("total"))) continue;
+      let hitIdx = -1;
+      for (let c = 0; c < r.length; c++) {
+        const t = norm(r[c]);
+        if (t.includes("cobranca retroativa")) { hitIdx = c; break; }
+      }
+      if (hitIdx < 0) continue;
+      const nums: number[] = [];
+      for (let c = hitIdx + 1; c < r.length && nums.length < 2; c++) {
+        const n = toNumber(r[c]);
+        if (!isNaN(n)) nums.push(n);
+      }
+      if (nums.length === 0) continue;
+      pivotEncontrado = true;
+      extraRetroQtd += nums.length >= 2 ? Math.round(nums[0]) : 0;
+      extraRetroTotal += nums.length >= 2 ? nums[1] : nums[0];
+    }
+  });
+
+  // Passo 2: se não achou pivots, soma linha-a-linha das abas dedicadas
+  if (!pivotEncontrado) {
+    wb.worksheets.forEach((sheet) => {
+      const nomeAba = norm(sheet.name || "");
+      if (!nomeAba.includes("retroativ")) return;
+      const rowsSheet: unknown[][] = [];
+      sheet.eachRow({ includeEmpty: false }, (row) => rowsSheet.push((row.values as unknown[]).slice(1)));
+      let hIdx = -1, iVal = -1, iQtd = -1, iTipo = -1;
+      for (let i = 0; i < Math.min(5, rowsSheet.length); i++) {
+        const r = rowsSheet[i];
+        const v = findColumnIndex(r, COL_VALOR);
+        const t = findColumnIndex(r, COL_TIPO_COBRANCA);
+        const q = r.findIndex((c) => norm(c) === "qtd");
+        if (v >= 0 || t >= 0) { hIdx = i; iVal = v; iQtd = q; iTipo = t; break; }
+      }
+      if (hIdx < 0) return;
+      for (let i = hIdx + 1; i < rowsSheet.length; i++) {
+        const r = rowsSheet[i];
+        if (!r || r.length === 0) continue;
+        const tipoCell = iTipo >= 0 ? String(r[iTipo] ?? "") : "";
+        if (iTipo >= 0 && !isRetroativa(tipoCell)) continue;
+        const val = toNumber(r[iVal]);
+        const qtd = iQtd >= 0 ? toNumber(r[iQtd]) : 1;
+        if (!isNaN(val)) extraRetroTotal += val;
+        extraRetroQtd += isNaN(qtd) ? 1 : qtd;
+      }
+    });
+  }
+
+
+  if ((extraRetroQtd !== 0 || Math.abs(extraRetroTotal) > 0.001) && blocos.length > 0) {
+    // Desconta o que já foi capturado como retro no loop principal
+    const jaRetroTotal = blocos.reduce((s, b) => s + (b.retroativas?.total ?? 0), 0);
+    const jaRetroQtd = blocos.reduce((s, b) => s + (b.retroativas?.quantidade ?? 0), 0);
+    const deltaQ = extraRetroQtd - jaRetroQtd;
+    const deltaT = extraRetroTotal - jaRetroTotal;
+    if (deltaQ > 0 || Math.abs(deltaT) > 0.001) {
+      if (blocos.length === 1) {
+        const b = blocos[0];
+        b.retroativas = {
+          quantidade: (b.retroativas?.quantidade ?? 0) + deltaQ,
+          total: (b.retroativas?.total ?? 0) + deltaT,
+        };
+        b.inclusoes = { quantidade: b.inclusoes.quantidade + deltaQ, total: b.inclusoes.total + deltaT };
+      } else {
+        const base = blocos.map((b) => Math.abs(b.inclusoes.total) || 0);
+        const soma = base.reduce((s, v) => s + v, 0);
+        blocos.forEach((b, idx) => {
+          const w = soma > 0 ? base[idx] / soma : 1 / blocos.length;
+          const q = Math.round(deltaQ * w);
+          const v = deltaT * w;
+          b.retroativas = { quantidade: (b.retroativas?.quantidade ?? 0) + q, total: (b.retroativas?.total ?? 0) + v };
+          b.inclusoes = { quantidade: b.inclusoes.quantidade + q, total: b.inclusoes.total + v };
+        });
+      }
+    }
+  }
+
   return mesclarBlocosPorNomeForcado(blocos);
 }
+
 
 /**
  * Consolida múltiplos blocos por-CNPJ num único bloco por-nome para pagadores
