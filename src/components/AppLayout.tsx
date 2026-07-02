@@ -157,8 +157,6 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if (item.to === "/vidas" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
       return true;
     });
-      return true;
-    });
     if (canAccessHonda) {
       filtered.push({ to: "/honda-exclusoes", label: "Honda Exclusões", icon: Bike });
     }
