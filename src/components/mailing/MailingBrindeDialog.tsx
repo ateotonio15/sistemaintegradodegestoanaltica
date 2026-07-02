@@ -67,6 +67,7 @@ type FormState = {
   observacoes: string;
   tipo_cesta: "A" | "B" | "C" | "";
   executiva: string;
+  data_nascimento: string;
 };
 
 const empty: FormState = {
