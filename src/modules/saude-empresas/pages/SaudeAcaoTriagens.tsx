@@ -42,6 +42,12 @@ const GLI_COLORS: Record<string, string> = {
 export default function SaudeAcaoTriagens() {
   useSaudeRealtime();
   const { acaoId = "" } = useParams();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try { await queryClient.invalidateQueries(); } finally { setRefreshing(false); }
+  };
   const { isAdmin, isEnfermeira, isDiretora } = useAuth();
   const canEdit = isAdmin || isEnfermeira;
   const isReadOnly = isDiretora && !isAdmin;
