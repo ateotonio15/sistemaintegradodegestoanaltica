@@ -47,8 +47,8 @@ const STATUS_META: Record<
 };
 
 export default function MailingBrindes() {
-  const { isAdmin, isExecutivo, isComum } = useAuth();
-  const canEdit = isAdmin || isExecutivo || isComum;
+  const { isAdmin, isExecutivo, isComum, isExecutivoExterno } = useAuth();
+  const canEdit = isAdmin || isExecutivo || isComum || isExecutivoExterno;
 
   const [rows, setRows] = useState<MailingBrinde[]>([]);
   const [loading, setLoading] = useState(true);
