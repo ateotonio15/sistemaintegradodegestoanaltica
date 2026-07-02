@@ -333,7 +333,7 @@ const SHORTCUTS: Shortcut[] = [
 ];
 
 export default function Home() {
-  const { isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, isVendas, role, user } = useAuth();
+  const { isAdmin, isExecutivo, isExecutivoExterno, isViewOnly, isEnfermeira, isFinanceiro, isVendas, role, user } = useAuth();
   const { data: canHonda } = useCanAccessHonda();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"funcoes" | "utilitarios">("funcoes");
@@ -343,6 +343,7 @@ export default function Home() {
   const ctx: Ctx = {
     isAdmin,
     isExecutivo,
+    isExecutivoExterno,
     isViewOnly,
     isEnfermeira,
     isFinanceiro,
