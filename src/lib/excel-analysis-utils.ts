@@ -1085,6 +1085,62 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   const comCnpj = blocos.filter((b) => b.cnpj.length === 14);
   if (comCnpj.length === 0) return null;
 
+  // Varre o "rodapé" da aba RESUMO em busca de tabelas dinâmicas de
+  // "Cobrança Retroativa <Mês>" (ex.: Março26, Abril26...) — que ficam
+  // depois de "Total Geral"/"Contrato:" e não são capturadas no loop principal.
+  let tailRetroQtd = 0;
+  let tailRetroTotal = 0;
+  for (let i = breakIdx; i < rows.length; i++) {
+    const r = rows[i] || [];
+    // Ignora cabeçalhos/totais das próprias pivots
+    const anyTotalGeral = r.some((c) => norm(c).startsWith("total geral"));
+    if (anyTotalGeral) continue;
+    // Encontra a célula com "cobranca retroativa" e pega os dois próximos números
+    let hitIdx = -1;
+    for (let c = 0; c < r.length; c++) {
+      const t = norm(r[c]);
+      if (t.includes("cobranca retroativa") || (t.includes("retroativ") && !t.startsWith("total"))) {
+        hitIdx = c;
+        break;
+      }
+    }
+    if (hitIdx < 0) continue;
+    const nums: number[] = [];
+    for (let c = hitIdx + 1; c < r.length && nums.length < 2; c++) {
+      const n = toNumber(r[c]);
+      if (!isNaN(n)) nums.push(n);
+    }
+    if (nums.length === 0) continue;
+    const qtd = nums.length >= 2 ? Math.round(nums[0]) : 0;
+    const total = nums.length >= 2 ? nums[1] : nums[0];
+    tailRetroQtd += qtd;
+    tailRetroTotal += total;
+  }
+
+  if (tailRetroQtd !== 0 || tailRetroTotal !== 0) {
+    if (comCnpj.length === 1) {
+      comCnpj[0].retroQtd += tailRetroQtd;
+      comCnpj[0].retroTotal += tailRetroTotal;
+      comCnpj[0].incQtd += tailRetroQtd;
+      comCnpj[0].incTotal += tailRetroTotal;
+    } else {
+      // Múltiplos CNPJs: rateia proporcionalmente ao total de inclusões existentes,
+      // ou distribui igualmente se não houver base.
+      const base = comCnpj.map((b) => Math.abs(b.incTotal) || 0);
+      const soma = base.reduce((s, v) => s + v, 0);
+      comCnpj.forEach((b, idx) => {
+        const w = soma > 0 ? base[idx] / soma : 1 / comCnpj.length;
+        const q = Math.round(tailRetroQtd * w);
+        const v = tailRetroTotal * w;
+        b.retroQtd += q;
+        b.retroTotal += v;
+        b.incQtd += q;
+        b.incTotal += v;
+      });
+    }
+  }
+
+
   return comCnpj.map((g) => {
     const buildFromResumo = (qtd: number, mens: number, vals: number[]): CategoriaResultado => {
       const total = vals.reduce((s, v) => s + v, 0);
