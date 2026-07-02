@@ -1714,7 +1714,12 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
         ...(cnpjs.length > 1 ? [`Consolidado por nome — ${cnpjs.length} CNPJs agrupados (${cnpjs.join(", ")}).`] : []),
       ],
     };
-    const retro = somaQT(arr, "retroativas"); if (retro) novoBloco.retroativas = retro;
+    const retro = somaQT(arr, "retroativas");
+    if (retro) {
+      const meses = Array.from(new Set(arr.flatMap((x) => x.retroativas?.meses || [])));
+      novoBloco.retroativas = { ...retro, ...(meses.length ? { meses } : {}) };
+    }
+
     const exc = somaQT(arr, "exclusoes"); if (exc) novoBloco.exclusoes = exc;
     const dev = somaQT(arr, "devolucoes"); if (dev) novoBloco.devolucoes = dev;
     const ade = somaQT(arr, "taxaAdesao"); if (ade) novoBloco.taxaAdesao = ade;
