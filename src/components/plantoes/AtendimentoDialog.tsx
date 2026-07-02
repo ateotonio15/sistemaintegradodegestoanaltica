@@ -47,6 +47,29 @@ export function AtendimentoDialog({
   const [canal, setCanal] = useState(initial.canal);
   const [status, setStatus] = useState<Status>(initial.status);
   const [observacao, setObservacao] = useState(atendimento?.observacao ?? "");
+  const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
+  const [empresaDetectada, setEmpresaDetectada] = useState<string>("");
+
+  // Busca automática dos dados do beneficiário pelo CPF
+  useEffect(() => {
+    const digits = String(cpf || "").replace(/\D/g, "");
+    if (digits.length !== 11) { setEmpresaDetectada(""); return; }
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        setCpfLookupLoading(true);
+        const res = await fetchBeneficiarioByCpf(digits, ctrl.signal);
+        if (!res) return;
+        if (res.nome && !nome.trim()) setNome(res.nome);
+        if (res.empresa) setEmpresaDetectada(res.empresa);
+        if (res.nome || res.empresa) toast.success("Dados do beneficiário carregados");
+      } catch { /* silencioso */ }
+      finally { setCpfLookupLoading(false); }
+    }, 400);
+    return () => { ctrl.abort(); clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cpf]);
+
 
   // Busca o plantão para obter contexto (empresa/executiva/data) — usado para vincular ao Relatório de Demandas
   const { data: plantaoCtx } = useQuery({
