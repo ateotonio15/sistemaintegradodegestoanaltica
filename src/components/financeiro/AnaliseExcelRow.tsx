@@ -216,7 +216,9 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     total: CampoValidacao;
                   } | null;
                   destaqueNegativo?: boolean;
+                  mesesRetro?: string[];
                 }> = [];
+
 
                 if (r.enfermaria.beneficiarios > 0 || r.enfermaria.total > 0) {
                   linhas.push({
