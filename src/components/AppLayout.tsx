@@ -138,15 +138,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       : allNavItems;
     const filtered = base.filter((item) => {
       if (isExecutivoExterno) {
-        const allowed = [
-          "/",
-          "/demandas",
-          "/demandas/dashboard",
-          "/devolutivas-fora-prazo",
-          "/plantoes",
-          "/plantoes/calendario",
-          "/carteira-samel",
-        ];
+        const allowed = ["/demandas", "/plantoes", "/mailing-brindes"];
         return allowed.includes(item.to);
       }
       if (isEnfermeira) {
