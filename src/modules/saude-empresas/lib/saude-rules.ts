@@ -140,15 +140,15 @@ export function calcularRisco(input: {
 }): RiscoGeral {
   const { pa, glicemia, imc, tem_has, tem_dm } = input;
   if (
-    pa === "HA Estágio 2" ||
-    pa === "HA Estágio 3" ||
+    pa === "Hipertensão Estágio 2" ||
+    pa === "Hipertensão Estágio 3" ||
     glicemia === "Diabetes" ||
     (imc != null && imc >= 30) ||
     (tem_has && tem_dm)
   ) return "alto";
   if (
-    pa === "Pré-Hipertensão" ||
-    pa === "HA Estágio 1" ||
+    pa === "Normal elevada" ||
+    pa === "Hipertensão Estágio 1" ||
     glicemia === "Pré-Diabetes" ||
     glicemia === "Alterada pós-prandial" ||
     (imc != null && imc >= 25) ||
