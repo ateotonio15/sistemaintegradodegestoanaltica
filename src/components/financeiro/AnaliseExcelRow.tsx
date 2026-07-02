@@ -216,7 +216,9 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     total: CampoValidacao;
                   } | null;
                   destaqueNegativo?: boolean;
+                  mesesRetro?: string[];
                 }> = [];
+
 
                 if (r.enfermaria.beneficiarios > 0 || r.enfermaria.total > 0) {
                   linhas.push({
@@ -268,8 +270,10 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     beneficiarios: r.retroativas.quantidade,
                     mensalidade: null,
                     total: r.retroativas.total,
+                    mesesRetro: r.retroativas.meses,
                   });
                 }
+
                 if (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)) {
                   linhas.push({
                     label: "Exclusões",
@@ -366,7 +370,34 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                             {linhas.map((l) => {
                               return (
                                 <tr key={l.label} className="border-t border-border">
-                                  <td className="px-3 py-2 font-medium">{l.label}</td>
+                                  <td className="px-3 py-2 font-medium">
+                                    <span className="inline-flex items-center gap-2">
+                                      {l.label}
+                                      {l.mesesRetro && l.mesesRetro.length > 0 && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-100/60 px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200 cursor-help">
+                                                <span aria-hidden>↩</span>
+                                                {l.mesesRetro.length} {l.mesesRetro.length === 1 ? "mês" : "meses"}
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top">
+                                              <div className="text-xs">
+                                                <div className="font-semibold mb-1">Meses de referência</div>
+                                                <div className="flex flex-wrap gap-1 max-w-[220px]">
+                                                  {l.mesesRetro.map((m) => (
+                                                    <span key={m} className="rounded bg-muted px-1.5 py-0.5">{m}</span>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+                                    </span>
+                                  </td>
+
                                   <td className="px-3 py-2 text-right">
                                     <ValorComCheck
                                       text={String(l.beneficiarios)}
