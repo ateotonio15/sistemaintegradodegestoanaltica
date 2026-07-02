@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { usePlantaoMutations, type PlantaoAtendimento } from "@/hooks/usePlantoe
 import { parseAssunto } from "@/components/plantoes/AtendimentoDialog";
 import { useAuth } from "@/hooks/useAuth";
 import DemandaFormDialog from "@/components/demandas/DemandaFormDialog";
+import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
 import { toast } from "sonner";
 
 const TIPOS = ["Consulta", "Exames", "Reclamação", "Outros"] as const;
