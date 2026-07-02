@@ -137,6 +137,10 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           ]
       : allNavItems;
     const filtered = base.filter((item) => {
+      if (isEnfermeira) {
+        const allowed = ["/uber", "/uber/dashboard", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras"];
+        return allowed.includes(item.to);
+      }
       if (role === "vendas") {
         const allowed = ["/", "/empresas", "/movimentacoes", "/implantacao", "/vidas"];
         return allowed.includes(item.to);
