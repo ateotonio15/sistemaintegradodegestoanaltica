@@ -577,7 +577,10 @@ export default function Home() {
 
               return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {INTELIGENCIA_SECTIONS.map((section) => {
+                  {INTELIGENCIA_SECTIONS.filter((section) => {
+                    if (!isExecutivoExterno) return true;
+                    return ["Demandas", "Plantões", "Mailing de Brindes"].includes(section.title);
+                  }).map((section) => {
                     const Icon = section.icon;
                     const isGroup = section.items.length > 1;
                     const onlyItem = section.items[0];
