@@ -180,7 +180,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // ----- Cálculos -----
   const total = triagens.length;
 
-  const paCounts = { Normal: 0, "Pré-Hipertensão": 0, "HA Estágio 1": 0, "HA Estágio 2": 0, "HA Estágio 3": 0, "Não realizado": 0 };
+  const paCounts = { "Ótima": 0, Normal: 0, "Normal elevada": 0, "Hipertensão Estágio 1": 0, "Hipertensão Estágio 2": 0, "Hipertensão Estágio 3": 0, "Não realizado": 0 };
   const gliCounts = { Normal: 0, "Pré-Diabetes": 0, "Alterada pós-prandial": 0, Diabetes: 0, "Não realizado": 0 };
 
   triagens.forEach((t) => {
@@ -191,8 +191,8 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
     else gliCounts["Não realizado"]++;
   });
 
-  const paAlt = paCounts["Pré-Hipertensão"] + paCounts["HA Estágio 1"] + paCounts["HA Estágio 2"] + paCounts["HA Estágio 3"];
-  const paNormal = paCounts["Normal"];
+  const paAlt = paCounts["Normal elevada"] + paCounts["Hipertensão Estágio 1"] + paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
+  const paNormal = paCounts["Ótima"] + paCounts["Normal"];
   const paNR = paCounts["Não realizado"];
   const gliAlt = gliCounts["Pré-Diabetes"] + gliCounts["Alterada pós-prandial"] + gliCounts["Diabetes"];
   const gliNormal = gliCounts["Normal"];
