@@ -159,6 +159,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
 type Ctx = {
   isAdmin: boolean;
   isExecutivo: boolean;
+  isExecutivoExterno: boolean;
   isViewOnly: boolean;
   isEnfermeira: boolean;
   isFinanceiro: boolean;
