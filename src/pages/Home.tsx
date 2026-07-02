@@ -585,8 +585,12 @@ export default function Home() {
                     return ["Demandas", "Plantões", "Mailing de Brindes"].includes(section.title);
                   }).map((section) => {
                     const Icon = section.icon;
-                    const isGroup = section.items.length > 1;
-                    const onlyItem = section.items[0];
+                    const visibleItems = isExecutivoExterno
+                      ? section.items.filter((i) => ["/demandas", "/plantoes", "/mailing-brindes"].includes(i.to || ""))
+                      : section.items;
+                    const isGroup = visibleItems.length > 1;
+                    const onlyItem = visibleItems[0];
+                    if (!onlyItem) return null;
 
                     const cardInner = (
                       <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
