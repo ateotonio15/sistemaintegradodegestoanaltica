@@ -7,12 +7,21 @@ export interface CategoriaResultado {
   total: number;
 }
 
+export interface RetroativaMesDetalhe {
+  mes: string;         // "MAR/26"
+  quantidade: number;
+  total: number;
+}
+
 export interface InclusaoResultado {
   quantidade: number;
   total: number;
   /** Meses de referência (ex.: "MAR/26") detectados em abas/pivots de cobrança retroativa. */
   meses?: string[];
+  /** Detalhe por mês com quantidade e valor. */
+  mesesDetalhe?: RetroativaMesDetalhe[];
 }
+
 
 
 export interface AnaliseResultado {
