@@ -137,6 +137,10 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           ]
       : allNavItems;
     const filtered = base.filter((item) => {
+      if (isEnfermeira) {
+        const allowed = ["/uber", "/uber/dashboard", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras"];
+        return allowed.includes(item.to);
+      }
       if (role === "vendas") {
         const allowed = ["/", "/empresas", "/movimentacoes", "/implantacao", "/vidas"];
         return allowed.includes(item.to);
@@ -151,10 +155,6 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if (item.to === "/contratos-recem-implantados" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "diretora") return false;
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
       if (item.to === "/vidas" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
-      if (isEnfermeira) {
-        const allowed = ["/empresas", "/reajustes", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras"];
-        return allowed.includes(item.to);
-      }
       return true;
     });
     if (canAccessHonda) {
