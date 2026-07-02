@@ -113,6 +113,7 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
         observacoes: editing.observacoes ?? "",
         tipo_cesta: editing.tipo_cesta ?? "",
         executiva: editing.executiva ?? "",
+        data_nascimento: editing.data_nascimento ?? "",
       });
     } else {
       setForm({ ...empty });
