@@ -960,6 +960,8 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
 
   const blocos: Acc[] = [];
   let cur: Acc | null = null;
+  let breakIdx = rows.length;
+
 
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i] || [];
