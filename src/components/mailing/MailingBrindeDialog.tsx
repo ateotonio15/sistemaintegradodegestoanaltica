@@ -229,15 +229,6 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
               onChange={(e) => set("data_nascimento", e.target.value)}
             />
           </div>
-          <div>
-            <Label>Cargo (aniversariante)</Label>
-            <Input
-              value={form.cargo}
-              onChange={(e) => set("cargo", e.target.value)}
-              maxLength={100}
-              placeholder="Opcional"
-            />
-          </div>
           <div className="md:col-span-2">
             <Label>Endereço</Label>
             <Input
