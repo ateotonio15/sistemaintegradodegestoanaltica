@@ -306,15 +306,9 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
           ))}
         </div>
         <div className="grid grid-cols-5 auto-rows-fr">
-          {(() => {
-            const first = diasUteis[0];
-            if (!first) return null;
-            const wd = first.getDay(); // 1..5
-            const pad = Math.max(0, wd - 1);
-            return Array.from({ length: pad }).map((_, i) => (
-              <div key={`pad-${i}`} className="min-h-[110px] border-t border-l bg-muted/10" />
-            ));
-          })()}
+          {diasUteis.length > 0 && Array.from({ length: Math.max(0, (diasUteis[0].getDay() || 7) - 1) }).map((_, i) => (
+            <div key={`pad-start-${i}`} className="min-h-[110px] border-t border-l bg-muted/10" />
+          ))}
 
           {diasUteis.map((d) => {
             const key = isoDate(d);
