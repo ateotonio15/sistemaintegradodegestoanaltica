@@ -123,7 +123,32 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
     }
   }, [open, demanda, initialValues]);
 
-
+  // Lookup automático de beneficiário por CPF (11 dígitos) — API Samel
+  const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
+  useEffect(() => {
+    const digits = String(form.cpf || "").replace(/\D/g, "");
+    if (digits.length !== 11) return;
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        setCpfLookupLoading(true);
+        const res = await fetchBeneficiarioByCpf(digits, ctrl.signal);
+        if (!res) return;
+        setForm((prev) => {
+          const next: any = { ...prev };
+          if (res.nome && !prev.nome_cliente?.trim()) next.nome_cliente = res.nome;
+          if (res.empresa && !prev.empresa?.trim()) next.empresa = res.empresa;
+          return next;
+        });
+        if (res.nome || res.empresa) toast.success("Dados do beneficiário carregados");
+      } catch {
+        // silencioso: se falhar, usuário digita manualmente
+      } finally {
+        setCpfLookupLoading(false);
+      }
+    }, 400);
+    return () => { ctrl.abort(); clearTimeout(timer); };
+  }, [form.cpf]);
 
 
   const set = <K extends keyof Demanda>(k: K, v: Demanda[K] | string | boolean) =>
