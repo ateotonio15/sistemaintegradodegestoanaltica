@@ -974,7 +974,8 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       rowNorms.some((cell) => cell.startsWith("total geral")) ||
       labelNorm.startsWith("contrato:") ||
       labelNorm.startsWith("contrato ")
-    ) break;
+    ) { breakIdx = i; break; }
+
     // Pula linhas de subtotal/total de bloco (ex.: "TOTAL ENFERMARIA", "SUBTOTAL APARTAMENTO",
     // "TOTAL EMPRESA", "TOTAL CONTRATO"), que repetiriam valores já contabilizados nos módulos.
     if (
