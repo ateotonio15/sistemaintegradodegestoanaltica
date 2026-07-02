@@ -377,28 +377,66 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                                   <td className="px-3 py-2 font-medium">
                                     <span className="inline-flex items-center gap-2">
                                       {l.label}
-                                      {l.mesesRetro && l.mesesRetro.length > 0 && (
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-100/60 px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200 cursor-help">
+                                      {l.mesesRetro && l.mesesRetro.length > 0 && (() => {
+                                        const detalhe = (l.mesesRetroDetalhe && l.mesesRetroDetalhe.length > 0)
+                                          ? l.mesesRetroDetalhe
+                                          : l.mesesRetro!.map((m) => ({ mes: m, quantidade: 0, total: 0 }));
+                                        const somaDet = detalhe.reduce((s, d) => s + d.total, 0);
+                                        return (
+                                          <Popover>
+                                            <PopoverTrigger asChild>
+                                              <button
+                                                type="button"
+                                                className="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-100/60 px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200 hover:bg-amber-200/70 dark:hover:bg-amber-900/60 transition-colors cursor-pointer"
+                                                aria-label="Ver detalhes de cobrança retroativa"
+                                              >
                                                 <span aria-hidden>↩</span>
-                                                {l.mesesRetro.length} {l.mesesRetro.length === 1 ? "mês" : "meses"}
-                                              </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top">
-                                              <div className="text-xs">
-                                                <div className="font-semibold mb-1">Meses de referência</div>
-                                                <div className="flex flex-wrap gap-1 max-w-[220px]">
-                                                  {l.mesesRetro.map((m) => (
-                                                    <span key={m} className="rounded bg-muted px-1.5 py-0.5">{m}</span>
-                                                  ))}
+                                                {detalhe.length} {detalhe.length === 1 ? "mês" : "meses"}
+                                              </button>
+                                            </PopoverTrigger>
+                                            <PopoverContent side="top" align="start" className="w-72 p-0">
+                                              <div className="px-3 py-2 border-b border-border bg-muted/40">
+                                                <div className="text-xs font-semibold text-foreground">Cobrança retroativa por mês</div>
+                                                <div className="text-[11px] text-muted-foreground">
+                                                  {detalhe.length} {detalhe.length === 1 ? "competência" : "competências"} identificadas
                                                 </div>
                                               </div>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                      )}
+                                              <div className="max-h-56 overflow-auto">
+                                                <table className="w-full text-xs">
+                                                  <thead className="bg-muted/30">
+                                                    <tr>
+                                                      <th className="text-left font-medium text-muted-foreground px-3 py-1.5">Mês</th>
+                                                      <th className="text-right font-medium text-muted-foreground px-3 py-1.5">Valor</th>
+                                                    </tr>
+                                                  </thead>
+                                                  <tbody>
+                                                    {detalhe
+                                                      .slice()
+                                                      .sort((a, b) => a.mes.localeCompare(b.mes))
+                                                      .map((d) => (
+                                                        <tr key={d.mes} className="border-t border-border/60">
+                                                          <td className="px-3 py-1.5 font-medium">{d.mes}</td>
+                                                          <td className="px-3 py-1.5 text-right tabular-nums">
+                                                            {d.total ? formatBRL(d.total) : <span className="text-muted-foreground">—</span>}
+                                                          </td>
+                                                        </tr>
+                                                      ))}
+                                                  </tbody>
+                                                  {somaDet > 0 && (
+                                                    <tfoot>
+                                                      <tr className="border-t border-border bg-muted/30">
+                                                        <td className="px-3 py-1.5 font-semibold">Total</td>
+                                                        <td className="px-3 py-1.5 text-right font-semibold tabular-nums">{formatBRL(somaDet)}</td>
+                                                      </tr>
+                                                    </tfoot>
+                                                  )}
+                                                </table>
+                                              </div>
+                                            </PopoverContent>
+                                          </Popover>
+                                        );
+                                      })()}
+
                                     </span>
                                   </td>
 
