@@ -270,8 +270,10 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     beneficiarios: r.retroativas.quantidade,
                     mensalidade: null,
                     total: r.retroativas.total,
+                    mesesRetro: r.retroativas.meses,
                   });
                 }
+
                 if (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)) {
                   linhas.push({
                     label: "Exclusões",
