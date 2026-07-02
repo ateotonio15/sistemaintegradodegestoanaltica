@@ -172,6 +172,10 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     if (canAccessHonda) {
       filtered.push({ to: "/honda-exclusoes", label: "Honda Exclusões", icon: Bike });
     }
+    if (isExecutivoExterno) {
+      // /devolutivas-fora-prazo não está em allNavItems; adicionamos manualmente.
+      filtered.push({ to: "/devolutivas-fora-prazo", label: "Devolutivas Fora do Prazo", icon: ClockAlert });
+    }
     if (isAdmin || role === "diretora" || role === "comum" || role === "executivo" || role === "executivo_externo" || role === "administradoras") {
       filtered.push({ to: "/carteira-samel", label: "Carteira Samel", icon: Briefcase });
     }
