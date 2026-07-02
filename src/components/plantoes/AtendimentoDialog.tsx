@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlantaoMutations, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 import { useCreateDemanda } from "@/hooks/useDemandas";
+import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
 import { toast } from "sonner";
 
 const TIPOS = ["Consulta", "Exames", "Reclamação", "Outros"];
