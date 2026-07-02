@@ -127,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user, session, loading, role,
       isAdmin: role === "admin",
       isExecutivo: role === "executivo",
+      isExecutivoExterno: role === "executivo_externo",
       isViewOnly: role === "visualizacao" || role === "diretora",
       isEnfermeira: role === "enfermeira",
       isFinanceiro: role === "financeiro",
