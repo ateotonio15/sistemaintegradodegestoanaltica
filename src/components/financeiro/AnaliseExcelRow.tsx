@@ -273,8 +273,10 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     mensalidade: null,
                     total: r.retroativas.total,
                     mesesRetro: r.retroativas.meses,
+                    mesesRetroDetalhe: r.retroativas.mesesDetalhe,
                   });
                 }
+
 
                 if (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)) {
                   linhas.push({
