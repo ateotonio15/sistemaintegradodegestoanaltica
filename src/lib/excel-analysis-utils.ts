@@ -1758,8 +1758,21 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
     const retro = somaQT(arr, "retroativas");
     if (retro) {
       const meses = Array.from(new Set(arr.flatMap((x) => x.retroativas?.meses || [])));
-      novoBloco.retroativas = { ...retro, ...(meses.length ? { meses } : {}) };
+      const detalheMap = new Map<string, { quantidade: number; total: number }>();
+      arr.forEach((x) => (x.retroativas?.mesesDetalhe || []).forEach((d) => {
+        const cur = detalheMap.get(d.mes) || { quantidade: 0, total: 0 };
+        cur.quantidade += d.quantidade;
+        cur.total += d.total;
+        detalheMap.set(d.mes, cur);
+      }));
+      const mesesDetalhe = Array.from(detalheMap.entries()).map(([mes, v]) => ({ mes, ...v }));
+      novoBloco.retroativas = {
+        ...retro,
+        ...(meses.length ? { meses } : {}),
+        ...(mesesDetalhe.length ? { mesesDetalhe } : {}),
+      };
     }
+
 
     const exc = somaQT(arr, "exclusoes"); if (exc) novoBloco.exclusoes = exc;
     const dev = somaQT(arr, "devolucoes"); if (dev) novoBloco.devolucoes = dev;
