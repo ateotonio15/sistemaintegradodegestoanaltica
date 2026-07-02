@@ -138,15 +138,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       : allNavItems;
     const filtered = base.filter((item) => {
       if (isExecutivoExterno) {
-        const allowed = [
-          "/",
-          "/demandas",
-          "/demandas/dashboard",
-          "/devolutivas-fora-prazo",
-          "/plantoes",
-          "/plantoes/calendario",
-          "/carteira-samel",
-        ];
+        const allowed = ["/demandas", "/plantoes", "/mailing-brindes"];
         return allowed.includes(item.to);
       }
       if (isEnfermeira) {
@@ -172,11 +164,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     if (canAccessHonda) {
       filtered.push({ to: "/honda-exclusoes", label: "Honda Exclusões", icon: Bike });
     }
-    if (isExecutivoExterno) {
-      // /devolutivas-fora-prazo não está em allNavItems; adicionamos manualmente.
-      filtered.push({ to: "/devolutivas-fora-prazo", label: "Devolutivas Fora do Prazo", icon: ClockAlert });
-    }
-    if (isAdmin || role === "diretora" || role === "comum" || role === "executivo" || role === "executivo_externo" || role === "administradoras") {
+    if (isAdmin || role === "diretora" || role === "comum" || role === "executivo" || role === "administradoras") {
       filtered.push({ to: "/carteira-samel", label: "Carteira Samel", icon: Briefcase });
     }
     return filtered;

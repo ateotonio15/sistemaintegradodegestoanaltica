@@ -179,12 +179,16 @@ export default function Usuarios() {
       setNewEmail(""); setNewName(""); setNewUsername(""); setNewPassword(""); setNewRole("comum"); setNewEmpresas([]);
       toast({ title: "Usuário criado com sucesso!" });
     },
-    onError: (err: any) => {
-      const raw = String(err?.context?.error || err?.message || "");
-      const duplicated = raw.toLowerCase().includes("já existe") || raw.toLowerCase().includes("already been registered") || raw.toLowerCase().includes("email_exists");
+    onError: async (err: any) => {
+      let raw = String(err?.context?.error || err?.message || "");
+      if (err?.context && typeof err.context.json === "function") {
+        try { const body = await err.context.json(); if (body?.error) raw = body.error; } catch {}
+      }
+      const lower = raw.toLowerCase();
+      const duplicated = lower.includes("já existe") || lower.includes("already been registered") || lower.includes("email_exists");
       toast({
-        title: duplicated ? "E-mail já cadastrado" : "Erro ao criar usuário",
-        description: duplicated ? "Use outro e-mail." : raw || "Tente novamente.",
+        title: duplicated ? "Usuário já cadastrado" : "Erro ao criar usuário",
+        description: raw || "Tente novamente.",
         variant: "destructive",
       });
     },
