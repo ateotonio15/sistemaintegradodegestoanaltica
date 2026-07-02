@@ -44,7 +44,7 @@ import { format } from "date-fns";
 
 export default function Plantoes() {
   const { role } = useAuth();
-  const isAdmin = role === "admin";
+  const isAdmin = role === "admin" || role === "executivo_externo";
   usePlantoesRealtime();
 
   const today = new Date().toISOString().slice(0, 10);
