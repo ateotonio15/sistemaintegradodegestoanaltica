@@ -159,6 +159,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
 type Ctx = {
   isAdmin: boolean;
   isExecutivo: boolean;
+  isExecutivoExterno: boolean;
   isViewOnly: boolean;
   isEnfermeira: boolean;
   isFinanceiro: boolean;
@@ -269,7 +270,7 @@ const SHORTCUTS: Shortcut[] = [
     description: "Empresas, Movimentações, Implantação, Primeira Vigência, Vidas",
     icon: Building2,
     group: "funcoes",
-    show: () => true,
+    show: (c) => !c.isExecutivoExterno,
   },
   {
     to: "/financeiro",
@@ -294,7 +295,7 @@ const SHORTCUTS: Shortcut[] = [
     description: "\n\n\n",
     icon: TrendingUp,
     group: "funcoes",
-    show: () => true,
+    show: (c) => !c.isExecutivoExterno,
   },
   {
     to: "/carteira-samel",
@@ -332,7 +333,7 @@ const SHORTCUTS: Shortcut[] = [
 ];
 
 export default function Home() {
-  const { isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, isVendas, role, user } = useAuth();
+  const { isAdmin, isExecutivo, isExecutivoExterno, isViewOnly, isEnfermeira, isFinanceiro, isVendas, role, user } = useAuth();
   const { data: canHonda } = useCanAccessHonda();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"funcoes" | "utilitarios">("funcoes");
@@ -342,6 +343,7 @@ export default function Home() {
   const ctx: Ctx = {
     isAdmin,
     isExecutivo,
+    isExecutivoExterno,
     isViewOnly,
     isEnfermeira,
     isFinanceiro,
@@ -544,7 +546,10 @@ export default function Home() {
                       {activeSection.title}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {activeSection.items.map((item) => {
+                      {activeSection.items.filter((item) => {
+                        if (!isExecutivoExterno) return true;
+                        return ["/demandas", "/plantoes", "/mailing-brindes"].includes(item.to || "");
+                      }).map((item) => {
                         const Icon = item.icon;
                         return (
                           <Link
@@ -575,10 +580,17 @@ export default function Home() {
 
               return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {INTELIGENCIA_SECTIONS.map((section) => {
+                  {INTELIGENCIA_SECTIONS.filter((section) => {
+                    if (!isExecutivoExterno) return true;
+                    return ["Demandas", "Plantões", "Mailing de Brindes"].includes(section.title);
+                  }).map((section) => {
                     const Icon = section.icon;
-                    const isGroup = section.items.length > 1;
-                    const onlyItem = section.items[0];
+                    const visibleItems = isExecutivoExterno
+                      ? section.items.filter((i) => ["/demandas", "/plantoes", "/mailing-brindes"].includes(i.to || ""))
+                      : section.items;
+                    const isGroup = visibleItems.length > 1;
+                    const onlyItem = visibleItems[0];
+                    if (!onlyItem) return null;
 
                     const cardInner = (
                       <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
@@ -592,7 +604,7 @@ export default function Home() {
                             </div>
                             {isGroup && (
                               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                                {section.items.length}
+                                {visibleItems.length}
                               </span>
                             )}
                           </div>
