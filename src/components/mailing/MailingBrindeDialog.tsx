@@ -39,6 +39,7 @@ export type MailingBrinde = {
   observacoes: string | null;
   tipo_cesta: "A" | "B" | "C" | null;
   executiva: string | null;
+  data_nascimento: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -66,6 +67,7 @@ type FormState = {
   observacoes: string;
   tipo_cesta: "A" | "B" | "C" | "";
   executiva: string;
+  data_nascimento: string;
 };
 
 const empty: FormState = {
@@ -84,6 +86,7 @@ const empty: FormState = {
   observacoes: "",
   tipo_cesta: "",
   executiva: "",
+  data_nascimento: "",
 };
 
 const todayIso = () => new Date().toISOString();
@@ -110,6 +113,7 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
         observacoes: editing.observacoes ?? "",
         tipo_cesta: editing.tipo_cesta ?? "",
         executiva: editing.executiva ?? "",
+        data_nascimento: editing.data_nascimento ?? "",
       });
     } else {
       setForm({ ...empty });
@@ -149,6 +153,7 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
       observacoes: form.observacoes.trim() || null,
       tipo_cesta: form.tipo_cesta || null,
       executiva: form.executiva.trim() || null,
+      data_nascimento: form.data_nascimento || null,
       enviado_em,
       entregue_em,
     };
@@ -214,6 +219,14 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
               value={form.telefone}
               onChange={(e) => set("telefone", e.target.value)}
               maxLength={30}
+            />
+          </div>
+          <div>
+            <Label>Data de nascimento</Label>
+            <Input
+              type="date"
+              value={form.data_nascimento}
+              onChange={(e) => set("data_nascimento", e.target.value)}
             />
           </div>
           <div className="md:col-span-2">

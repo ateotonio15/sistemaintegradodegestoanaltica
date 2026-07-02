@@ -2743,6 +2743,7 @@ export type Database = {
           contato_nome: string | null
           created_at: string
           created_by: string | null
+          data_nascimento: string | null
           email: string | null
           empresa_nome: string
           endereco: string | null
@@ -2766,6 +2767,7 @@ export type Database = {
           contato_nome?: string | null
           created_at?: string
           created_by?: string | null
+          data_nascimento?: string | null
           email?: string | null
           empresa_nome: string
           endereco?: string | null
@@ -2789,6 +2791,7 @@ export type Database = {
           contato_nome?: string | null
           created_at?: string
           created_by?: string | null
+          data_nascimento?: string | null
           email?: string | null
           empresa_nome?: string
           endereco?: string | null
