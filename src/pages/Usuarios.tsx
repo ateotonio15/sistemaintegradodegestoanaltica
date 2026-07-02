@@ -309,6 +309,7 @@ export default function Usuarios() {
                       <SelectItem value="admin">Administrador</SelectItem>
                       <SelectItem value="comum">Cadastro</SelectItem>
                       <SelectItem value="executivo">Executivo</SelectItem>
+                      <SelectItem value="executivo_externo">Executivo Externo</SelectItem>
                       <SelectItem value="visualizacao">Visualização</SelectItem>
                       <SelectItem value="diretora">Diretora</SelectItem>
                       <SelectItem value="enfermeira">Enfermeira</SelectItem>
