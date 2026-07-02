@@ -270,7 +270,7 @@ const SHORTCUTS: Shortcut[] = [
     description: "Empresas, Movimentações, Implantação, Primeira Vigência, Vidas",
     icon: Building2,
     group: "funcoes",
-    show: () => true,
+    show: (c) => !c.isExecutivoExterno,
   },
   {
     to: "/financeiro",
@@ -295,7 +295,7 @@ const SHORTCUTS: Shortcut[] = [
     description: "\n\n\n",
     icon: TrendingUp,
     group: "funcoes",
-    show: () => true,
+    show: (c) => !c.isExecutivoExterno,
   },
   {
     to: "/carteira-samel",
