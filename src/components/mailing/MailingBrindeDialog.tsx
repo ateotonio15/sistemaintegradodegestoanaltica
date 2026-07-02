@@ -86,6 +86,7 @@ const empty: FormState = {
   observacoes: "",
   tipo_cesta: "",
   executiva: "",
+  data_nascimento: "",
 };
 
 const todayIso = () => new Date().toISOString();
