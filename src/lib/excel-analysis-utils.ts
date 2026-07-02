@@ -1514,55 +1514,22 @@ export async function analisarExcelFinanceiroPorCnpj(
   // Acumula qtd/total e distribui entre os blocos (rateio proporcional).
   let extraRetroQtd = 0;
   let extraRetroTotal = 0;
+  let pivotEncontrado = false;
+
+  // Passo 1: procura pivots "Cobrança Retroativa <Mês>" em abas de resumo
   wb.worksheets.forEach((sheet) => {
-    const rowsSheet: unknown[][] = [];
-    sheet.eachRow({ includeEmpty: false }, (row) => {
-      rowsSheet.push((row.values as unknown[]).slice(1));
-    });
-    // Caso 1: aba dedicada com cabeçalho "Tipo Cobrança" contendo "Cobrança Retroativa"
-    // — já é tratada no loop principal se for a primeira aba. Aqui capturamos apenas
-    // agregados via pivots (linha com label + 2 números) para não duplicar.
     const nomeAba = norm(sheet.name || "");
-    const abaEhRetro = nomeAba.includes("retroativ") || nomeAba.startsWith("c.retroativ") || nomeAba.startsWith("c retroativ");
-
-    if (abaEhRetro) {
-      // Aba dedicada: soma linha-a-linha (coluna QTD e Valor via cabeçalho)
-      let hIdx = -1, iVal = -1, iQtd = -1, iTipo = -1;
-      for (let i = 0; i < Math.min(5, rowsSheet.length); i++) {
-        const r = rowsSheet[i];
-        const v = findColumnIndex(r, COL_VALOR);
-        const t = findColumnIndex(r, COL_TIPO_COBRANCA);
-        const q = r.findIndex((c) => norm(c) === "qtd");
-        if (v >= 0 || t >= 0) { hIdx = i; iVal = v; iQtd = q; iTipo = t; break; }
-      }
-      if (hIdx >= 0) {
-        for (let i = hIdx + 1; i < rowsSheet.length; i++) {
-          const r = rowsSheet[i];
-          if (!r || r.length === 0) continue;
-          const tipoCell = iTipo >= 0 ? String(r[iTipo] ?? "") : "";
-          if (iTipo >= 0 && !isRetroativa(tipoCell)) continue;
-          const val = toNumber(r[iVal]);
-          const qtd = iQtd >= 0 ? toNumber(r[iQtd]) : 1;
-          if (!isNaN(val)) extraRetroTotal += val;
-          extraRetroQtd += isNaN(qtd) ? 1 : qtd;
-        }
-      }
-      return;
-    }
-
-    // Demais abas (RESUMO etc.): procura linhas de pivot com label
-    // "Cobrança Retroativa …" seguidas de qtd + valor.
+    const abaEhRetro = nomeAba.includes("retroativ");
+    if (abaEhRetro) return; // dedicated sheets tratadas no passo 2
+    const rowsSheet: unknown[][] = [];
+    sheet.eachRow({ includeEmpty: false }, (row) => rowsSheet.push((row.values as unknown[]).slice(1)));
     for (let i = 0; i < rowsSheet.length; i++) {
       const r = rowsSheet[i] || [];
-      const anyTotalGeral = r.some((c) => norm(c).startsWith("total geral") || norm(c).startsWith("total"));
-      if (anyTotalGeral) continue;
+      if (r.some((c) => norm(c).startsWith("total"))) continue;
       let hitIdx = -1;
       for (let c = 0; c < r.length; c++) {
         const t = norm(r[c]);
-        if (t.includes("cobranca retroativa") || (t.includes("retroativ") && !t.startsWith("total"))) {
-          hitIdx = c;
-          break;
-        }
+        if (t.includes("cobranca retroativa")) { hitIdx = c; break; }
       }
       if (hitIdx < 0) continue;
       const nums: number[] = [];
@@ -1571,10 +1538,41 @@ export async function analisarExcelFinanceiroPorCnpj(
         if (!isNaN(n)) nums.push(n);
       }
       if (nums.length === 0) continue;
+      pivotEncontrado = true;
       extraRetroQtd += nums.length >= 2 ? Math.round(nums[0]) : 0;
       extraRetroTotal += nums.length >= 2 ? nums[1] : nums[0];
     }
   });
+
+  // Passo 2: se não achou pivots, soma linha-a-linha das abas dedicadas
+  if (!pivotEncontrado) {
+    wb.worksheets.forEach((sheet) => {
+      const nomeAba = norm(sheet.name || "");
+      if (!nomeAba.includes("retroativ")) return;
+      const rowsSheet: unknown[][] = [];
+      sheet.eachRow({ includeEmpty: false }, (row) => rowsSheet.push((row.values as unknown[]).slice(1)));
+      let hIdx = -1, iVal = -1, iQtd = -1, iTipo = -1;
+      for (let i = 0; i < Math.min(5, rowsSheet.length); i++) {
+        const r = rowsSheet[i];
+        const v = findColumnIndex(r, COL_VALOR);
+        const t = findColumnIndex(r, COL_TIPO_COBRANCA);
+        const q = r.findIndex((c) => norm(c) === "qtd");
+        if (v >= 0 || t >= 0) { hIdx = i; iVal = v; iQtd = q; iTipo = t; break; }
+      }
+      if (hIdx < 0) return;
+      for (let i = hIdx + 1; i < rowsSheet.length; i++) {
+        const r = rowsSheet[i];
+        if (!r || r.length === 0) continue;
+        const tipoCell = iTipo >= 0 ? String(r[iTipo] ?? "") : "";
+        if (iTipo >= 0 && !isRetroativa(tipoCell)) continue;
+        const val = toNumber(r[iVal]);
+        const qtd = iQtd >= 0 ? toNumber(r[iQtd]) : 1;
+        if (!isNaN(val)) extraRetroTotal += val;
+        extraRetroQtd += isNaN(qtd) ? 1 : qtd;
+      }
+    });
+  }
+
 
   if ((extraRetroQtd !== 0 || Math.abs(extraRetroTotal) > 0.001) && blocos.length > 0) {
     // Desconta o que já foi capturado como retro no loop principal
