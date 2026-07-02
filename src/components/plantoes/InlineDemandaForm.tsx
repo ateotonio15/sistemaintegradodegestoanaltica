@@ -163,7 +163,21 @@ export function InlineDemandaForm({
             </Button>
           </div>
           <Input placeholder="Beneficiário" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={120} />
-          <Input placeholder="CPF" value={cpf} onChange={(e) => setCpf(e.target.value)} maxLength={20} />
+          <div className="relative">
+            <Input
+              placeholder="CPF (busca automática)"
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value)}
+              maxLength={20}
+              className={cpfLookupLoading ? "pr-8" : ""}
+            />
+            {cpfLookupLoading && (
+              <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          {empresaDetectada && (
+            <p className="text-[11px] text-muted-foreground">Empresa: <span className="font-medium text-foreground">{empresaDetectada}</span></p>
+          )}
           <div className="space-y-2">
             <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
               <SelectTrigger className="w-full"><SelectValue placeholder="Tipo" /></SelectTrigger>
