@@ -209,15 +209,6 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
             />
           </div>
           <div>
-            <Label>E-mail</Label>
-            <Input
-              type="email"
-              value={form.email}
-              onChange={(e) => set("email", e.target.value)}
-              maxLength={255}
-            />
-          </div>
-          <div>
             <Label>Telefone</Label>
             <Input
               value={form.telefone}
@@ -258,34 +249,8 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
               placeholder="Ex.: Mayara"
             />
           </div>
-          <div>
-            <Label>Cidade</Label>
-            <Input
-              value={form.cidade}
-              onChange={(e) => set("cidade", e.target.value)}
-              maxLength={100}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>UF</Label>
-              <Input
-                value={form.uf}
-                onChange={(e) => set("uf", e.target.value.toUpperCase().slice(0, 2))}
-                maxLength={2}
-              />
-            </div>
-            <div>
-              <Label>CEP</Label>
-              <Input
-                value={form.cep}
-                onChange={(e) => set("cep", e.target.value)}
-                maxLength={10}
-              />
-            </div>
-          </div>
 
-          <div>
+          <div className="md:col-span-2">
             <Label>Status</Label>
             <Select
               value={form.status}
@@ -299,24 +264,6 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
                 <SelectItem value="devolvido">Devolvido</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            <Label>Transportadora</Label>
-            <Input
-              value={form.transportadora}
-              onChange={(e) => set("transportadora", e.target.value)}
-              maxLength={100}
-              placeholder="Correios, Loggi, etc."
-            />
-          </div>
-          <div className="md:col-span-2">
-            <Label>Código de rastreio</Label>
-            <Input
-              value={form.rastreio_codigo}
-              onChange={(e) => set("rastreio_codigo", e.target.value)}
-              maxLength={50}
-              placeholder="Ex.: BR123456789BR"
-            />
           </div>
           <div className="md:col-span-2">
             <Label>Observações</Label>
