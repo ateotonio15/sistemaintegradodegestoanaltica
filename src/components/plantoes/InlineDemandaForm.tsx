@@ -48,6 +48,28 @@ export function InlineDemandaForm({
   const [observacao, setObservacao] = useState("");
   const [reclamacaoOpen, setReclamacaoOpen] = useState(false);
   const [reclamacaoInitial, setReclamacaoInitial] = useState<any>(null);
+  const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
+  const [empresaDetectada, setEmpresaDetectada] = useState<string>("");
+
+  // Busca automática dos dados do beneficiário quando CPF tem 11 dígitos
+  useEffect(() => {
+    const digits = String(cpf || "").replace(/\D/g, "");
+    if (digits.length !== 11) { setEmpresaDetectada(""); return; }
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        setCpfLookupLoading(true);
+        const res = await fetchBeneficiarioByCpf(digits, ctrl.signal);
+        if (!res) return;
+        if (res.nome && !nome.trim()) setNome(res.nome);
+        if (res.empresa) setEmpresaDetectada(res.empresa);
+        if (res.nome || res.empresa) toast.success("Dados do beneficiário carregados");
+      } catch { /* silencioso */ }
+      finally { setCpfLookupLoading(false); }
+    }, 400);
+    return () => { ctrl.abort(); clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cpf]);
 
   const queries = useQueries({
     queries: plantaoIds.map((id) => ({
