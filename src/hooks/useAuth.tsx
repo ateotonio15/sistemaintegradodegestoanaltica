@@ -12,6 +12,7 @@ interface AuthContextType {
   role: UserRole;
   isAdmin: boolean;
   isExecutivo: boolean;
+  isExecutivoExterno: boolean;
   isViewOnly: boolean;
   isEnfermeira: boolean;
   isFinanceiro: boolean;
