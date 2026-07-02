@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Users, HeartPulse, Droplets, Scale, AlertTriangle, FileSpreadsheet, FileType, Pencil, Trash2, Mail } from "lucide-react";
+import { ArrowLeft, Users, HeartPulse, Droplets, Scale, AlertTriangle, FileSpreadsheet, FileType, Pencil, Trash2, Mail, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,12 @@ const GLI_COLORS: Record<string, string> = {
 export default function SaudeAcaoTriagens() {
   useSaudeRealtime();
   const { acaoId = "" } = useParams();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try { await queryClient.invalidateQueries(); } finally { setRefreshing(false); }
+  };
   const { isAdmin, isEnfermeira, isDiretora } = useAuth();
   const canEdit = isAdmin || isEnfermeira;
   const isReadOnly = isDiretora && !isAdmin;
@@ -140,6 +147,9 @@ export default function SaudeAcaoTriagens() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />Atualizar
+          </Button>
           <Button variant="outline" onClick={() => exportTriagensExcel(acao, triagens)}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
           </Button>
