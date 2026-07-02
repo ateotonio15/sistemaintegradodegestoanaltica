@@ -1,11 +1,12 @@
 // Regras clínicas — sincronizadas com public.classificar_pa / classificar_glicemia / calcular_imc.
 
 export type PaCategoria =
+  | "Ótima"
   | "Normal"
-  | "Pré-Hipertensão"
-  | "HA Estágio 1"
-  | "HA Estágio 2"
-  | "HA Estágio 3"
+  | "Normal elevada"
+  | "Hipertensão Estágio 1"
+  | "Hipertensão Estágio 2"
+  | "Hipertensão Estágio 3"
   | "Não realizado";
 
 export type GlicemiaCategoria =
@@ -24,13 +25,16 @@ export type ImcCategoria =
 
 export type RiscoGeral = "alto" | "medio" | "baixo";
 
+// Diretrizes Brasileiras (Ministério da Saúde). Quando PAS e PAD caem em faixas
+// diferentes, prevalece a categoria mais alta — por isso avaliamos de cima para baixo.
 export function classificarPa(pas?: number | null, pad?: number | null): PaCategoria {
   if (pas == null || pad == null || pas <= 0 || pad <= 0) return "Não realizado";
-  if (pas >= 180 || pad >= 110) return "HA Estágio 3";
-  if (pas >= 160 || pad >= 100) return "HA Estágio 2";
-  if (pas >= 140 || pad >= 90) return "HA Estágio 1";
-  if (pas >= 120 || pad >= 80) return "Pré-Hipertensão";
-  return "Normal";
+  if (pas >= 180 || pad >= 110) return "Hipertensão Estágio 3";
+  if (pas >= 160 || pad >= 100) return "Hipertensão Estágio 2";
+  if (pas >= 140 || pad >= 90) return "Hipertensão Estágio 1";
+  if (pas >= 130 || pad >= 85) return "Normal elevada";
+  if (pas >= 120 || pad >= 80) return "Normal";
+  return "Ótima";
 }
 
 export function classificarGlicemia(valor?: number | null, jejum?: boolean): GlicemiaCategoria | null {
@@ -45,8 +49,8 @@ export function classificarGlicemia(valor?: number | null, jejum?: boolean): Gli
   return "Diabetes";
 }
 
-export const PA_ALTERADAS: PaCategoria[] = ["Pré-Hipertensão", "HA Estágio 1", "HA Estágio 2", "HA Estágio 3"];
-export const PA_GRAVE: PaCategoria[] = ["HA Estágio 2", "HA Estágio 3"];
+export const PA_ALTERADAS: PaCategoria[] = ["Normal elevada", "Hipertensão Estágio 1", "Hipertensão Estágio 2", "Hipertensão Estágio 3"];
+export const PA_GRAVE: PaCategoria[] = ["Hipertensão Estágio 2", "Hipertensão Estágio 3"];
 
 export function calcularImc(pesoKg?: number | null, alturaCm?: number | null): number | null {
   if (!pesoKg || !alturaCm) return null;
@@ -66,14 +70,15 @@ export function classificarImc(imc?: number | null): ImcCategoria | null {
 
 export function corPa(cat?: PaCategoria | null): string {
   switch (cat) {
+    case "Ótima":
     case "Normal":
       return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30";
-    case "Pré-Hipertensão":
+    case "Normal elevada":
       return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
-    case "HA Estágio 1":
+    case "Hipertensão Estágio 1":
       return "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30";
-    case "HA Estágio 2":
-    case "HA Estágio 3":
+    case "Hipertensão Estágio 2":
+    case "Hipertensão Estágio 3":
       return "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30 animate-pulse";
     case "Não realizado":
       return "bg-muted text-muted-foreground border-border";
@@ -135,15 +140,15 @@ export function calcularRisco(input: {
 }): RiscoGeral {
   const { pa, glicemia, imc, tem_has, tem_dm } = input;
   if (
-    pa === "HA Estágio 2" ||
-    pa === "HA Estágio 3" ||
+    pa === "Hipertensão Estágio 2" ||
+    pa === "Hipertensão Estágio 3" ||
     glicemia === "Diabetes" ||
     (imc != null && imc >= 30) ||
     (tem_has && tem_dm)
   ) return "alto";
   if (
-    pa === "Pré-Hipertensão" ||
-    pa === "HA Estágio 1" ||
+    pa === "Normal elevada" ||
+    pa === "Hipertensão Estágio 1" ||
     glicemia === "Pré-Diabetes" ||
     glicemia === "Alterada pós-prandial" ||
     (imc != null && imc >= 25) ||

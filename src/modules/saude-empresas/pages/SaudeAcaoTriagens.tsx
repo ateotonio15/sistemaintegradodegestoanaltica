@@ -21,13 +21,14 @@ import { useAcao, useTriagens, useSaudeMutations, useSaudeRealtime, type Triagem
 import { classificarPa, classificarGlicemia, corGlicemia, PA_ALTERADAS } from "../lib/saude-rules";
 import { exportTriagensExcel, exportRelatorioPptx } from "../lib/saude-export";
 
-const PA_ORDER = ["Normal", "Pré-Hipertensão", "HA Estágio 1", "HA Estágio 2", "HA Estágio 3", "Não realizado"] as const;
+const PA_ORDER = ["Ótima", "Normal", "Normal elevada", "Hipertensão Estágio 1", "Hipertensão Estágio 2", "Hipertensão Estágio 3", "Não realizado"] as const;
 const PA_COLORS: Record<string, string> = {
+  "Ótima": "hsl(142 76% 36%)",
   "Normal": "hsl(142 71% 45%)",
-  "Pré-Hipertensão": "hsl(48 96% 53%)",
-  "HA Estágio 1": "hsl(25 95% 53%)",
-  "HA Estágio 2": "hsl(0 84% 60%)",
-  "HA Estágio 3": "hsl(0 74% 42%)",
+  "Normal elevada": "hsl(48 96% 53%)",
+  "Hipertensão Estágio 1": "hsl(25 95% 53%)",
+  "Hipertensão Estágio 2": "hsl(0 84% 60%)",
+  "Hipertensão Estágio 3": "hsl(0 74% 42%)",
   "Não realizado": "hsl(215 16% 65%)",
 };
 const GLI_ORDER = ["Normal", "Pré-Diabetes", "Alterada pós-prandial", "Diabetes", "Não realizado"] as const;
