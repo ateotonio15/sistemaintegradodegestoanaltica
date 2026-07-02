@@ -153,6 +153,7 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
       observacoes: form.observacoes.trim() || null,
       tipo_cesta: form.tipo_cesta || null,
       executiva: form.executiva.trim() || null,
+      data_nascimento: form.data_nascimento || null,
       enviado_em,
       entregue_em,
     };
