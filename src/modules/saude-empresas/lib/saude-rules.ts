@@ -70,14 +70,15 @@ export function classificarImc(imc?: number | null): ImcCategoria | null {
 
 export function corPa(cat?: PaCategoria | null): string {
   switch (cat) {
+    case "Ótima":
     case "Normal":
       return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30";
-    case "Pré-Hipertensão":
+    case "Normal elevada":
       return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
-    case "HA Estágio 1":
+    case "Hipertensão Estágio 1":
       return "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30";
-    case "HA Estágio 2":
-    case "HA Estágio 3":
+    case "Hipertensão Estágio 2":
+    case "Hipertensão Estágio 3":
       return "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30 animate-pulse";
     case "Não realizado":
       return "bg-muted text-muted-foreground border-border";
