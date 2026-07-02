@@ -85,7 +85,7 @@ function formatDateBR(dateStr: string | null | undefined): string {
 export function AppLayout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user, isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, role } = useAuth();
+  const { signOut, user, isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, isExecutivoExterno, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
