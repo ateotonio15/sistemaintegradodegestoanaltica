@@ -10,7 +10,10 @@ export interface CategoriaResultado {
 export interface InclusaoResultado {
   quantidade: number;
   total: number;
+  /** Meses de referência (ex.: "MAR/26") detectados em abas/pivots de cobrança retroativa. */
+  meses?: string[];
 }
+
 
 export interface AnaliseResultado {
   pagador: string;
