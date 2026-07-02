@@ -303,7 +303,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   s4.background = conteudoBg;
   slideTitle(s4, "Classificação — Pressão Arterial", "Distribuição detalhada por categoria");
 
-  const paLabels = ["Normal", "Pré-Hipertensão", "HA Estágio 1", "HA Estágio 2", "HA Estágio 3", "Não realizado"];
+  const paLabels = ["Ótima", "Normal", "Normal elevada", "Hipertensão Estágio 1", "Hipertensão Estágio 2", "Hipertensão Estágio 3", "Não realizado"];
   s4.addChart(pptx.ChartType.bar,
     [{ name: "Colaboradores", labels: paLabels, values: paLabels.map((l) => (paCounts as any)[l]) }],
     {
