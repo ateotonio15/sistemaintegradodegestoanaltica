@@ -31,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   isAdmin: false,
   isExecutivo: false,
+  isExecutivoExterno: false,
   isViewOnly: false,
   isEnfermeira: false,
   isFinanceiro: false,
