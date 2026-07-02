@@ -137,6 +137,18 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           ]
       : allNavItems;
     const filtered = base.filter((item) => {
+      if (isExecutivoExterno) {
+        const allowed = [
+          "/",
+          "/demandas",
+          "/demandas/dashboard",
+          "/devolutivas-fora-prazo",
+          "/plantoes",
+          "/plantoes/calendario",
+          "/carteira-samel",
+        ];
+        return allowed.includes(item.to);
+      }
       if (isEnfermeira) {
         const allowed = ["/uber", "/uber/dashboard", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras"];
         return allowed.includes(item.to);
