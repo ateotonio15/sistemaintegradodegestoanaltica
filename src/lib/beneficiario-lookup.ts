@@ -22,27 +22,38 @@ function pick(obj: any, keys: string[]): string | undefined {
 
 function normalize(raw: any): BeneficiarioLookup | null {
   if (!raw) return null;
-  // Payload pode vir como { status:true, data:{...} } ou direto.
-  const source = raw.data ?? raw.beneficiario ?? raw;
+  // Payload real: { registros, dados: [{...}] }. Também suportamos { data }, { beneficiario } ou objeto direto.
+  const source = raw.dados ?? raw.data ?? raw.beneficiario ?? raw;
   const target = Array.isArray(source) ? source[0] : source;
   if (!target || typeof target !== "object") return null;
 
-  const nome = pick(target, ["nm_beneficiario", "NM_BENEFICIARIO", "nome", "NOME", "nm_pessoa_fisica"]);
+  const nome = pick(target, [
+    "nm_pessoa_fisica",
+    "NM_PESSOA_FISICA",
+    "nm_beneficiario",
+    "NM_BENEFICIARIO",
+    "nome",
+    "NOME",
+  ]);
   const cpf = pick(target, ["nr_cpf", "NR_CPF", "cpf", "CPF"]);
   const empresa = pick(target, [
+    "nm_empresa",
+    "NM_EMPRESA",
+    "nm_fantasia_sub_estipulante",
+    "ds_razao_social_sub_estipulante",
+    "nm_fantasia_contrato",
+    "ds_razao_social_contrato",
     "nm_estipulante",
     "NM_ESTIPULANTE",
-    "nm_empresa",
     "empresa",
     "EMPRESA",
-    "nm_subestipulante",
-    "NM_SUBESTIPULANTE",
     "nome_empresa",
   ]);
 
   if (!nome && !cpf && !empresa) return null;
   return { nome, cpf, empresa, raw: target };
 }
+
 
 export async function fetchBeneficiarioByCpf(cpf: string, signal?: AbortSignal): Promise<BeneficiarioLookup | null> {
   const digits = String(cpf || "").replace(/\D/g, "");
