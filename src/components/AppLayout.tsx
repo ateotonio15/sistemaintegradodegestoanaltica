@@ -172,11 +172,11 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     if (canAccessHonda) {
       filtered.push({ to: "/honda-exclusoes", label: "Honda Exclusões", icon: Bike });
     }
-    if (isAdmin || role === "diretora" || role === "comum" || role === "executivo" || role === "administradoras") {
+    if (isAdmin || role === "diretora" || role === "comum" || role === "executivo" || role === "executivo_externo" || role === "administradoras") {
       filtered.push({ to: "/carteira-samel", label: "Carteira Samel", icon: Briefcase });
     }
     return filtered;
-  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren, canAccessHonda]);
+  }, [isAdmin, isExecutivo, isExecutivoExterno, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren, canAccessHonda]);
 
   const isDashChildActive = dashChildren.some((c) => location.pathname === c.to);
   const [dashOpen, setDashOpen] = useState<boolean>(isDashChildActive);
