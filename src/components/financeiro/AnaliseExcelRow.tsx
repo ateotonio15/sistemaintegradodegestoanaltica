@@ -218,6 +218,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                   } | null;
                   destaqueNegativo?: boolean;
                   mesesRetro?: string[];
+                  mesesRetroDetalhe?: Array<{ mes: string; quantidade: number; total: number }>;
                 }> = [];
 
 
