@@ -7,12 +7,21 @@ export interface CategoriaResultado {
   total: number;
 }
 
+export interface RetroativaMesDetalhe {
+  mes: string;         // "MAR/26"
+  quantidade: number;
+  total: number;
+}
+
 export interface InclusaoResultado {
   quantidade: number;
   total: number;
   /** Meses de referência (ex.: "MAR/26") detectados em abas/pivots de cobrança retroativa. */
   meses?: string[];
+  /** Detalhe por mês com quantidade e valor. */
+  mesesDetalhe?: RetroativaMesDetalhe[];
 }
+
 
 
 export interface AnaliseResultado {
@@ -1519,6 +1528,14 @@ export async function analisarExcelFinanceiroPorCnpj(
   let extraRetroTotal = 0;
   let pivotEncontrado = false;
   const mesesRetro = new Set<string>();
+  const detalhePorMes = new Map<string, { quantidade: number; total: number }>();
+  const addDetalhe = (mes: string | null, qtd: number, total: number) => {
+    if (!mes) return;
+    const cur = detalhePorMes.get(mes) || { quantidade: 0, total: 0 };
+    cur.quantidade += qtd;
+    cur.total += total;
+    detalhePorMes.set(mes, cur);
+  };
 
   // Helper: extrai rótulo de mês tipo "MAR26", "MAR/26", "MARÇO 2026" -> "MAR/26"
   const extrairMes = (raw: string): string | null => {
@@ -1563,10 +1580,12 @@ export async function analisarExcelFinanceiroPorCnpj(
       }
       if (nums.length === 0) continue;
       pivotEncontrado = true;
-      extraRetroQtd += nums.length >= 2 ? Math.round(nums[0]) : 0;
-      extraRetroTotal += nums.length >= 2 ? nums[1] : nums[0];
+      const qtd = nums.length >= 2 ? Math.round(nums[0]) : 0;
+      const total = nums.length >= 2 ? nums[1] : nums[0];
+      extraRetroQtd += qtd;
+      extraRetroTotal += total;
       const mes = extrairMes(hitLabel);
-      if (mes) mesesRetro.add(mes);
+      if (mes) { mesesRetro.add(mes); addDetalhe(mes, qtd, total); }
     }
   });
 
@@ -1588,6 +1607,8 @@ export async function analisarExcelFinanceiroPorCnpj(
         if (v >= 0 || t >= 0) { hIdx = i; iVal = v; iQtd = q; iTipo = t; break; }
       }
       if (hIdx < 0) return;
+      let abaQtd = 0;
+      let abaTotal = 0;
       for (let i = hIdx + 1; i < rowsSheet.length; i++) {
         const r = rowsSheet[i];
         if (!r || r.length === 0) continue;
@@ -1595,9 +1616,14 @@ export async function analisarExcelFinanceiroPorCnpj(
         if (iTipo >= 0 && !isRetroativa(tipoCell)) continue;
         const val = toNumber(r[iVal]);
         const qtd = iQtd >= 0 ? toNumber(r[iQtd]) : 1;
-        if (!isNaN(val)) extraRetroTotal += val;
-        extraRetroQtd += isNaN(qtd) ? 1 : qtd;
+        const qNum = isNaN(qtd) ? 1 : qtd;
+        const vNum = isNaN(val) ? 0 : val;
+        extraRetroTotal += vNum;
+        extraRetroQtd += qNum;
+        abaTotal += vNum;
+        abaQtd += qNum;
       }
+      if (mes) addDetalhe(mes, abaQtd, abaTotal);
     });
   } else {
     // Mesmo com pivots, coleta meses das abas dedicadas para exibição
@@ -1610,6 +1636,13 @@ export async function analisarExcelFinanceiroPorCnpj(
   }
 
   const mesesArr = Array.from(mesesRetro);
+  const detalheArr: RetroativaMesDetalhe[] = Array.from(detalhePorMes.entries())
+    .map(([mes, v]) => ({ mes, quantidade: v.quantidade, total: v.total }));
+
+  const scaleDetalhe = (w: number): RetroativaMesDetalhe[] | undefined =>
+    detalheArr.length
+      ? detalheArr.map((d) => ({ mes: d.mes, quantidade: Math.round(d.quantidade * w), total: d.total * w }))
+      : undefined;
 
   if ((extraRetroQtd !== 0 || Math.abs(extraRetroTotal) > 0.001) && blocos.length > 0) {
     const jaRetroTotal = blocos.reduce((s, b) => s + (b.retroativas?.total ?? 0), 0);
@@ -1623,6 +1656,7 @@ export async function analisarExcelFinanceiroPorCnpj(
           quantidade: (b.retroativas?.quantidade ?? 0) + deltaQ,
           total: (b.retroativas?.total ?? 0) + deltaT,
           meses: mesesArr.length ? mesesArr : b.retroativas?.meses,
+          mesesDetalhe: scaleDetalhe(1) ?? b.retroativas?.mesesDetalhe,
         };
         b.inclusoes = { quantidade: b.inclusoes.quantidade + deltaQ, total: b.inclusoes.total + deltaT };
       } else {
@@ -1636,25 +1670,32 @@ export async function analisarExcelFinanceiroPorCnpj(
             quantidade: (b.retroativas?.quantidade ?? 0) + q,
             total: (b.retroativas?.total ?? 0) + v,
             meses: mesesArr.length ? mesesArr : b.retroativas?.meses,
+            mesesDetalhe: scaleDetalhe(w) ?? b.retroativas?.mesesDetalhe,
           };
           b.inclusoes = { quantidade: b.inclusoes.quantidade + q, total: b.inclusoes.total + v };
         });
       }
     } else if (mesesArr.length) {
-      // Só atualiza a lista de meses nas retroativas existentes
       blocos.forEach((b) => {
-        if (b.retroativas) b.retroativas.meses = mesesArr;
+        if (b.retroativas) {
+          b.retroativas.meses = mesesArr;
+          if (detalheArr.length) b.retroativas.mesesDetalhe = scaleDetalhe(1);
+        }
       });
     }
   } else if (mesesArr.length && blocos.length > 0) {
     blocos.forEach((b) => {
-      if (b.retroativas) b.retroativas.meses = mesesArr;
+      if (b.retroativas) {
+        b.retroativas.meses = mesesArr;
+        if (detalheArr.length) b.retroativas.mesesDetalhe = scaleDetalhe(1);
+      }
     });
   }
 
 
   return mesclarBlocosPorNomeForcado(blocos);
 }
+
 
 
 /**
@@ -1717,8 +1758,21 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
     const retro = somaQT(arr, "retroativas");
     if (retro) {
       const meses = Array.from(new Set(arr.flatMap((x) => x.retroativas?.meses || [])));
-      novoBloco.retroativas = { ...retro, ...(meses.length ? { meses } : {}) };
+      const detalheMap = new Map<string, { quantidade: number; total: number }>();
+      arr.forEach((x) => (x.retroativas?.mesesDetalhe || []).forEach((d) => {
+        const cur = detalheMap.get(d.mes) || { quantidade: 0, total: 0 };
+        cur.quantidade += d.quantidade;
+        cur.total += d.total;
+        detalheMap.set(d.mes, cur);
+      }));
+      const mesesDetalhe = Array.from(detalheMap.entries()).map(([mes, v]) => ({ mes, ...v }));
+      novoBloco.retroativas = {
+        ...retro,
+        ...(meses.length ? { meses } : {}),
+        ...(mesesDetalhe.length ? { mesesDetalhe } : {}),
+      };
     }
+
 
     const exc = somaQT(arr, "exclusoes"); if (exc) novoBloco.exclusoes = exc;
     const dev = somaQT(arr, "devolucoes"); if (dev) novoBloco.devolucoes = dev;
