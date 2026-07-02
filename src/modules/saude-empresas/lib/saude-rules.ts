@@ -1,11 +1,12 @@
 // Regras clínicas — sincronizadas com public.classificar_pa / classificar_glicemia / calcular_imc.
 
 export type PaCategoria =
+  | "Ótima"
   | "Normal"
-  | "Pré-Hipertensão"
-  | "HA Estágio 1"
-  | "HA Estágio 2"
-  | "HA Estágio 3"
+  | "Normal elevada"
+  | "Hipertensão Estágio 1"
+  | "Hipertensão Estágio 2"
+  | "Hipertensão Estágio 3"
   | "Não realizado";
 
 export type GlicemiaCategoria =
@@ -24,13 +25,16 @@ export type ImcCategoria =
 
 export type RiscoGeral = "alto" | "medio" | "baixo";
 
+// Diretrizes Brasileiras (Ministério da Saúde). Quando PAS e PAD caem em faixas
+// diferentes, prevalece a categoria mais alta — por isso avaliamos de cima para baixo.
 export function classificarPa(pas?: number | null, pad?: number | null): PaCategoria {
   if (pas == null || pad == null || pas <= 0 || pad <= 0) return "Não realizado";
-  if (pas >= 180 || pad >= 110) return "HA Estágio 3";
-  if (pas >= 160 || pad >= 100) return "HA Estágio 2";
-  if (pas >= 140 || pad >= 90) return "HA Estágio 1";
-  if (pas >= 120 || pad >= 80) return "Pré-Hipertensão";
-  return "Normal";
+  if (pas >= 180 || pad >= 110) return "Hipertensão Estágio 3";
+  if (pas >= 160 || pad >= 100) return "Hipertensão Estágio 2";
+  if (pas >= 140 || pad >= 90) return "Hipertensão Estágio 1";
+  if (pas >= 130 || pad >= 85) return "Normal elevada";
+  if (pas >= 120 || pad >= 80) return "Normal";
+  return "Ótima";
 }
 
 export function classificarGlicemia(valor?: number | null, jejum?: boolean): GlicemiaCategoria | null {
@@ -45,8 +49,8 @@ export function classificarGlicemia(valor?: number | null, jejum?: boolean): Gli
   return "Diabetes";
 }
 
-export const PA_ALTERADAS: PaCategoria[] = ["Pré-Hipertensão", "HA Estágio 1", "HA Estágio 2", "HA Estágio 3"];
-export const PA_GRAVE: PaCategoria[] = ["HA Estágio 2", "HA Estágio 3"];
+export const PA_ALTERADAS: PaCategoria[] = ["Normal elevada", "Hipertensão Estágio 1", "Hipertensão Estágio 2", "Hipertensão Estágio 3"];
+export const PA_GRAVE: PaCategoria[] = ["Hipertensão Estágio 2", "Hipertensão Estágio 3"];
 
 export function calcularImc(pesoKg?: number | null, alturaCm?: number | null): number | null {
   if (!pesoKg || !alturaCm) return null;
