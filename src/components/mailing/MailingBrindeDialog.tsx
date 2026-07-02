@@ -209,15 +209,6 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
             />
           </div>
           <div>
-            <Label>E-mail</Label>
-            <Input
-              type="email"
-              value={form.email}
-              onChange={(e) => set("email", e.target.value)}
-              maxLength={255}
-            />
-          </div>
-          <div>
             <Label>Telefone</Label>
             <Input
               value={form.telefone}
