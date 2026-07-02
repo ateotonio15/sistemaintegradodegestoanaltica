@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
-import { AlertTriangle, Stethoscope } from "lucide-react";
+import { AlertTriangle, Loader2, Stethoscope } from "lucide-react";
 import { PaBadge } from "./PaBadge";
 import { BioimpedanciaDialog } from "./BioimpedanciaDialog";
 import { classificarPa, maskCpf, PA_GRAVE } from "../lib/saude-rules";
 import { useSaudeMutations, type Triagem } from "../hooks/useSaudeEmpresas";
+import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
 
 interface Props {
   acaoId: string;
@@ -32,10 +33,43 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
   const [jejum, setJejum] = useState<"sim" | "nao" | "">("");
   const [glicemia, setGlicemia] = useState("");
   const [realizouBio, setRealizouBio] = useState(false);
+  const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
+  const [empresaDetectada, setEmpresaDetectada] = useState("");
+
+  useEffect(() => {
+    const digits = String(cpf || "").replace(/\D/g, "");
+    if (digits.length !== 11) {
+      setEmpresaDetectada("");
+      return;
+    }
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        setCpfLookupLoading(true);
+        const res = await fetchBeneficiarioByCpf(digits, ctrl.signal);
+        if (!res) return;
+        if (res.nome && !nome.trim()) setNome(res.nome);
+        if (res.empresa) setEmpresaDetectada(res.empresa);
+        if (res.nome || res.empresa) toast.success("Dados do beneficiário carregados");
+      } catch {
+        // Busca silenciosa para não interromper a triagem.
+      } finally {
+        setCpfLookupLoading(false);
+      }
+    }, 400);
+
+    return () => {
+      ctrl.abort();
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cpf]);
 
   const reset = () => {
     setNome(""); setCpf(""); setPas(""); setPad("");
     setJejum(""); setGlicemia(""); setRealizouBio(false);
+    setEmpresaDetectada("");
   };
 
   const paCat = classificarPa(pas ? Number(pas) : null, pad ? Number(pad) : null);
@@ -93,7 +127,20 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
         </div>
         <div className="md:col-span-3 grid gap-1.5">
           <Label>CPF *</Label>
-          <Input value={cpf} onChange={(e) => setCpf(maskCpf(e.target.value))} placeholder="000.000.000-00" />
+          <div className="relative">
+            <Input
+              value={cpf}
+              onChange={(e) => setCpf(maskCpf(e.target.value))}
+              placeholder="000.000.000-00"
+              className={cpfLookupLoading ? "pr-8" : undefined}
+            />
+            {cpfLookupLoading && (
+              <Loader2 className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          {empresaDetectada && (
+            <span className="text-xs text-muted-foreground truncate">Empresa: {empresaDetectada}</span>
+          )}
         </div>
 
         {temPa && (
