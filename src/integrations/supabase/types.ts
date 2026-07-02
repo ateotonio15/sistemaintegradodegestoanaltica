@@ -4191,6 +4191,7 @@ export type Database = {
         | "administradoras"
         | "coordenadora"
         | "diretora_saude"
+        | "executivo_externo"
       bloqueio_periodo: "dia_todo" | "manha" | "tarde"
       ferias_empresa_status:
         | "pendente_inicio"
@@ -4369,6 +4370,7 @@ export const Constants = {
         "administradoras",
         "coordenadora",
         "diretora_saude",
+        "executivo_externo",
       ],
       bloqueio_periodo: ["dia_todo", "manha", "tarde"],
       ferias_empresa_status: [

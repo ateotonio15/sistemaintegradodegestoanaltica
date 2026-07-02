@@ -15,7 +15,7 @@ import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, 
 import { Navigate } from "react-router-dom";
 import { FeriasSection } from "@/components/ferias/FeriasSection";
 
-type AppRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras";
+type AppRole = "admin" | "comum" | "executivo" | "executivo_externo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras";
 
 interface UserProfile {
   user_id: string;
@@ -29,6 +29,7 @@ const roleLabel: Record<AppRole, string> = {
   admin: "Administrador",
   comum: "Cadastro",
   executivo: "Executivo",
+  executivo_externo: "Executivo Externo",
   visualizacao: "Visualização",
   diretora: "Diretora",
   enfermeira: "Enfermeira",
@@ -41,6 +42,7 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   admin: Shield,
   comum: User,
   executivo: Eye,
+  executivo_externo: Eye,
   visualizacao: Eye,
   diretora: Eye,
   enfermeira: HeartPulse,
@@ -309,6 +311,7 @@ export default function Usuarios() {
                       <SelectItem value="admin">Administrador</SelectItem>
                       <SelectItem value="comum">Cadastro</SelectItem>
                       <SelectItem value="executivo">Executivo</SelectItem>
+                      <SelectItem value="executivo_externo">Executivo Externo</SelectItem>
                       <SelectItem value="visualizacao">Visualização</SelectItem>
                       <SelectItem value="diretora">Diretora</SelectItem>
                       <SelectItem value="enfermeira">Enfermeira</SelectItem>
@@ -436,6 +439,7 @@ export default function Usuarios() {
                     <SelectItem value="admin">Administrador</SelectItem>
                     <SelectItem value="comum">Cadastro</SelectItem>
                     <SelectItem value="executivo">Executivo</SelectItem>
+                    <SelectItem value="executivo_externo">Executivo Externo</SelectItem>
                     <SelectItem value="visualizacao">Visualização</SelectItem>
                     <SelectItem value="diretora">Diretora</SelectItem>
                     <SelectItem value="enfermeira">Enfermeira</SelectItem>

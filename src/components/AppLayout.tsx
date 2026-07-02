@@ -85,7 +85,7 @@ function formatDateBR(dateStr: string | null | undefined): string {
 export function AppLayout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user, isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, role } = useAuth();
+  const { signOut, user, isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, isExecutivoExterno, role } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -137,6 +137,18 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           ]
       : allNavItems;
     const filtered = base.filter((item) => {
+      if (isExecutivoExterno) {
+        const allowed = [
+          "/",
+          "/demandas",
+          "/demandas/dashboard",
+          "/devolutivas-fora-prazo",
+          "/plantoes",
+          "/plantoes/calendario",
+          "/carteira-samel",
+        ];
+        return allowed.includes(item.to);
+      }
       if (isEnfermeira) {
         const allowed = ["/uber", "/uber/dashboard", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras"];
         return allowed.includes(item.to);
@@ -160,11 +172,15 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     if (canAccessHonda) {
       filtered.push({ to: "/honda-exclusoes", label: "Honda Exclusões", icon: Bike });
     }
-    if (isAdmin || role === "diretora" || role === "comum" || role === "executivo" || role === "administradoras") {
+    if (isExecutivoExterno) {
+      // /devolutivas-fora-prazo não está em allNavItems; adicionamos manualmente.
+      filtered.push({ to: "/devolutivas-fora-prazo", label: "Devolutivas Fora do Prazo", icon: ClockAlert });
+    }
+    if (isAdmin || role === "diretora" || role === "comum" || role === "executivo" || role === "executivo_externo" || role === "administradoras") {
       filtered.push({ to: "/carteira-samel", label: "Carteira Samel", icon: Briefcase });
     }
     return filtered;
-  }, [isAdmin, isExecutivo, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren, canAccessHonda]);
+  }, [isAdmin, isExecutivo, isExecutivoExterno, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren, canAccessHonda]);
 
   const isDashChildActive = dashChildren.some((c) => location.pathname === c.to);
   const [dashOpen, setDashOpen] = useState<boolean>(isDashChildActive);

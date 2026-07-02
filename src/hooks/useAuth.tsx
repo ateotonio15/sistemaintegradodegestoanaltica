@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { clearSessionNamespace } from "@/hooks/useSessionState";
 import type { User, Session } from "@supabase/supabase-js";
 
-type UserRole = "admin" | "comum" | "executivo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras" | null;
+type UserRole = "admin" | "comum" | "executivo" | "executivo_externo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras" | null;
 
 interface AuthContextType {
   user: User | null;
@@ -12,6 +12,7 @@ interface AuthContextType {
   role: UserRole;
   isAdmin: boolean;
   isExecutivo: boolean;
+  isExecutivoExterno: boolean;
   isViewOnly: boolean;
   isEnfermeira: boolean;
   isFinanceiro: boolean;
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   isAdmin: false,
   isExecutivo: false,
+  isExecutivoExterno: false,
   isViewOnly: false,
   isEnfermeira: false,
   isFinanceiro: false,
@@ -125,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user, session, loading, role,
       isAdmin: role === "admin",
       isExecutivo: role === "executivo",
+      isExecutivoExterno: role === "executivo_externo",
       isViewOnly: role === "visualizacao" || role === "diretora",
       isEnfermeira: role === "enfermeira",
       isFinanceiro: role === "financeiro",
