@@ -19,11 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateDemanda, useUpdateDemanda } from "@/hooks/useDemandas";
 import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
+import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
 import {
   SETORES,
   TIPOS,
@@ -121,7 +123,32 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
     }
   }, [open, demanda, initialValues]);
 
-
+  // Lookup automático de beneficiário por CPF (11 dígitos) — API Samel
+  const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
+  useEffect(() => {
+    const digits = String(form.cpf || "").replace(/\D/g, "");
+    if (digits.length !== 11) return;
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        setCpfLookupLoading(true);
+        const res = await fetchBeneficiarioByCpf(digits, ctrl.signal);
+        if (!res) return;
+        setForm((prev) => {
+          const next: any = { ...prev };
+          if (res.nome && !prev.nome_cliente?.trim()) next.nome_cliente = res.nome;
+          if (res.empresa && !prev.empresa?.trim()) next.empresa = res.empresa;
+          return next;
+        });
+        if (res.nome || res.empresa) toast.success("Dados do beneficiário carregados");
+      } catch {
+        // silencioso: se falhar, usuário digita manualmente
+      } finally {
+        setCpfLookupLoading(false);
+      }
+    }, 400);
+    return () => { ctrl.abort(); clearTimeout(timer); };
+  }, [form.cpf]);
 
 
   const set = <K extends keyof Demanda>(k: K, v: Demanda[K] | string | boolean) =>
@@ -328,7 +355,20 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Nome do cliente *" className="md:col-span-2">
+          <Field label="CPF do beneficiário">
+            <div className="relative">
+              <Input
+                value={form.cpf || ""}
+                onChange={(e) => set("cpf", maskCpf(e.target.value))}
+                placeholder="000.000.000-00 (busca automática)"
+                maxLength={14}
+              />
+              {cpfLookupLoading && (
+                <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+          </Field>
+          <Field label="Nome do cliente *">
             <Input
               value={form.nome_cliente || ""}
               onChange={(e) => set("nome_cliente", e.target.value)}
@@ -338,14 +378,6 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
 
           {isSurgical(form.reclamacao) && (
             <>
-              <Field label="CPF *">
-                <Input
-                  value={form.cpf || ""}
-                  onChange={(e) => set("cpf", maskCpf(e.target.value))}
-                  placeholder="000.000.000-00"
-                  maxLength={14}
-                />
-              </Field>
               <Field label="Data de entrada *">
                 <Input
                   type="date"

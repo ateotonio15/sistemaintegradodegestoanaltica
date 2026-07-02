@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlantaoMutations, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 import { useCreateDemanda } from "@/hooks/useDemandas";
+import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
 import { toast } from "sonner";
 
 const TIPOS = ["Consulta", "Exames", "Reclamação", "Outros"];
@@ -45,6 +47,29 @@ export function AtendimentoDialog({
   const [canal, setCanal] = useState(initial.canal);
   const [status, setStatus] = useState<Status>(initial.status);
   const [observacao, setObservacao] = useState(atendimento?.observacao ?? "");
+  const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
+  const [empresaDetectada, setEmpresaDetectada] = useState<string>("");
+
+  // Busca automática dos dados do beneficiário pelo CPF
+  useEffect(() => {
+    const digits = String(cpf || "").replace(/\D/g, "");
+    if (digits.length !== 11) { setEmpresaDetectada(""); return; }
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        setCpfLookupLoading(true);
+        const res = await fetchBeneficiarioByCpf(digits, ctrl.signal);
+        if (!res) return;
+        if (res.nome && !nome.trim()) setNome(res.nome);
+        if (res.empresa) setEmpresaDetectada(res.empresa);
+        if (res.nome || res.empresa) toast.success("Dados do beneficiário carregados");
+      } catch { /* silencioso */ }
+      finally { setCpfLookupLoading(false); }
+    }, 400);
+    return () => { ctrl.abort(); clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cpf]);
+
 
   // Busca o plantão para obter contexto (empresa/executiva/data) — usado para vincular ao Relatório de Demandas
   const { data: plantaoCtx } = useQuery({
@@ -72,7 +97,21 @@ export function AtendimentoDialog({
         </DialogHeader>
         <div className="space-y-3">
           <Input placeholder="Beneficiário" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={120} />
-          <Input placeholder="CPF" value={cpf} onChange={(e) => setCpf(e.target.value)} maxLength={20} />
+          <div className="relative">
+            <Input
+              placeholder="CPF (busca automática)"
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value)}
+              maxLength={20}
+              className={cpfLookupLoading ? "pr-8" : ""}
+            />
+            {cpfLookupLoading && (
+              <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          {empresaDetectada && (
+            <p className="text-[11px] text-muted-foreground">Empresa: <span className="font-medium text-foreground">{empresaDetectada}</span></p>
+          )}
           <div className="grid grid-cols-3 gap-2">
             <Select value={tipo} onValueChange={setTipo}>
               <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
