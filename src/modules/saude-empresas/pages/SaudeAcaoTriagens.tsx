@@ -147,6 +147,9 @@ export default function SaudeAcaoTriagens() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />Atualizar
+          </Button>
           <Button variant="outline" onClick={() => exportTriagensExcel(acao, triagens)}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
           </Button>
