@@ -355,7 +355,20 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Nome do cliente *" className="md:col-span-2">
+          <Field label="CPF do beneficiário">
+            <div className="relative">
+              <Input
+                value={form.cpf || ""}
+                onChange={(e) => set("cpf", maskCpf(e.target.value))}
+                placeholder="000.000.000-00 (busca automática)"
+                maxLength={14}
+              />
+              {cpfLookupLoading && (
+                <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+          </Field>
+          <Field label="Nome do cliente *">
             <Input
               value={form.nome_cliente || ""}
               onChange={(e) => set("nome_cliente", e.target.value)}
@@ -365,14 +378,6 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
 
           {isSurgical(form.reclamacao) && (
             <>
-              <Field label="CPF *">
-                <Input
-                  value={form.cpf || ""}
-                  onChange={(e) => set("cpf", maskCpf(e.target.value))}
-                  placeholder="000.000.000-00"
-                  maxLength={14}
-                />
-              </Field>
               <Field label="Data de entrada *">
                 <Input
                   type="date"
