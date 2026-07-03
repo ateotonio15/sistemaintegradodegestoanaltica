@@ -7,12 +7,14 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   Activity, FlaskConical, Stethoscope, ChevronLeft, ChevronRight,
-  ArrowLeft, Plus, FileSpreadsheet, Info, X,
+  ArrowLeft, Plus, FileSpreadsheet, Info, X, ChevronsUpDown,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
