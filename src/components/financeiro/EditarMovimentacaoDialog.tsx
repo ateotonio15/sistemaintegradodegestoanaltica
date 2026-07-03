@@ -162,7 +162,12 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       setBoletoConfirmadoPor(movimentacao.boleto_confirmado_por ?? null);
       setBoletoConfirmadoEm(movimentacao.boleto_confirmado_em ?? null);
     }
-  }, [movimentacao]);
+    setSelecionados(new Set());
+  }, [movimentacao?.id]);
+
+  useEffect(() => {
+    if (!open) setSelecionados(new Set());
+  }, [open]);
 
   // Validações campo-a-campo (avisos discretos, não bloqueiam edição manual)
   const tipoTrimmed = tipoCobranca.trim();
