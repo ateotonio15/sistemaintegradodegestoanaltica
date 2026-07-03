@@ -138,6 +138,13 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         icon: Mic,
         to: "/saude-empresas/visao-geral",
       },
+      {
+        slug: "saude-empresas-palestras",
+        label: "Calendário de Palestras",
+        description: "Agenda anual de palestras de saúde nas empresas",
+        icon: Mic,
+        to: "/saude-empresas/palestras",
+      },
     ],
   },
   {
