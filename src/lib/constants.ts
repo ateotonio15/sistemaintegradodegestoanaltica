@@ -99,6 +99,7 @@ export const RECLAMACOES_POR_SETOR_TIPO: Record<string, Record<string, string[]>
   },
   "Clínica Externa": {
     "Aprazamento": [
+      "Aprazamento de consulta",
       "Aprazamento de neuro pediatra",
       "Aprazamento de ortopedista",
       "Aprazamento fisioterapia ortopédica",
