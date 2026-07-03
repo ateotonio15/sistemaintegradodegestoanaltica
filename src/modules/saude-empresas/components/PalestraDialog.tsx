@@ -30,6 +30,10 @@ const STATUS_OPTIONS: { v: PalestraStatus; label: string }[] = [
   { v: "cancelado", label: "Cancelado" },
 ];
 
+const STATUS_LABEL_MAP: Record<PalestraStatus, string> = {
+  a_confirmar: "A confirmar", confirmado: "Confirmado", concluido: "Concluído", cancelado: "Cancelado",
+};
+
 const STATUS_STYLE: Record<PalestraStatus, { badge: string; dot: string; ring: string }> = {
   a_confirmar: { badge: "bg-amber-500/15 text-amber-400 border-amber-500/40", dot: "bg-amber-500", ring: "ring-amber-500/30" },
   confirmado:  { badge: "bg-sky-500/15 text-sky-400 border-sky-500/40",        dot: "bg-sky-500",   ring: "ring-sky-500/30" },
