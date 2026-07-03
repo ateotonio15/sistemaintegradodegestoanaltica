@@ -16,7 +16,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
 import {
   Palestra, PalestraStatus, usePalestraMutations,
 } from "../hooks/usePalestras";
@@ -49,19 +48,17 @@ export function PalestraDialog({
   open, onOpenChange, editing, preselect, canEdit, isReadOnly, userNome, bloqueiosFn,
 }: Props) {
   const isEdit = !!editing;
-  const { user } = useAuth();
   const { data: empresas = [] } = useEmpresasAtivas();
   const { data: executivas = [] } = useExecutivas();
   const { createMany, updateOne, deleteOne } = usePalestraMutations();
 
-  const [empresaId, setEmpresaId] = useState("");
+  const [empresa, setEmpresa] = useState("");
   const [endereco, setEndereco] = useState("");
   const [datas, setDatas] = useState<Date[]>([]);
   const [horarioInicio, setHorarioInicio] = useState("");
   const [horarioFim, setHorarioFim] = useState("");
   const [tema, setTema] = useState("");
-  const [executivaUserId, setExecutivaUserId] = useState("");
-  const [executivaNome, setExecutivaNome] = useState("");
+  const [executiva, setExecutiva] = useState("");
   const [observacao, setObservacao] = useState("");
   const [status, setStatus] = useState<PalestraStatus>("a_confirmar");
   const [motivo, setMotivo] = useState("");
@@ -70,34 +67,31 @@ export function PalestraDialog({
   useEffect(() => {
     if (!open) return;
     if (editing) {
-      setEmpresaId(editing.empresa_id);
+      setEmpresa(editing.empresa);
       setEndereco(editing.endereco ?? "");
       const [y, m, d] = editing.data.split("-").map(Number);
       setDatas([new Date(y, m - 1, d)]);
       setHorarioInicio(editing.horario_inicio?.slice(0, 5) ?? "");
       setHorarioFim(editing.horario_fim?.slice(0, 5) ?? "");
       setTema(editing.tema ?? "");
-      setExecutivaUserId(editing.executiva_user_id ?? "");
-      setExecutivaNome(editing.executiva_nome ?? "");
+      setExecutiva(editing.executiva ?? "");
       setObservacao(editing.observacao ?? "");
       setStatus(editing.status);
       setMotivo(editing.motivo_cancelamento ?? "");
     } else {
-      setEmpresaId("");
+      setEmpresa("");
       setEndereco("");
       setDatas(preselect ?? []);
       setHorarioInicio("");
       setHorarioFim("");
       setTema("");
-      setExecutivaUserId(user?.id ?? "");
-      setExecutivaNome(userNome ?? "");
+      setExecutiva(userNome ?? "");
       setObservacao("");
       setStatus("a_confirmar");
       setMotivo("");
     }
-  }, [open, editing, preselect, user?.id, userNome]);
+  }, [open, editing, preselect, userNome]);
 
-  // Mês para sugestões (primeiro dado ou mês corrente)
   const mesSugestao = useMemo(() => (datas[0] ?? new Date()).getMonth(), [datas]);
   const sugGestantes = GESTANTES_2026[mesSugestao] ?? "";
   const sugCampanha = CAMPANHAS[mesSugestao];
@@ -113,11 +107,10 @@ export function PalestraDialog({
     setDatas((prev) => prev.filter((x) => x.getTime() !== d.getTime()));
   };
 
-  const empresa = useMemo(() => empresas.find((e) => e.id === empresaId), [empresas, empresaId]);
+  const empresaSel = useMemo(() => empresas.find((e) => e.nome === empresa), [empresas, empresa]);
   useEffect(() => {
-    if (!isEdit && empresa && !endereco) setEndereco(empresa.endereco ?? "");
-  }, [empresa, isEdit, endereco]);
-
+    if (!isEdit && empresaSel && !endereco) setEndereco(empresaSel.endereco ?? "");
+  }, [empresaSel, isEdit, endereco]);
 
   const handleSelectDatas = (ds: Date[] | undefined) => {
     const list = ds ?? [];
@@ -140,18 +133,17 @@ export function PalestraDialog({
   };
 
   const handleSubmit = async () => {
-    if (!empresaId) { toast.error("Selecione a empresa"); return; }
+    if (!empresa) { toast.error("Selecione a empresa"); return; }
     if (!endereco.trim()) { toast.error("Informe o endereço"); return; }
     if (datas.length === 0) { toast.error("Selecione ao menos uma data"); return; }
     if (!horarioInicio) { toast.error("Informe o horário de início"); return; }
     if (!horarioFim) { toast.error("Informe o horário de fim"); return; }
     if (horarioFim <= horarioInicio) { toast.error("Horário de fim deve ser maior que o de início"); return; }
-    if (!executivaUserId) { toast.error("Selecione a executiva responsável"); return; }
+    if (!executiva) { toast.error("Selecione a executiva responsável"); return; }
     if (status === "cancelado" && !motivo.trim()) {
       toast.error("Informe o motivo do cancelamento"); return;
     }
 
-    // Valida bloqueio por período em cada data (manha < 12, tarde >= 12)
     if (horarioInicio) {
       const h = parseInt(horarioInicio.slice(0, 2), 10);
       for (const d of datas) {
@@ -167,7 +159,7 @@ export function PalestraDialog({
     }
 
     const base = {
-      empresa_id: empresaId,
+      empresa,
       endereco,
       horario_inicio: horarioInicio || null,
       horario_fim: horarioFim || null,
@@ -175,8 +167,7 @@ export function PalestraDialog({
       observacao: observacao || null,
       status,
       motivo_cancelamento: status === "cancelado" ? motivo : null,
-      executiva_user_id: executivaUserId || null,
-      executiva_nome: executivaNome || null,
+      executiva,
     };
 
     if (isEdit && editing) {
@@ -213,11 +204,11 @@ export function PalestraDialog({
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label>Empresa *</Label>
-            <Select value={empresaId} onValueChange={setEmpresaId} disabled={dis}>
+            <Select value={empresa} onValueChange={setEmpresa} disabled={dis}>
               <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
               <SelectContent>
                 {empresas.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  <SelectItem key={e.id} value={e.nome}>{e.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -241,9 +232,9 @@ export function PalestraDialog({
               </PopoverTrigger>
               <PopoverContent align="start" className="p-0">
                 {isEdit ? (
-                  <Calendar mode="single" selected={datas[0]} onSelect={(d) => d && handleSelectDatas([d])} locale={ptBR} initialFocus />
+                  <Calendar mode="single" selected={datas[0]} onSelect={(d) => d && handleSelectDatas([d])} locale={ptBR} initialFocus className="pointer-events-auto" />
                 ) : (
-                  <Calendar mode="multiple" selected={datas} onSelect={(ds) => handleSelectDatas(ds as Date[] | undefined)} locale={ptBR} initialFocus />
+                  <Calendar mode="multiple" selected={datas} onSelect={(ds) => handleSelectDatas(ds as Date[] | undefined)} locale={ptBR} initialFocus className="pointer-events-auto" />
                 )}
               </PopoverContent>
             </Popover>
@@ -266,11 +257,11 @@ export function PalestraDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label>Horário início</Label>
+              <Label>Horário início *</Label>
               <Input type="time" value={horarioInicio} onChange={(e) => setHorarioInicio(e.target.value)} disabled={dis} />
             </div>
             <div className="grid gap-2">
-              <Label>Horário fim</Label>
+              <Label>Horário fim *</Label>
               <Input type="time" value={horarioFim} onChange={(e) => setHorarioFim(e.target.value)} disabled={dis} />
             </div>
           </div>
@@ -282,7 +273,7 @@ export function PalestraDialog({
               value={tema}
               onChange={(e) => setTema(e.target.value)}
               disabled={dis}
-              placeholder="Digite ou escolha uma sugestão abaixo"
+              placeholder={sugGestantes || "Tema da palestra"}
             />
             <div className="rounded-lg border bg-muted/40 p-2 space-y-1.5">
               <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -311,28 +302,15 @@ export function PalestraDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label>Executiva responsável</Label>
-            <Select
-              value={executivaUserId}
-              onValueChange={(v) => {
-                setExecutivaUserId(v);
-                const ex = executivas.find((e) => e.user_id === v);
-                setExecutivaNome(ex?.display_name ?? "");
-              }}
-              disabled={dis}
-            >
+            <Label>Executiva responsável *</Label>
+            <Select value={executiva} onValueChange={setExecutiva} disabled={dis}>
               <SelectTrigger><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
               <SelectContent>
                 {executivas.map((e) => (
-                  <SelectItem key={e.user_id} value={e.user_id}>{e.display_name}</SelectItem>
+                  <SelectItem key={e.user_id} value={e.display_name}>{e.display_name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Observação</Label>
-            <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} disabled={dis} rows={3} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -350,16 +328,21 @@ export function PalestraDialog({
             {status === "cancelado" && (
               <div className="grid gap-2">
                 <Label>Motivo do cancelamento *</Label>
-                <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} disabled={dis} />
+                <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} disabled={dis} rows={2} />
               </div>
             )}
           </div>
 
+          <div className="grid gap-2">
+            <Label>Observação</Label>
+            <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} disabled={dis} rows={3} />
+          </div>
+
           {isEdit && editing && (
             <div className="text-xs text-muted-foreground border-t pt-2">
-              Criado por {editing.created_by_nome ?? "—"}
-              {editing.updated_by_nome && (
-                <> • Última edição: {editing.updated_by_nome} em {format(new Date(editing.updated_at), "dd/MM/yyyy HH:mm")}</>
+              Criado por {editing.criado_por ?? "—"}
+              {editing.editado_por && (
+                <> • Última edição: {editing.editado_por} em {format(new Date(editing.updated_at), "dd/MM/yyyy HH:mm")}</>
               )}
             </div>
           )}

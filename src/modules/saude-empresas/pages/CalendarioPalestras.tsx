@@ -19,7 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Palestra, PalestraStatus,
+  Palestra, PalestraStatus, Bloqueio,
   usePalestras, useBloqueios, usePalestrasRealtime,
 } from "../hooks/usePalestras";
 import { useEmpresasAtivas, useExecutivas } from "../hooks/useAcoesPreventivas";
@@ -27,7 +27,6 @@ import { feriadoEm } from "../lib/feriados";
 import { GESTANTES_2026, CAMPANHAS, MESES_PT } from "../lib/palestras-calendario";
 import { PalestraDialog } from "../components/PalestraDialog";
 import { BloqueioDialog } from "../components/BloqueioDialog";
-import type { Bloqueio } from "../hooks/usePalestras";
 
 const STATUS_BADGE: Record<string, string> = {
   a_confirmar: "bg-yellow-100 text-yellow-900 border-yellow-300",
@@ -43,9 +42,10 @@ const isoDate = (d: Date) =>
 
 export default function CalendarioPalestras() {
   usePalestrasRealtime();
-  const { user, isAdmin, isExecutivo, isEnfermeira, isDiretora } = useAuth();
-  const canEdit = isAdmin || isExecutivo || isEnfermeira || isDiretora;
-  const isReadOnly = false;
+  const { user, isAdmin, isExecutivo, isExecutivoExterno, isEnfermeira, isDiretora } = useAuth();
+  // CRUD: admin, executivo, enfermeira. Diretora e executivo externo: só leitura.
+  const canEdit = isAdmin || isExecutivo || isEnfermeira;
+  const isReadOnly = isDiretora || isExecutivoExterno;
 
   const { data: profile } = useQuery({
     queryKey: ["profile_self", user?.id],
@@ -85,8 +85,8 @@ export default function CalendarioPalestras() {
 
   const filtradas = useMemo(() => palestras.filter((p) => {
     if (p.status === "cancelado") return false;
-    if (fEmpresa !== "all" && p.empresa_id !== fEmpresa) return false;
-    if (fExec !== "all" && p.executiva_user_id !== fExec) return false;
+    if (fEmpresa !== "all" && p.empresa !== fEmpresa) return false;
+    if (fExec !== "all" && p.executiva !== fExec) return false;
     if (fStatus !== "all" && p.status !== fStatus) return false;
     return true;
   }), [palestras, fEmpresa, fExec, fStatus]);
@@ -113,7 +113,7 @@ export default function CalendarioPalestras() {
   };
 
   const openNewForDay = (d: Date) => {
-    if (!canEdit) return;
+    if (!canEdit || isReadOnly) return;
     const fer = feriadoEm(d);
     if (fer) return;
     const b = bloqByDate.get(isoDate(d));
@@ -142,23 +142,23 @@ export default function CalendarioPalestras() {
 
   const exportXlsx = () => {
     const rows = palestras
-      .filter((e) => (fEmpresa === "all" || e.empresa_id === fEmpresa))
-      .filter((e) => (fExec === "all" || e.executiva_user_id === fExec))
+      .filter((e) => (fEmpresa === "all" || e.empresa === fEmpresa))
+      .filter((e) => (fExec === "all" || e.executiva === fExec))
       .filter((e) => (fStatus === "all" || e.status === fStatus))
       .map((e) => ({
         Data: format(new Date(e.data + "T00:00:00"), "dd/MM/yyyy"),
-        Empresa: e.empresa?.nome ?? "",
+        Empresa: e.empresa,
         Endereço: e.endereco ?? "",
         "Horário início": e.horario_inicio?.slice(0, 5) ?? "",
         "Horário fim": e.horario_fim?.slice(0, 5) ?? "",
         Tema: e.tema ?? "",
-        Executiva: e.executiva_nome ?? "",
+        Executiva: e.executiva,
         Status: STATUS_LABEL[e.status] ?? e.status,
         "Motivo cancelamento": e.motivo_cancelamento ?? "",
         Observação: e.observacao ?? "",
-        "Criado por": e.created_by_nome ?? "",
-        "Última edição": e.updated_by_nome
-          ? `${e.updated_by_nome} em ${format(new Date(e.updated_at), "dd/MM/yyyy HH:mm")}`
+        "Criado por": e.criado_por ?? "",
+        "Última edição": e.editado_por
+          ? `${e.editado_por} em ${format(new Date(e.updated_at), "dd/MM/yyyy HH:mm")}`
           : "",
       }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -167,9 +167,10 @@ export default function CalendarioPalestras() {
     XLSX.writeFile(wb, `calendario-palestras-${format(cursor, "yyyy-MM")}.xlsx`);
   };
 
+  const podeEditar = canEdit && !isReadOnly;
+
   return (
     <div className="container mx-auto py-6 space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <Link to="/saude-empresas" className="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1">
@@ -194,21 +195,20 @@ export default function CalendarioPalestras() {
         </TabsList>
 
         <TabsContent value="calendario" className="space-y-4">
-          {/* Filtros */}
           <Card className="p-3">
             <div className="grid md:grid-cols-6 gap-2">
               <Select value={fEmpresa} onValueChange={setFEmpresa}>
                 <SelectTrigger><SelectValue placeholder="Todas as empresas" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as empresas</SelectItem>
-                  {empresas.map((e) => (<SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>))}
+                  {empresas.map((e) => (<SelectItem key={e.id} value={e.nome}>{e.nome}</SelectItem>))}
                 </SelectContent>
               </Select>
               <Select value={fExec} onValueChange={setFExec}>
                 <SelectTrigger><SelectValue placeholder="Todas as executivas" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as executivas</SelectItem>
-                  {executivas.map((e) => (<SelectItem key={e.user_id} value={e.user_id}>{e.display_name}</SelectItem>))}
+                  {executivas.map((e) => (<SelectItem key={e.user_id} value={e.display_name}>{e.display_name}</SelectItem>))}
                 </SelectContent>
               </Select>
               <Select value={fStatus} onValueChange={setFStatus}>
@@ -227,7 +227,7 @@ export default function CalendarioPalestras() {
                 <FileSpreadsheet className="h-4 w-4 mr-1" /> Exportar Excel
               </Button>
               <div className="flex gap-2">
-                {canEdit && (
+                {podeEditar && (
                   <>
                     <Button variant="outline" onClick={openBloqNew} className="flex-1">
                       <Ban className="h-4 w-4 mr-1" /> Bloqueio
@@ -241,7 +241,6 @@ export default function CalendarioPalestras() {
             </div>
           </Card>
 
-          {/* Navegação mês */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, -1))}>
@@ -262,7 +261,6 @@ export default function CalendarioPalestras() {
             </div>
           </div>
 
-          {/* Grade seg-sex */}
           <Card className="overflow-hidden">
             <div className="grid grid-cols-5 bg-muted/40">
               {["Segunda", "Terça", "Quarta", "Quinta", "Sexta"].map((d) => (
@@ -289,7 +287,7 @@ export default function CalendarioPalestras() {
                       "min-h-[110px] border-t border-l p-1.5 text-xs relative",
                       isOut ? "opacity-50" : "",
                       fer ? "bg-amber-50/60" : "",
-                      fullBlock ? "cursor-not-allowed" : canEdit ? "cursor-pointer hover:bg-accent/40" : "cursor-default",
+                      fullBlock ? "cursor-not-allowed" : podeEditar ? "cursor-pointer hover:bg-accent/40" : "cursor-default",
                     ].join(" ")}
                   >
                     <div className="flex items-center justify-between">
@@ -305,7 +303,7 @@ export default function CalendarioPalestras() {
                     )}
                     {bl && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); openBloqEdit(bl); }}
+                        onClick={(e) => { e.stopPropagation(); if (podeEditar) openBloqEdit(bl); }}
                         className="mt-1 w-full inline-flex items-center gap-1 bg-slate-200 text-slate-800 border border-slate-300 rounded px-1.5 py-0.5 text-[10px] font-medium"
                         title={bl.motivo}
                       >
@@ -318,14 +316,15 @@ export default function CalendarioPalestras() {
                         <button
                           key={ev.id}
                           onClick={(e) => { e.stopPropagation(); openEdit(ev); }}
-                          title={`${ev.horario_inicio?.slice(0, 5) ?? "--:--"} - ${ev.horario_fim?.slice(0, 5) ?? "--:--"} ${ev.empresa?.nome ?? ""}`}
+                          title={`${ev.horario_inicio?.slice(0, 5) ?? "--:--"} - ${ev.horario_fim?.slice(0, 5) ?? "--:--"} ${ev.empresa}`}
                           className={`w-full text-left rounded border px-1.5 py-1 ${STATUS_BADGE[ev.status]}`}
                         >
                           <div className="font-semibold leading-tight tabular-nums">
                             {(ev.horario_inicio?.slice(0, 5) ?? "--:--")} - {(ev.horario_fim?.slice(0, 5) ?? "--:--")}
                           </div>
-                          <div className="truncate">{ev.empresa?.nome ?? "—"}</div>
-                          {ev.tema && <div className="truncate opacity-80">{ev.tema}</div>}
+                          <div className="truncate">{ev.empresa}</div>
+                          <div className="truncate opacity-80">{ev.executiva}</div>
+                          {ev.tema && <div className="truncate opacity-70">{ev.tema}</div>}
                         </button>
                       ))}
                     </div>
@@ -334,6 +333,15 @@ export default function CalendarioPalestras() {
               })}
             </div>
           </Card>
+
+          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground items-center pt-2">
+            <span className="font-medium">Legenda:</span>
+            {(["a_confirmar", "confirmado", "concluido"] as PalestraStatus[]).map((s) => (
+              <span key={s} className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 ${STATUS_BADGE[s]}`}>{STATUS_LABEL[s]}</span>
+            ))}
+            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 rounded px-1.5 py-0.5">Feriado</span>
+            <span className="inline-flex items-center gap-1 bg-slate-200 text-slate-800 border border-slate-300 rounded px-1.5 py-0.5"><Ban className="h-3 w-3" /> Bloqueio</span>
+          </div>
         </TabsContent>
 
         <TabsContent value="programacao" className="space-y-6">
@@ -384,7 +392,7 @@ export default function CalendarioPalestras() {
         onOpenChange={setBloqOpen}
         editing={editingB}
         preselectDate={preselectBloq}
-        canEdit={canEdit}
+        canEdit={canEdit && !isReadOnly}
         userNome={profile?.display_name ?? null}
       />
     </div>

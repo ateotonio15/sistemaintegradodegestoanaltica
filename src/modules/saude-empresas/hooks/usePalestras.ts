@@ -11,7 +11,7 @@ export type BloqueioPeriodo = "dia_todo" | "manha" | "tarde";
 
 export interface Palestra {
   id: string;
-  empresa_id: string;
+  empresa: string;
   endereco: string;
   data: string;
   horario_inicio: string | null;
@@ -20,15 +20,11 @@ export interface Palestra {
   observacao: string | null;
   status: PalestraStatus;
   motivo_cancelamento: string | null;
-  executiva_user_id: string | null;
-  executiva_nome: string | null;
-  created_by: string | null;
-  created_by_nome: string | null;
-  updated_by: string | null;
-  updated_by_nome: string | null;
+  executiva: string;
+  criado_por: string | null;
+  editado_por: string | null;
   created_at: string;
   updated_at: string;
-  empresa?: { id: string; nome: string; endereco: string | null };
 }
 
 export interface Bloqueio {
@@ -36,9 +32,8 @@ export interface Bloqueio {
   data: string;
   periodo: BloqueioPeriodo;
   motivo: string;
-  created_by_nome: string | null;
+  criado_por: string | null;
   created_at: string;
-  updated_at: string;
 }
 
 export function usePalestrasRealtime() {
@@ -49,8 +44,8 @@ export function usePalestrasRealtime() {
       .on("postgres_changes", { event: "*", schema: "public", table: "palestras_saude" }, () => {
         qc.invalidateQueries({ queryKey: ["palestras"] });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "palestras_bloqueios" }, () => {
-        qc.invalidateQueries({ queryKey: ["palestras_bloqueios"] });
+      .on("postgres_changes", { event: "*", schema: "public", table: "bloqueios_calendario" }, () => {
+        qc.invalidateQueries({ queryKey: ["bloqueios_calendario"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -65,7 +60,7 @@ export function usePalestras(fromISO: string, toISO: string) {
     queryFn: async () => {
       const { data, error } = await sb
         .from("palestras_saude")
-        .select("*, empresa:empresas(id,nome,endereco)")
+        .select("*")
         .gte("data", fromISO)
         .lte("data", toISO)
         .order("data", { ascending: true })
@@ -79,11 +74,11 @@ export function usePalestras(fromISO: string, toISO: string) {
 export function useBloqueios(fromISO: string, toISO: string) {
   const { user, loading } = useAuth();
   return useQuery({
-    queryKey: ["palestras_bloqueios", fromISO, toISO],
+    queryKey: ["bloqueios_calendario", fromISO, toISO],
     enabled: !loading && !!user,
     queryFn: async () => {
       const { data, error } = await sb
-        .from("palestras_bloqueios")
+        .from("bloqueios_calendario")
         .select("*")
         .gte("data", fromISO)
         .lte("data", toISO)
@@ -96,16 +91,15 @@ export function useBloqueios(fromISO: string, toISO: string) {
 
 export function usePalestraMutations() {
   const qc = useQueryClient();
-  const { user } = useAuth();
 
   const createMany = useMutation({
     mutationFn: async (payload: {
       datas: string[];
-      base: Omit<Partial<Palestra>, "data"> & { empresa_id: string; endereco: string };
+      base: Omit<Partial<Palestra>, "data"> & { empresa: string; endereco: string; executiva: string };
       userNome: string | null;
     }) => {
       const rows = payload.datas.map((d) => ({
-        empresa_id: payload.base.empresa_id,
+        empresa: payload.base.empresa,
         endereco: payload.base.endereco,
         data: d,
         horario_inicio: payload.base.horario_inicio ?? null,
@@ -114,12 +108,9 @@ export function usePalestraMutations() {
         observacao: payload.base.observacao ?? null,
         status: payload.base.status ?? "a_confirmar",
         motivo_cancelamento: payload.base.motivo_cancelamento ?? null,
-        executiva_user_id: payload.base.executiva_user_id ?? null,
-        executiva_nome: payload.base.executiva_nome ?? null,
-        created_by: user?.id ?? null,
-        created_by_nome: payload.userNome,
-        updated_by: user?.id ?? null,
-        updated_by_nome: payload.userNome,
+        executiva: payload.base.executiva,
+        criado_por: payload.userNome,
+        editado_por: payload.userNome,
       }));
       const { data, error } = await sb.from("palestras_saude").insert(rows).select();
       if (error) throw error;
@@ -135,11 +126,10 @@ export function usePalestraMutations() {
   const updateOne = useMutation({
     mutationFn: async (payload: { id: string; patch: Partial<Palestra>; userNome: string | null }) => {
       const patch: any = { ...payload.patch };
-      delete patch.empresa;
       delete patch.created_at;
       delete patch.updated_at;
-      patch.updated_by = user?.id ?? null;
-      patch.updated_by_nome = payload.userNome;
+      delete patch.criado_por;
+      patch.editado_por = payload.userNome;
       const { data, error } = await sb
         .from("palestras_saude")
         .update(patch)
@@ -173,25 +163,24 @@ export function usePalestraMutations() {
 
 export function useBloqueioMutations() {
   const qc = useQueryClient();
-  const { user } = useAuth();
 
   const upsert = useMutation({
     mutationFn: async (payload: { id?: string; data: string; periodo: BloqueioPeriodo; motivo: string; userNome: string | null }) => {
       if (payload.id) {
-        const { error } = await sb.from("palestras_bloqueios")
+        const { error } = await sb.from("bloqueios_calendario")
           .update({ data: payload.data, periodo: payload.periodo, motivo: payload.motivo })
           .eq("id", payload.id);
         if (error) throw error;
       } else {
-        const { error } = await sb.from("palestras_bloqueios").insert({
+        const { error } = await sb.from("bloqueios_calendario").insert({
           data: payload.data, periodo: payload.periodo, motivo: payload.motivo,
-          created_by: user?.id ?? null, created_by_nome: payload.userNome,
+          criado_por: payload.userNome,
         });
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["palestras_bloqueios"] });
+      qc.invalidateQueries({ queryKey: ["bloqueios_calendario"] });
       toast.success("Bloqueio salvo");
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao salvar bloqueio"),
@@ -199,11 +188,11 @@ export function useBloqueioMutations() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await sb.from("palestras_bloqueios").delete().eq("id", id);
+      const { error } = await sb.from("bloqueios_calendario").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["palestras_bloqueios"] });
+      qc.invalidateQueries({ queryKey: ["bloqueios_calendario"] });
       toast.success("Bloqueio removido");
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
