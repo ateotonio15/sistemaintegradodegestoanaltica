@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, CalendarIcon, Sparkles, X, Ban } from "lucide-react";
+import { Trash2, CalendarIcon, Sparkles, X, Ban, Pencil, Building2, MapPin, Clock, User, MessageSquare, CalendarDays, StickyNote } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
