@@ -485,7 +485,12 @@ export function PalestraDialog({
               </Button>
             )}
             <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-            {!dis && (
+            {isView && canEdit && !isReadOnly && (
+              <Button onClick={() => setViewMode(false)}>
+                <Pencil className="h-4 w-4 mr-1" /> Editar
+              </Button>
+            )}
+            {!isView && !dis && (
               <Button onClick={handleSubmit} disabled={createMany.isPending || updateOne.isPending}>
                 {isEdit ? "Salvar" : `Criar ${datas.length > 1 ? `(${datas.length})` : ""}`}
               </Button>
