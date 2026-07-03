@@ -26,6 +26,8 @@ import { useCreateDemanda, useUpdateDemanda } from "@/hooks/useDemandas";
 import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
 import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
+import PessoaFisicaAutocomplete from "@/components/demandas/PessoaFisicaAutocomplete";
+import { buscarPessoaFisica, isCpfValido, type PessoaFisicaResult } from "@/lib/pessoa-fisica-lookup";
 import {
   SETORES,
   TIPOS,
