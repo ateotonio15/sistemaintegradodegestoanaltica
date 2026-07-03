@@ -324,7 +324,7 @@ export default function CalendarioPalestras() {
                     {bl && (
                       <button
                         onClick={(e) => { e.stopPropagation(); if (podeEditar) openBloqEdit(bl); }}
-                        className="mb-1 w-full inline-flex items-center gap-1 bg-muted text-muted-foreground border border-border rounded px-1.5 py-0.5 text-[10px] font-medium hover:bg-muted/80"
+                        className="mb-1 w-full inline-flex items-center gap-1 bg-red-500/20 text-red-400 border border-red-500/50 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide hover:bg-red-500/30"
                         title={bl.motivo}
                       >
                         <Ban className="h-3 w-3" />
@@ -369,7 +369,7 @@ export default function CalendarioPalestras() {
               <span className="text-[10px] uppercase tracking-wider font-medium">Feriado</span>
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Ban className="h-3 w-3" />
+              <Ban className="h-3 w-3 text-red-400" />
               <span className="text-[10px] uppercase tracking-wider font-medium">Bloqueio</span>
             </span>
           </div>
