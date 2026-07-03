@@ -28,11 +28,24 @@ import { GESTANTES_2026, CAMPANHAS, MESES_PT } from "../lib/palestras-calendario
 import { PalestraDialog } from "../components/PalestraDialog";
 import { BloqueioDialog } from "../components/BloqueioDialog";
 
-const STATUS_BADGE: Record<string, string> = {
-  a_confirmar: "bg-yellow-100 text-yellow-900 border-yellow-300",
-  confirmado: "bg-green-100 text-green-900 border-green-300",
-  concluido: "bg-emerald-700 text-white border-emerald-800",
-  cancelado: "bg-red-100 text-red-900 border-red-300",
+// Card style: fundo tintado + borda lateral colorida (status)
+const STATUS_CARD: Record<string, string> = {
+  a_confirmar: "bg-amber-500/10 border-l-4 border-amber-500 hover:bg-amber-500/20",
+  confirmado: "bg-sky-500/10 border-l-4 border-sky-500 hover:bg-sky-500/20",
+  concluido: "bg-emerald-500/10 border-l-4 border-emerald-500 hover:bg-emerald-500/20",
+  cancelado: "bg-rose-500/10 border-l-4 border-rose-500 hover:bg-rose-500/20",
+};
+const STATUS_TIME: Record<string, string> = {
+  a_confirmar: "text-amber-400",
+  confirmado: "text-sky-400",
+  concluido: "text-emerald-400",
+  cancelado: "text-rose-400",
+};
+const STATUS_LEGEND: Record<string, string> = {
+  a_confirmar: "bg-amber-500",
+  confirmado: "bg-sky-500",
+  concluido: "bg-emerald-500",
+  cancelado: "bg-rose-500",
 };
 const STATUS_LABEL: Record<string, string> = {
   a_confirmar: "A confirmar", confirmado: "Confirmado", concluido: "Concluído", cancelado: "Cancelado",
@@ -261,15 +274,17 @@ export default function CalendarioPalestras() {
             </div>
           </div>
 
-          <Card className="overflow-hidden">
-            <div className="grid grid-cols-5 bg-muted/40">
+          <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden">
+            <div className="grid grid-cols-5 border-b border-border/60 bg-muted/30">
               {["Segunda", "Terça", "Quarta", "Quinta", "Sexta"].map((d) => (
-                <div key={d} className="px-2 py-2 text-center text-xs font-medium text-muted-foreground">{d}</div>
+                <div key={d} className="py-3 text-center text-[10px] uppercase font-bold text-muted-foreground tracking-widest border-r last:border-r-0 border-border/60">
+                  {d}
+                </div>
               ))}
             </div>
             <div className="grid grid-cols-5 auto-rows-fr">
               {diasUteis.length > 0 && Array.from({ length: Math.max(0, (diasUteis[0].getDay() || 7) - 1) }).map((_, i) => (
-                <div key={`pad-start-${i}`} className="min-h-[110px] border-t border-l bg-muted/10" />
+                <div key={`pad-start-${i}`} className="min-h-[160px] border-r border-b border-border/60 bg-muted/10" />
               ))}
               {diasUteis.map((d) => {
                 const key = isoDate(d);
@@ -278,53 +293,60 @@ export default function CalendarioPalestras() {
                 const fer = feriadoEm(d);
                 const bl = bloqByDate.get(key);
                 const fullBlock = !!fer || (bl?.periodo === "dia_todo");
+                const today = isToday(d);
 
                 return (
                   <div
                     key={key}
                     onClick={() => !fullBlock && openNewForDay(d)}
                     className={[
-                      "min-h-[110px] border-t border-l p-1.5 text-xs relative",
-                      isOut ? "opacity-50" : "",
-                      fer ? "bg-amber-50/60" : "",
-                      fullBlock ? "cursor-not-allowed" : podeEditar ? "cursor-pointer hover:bg-accent/40" : "cursor-default",
+                      "min-h-[160px] p-2 relative border-r border-b border-border/60 transition-colors",
+                      isOut ? "opacity-40" : "",
+                      fer ? "bg-amber-500/5" : today ? "bg-primary/5" : "bg-transparent",
+                      fullBlock ? "cursor-not-allowed" : podeEditar ? "cursor-pointer hover:bg-accent/30" : "cursor-default",
                     ].join(" ")}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-semibold tabular-nums ${isToday(d) ? "text-primary" : ""}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-bold tabular-nums ${today ? "text-primary" : "text-foreground"}`}>
                         {format(d, "d")}
                       </span>
-                      {isToday(d) && <Badge variant="outline" className="text-[9px] h-4">Hoje</Badge>}
+                      {today && (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-primary uppercase tracking-tighter">
+                          <span className="w-1 h-1 rounded-full bg-primary" /> Hoje
+                        </span>
+                      )}
                     </div>
                     {fer && (
-                      <div className="mt-1 inline-block bg-amber-100 text-amber-900 border border-amber-300 rounded px-1.5 py-0.5 text-[10px] font-medium">
-                        FERIADO — {fer.nome}
+                      <div className="mb-1 inline-block bg-amber-500/15 text-amber-500 border border-amber-500/30 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide">
+                        FERIADO · {fer.nome}
                       </div>
                     )}
                     {bl && (
                       <button
                         onClick={(e) => { e.stopPropagation(); if (podeEditar) openBloqEdit(bl); }}
-                        className="mt-1 w-full inline-flex items-center gap-1 bg-slate-200 text-slate-800 border border-slate-300 rounded px-1.5 py-0.5 text-[10px] font-medium"
+                        className="mb-1 w-full inline-flex items-center gap-1 bg-muted text-muted-foreground border border-border rounded px-1.5 py-0.5 text-[10px] font-medium hover:bg-muted/80"
                         title={bl.motivo}
                       >
                         <Ban className="h-3 w-3" />
                         {bl.periodo === "dia_todo" ? "Dia bloqueado" : bl.periodo === "manha" ? "Manhã bloqueada" : "Tarde bloqueada"}
                       </button>
                     )}
-                    <div className="mt-1 space-y-1">
+                    <div className="space-y-1.5">
                       {evs.map((ev) => (
                         <button
                           key={ev.id}
                           onClick={(e) => { e.stopPropagation(); openEdit(ev); }}
-                          title={`${ev.horario_inicio?.slice(0, 5) ?? "--:--"} - ${ev.horario_fim?.slice(0, 5) ?? "--:--"} ${ev.empresa}`}
-                          className={`w-full text-left rounded border px-1.5 py-1 ${STATUS_BADGE[ev.status]}`}
+                          title={`${ev.horario_inicio?.slice(0, 5) ?? "--:--"} - ${ev.horario_fim?.slice(0, 5) ?? "--:--"} · ${ev.empresa}`}
+                          className={`w-full text-left rounded-r px-2 py-1.5 transition-colors ${STATUS_CARD[ev.status]}`}
                         >
-                          <div className="font-semibold leading-tight tabular-nums">
-                            {(ev.horario_inicio?.slice(0, 5) ?? "--:--")} - {(ev.horario_fim?.slice(0, 5) ?? "--:--")}
+                          <div className={`text-[10px] font-mono font-bold tabular-nums ${STATUS_TIME[ev.status]}`}>
+                            {(ev.horario_inicio?.slice(0, 5) ?? "--:--")} – {(ev.horario_fim?.slice(0, 5) ?? "--:--")}
                           </div>
-                          <div className="truncate">{ev.empresa}</div>
-                          <div className="truncate opacity-80">{ev.executiva}</div>
-                          {ev.tema && <div className="truncate opacity-70">{ev.tema}</div>}
+                          <div className="text-[11px] font-semibold text-foreground uppercase truncate leading-tight mt-0.5">
+                            {ev.empresa}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate mt-0.5">{ev.executiva}</div>
+                          {ev.tema && <div className="text-[10px] text-muted-foreground/80 italic truncate">{ev.tema}</div>}
                         </button>
                       ))}
                     </div>
@@ -332,15 +354,24 @@ export default function CalendarioPalestras() {
                 );
               })}
             </div>
-          </Card>
+          </div>
 
-          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground items-center pt-2">
-            <span className="font-medium">Legenda:</span>
-            {(["a_confirmar", "confirmado", "concluido"] as PalestraStatus[]).map((s) => (
-              <span key={s} className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 ${STATUS_BADGE[s]}`}>{STATUS_LABEL[s]}</span>
+          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground items-center pt-2">
+            <span className="font-semibold uppercase tracking-wider text-[10px]">Legenda:</span>
+            {(["a_confirmar", "confirmado", "concluido", "cancelado"] as PalestraStatus[]).map((s) => (
+              <span key={s} className="inline-flex items-center gap-1.5">
+                <span className={`w-2.5 h-2.5 rounded-full ${STATUS_LEGEND[s]}`} />
+                <span className="text-[10px] uppercase tracking-wider font-medium">{STATUS_LABEL[s]}</span>
+              </span>
             ))}
-            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 rounded px-1.5 py-0.5">Feriado</span>
-            <span className="inline-flex items-center gap-1 bg-slate-200 text-slate-800 border border-slate-300 rounded px-1.5 py-0.5"><Ban className="h-3 w-3" /> Bloqueio</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
+              <span className="text-[10px] uppercase tracking-wider font-medium">Feriado</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Ban className="h-3 w-3" />
+              <span className="text-[10px] uppercase tracking-wider font-medium">Bloqueio</span>
+            </span>
           </div>
         </TabsContent>
 
