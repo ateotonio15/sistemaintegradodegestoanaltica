@@ -46,7 +46,7 @@ interface Props {
 }
 
 export function PalestraDialog({
-  open, onOpenChange, editing, preselect, canEdit, isReadOnly, userNome, bloqueiosFn,
+  open, onOpenChange, editing, preselect, canEdit, isReadOnly, userNome, bloqueiosFn, onBloquearAgenda,
 }: Props) {
   const isEdit = !!editing;
   const { data: empresas = [] } = useEmpresasAtivas();
