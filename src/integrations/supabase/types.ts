@@ -162,6 +162,57 @@ export type Database = {
           },
         ]
       }
+      agendamentos_plantao: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data: string
+          editado_por: string | null
+          empresa_id: string
+          empresa_nome: string
+          executiva: string | null
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          motivo_cancelamento: string | null
+          observacao: string | null
+          status: Database["public"]["Enums"]["agendamento_plantao_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          editado_por?: string | null
+          empresa_id: string
+          empresa_nome: string
+          executiva?: string | null
+          hora_fim: string
+          hora_inicio: string
+          id?: string
+          motivo_cancelamento?: string | null
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["agendamento_plantao_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          editado_por?: string | null
+          empresa_id?: string
+          empresa_nome?: string
+          executiva?: string | null
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          motivo_cancelamento?: string | null
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["agendamento_plantao_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       alertas_financeiro: {
         Row: {
           created_at: string
@@ -4178,6 +4229,11 @@ export type Database = {
         | "preventiva"
         | "bioimpedancia"
         | "outro"
+      agendamento_plantao_status:
+        | "a_confirmar"
+        | "confirmado"
+        | "concluido"
+        | "cancelado"
       app_role:
         | "admin"
         | "comum"
@@ -4356,6 +4412,12 @@ export const Constants = {
         "preventiva",
         "bioimpedancia",
         "outro",
+      ],
+      agendamento_plantao_status: [
+        "a_confirmar",
+        "confirmado",
+        "concluido",
+        "cancelado",
       ],
       app_role: [
         "admin",
