@@ -146,14 +146,21 @@ export function useExecutivas() {
     queryKey: ["executivas_plantao"],
     enabled: !loading && !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: roles, error: e1 } = await supabase
         .from("user_roles")
-        .select("user_id, role, profiles:profiles!inner(display_name, username)")
+        .select("user_id, role")
         .in("role", ["admin", "comum", "executivo", "coordenadora"]);
-      if (error) throw error;
+      if (e1) throw e1;
+      const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
+      if (ids.length === 0) return [];
+      const { data: profs, error: e2 } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, username")
+        .in("user_id", ids);
+      if (e2) throw e2;
       const nomes = new Set<string>();
-      (data ?? []).forEach((r: any) => {
-        const nome = r.profiles?.display_name || r.profiles?.username;
+      (profs ?? []).forEach((p) => {
+        const nome = p.display_name || p.username;
         if (nome) nomes.add(nome);
       });
       return Array.from(nomes).sort();
