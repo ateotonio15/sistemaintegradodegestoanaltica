@@ -145,6 +145,13 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         icon: Mic,
         to: "/saude-empresas/palestras",
       },
+      {
+        slug: "saude-empresas-preventivas",
+        label: "Calendário Preventivas",
+        description: "Sinais vitais, coleta de preventivo e PSA nas empresas",
+        icon: ShieldPlus,
+        to: "/saude-empresas/preventivas",
+      },
     ],
   },
   {
