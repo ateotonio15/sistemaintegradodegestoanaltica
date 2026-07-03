@@ -314,7 +314,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       const nome = (a.nome_arquivo || "").toLowerCase();
       return mime.includes("pdf") || nome.endsWith(".pdf");
     });
-  const podeAlterarBoletoDda = canEditFinanceiro && notaEmitida;
+  const podeAlterarBoletoDda = isAdmin || (canEditFinanceiro && notaEmitida);
 
   const handleToggleBoletoDda = (checked: boolean) => {
     if (!podeAlterarBoletoDda) return;
