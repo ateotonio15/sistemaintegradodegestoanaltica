@@ -33,8 +33,7 @@ export default function PlantoesCalendario() {
   const monthEnd = endOfMonth(cursor);
 
   const { data: empresas = [] } = usePlantaoEmpresas();
-  // Não vincular plantões criados em "Plantão nas empresas" ao calendário
-  const plantoes: Plantao[] = [];
+  const { data: plantoes = [] } = usePlantoes({ from: fmt(monthStart), to: fmt(monthEnd) });
 
   const [empresaId, setEmpresaId] = useState<string>("todas");
   const [executiva, setExecutiva] = useState<string>("todas");
