@@ -7,12 +7,14 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   Activity, FlaskConical, Stethoscope, ChevronLeft, ChevronRight,
-  ArrowLeft, Plus, FileSpreadsheet, Info, X,
+  ArrowLeft, Plus, FileSpreadsheet, Info, X, ChevronsUpDown,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -119,6 +121,7 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
   const [fEmpresa, setFEmpresa] = useState<string>("all");
   const [fExec, setFExec] = useState<string>("all");
   const [fStatus, setFStatus] = useState<string>("all");
+  const [empresaPopOpen, setEmpresaPopOpen] = useState(false);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<AcaoPreventiva | null>(null);
@@ -258,15 +261,36 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
       {/* Filtros */}
       <Card className="p-3">
         <div className="grid md:grid-cols-4 gap-2">
-          <Select value={fEmpresa} onValueChange={setFEmpresa}>
-            <SelectTrigger><SelectValue placeholder="Todas as empresas" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as empresas</SelectItem>
-              {empresas.map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={empresaPopOpen} onOpenChange={setEmpresaPopOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" role="combobox" className="justify-between font-normal">
+                <span className="truncate">
+                  {fEmpresa === "all"
+                    ? "Todas as empresas"
+                    : empresas.find((e) => e.id === fEmpresa)?.nome ?? "Todas as empresas"}
+                </span>
+                <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+              <Command>
+                <CommandInput placeholder="Buscar empresa..." />
+                <CommandList>
+                  <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem value="Todas as empresas" onSelect={() => { setFEmpresa("all"); setEmpresaPopOpen(false); }}>
+                      Todas as empresas
+                    </CommandItem>
+                    {empresas.map((e) => (
+                      <CommandItem key={e.id} value={e.nome} onSelect={() => { setFEmpresa(e.id); setEmpresaPopOpen(false); }}>
+                        {e.nome}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <Select value={fExec} onValueChange={setFExec}>
             <SelectTrigger><SelectValue placeholder="Todas as executivas" /></SelectTrigger>
             <SelectContent>
