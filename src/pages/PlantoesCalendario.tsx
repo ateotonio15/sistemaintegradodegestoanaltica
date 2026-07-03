@@ -2,111 +2,129 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ArrowLeft, Download, Plus, X } from "lucide-react";
 import * as XLSX from "xlsx";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
-import { usePlantaoEmpresas, usePlantoesRealtime, type Plantao } from "@/hooks/usePlantoes";
-import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { useFeriados } from "@/hooks/useFeriados";
+import { EmpresaAutocomplete } from "@/components/plantoes/EmpresaAutocomplete";
+import { AgendamentoPlantaoDialog } from "@/components/plantoes/AgendamentoPlantaoDialog";
+import {
+  useAgendamentosPlantao,
+  useAgendamentosRealtime,
+  useExecutivas,
+  type AgendamentoPlantao,
+  type AgendamentoStatus,
+} from "@/hooks/useAgendamentosPlantao";
 
 function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
-function fmt(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+function toISO(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-type StatusFiltro = "todos" | "andamento" | "finalizado";
+type StatusFiltro = "todos" | AgendamentoStatus;
+
+const STATUS_LABELS: Record<AgendamentoStatus, string> = {
+  a_confirmar: "A confirmar",
+  confirmado: "Confirmado",
+  concluido: "Concluído",
+  cancelado: "Cancelado",
+};
+
+const STATUS_CHIP: Record<AgendamentoStatus, string> = {
+  a_confirmar: "bg-yellow-100 text-yellow-900 border-yellow-200",
+  confirmado: "bg-green-100 text-green-900 border-green-200",
+  concluido: "bg-emerald-700 text-white border-emerald-800",
+  cancelado: "bg-muted text-muted-foreground",
+};
 
 export default function PlantoesCalendario() {
-  usePlantoesRealtime();
+  useAgendamentosRealtime();
   const { role } = useAuth();
-  const isAdmin = role === "admin";
+  const canEdit = !!role && ["admin", "comum", "executivo", "coordenadora", "administradoras"].includes(role as string);
 
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
-
-  const { data: empresas = [] } = usePlantaoEmpresas();
-  const plantoes = useMemo<Plantao[]>(() => [], []);
-
-  const [empresaId, setEmpresaId] = useState<string>("todas");
-  const [executiva, setExecutiva] = useState<string>("todas");
-  const [status, setStatus] = useState<StatusFiltro>("todos");
-  const [novo, setNovo] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [novoData, setNovoData] = useState<string | null>(null);
-
-  const today = fmt(new Date());
+  const today = toISO(new Date());
 
   const { data: feriadosAno = [] } = useFeriados(cursor.getFullYear());
-  const feriadoMap = useMemo(() => {
-    const m = new Map(feriadosAno.map((f) => [f.data, f]));
-    return m;
-  }, [feriadosAno]);
+  const feriadoMap = useMemo(() => new Map(feriadosAno.map((f) => [f.data, f])), [feriadosAno]);
 
-  const executivas = useMemo(() => {
-    const set = new Set<string>();
-    plantoes.forEach((p) => p.plantonista && set.add(p.plantonista));
-    return Array.from(set).sort();
-  }, [plantoes]);
+  const { data: agendamentos = [] } = useAgendamentosPlantao({ from: toISO(monthStart), to: toISO(monthEnd) });
+  const { data: executivas = [] } = useExecutivas();
 
-  const filtrados = useMemo(() => {
-    return plantoes.filter((p) => {
-      if (empresaId !== "todas" && p.empresa_id !== empresaId) return false;
-      if (executiva !== "todas" && (p.plantonista ?? "") !== executiva) return false;
-      if (status !== "todos") {
-        const isAndamento = p.data === today;
-        if (status === "andamento" && !isAndamento) return false;
-        if (status === "finalizado" && isAndamento) return false;
-      }
-      return true;
-    });
-  }, [plantoes, empresaId, executiva, status, today]);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
+  const [execFiltro, setExecFiltro] = useState<string>("todas");
+  const [statusFiltro, setStatusFiltro] = useState<StatusFiltro>("todos");
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [novoData, setNovoData] = useState<string | null>(null);
+  const [editing, setEditing] = useState<AgendamentoPlantao | null>(null);
+
+  const filtrados = useMemo(() => agendamentos.filter((a) => {
+    if (empresaId && a.empresa_id !== empresaId) return false;
+    if (execFiltro !== "todas" && (a.executiva ?? "") !== execFiltro) return false;
+    if (statusFiltro !== "todos" && a.status !== statusFiltro) return false;
+    return true;
+  }), [agendamentos, empresaId, execFiltro, statusFiltro]);
+
+  // Grade Seg–Sex do mês
+  const dias: (Date | null)[] = useMemo(() => {
+    const arr: (Date | null)[] = [];
+    const firstWeekday = monthStart.getDay(); // 0=Dom
+    // Ajuste para segunda como início
+    const offset = firstWeekday === 0 ? 6 : firstWeekday - 1;
+    // Só mostramos seg–sex, então descartamos offsets fora do intervalo
+    for (let i = 0; i < offset; i++) {
+      if (i < 5) arr.push(null);
+    }
+    for (let d = 1; d <= monthEnd.getDate(); d++) {
+      const date = new Date(cursor.getFullYear(), cursor.getMonth(), d);
+      const wd = date.getDay();
+      if (wd >= 1 && wd <= 5) arr.push(date);
+    }
+    return arr;
+  }, [cursor, monthStart, monthEnd]);
 
   const byDay = useMemo(() => {
-    const m = new Map<string, Plantao[]>();
-    for (const p of filtrados) {
-      const arr = m.get(p.data) ?? [];
-      arr.push(p);
-      m.set(p.data, arr);
+    const m = new Map<string, AgendamentoPlantao[]>();
+    for (const a of filtrados) {
+      if (a.status === "cancelado") continue; // não exibir na grade
+      const arr = m.get(a.data) ?? [];
+      arr.push(a);
+      m.set(a.data, arr);
     }
     return m;
   }, [filtrados]);
 
-  const dias: (Date | null)[] = [];
-  const firstWeekday = monthStart.getDay();
-  for (let i = 0; i < firstWeekday; i++) dias.push(null);
-  for (let d = 1; d <= monthEnd.getDate(); d++) dias.push(new Date(cursor.getFullYear(), cursor.getMonth(), d));
-
-  const selectedList = selected ? byDay.get(selected) ?? [] : [];
-
   const limparFiltros = () => {
-    setEmpresaId("todas");
-    setExecutiva("todas");
-    setStatus("todos");
+    setEmpresaId(null);
+    setExecFiltro("todas");
+    setStatusFiltro("todos");
   };
 
   const exportExcel = () => {
-    const rows = filtrados.map((p) => ({
-      Data: new Date(p.data + "T00:00:00").toLocaleDateString("pt-BR"),
-      Empresa: p.empresa?.nome ?? "",
-      Executiva: p.plantonista ?? "",
-      Turno: p.turno,
-      Status: p.data === today ? "Em andamento" : "Finalizado",
-      Atendimentos: p.atendimentos_count ?? 0,
-      Observação: p.observacao ?? "",
+    const rows = filtrados.map((a) => ({
+      Data: new Date(a.data + "T00:00:00").toLocaleDateString("pt-BR"),
+      Empresa: a.empresa_nome,
+      "Horário início": a.hora_inicio.slice(0, 5),
+      "Horário fim": a.hora_fim.slice(0, 5),
+      Executiva: a.executiva ?? "",
+      Status: STATUS_LABELS[a.status],
+      "Motivo cancelamento": a.motivo_cancelamento ?? "",
+      Observação: a.observacao ?? "",
+      "Criado por": a.criado_por ?? "",
+      "Última edição": `${a.editado_por ?? ""} ${a.updated_at ? format(new Date(a.updated_at), "dd/MM/yyyy HH:mm") : ""}`.trim(),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Calendário");
-    const mes = cursor.toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" }).replace("/", "-");
-    XLSX.writeFile(wb, `calendario_plantoes_${mes}.xlsx`);
+    const mes = format(cursor, "yyyy-MM");
+    XLSX.writeFile(wb, `calendario-plantoes-${mes}.xlsx`);
   };
 
   return (
@@ -115,7 +133,6 @@ export default function PlantoesCalendario() {
         <Link to="/plantoes"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link>
       </Button>
 
-      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Calendário de Plantões</h1>
@@ -125,49 +142,39 @@ export default function PlantoesCalendario() {
           <Button variant="outline" onClick={exportExcel}>
             <Download className="h-4 w-4 mr-1" /> Exportar Excel
           </Button>
-          {isAdmin && (
-            <Button onClick={() => setNovo(true)}>
+          {canEdit && (
+            <Button onClick={() => { setNovoData(null); setEditing(null); setNovoOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Novo evento
             </Button>
           )}
         </div>
       </div>
 
-      {/* Filtros */}
       <Card>
         <CardContent className="p-4 flex flex-wrap items-end gap-4">
-          <div className="space-y-1 min-w-[200px] flex-1">
+          <div className="space-y-1 min-w-[240px] flex-1">
             <Label className="text-xs">Empresa</Label>
-            <Select value={empresaId} onValueChange={setEmpresaId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas</SelectItem>
-                {empresas.filter((e) => e.ativo).map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EmpresaAutocomplete value={empresaId} onChange={(id) => setEmpresaId(id)} allowClear placeholder="Todas" />
           </div>
           <div className="space-y-1 min-w-[200px] flex-1">
             <Label className="text-xs">Executiva(o)</Label>
-            <Select value={executiva} onValueChange={setExecutiva}>
+            <Select value={execFiltro} onValueChange={setExecFiltro}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas</SelectItem>
-                {executivas.map((n) => (
-                  <SelectItem key={n} value={n}>{n}</SelectItem>
-                ))}
+                {executivas.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1 min-w-[180px] flex-1">
             <Label className="text-xs">Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as StatusFiltro)}>
+            <Select value={statusFiltro} onValueChange={(v) => setStatusFiltro(v as StatusFiltro)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="andamento">Em andamento</SelectItem>
-                <SelectItem value="finalizado">Finalizado</SelectItem>
+                {(Object.keys(STATUS_LABELS) as AgendamentoStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -177,95 +184,73 @@ export default function PlantoesCalendario() {
         </CardContent>
       </Card>
 
-      {/* Legenda */}
       <div className="flex flex-wrap items-center gap-4 text-xs">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
-          Feriado Nacional
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-orange-400" />
-          Feriado Estadual - Amazonas
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-          Feriado Municipal - Manaus
-        </span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-400" /> Feriado Nacional/Estadual</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-orange-400" /> Feriado Municipal - Manaus</span>
       </div>
 
-      {/* Navegação mês */}
       <div className="flex items-center justify-center gap-3">
         <Button size="icon" variant="outline" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
+        <Button variant="outline" size="sm" onClick={() => setCursor(startOfMonth(new Date()))}>Hoje</Button>
         <div className="font-semibold capitalize min-w-[180px] text-center">
-          {cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+          {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
         </div>
         <Button size="icon" variant="outline" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Calendário */}
       <Card><CardContent className="p-4">
-        <div className="grid grid-cols-7 gap-1 text-xs font-medium text-muted-foreground mb-1">
-          {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => <div key={d} className="text-center">{d}</div>)}
+        <div className="grid grid-cols-5 gap-1 text-xs font-medium text-muted-foreground mb-1">
+          {["Seg", "Ter", "Qua", "Qui", "Sex"].map((d) => <div key={d} className="text-center">{d}</div>)}
         </div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-5 gap-1">
           {dias.map((d, i) => {
             if (!d) return <div key={i} />;
-            const key = fmt(d);
+            const key = toISO(d);
             const items = byDay.get(key) ?? [];
-            const isSel = selected === key;
             const isHoje = key === today;
             const fer = feriadoMap.get(key);
-            const bg = fer?.tipo === "Nacional"
-              ? "bg-rose-50"
-              : fer?.tipo === "Estadual"
-                ? "bg-orange-50"
-                : fer?.tipo === "Municipal"
-                  ? "bg-amber-50"
-                  : "";
-            const dot = fer?.tipo === "Nacional"
-              ? "bg-rose-400"
-              : fer?.tipo === "Estadual"
-                ? "bg-orange-400"
-                : fer?.tipo === "Municipal"
-                  ? "bg-amber-400"
-                  : "";
+            const bg = fer?.tipo === "Municipal" ? "bg-orange-50" : fer ? "bg-rose-50" : "";
+            const dot = fer?.tipo === "Municipal" ? "bg-orange-400" : fer ? "bg-rose-400" : "";
             return (
               <button
                 key={i}
                 onClick={() => {
-                  setSelected(key);
-                  if (isAdmin) {
-                    setNovoData(key);
-                    setNovo(true);
-                  }
+                  if (fer || !canEdit) return;
+                  setEditing(null);
+                  setNovoData(key);
+                  setNovoOpen(true);
                 }}
-                className={`min-h-[88px] p-1.5 border rounded text-left text-xs hover:bg-muted/50 transition ${bg} ${isSel ? "ring-2 ring-primary" : ""} ${isHoje ? "border-primary" : ""}`}
+                disabled={!!fer}
+                className={cn(
+                  "min-h-[110px] p-1.5 border rounded text-left text-xs transition",
+                  bg,
+                  fer ? "cursor-not-allowed opacity-70" : "hover:bg-muted/50",
+                  isHoje ? "border-primary ring-1 ring-primary" : "",
+                )}
                 title={fer?.nome ?? ""}
               >
                 <div className="flex items-center justify-between">
                   <span className={`font-semibold ${isHoje ? "text-primary" : ""}`}>{d.getDate()}</span>
-                  {fer && <span className={`h-2 w-2 rounded-full ${dot}`} />}
+                  {fer && <span className={`h-2 w-2 rounded-full ${dot}`} title={fer.nome} />}
                 </div>
+                {fer && <div className="text-[10px] text-muted-foreground truncate">{fer.nome}</div>}
                 <div className="mt-1 space-y-0.5">
-                  {items.slice(0, 2).map((p) => {
-                    const hi = p.hora_inicio?.slice(0, 5);
-                    const hf = p.hora_fim?.slice(0, 5);
-                    const horario = hi && hf ? `${hi}–${hf}` : hi ?? p.turno;
-                    return (
-                      <div key={p.id} className="rounded bg-emerald-100 text-emerald-900 px-1 py-0.5 text-[10px] leading-tight">
-                        <div className="font-semibold truncate">{p.empresa?.nome ?? "—"}</div>
-                        <div className="truncate opacity-80">{horario}</div>
-                        <div className="truncate opacity-80">{p.plantonista || "sem executiva"}</div>
-                      </div>
-                    );
-                  })}
-                  {items.length > 2 && (
-                    <Badge variant="secondary" className="text-[10px]">+{items.length - 2}</Badge>
-                  )}
+                  {items.slice(0, 3).map((a) => (
+                    <div
+                      key={a.id}
+                      role="button"
+                      onClick={(e) => { e.stopPropagation(); if (canEdit) { setEditing(a); setNovoOpen(true); } }}
+                      className={cn("rounded border px-1 py-0.5 text-[10px] leading-tight cursor-pointer", STATUS_CHIP[a.status])}
+                    >
+                      <div className="font-semibold truncate">{a.hora_inicio.slice(0, 5)} · {a.empresa_nome}</div>
+                      <div className="truncate opacity-90">{a.executiva ?? "sem executiva"}</div>
+                    </div>
+                  ))}
+                  {items.length > 3 && <div className="text-[10px] text-muted-foreground">+{items.length - 3}</div>}
                 </div>
               </button>
             );
@@ -273,34 +258,18 @@ export default function PlantoesCalendario() {
         </div>
       </CardContent></Card>
 
-      {selected && (
-        <Card><CardContent className="p-4 space-y-2">
-          <div className="font-semibold">
-            Plantões em {new Date(selected + "T00:00:00").toLocaleDateString("pt-BR")}
-          </div>
-          {selectedList.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhum plantão neste dia.</div>
-          ) : selectedList.map((p) => (
-            <Link key={p.id} to={`/plantoes/empresa/${p.empresa_id}`} className="block border rounded p-2 hover:bg-muted/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{p.empresa?.nome}</div>
-                  <div className="text-xs text-muted-foreground">{p.turno} · {p.plantonista || "sem plantonista"}</div>
-                </div>
-                <Badge variant="outline">{p.atendimentos_count} atend.</Badge>
-              </div>
-            </Link>
-          ))}
-        </CardContent></Card>
-      )}
-
-      {novo && (
-        <PlantaoDialog
-          open={novo}
-          onOpenChange={(v) => { setNovo(v); if (!v) setNovoData(null); }}
-          defaultData={novoData ?? undefined}
+      {novoOpen && (
+        <AgendamentoPlantaoDialog
+          open={novoOpen}
+          onOpenChange={(v) => { setNovoOpen(v); if (!v) { setNovoData(null); setEditing(null); } }}
+          editing={editing}
+          defaultDate={novoData}
         />
       )}
     </div>
   );
+}
+
+function cn(...classes: (string | undefined | false | null)[]) {
+  return classes.filter(Boolean).join(" ");
 }
