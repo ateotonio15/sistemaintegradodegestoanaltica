@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+
 import { cn } from "@/lib/utils";
 import {
   Building2,
