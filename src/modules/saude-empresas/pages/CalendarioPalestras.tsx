@@ -186,7 +186,7 @@ export default function CalendarioPalestras() {
     <div className="container mx-auto py-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <Link to="/saude-empresas" className="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1">
+          <Link to="/" className="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1">
             <ArrowLeft className="h-4 w-4" /> Voltar
           </Link>
           <div className="flex items-center gap-3 mt-2">
