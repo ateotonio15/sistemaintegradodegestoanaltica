@@ -416,6 +416,12 @@ export default function CalendarioPalestras() {
         isReadOnly={isReadOnly}
         userNome={profile?.display_name ?? null}
         bloqueiosFn={bloqueioLookup}
+        onBloquearAgenda={(d) => {
+          setPalestraOpen(false);
+          setEditingB(null);
+          setPreselectBloq(d);
+          setBloqOpen(true);
+        }}
       />
 
       <BloqueioDialog
