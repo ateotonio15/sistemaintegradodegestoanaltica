@@ -267,10 +267,10 @@ const SHORTCUTS: Shortcut[] = [
   {
     to: "/empresas",
     label: "Contratos",
-    description: "Empresas, Movimentações, Implantação, Primeira Vigência, Vidas",
+    description: "Cadastro e gestão de contratos",
     icon: Building2,
     group: "funcoes",
-    show: (c) => !c.isExecutivoExterno,
+    show: () => true,
   },
   {
     to: "/financeiro",
