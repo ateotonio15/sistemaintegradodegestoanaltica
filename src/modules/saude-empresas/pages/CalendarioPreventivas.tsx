@@ -68,7 +68,7 @@ function SelecionarTipo({ setParams }: { setParams: (p: any) => void }) {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
-        <Link to="/saude-empresas" className="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1">
+        <Link to="/" className="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Link>
         <h1 className="text-2xl font-bold mt-2">Calendário de Ações Preventivas</h1>
