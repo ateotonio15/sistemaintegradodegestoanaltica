@@ -451,6 +451,7 @@ export function PalestraDialog({
             </div>
           )}
         </div>
+        )}
 
         <DialogFooter className="flex sm:justify-between gap-2">
           <div>
