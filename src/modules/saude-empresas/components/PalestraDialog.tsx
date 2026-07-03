@@ -203,15 +203,104 @@ export function PalestraDialog({
     onOpenChange(false);
   };
 
-  const dis = isReadOnly || !canEdit;
+  const isView = isEdit && viewMode;
+  const st = STATUS_STYLE[status];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar palestra" : "Nova palestra"}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {isEdit ? (viewMode ? "Detalhes da palestra" : "Editar palestra") : "Nova palestra"}
+            {isEdit && (
+              <span className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border ${st.badge}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+                {STATUS_LABEL_MAP[status]}
+              </span>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
+        {isView ? (
+          <div className="grid gap-3 py-2">
+            <div className={`rounded-xl border bg-card/60 p-4 ring-1 ${st.ring}`}>
+              <div className="flex items-start gap-3">
+                <div className={`shrink-0 h-11 w-11 rounded-lg flex items-center justify-center ${st.badge} border`}>
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Empresa</div>
+                  <div className="text-base font-semibold truncate">{empresa || "—"}</div>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5" />
+                    <span className="truncate">{endereco || "—"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  <CalendarDays className="h-3.5 w-3.5" /> Data
+                </div>
+                <div className="mt-1 text-sm font-semibold">{datas[0] ? format(datas[0], "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : "—"}</div>
+                <div className="text-xs text-muted-foreground capitalize">{datas[0] ? format(datas[0], "EEEE", { locale: ptBR }) : ""}</div>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  <Clock className="h-3.5 w-3.5" /> Horário
+                </div>
+                <div className="mt-1 text-sm font-semibold font-mono tabular-nums">
+                  {(horarioInicio || "--:--")} – {(horarioFim || "--:--")}
+                </div>
+              </div>
+            </div>
+
+            {tema && (
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  <Sparkles className="h-3.5 w-3.5" /> Tema
+                </div>
+                <div className="mt-1 text-sm">{tema}</div>
+              </div>
+            )}
+
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                <User className="h-3.5 w-3.5" /> Executiva responsável
+              </div>
+              <div className="mt-1 text-sm font-medium">{executiva || "—"}</div>
+            </div>
+
+            {status === "cancelado" && motivo && (
+              <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-rose-400 font-medium">
+                  <MessageSquare className="h-3.5 w-3.5" /> Motivo do cancelamento
+                </div>
+                <div className="mt-1 text-sm">{motivo}</div>
+              </div>
+            )}
+
+            {observacao && (
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  <StickyNote className="h-3.5 w-3.5" /> Observação
+                </div>
+                <div className="mt-1 text-sm whitespace-pre-wrap">{observacao}</div>
+              </div>
+            )}
+
+            {editing && (
+              <div className="text-xs text-muted-foreground border-t pt-2">
+                Criado por {editing.criado_por ?? "—"}
+                {editing.editado_por && (
+                  <> • Última edição: {editing.editado_por} em {format(new Date(editing.updated_at), "dd/MM/yyyy HH:mm")}</>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label>Empresa *</Label>
