@@ -38,18 +38,9 @@ export default function ResponderPorToken() {
         return;
       }
       setEnvio(env);
-      let formId = env.formulario_id;
-      if (!formId) {
-        const { data: f } = await db
-          .from("cs_avaliacao_formularios")
-          .select("id").eq("tipo", "rh")
-          .order("created_at", { ascending: false }).limit(1).maybeSingle();
-        formId = f?.id;
-      }
-      if (formId) {
-        const { data: f } = await db.from("cs_avaliacao_formularios").select("*").eq("id", formId).maybeSingle();
-        setForm(f);
-      }
+      const { data: frows } = await db.rpc("get_avaliacao_formulario_por_token", { p_token: token });
+      const f = Array.isArray(frows) ? frows[0] : frows;
+      if (f) setForm(f);
       setLoading(false);
     })();
   }, [token]);
