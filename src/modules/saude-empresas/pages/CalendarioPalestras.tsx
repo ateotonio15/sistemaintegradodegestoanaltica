@@ -7,7 +7,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, ArrowLeft, Plus, FileSpreadsheet,
-  X, Ban, Mic,
+  X, Ban, CalendarDays,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
