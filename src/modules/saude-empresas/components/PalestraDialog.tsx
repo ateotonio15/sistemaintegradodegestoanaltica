@@ -87,6 +87,7 @@ export function PalestraDialog({
       setObservacao(editing.observacao ?? "");
       setStatus(editing.status);
       setMotivo(editing.motivo_cancelamento ?? "");
+      setViewMode(true);
     } else {
       setEmpresa("");
       setEndereco("");
@@ -98,6 +99,7 @@ export function PalestraDialog({
       setObservacao("");
       setStatus("a_confirmar");
       setMotivo("");
+      setViewMode(false);
     }
   }, [open, editing, preselect, userNome]);
 
