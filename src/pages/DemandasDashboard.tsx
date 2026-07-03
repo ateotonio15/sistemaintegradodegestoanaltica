@@ -175,10 +175,13 @@ export default function DemandasDashboard() {
   const fim = parseLocalDate(dataFim);
 
   const matchFilter = (d: Demanda) => {
-    const x = parseLocalDate(d.data_reclamacao);
-    if (!x) return false;
-    if (ini && x < ini) return false;
-    if (fim && x > fim) return false;
+    const abertura = parseLocalDate(d.data_reclamacao);
+    if (!abertura) return false;
+    const resolvida = isResolved(d);
+    const encerramento = resolvida ? dataFimEfetiva(d) : new Date();
+    // Vigência da demanda intersecta o período filtrado
+    if (fim && abertura > fim) return false;
+    if (ini && encerramento < ini) return false;
     if (empresa !== "__all__" && d.empresa !== empresa) return false;
     if (executiva !== "__all__" && d.executiva !== executiva) return false;
     return true;
