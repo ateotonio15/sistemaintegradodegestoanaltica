@@ -53,7 +53,7 @@ import DemandaFormDialog from "@/components/demandas/DemandaFormDialog";
 import ImportarDemandasDialog from "@/components/demandas/ImportarDemandasDialog";
 import HistoricoImportacoesDialog from "@/components/demandas/HistoricoImportacoesDialog";
 
-type StatusFilter = "todos" | "pendente" | "resolvida" | "finalizada";
+type StatusFilter = "todos" | "em_aberto" | "resolvido";
 
 export default function Demandas() {
   const { isAdmin, isDiretora, isViewOnly, user } = useAuth();
