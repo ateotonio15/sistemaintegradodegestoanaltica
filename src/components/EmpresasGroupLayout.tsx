@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+
 import { cn } from "@/lib/utils";
 import {
   Building2,
@@ -45,9 +46,11 @@ const TABS: Tab[] = [
 ];
 
 export default function EmpresasGroupLayout() {
-  const { role, isAdmin, isFinanceiro } = useAuth();
+  const { role, isAdmin, isFinanceiro, isExecutivoExterno } = useAuth();
   const loc = useLocation();
-  const visible = TABS.filter((t) => t.show({ role, isAdmin, isFinanceiro }));
+  const visible = isExecutivoExterno
+    ? TABS.filter((t) => t.to === "/empresas")
+    : TABS.filter((t) => t.show({ role, isAdmin, isFinanceiro }));
 
   return (
     <div className="animate-in fade-in duration-300">
