@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, CalendarIcon, Sparkles, X } from "lucide-react";
+import { Trash2, CalendarIcon, Sparkles, X, Ban } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,10 +42,11 @@ interface Props {
   isReadOnly: boolean;
   userNome: string | null;
   bloqueiosFn: (d: Date) => { periodo: "dia_todo" | "manha" | "tarde"; motivo: string } | null;
+  onBloquearAgenda?: (d: Date | null) => void;
 }
 
 export function PalestraDialog({
-  open, onOpenChange, editing, preselect, canEdit, isReadOnly, userNome, bloqueiosFn,
+  open, onOpenChange, editing, preselect, canEdit, isReadOnly, userNome, bloqueiosFn, onBloquearAgenda,
 }: Props) {
   const isEdit = !!editing;
   const { data: empresas = [] } = useEmpresasAtivas();
@@ -369,6 +370,15 @@ export function PalestraDialog({
             )}
           </div>
           <div className="flex gap-2">
+            {!isEdit && canEdit && !isReadOnly && onBloquearAgenda && (
+              <Button
+                variant="outline"
+                onClick={() => onBloquearAgenda(datas[0] ?? null)}
+                className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+              >
+                <Ban className="h-4 w-4 mr-1" /> Bloquear agenda
+              </Button>
+            )}
             <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
             {!dis && (
               <Button onClick={handleSubmit} disabled={createMany.isPending || updateOne.isPending}>
