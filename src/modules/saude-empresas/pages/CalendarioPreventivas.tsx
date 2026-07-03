@@ -121,6 +121,7 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
   const [fEmpresa, setFEmpresa] = useState<string>("all");
   const [fExec, setFExec] = useState<string>("all");
   const [fStatus, setFStatus] = useState<string>("all");
+  const [empresaPopOpen, setEmpresaPopOpen] = useState(false);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<AcaoPreventiva | null>(null);
