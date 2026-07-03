@@ -207,6 +207,7 @@ export function PalestraDialog({
     onOpenChange(false);
   };
 
+  const dis = isReadOnly || !canEdit;
   const isView = isEdit && viewMode;
   const st = STATUS_STYLE[status];
 
