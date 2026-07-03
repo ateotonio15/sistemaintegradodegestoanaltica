@@ -140,9 +140,8 @@ export default function Demandas() {
       if (executiva !== "__all__" && d.executiva !== executiva) return false;
       if (status !== "todos") {
         const st = getStatus(d);
-        if (status === "pendente" && st !== "Pendente") return false;
-        if (status === "resolvida" && st !== "Resolvida") return false;
-        if (status === "finalizada" && st !== "Finalizada") return false;
+        if (status === "em_aberto" && st !== "Pendente") return false;
+        if (status === "resolvido" && st !== "Resolvida" && st !== "Finalizada") return false;
       }
       if (reclamacaoParam && d.reclamacao !== reclamacaoParam) return false;
       if (q && !d.nome_cliente.toLowerCase().includes(q)) return false;
