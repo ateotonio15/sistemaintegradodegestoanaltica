@@ -33,8 +33,7 @@ export default function PlantoesCalendario() {
   const monthEnd = endOfMonth(cursor);
 
   const { data: empresas = [] } = usePlantaoEmpresas();
-  // Não vincular plantões criados em "Plantão nas empresas" ao calendário
-  const plantoes: Plantao[] = [];
+  const { data: plantoes = [] } = usePlantoes({ from: fmt(monthStart), to: fmt(monthEnd) });
 
   const [empresaId, setEmpresaId] = useState<string>("todas");
   const [executiva, setExecutiva] = useState<string>("todas");
@@ -252,11 +251,18 @@ export default function PlantoesCalendario() {
                   {fer && <span className={`h-2 w-2 rounded-full ${dot}`} />}
                 </div>
                 <div className="mt-1 space-y-0.5">
-                  {items.slice(0, 2).map((p) => (
-                    <div key={p.id} className="truncate rounded bg-emerald-100 text-emerald-800 px-1 py-0.5 text-[10px]">
-                      {p.plantonista || p.empresa?.nome}
-                    </div>
-                  ))}
+                  {items.slice(0, 2).map((p) => {
+                    const hi = p.hora_inicio?.slice(0, 5);
+                    const hf = p.hora_fim?.slice(0, 5);
+                    const horario = hi && hf ? `${hi}–${hf}` : hi ?? p.turno;
+                    return (
+                      <div key={p.id} className="rounded bg-emerald-100 text-emerald-900 px-1 py-0.5 text-[10px] leading-tight">
+                        <div className="font-semibold truncate">{p.empresa?.nome ?? "—"}</div>
+                        <div className="truncate opacity-80">{horario}</div>
+                        <div className="truncate opacity-80">{p.plantonista || "sem executiva"}</div>
+                      </div>
+                    );
+                  })}
                   {items.length > 2 && (
                     <Badge variant="secondary" className="text-[10px]">+{items.length - 2}</Badge>
                   )}
