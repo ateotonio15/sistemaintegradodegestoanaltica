@@ -4054,6 +4054,16 @@ export type Database = {
           mes_referencia: string
         }[]
       }
+      get_avaliacao_formulario_por_token: {
+        Args: { p_token: string }
+        Returns: {
+          id: string
+          instrucoes: string
+          perguntas: Json
+          tipo: string
+          titulo: string
+        }[]
+      }
       get_cadastro_workload: {
         Args: never
         Returns: {
