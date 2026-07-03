@@ -3065,6 +3065,7 @@ export type Database = {
       plantoes: {
         Row: {
           created_at: string
+          created_by: string | null
           data: string
           empresa_id: string
           hora_fim: string | null
@@ -3078,6 +3079,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           data: string
           empresa_id: string
           hora_fim?: string | null
@@ -3091,6 +3093,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           data?: string
           empresa_id?: string
           hora_fim?: string | null
@@ -3117,6 +3120,7 @@ export type Database = {
           assunto: string | null
           cpf: string | null
           created_at: string
+          created_by: string | null
           demanda_id: string | null
           hora: string | null
           id: string
@@ -3130,6 +3134,7 @@ export type Database = {
           assunto?: string | null
           cpf?: string | null
           created_at?: string
+          created_by?: string | null
           demanda_id?: string | null
           hora?: string | null
           id?: string
@@ -3143,6 +3148,7 @@ export type Database = {
           assunto?: string | null
           cpf?: string | null
           created_at?: string
+          created_by?: string | null
           demanda_id?: string | null
           hora?: string | null
           id?: string
@@ -3173,6 +3179,7 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          created_by: string | null
           id: string
           nome: string
           observacao: string | null
@@ -3181,6 +3188,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          created_by?: string | null
           id?: string
           nome: string
           observacao?: string | null
@@ -3189,6 +3197,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          created_by?: string | null
           id?: string
           nome?: string
           observacao?: string | null
