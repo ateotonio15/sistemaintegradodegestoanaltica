@@ -1,29 +1,69 @@
-## Objetivo
-Adicionar busca de Pessoa Física em tempo real no formulário de Demandas (`DemandaFormDialog.tsx`), integrando à API `https://atend-back-002.samel.com.br/buscarPessoaFisica?q=`, com autocomplete pelo nome e preenchimento automático via segunda chamada por CPF.
+## Plano — Aba "Calendário de Plantões" (novo módulo de agenda)
 
-## Onde
-- Novo arquivo: `src/lib/pessoa-fisica-lookup.ts` — cliente da API + tipos.
-- Novo componente: `src/components/demandas/PessoaFisicaAutocomplete.tsx` — input com dropdown, debounce, abort, loading.
-- Editar: `src/components/demandas/DemandaFormDialog.tsx` — trocar o `<Input>` do campo "Nome do cliente" pelo autocomplete; ao selecionar, chamar novamente por CPF e preencher `nome_cliente`, `cpf` e novo campo `data_nascimento` (armazenado no state local; não persistido no banco por enquanto).
+### Contexto
+Hoje `/plantoes/calendario` só reaproveita a lista de empresas de plantão e mostra uma grade vazia. A especificação pede um módulo executivo próprio, com CRUD, filtros, feriados, cancelamento com motivo e exportação. Vou construir isso como um módulo novo baseado em uma nova tabela `agendamentos_plantao`, sem tocar em `plantoes` / `plantoes_empresas` (esses continuam sendo do módulo "Plantões nas empresas", que já foi desvinculado do calendário).
 
-## Comportamento
-1. Usuário digita no campo "Nome do cliente".
-2. Debounce de 300ms; só dispara a partir de 3 caracteres.
-3. `AbortController` cancela a requisição anterior a cada digitação; `AbortError` é ignorado.
-4. Fetch: `GET {ENDPOINT}?q=${encodeURIComponent(termo)}`.
-5. Loader (spinner) exibido durante a busca.
-6. Dropdown lista resultados mostrando:
-   - Linha 1: `NM_PESSOA_FISICA`
-   - Linha 2: `CPF: {NR_CPF}` (omitida se `NR_CPF` = "0" ou vazio) · `Carteirinha: {CARTEIRINHA}` · `DN: {DT_NASCIMENTO}`
-7. Ao selecionar item:
-   - Se `NR_CPF` válido (≠ "0" e não vazio), refaz `GET ?q={NR_CPF}` para obter dados atualizados; caso contrário, usa o próprio item.
-   - Preenche no formulário: `nome_cliente = NM_PESSOA_FISICA`, `cpf = maskCpf(NR_CPF)`, e guarda `data_nascimento = DT_NASCIMENTO` em estado local (exibido como campo readonly ao lado, se disponível).
-8. Fechar dropdown ao selecionar / clicar fora / Esc.
+### 1. Banco (migration)
+Nova tabela `public.agendamentos_plantao`:
+- `id uuid pk`, `empresa_id uuid` (FK empresas), `empresa_nome text` (snapshot)
+- `data date` (obrigatório), `hora_inicio time`, `hora_fim time`
+- `executiva text` (nome_completo), `status enum` (`a_confirmar|confirmado|concluido|cancelado`)
+- `observacao text`, `motivo_cancelamento text`
+- `criado_por text`, `editado_por text`, `created_at`, `updated_at`
+- GRANTs para `authenticated` e `service_role`; RLS:
+  - SELECT: todos autenticados
+  - INSERT/UPDATE/DELETE: perfis `admin`, `interno`, `coordenacao`
+  - `externo`: SELECT apenas onde `executiva = seu nome` (carteira)
+  - `enfermeira` / `qualidade`: sem escrita
+- Trigger `updated_at` + realtime publication.
 
-## Interação com lookup existente por CPF
-O `useEffect` atual em `DemandaFormDialog` que dispara `fetchBeneficiarioByCpf` quando o CPF tem 11 dígitos permanece — continua útil quando o usuário digita CPF manualmente. Ao selecionar via autocomplete, os campos já ficam preenchidos e esse efeito apenas revalida (sem sobrescrever `nome_cliente` já preenchido, comportamento já existente).
+### 2. Hooks
+- `useAgendamentosPlantao(range)` — lista por intervalo + realtime.
+- `useAgendamentoMutations` — create (multi-datas → N inserts), update, delete.
+- `useExecutivas()` — reaproveitar se existir; caso não, criar leitura de `profiles` (`interno|externo|coordenacao`, ativos).
+- `useFeriados` já existe e será usado tanto para exibição quanto para bloqueio de datas.
 
-## Notas técnicas
-- Endpoint público, sem auth. Assumindo CORS liberado (mesma origem já usada por `getDadosBeneficiario`). Se falhar por CORS, avisar o usuário — não há proxy previsto.
-- Nenhuma alteração de schema/DB.
-- Nenhuma dependência nova.
+### 3. Nova página `PlantoesCalendario.tsx` (reescrita)
+Layout Seg–Sex (5 colunas):
+- Header: título + subtítulo + botões "Exportar Excel" / "+ Novo evento" (gated por permissão).
+- Filtros: `EmpresaAutocomplete` (Todas), Executiva (Todas + lista), Status (Todos + 4), "Limpar filtros".
+- Legenda de feriados (Nacional/Estadual/Municipal).
+- Navegador de mês (◀ Hoje ▶) em pt-BR.
+- Grade só útil (Seg–Sex): dias com badge de feriado, chips com hora · empresa · executiva coloridos por status:
+  - `a_confirmar` amarelo, `confirmado` verde-100, `concluido` emerald-700 branco.
+  - `cancelado` **não** aparece na grade (mas fica na base).
+- Clique em célula vazia → modal Novo com data pré-preenchida; clique em chip → modal Edição.
+
+### 4. Modal Novo/Editar
+- Campos na ordem: Empresa (`EmpresaAutocomplete`), Data (Calendar `mode="multiple"`, `weekStartsOn=1`, desabilita fim de semana + feriados; travado em 1 data ao editar), Hora início/fim, Observação, Status, Executiva responsável (só `mayara.meireles` pode alterar; demais veem próprio nome desabilitado), Motivo do cancelamento (visível/obrigatório apenas se status = `cancelado`).
+- Validações: empresa obrigatória, ≥1 data, hora_fim > hora_inicio, data não pode ser feriado (toast com nome do feriado) nem fim de semana.
+- Auditoria automática: `criado_por` no insert; `editado_por`+`updated_at` no update.
+- Rodapé Edição: botão Excluir com `AlertDialog`.
+
+### 5. Exportação Excel
+Arquivo `calendario-plantoes-YYYY-MM.xlsx` com colunas: Data · Empresa · Horário início · Horário fim · Executiva · Status · Motivo cancelamento · Observação · Criado por · Última edição (`editado_por` em `dd/MM/yyyy HH:mm`). Inclui cancelados.
+
+### 6. Permissões (frontend + RLS)
+| Perfil | Ação |
+|---|---|
+| admin / interno / coordenacao | CRUD completo |
+| enfermeira | leitura total |
+| externo | leitura só da sua carteira |
+| qualidade | sem acesso à rota |
+
+Campo Executiva desbloqueado apenas para `mayara.meireles` (regra temporária, comentada no código).
+
+### 7. Realtime + UX
+- Invalida query após create/update/delete; realtime channel em `agendamentos_plantao`.
+- `toast` em sucesso/erro/validação.
+- Loading discreto; `pointer-events-auto` no Calendar dentro do Popover.
+
+### Ordem de execução
+1. Migration `agendamentos_plantao` + RLS + realtime → aguardar aprovação do usuário.
+2. Após aprovação: criar hooks, modal e reescrever a página.
+3. Verificar build e testar rota `/plantoes/calendario`.
+
+### Perguntas antes de começar
+1. **Empresas**: uso a lista completa de `empresas` (todas ativas) ou continuo restringindo às empresas ligadas a plantão (`plantoes_empresas`)? A spec fala "iaempresasativa" (ilegível) — assumo `empresas` ativas gerais, confirme.
+2. **Perfil `externo`**: tenho como identificar a "carteira" via `executiva = nome_completo` do próprio usuário logado, correto? Ou existe outro vínculo?
+3. **Substituição total**: posso descartar o código atual da página (que ainda referencia `usePlantaoEmpresas` só para popular filtro)? A nova página não terá mais nada do módulo antigo.
