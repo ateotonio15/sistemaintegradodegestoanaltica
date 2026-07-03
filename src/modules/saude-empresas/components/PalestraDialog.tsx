@@ -42,6 +42,7 @@ interface Props {
   isReadOnly: boolean;
   userNome: string | null;
   bloqueiosFn: (d: Date) => { periodo: "dia_todo" | "manha" | "tarde"; motivo: string } | null;
+  onBloquearAgenda?: (d: Date | null) => void;
 }
 
 export function PalestraDialog({
