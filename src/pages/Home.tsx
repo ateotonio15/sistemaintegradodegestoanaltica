@@ -142,7 +142,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         slug: "saude-empresas-palestras",
         label: "Calendário de Palestras",
         description: "Agenda anual de palestras de saúde nas empresas",
-        icon: Mic,
+        icon: CalendarDays,
         to: "/saude-empresas/palestras",
       },
       {
