@@ -53,7 +53,7 @@ import DemandaFormDialog from "@/components/demandas/DemandaFormDialog";
 import ImportarDemandasDialog from "@/components/demandas/ImportarDemandasDialog";
 import HistoricoImportacoesDialog from "@/components/demandas/HistoricoImportacoesDialog";
 
-type StatusFilter = "todos" | "pendente" | "resolvida" | "finalizada";
+type StatusFilter = "todos" | "em_aberto" | "resolvido";
 
 export default function Demandas() {
   const { isAdmin, isDiretora, isViewOnly, user } = useAuth();
@@ -140,9 +140,8 @@ export default function Demandas() {
       if (executiva !== "__all__" && d.executiva !== executiva) return false;
       if (status !== "todos") {
         const st = getStatus(d);
-        if (status === "pendente" && st !== "Pendente") return false;
-        if (status === "resolvida" && st !== "Resolvida") return false;
-        if (status === "finalizada" && st !== "Finalizada") return false;
+        if (status === "em_aberto" && st !== "Pendente") return false;
+        if (status === "resolvido" && st !== "Resolvida" && st !== "Finalizada") return false;
       }
       if (reclamacaoParam && d.reclamacao !== reclamacaoParam) return false;
       if (q && !d.nome_cliente.toLowerCase().includes(q)) return false;
@@ -307,9 +306,8 @@ export default function Demandas() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="resolvida">Resolvida</SelectItem>
-                <SelectItem value="finalizada">Finalizada</SelectItem>
+                <SelectItem value="em_aberto">Em aberto</SelectItem>
+                <SelectItem value="resolvido">Resolvido</SelectItem>
               </SelectContent>
             </Select>
           </div>
