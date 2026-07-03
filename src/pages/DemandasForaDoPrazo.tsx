@@ -125,10 +125,15 @@ export default function DemandasForaDoPrazo() {
 
   const filtered = useMemo(() => {
     return demandas.filter((d) => {
-      const x = parseLocalDate(d.data_reclamacao);
-      if (!x) return false;
-      if (ini && x < ini) return false;
-      if (fim && x > fim) return false;
+      const abertura = parseLocalDate(d.data_reclamacao);
+      if (!abertura) return false;
+      // Considera a demanda "ativa" no período se sua vigência intersecta
+      // com o intervalo: abriu até o fim do período E ainda estava aberta
+      // dentro do intervalo (ou foi resolvida dentro dele).
+      const resolvida = isResolved(d);
+      const encerramento = resolvida ? dataFimEfetiva(d) : new Date();
+      if (fim && abertura > fim) return false;
+      if (ini && encerramento < ini) return false;
       if (empresa !== "__all__" && d.empresa !== empresa) return false;
       if (executiva !== "__all__" && d.executiva !== executiva) return false;
       return true;
