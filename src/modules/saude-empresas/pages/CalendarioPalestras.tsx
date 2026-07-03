@@ -369,7 +369,7 @@ export default function CalendarioPalestras() {
               <span className="text-[10px] uppercase tracking-wider font-medium">Feriado</span>
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Ban className="h-3 w-3" />
+              <Ban className="h-3 w-3 text-red-400" />
               <span className="text-[10px] uppercase tracking-wider font-medium">Bloqueio</span>
             </span>
           </div>
