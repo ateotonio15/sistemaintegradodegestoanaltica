@@ -7,7 +7,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, ArrowLeft, Plus, FileSpreadsheet,
-  X, Ban, Mic,
+  X, Ban, CalendarDays,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -190,8 +190,8 @@ export default function CalendarioPalestras() {
             <ArrowLeft className="h-4 w-4" /> Voltar
           </Link>
           <div className="flex items-center gap-3 mt-2">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center">
-              <Mic className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center">
+              <CalendarDays className="h-5 w-5 text-primary" />
             </div>
             <div>
               <h1 className="text-xl font-bold">Calendário de Palestras</h1>
