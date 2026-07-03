@@ -26,6 +26,8 @@ import { useCreateDemanda, useUpdateDemanda } from "@/hooks/useDemandas";
 import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
 import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
+import PessoaFisicaAutocomplete from "@/components/demandas/PessoaFisicaAutocomplete";
+import { buscarPessoaFisica, isCpfValido, type PessoaFisicaResult } from "@/lib/pessoa-fisica-lookup";
 import {
   SETORES,
   TIPOS,
@@ -369,12 +371,33 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
             </div>
           </Field>
           <Field label="Nome do cliente *">
-            <Input
+            <PessoaFisicaAutocomplete
               value={form.nome_cliente || ""}
-              onChange={(e) => set("nome_cliente", e.target.value)}
-              placeholder="Nome completo do beneficiário"
+              onChange={(v) => set("nome_cliente", v)}
+              placeholder="Digite pelo menos 3 letras para buscar..."
+              onSelect={async (p) => {
+                // Preenche imediatamente com o item selecionado
+                const applyFrom = (src: PessoaFisicaResult) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    nome_cliente: src.NM_PESSOA_FISICA || prev.nome_cliente || "",
+                    cpf: isCpfValido(src.NR_CPF) ? maskCpf(src.NR_CPF!) : (prev.cpf || ""),
+                  }));
+                };
+                applyFrom(p);
+                // Segunda chamada com o CPF para obter dados atualizados
+                if (isCpfValido(p.NR_CPF)) {
+                  try {
+                    const arr = await buscarPessoaFisica(p.NR_CPF!);
+                    if (arr.length > 0) applyFrom(arr[0]);
+                  } catch (err: any) {
+                    if (err?.name !== "AbortError") console.error(err);
+                  }
+                }
+              }}
             />
           </Field>
+
 
           {isSurgical(form.reclamacao) && (
             <>
