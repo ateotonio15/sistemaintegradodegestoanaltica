@@ -28,11 +28,24 @@ import { GESTANTES_2026, CAMPANHAS, MESES_PT } from "../lib/palestras-calendario
 import { PalestraDialog } from "../components/PalestraDialog";
 import { BloqueioDialog } from "../components/BloqueioDialog";
 
-const STATUS_BADGE: Record<string, string> = {
-  a_confirmar: "bg-yellow-100 text-yellow-900 border-yellow-300",
-  confirmado: "bg-green-100 text-green-900 border-green-300",
-  concluido: "bg-emerald-700 text-white border-emerald-800",
-  cancelado: "bg-red-100 text-red-900 border-red-300",
+// Card style: fundo tintado + borda lateral colorida (status)
+const STATUS_CARD: Record<string, string> = {
+  a_confirmar: "bg-amber-500/10 border-l-4 border-amber-500 hover:bg-amber-500/20",
+  confirmado: "bg-sky-500/10 border-l-4 border-sky-500 hover:bg-sky-500/20",
+  concluido: "bg-emerald-500/10 border-l-4 border-emerald-500 hover:bg-emerald-500/20",
+  cancelado: "bg-rose-500/10 border-l-4 border-rose-500 hover:bg-rose-500/20",
+};
+const STATUS_TIME: Record<string, string> = {
+  a_confirmar: "text-amber-400",
+  confirmado: "text-sky-400",
+  concluido: "text-emerald-400",
+  cancelado: "text-rose-400",
+};
+const STATUS_LEGEND: Record<string, string> = {
+  a_confirmar: "bg-amber-500",
+  confirmado: "bg-sky-500",
+  concluido: "bg-emerald-500",
+  cancelado: "bg-rose-500",
 };
 const STATUS_LABEL: Record<string, string> = {
   a_confirmar: "A confirmar", confirmado: "Confirmado", concluido: "Concluído", cancelado: "Cancelado",
