@@ -464,6 +464,33 @@ export type Database = {
           },
         ]
       }
+      bloqueios_calendario: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data: string
+          id: string
+          motivo: string
+          periodo: Database["public"]["Enums"]["bloqueio_periodo"]
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          id?: string
+          motivo: string
+          periodo: Database["public"]["Enums"]["bloqueio_periodo"]
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          id?: string
+          motivo?: string
+          periodo?: Database["public"]["Enums"]["bloqueio_periodo"]
+        }
+        Relationships: []
+      }
       cobrancas: {
         Row: {
           created_at: string
@@ -2958,49 +2985,15 @@ export type Database = {
         }
         Relationships: []
       }
-      palestras_bloqueios: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          created_by_nome: string | null
-          data: string
-          id: string
-          motivo: string
-          periodo: Database["public"]["Enums"]["bloqueio_periodo"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          created_by_nome?: string | null
-          data: string
-          id?: string
-          motivo: string
-          periodo?: Database["public"]["Enums"]["bloqueio_periodo"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          created_by_nome?: string | null
-          data?: string
-          id?: string
-          motivo?: string
-          periodo?: Database["public"]["Enums"]["bloqueio_periodo"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
       palestras_saude: {
         Row: {
           created_at: string
-          created_by: string | null
-          created_by_nome: string | null
+          criado_por: string | null
           data: string
-          empresa_id: string
+          editado_por: string | null
+          empresa: string
           endereco: string
-          executiva_nome: string | null
-          executiva_user_id: string | null
+          executiva: string
           horario_fim: string | null
           horario_inicio: string | null
           id: string
@@ -3009,18 +3002,15 @@ export type Database = {
           status: Database["public"]["Enums"]["palestra_status"]
           tema: string | null
           updated_at: string
-          updated_by: string | null
-          updated_by_nome: string | null
         }
         Insert: {
           created_at?: string
-          created_by?: string | null
-          created_by_nome?: string | null
+          criado_por?: string | null
           data: string
-          empresa_id: string
+          editado_por?: string | null
+          empresa: string
           endereco: string
-          executiva_nome?: string | null
-          executiva_user_id?: string | null
+          executiva: string
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
@@ -3029,18 +3019,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["palestra_status"]
           tema?: string | null
           updated_at?: string
-          updated_by?: string | null
-          updated_by_nome?: string | null
         }
         Update: {
           created_at?: string
-          created_by?: string | null
-          created_by_nome?: string | null
+          criado_por?: string | null
           data?: string
-          empresa_id?: string
+          editado_por?: string | null
+          empresa?: string
           endereco?: string
-          executiva_nome?: string | null
-          executiva_user_id?: string | null
+          executiva?: string
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
@@ -3049,18 +3036,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["palestra_status"]
           tema?: string | null
           updated_at?: string
-          updated_by?: string | null
-          updated_by_nome?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "palestras_saude_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       plantoes: {
         Row: {
