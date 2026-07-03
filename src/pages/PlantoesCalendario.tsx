@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
-import { usePlantaoEmpresas, usePlantoes, usePlantoesRealtime, type Plantao } from "@/hooks/usePlantoes";
+import { usePlantaoEmpresas, usePlantoesRealtime, type Plantao } from "@/hooks/usePlantoes";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { useFeriados } from "@/hooks/useFeriados";
 
@@ -33,7 +33,7 @@ export default function PlantoesCalendario() {
   const monthEnd = endOfMonth(cursor);
 
   const { data: empresas = [] } = usePlantaoEmpresas();
-  const { data: plantoes = [] } = usePlantoes({ from: fmt(monthStart), to: fmt(monthEnd) });
+  const plantoes = useMemo<Plantao[]>(() => [], []);
 
   const [empresaId, setEmpresaId] = useState<string>("todas");
   const [executiva, setExecutiva] = useState<string>("todas");
