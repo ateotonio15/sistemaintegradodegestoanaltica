@@ -370,6 +370,15 @@ export function PalestraDialog({
             )}
           </div>
           <div className="flex gap-2">
+            {!isEdit && canEdit && !isReadOnly && onBloquearAgenda && (
+              <Button
+                variant="outline"
+                onClick={() => onBloquearAgenda(datas[0] ?? null)}
+                className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+              >
+                <Ban className="h-4 w-4 mr-1" /> Bloquear agenda
+              </Button>
+            )}
             <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
             {!dis && (
               <Button onClick={handleSubmit} disabled={createMany.isPending || updateOne.isPending}>
