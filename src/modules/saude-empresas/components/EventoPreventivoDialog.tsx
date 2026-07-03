@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, CalendarIcon } from "lucide-react";
+import { Trash2, CalendarIcon, Pencil, Building2, MapPin, Clock, User, MessageSquare, CalendarDays, StickyNote, Stethoscope } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,23 @@ const STATUS_OPTIONS: { v: AcaoPreventivaStatus; label: string }[] = [
   { v: "cancelado", label: "Cancelado" },
 ];
 
+const STATUS_LABEL_MAP: Record<AcaoPreventivaStatus, string> = {
+  a_confirmar: "A confirmar", confirmado: "Confirmado", concluido: "Concluído", cancelado: "Cancelado",
+};
+
+const STATUS_STYLE: Record<AcaoPreventivaStatus, { badge: string; dot: string; ring: string }> = {
+  a_confirmar: { badge: "bg-amber-500/15 text-amber-400 border-amber-500/40", dot: "bg-amber-500", ring: "ring-amber-500/30" },
+  confirmado:  { badge: "bg-sky-500/15 text-sky-400 border-sky-500/40",        dot: "bg-sky-500",   ring: "ring-sky-500/30" },
+  concluido:   { badge: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40", dot: "bg-emerald-500", ring: "ring-emerald-500/30" },
+  cancelado:   { badge: "bg-rose-500/15 text-rose-400 border-rose-500/40",     dot: "bg-rose-500",  ring: "ring-rose-500/30" },
+};
+
+const TIPO_LABEL: Record<AcaoPreventivaTipo, string> = {
+  sinais_vitais: "Sinais Vitais",
+  preventivo: "Coleta de Preventivo",
+  psa: "Coleta de PSA",
+};
+
 const isoDate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -37,9 +54,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   tipo: AcaoPreventivaTipo;
-  /** quando aberto para edição */
   editing?: AcaoPreventiva | null;
-  /** datas pré-selecionadas em modo "novo" */
   preselect?: Date[];
   canEdit: boolean;
   isReadOnly: boolean;
@@ -68,8 +83,8 @@ export function EventoPreventivoDialog({
   const [status, setStatus] = useState<AcaoPreventivaStatus>("a_confirmar");
   const [motivo, setMotivo] = useState("");
   const [datasPopOpen, setDatasPopOpen] = useState(false);
+  const [viewMode, setViewMode] = useState(true);
 
-  // Reset / preencher ao abrir
   useEffect(() => {
     if (!open) return;
     if (editing) {
@@ -85,6 +100,7 @@ export function EventoPreventivoDialog({
       setObservacao(editing.observacao ?? "");
       setStatus(editing.status);
       setMotivo(editing.motivo_cancelamento ?? "");
+      setViewMode(true);
     } else {
       setEmpresaId("");
       setEndereco("");
@@ -92,17 +108,16 @@ export function EventoPreventivoDialog({
       setHorarioInicio("");
       setHorarioFim("");
       setResponsavel("");
-      // Default = usuário logado
       setExecutivaUserId(user?.id ?? "");
       setExecutivaNome(userNome ?? "");
       setObservacao("");
       setStatus("a_confirmar");
       setMotivo("");
+      setViewMode(false);
     }
   }, [open, editing, preselect, user?.id, userNome]);
 
   const empresa = useMemo(() => empresas.find((e) => e.id === empresaId), [empresas, empresaId]);
-  // auto endereço quando trocar empresa em modo novo (se vazio)
   useEffect(() => {
     if (!isEdit && empresa && !endereco) setEndereco(empresa.endereco ?? "");
   }, [empresa, isEdit, endereco]);
@@ -170,19 +185,106 @@ export function EventoPreventivoDialog({
   };
 
   const dis = isReadOnly || !canEdit;
+  const isView = isEdit && viewMode;
+  const st = STATUS_STYLE[status];
+  const empresaNome = empresa?.nome ?? "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit ? "Editar evento" : "Novo evento"}
-            <Badge variant="outline" className="ml-2">
-              {tipo === "sinais_vitais" ? "Sinais Vitais" : tipo === "preventivo" ? "Coleta de Preventivo" : "Coleta de PSA"}
-            </Badge>
+          <DialogTitle className="flex items-center gap-2 flex-wrap">
+            {isEdit ? (viewMode ? "Detalhes do evento" : "Editar evento") : "Novo evento"}
+            <Badge variant="outline">{TIPO_LABEL[tipo]}</Badge>
+            {isEdit && (
+              <span className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border ${st.badge}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+                {STATUS_LABEL_MAP[status]}
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
+        {isView ? (
+          <div className="grid gap-3 py-2">
+            <div className={`rounded-xl border bg-card/60 p-4 ring-1 ${st.ring}`}>
+              <div className="flex items-start gap-3">
+                <div className={`shrink-0 h-11 w-11 rounded-lg flex items-center justify-center ${st.badge} border`}>
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Empresa</div>
+                  <div className="text-base font-semibold truncate">{empresaNome || "—"}</div>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5" />
+                    <span className="truncate">{endereco || "—"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  <CalendarDays className="h-3.5 w-3.5" /> Data
+                </div>
+                <div className="mt-1 text-sm font-semibold">{datas[0] ? format(datas[0], "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : "—"}</div>
+                <div className="text-xs text-muted-foreground capitalize">{datas[0] ? format(datas[0], "EEEE", { locale: ptBR }) : ""}</div>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  <Clock className="h-3.5 w-3.5" /> Horário
+                </div>
+                <div className="mt-1 text-sm font-semibold font-mono tabular-nums">
+                  {(horarioInicio || "--:--")} – {(horarioFim || "--:--")}
+                </div>
+              </div>
+            </div>
+
+            {responsavel && (
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  <Stethoscope className="h-3.5 w-3.5" /> Responsável
+                </div>
+                <div className="mt-1 text-sm">{responsavel}</div>
+              </div>
+            )}
+
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                <User className="h-3.5 w-3.5" /> Executiva responsável
+              </div>
+              <div className="mt-1 text-sm font-medium">{executivaNome || "—"}</div>
+            </div>
+
+            {status === "cancelado" && motivo && (
+              <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-rose-400 font-medium">
+                  <MessageSquare className="h-3.5 w-3.5" /> Motivo do cancelamento
+                </div>
+                <div className="mt-1 text-sm">{motivo}</div>
+              </div>
+            )}
+
+            {observacao && (
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  <StickyNote className="h-3.5 w-3.5" /> Observação
+                </div>
+                <div className="mt-1 text-sm whitespace-pre-wrap">{observacao}</div>
+              </div>
+            )}
+
+            {editing && (
+              <div className="text-xs text-muted-foreground border-t pt-2">
+                Criado por {editing.created_by_nome ?? "—"}
+                {editing.updated_by_nome && (
+                  <> • Última edição: {editing.updated_by_nome} em {format(new Date(editing.updated_at), "dd/MM/yyyy HH:mm")}</>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label>Empresa *</Label>
@@ -316,6 +418,7 @@ export function EventoPreventivoDialog({
             </div>
           )}
         </div>
+        )}
 
         <DialogFooter className="flex sm:justify-between gap-2">
           <div>
@@ -339,7 +442,12 @@ export function EventoPreventivoDialog({
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-            {!dis && (
+            {isView && canEdit && !isReadOnly && (
+              <Button onClick={() => setViewMode(false)}>
+                <Pencil className="h-4 w-4 mr-1" /> Editar
+              </Button>
+            )}
+            {!isView && !dis && (
               <Button onClick={handleSubmit} disabled={createMany.isPending || updateOne.isPending}>
                 {isEdit ? "Salvar" : `Criar ${datas.length > 1 ? `(${datas.length})` : ""}`}
               </Button>
