@@ -424,13 +424,13 @@ export default function Home() {
   const renderCard = (s: LeafShortcut | (GroupShortcut & { group?: string }), opts?: { asGroup?: boolean }) => {
     const Icon = s.icon;
     const inner = (
-      <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
-        <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
+      <Card className="p-4 flex items-start gap-4 rounded-2xl border border-border/70 bg-card hover:border-primary/40 hover:shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.25)] transition-all duration-200 h-full">
+        <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
           <Icon className="h-5 w-5" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-foreground truncate">{s.label}</div>
-          <div className="text-xs text-muted-foreground line-clamp-2">{s.description}</div>
+          <div className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mt-0.5">{s.description}</div>
         </div>
       </Card>
     );
@@ -458,20 +458,24 @@ export default function Home() {
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center px-4 py-10 md:py-16">
       <div className="w-full max-w-5xl flex flex-col items-center gap-8">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
-            Bem-vindo{greetingDisplay ? `, ${greetingDisplay}` : ""}!
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+            Bem-vindo{greetingDisplay ? (
+              <>, <span className="text-primary">{greetingDisplay}</span></>
+            ) : ""}!
           </h1>
-          <p className="text-sm text-muted-foreground">Acesse rapidamente os módulos do SIGA</p>
+          <p className="text-sm md:text-base text-muted-foreground font-medium">
+            O que você deseja gerenciar hoje no SIGA?
+          </p>
         </div>
 
         {/* Search */}
-        <div className="relative w-full max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative w-full max-w-2xl group">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar módulo, função ou atalho..."
-            className="h-12 pl-11 pr-4 rounded-full border-border/60 bg-card shadow-sm focus-visible:ring-2 focus-visible:ring-primary/30"
+            className="h-14 pl-14 pr-6 rounded-2xl border-border/70 bg-card shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
           />
         </div>
 
@@ -489,7 +493,7 @@ export default function Home() {
 
         {/* Tabs */}
         {!query && !activeGroup && (
-          <div className="flex items-center gap-6 border-b border-border/60 w-full max-w-2xl justify-center">
+          <div className="inline-flex items-center gap-1 p-1 bg-muted/60 rounded-xl">
             {(["funcoes", "utilitarios"] as const).map((t) => {
               const active = tab === t;
               return (
@@ -497,14 +501,13 @@ export default function Home() {
                   key={t}
                   onClick={() => setTab(t)}
                   className={cn(
-                    "relative pb-3 text-sm font-medium transition-colors",
-                    active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                    "px-6 md:px-8 py-2 text-sm rounded-lg transition-all",
+                    active
+                      ? "bg-card text-primary font-semibold shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground font-medium",
                   )}
                 >
                   {t === "funcoes" ? "Funções" : "Utilitários"}
-                  {active && (
-                    <span className="absolute -bottom-px left-0 right-0 h-0.5 bg-primary rounded-full" />
-                  )}
                 </button>
               );
             })}
@@ -512,7 +515,7 @@ export default function Home() {
         )}
 
         {/* Grid */}
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.length === 0 ? (
             <div className="col-span-full text-center text-sm text-muted-foreground py-12">
               Nenhum módulo encontrado.
@@ -524,16 +527,17 @@ export default function Home() {
           )}
         </div>
 
+
         {/* Inteligência de Relacionamento — oculto para Cadastro (Comum) e Financeiro */}
         {!query && !activeGroup && !isFinanceiro && role !== "comum" && (
-          <div className="w-full flex flex-col gap-4 pt-4">
+          <div className="w-full flex flex-col gap-5 pt-6">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-foreground">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold tracking-tight">
-                  Inteligência de Relacionamento
-                </h2>
+              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary text-primary-foreground shadow-sm">
+                <Sparkles className="h-4 w-4" />
               </div>
+              <h2 className="text-base font-bold tracking-tight text-foreground">
+                Inteligência de Relacionamento
+              </h2>
               <div className="flex-1 h-px bg-border/60" />
               {openInteligencia && (
                 <Button
