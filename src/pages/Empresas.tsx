@@ -1545,20 +1545,26 @@ export default function Empresas() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-accent/20 hover:bg-accent/20">
-                    <TableHead className="font-semibold">Nome</TableHead>
-                    <TableHead className="font-semibold">Cód. Contrato</TableHead>
-                    <TableHead className="font-semibold">Resp. Contrato</TableHead>
-                    <TableHead className="font-semibold">Executiva</TableHead>
-                    <TableHead className="font-semibold">CNPJ</TableHead>
-                    <TableHead className="font-semibold text-right">Vidas Ativas</TableHead>
-                    <TableHead className="font-semibold">Corretora</TableHead>
-                    <TableHead className="font-semibold">TIPO DE MOVIMENTAÇÃO</TableHead>
-                    <TableHead className="font-semibold">PERÍODO DE MOVIMENTAÇÃO</TableHead>
-                    <TableHead className="font-semibold">Implantação</TableHead>
-                    <TableHead className="font-semibold">Venc. Fatura</TableHead>
-                    <TableHead className="font-semibold">Emissão Fatura</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="w-24 font-semibold">Ações</TableHead>
+        <Card className="rounded-2xl border-border/70 shadow-sm overflow-hidden">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/70">
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Nome</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Cód. Contrato</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Resp. Contrato</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Executiva</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">CNPJ</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground text-right">Vidas Ativas</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Corretora</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Tipo de Movimentação</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Período de Movimentação</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Implantação</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Venc. Fatura</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Emissão Fatura</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+                    <TableHead className="w-24 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
