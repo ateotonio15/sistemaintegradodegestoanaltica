@@ -458,20 +458,24 @@ export default function Home() {
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center px-4 py-10 md:py-16">
       <div className="w-full max-w-5xl flex flex-col items-center gap-8">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
-            Bem-vindo{greetingDisplay ? `, ${greetingDisplay}` : ""}!
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+            Bem-vindo{greetingDisplay ? (
+              <>, <span className="text-primary">{greetingDisplay}</span></>
+            ) : ""}!
           </h1>
-          <p className="text-sm text-muted-foreground">Acesse rapidamente os módulos do SIGA</p>
+          <p className="text-sm md:text-base text-muted-foreground font-medium">
+            O que você deseja gerenciar hoje no SIGA?
+          </p>
         </div>
 
         {/* Search */}
-        <div className="relative w-full max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative w-full max-w-2xl group">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar módulo, função ou atalho..."
-            className="h-12 pl-11 pr-4 rounded-full border-border/60 bg-card shadow-sm focus-visible:ring-2 focus-visible:ring-primary/30"
+            className="h-14 pl-14 pr-6 rounded-2xl border-border/70 bg-card shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
           />
         </div>
 
