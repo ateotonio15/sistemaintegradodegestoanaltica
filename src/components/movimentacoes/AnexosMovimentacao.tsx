@@ -145,9 +145,17 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
   const handleDelete = async (id: string, path: string) => {
     if (!confirm("Excluir este anexo?")) return;
     try {
-      await supabase.storage.from(STORAGE_BUCKET).remove([path]);
-      const { error } = await supabase.from("anexos_movimentacao").delete().eq("id", id);
+      const { data: deleted, error } = await supabase
+        .from("anexos_movimentacao")
+        .delete()
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!deleted || deleted.length === 0) {
+        toast.error("Você não tem permissão para excluir este anexo.");
+        return;
+      }
+      await supabase.storage.from(STORAGE_BUCKET).remove([path]);
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
       onAttachmentsChange?.();
       toast.success("Anexo excluído");
