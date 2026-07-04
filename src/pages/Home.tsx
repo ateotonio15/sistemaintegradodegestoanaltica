@@ -300,7 +300,7 @@ const SHORTCUTS: Shortcut[] = [
     label: "Painel TV Financeiro",
     description: "Monitoramento em tempo real do faturamento",
     icon: Activity,
-    group: "funcoes",
+    group: "utilitarios",
     show: (c) => c.isAdmin || c.isFinanceiro,
   },
   {
