@@ -1612,12 +1612,20 @@ export async function analisarExcelFinanceiroPorCnpj(
       for (let i = hIdx + 1; i < rowsSheet.length; i++) {
         const r = rowsSheet[i];
         if (!r || r.length === 0) continue;
+        // A aba inteira já é dedicada à cobrança retroativa (nome contém "retroativ"),
+        // portanto NÃO filtramos por "Tipo Cobrança" — muitos relatórios trazem
+        // as linhas com tipo "Mensalidade" mesmo na aba de retroativa.
+        // Pula apenas linhas explicitamente marcadas como exclusão/devolução.
         const tipoCell = iTipo >= 0 ? String(r[iTipo] ?? "") : "";
-        if (iTipo >= 0 && !isRetroativa(tipoCell)) continue;
+        if (iTipo >= 0 && (isExclusao(tipoCell) || isDevolucao(tipoCell))) continue;
+        // Ignora linhas de rodapé/total sem dados úteis
+        const primeira = norm(r[0]);
+        if (primeira.startsWith("total")) continue;
         const val = toNumber(r[iVal]);
+        if (isNaN(val)) continue;
         const qtd = iQtd >= 0 ? toNumber(r[iQtd]) : 1;
         const qNum = isNaN(qtd) ? 1 : qtd;
-        const vNum = isNaN(val) ? 0 : val;
+        const vNum = val;
         extraRetroTotal += vNum;
         extraRetroQtd += qNum;
         abaTotal += vNum;
