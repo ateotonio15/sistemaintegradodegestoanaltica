@@ -1539,12 +1539,6 @@ export default function Empresas() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl shadow-sm overflow-hidden">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-accent/20 hover:bg-accent/20">
         <Card className="rounded-2xl border-border/70 shadow-sm overflow-hidden">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
