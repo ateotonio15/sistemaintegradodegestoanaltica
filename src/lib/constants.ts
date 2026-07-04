@@ -30,6 +30,7 @@ export const RECLAMACOES = [
   "Aprazamento cirúrgico",
   "Aprazamento de consulta",
   "Aprazamento de exame",
+  "Aprazamento de medicação",
   "Aprazamento de neuro pediatra",
   "Aprazamento de ortopedista",
   "Aprazamento de terapia adulto",
