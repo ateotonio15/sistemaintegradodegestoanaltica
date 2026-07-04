@@ -319,6 +319,8 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
           <Field label="Data da reclamação *">
             <Input
               type="date"
+              min="2000-01-01"
+              max="2100-12-31"
               value={form.data_reclamacao || ""}
               onChange={(e) => set("data_reclamacao", e.target.value)}
             />
