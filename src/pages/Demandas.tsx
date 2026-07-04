@@ -111,6 +111,7 @@ export default function Demandas() {
   const canEditRow = (d: Demanda) => {
     if (isAdmin) return true;
     if (isDiretora || isViewOnly) return false;
+    if (isExecutivo || isExecutivoExterno) return true;
     return (d.executiva || "").trim().toLowerCase() === profileName && profileName.length > 0;
   };
 
