@@ -562,7 +562,7 @@ export default function Arquivos() {
                       )}
                     </div>
                     <AccordionContent className="pb-3">
-                      <Accordion type="multiple" className="space-y-2 pl-2">
+                      <div className="space-y-2 pl-2">
                         {Array.from(emp.contratos.values())
                           .sort((a, b) => a.contrato.localeCompare(b.contrato))
                           .map((c) => {
@@ -570,43 +570,38 @@ export default function Arquivos() {
                               (a, b) => b.competencia.localeCompare(a.competencia),
                             );
                             return (
-                              <AccordionItem
+                              <div
                                 key={c.contrato}
-                                value={`${emp.empresaId}-${c.contrato}`}
-                                className="border rounded-md px-3 bg-muted/30"
+                                className="border rounded-md px-3 py-3 bg-muted/30 space-y-3"
                               >
-                                <AccordionTrigger className="hover:no-underline py-2">
-                                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <FileSignature className="h-4 w-4 text-primary shrink-0" />
-                                    <div className="text-left min-w-0">
-                                      <div className="font-medium truncate">Contrato {c.contrato}</div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {compsOrdenadas.length} competência{compsOrdenadas.length === 1 ? "" : "s"} • {c.arquivos.length} arquivo{c.arquivos.length === 1 ? "" : "s"}
-                                        {c.ultimoUpload > 0 && (
-                                          <> • Último: {formatDateTime(new Date(c.ultimoUpload).toISOString())}</>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="pb-3">
-                                  {compsOrdenadas.length === 0 ? (
-                                    <div className="py-6 text-center text-sm text-muted-foreground space-y-2">
-                                      <p>Nenhum arquivo anexado ainda para este contrato.</p>
-                                      {canEditFinanceiro && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => openUpload(emp.empresaId)}
-                                        >
-                                          <Plus className="h-4 w-4 mr-1" />
-                                          Anexar nota / Excel
-                                        </Button>
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <FileSignature className="h-4 w-4 text-primary shrink-0" />
+                                  <div className="text-left min-w-0">
+                                    <div className="font-medium truncate">Mensalidades</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {compsOrdenadas.length} competência{compsOrdenadas.length === 1 ? "" : "s"} • {c.arquivos.length} arquivo{c.arquivos.length === 1 ? "" : "s"}
+                                      {c.ultimoUpload > 0 && (
+                                        <> • Último: {formatDateTime(new Date(c.ultimoUpload).toISOString())}</>
                                       )}
                                     </div>
-                                  ) : (
+                                  </div>
+                                </div>
+                                {compsOrdenadas.length === 0 ? (
+                                  <div className="py-6 text-center text-sm text-muted-foreground space-y-2">
+                                    <p>Nenhum arquivo anexado ainda para esta empresa.</p>
+                                    {canEditFinanceiro && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => openUpload(emp.empresaId)}
+                                      >
+                                        <Plus className="h-4 w-4 mr-1" />
+                                        Anexar nota / Excel
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
                                   <div className="space-y-3 pl-2">
-
                                     {compsOrdenadas.map((comp) => (
                                       <div key={comp.competencia} className="border rounded-md bg-background">
                                         <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 rounded-t-md">
@@ -686,13 +681,12 @@ export default function Arquivos() {
                                       </div>
                                     ))}
                                   </div>
-                                  )}
-                                </AccordionContent>
-
-                              </AccordionItem>
+                                )}
+                              </div>
                             );
                           })}
-                      </Accordion>
+                      </div>
+
                     </AccordionContent>
                   </AccordionItem>
                 ))}
