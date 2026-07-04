@@ -424,13 +424,13 @@ export default function Home() {
   const renderCard = (s: LeafShortcut | (GroupShortcut & { group?: string }), opts?: { asGroup?: boolean }) => {
     const Icon = s.icon;
     const inner = (
-      <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
-        <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
+      <Card className="p-4 flex items-start gap-4 rounded-2xl border border-border/70 bg-card hover:border-primary/40 hover:shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.25)] transition-all duration-200 h-full">
+        <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
           <Icon className="h-5 w-5" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-foreground truncate">{s.label}</div>
-          <div className="text-xs text-muted-foreground line-clamp-2">{s.description}</div>
+          <div className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mt-0.5">{s.description}</div>
         </div>
       </Card>
     );
