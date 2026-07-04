@@ -56,7 +56,7 @@ import HistoricoImportacoesDialog from "@/components/demandas/HistoricoImportaco
 type StatusFilter = "todos" | "em_aberto" | "resolvido";
 
 export default function Demandas() {
-  const { isAdmin, isDiretora, isViewOnly, user } = useAuth();
+  const { isAdmin, isDiretora, isViewOnly, isExecutivo, isExecutivoExterno, user } = useAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const reclamacaoParam = params.get("reclamacao");
