@@ -90,6 +90,7 @@ export const RECLAMACOES_POR_SETOR_TIPO: Record<string, Record<string, string[]>
     "Aprazamento": [
       "Aprazamento de consulta",
       "Aprazamento de exame",
+      "Aprazamento de medicação",
       "Aprazamento de terapia adulto",
       "Aprazamento de terapia infantil",
     ],
