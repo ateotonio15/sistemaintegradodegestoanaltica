@@ -208,7 +208,7 @@ export function ReajusteCobrancaRetroativa() {
         .from("anexos_financeiro")
         .select("nome_arquivo, storage_path, mime_type, created_at, origem")
         .eq("financeiro_movimentacao_id", movimentacaoId)
-        .eq("origem", "retroativo")
+        .in("origem", ["retroativo", "reajuste"])
         .order("created_at", { ascending: false })
         .limit(1);
       if (error) throw error;
