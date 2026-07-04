@@ -237,15 +237,17 @@ export default function Arquivos() {
     empresasMap,
   ]);
 
-  // Agrupamento: Empresa -> Contrato -> Tipo (Mensalidade/Implantação) -> Competência -> arquivos[]
+  // Agrupamento: Empresa -> Contrato -> Tipo (Mensalidade/Implantação/Reajuste/Retroativo) -> Competência -> arquivos[]
   const grouped = useMemo(() => {
+    type TipoKey = "Mensalidade" | "Implantação" | "Reajuste" | "Retroativo";
+    const TIPOS: readonly TipoKey[] = ["Mensalidade", "Implantação", "Reajuste", "Retroativo"] as const;
     type Comp = { competencia: string; arquivos: ArquivoRow[] };
-    type TipoBucket = { tipo: "Mensalidade" | "Implantação"; competencias: Map<string, Comp>; arquivos: ArquivoRow[]; ultimoUpload: number };
+    type TipoBucket = { tipo: TipoKey; competencias: Map<string, Comp>; arquivos: ArquivoRow[]; ultimoUpload: number };
     type Contr = {
       contrato: string;
       empresaIds: Set<string>;
       arquivos: ArquivoRow[];
-      tipos: Map<"Mensalidade" | "Implantação", TipoBucket>;
+      tipos: Map<TipoKey, TipoBucket>;
       ultimoUpload: number;
     };
     type Emp = {
@@ -255,12 +257,17 @@ export default function Arquivos() {
       total: number;
       ultimoUpload: number;
     };
-    const tipoDoArquivo = (a: ArquivoRow): "Mensalidade" | "Implantação" =>
-      a.categoria === "Implantação" ? "Implantação" : "Mensalidade";
-    const ensureTipos = (): Map<"Mensalidade" | "Implantação", TipoBucket> => {
-      const m = new Map<"Mensalidade" | "Implantação", TipoBucket>();
-      m.set("Mensalidade", { tipo: "Mensalidade", competencias: new Map(), arquivos: [], ultimoUpload: 0 });
-      m.set("Implantação", { tipo: "Implantação", competencias: new Map(), arquivos: [], ultimoUpload: 0 });
+    const tipoDoArquivo = (a: ArquivoRow): TipoKey => {
+      if (a.categoria === "Implantação") return "Implantação";
+      if (a.categoria === "Reajuste") return "Reajuste";
+      if (a.categoria === "Retroativo") return "Retroativo";
+      return "Mensalidade";
+    };
+    const ensureTipos = (): Map<TipoKey, TipoBucket> => {
+      const m = new Map<TipoKey, TipoBucket>();
+      for (const t of TIPOS) {
+        m.set(t, { tipo: t, competencias: new Map(), arquivos: [], ultimoUpload: 0 });
+      }
       return m;
     };
     const empMap = new Map<string, Emp>();
@@ -296,7 +303,8 @@ export default function Arquivos() {
       c.arquivos.push(a);
       c.ultimoUpload = Math.max(c.ultimoUpload, ts);
       const tipoKey = tipoDoArquivo(a);
-      const tb = c.tipos.get(tipoKey)!;
+      const tb = c.tipos.get(tipoKey);
+      if (!tb) continue;
       tb.arquivos.push(a);
       tb.ultimoUpload = Math.max(tb.ultimoUpload, ts);
       if (!tb.competencias.has(a.competencia)) {
@@ -582,11 +590,16 @@ export default function Arquivos() {
                           .sort((a, b) => a.contrato.localeCompare(b.contrato))
                           .map((c) => {
                             const totalAll = c.arquivos.length;
+                            const TIPOS_CONTRATO = ["Mensalidade", "Implantação", "Reajuste", "Retroativo"] as const;
+                            const tipoLabels: Record<(typeof TIPOS_CONTRATO)[number], string> = {
+                              Mensalidade: "mensalidade",
+                              "Implantação": "implantação",
+                              Reajuste: "reajuste",
+                              Retroativo: "cobrança retroativa",
+                            };
                             const defaultTipo =
-                              (c.tipos.get("Implantação")?.arquivos.length ?? 0) > 0 &&
-                              (c.tipos.get("Mensalidade")?.arquivos.length ?? 0) === 0
-                                ? "Implantação"
-                                : "Mensalidade";
+                              TIPOS_CONTRATO.find((t) => (c.tipos.get(t)?.arquivos.length ?? 0) > 0) ??
+                              "Mensalidade";
                             return (
                               <div
                                 key={c.contrato}
@@ -605,31 +618,29 @@ export default function Arquivos() {
                                   </div>
                                 </div>
                                 <Tabs defaultValue={defaultTipo} className="w-full">
-                                  <TabsList className="grid w-full grid-cols-2 max-w-md">
-                                    <TabsTrigger value="Mensalidade">
-                                      Mensalidade
-                                      <Badge variant="secondary" className="ml-2">
-                                        {c.tipos.get("Mensalidade")?.arquivos.length ?? 0}
-                                      </Badge>
-                                    </TabsTrigger>
-                                    <TabsTrigger value="Implantação">
-                                      Implantação
-                                      <Badge variant="secondary" className="ml-2">
-                                        {c.tipos.get("Implantação")?.arquivos.length ?? 0}
-                                      </Badge>
-                                    </TabsTrigger>
+                                  <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+                                    {TIPOS_CONTRATO.map((t) => (
+                                      <TabsTrigger key={t} value={t}>
+                                        {t}
+                                        <Badge variant="secondary" className="ml-2">
+                                          {c.tipos.get(t)?.arquivos.length ?? 0}
+                                        </Badge>
+                                      </TabsTrigger>
+                                    ))}
                                   </TabsList>
-                                  {(["Mensalidade", "Implantação"] as const).map((tipoKey) => {
-                                    const tb = c.tipos.get(tipoKey)!;
-                                    const compsOrdenadas = Array.from(tb.competencias.values()).sort(
-                                      (a, b) => b.competencia.localeCompare(a.competencia),
-                                    );
+                                  {TIPOS_CONTRATO.map((tipoKey) => {
+                                    const tb = c.tipos.get(tipoKey);
+                                    const compsOrdenadas = tb
+                                      ? Array.from(tb.competencias.values()).sort(
+                                          (a, b) => b.competencia.localeCompare(a.competencia),
+                                        )
+                                      : [];
                                     return (
                                       <TabsContent key={tipoKey} value={tipoKey} className="mt-3">
                                         {compsOrdenadas.length === 0 ? (
                                           <div className="py-6 text-center text-sm text-muted-foreground space-y-2">
                                             <p>
-                                              Nenhum arquivo de {tipoKey === "Mensalidade" ? "mensalidade" : "implantação"} anexado ainda.
+                                              Nenhum arquivo de {tipoLabels[tipoKey]} anexado ainda.
                                             </p>
                                             {canEditFinanceiro && (
                                               <Button
