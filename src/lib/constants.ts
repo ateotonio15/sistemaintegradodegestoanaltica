@@ -56,6 +56,7 @@ export const RECLAMACOES_POR_TIPO: Record<string, string[]> = {
     "Aprazamento cirúrgico",
     "Aprazamento de consulta",
     "Aprazamento de exame",
+    "Aprazamento de medicação",
     "Aprazamento de neuro pediatra",
     "Aprazamento de ortopedista",
     "Aprazamento de terapia adulto",
