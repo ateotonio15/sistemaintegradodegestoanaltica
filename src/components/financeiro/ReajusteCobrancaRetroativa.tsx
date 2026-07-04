@@ -235,7 +235,7 @@ export function ReajusteCobrancaRetroativa() {
         .from("anexos_financeiro")
         .select("id, storage_path")
         .eq("financeiro_movimentacao_id", movimentacaoId)
-        .eq("origem", "retroativo");
+        .in("origem", ["retroativo", "reajuste"]);
       if (error) throw error;
       if (data && data.length > 0) {
         const paths = data.map((a: any) => a.storage_path).filter(Boolean);
