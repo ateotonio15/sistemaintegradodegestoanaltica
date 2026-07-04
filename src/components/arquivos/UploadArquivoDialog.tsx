@@ -82,7 +82,7 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
 
   const [empresaId, setEmpresaId] = useState<string>("");
   const [competencia, setCompetencia] = useState<string>(mesAtual());
-  const [categoria, setCategoria] = useState<string>("Outros");
+  const [categoria, setCategoria] = useState<string>("Mensalidade");
   const [observacao, setObservacao] = useState<string>("");
   const [arquivos, setArquivos] = useState<FileItem[]>([]);
   const [enviando, setEnviando] = useState(false);
@@ -91,10 +91,11 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
     if (open) {
       setEmpresaId(defaultEmpresaId ?? "");
       setCompetencia(defaultCompetencia ?? mesAtual());
+      setCategoria("Mensalidade");
     } else {
       setEmpresaId("");
       setCompetencia(mesAtual());
-      setCategoria("Outros");
+      setCategoria("Mensalidade");
       setObservacao("");
       setArquivos([]);
       setEnviando(false);
