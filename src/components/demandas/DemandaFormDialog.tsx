@@ -96,7 +96,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "executivo");
+        .in("role", ["executivo", "executivo_externo"]);
       const ids = (roles ?? []).map((r) => r.user_id);
       if (!ids.length) return [] as { user_id: string; display_name: string }[];
       const { data: profs } = await supabase
