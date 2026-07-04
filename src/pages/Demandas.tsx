@@ -56,7 +56,7 @@ import HistoricoImportacoesDialog from "@/components/demandas/HistoricoImportaco
 type StatusFilter = "todos" | "em_aberto" | "resolvido";
 
 export default function Demandas() {
-  const { isAdmin, isDiretora, isViewOnly, user } = useAuth();
+  const { isAdmin, isDiretora, isViewOnly, isExecutivo, isExecutivoExterno, user } = useAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const reclamacaoParam = params.get("reclamacao");
@@ -111,6 +111,7 @@ export default function Demandas() {
   const canEditRow = (d: Demanda) => {
     if (isAdmin) return true;
     if (isDiretora || isViewOnly) return false;
+    if (isExecutivo || isExecutivoExterno) return true;
     return (d.executiva || "").trim().toLowerCase() === profileName && profileName.length > 0;
   };
 
