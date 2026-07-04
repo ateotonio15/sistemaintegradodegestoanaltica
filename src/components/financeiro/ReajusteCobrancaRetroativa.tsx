@@ -159,7 +159,13 @@ async function ensureFinanceiroMovimentacao(empresaId: string, mesReferencia: st
   return created.id;
 }
 
-async function uploadPdfAnexo(file: File, empresaId: string, movimentacaoId: string, userId?: string | null) {
+async function uploadPdfAnexo(
+  file: File,
+  empresaId: string,
+  movimentacaoId: string,
+  userId?: string | null,
+  origem: "retroativo" | "reajuste" = "retroativo",
+) {
   const ext = file.name.split(".").pop() || "pdf";
   const path = `${empresaId}/${movimentacaoId}/${crypto.randomUUID()}.${ext}`;
   const { error: upErr } = await supabase.storage.from("anexos-financeiro").upload(path, file, {
@@ -174,7 +180,7 @@ async function uploadPdfAnexo(file: File, empresaId: string, movimentacaoId: str
     mime_type: file.type || "application/pdf",
     tamanho_bytes: file.size,
     uploaded_by: userId ?? null,
-    origem: "retroativo",
+    origem,
   } as any);
   if (insErr) throw insErr;
   return path;
