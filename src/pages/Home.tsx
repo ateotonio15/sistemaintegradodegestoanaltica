@@ -530,14 +530,14 @@ export default function Home() {
 
         {/* Inteligência de Relacionamento — oculto para Cadastro (Comum) e Financeiro */}
         {!query && !activeGroup && !isFinanceiro && role !== "comum" && (
-          <div className="w-full flex flex-col gap-4 pt-4">
+          <div className="w-full flex flex-col gap-5 pt-6">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-foreground">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold tracking-tight">
-                  Inteligência de Relacionamento
-                </h2>
+              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary text-primary-foreground shadow-sm">
+                <Sparkles className="h-4 w-4" />
               </div>
+              <h2 className="text-base font-bold tracking-tight text-foreground">
+                Inteligência de Relacionamento
+              </h2>
               <div className="flex-1 h-px bg-border/60" />
               {openInteligencia && (
                 <Button
