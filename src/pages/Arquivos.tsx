@@ -236,14 +236,15 @@ export default function Arquivos() {
     empresasMap,
   ]);
 
-  // Agrupamento: Empresa -> Contrato -> Competência -> arquivos[]
+  // Agrupamento: Empresa -> Contrato -> Tipo (Mensalidade/Implantação) -> Competência -> arquivos[]
   const grouped = useMemo(() => {
     type Comp = { competencia: string; arquivos: ArquivoRow[] };
+    type TipoBucket = { tipo: "Mensalidade" | "Implantação"; competencias: Map<string, Comp>; arquivos: ArquivoRow[]; ultimoUpload: number };
     type Contr = {
       contrato: string;
       empresaIds: Set<string>;
       arquivos: ArquivoRow[];
-      competencias: Map<string, Comp>;
+      tipos: Map<"Mensalidade" | "Implantação", TipoBucket>;
       ultimoUpload: number;
     };
     type Emp = {
@@ -252,6 +253,14 @@ export default function Arquivos() {
       contratos: Map<string, Contr>;
       total: number;
       ultimoUpload: number;
+    };
+    const tipoDoArquivo = (a: ArquivoRow): "Mensalidade" | "Implantação" =>
+      a.categoria === "Implantação" ? "Implantação" : "Mensalidade";
+    const ensureTipos = (): Map<"Mensalidade" | "Implantação", TipoBucket> => {
+      const m = new Map<"Mensalidade" | "Implantação", TipoBucket>();
+      m.set("Mensalidade", { tipo: "Mensalidade", competencias: new Map(), arquivos: [], ultimoUpload: 0 });
+      m.set("Implantação", { tipo: "Implantação", competencias: new Map(), arquivos: [], ultimoUpload: 0 });
+      return m;
     };
     const empMap = new Map<string, Emp>();
     for (const a of filtered) {
@@ -277,7 +286,7 @@ export default function Arquivos() {
           contrato,
           empresaIds: new Set(),
           arquivos: [],
-          competencias: new Map(),
+          tipos: ensureTipos(),
           ultimoUpload: 0,
         });
       }
@@ -285,10 +294,14 @@ export default function Arquivos() {
       c.empresaIds.add(empKey);
       c.arquivos.push(a);
       c.ultimoUpload = Math.max(c.ultimoUpload, ts);
-      if (!c.competencias.has(a.competencia)) {
-        c.competencias.set(a.competencia, { competencia: a.competencia, arquivos: [] });
+      const tipoKey = tipoDoArquivo(a);
+      const tb = c.tipos.get(tipoKey)!;
+      tb.arquivos.push(a);
+      tb.ultimoUpload = Math.max(tb.ultimoUpload, ts);
+      if (!tb.competencias.has(a.competencia)) {
+        tb.competencias.set(a.competencia, { competencia: a.competencia, arquivos: [] });
       }
-      c.competencias.get(a.competencia)!.arquivos.push(a);
+      tb.competencias.get(a.competencia)!.arquivos.push(a);
     }
 
     // Garante que TODAS as empresas apareçam — inclusive as ainda não implantadas
@@ -315,7 +328,7 @@ export default function Arquivos() {
           contrato,
           empresaIds: new Set([e.id]),
           arquivos: [],
-          competencias: new Map(),
+          tipos: ensureTipos(),
           ultimoUpload: 0,
         });
         empMap.set(e.id, {
@@ -330,6 +343,7 @@ export default function Arquivos() {
 
     return Array.from(empMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [filtered, empresasMap, empresas, empresaFilter, contratoFilter, competenciaFilter, tipoFilter, usuarioFilter, search]);
+
 
 
   const kpis = useMemo(() => {
