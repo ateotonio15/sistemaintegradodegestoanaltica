@@ -493,7 +493,7 @@ export default function Home() {
 
         {/* Tabs */}
         {!query && !activeGroup && (
-          <div className="flex items-center gap-6 border-b border-border/60 w-full max-w-2xl justify-center">
+          <div className="inline-flex items-center gap-1 p-1 bg-muted/60 rounded-xl">
             {(["funcoes", "utilitarios"] as const).map((t) => {
               const active = tab === t;
               return (
@@ -501,14 +501,13 @@ export default function Home() {
                   key={t}
                   onClick={() => setTab(t)}
                   className={cn(
-                    "relative pb-3 text-sm font-medium transition-colors",
-                    active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                    "px-6 md:px-8 py-2 text-sm rounded-lg transition-all",
+                    active
+                      ? "bg-card text-primary font-semibold shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground font-medium",
                   )}
                 >
                   {t === "funcoes" ? "Funções" : "Utilitários"}
-                  {active && (
-                    <span className="absolute -bottom-px left-0 right-0 h-0.5 bg-primary rounded-full" />
-                  )}
                 </button>
               );
             })}
@@ -516,7 +515,7 @@ export default function Home() {
         )}
 
         {/* Grid */}
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.length === 0 ? (
             <div className="col-span-full text-center text-sm text-muted-foreground py-12">
               Nenhum módulo encontrado.
@@ -527,6 +526,7 @@ export default function Home() {
             )
           )}
         </div>
+
 
         {/* Inteligência de Relacionamento — oculto para Cadastro (Comum) e Financeiro */}
         {!query && !activeGroup && !isFinanceiro && role !== "comum" && (
