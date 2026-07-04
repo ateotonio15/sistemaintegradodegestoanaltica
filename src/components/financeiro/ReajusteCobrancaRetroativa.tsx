@@ -486,7 +486,7 @@ export function ReajusteCobrancaRetroativa() {
         if (error) throw error;
         if (reaFile) {
           const movId = await ensureFinanceiroMovimentacao(reaEmpresa, reaCompet);
-          await uploadPdfAnexo(reaFile, reaEmpresa, movId, user?.id);
+          await uploadPdfAnexo(reaFile, reaEmpresa, movId, user?.id, "reajuste");
           await supabase
             .from("reajustes")
             .update({ financeiro_movimentacao_id: movId })
@@ -495,7 +495,7 @@ export function ReajusteCobrancaRetroativa() {
         toast.success("Reajuste atualizado.");
       } else {
         const movId = await ensureFinanceiroMovimentacao(reaEmpresa, reaCompet);
-        await uploadPdfAnexo(reaFile!, reaEmpresa, movId, user?.id);
+        await uploadPdfAnexo(reaFile!, reaEmpresa, movId, user?.id, "reajuste");
         const { error } = await supabase.from("reajustes").insert({
           empresa_id: reaEmpresa,
           competencia: reaCompet,
