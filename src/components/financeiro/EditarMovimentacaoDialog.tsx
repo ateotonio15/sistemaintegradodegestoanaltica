@@ -403,6 +403,16 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
           .eq("id", movimentacao.empresa_id);
       }
 
+      // Persiste o Tipo de Análise para TODAS as competências/pagadores da empresa,
+      // para que a escolha do usuário seja lembrada nas próximas análises.
+      const novoTipoAnalise = tipoAnalise || "normal";
+      if (novoTipoAnalise !== ((movimentacao.tipo_analise as string) || "normal")) {
+        await supabase
+          .from("financeiro_movimentacoes")
+          .update({ tipo_analise: novoTipoAnalise } as any)
+          .eq("empresa_id", movimentacao.empresa_id);
+      }
+
       return built;
     },
     onSuccess: async (built) => {
