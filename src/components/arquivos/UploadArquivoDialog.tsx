@@ -341,6 +341,22 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
             </Select>
           </div>
 
+          <div className="space-y-1.5 md:col-span-2">
+            <Label>Tipo *</Label>
+            <Select value={categoria} onValueChange={setCategoria}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Mensalidade">Mensalidade</SelectItem>
+                <SelectItem value="Implantação">Implantação (empresa nova)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Selecione "Implantação" para anexos de implementação de empresas novas.
+            </p>
+          </div>
+
 
           <div className="space-y-1.5 md:col-span-2">
             <Label>Observação (opcional)</Label>
