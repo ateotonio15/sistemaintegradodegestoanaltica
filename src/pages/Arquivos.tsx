@@ -60,6 +60,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
 import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
@@ -236,14 +237,15 @@ export default function Arquivos() {
     empresasMap,
   ]);
 
-  // Agrupamento: Empresa -> Contrato -> Competência -> arquivos[]
+  // Agrupamento: Empresa -> Contrato -> Tipo (Mensalidade/Implantação) -> Competência -> arquivos[]
   const grouped = useMemo(() => {
     type Comp = { competencia: string; arquivos: ArquivoRow[] };
+    type TipoBucket = { tipo: "Mensalidade" | "Implantação"; competencias: Map<string, Comp>; arquivos: ArquivoRow[]; ultimoUpload: number };
     type Contr = {
       contrato: string;
       empresaIds: Set<string>;
       arquivos: ArquivoRow[];
-      competencias: Map<string, Comp>;
+      tipos: Map<"Mensalidade" | "Implantação", TipoBucket>;
       ultimoUpload: number;
     };
     type Emp = {
@@ -252,6 +254,14 @@ export default function Arquivos() {
       contratos: Map<string, Contr>;
       total: number;
       ultimoUpload: number;
+    };
+    const tipoDoArquivo = (a: ArquivoRow): "Mensalidade" | "Implantação" =>
+      a.categoria === "Implantação" ? "Implantação" : "Mensalidade";
+    const ensureTipos = (): Map<"Mensalidade" | "Implantação", TipoBucket> => {
+      const m = new Map<"Mensalidade" | "Implantação", TipoBucket>();
+      m.set("Mensalidade", { tipo: "Mensalidade", competencias: new Map(), arquivos: [], ultimoUpload: 0 });
+      m.set("Implantação", { tipo: "Implantação", competencias: new Map(), arquivos: [], ultimoUpload: 0 });
+      return m;
     };
     const empMap = new Map<string, Emp>();
     for (const a of filtered) {
@@ -277,7 +287,7 @@ export default function Arquivos() {
           contrato,
           empresaIds: new Set(),
           arquivos: [],
-          competencias: new Map(),
+          tipos: ensureTipos(),
           ultimoUpload: 0,
         });
       }
@@ -285,10 +295,14 @@ export default function Arquivos() {
       c.empresaIds.add(empKey);
       c.arquivos.push(a);
       c.ultimoUpload = Math.max(c.ultimoUpload, ts);
-      if (!c.competencias.has(a.competencia)) {
-        c.competencias.set(a.competencia, { competencia: a.competencia, arquivos: [] });
+      const tipoKey = tipoDoArquivo(a);
+      const tb = c.tipos.get(tipoKey)!;
+      tb.arquivos.push(a);
+      tb.ultimoUpload = Math.max(tb.ultimoUpload, ts);
+      if (!tb.competencias.has(a.competencia)) {
+        tb.competencias.set(a.competencia, { competencia: a.competencia, arquivos: [] });
       }
-      c.competencias.get(a.competencia)!.arquivos.push(a);
+      tb.competencias.get(a.competencia)!.arquivos.push(a);
     }
 
     // Garante que TODAS as empresas apareçam — inclusive as ainda não implantadas
@@ -315,7 +329,7 @@ export default function Arquivos() {
           contrato,
           empresaIds: new Set([e.id]),
           arquivos: [],
-          competencias: new Map(),
+          tipos: ensureTipos(),
           ultimoUpload: 0,
         });
         empMap.set(e.id, {
@@ -330,6 +344,7 @@ export default function Arquivos() {
 
     return Array.from(empMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [filtered, empresasMap, empresas, empresaFilter, contratoFilter, competenciaFilter, tipoFilter, usuarioFilter, search]);
+
 
 
   const kpis = useMemo(() => {
@@ -566,9 +581,12 @@ export default function Arquivos() {
                         {Array.from(emp.contratos.values())
                           .sort((a, b) => a.contrato.localeCompare(b.contrato))
                           .map((c) => {
-                            const compsOrdenadas = Array.from(c.competencias.values()).sort(
-                              (a, b) => b.competencia.localeCompare(a.competencia),
-                            );
+                            const totalAll = c.arquivos.length;
+                            const defaultTipo =
+                              (c.tipos.get("Implantação")?.arquivos.length ?? 0) > 0 &&
+                              (c.tipos.get("Mensalidade")?.arquivos.length ?? 0) === 0
+                                ? "Implantação"
+                                : "Mensalidade";
                             return (
                               <div
                                 key={c.contrato}
@@ -576,114 +594,142 @@ export default function Arquivos() {
                               >
                                 <div className="flex items-center gap-3 min-w-0">
                                   <FileSignature className="h-4 w-4 text-primary shrink-0" />
-                                  <div className="text-left min-w-0">
-                                    <div className="font-medium truncate">Mensalidades</div>
+                                  <div className="text-left min-w-0 flex-1">
+                                    <div className="font-medium truncate">Arquivos do contrato</div>
                                     <div className="text-xs text-muted-foreground">
-                                      {compsOrdenadas.length} competência{compsOrdenadas.length === 1 ? "" : "s"} • {c.arquivos.length} arquivo{c.arquivos.length === 1 ? "" : "s"}
+                                      {totalAll} arquivo{totalAll === 1 ? "" : "s"}
                                       {c.ultimoUpload > 0 && (
                                         <> • Último: {formatDateTime(new Date(c.ultimoUpload).toISOString())}</>
                                       )}
                                     </div>
                                   </div>
                                 </div>
-                                {compsOrdenadas.length === 0 ? (
-                                  <div className="py-6 text-center text-sm text-muted-foreground space-y-2">
-                                    <p>Nenhum arquivo anexado ainda para esta empresa.</p>
-                                    {canEditFinanceiro && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => openUpload(emp.empresaId)}
-                                      >
-                                        <Plus className="h-4 w-4 mr-1" />
-                                        Anexar nota / Excel
-                                      </Button>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="space-y-3 pl-2">
-                                    {compsOrdenadas.map((comp) => (
-                                      <div key={comp.competencia} className="border rounded-md bg-background">
-                                        <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 rounded-t-md">
-                                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                                          <span className="text-sm font-medium">{compLabel(comp.competencia)}</span>
-                                          <Badge variant="outline" className="ml-auto">
-                                            {comp.arquivos.length} arquivo{comp.arquivos.length === 1 ? "" : "s"}
-                                          </Badge>
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead className="w-8"></TableHead>
-                                                <TableHead>Nome</TableHead>
-                                                
-                                                <TableHead>Tipo</TableHead>
-                                                <TableHead>Origem</TableHead>
-                                                <TableHead>Usuário</TableHead>
-                                                <TableHead>Upload</TableHead>
-                                                <TableHead className="text-right">Tamanho</TableHead>
-                                                <TableHead className="text-right">Ações</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              {comp.arquivos
-                                                .slice()
-                                                .sort((a, b) => b.created_at.localeCompare(a.created_at))
-                                                .map((a) => (
-                                                  <TableRow key={a.id}>
-                                                    <TableCell>{iconForExt(a.extensao)}</TableCell>
-                                                    <TableCell className="max-w-[280px]">
-                                                      <div className="truncate font-medium" title={a.nome_original}>
-                                                        {a.nome_original}
-                                                      </div>
-                                                      {a.observacao && (
-                                                        <div className="text-xs text-muted-foreground truncate" title={a.observacao}>
-                                                          {a.observacao}
-                                                        </div>
-                                                      )}
-                                                    </TableCell>
-                                                    <TableCell>{tipoArquivo(a.extensao)}</TableCell>
-                                                    <TableCell>
-                                                      <Badge variant={a.origem === "financeiro" ? "default" : "outline"}>
-                                                        {a.origem === "financeiro" ? "Financeiro" : "Arquivos"}
-                                                      </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="max-w-[140px] truncate" title={a.uploaded_by_nome ?? ""}>
-                                                      {a.uploaded_by_nome ?? "—"}
-                                                    </TableCell>
-                                                    <TableCell className="whitespace-nowrap text-xs">
-                                                      {formatDateTime(a.created_at)}
-                                                    </TableCell>
-                                                    <TableCell className="text-right whitespace-nowrap">
-                                                      {formatBytes(a.tamanho_bytes)}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                      <div className="flex justify-end gap-1">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePreview(a)} title="Visualizar">
-                                                          <Eye className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(a)} title="Baixar">
-                                                          <Download className="h-4 w-4" />
-                                                        </Button>
-                                                        {canEditFinanceiro && (
-                                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(a)} title="Excluir">
-                                                            <Trash2 className="h-4 w-4" />
-                                                          </Button>
-                                                        )}
-                                                      </div>
-                                                    </TableCell>
-                                                  </TableRow>
-                                                ))}
-                                            </TableBody>
-                                          </Table>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                <Tabs defaultValue={defaultTipo} className="w-full">
+                                  <TabsList className="grid w-full grid-cols-2 max-w-md">
+                                    <TabsTrigger value="Mensalidade">
+                                      Mensalidade
+                                      <Badge variant="secondary" className="ml-2">
+                                        {c.tipos.get("Mensalidade")?.arquivos.length ?? 0}
+                                      </Badge>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="Implantação">
+                                      Implantação
+                                      <Badge variant="secondary" className="ml-2">
+                                        {c.tipos.get("Implantação")?.arquivos.length ?? 0}
+                                      </Badge>
+                                    </TabsTrigger>
+                                  </TabsList>
+                                  {(["Mensalidade", "Implantação"] as const).map((tipoKey) => {
+                                    const tb = c.tipos.get(tipoKey)!;
+                                    const compsOrdenadas = Array.from(tb.competencias.values()).sort(
+                                      (a, b) => b.competencia.localeCompare(a.competencia),
+                                    );
+                                    return (
+                                      <TabsContent key={tipoKey} value={tipoKey} className="mt-3">
+                                        {compsOrdenadas.length === 0 ? (
+                                          <div className="py-6 text-center text-sm text-muted-foreground space-y-2">
+                                            <p>
+                                              Nenhum arquivo de {tipoKey === "Mensalidade" ? "mensalidade" : "implantação"} anexado ainda.
+                                            </p>
+                                            {canEditFinanceiro && (
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => openUpload(emp.empresaId)}
+                                              >
+                                                <Plus className="h-4 w-4 mr-1" />
+                                                Adicionar arquivo
+                                              </Button>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-3">
+                                            {compsOrdenadas.map((comp) => (
+                                              <div key={comp.competencia} className="border rounded-md bg-background">
+                                                <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 rounded-t-md">
+                                                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                                  <span className="text-sm font-medium">{compLabel(comp.competencia)}</span>
+                                                  <Badge variant="outline" className="ml-auto">
+                                                    {comp.arquivos.length} arquivo{comp.arquivos.length === 1 ? "" : "s"}
+                                                  </Badge>
+                                                </div>
+                                                <div className="overflow-x-auto">
+                                                  <Table>
+                                                    <TableHeader>
+                                                      <TableRow>
+                                                        <TableHead className="w-8"></TableHead>
+                                                        <TableHead>Nome</TableHead>
+                                                        <TableHead>Tipo</TableHead>
+                                                        <TableHead>Origem</TableHead>
+                                                        <TableHead>Usuário</TableHead>
+                                                        <TableHead>Upload</TableHead>
+                                                        <TableHead className="text-right">Tamanho</TableHead>
+                                                        <TableHead className="text-right">Ações</TableHead>
+                                                      </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                      {comp.arquivos
+                                                        .slice()
+                                                        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+                                                        .map((a) => (
+                                                          <TableRow key={a.id}>
+                                                            <TableCell>{iconForExt(a.extensao)}</TableCell>
+                                                            <TableCell className="max-w-[280px]">
+                                                              <div className="truncate font-medium" title={a.nome_original}>
+                                                                {a.nome_original}
+                                                              </div>
+                                                              {a.observacao && (
+                                                                <div className="text-xs text-muted-foreground truncate" title={a.observacao}>
+                                                                  {a.observacao}
+                                                                </div>
+                                                              )}
+                                                            </TableCell>
+                                                            <TableCell>{tipoArquivo(a.extensao)}</TableCell>
+                                                            <TableCell>
+                                                              <Badge variant={a.origem === "financeiro" ? "default" : "outline"}>
+                                                                {a.origem === "financeiro" ? "Financeiro" : "Arquivos"}
+                                                              </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="max-w-[140px] truncate" title={a.uploaded_by_nome ?? ""}>
+                                                              {a.uploaded_by_nome ?? "—"}
+                                                            </TableCell>
+                                                            <TableCell className="whitespace-nowrap text-xs">
+                                                              {formatDateTime(a.created_at)}
+                                                            </TableCell>
+                                                            <TableCell className="text-right whitespace-nowrap">
+                                                              {formatBytes(a.tamanho_bytes)}
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                              <div className="flex justify-end gap-1">
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePreview(a)} title="Visualizar">
+                                                                  <Eye className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(a)} title="Baixar">
+                                                                  <Download className="h-4 w-4" />
+                                                                </Button>
+                                                                {canEditFinanceiro && (
+                                                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(a)} title="Excluir">
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                  </Button>
+                                                                )}
+                                                              </div>
+                                                            </TableCell>
+                                                          </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                  </Table>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </TabsContent>
+                                    );
+                                  })}
+                                </Tabs>
                               </div>
                             );
+
                           })}
                       </div>
 
