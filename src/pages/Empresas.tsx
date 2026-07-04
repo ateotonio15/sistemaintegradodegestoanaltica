@@ -1474,27 +1474,28 @@ export default function Empresas() {
           )}
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        <Card className="rounded-2xl border-border/70 shadow-sm">
+          <CardContent className="p-4 flex items-center gap-3 flex-wrap">
           <div className="relative max-w-sm flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar por nome, código ou CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-lg" />
+            <Input placeholder="Buscar por nome, código ou CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-lg bg-muted/40 border-border/60 focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-primary/20" />
           </div>
           <Select value={respFilter} onValueChange={setRespFilter}>
-            <SelectTrigger className="rounded-lg w-[220px]"><SelectValue placeholder="Resp. Contrato" /></SelectTrigger>
+            <SelectTrigger className="rounded-lg w-[220px] bg-muted/40 border-border/60"><SelectValue placeholder="Resp. Contrato" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os responsáveis</SelectItem>
               {respOptions.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={corretoraFilter} onValueChange={setCorretoraFilter}>
-            <SelectTrigger className="rounded-lg w-[220px]"><SelectValue placeholder="Corretora" /></SelectTrigger>
+            <SelectTrigger className="rounded-lg w-[220px] bg-muted/40 border-border/60"><SelectValue placeholder="Corretora" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as corretoras</SelectItem>
               {corretoraOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={executivaFilter} onValueChange={setExecutivaFilter}>
-            <SelectTrigger className="rounded-lg w-[220px]"><SelectValue placeholder="Executiva" /></SelectTrigger>
+            <SelectTrigger className="rounded-lg w-[220px] bg-muted/40 border-border/60"><SelectValue placeholder="Executiva" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as executivas</SelectItem>
               {executivoUsers.map((u) => (
@@ -1503,7 +1504,7 @@ export default function Empresas() {
             </SelectContent>
           </Select>
           <Select value={filtroPrioridade} onValueChange={(v) => setFiltroPrioridade(v as any)}>
-            <SelectTrigger className="rounded-lg w-[200px]"><SelectValue placeholder="Prioridade" /></SelectTrigger>
+            <SelectTrigger className="rounded-lg w-[200px] bg-muted/40 border-border/60"><SelectValue placeholder="Prioridade" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas (prioridade)</SelectItem>
               <SelectItem value="somente">⭐ Somente prioridade</SelectItem>
@@ -1516,23 +1517,27 @@ export default function Empresas() {
               Limpar filtros
             </Button>
           )}
-          <Button
-            variant="outline"
-            onClick={exportarInativasExcel}
-            className="rounded-lg ml-auto"
-            title="Exportar contratos inativados para Excel"
-          >
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Relatório de Inativos
-          </Button>
-          <Button
-            variant={showInativas ? "default" : "outline"}
-            onClick={() => setShowInativas(!showInativas)}
-            className="rounded-lg"
-          >
-            {showInativas ? "Ver Ativas" : "Ver Inativas"}
-          </Button>
-        </div>
+          <div className="ml-auto flex items-center gap-2">
+            <div className="h-8 w-px bg-border/70 hidden md:block" />
+            <Button
+              variant="outline"
+              onClick={exportarInativasExcel}
+              className="rounded-lg"
+              title="Exportar contratos inativados para Excel"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Relatório de Inativos
+            </Button>
+            <Button
+              variant={showInativas ? "default" : "outline"}
+              onClick={() => setShowInativas(!showInativas)}
+              className="rounded-lg"
+            >
+              {showInativas ? "Ver Ativas" : "Ver Inativas"}
+            </Button>
+          </div>
+          </CardContent>
+        </Card>
 
         <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardContent className="p-0">
