@@ -590,11 +590,16 @@ export default function Arquivos() {
                           .sort((a, b) => a.contrato.localeCompare(b.contrato))
                           .map((c) => {
                             const totalAll = c.arquivos.length;
+                            const TIPOS_CONTRATO = ["Mensalidade", "Implantação", "Reajuste", "Retroativo"] as const;
+                            const tipoLabels: Record<(typeof TIPOS_CONTRATO)[number], string> = {
+                              Mensalidade: "mensalidade",
+                              "Implantação": "implantação",
+                              Reajuste: "reajuste",
+                              Retroativo: "cobrança retroativa",
+                            };
                             const defaultTipo =
-                              (c.tipos.get("Implantação")?.arquivos.length ?? 0) > 0 &&
-                              (c.tipos.get("Mensalidade")?.arquivos.length ?? 0) === 0
-                                ? "Implantação"
-                                : "Mensalidade";
+                              TIPOS_CONTRATO.find((t) => (c.tipos.get(t)?.arquivos.length ?? 0) > 0) ??
+                              "Mensalidade";
                             return (
                               <div
                                 key={c.contrato}
@@ -613,31 +618,29 @@ export default function Arquivos() {
                                   </div>
                                 </div>
                                 <Tabs defaultValue={defaultTipo} className="w-full">
-                                  <TabsList className="grid w-full grid-cols-2 max-w-md">
-                                    <TabsTrigger value="Mensalidade">
-                                      Mensalidade
-                                      <Badge variant="secondary" className="ml-2">
-                                        {c.tipos.get("Mensalidade")?.arquivos.length ?? 0}
-                                      </Badge>
-                                    </TabsTrigger>
-                                    <TabsTrigger value="Implantação">
-                                      Implantação
-                                      <Badge variant="secondary" className="ml-2">
-                                        {c.tipos.get("Implantação")?.arquivos.length ?? 0}
-                                      </Badge>
-                                    </TabsTrigger>
+                                  <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+                                    {TIPOS_CONTRATO.map((t) => (
+                                      <TabsTrigger key={t} value={t}>
+                                        {t}
+                                        <Badge variant="secondary" className="ml-2">
+                                          {c.tipos.get(t)?.arquivos.length ?? 0}
+                                        </Badge>
+                                      </TabsTrigger>
+                                    ))}
                                   </TabsList>
-                                  {(["Mensalidade", "Implantação"] as const).map((tipoKey) => {
-                                    const tb = c.tipos.get(tipoKey)!;
-                                    const compsOrdenadas = Array.from(tb.competencias.values()).sort(
-                                      (a, b) => b.competencia.localeCompare(a.competencia),
-                                    );
+                                  {TIPOS_CONTRATO.map((tipoKey) => {
+                                    const tb = c.tipos.get(tipoKey);
+                                    const compsOrdenadas = tb
+                                      ? Array.from(tb.competencias.values()).sort(
+                                          (a, b) => b.competencia.localeCompare(a.competencia),
+                                        )
+                                      : [];
                                     return (
                                       <TabsContent key={tipoKey} value={tipoKey} className="mt-3">
                                         {compsOrdenadas.length === 0 ? (
                                           <div className="py-6 text-center text-sm text-muted-foreground space-y-2">
                                             <p>
-                                              Nenhum arquivo de {tipoKey === "Mensalidade" ? "mensalidade" : "implantação"} anexado ainda.
+                                              Nenhum arquivo de {tipoLabels[tipoKey]} anexado ainda.
                                             </p>
                                             {canEditFinanceiro && (
                                               <Button
