@@ -3,7 +3,7 @@
 export type PaCategoria =
   | "Ótima"
   | "Normal"
-  | "Normal elevada"
+  | "PA Elevada"
   | "Hipertensão Estágio 1"
   | "Hipertensão Estágio 2"
   | "Hipertensão Estágio 3"
@@ -32,7 +32,7 @@ export function classificarPa(pas?: number | null, pad?: number | null): PaCateg
   if (pas >= 180 || pad >= 110) return "Hipertensão Estágio 3";
   if (pas >= 160 || pad >= 100) return "Hipertensão Estágio 2";
   if (pas >= 140 || pad >= 90) return "Hipertensão Estágio 1";
-  if (pas >= 130 || pad >= 85) return "Normal elevada";
+  if (pas >= 130 || pad >= 85) return "PA Elevada";
   if (pas >= 120 || pad >= 80) return "Normal";
   return "Ótima";
 }
@@ -49,7 +49,7 @@ export function classificarGlicemia(valor?: number | null, jejum?: boolean): Gli
   return "Diabetes";
 }
 
-export const PA_ALTERADAS: PaCategoria[] = ["Normal elevada", "Hipertensão Estágio 1", "Hipertensão Estágio 2", "Hipertensão Estágio 3"];
+export const PA_ALTERADAS: PaCategoria[] = ["PA Elevada", "Hipertensão Estágio 1", "Hipertensão Estágio 2", "Hipertensão Estágio 3"];
 export const PA_GRAVE: PaCategoria[] = ["Hipertensão Estágio 2", "Hipertensão Estágio 3"];
 
 export function calcularImc(pesoKg?: number | null, alturaCm?: number | null): number | null {
@@ -73,7 +73,7 @@ export function corPa(cat?: PaCategoria | null): string {
     case "Ótima":
     case "Normal":
       return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30";
-    case "Normal elevada":
+    case "PA Elevada":
       return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
     case "Hipertensão Estágio 1":
       return "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30";
@@ -147,7 +147,7 @@ export function calcularRisco(input: {
     (tem_has && tem_dm)
   ) return "alto";
   if (
-    pa === "Normal elevada" ||
+    pa === "PA Elevada" ||
     pa === "Hipertensão Estágio 1" ||
     glicemia === "Pré-Diabetes" ||
     glicemia === "Alterada pós-prandial" ||
