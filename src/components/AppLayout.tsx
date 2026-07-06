@@ -153,6 +153,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         const allowed = ["/", "/dashboard/financeiro", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes", "/contratos-recem-implantados"];
         return allowed.includes(item.to);
       }
+      if ((item.to === "/uber" || item.to === "/uber/dashboard") && !isAdmin && role !== "executivo") return false;
       if (item.adminOnly && !isAdmin) return false;
       if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "visualizacao") return false;
       if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "administradoras" && role !== "visualizacao" && role !== "diretora") return false;
