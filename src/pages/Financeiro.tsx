@@ -1104,7 +1104,27 @@ export default function Financeiro() {
       totalEmpresas: contratosSet.size,
       totalPagadores,
       notasEnviadas: kpiRows.filter((r) => r.status === "Enviada" || r.status === "Nota emitida").length,
-      aguardandoNota: kpiRows.filter((r) => r.status === "Aguardando nota").length,
+      aguardandoNota: (() => {
+        // Contabiliza 1 linha por pagador cadastrado (mesma expansão do Painel TV):
+        // - Sem pagadores cadastrados → 1 (a própria empresa)
+        // - Com pagadores → nº de pagadores + 1 (a empresa/CNPJ mãe), evitando duplicar
+        //   quando o CNPJ mãe já está entre os pagadores.
+        let total = 0;
+        kpiRows
+          .filter((r) => r.status === "Aguardando nota")
+          .forEach((r) => {
+            const lista = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p: any) => p.ativo);
+            if (lista.length === 0) {
+              total += 1;
+            } else {
+              const cnpjsPag = new Set(lista.map((p: any) => onlyDigits(p.cnpj)).filter(Boolean));
+              const cnpjMae = onlyDigits(r.empresa_cnpj);
+              const incluiMae = !!cnpjMae && !cnpjsPag.has(cnpjMae);
+              total += lista.length + (incluiMae ? 1 : 0);
+            }
+          });
+        return total;
+      })(),
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
       foraDoPrazo,
     };
