@@ -72,18 +72,25 @@ export function useExecutivas() {
     queryKey: ["executivas_list"],
     enabled: !loading && !!user,
     queryFn: async () => {
-      const { data, error } = await sb
+      const { data: roles, error: rolesErr } = await sb
         .from("user_roles")
-        .select("user_id, profiles!inner(user_id, display_name, username)")
+        .select("user_id")
         .eq("role", "executivo");
-      if (error) throw error;
-      return (data ?? [])
-        .map((r: any) => ({
-          user_id: r.user_id,
-          display_name: r.profiles?.display_name ?? "—",
-          username: r.profiles?.username ?? "",
+      if (rolesErr) throw rolesErr;
+      const ids = (roles ?? []).map((r: any) => r.user_id);
+      if (!ids.length) return [] as { user_id: string; display_name: string; username: string }[];
+      const { data: profs, error: pErr } = await sb
+        .from("profiles")
+        .select("user_id, display_name, username")
+        .in("user_id", ids);
+      if (pErr) throw pErr;
+      return (profs ?? [])
+        .map((p: any) => ({
+          user_id: p.user_id,
+          display_name: p.display_name ?? p.username ?? "—",
+          username: p.username ?? "",
         }))
-        .sort((a: any, b: any) => a.display_name.localeCompare(b.display_name));
+        .sort((a, b) => a.display_name.localeCompare(b.display_name));
     },
   });
 }
