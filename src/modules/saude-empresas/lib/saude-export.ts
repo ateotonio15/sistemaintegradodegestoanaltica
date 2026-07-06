@@ -180,7 +180,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // ----- Cálculos -----
   const total = triagens.length;
 
-  const paCounts = { "Ótima": 0, Normal: 0, "Normal elevada": 0, "Hipertensão Estágio 1": 0, "Hipertensão Estágio 2": 0, "Hipertensão Estágio 3": 0, "Não realizado": 0 };
+  const paCounts = { "Ótima": 0, Normal: 0, "PA Elevada": 0, "Hipertensão Estágio 1": 0, "Hipertensão Estágio 2": 0, "Hipertensão Estágio 3": 0, "Não realizado": 0 };
   const gliCounts = { Normal: 0, "Pré-Diabetes": 0, "Alterada pós-prandial": 0, Diabetes: 0, "Não realizado": 0 };
 
   triagens.forEach((t) => {
@@ -191,7 +191,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
     else gliCounts["Não realizado"]++;
   });
 
-  const paAlt = paCounts["Normal elevada"] + paCounts["Hipertensão Estágio 1"] + paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
+  const paAlt = paCounts["PA Elevada"] + paCounts["Hipertensão Estágio 1"] + paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
   const paNormal = paCounts["Ótima"] + paCounts["Normal"];
   const paNR = paCounts["Não realizado"];
   const gliAlt = gliCounts["Pré-Diabetes"] + gliCounts["Alterada pós-prandial"] + gliCounts["Diabetes"];
@@ -303,7 +303,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   s4.background = conteudoBg;
   slideTitle(s4, "Classificação — Pressão Arterial", "Distribuição detalhada por categoria");
 
-  const paLabels = ["Ótima", "Normal", "Normal elevada", "Hipertensão Estágio 1", "Hipertensão Estágio 2", "Hipertensão Estágio 3", "Não realizado"];
+  const paLabels = ["Ótima", "Normal", "PA Elevada", "Hipertensão Estágio 1", "Hipertensão Estágio 2", "Hipertensão Estágio 3", "Não realizado"];
   s4.addChart(pptx.ChartType.bar,
     [{ name: "Colaboradores", labels: paLabels, values: paLabels.map((l) => (paCounts as any)[l]) }],
     {
