@@ -21,7 +21,8 @@ const fmtDate = (s: string) => {
 };
 
 export default function UberCorridas() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isExecutivo } = useAuth();
+  const canManageCorridas = isAdmin || isExecutivo;
   const { data: corridas = [], isLoading } = useUberCorridas();
   const del = useDeleteCorrida();
 
@@ -109,9 +110,9 @@ export default function UberCorridas() {
             <Link to="/uber/dashboard"><BarChart3 className="h-4 w-4 mr-1" />Dashboard</Link>
           </Button>
           <Button variant="outline" size="sm" onClick={exportar}><Download className="h-4 w-4 mr-1" />Exportar</Button>
-          {isAdmin && (
+          {canManageCorridas && (
             <>
-              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-1" />Importar Excel</Button>
+              {isAdmin && <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-1" />Importar Excel</Button>}
               <Button size="sm" onClick={() => { setEdit(null); setDialogOpen(true); }}><Plus className="h-4 w-4 mr-1" />Nova corrida</Button>
             </>
           )}
@@ -173,7 +174,7 @@ export default function UberCorridas() {
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Status</TableHead>
-                {isAdmin && <TableHead className="text-right">Ações</TableHead>}
+                {canManageCorridas && <TableHead className="text-right">Ações</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -195,7 +196,7 @@ export default function UberCorridas() {
                       ? <Badge variant="destructive">Cancelada</Badge>
                       : <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Ativa</Badge>}
                   </TableCell>
-                  {isAdmin && (
+                  {canManageCorridas && (
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => { setEdit(c); setDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => setToDel(c)}><Trash2 className="h-4 w-4 text-rose-500" /></Button>
