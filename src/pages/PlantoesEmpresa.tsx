@@ -16,7 +16,7 @@ import { InlineDemandaForm } from "@/components/plantoes/InlineDemandaForm";
 export default function PlantoesEmpresa() {
   const { empresaId } = useParams<{ empresaId: string }>();
   const { role } = useAuth();
-  const isAdmin = role === "admin" || role === "executivo_externo";
+  const isAdmin = role === "admin" || role === "executivo_externo" || role === "executivo";
   const navigate = useNavigate();
   const location = useLocation();
   const canCreateDemanda = role !== "visualizacao" && role !== "diretora";
