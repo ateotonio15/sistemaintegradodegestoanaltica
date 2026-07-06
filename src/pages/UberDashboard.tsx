@@ -58,7 +58,8 @@ function Trend({ delta }: { delta: number | null }) {
 }
 
 export default function UberDashboard() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isExecutivo } = useAuth();
+  const canManageCorridas = isAdmin || isExecutivo;
   const { data: corridas = [], isLoading } = useUberCorridas();
 
   const hoje = new Date();
@@ -265,7 +266,7 @@ export default function UberDashboard() {
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={exportar}><Download className="h-4 w-4 mr-1" />Exportar</Button>
           <Button asChild variant="outline" size="sm"><Link to="/uber"><Users className="h-4 w-4 mr-1" />Corridas</Link></Button>
-          {isAdmin && <Button size="sm" onClick={() => setNovaOpen(true)}><Plus className="h-4 w-4 mr-1" />Nova corrida</Button>}
+          {canManageCorridas && <Button size="sm" onClick={() => setNovaOpen(true)}><Plus className="h-4 w-4 mr-1" />Nova corrida</Button>}
         </div>
       </div>
 
