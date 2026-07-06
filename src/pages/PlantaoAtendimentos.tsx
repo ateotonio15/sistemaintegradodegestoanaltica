@@ -14,7 +14,7 @@ import { InlineDemandaForm } from "@/components/plantoes/InlineDemandaForm";
 export default function PlantaoAtendimentos() {
   const { plantaoId } = useParams<{ plantaoId: string }>();
   const { role, user, loading: authLoading } = useAuth();
-  const isAdmin = role === "admin" || role === "executivo_externo";
+  const isAdmin = role === "admin" || role === "executivo_externo" || role === "executivo";
   usePlantoesRealtime();
 
   const { data: plantao } = useQuery({
