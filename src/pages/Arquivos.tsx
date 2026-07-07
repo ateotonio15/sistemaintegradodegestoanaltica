@@ -496,11 +496,16 @@ export default function Arquivos() {
             {isLoading ? (
               <p className="text-center text-muted-foreground py-12">Carregando...</p>
             ) : grouped.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground space-y-2">
-                <FolderArchive className="h-10 w-10 mx-auto opacity-50" />
-                <p>Nenhum arquivo encontrado.</p>
+              <div className="py-20 text-center space-y-3">
+                <div className="mx-auto h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center">
+                  <FolderArchive className="h-8 w-8 text-muted-foreground/60" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Nenhum arquivo encontrado</p>
+                  <p className="text-xs text-muted-foreground mt-1">Ajuste os filtros ou adicione o primeiro arquivo.</p>
+                </div>
                 {canEditFinanceiro && (
-                  <Button variant="outline" size="sm" onClick={() => openUpload()}>
+                  <Button variant="outline" size="sm" onClick={() => openUpload()} className="mt-2">
                     <Plus className="h-4 w-4 mr-1" />
                     Adicionar primeiro arquivo
                   </Button>
