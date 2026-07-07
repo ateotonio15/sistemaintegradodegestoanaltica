@@ -542,8 +542,22 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
 
                     {r.coparticipacao && (r.coparticipacao.quantidade !== 0 || r.coparticipacao.total !== 0) && (
                       <div className="mt-3 rounded-lg border border-emerald-300/50 dark:border-emerald-700/40 bg-card overflow-hidden">
-                        <div className="bg-emerald-100/60 dark:bg-emerald-950/40 px-3 py-2 text-xs font-semibold text-emerald-900 dark:text-emerald-200 uppercase tracking-wide">
-                          Coparticipação — Empresarial
+                        <div className="bg-emerald-100/60 dark:bg-emerald-950/40 px-3 py-2 flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-emerald-900 dark:text-emerald-200 uppercase tracking-wide">
+                            Coparticipação — Empresarial
+                          </span>
+                          {onGerarHistoricoCoparticipacao && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={onGerarHistoricoCoparticipacao}
+                              className="h-7 gap-1.5 text-xs"
+                              title="Gerar histórico dedicado para os valores de coparticipação"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Gerar Histórico Coparticipação
+                            </Button>
+                          )}
                         </div>
                         <table className="w-full text-sm">
                           <thead>
