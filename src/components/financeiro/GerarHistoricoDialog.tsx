@@ -349,7 +349,11 @@ export function GerarHistoricoDialog({
   };
 
   const textoAlterado = textoFinal !== textoOriginalGerado;
-  const possuiSalvo = !!savedRecord?.texto_historico;
+  const possuiSalvo = modo !== "coparticipacao" && !!savedRecord?.texto_historico;
+  const podeSalvar = modo !== "coparticipacao";
+  const tituloDialog = modo === "coparticipacao"
+    ? "Gerar Histórico — Coparticipação"
+    : "Gerar Histórico Automático";
 
   return (
     <>
@@ -358,7 +362,7 @@ export function GerarHistoricoDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              Gerar Histórico Automático
+              {tituloDialog}
             </DialogTitle>
             <DialogDescription>
               {row?.empresa_nome} — {competencia?.label ?? row?.mes_referencia}
