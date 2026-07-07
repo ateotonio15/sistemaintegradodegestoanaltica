@@ -446,9 +446,9 @@ export function FormatarFaturamentoCard() {
               </div>
               <div className="min-w-0">
                 <DialogHeader className="space-y-1 text-left">
-                  <DialogTitle className="text-lg leading-tight">Adicionar Exclusões ao Faturamento</DialogTitle>
-                  <DialogDescription className="text-xs leading-relaxed">
-                    Envie o arquivo <strong>bruto</strong> e o arquivo de <strong>exclusões</strong>. As linhas serão anexadas ao final do bruto com <span className="text-foreground font-medium">Tipo Cobrança = "Exclusão"</span> e a formatação escolhida será aplicada.
+                  <DialogTitle className="text-xl leading-tight">Adicionar Exclusões ao Faturamento</DialogTitle>
+                  <DialogDescription className="text-sm leading-relaxed">
+                    Envie o arquivo <strong>bruto</strong> e o arquivo de <strong>exclusões</strong>. As linhas serão anexadas ao final do bruto com <span className="text-foreground font-medium">Tipo Cobrança = "Exclusão"</span> e o cálculo <strong>prorata</strong> será aplicado automaticamente.
                   </DialogDescription>
                 </DialogHeader>
               </div>
