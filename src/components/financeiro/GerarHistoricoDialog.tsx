@@ -37,6 +37,7 @@ import {
   calcularVencimentoPadrao,
   detectarCompetencia,
   gerarHistoricoTexto,
+  gerarHistoricoCoparticipacaoTexto,
   isoToBR,
 } from "@/lib/historico-utils";
 import { calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
@@ -79,6 +80,7 @@ interface Props {
   row: FinanceiroRow | null;
   resultados: AnaliseResultado[] | null;
   anexosNomes: string[];
+  modo?: "mensalidade" | "coparticipacao";
 }
 
 export function GerarHistoricoDialog({
@@ -87,6 +89,7 @@ export function GerarHistoricoDialog({
   row,
   resultados,
   anexosNomes,
+  modo = "mensalidade",
 }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -182,7 +185,8 @@ export function GerarHistoricoDialog({
     const codigo = String((empresaInfo as any)?.codigo_contrato ?? "").trim();
     const poFixo = codigo === "571" ? "4600004172" : null;
 
-    const textoGerado = gerarHistoricoTexto(resultados, {
+    const gerador = modo === "coparticipacao" ? gerarHistoricoCoparticipacaoTexto : gerarHistoricoTexto;
+    const textoGerado = gerador(resultados, {
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
       incluirDda: true,
@@ -200,13 +204,14 @@ export function GerarHistoricoDialog({
   // Quando carregar dados, se houver histórico salvo, abre direto no preview
   useEffect(() => {
     if (!open) return;
+    if (modo === "coparticipacao") return; // coparticipação não persiste versão separada
     if (savedRecord?.texto_historico) {
       const textoCarregado = deveIncluirObsDda ? garantirObsDda(savedRecord.texto_historico) : savedRecord.texto_historico;
       setTexto(textoCarregado);
       setTextoOriginalGerado(textoCarregado);
       setStep("preview");
     }
-  }, [open, savedRecord, deveIncluirObsDda]);
+  }, [open, savedRecord, deveIncluirObsDda, modo]);
 
   useEffect(() => {
     if (!open || step !== "preview" || !deveIncluirObsDda || !texto || texto.includes(OBS_DDA)) return;
@@ -344,7 +349,11 @@ export function GerarHistoricoDialog({
   };
 
   const textoAlterado = textoFinal !== textoOriginalGerado;
-  const possuiSalvo = !!savedRecord?.texto_historico;
+  const possuiSalvo = modo !== "coparticipacao" && !!savedRecord?.texto_historico;
+  const podeSalvar = modo !== "coparticipacao";
+  const tituloDialog = modo === "coparticipacao"
+    ? "Gerar Histórico — Coparticipação"
+    : "Gerar Histórico Automático";
 
   return (
     <>
@@ -353,7 +362,7 @@ export function GerarHistoricoDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              Gerar Histórico Automático
+              {tituloDialog}
             </DialogTitle>
             <DialogDescription>
               {row?.empresa_nome} — {competencia?.label ?? row?.mes_referencia}
@@ -465,15 +474,17 @@ export function GerarHistoricoDialog({
                   <RotateCcw className="h-4 w-4" />
                   Histórico padrão
                 </Button>
-                <Button
-                  variant="secondary"
-                  onClick={handleSalvar}
-                  disabled={!textoFinal.trim() || salvando}
-                  className="gap-1"
-                >
-                  <Save className="h-4 w-4" />
-                  {salvando ? "Salvando..." : "Salvar histórico"}
-                </Button>
+                {podeSalvar && (
+                  <Button
+                    variant="secondary"
+                    onClick={handleSalvar}
+                    disabled={!textoFinal.trim() || salvando}
+                    className="gap-1"
+                  >
+                    <Save className="h-4 w-4" />
+                    {salvando ? "Salvando..." : "Salvar histórico"}
+                  </Button>
+                )}
                 <Button onClick={handleCopiar} className="gap-1">
                   <Copy className="h-4 w-4" />
                   Copiar histórico

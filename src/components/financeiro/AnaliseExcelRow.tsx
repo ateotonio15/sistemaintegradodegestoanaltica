@@ -50,6 +50,7 @@ interface Props {
   comparacoes?: ComparacaoQualquer[] | null;
   onReanalisar?: () => void;
   onGerarHistorico?: () => void;
+  onGerarHistoricoCoparticipacao?: () => void;
   contexto?: ContextoAnalise;
 }
 
@@ -93,7 +94,7 @@ function ValorComCheck({
   );
 }
 
-export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, contexto }: Props) {
+export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, onGerarHistoricoCoparticipacao, contexto }: Props) {
   const { toast } = useToast();
   const [analiseCompletaOpen, setAnaliseCompletaOpen] = useState(false);
 
@@ -112,6 +113,9 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
         (r.devolucoes && (r.devolucoes.quantidade > 0 || r.devolucoes.total !== 0)) ||
         (r.taxaAdesao && ((r.taxaAdesao.quantidade ?? 0) > 0 || (r.taxaAdesao.total ?? 0) > 0)),
     );
+
+  const temCoparticipacao =
+    !!resultados && resultados.some((r) => (r.coparticipacao?.total ?? 0) > 0);
 
   const handleAnaliseCompleta = () => {
     if (!contexto?.nomeExcel) {
@@ -137,7 +141,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
     <TableRow className="bg-muted/30 border-l-2 border-l-primary hover:bg-muted/30">
       <TableCell colSpan={colSpan} className="p-0">
         <div className="px-6 py-4 relative">
-          {!isLoading && (onReanalisar || (onGerarHistorico && temResultados) || contexto) && (
+          {!isLoading && (onReanalisar || (onGerarHistorico && temResultados) || (onGerarHistoricoCoparticipacao && temCoparticipacao) || contexto) && (
             <div className="absolute top-3 right-4 flex gap-2">
               {contexto && (
                 <Button
@@ -161,6 +165,18 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                 >
                   <FileText className="h-3 w-3" />
                   Gerar Histórico
+                </Button>
+              )}
+              {onGerarHistoricoCoparticipacao && temCoparticipacao && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGerarHistoricoCoparticipacao}
+                  className="h-7 gap-1.5 text-xs"
+                  title="Gerar histórico dedicado para os valores de coparticipação"
+                >
+                  <FileText className="h-3 w-3" />
+                  Gerar Histórico Coparticipação
                 </Button>
               )}
               {onReanalisar && (

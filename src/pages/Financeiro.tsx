@@ -113,6 +113,8 @@ export default function Financeiro() {
   const [regrasEmpresariaisOpen, setRegrasEmpresariaisOpen] = useState(false);
   const [historicoRow, setHistoricoRow] = useState<FinanceiroRow | null>(null);
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
+  const [historicoCopRow, setHistoricoCopRow] = useState<FinanceiroRow | null>(null);
+  const [historicoCopDialogOpen, setHistoricoCopDialogOpen] = useState(false);
 
   // Realtime exclusivo da aba Financeiro — refetch incremental por linha,
   // sem reload, sem reset de filtros/estado. Cleanup automático ao sair.
@@ -1389,6 +1391,11 @@ export default function Financeiro() {
     setHistoricoDialogOpen(true);
   };
 
+  const handleGerarHistoricoCoparticipacao = (row: FinanceiroRow) => {
+    setHistoricoCopRow(row);
+    setHistoricoCopDialogOpen(true);
+  };
+
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
   const ANALISE_PARSER_VERSION = "28";
 
@@ -2615,6 +2622,7 @@ export default function Financeiro() {
           onToggleExpand={handleToggleExpand}
           onReanalisar={handleReanalisar}
           onGerarHistorico={canManageFinanceiro ? handleGerarHistorico : undefined}
+          onGerarHistoricoCoparticipacao={canManageFinanceiro ? handleGerarHistoricoCoparticipacao : undefined}
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
@@ -2667,6 +2675,17 @@ export default function Financeiro() {
             row={historicoRow}
             resultados={historicoRow ? (analiseResultados[historicoRow.rowKey ?? historicoRow.id] ?? analiseResultados[historicoRow.id] ?? null) : null}
             anexosNomes={historicoRow ? ((anexosMap[historicoRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
+          />
+        )}
+
+        {canManageFinanceiro && (
+          <GerarHistoricoDialog
+            open={historicoCopDialogOpen}
+            onOpenChange={setHistoricoCopDialogOpen}
+            row={historicoCopRow}
+            resultados={historicoCopRow ? (analiseResultados[historicoCopRow.rowKey ?? historicoCopRow.id] ?? analiseResultados[historicoCopRow.id] ?? null) : null}
+            anexosNomes={historicoCopRow ? ((anexosMap[historicoCopRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
+            modo="coparticipacao"
           />
         )}
       </div>
