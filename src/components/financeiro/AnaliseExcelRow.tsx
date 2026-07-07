@@ -167,6 +167,18 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                   Gerar Histórico
                 </Button>
               )}
+              {onGerarHistoricoCoparticipacao && temCoparticipacao && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGerarHistoricoCoparticipacao}
+                  className="h-7 gap-1.5 text-xs"
+                  title="Gerar histórico dedicado para os valores de coparticipação"
+                >
+                  <FileText className="h-3 w-3" />
+                  Gerar Histórico Coparticipação
+                </Button>
+              )}
               {onReanalisar && (
                 <Button
                   variant="outline"
