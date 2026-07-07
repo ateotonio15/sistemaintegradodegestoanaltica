@@ -547,13 +547,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                             </Button>
                           )}
                         </div>
-                        <table className="w-full text-sm table-fixed">
-                          <colgroup>
-                            <col style={{ width: "40%" }} />
-                            <col style={{ width: "20%" }} />
-                            <col style={{ width: "20%" }} />
-                            <col style={{ width: "20%" }} />
-                          </colgroup>
+                        <table className="w-full text-sm">
                           <thead>
                             <tr className="bg-muted/30">
                               <th className="text-left font-medium text-muted-foreground px-3 py-2">Categoria</th>
