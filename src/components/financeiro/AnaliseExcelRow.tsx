@@ -524,6 +524,40 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                       </div>
                     )}
 
+                    {r.coparticipacao && (r.coparticipacao.quantidade !== 0 || r.coparticipacao.total !== 0) && (
+                      <div className="mt-3 rounded-lg border border-emerald-300/50 dark:border-emerald-700/40 bg-card overflow-hidden">
+                        <div className="bg-emerald-100/60 dark:bg-emerald-950/40 px-3 py-2 text-xs font-semibold text-emerald-900 dark:text-emerald-200 uppercase tracking-wide">
+                          Coparticipação — Empresarial
+                        </div>
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-muted/30">
+                              <th className="text-left font-medium text-muted-foreground px-3 py-2">Categoria</th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">Beneficiários</th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(r.coparticipacao.substipulantes && r.coparticipacao.substipulantes.length > 0
+                              ? r.coparticipacao.substipulantes
+                              : [{ nome: "Coparticipação", quantidade: r.coparticipacao.quantidade, total: r.coparticipacao.total }]
+                            ).map((s, i) => (
+                              <tr key={`${s.nome}-${i}`} className="border-t border-border">
+                                <td className="px-3 py-2 font-medium">{s.nome}</td>
+                                <td className="px-3 py-2 text-right tabular-nums">{s.quantidade}</td>
+                                <td className="px-3 py-2 text-right font-semibold tabular-nums">{formatBRL(s.total)}</td>
+                              </tr>
+                            ))}
+                            <tr className="border-t-2 border-border bg-muted/40">
+                              <td className="px-3 py-2 font-semibold">Total Geral</td>
+                              <td className="px-3 py-2 text-right font-bold tabular-nums">{r.coparticipacao.quantidade}</td>
+                              <td className="px-3 py-2 text-right font-bold text-primary tabular-nums">{formatBRL(r.coparticipacao.total)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
                     {cmpSimples && (
                       <div className="mt-3 rounded-lg border border-border bg-card overflow-hidden">
                         <table className="w-full text-sm">
