@@ -1391,6 +1391,11 @@ export default function Financeiro() {
     setHistoricoDialogOpen(true);
   };
 
+  const handleGerarHistoricoCoparticipacao = (row: FinanceiroRow) => {
+    setHistoricoCopRow(row);
+    setHistoricoCopDialogOpen(true);
+  };
+
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
   const ANALISE_PARSER_VERSION = "28";
 
