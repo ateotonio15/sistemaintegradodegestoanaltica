@@ -1438,11 +1438,11 @@ export default function Empresas() {
             </div>
           )}
 
-          {/* Executivo edit dialog - restricted to contato, telefone, email + executiva */}
-          {isExecutivo && (
-            <Dialog open={dialogOpen && isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+          {/* Restricted edit dialog - Executivo edits contato + executiva; Enfermeira edits somente contato */}
+          {(isExecutivo || isEnfermeira) && (
+            <Dialog open={dialogOpen && (isExecutivo || isEnfermeira)} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
               <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-xl">
-                <DialogHeader><DialogTitle>Editar Informações</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{isEnfermeira ? "Editar Contato" : "Editar Informações"}</DialogTitle></DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
                   <div className="grid gap-4">
                     <div className="space-y-2">
@@ -1461,22 +1461,24 @@ export default function Empresas() {
                       <Label className="text-sm font-medium">E-mail da Empresa</Label>
                       <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Executiva Responsável</Label>
-                      <Select
-                        value={(form as any).executiva_user_id ?? ""}
-                        onValueChange={(v) => setForm({ ...form, executiva_user_id: v || null } as any)}
-                      >
-                        <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
-                        <SelectContent>
-                          {executivoUsers.map((u) => (
-                            <SelectItem key={u.user_id} value={u.user_id}>
-                              {u.display_name || u.user_id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {isExecutivo && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Executiva Responsável</Label>
+                        <Select
+                          value={(form as any).executiva_user_id ?? ""}
+                          onValueChange={(v) => setForm({ ...form, executiva_user_id: v || null } as any)}
+                        >
+                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
+                          <SelectContent>
+                            {executivoUsers.map((u) => (
+                              <SelectItem key={u.user_id} value={u.user_id}>
+                                {u.display_name || u.user_id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
