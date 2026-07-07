@@ -213,44 +213,50 @@ export function gerarHistoricoTexto(
     );
   }
 
-  // ============= Bloco de Coparticipação (histórico adicional) =============
+  return linhas.join("\n");
+}
+
+/** Gera histórico dedicado para valores de coparticipação. */
+export function gerarHistoricoCoparticipacaoTexto(
+  resultados: AnaliseResultado[],
+  opts: HistoricoOpts,
+): string {
   const totalCopartic = resultados.reduce(
     (acc, r) => acc + (r.coparticipacao?.total ?? 0),
     0,
   );
-  if (totalCopartic > 0) {
-    const periodoCop =
-      (opts.coparticipacaoPeriodoLabel && opts.coparticipacaoPeriodoLabel.trim()) ||
-      mesAnteriorLabel(opts.competenciaLabel) ||
-      opts.competenciaLabel;
+  if (totalCopartic <= 0) return "";
 
-    linhas.push("");
-    linhas.push("");
-    linhas.push(`Período de: ${periodoCop}.`);
-    linhas.push(`Coparticipação: ${fmtBR(totalCopartic)} ${opts.dataVencimento}.`);
-    linhas.push("");
+  const periodoCop =
+    (opts.coparticipacaoPeriodoLabel && opts.coparticipacaoPeriodoLabel.trim()) ||
+    mesAnteriorLabel(opts.competenciaLabel) ||
+    opts.competenciaLabel;
 
-    if (opts.pagamentoViaDeposito) {
-      linhas.push(
-        "OBS.: Dados bancários para depósito: Banco Itaú, Agência: 0071, Conta Corrente: 11663-6.",
-      );
-      linhas.push("");
-      linhas.push(
-        "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
-      );
-      linhas.push(
-        "Decisão judicial conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
-      );
-    } else {
-      linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
-      linhas.push("");
-      linhas.push(
-        "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
-      );
-      linhas.push(
-        "Suspensão de PIS e COFINS, trânsito em julgado conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
-      );
-    }
+  const linhas: string[] = [];
+  linhas.push(`Período de: ${periodoCop}.`);
+  linhas.push(`Coparticipação: ${fmtBR(totalCopartic)} ${opts.dataVencimento}.`);
+  linhas.push("");
+
+  if (opts.pagamentoViaDeposito) {
+    linhas.push(
+      "OBS.: Dados bancários para depósito: Banco Itaú, Agência: 0071, Conta Corrente: 11663-6.",
+    );
+    linhas.push("");
+    linhas.push(
+      "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+    );
+    linhas.push(
+      "Decisão judicial conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+    );
+  } else {
+    linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
+    linhas.push("");
+    linhas.push(
+      "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+    );
+    linhas.push(
+      "Suspensão de PIS e COFINS, trânsito em julgado conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+    );
   }
 
   return linhas.join("\n");
