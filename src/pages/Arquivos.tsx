@@ -44,11 +44,7 @@ import {
   Image as ImageIcon,
   Download,
   Eye,
-  // Upload icon removed: replaced by Plus on Adicionar arquivo button
   Trash2,
-  Files,
-  HardDrive,
-  Clock,
   Building2,
   FileSignature,
   CalendarDays,
@@ -355,16 +351,6 @@ export default function Arquivos() {
 
 
 
-  const kpis = useMemo(() => {
-    const total = arquivos.length;
-    const pdfs = arquivos.filter((a) => tipoArquivo(a.extensao) === "PDF").length;
-    const excels = arquivos.filter((a) => tipoArquivo(a.extensao) === "Excel").length;
-    const seteDias = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const recentes = arquivos.filter((a) => new Date(a.created_at).getTime() >= seteDias).length;
-    const espaco = arquivos.reduce((acc, a) => acc + (a.tamanho_bytes ?? 0), 0);
-    return { total, pdfs, excels, recentes, espaco };
-  }, [arquivos]);
-
   async function handleDownload(a: ArquivoRow) {
     try {
       const { data, error } = await supabase.storage.from(a.bucket || DEFAULT_BUCKET).download(a.storage_path);
@@ -409,55 +395,39 @@ export default function Arquivos() {
 
   return (
     <>
-      <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
-        <header className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
-              <FolderArchive className="h-6 w-6 text-primary" />
+      <div className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+        {/* Header com faixa gradiente */}
+        <header className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-primary/[0.04] to-transparent p-6 md:p-8">
+          <div className="pointer-events-none absolute -top-16 -right-16 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+          <div className="relative flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-primary/15 text-primary flex items-center justify-center ring-1 ring-primary/20 shadow-sm">
+                <FolderArchive className="h-7 w-7" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Repositório Financeiro</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Gestão documental dos arquivos enviados manualmente pelo Financeiro
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  <span className="font-semibold text-foreground">{grouped.length}</span> empresa{grouped.length === 1 ? "" : "s"}
+                  <span className="mx-1.5 text-muted-foreground/50">·</span>
+                  <span className="font-semibold text-foreground">{filtered.length}</span> arquivo{filtered.length === 1 ? "" : "s"}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Repositório Financeiro</h1>
-              <p className="text-sm text-muted-foreground">
-                Gestão documental dos arquivos enviados manualmente pelo Financeiro
-              </p>
-            </div>
+            {canEditFinanceiro && (
+              <Button onClick={() => openUpload()} className="gap-2 shadow-sm" size="lg">
+                <Plus className="h-4 w-4" />
+                Adicionar arquivo
+              </Button>
+            )}
           </div>
-          {canEditFinanceiro && (
-            <Button onClick={() => openUpload()} className="gap-2" size="lg">
-              <Plus className="h-4 w-4" />
-              Adicionar arquivo
-            </Button>
-          )}
         </header>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <KpiCard icon={<Files className="h-4 w-4" />} label="Total" value={kpis.total.toString()} />
-          <KpiCard
-            icon={<FileText className="h-4 w-4 text-rose-500" />}
-            label="PDFs"
-            value={kpis.pdfs.toString()}
-          />
-          <KpiCard
-            icon={<FileSpreadsheet className="h-4 w-4 text-emerald-500" />}
-            label="Excels"
-            value={kpis.excels.toString()}
-          />
-          <KpiCard
-            icon={<Clock className="h-4 w-4 text-blue-500" />}
-            label="Últimos 7 dias"
-            value={kpis.recentes.toString()}
-          />
-          <KpiCard
-            icon={<HardDrive className="h-4 w-4 text-amber-500" />}
-            label="Espaço"
-            value={formatBytes(kpis.espaco)}
-          />
-        </div>
-
         {/* Filtros */}
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="pt-5 pb-5">
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <div className="relative md:col-span-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -465,7 +435,7 @@ export default function Arquivos() {
                   placeholder="Buscar arquivo, empresa, contrato, competência..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 bg-background"
                 />
               </div>
               <Select value={empresaFilter} onValueChange={setEmpresaFilter}>
@@ -520,24 +490,22 @@ export default function Arquivos() {
         </Card>
 
         {/* Lista agrupada: Empresa → Contrato → Competência */}
-        <Card>
-          <CardHeader className="pb-3 flex-row items-center justify-between">
-            <CardTitle className="text-base">
-              Repositório por contrato{" "}
-              <span className="text-muted-foreground font-normal">
-                ({grouped.length} empresa{grouped.length === 1 ? "" : "s"} • {filtered.length} arquivo{filtered.length === 1 ? "" : "s"})
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="pt-5">
+
             {isLoading ? (
               <p className="text-center text-muted-foreground py-12">Carregando...</p>
             ) : grouped.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground space-y-2">
-                <FolderArchive className="h-10 w-10 mx-auto opacity-50" />
-                <p>Nenhum arquivo encontrado.</p>
+              <div className="py-20 text-center space-y-3">
+                <div className="mx-auto h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center">
+                  <FolderArchive className="h-8 w-8 text-muted-foreground/60" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Nenhum arquivo encontrado</p>
+                  <p className="text-xs text-muted-foreground mt-1">Ajuste os filtros ou adicione o primeiro arquivo.</p>
+                </div>
                 {canEditFinanceiro && (
-                  <Button variant="outline" size="sm" onClick={() => openUpload()}>
+                  <Button variant="outline" size="sm" onClick={() => openUpload()} className="mt-2">
                     <Plus className="h-4 w-4 mr-1" />
                     Adicionar primeiro arquivo
                   </Button>
@@ -549,30 +517,40 @@ export default function Arquivos() {
                   <AccordionItem
                     key={emp.empresaId}
                     value={emp.empresaId}
-                    className="border rounded-lg px-3 bg-card"
+                    className="border border-border/60 rounded-xl px-4 bg-card hover:border-primary/40 transition-colors data-[state=open]:border-primary/40 data-[state=open]:shadow-sm"
                   >
                     <div className="flex items-center gap-2 py-1">
                       <AccordionTrigger className="hover:no-underline py-3 flex-1">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <Building2 className="h-4 w-4 text-primary" />
+                          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 ring-1 ring-primary/10">
+                            <Building2 className="h-5 w-5 text-primary" />
                           </div>
                           <div className="text-left min-w-0">
                             <div className="font-semibold truncate">{emp.nome}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {emp.contratos.size} contrato{emp.contratos.size === 1 ? "" : "s"} • {emp.total} arquivo{emp.total === 1 ? "" : "s"}
+                            <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5">
+                              <span>{emp.contratos.size} contrato{emp.contratos.size === 1 ? "" : "s"}</span>
+                              <span className="text-muted-foreground/40">·</span>
+                              <span>{emp.total} arquivo{emp.total === 1 ? "" : "s"}</span>
                               {emp.ultimoUpload > 0 && (
-                                <> • Último: {formatDateTime(new Date(emp.ultimoUpload).toISOString())}</>
+                                <>
+                                  <span className="text-muted-foreground/40">·</span>
+                                  <span>Último: {formatDateTime(new Date(emp.ultimoUpload).toISOString())}</span>
+                                </>
                               )}
                             </div>
                           </div>
+                          {emp.total > 0 && (
+                            <Badge variant="secondary" className="ml-auto mr-2 shrink-0 rounded-full">
+                              {emp.total}
+                            </Badge>
+                          )}
                         </div>
                       </AccordionTrigger>
                       {canEditFinanceiro && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="gap-1 shrink-0"
+                          className="gap-1 shrink-0 text-muted-foreground hover:text-primary"
                           onClick={(e) => {
                             e.stopPropagation();
                             openUpload(emp.empresaId);
@@ -793,16 +771,4 @@ export default function Arquivos() {
   );
 }
 
-function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <Card>
-      <CardContent className="pt-5 pb-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {icon}
-          <span>{label}</span>
-        </div>
-        <p className="text-2xl font-bold mt-1">{value}</p>
-      </CardContent>
-    </Card>
-  );
-}
+
