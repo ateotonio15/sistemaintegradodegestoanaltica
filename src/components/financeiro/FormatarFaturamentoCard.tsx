@@ -29,7 +29,7 @@ export function FormatarFaturamentoCard() {
   const [exclProcessing, setExclProcessing] = useState(false);
   const [brutoFile, setBrutoFile] = useState<File | null>(null);
   const [exclFile, setExclFile] = useState<File | null>(null);
-  const [exclModo, setExclModo] = useState<ModoFaturamento>("nao_prorata");
+  const [exclModo] = useState<ModoFaturamento>("prorata");
   const brutoRef = useRef<HTMLInputElement>(null);
   const exclRef = useRef<HTMLInputElement>(null);
 
@@ -446,9 +446,9 @@ export function FormatarFaturamentoCard() {
               </div>
               <div className="min-w-0">
                 <DialogHeader className="space-y-1 text-left">
-                  <DialogTitle className="text-lg leading-tight">Adicionar Exclusões ao Faturamento</DialogTitle>
-                  <DialogDescription className="text-xs leading-relaxed">
-                    Envie o arquivo <strong>bruto</strong> e o arquivo de <strong>exclusões</strong>. As linhas serão anexadas ao final do bruto com <span className="text-foreground font-medium">Tipo Cobrança = "Exclusão"</span> e a formatação escolhida será aplicada.
+                  <DialogTitle className="text-xl leading-tight">Adicionar Exclusões ao Faturamento</DialogTitle>
+                  <DialogDescription className="text-sm leading-relaxed">
+                    Envie o arquivo <strong>bruto</strong> e o arquivo de <strong>exclusões</strong>. As linhas serão anexadas ao final do bruto com <span className="text-foreground font-medium">Tipo Cobrança = "Exclusão"</span> e o cálculo <strong>prorata</strong> será aplicado automaticamente.
                   </DialogDescription>
                 </DialogHeader>
               </div>
@@ -461,8 +461,8 @@ export function FormatarFaturamentoCard() {
               {/* Bruto */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-[11px] font-semibold flex items-center justify-center">1</span>
-                  <Label className="text-xs font-medium">Arquivo Bruto</Label>
+                  <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-xs font-semibold flex items-center justify-center">1</span>
+                  <Label className="text-sm font-medium">Arquivo Bruto</Label>
                 </div>
                 <button
                   type="button"
@@ -487,8 +487,8 @@ export function FormatarFaturamentoCard() {
                         <CheckCircle2 className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 w-full">
-                        <p className="text-xs font-medium truncate">{brutoFile.name}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                        <p className="text-sm font-medium truncate">{brutoFile.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {(brutoFile.size / 1024).toFixed(0)} KB · clique para trocar
                         </p>
                       </div>
@@ -511,8 +511,8 @@ export function FormatarFaturamentoCard() {
                         <UploadCloud className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium">Selecionar bruto</p>
-                        <p className="text-[10px] text-muted-foreground">.xlsx / .xls</p>
+                        <p className="text-sm font-medium">Selecionar bruto</p>
+                        <p className="text-xs text-muted-foreground">.xlsx / .xls</p>
                       </div>
                     </>
                   )}
@@ -522,8 +522,8 @@ export function FormatarFaturamentoCard() {
               {/* Exclusões */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-[11px] font-semibold flex items-center justify-center">2</span>
-                  <Label className="text-xs font-medium">Arquivo de Exclusões</Label>
+                  <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-xs font-semibold flex items-center justify-center">2</span>
+                  <Label className="text-sm font-medium">Arquivo de Exclusões</Label>
                 </div>
                 <button
                   type="button"
@@ -548,8 +548,8 @@ export function FormatarFaturamentoCard() {
                         <CheckCircle2 className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 w-full">
-                        <p className="text-xs font-medium truncate">{exclFile.name}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                        <p className="text-sm font-medium truncate">{exclFile.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {(exclFile.size / 1024).toFixed(0)} KB · clique para trocar
                         </p>
                       </div>
@@ -572,8 +572,8 @@ export function FormatarFaturamentoCard() {
                         <FileMinus2 className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium">Selecionar exclusões</p>
-                        <p className="text-[10px] text-muted-foreground">.xlsx / .xls</p>
+                        <p className="text-sm font-medium">Selecionar exclusões</p>
+                        <p className="text-xs text-muted-foreground">.xlsx / .xls</p>
                       </div>
                     </>
                   )}
@@ -581,55 +581,14 @@ export function FormatarFaturamentoCard() {
               </div>
             </div>
 
-            {/* Modo de formatação */}
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-[11px] font-semibold flex items-center justify-center">3</span>
-                <Label className="text-xs font-medium">Modo de formatação final</Label>
-              </div>
-              <RadioGroup
-                value={exclModo}
-                onValueChange={(v) => setExclModo(v as ModoFaturamento)}
-                className="grid grid-cols-2 gap-2"
-              >
-                <label
-                  htmlFor="excl-np"
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-3 py-2.5 cursor-pointer transition-all",
-                    exclModo === "nao_prorata"
-                      ? "border-primary/60 bg-primary/5 ring-1 ring-primary/20"
-                      : "border-border/70 hover:bg-muted/40",
-                  )}
-                >
-                  <RadioGroupItem value="nao_prorata" id="excl-np" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium">Não Prorata</p>
-                    <p className="text-[10px] text-muted-foreground">Valores cheios</p>
-                  </div>
-                </label>
-                <label
-                  htmlFor="excl-pr"
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-3 py-2.5 cursor-pointer transition-all",
-                    exclModo === "prorata"
-                      ? "border-primary/60 bg-primary/5 ring-1 ring-primary/20"
-                      : "border-border/70 hover:bg-muted/40",
-                  )}
-                >
-                  <RadioGroupItem value="prorata" id="excl-pr" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium">Prorata</p>
-                    <p className="text-[10px] text-muted-foreground">Proporcional por dias</p>
-                  </div>
-                </label>
-              </RadioGroup>
-            </div>
+            {/* Modo prorata fixo — todas as empresas usam prorata */}
+
 
             {/* Dica */}
             <div className="flex items-start gap-2 rounded-lg bg-muted/40 border border-border/60 px-3 py-2">
-              <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Bruto normalmente começa com <span className="font-mono text-foreground/80">hNr8B1</span> e exclusões com <span className="font-mono text-foreground/80">A05MV</span>. Empresas de período específico são detectadas automaticamente.
+              <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Bruto normalmente começa com <span className="font-mono text-foreground/80">hNr8B1</span> e exclusões com <span className="font-mono text-foreground/80">A05MV</span>. Empresas de período específico são detectadas automaticamente e o cálculo prorata é aplicado.
               </p>
             </div>
           </div>
