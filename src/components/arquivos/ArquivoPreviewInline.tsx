@@ -169,7 +169,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
     (async () => {
       setLoading(true);
       setError(null);
-      setPdfDoc((prev) => { prev?.destroy(); return null; });
+      setPdfDoc(null); // não destruir — está em cache global
       setPageNumber(1);
       setManualZoom(false);
       // Só limpa sheets se for outro arquivo Excel
