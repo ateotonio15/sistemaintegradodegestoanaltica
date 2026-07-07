@@ -138,6 +138,22 @@ export function FormatarFaturamentoCard() {
     URL.revokeObjectURL(url);
   }
 
+  async function fetchPeriodoPorCnpj(): Promise<Map<string, number>> {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase
+      .from("empresas")
+      .select("cnpj, periodo_cobranca_inicio")
+      .eq("periodo_especifico_cobranca", true)
+      .not("periodo_cobranca_inicio", "is", null);
+    const map = new Map<string, number>();
+    (data ?? []).forEach((e: any) => {
+      const digits = String(e.cnpj ?? "").replace(/\D/g, "");
+      const m = /^\d{4}-\d{2}-(\d{2})$/.exec(String(e.periodo_cobranca_inicio ?? ""));
+      if (digits && m) map.set(digits, parseInt(m[1], 10));
+    });
+    return map;
+  }
+
   async function handleProcess() {
     if (!file) {
       toast.error("Selecione o arquivo do faturamento (.xlsx ou .xls).");
@@ -146,7 +162,8 @@ export function FormatarFaturamentoCard() {
     try {
       setProcessing(true);
       const buf = await normalizeBrToXlsxBuffer(await file.arrayBuffer());
-      const { blob, filename } = await formatarFaturamentoExcel(buf, modo);
+      const periodoPorCnpj = await fetchPeriodoPorCnpj();
+      const { blob, filename } = await formatarFaturamentoExcel(buf, modo, { periodoPorCnpj });
       downloadBlob(blob, filename);
       toast.success(`Arquivo formatado: ${filename}`);
       setFile(null);
@@ -158,6 +175,7 @@ export function FormatarFaturamentoCard() {
       setProcessing(false);
     }
   }
+
 
   function pickExtra(f: File | null | undefined, setter: (f: File | null) => void) {
     if (!f) return;
