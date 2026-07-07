@@ -292,27 +292,27 @@ export default function Arquivos() {
         </header>
 
         {/* Grid 3 colunas: Empresas | Arquivos | Prévia */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(340px,400px)_minmax(0,1fr)] gap-4 h-[calc(100vh-180px)] min-h-[600px]">
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(380px,440px)_minmax(0,1fr)] gap-4 h-[calc(100vh-180px)] min-h-[600px]">
           {/* ===== COLUNA 1: EMPRESAS ===== */}
           <div className="flex flex-col border border-border/60 rounded-xl bg-card overflow-hidden shadow-sm">
-            <div className="px-4 py-3 border-b bg-muted/30">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-semibold">Empresas</h2>
-                <Badge variant="secondary" className="text-[10px]">{empresasList.length}</Badge>
+            <div className="px-4 py-4 border-b bg-muted/30">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-semibold">Empresas</h2>
+                <Badge variant="secondary" className="text-xs">{empresasList.length}</Badge>
               </div>
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar empresa..."
                   value={searchEmpresa}
                   onChange={(e) => setSearchEmpresa(e.target.value)}
-                  className="pl-8 h-8 text-xs"
+                  className="pl-9 h-9 text-sm"
                 />
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {empresasList.length === 0 ? (
-                <div className="text-center text-xs text-muted-foreground py-8">Nenhuma empresa encontrada</div>
+                <div className="text-center text-sm text-muted-foreground py-8">Nenhuma empresa encontrada</div>
               ) : (
                 empresasList.map((e) => {
                   const active = e.id === selectedEmpresaId;
@@ -321,27 +321,27 @@ export default function Arquivos() {
                       key={e.id}
                       onClick={() => setSelectedEmpresaId(e.id)}
                       className={cn(
-                        "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors group",
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors group",
                         active
                           ? "bg-primary/10 text-primary ring-1 ring-primary/20"
                           : "hover:bg-muted/60",
                       )}
                     >
                       <div className={cn(
-                        "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                        "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
                         active ? "bg-primary/15" : "bg-muted",
                       )}>
-                        <Building2 className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground")} />
+                        <Building2 className={cn("h-5 w-5", active ? "text-primary" : "text-muted-foreground")} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className={cn("text-xs font-medium truncate", active && "text-primary")}>
+                        <div className={cn("text-sm font-medium truncate", active && "text-primary")}>
                           {e.nome}
                         </div>
-                        <div className="text-[10px] text-muted-foreground">
+                        <div className="text-xs text-muted-foreground mt-0.5">
                           {e.total} arquivo{e.total === 1 ? "" : "s"}
                         </div>
                       </div>
-                      {active && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                      {active && <ChevronRight className="h-4 w-4 shrink-0 text-primary" />}
                     </button>
                   );
                 })
@@ -351,13 +351,13 @@ export default function Arquivos() {
 
           {/* ===== COLUNA 2: ARQUIVOS ===== */}
           <div className="flex flex-col border border-border/60 rounded-xl bg-card overflow-hidden shadow-sm">
-            <div className="px-4 py-3 border-b bg-muted/30">
-              <div className="flex items-center justify-between mb-2">
+            <div className="px-4 py-4 border-b bg-muted/30">
+              <div className="flex items-center justify-between mb-3 gap-2">
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm font-semibold truncate">
+                  <h2 className="text-base font-semibold truncate">
                     {selectedEmpresa?.nome ?? "Selecione uma empresa"}
                   </h2>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {arquivosEmpresa.length} arquivo{arquivosEmpresa.length === 1 ? "" : "s"}
                   </p>
                 </div>
@@ -365,7 +365,7 @@ export default function Arquivos() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0"
+                    className="h-9 w-9 shrink-0"
                     onClick={() => openUpload(selectedEmpresaId)}
                     title="Adicionar arquivo"
                   >
@@ -374,25 +374,25 @@ export default function Arquivos() {
                 )}
               </div>
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar arquivos..."
                   value={searchArquivo}
                   onChange={(e) => setSearchArquivo(e.target.value)}
-                  className="pl-8 h-8 text-xs"
+                  className="pl-9 h-9 text-sm"
                 />
               </div>
             </div>
             <div className="flex-1 overflow-y-auto">
               {isLoading ? (
-                <div className="text-center text-xs text-muted-foreground py-8">Carregando...</div>
+                <div className="text-center text-sm text-muted-foreground py-8">Carregando...</div>
               ) : arquivosEmpresa.length === 0 ? (
-                <div className="text-center text-xs text-muted-foreground py-12 px-4 space-y-3">
-                  <FolderArchive className="h-8 w-8 mx-auto text-muted-foreground/40" />
+                <div className="text-center text-sm text-muted-foreground py-12 px-4 space-y-3">
+                  <FolderArchive className="h-10 w-10 mx-auto text-muted-foreground/40" />
                   <p>Nenhum arquivo nesta empresa.</p>
                   {canEditFinanceiro && selectedEmpresaId && (
                     <Button size="sm" variant="outline" onClick={() => openUpload(selectedEmpresaId)}>
-                      <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar
                     </Button>
                   )}
                 </div>
@@ -400,11 +400,11 @@ export default function Arquivos() {
                 <div>
                   {arquivosPorCompetencia.map(([comp, lista]) => (
                     <div key={comp}>
-                      <div className="sticky top-0 z-10 flex items-center justify-between px-3 py-1.5 bg-muted/80 backdrop-blur border-y border-border/60">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-muted/80 backdrop-blur border-y border-border/60">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                           {compLabel(comp)}
                         </span>
-                        <Badge variant="outline" className="h-4 text-[9px] px-1.5">
+                        <Badge variant="outline" className="h-5 text-[10px] px-1.5">
                           {lista.length}
                         </Badge>
                       </div>
@@ -416,22 +416,24 @@ export default function Arquivos() {
                               key={a.id}
                               onClick={() => setSelectedArquivoId(a.id)}
                               className={cn(
-                                "w-full text-left px-3 py-2.5 flex items-start gap-2.5 transition-colors",
+                                "w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors",
                                 active ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/40 border-l-2 border-l-transparent",
                               )}
                             >
-                              <div className="shrink-0 mt-0.5">{iconForExt(a.extensao)}</div>
+                              <div className="shrink-0 mt-0.5 h-6 w-6 flex items-center justify-center">
+                                {iconForExt(a.extensao)}
+                              </div>
                               <div className="min-w-0 flex-1">
-                                <div className={cn("text-xs font-medium truncate", active && "text-primary")} title={a.nome_original}>
+                                <div className={cn("text-sm font-medium truncate leading-snug", active && "text-primary")} title={a.nome_original}>
                                   {a.nome_original}
                                 </div>
-                                <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
                                   <span>{a.categoria}</span>
                                   <span className="text-muted-foreground/40">·</span>
                                   <span>{formatBytes(a.tamanho_bytes)}</span>
                                 </div>
                               </div>
-                              <div className="text-[10px] text-muted-foreground text-right shrink-0">
+                              <div className="text-xs text-muted-foreground text-right shrink-0 mt-0.5">
                                 {formatDateBR(new Date(a.created_at))}
                               </div>
                             </button>
@@ -444,6 +446,7 @@ export default function Arquivos() {
               )}
             </div>
           </div>
+
 
           {/* ===== COLUNA 3: PRÉVIA + DETALHES + AÇÕES ===== */}
           <div className="flex flex-col border border-border/60 rounded-xl bg-card overflow-hidden shadow-sm">
