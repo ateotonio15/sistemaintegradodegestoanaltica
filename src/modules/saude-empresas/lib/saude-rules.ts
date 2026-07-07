@@ -25,14 +25,15 @@ export type ImcCategoria =
 
 export type RiscoGeral = "alto" | "medio" | "baixo";
 
-// Diretrizes Brasileiras (Ministério da Saúde). Quando PAS e PAD caem em faixas
-// diferentes, prevalece a categoria mais alta — por isso avaliamos de cima para baixo.
+// Diretrizes Brasileiras (Ministério da Saúde), com ajuste local:
+// "PA Elevada" exige PAS na faixa (130-139) — não classificamos apenas por PAD isolada 85-89.
+// Para Hipertensão (Estágios 1/2/3) mantemos OR, pois hipertensão diastólica isolada é reconhecida.
 export function classificarPa(pas?: number | null, pad?: number | null): PaCategoria {
   if (pas == null || pad == null || pas <= 0 || pad <= 0) return "Não realizado";
   if (pas >= 180 || pad >= 110) return "Hipertensão Estágio 3";
   if (pas >= 160 || pad >= 100) return "Hipertensão Estágio 2";
   if (pas >= 140 || pad >= 90) return "Hipertensão Estágio 1";
-  if (pas >= 130 || pad >= 85) return "PA Elevada";
+  if (pas >= 130) return "PA Elevada";
   if (pas >= 120 || pad >= 80) return "Normal";
   return "Ótima";
 }
