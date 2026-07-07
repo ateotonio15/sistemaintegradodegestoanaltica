@@ -548,8 +548,8 @@ export function FormatarFaturamentoCard() {
                         <CheckCircle2 className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 w-full">
-                        <p className="text-xs font-medium truncate">{exclFile.name}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                        <p className="text-sm font-medium truncate">{exclFile.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {(exclFile.size / 1024).toFixed(0)} KB · clique para trocar
                         </p>
                       </div>
@@ -572,8 +572,8 @@ export function FormatarFaturamentoCard() {
                         <FileMinus2 className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium">Selecionar exclusões</p>
-                        <p className="text-[10px] text-muted-foreground">.xlsx / .xls</p>
+                        <p className="text-sm font-medium">Selecionar exclusões</p>
+                        <p className="text-xs text-muted-foreground">.xlsx / .xls</p>
                       </div>
                     </>
                   )}
