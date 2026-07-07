@@ -349,7 +349,9 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Mensalidade">Mensalidade</SelectItem>
+                <SelectItem value="Reajuste">Reajuste</SelectItem>
                 <SelectItem value="Implantação">Implantação (empresa nova)</SelectItem>
+                <SelectItem value="Retroativo">Retroativo</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
