@@ -135,7 +135,7 @@ function onlyDigits(s: unknown): string {
  * Ex.: ciclo 10/07 → 09/08 (diaInicio=10). Rescisão 05/07 → fim 09/07;
  * rescisão 20/07 → fim 09/08.
  */
-function calcularProporcionalPeriodo(
+export function calcularProporcionalPeriodo(
   dResc: Date,
   mensalidade: number,
   diaInicioCiclo: number,
