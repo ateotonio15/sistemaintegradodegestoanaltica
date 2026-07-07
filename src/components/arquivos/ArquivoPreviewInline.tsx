@@ -25,6 +25,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 const blobCache = new Map<string, Promise<Blob>>();
 const signedUrlCache = new Map<string, Promise<string>>();
 const parsedExcelCache = new Map<string, SheetData[]>();
+// Cache de PDFs já carregados — reabrir o mesmo PDF é praticamente instantâneo
+const pdfDocCache = new Map<string, Promise<PDFDocumentProxy>>();
 
 function getBlob(bucket: string, storagePath: string): Promise<Blob> {
   const key = `${bucket}:${storagePath}`;
