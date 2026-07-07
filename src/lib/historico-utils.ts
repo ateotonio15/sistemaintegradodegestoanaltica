@@ -70,6 +70,21 @@ export interface HistoricoOpts {
   periodoCobrancaLabel?: string | null;
   /** Tipo de análise da movimentação. Quando "faixa_etaria", gera histórico detalhado por faixas. */
   tipoAnalise?: string | null;
+  /** Rótulo do período de coparticipação (geralmente mês anterior à mensalidade). Ex.: "Junho/2026". */
+  coparticipacaoPeriodoLabel?: string | null;
+}
+
+/** Retorna o rótulo "Mes/AAAA" do mês anterior a um label "Mes/AAAA". */
+export function mesAnteriorLabel(label: string): string | null {
+  const m = /^([A-Za-zÇç]+)\/(\d{4})$/.exec(label.trim());
+  if (!m) return null;
+  const key = m[1].toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const mes = MESES_MAP[key];
+  const ano = parseInt(m[2], 10);
+  if (mes === undefined || !Number.isFinite(ano)) return null;
+  const novoMes = mes === 0 ? 11 : mes - 1;
+  const novoAno = mes === 0 ? ano - 1 : ano;
+  return `${MESES_PT[novoMes]}/${novoAno}`;
 }
 
 
