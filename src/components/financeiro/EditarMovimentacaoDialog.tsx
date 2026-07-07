@@ -1011,7 +1011,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               ) : dataEnvioNota ? (
                 <p className="text-[11px] text-success flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
-                  Nota marcada como enviada.
+                  Nota marcada como enviada{enviadoPorNome ? ` por ${enviadoPorNome}` : ""}.
                 </p>
               ) : null}
               {temIrmaos && (
