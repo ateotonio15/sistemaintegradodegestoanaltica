@@ -456,9 +456,10 @@ export function FormatarFaturamentoCard() {
           </div>
 
 
-          <div className="px-6 py-5 space-y-5">
+          <div className="px-8 py-7 space-y-6">
             {/* Uploads lado a lado */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
               {/* Bruto */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
