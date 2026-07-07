@@ -167,6 +167,83 @@ export function calcularProporcionalPeriodo(
   return Math.round(v * 100) / 100;
 }
 
+export interface CnpjPeriodoSuspeita {
+  cnpj: string;
+  digits: string;
+  nome?: string;
+  diaCiclo: number;
+  /** Data (YYYY-MM-DD) sugerida como periodo_cobranca_inicio (usa competência mais recente + diaCiclo). */
+  dataSugerida: string;
+}
+
+/**
+ * Heurística: para cada CNPJ do bruto, se o dia da competência mais frequente ≠ 01,
+ * a empresa provavelmente é de PERÍODO específico com ciclo iniciando naquele dia.
+ * Retorna apenas suspeitas — o chamador filtra as já cadastradas.
+ */
+export function detectarCnpjsDePeriodo(brutoBuf: ArrayBuffer): CnpjPeriodoSuspeita[] {
+  const wb = XLSX.read(brutoBuf, { type: "array", cellDates: true });
+  const name = wb.SheetNames[0];
+  if (!name) return [];
+  const aoa = sheetToAOA(wb.Sheets[name]);
+  if (!aoa.length) return [];
+  const headers = (aoa[0] as unknown[]).map((h) => String(h ?? ""));
+  const idxCnpj = headers.findIndex((h) => normHeader(h) === "cnpj");
+  const idxComp = headers.findIndex((h) => /^compet/.test(normHeader(h)));
+  const idxPag = headers.findIndex((h) => normHeader(h) === "pagador");
+  if (idxCnpj < 0 || idxComp < 0) return [];
+
+  const grupos = new Map<
+    string,
+    { digits: string; cnpj: string; nome?: string; days: Map<number, number>; ultimaComp?: Date }
+  >();
+  for (let r = 1; r < aoa.length; r++) {
+    const linha = aoa[r] as unknown[];
+    const cnpjRaw = String(linha[idxCnpj] ?? "").trim();
+    if (!cnpjRaw) continue;
+    const digits = onlyDigits(cnpjRaw);
+    if (digits.length < 8) continue;
+    const d = toDateSafe(linha[idxComp]);
+    if (!d) continue;
+    if (!grupos.has(digits)) {
+      const nome =
+        idxPag >= 0
+          ? String(linha[idxPag] ?? "").replace(/^\s*PJ\s*[-–]\s*/i, "").trim() || undefined
+          : undefined;
+      grupos.set(digits, { digits, cnpj: cnpjRaw, nome, days: new Map(), ultimaComp: d });
+    }
+    const g = grupos.get(digits)!;
+    const day = d.getUTCDate();
+    g.days.set(day, (g.days.get(day) ?? 0) + 1);
+    if (!g.ultimaComp || d > g.ultimaComp) g.ultimaComp = d;
+  }
+
+  const out: CnpjPeriodoSuspeita[] = [];
+  for (const g of grupos.values()) {
+    let bestDay = 1;
+    let bestC = 0;
+    for (const [dy, c] of g.days) {
+      if (c > bestC) {
+        bestC = c;
+        bestDay = dy;
+      }
+    }
+    if (bestDay === 1) continue;
+    const base = g.ultimaComp ?? new Date();
+    const yyyy = base.getUTCFullYear();
+    const mm = String(base.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(bestDay).padStart(2, "0");
+    out.push({
+      cnpj: g.cnpj,
+      digits: g.digits,
+      nome: g.nome,
+      diaCiclo: bestDay,
+      dataSugerida: `${yyyy}-${mm}-${dd}`,
+    });
+  }
+  return out;
+}
+
 export interface AdicionarExclusoesOpts {
   /** Mapa CNPJ (somente dígitos) → dia de início do ciclo (1..31) para empresas de período. */
   periodoPorCnpj?: Map<string, number>;
