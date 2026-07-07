@@ -128,7 +128,7 @@ function readAllRows(
 export async function formatarFaturamentoExcel(
   buffer: ArrayBuffer,
   modo: ModoFaturamento,
-  opts: { pularResumo?: boolean } = {},
+  opts: { pularResumo?: boolean; periodoPorCnpj?: Map<string, number> } = {},
 ): Promise<{ blob: Blob; filename: string }> {
   const wbIn = new ExcelJS.Workbook();
   await wbIn.xlsx.load(buffer);
