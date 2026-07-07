@@ -283,7 +283,8 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
         if (!context) throw new Error("Canvas indisponível");
-        const outputScale = window.devicePixelRatio || 1;
+        // Limita o output scale: acima disso, o ganho visual é mínimo mas o custo de render dobra
+        const outputScale = Math.min(window.devicePixelRatio || 1, 1.5);
         canvas.width = Math.floor(viewport.width * outputScale);
         canvas.height = Math.floor(viewport.height * outputScale);
         canvas.style.width = `${Math.floor(viewport.width)}px`;
