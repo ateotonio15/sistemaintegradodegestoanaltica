@@ -113,6 +113,8 @@ export default function Financeiro() {
   const [regrasEmpresariaisOpen, setRegrasEmpresariaisOpen] = useState(false);
   const [historicoRow, setHistoricoRow] = useState<FinanceiroRow | null>(null);
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
+  const [historicoCopRow, setHistoricoCopRow] = useState<FinanceiroRow | null>(null);
+  const [historicoCopDialogOpen, setHistoricoCopDialogOpen] = useState(false);
 
   // Realtime exclusivo da aba Financeiro — refetch incremental por linha,
   // sem reload, sem reset de filtros/estado. Cleanup automático ao sair.
