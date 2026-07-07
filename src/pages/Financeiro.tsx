@@ -1686,6 +1686,7 @@ export default function Financeiro() {
         if (b.devolucoes) out.devolucoes = b.devolucoes;
         if (b.taxaAdesao) out.taxaAdesao = b.taxaAdesao;
         if (b.faixasEtarias) out.faixasEtarias = b.faixasEtarias;
+        if (b.coparticipacao) out.coparticipacao = b.coparticipacao;
         return out;
       },
     );
