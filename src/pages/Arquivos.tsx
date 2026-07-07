@@ -198,6 +198,17 @@ export default function Arquivos() {
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
   }, [arquivosPorEmpresa, selectedEmpresaId, searchArquivo]);
 
+  // Agrupa por competência (mais recentes primeiro)
+  const arquivosPorCompetencia = useMemo(() => {
+    const map = new Map<string, ArquivoRow[]>();
+    for (const a of arquivosEmpresa) {
+      const arr = map.get(a.competencia) ?? [];
+      arr.push(a);
+      map.set(a.competencia, arr);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [arquivosEmpresa]);
+
   // Auto-seleciona primeiro arquivo quando muda de empresa
   useEffect(() => {
     if (arquivosEmpresa.length === 0) {
