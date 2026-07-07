@@ -317,6 +317,7 @@ export default function Empresas() {
           contato_empresa: values.contato_empresa,
           telefone_empresa: values.telefone_empresa,
           email_empresa: values.email_empresa,
+          endereco: (values as any).endereco,
           executiva_user_id: (values as any).executiva_user_id,
         }).eq("id", editingId);
         if (error) throw error;
