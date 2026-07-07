@@ -570,6 +570,7 @@ export default function Empresas() {
       grupo_contrato: (e as any).grupo_contrato ?? "",
       telefone_empresa: (e as any).telefone_empresa ?? "",
       contato_empresa: (e as any).contato_empresa ?? "",
+      endereco: (e as any).endereco ?? "",
       contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
       pagamento_via_deposito: (e as any).pagamento_via_deposito ?? false,
       vidas: (e as any).vidas ?? 0,
