@@ -29,7 +29,7 @@ export function FormatarFaturamentoCard() {
   const [exclProcessing, setExclProcessing] = useState(false);
   const [brutoFile, setBrutoFile] = useState<File | null>(null);
   const [exclFile, setExclFile] = useState<File | null>(null);
-  const [exclModo, setExclModo] = useState<ModoFaturamento>("nao_prorata");
+  const [exclModo] = useState<ModoFaturamento>("prorata");
   const brutoRef = useRef<HTMLInputElement>(null);
   const exclRef = useRef<HTMLInputElement>(null);
 
