@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { FileSpreadsheet, Loader2, Download, UploadCloud, X, FilePlus2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatarFaturamentoExcel, type ModoFaturamento } from "@/lib/faturamento-formatter";
-import { adicionarExclusoesAoBruto } from "@/lib/faturamento-exclusoes";
+import { adicionarExclusoesAoBruto, detectarCnpjsDePeriodo, type CnpjPeriodoSuspeita } from "@/lib/faturamento-exclusoes";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
