@@ -94,7 +94,7 @@ function ValorComCheck({
   );
 }
 
-export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, contexto }: Props) {
+export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, onGerarHistoricoCoparticipacao, contexto }: Props) {
   const { toast } = useToast();
   const [analiseCompletaOpen, setAnaliseCompletaOpen] = useState(false);
 
