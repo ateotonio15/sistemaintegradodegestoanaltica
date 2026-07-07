@@ -82,6 +82,7 @@ export function FinanceiroTable({
   onToggleExpand,
   onReanalisar,
   onGerarHistorico,
+  onGerarHistoricoCoparticipacao,
   analiseResultados,
   analiseLoading,
   analiseComparacoes,
