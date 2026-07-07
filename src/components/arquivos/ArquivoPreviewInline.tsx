@@ -13,10 +13,91 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
+import { cn } from "@/lib/utils";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
-type SheetData = { name: string; rows: string[][] };
+// -----------------------------------------------------------------------------
+// Cache em memória: evita re-baixar o mesmo arquivo ao alternar entre prévias.
+// -----------------------------------------------------------------------------
+const blobCache = new Map<string, Promise<Blob>>();
+const signedUrlCache = new Map<string, Promise<string>>();
+const parsedExcelCache = new Map<string, SheetData[]>();
+
+function getBlob(bucket: string, storagePath: string): Promise<Blob> {
+  const key = `${bucket}:${storagePath}`;
+  let p = blobCache.get(key);
+  if (!p) {
+    p = supabase.storage
+      .from(bucket)
+      .download(storagePath)
+      .then((r) => {
+        if (r.error || !r.data) throw r.error ?? new Error("Falha ao baixar arquivo");
+        return r.data;
+      })
+      .catch((e) => {
+        blobCache.delete(key);
+        throw e;
+      });
+    blobCache.set(key, p);
+  }
+  return p;
+}
+
+function getSignedUrl(bucket: string, storagePath: string): Promise<string> {
+  const key = `${bucket}:${storagePath}`;
+  let p = signedUrlCache.get(key);
+  if (!p) {
+    p = supabase.storage
+      .from(bucket)
+      .createSignedUrl(storagePath, 3600)
+      .then((r) => {
+        if (r.error || !r.data?.signedUrl) throw r.error ?? new Error("Falha ao gerar URL");
+        return r.data.signedUrl;
+      })
+      .catch((e) => {
+        signedUrlCache.delete(key);
+        throw e;
+      });
+    signedUrlCache.set(key, p);
+    // URLs assinadas expiram em ~1h; limpar cache antes disso
+    setTimeout(() => signedUrlCache.delete(key), 55 * 60 * 1000);
+  }
+  return p;
+}
+
+// -----------------------------------------------------------------------------
+// Tipagem da prévia de Excel — agora com metadados de estilo por célula
+// -----------------------------------------------------------------------------
+type ExcelCell = {
+  text: string;
+  isNumber: boolean;
+  bold: boolean;
+  indent: number;
+};
+type SheetData = { name: string; rows: ExcelCell[][] };
+
+function isNumericLike(v: any): boolean {
+  if (typeof v === "number" && isFinite(v)) return true;
+  if (v && typeof v === "object") {
+    if ("result" in v && typeof (v as any).result === "number") return true;
+  }
+  return false;
+}
+
+function toNumber(v: any): number | null {
+  if (typeof v === "number" && isFinite(v)) return v;
+  if (v && typeof v === "object" && typeof (v as any).result === "number") return (v as any).result;
+  return null;
+}
+
+function formatNumberBR(n: number): string {
+  const isInt = Number.isInteger(n);
+  return n.toLocaleString("pt-BR", {
+    minimumFractionDigits: isInt ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 function cellToString(value: any): string {
   if (value === null || value === undefined) return "";
@@ -33,6 +114,19 @@ function cellToString(value: any): string {
   return String(value);
 }
 
+function parseCell(rawValue: any, cell: any, rowOutline: number): ExcelCell {
+  const numeric = toNumber(rawValue);
+  const isNumber = numeric !== null;
+  const bold = !!cell?.font?.bold;
+  const indent = Math.max(rowOutline, cell?.alignment?.indent ?? 0);
+  return {
+    text: isNumber ? formatNumberBR(numeric!) : cellToString(rawValue),
+    isNumber,
+    bold,
+    indent,
+  };
+}
+
 interface Props {
   bucket: string;
   storagePath: string;
@@ -41,7 +135,6 @@ interface Props {
 }
 
 export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeType }: Props) {
-  const [url, setUrl] = useState<string | null>(null);
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.4);
@@ -50,6 +143,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
   const [error, setError] = useState<string | null>(null);
   const [sheets, setSheets] = useState<SheetData[] | null>(null);
   const [activeSheet, setActiveSheet] = useState(0);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [manualZoom, setManualZoom] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
@@ -65,44 +159,72 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
     let cancelled = false;
     let createdBlobUrl: string | null = null;
     let loadedPdf: PDFDocumentProxy | null = null;
+    const cacheKey = `${bucket}:${storagePath}`;
+
     (async () => {
       setLoading(true);
       setError(null);
       setPdfDoc((prev) => { prev?.destroy(); return null; });
       setPageNumber(1);
       setManualZoom(false);
-      setSheets(null);
+      // Só limpa sheets se for outro arquivo Excel
+      if (!isExcel || !parsedExcelCache.has(cacheKey)) setSheets(null);
       setActiveSheet(0);
+      setImageUrl(null);
+
       try {
-        const { data, error: e } = await supabase.storage.from(bucket).download(storagePath);
-        if (e || !data) throw e ?? new Error("Falha ao baixar arquivo");
-        const mime = mimeType || (isPdf ? "application/pdf" : data.type || "application/octet-stream");
-        const blob = data.type ? data : new Blob([data], { type: mime });
-        createdBlobUrl = URL.createObjectURL(blob);
         if (isPdf) {
-          const buffer = await blob.arrayBuffer();
-          loadedPdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+          // PDF: usa URL assinada com range requests → primeira página aparece rápido
+          const url = await getSignedUrl(bucket, storagePath);
+          if (cancelled) return;
+          loadedPdf = await pdfjsLib.getDocument({
+            url,
+            disableRange: false,
+            disableStream: false,
+          }).promise;
+          if (cancelled) { loadedPdf.destroy(); return; }
+          setPdfDoc(loadedPdf);
         } else if (isExcel) {
-          const buffer = await blob.arrayBuffer();
-          const wb = new ExcelJS.Workbook();
-          await wb.xlsx.load(buffer);
-          const parsed: SheetData[] = [];
-          wb.eachSheet((ws) => {
-            const rows: string[][] = [];
-            const maxCol = ws.actualColumnCount || ws.columnCount || 0;
-            ws.eachRow({ includeEmpty: false }, (row) => {
-              const r: string[] = [];
-              for (let c = 1; c <= maxCol; c++) r.push(cellToString(row.getCell(c).value));
-              rows.push(r);
-              if (rows.length >= 500) return;
+          const cached = parsedExcelCache.get(cacheKey);
+          if (cached) {
+            setSheets(cached);
+          } else {
+            const blob = await getBlob(bucket, storagePath);
+            if (cancelled) return;
+            const buffer = await blob.arrayBuffer();
+            const wb = new ExcelJS.Workbook();
+            await wb.xlsx.load(buffer);
+            const parsed: SheetData[] = [];
+            wb.eachSheet((ws) => {
+              const rows: ExcelCell[][] = [];
+              const maxCol = ws.actualColumnCount || ws.columnCount || 0;
+              ws.eachRow({ includeEmpty: false }, (row) => {
+                if (rows.length >= 500) return;
+                const r: ExcelCell[] = [];
+                const outline = row.outlineLevel ?? 0;
+                for (let c = 1; c <= maxCol; c++) {
+                  const cell = row.getCell(c);
+                  r.push(parseCell(cell.value, cell, outline));
+                }
+                rows.push(r);
+              });
+              parsed.push({ name: ws.name, rows });
             });
-            parsed.push({ name: ws.name, rows });
+            parsedExcelCache.set(cacheKey, parsed);
+            if (cancelled) return;
+            setSheets(parsed);
+          }
+          // Se houver aba "RESUMO", abre por padrão
+          setActiveSheet((prev) => {
+            const list = parsedExcelCache.get(cacheKey) ?? [];
+            const idx = list.findIndex((s) => /resumo/i.test(s.name));
+            return idx >= 0 ? idx : 0;
           });
-          if (!cancelled) setSheets(parsed);
-        }
-        if (!cancelled) {
-          setUrl(createdBlobUrl);
-          if (loadedPdf) setPdfDoc(loadedPdf);
+        } else if (isImage) {
+          const blob = await getBlob(bucket, storagePath);
+          if (cancelled) return;
+          createdBlobUrl = URL.createObjectURL(blob);
+          setImageUrl(createdBlobUrl);
         }
       } catch (err: any) {
         if (!cancelled) setError(err?.message ?? "Erro ao carregar arquivo");
@@ -112,10 +234,9 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
     })();
     return () => {
       cancelled = true;
-      loadedPdf?.destroy();
       if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     };
-  }, [bucket, storagePath, mimeType, isPdf, isExcel]);
+  }, [bucket, storagePath, isPdf, isExcel, isImage]);
 
   useEffect(() => {
     if (!pdfDoc || !pdfContainerRef.current || manualZoom) return;
@@ -170,9 +291,12 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
     return () => { cancelled = true; renderTask?.cancel(); };
   }, [pdfDoc, pageNumber, scale]);
 
+  useEffect(() => () => { pdfDoc?.destroy(); }, [pdfDoc]);
+
+  const currentSheet = sheets?.[activeSheet];
+
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Toolbar */}
       {pdfDoc && (
         <div className="flex items-center justify-center gap-1 px-3 py-2 border-b bg-muted/30 shrink-0">
           <Button variant="ghost" size="icon" className="h-7 w-7"
@@ -204,7 +328,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
       )}
 
       <div className="flex-1 min-h-0 bg-background overflow-hidden">
-        {loading && (
+        {loading && !pdfDoc && !currentSheet && !imageUrl && (
           <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
             <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando prévia...
           </div>
@@ -216,9 +340,9 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
             <p className="text-xs">{error}</p>
           </div>
         )}
-        {!loading && !error && url && (
+        {!error && (
           <>
-            {isPdf ? (
+            {isPdf && pdfDoc && (
               <div ref={pdfContainerRef} className="relative h-full overflow-auto bg-muted/20 p-4">
                 {renderingPage && (
                   <div className="absolute inset-x-0 top-3 z-10 flex justify-center pointer-events-none">
@@ -232,11 +356,13 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
                   <canvas ref={canvasRef} className="h-fit max-w-none rounded-sm shadow-md bg-white" />
                 </div>
               </div>
-            ) : isImage ? (
+            )}
+            {isImage && imageUrl && (
               <div className="w-full h-full overflow-auto flex items-center justify-center p-4 bg-muted/20">
-                <img src={url} alt={nomeArquivo} className="max-w-full max-h-full object-contain rounded shadow-md" />
+                <img src={imageUrl} alt={nomeArquivo} className="max-w-full max-h-full object-contain rounded shadow-md" />
               </div>
-            ) : isExcel && sheets ? (
+            )}
+            {isExcel && sheets && currentSheet && (
               <div className="h-full flex flex-col min-h-0">
                 {sheets.length > 1 && (
                   <div className="flex gap-1 px-3 py-2 border-b bg-muted/30 overflow-x-auto shrink-0">
@@ -248,32 +374,97 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
                     ))}
                   </div>
                 )}
-                <div className="flex-1 min-h-0 overflow-auto bg-background">
-                  <table className="text-xs border-collapse">
-                    <tbody>
-                      {sheets[activeSheet]?.rows.map((row, ri) => (
-                        <tr key={ri} className={ri === 0 ? "bg-muted font-medium sticky top-0" : ri % 2 ? "bg-muted/30" : ""}>
-                          <td className="border border-border px-2 py-1 text-muted-foreground text-[10px] sticky left-0 bg-inherit">{ri + 1}</td>
-                          {row.map((cell, ci) => (
-                            <td key={ci} className="border border-border px-2 py-1 whitespace-nowrap max-w-[300px] overflow-hidden text-ellipsis" title={cell}>
-                              {cell}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground p-6 text-center">
-                <AlertCircle className="h-6 w-6" />
-                <p>Prévia não disponível para este tipo de arquivo.<br />Baixe-o para abrir localmente.</p>
+                <ExcelSheetView sheet={currentSheet} />
               </div>
             )}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Renderização inteligente da planilha (destaque para RESUMO / tabelas de pivot)
+// -----------------------------------------------------------------------------
+function ExcelSheetView({ sheet }: { sheet: SheetData }) {
+  const rows = sheet.rows;
+  if (rows.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
+        Planilha vazia.
+      </div>
+    );
+  }
+
+  // Determina largura máxima em colunas
+  const maxCols = rows.reduce((m, r) => Math.max(m, r.length), 0);
+
+  // Detecta colunas numéricas (>50% das linhas com número naquela coluna)
+  const numericCols = new Set<number>();
+  for (let c = 0; c < maxCols; c++) {
+    let numCount = 0, total = 0;
+    for (let r = 1; r < rows.length; r++) {
+      const cell = rows[r][c];
+      if (!cell || cell.text === "") continue;
+      total++;
+      if (cell.isNumber) numCount++;
+    }
+    if (total > 0 && numCount / total >= 0.5) numericCols.add(c);
+  }
+
+  return (
+    <div className="flex-1 min-h-0 overflow-auto bg-background">
+      <table className="text-xs border-collapse w-full">
+        <tbody>
+          {rows.map((row, ri) => {
+            const first = row[0]?.text?.trim() ?? "";
+            const isTotalRow =
+              /^total/i.test(first) ||
+              row.some((c) => c.bold && c.isNumber);
+            const isHeader = ri === 0;
+            return (
+              <tr
+                key={ri}
+                className={cn(
+                  "transition-colors",
+                  isHeader && "bg-primary/10 sticky top-0 z-10",
+                  isTotalRow && !isHeader && "bg-primary/5 border-t-2 border-primary/40",
+                  !isHeader && !isTotalRow && ri % 2 === 0 && "bg-muted/20",
+                  !isHeader && "hover:bg-primary/[0.03]",
+                )}
+              >
+                <td className="border-b border-r border-border/50 px-2 py-1.5 text-muted-foreground text-[10px] sticky left-0 bg-inherit w-10 text-center">
+                  {ri + 1}
+                </td>
+                {Array.from({ length: maxCols }).map((_, ci) => {
+                  const cell = row[ci] ?? { text: "", isNumber: false, bold: false, indent: 0 };
+                  const numericCol = numericCols.has(ci);
+                  const bold = cell.bold || isHeader || isTotalRow;
+                  const align = cell.isNumber || numericCol ? "text-right tabular-nums" : "text-left";
+                  const indentPx = ci === 0 && cell.indent > 0 ? cell.indent * 14 : 0;
+                  return (
+                    <td
+                      key={ci}
+                      className={cn(
+                        "border-b border-border/40 px-3 py-1.5 whitespace-nowrap max-w-[420px] overflow-hidden text-ellipsis",
+                        align,
+                        bold && "font-semibold text-foreground",
+                        !bold && "text-foreground/90",
+                        isHeader && "uppercase tracking-wide text-[10.5px] text-primary",
+                      )}
+                      style={indentPx ? { paddingLeft: `${12 + indentPx}px` } : undefined}
+                      title={cell.text}
+                    >
+                      {cell.text}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
