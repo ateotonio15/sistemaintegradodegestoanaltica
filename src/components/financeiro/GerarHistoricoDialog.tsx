@@ -185,7 +185,8 @@ export function GerarHistoricoDialog({
     const codigo = String((empresaInfo as any)?.codigo_contrato ?? "").trim();
     const poFixo = codigo === "571" ? "4600004172" : null;
 
-    const textoGerado = gerarHistoricoTexto(resultados, {
+    const gerador = modo === "coparticipacao" ? gerarHistoricoCoparticipacaoTexto : gerarHistoricoTexto;
+    const textoGerado = gerador(resultados, {
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
       incluirDda: true,
