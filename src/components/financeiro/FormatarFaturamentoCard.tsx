@@ -586,9 +586,9 @@ export function FormatarFaturamentoCard() {
 
             {/* Dica */}
             <div className="flex items-start gap-2 rounded-lg bg-muted/40 border border-border/60 px-3 py-2">
-              <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Bruto normalmente começa com <span className="font-mono text-foreground/80">hNr8B1</span> e exclusões com <span className="font-mono text-foreground/80">A05MV</span>. Empresas de período específico são detectadas automaticamente.
+              <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Bruto normalmente começa com <span className="font-mono text-foreground/80">hNr8B1</span> e exclusões com <span className="font-mono text-foreground/80">A05MV</span>. Empresas de período específico são detectadas automaticamente e o cálculo prorata é aplicado.
               </p>
             </div>
           </div>
