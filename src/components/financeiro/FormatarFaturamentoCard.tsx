@@ -461,16 +461,16 @@ export function FormatarFaturamentoCard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
               {/* Bruto */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-xs font-semibold flex items-center justify-center">1</span>
-                  <Label className="text-sm font-medium">Arquivo Bruto</Label>
+                  <span className="h-7 w-7 rounded-full bg-primary/15 text-primary text-sm font-semibold flex items-center justify-center">1</span>
+                  <Label className="text-base font-medium">Arquivo Bruto</Label>
                 </div>
                 <button
                   type="button"
                   onClick={() => brutoRef.current?.click()}
                   className={cn(
-                    "group relative w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-3 py-5 text-center transition-all",
+                    "group relative w-full flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-all",
                     brutoFile
                       ? "border-primary/50 bg-primary/5"
                       : "border-border/70 bg-muted/20 hover:bg-muted/40 hover:border-primary/40",
@@ -485,12 +485,12 @@ export function FormatarFaturamentoCard() {
                   />
                   {brutoFile ? (
                     <>
-                      <div className="h-9 w-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5" />
+                      <div className="h-12 w-12 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                        <CheckCircle2 className="h-6 w-6" />
                       </div>
                       <div className="min-w-0 w-full">
-                        <p className="text-sm font-medium truncate">{brutoFile.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="text-base font-medium truncate">{brutoFile.name}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
                           {(brutoFile.size / 1024).toFixed(0)} KB · clique para trocar
                         </p>
                       </div>
@@ -502,19 +502,19 @@ export function FormatarFaturamentoCard() {
                           setBrutoFile(null);
                           if (brutoRef.current) brutoRef.current.value = "";
                         }}
-                        className="absolute top-1.5 right-1.5 rounded-md p-1 hover:bg-background/80"
+                        className="absolute top-2 right-2 rounded-md p-1.5 hover:bg-background/80"
                       >
-                        <X className="h-3.5 w-3.5 text-muted-foreground" />
+                        <X className="h-4 w-4 text-muted-foreground" />
                       </span>
                     </>
                   ) : (
                     <>
-                      <div className="h-9 w-9 rounded-lg bg-muted text-muted-foreground flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                        <UploadCloud className="h-5 w-5" />
+                      <div className="h-12 w-12 rounded-xl bg-muted text-muted-foreground flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                        <UploadCloud className="h-6 w-6" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium">Selecionar bruto</p>
-                        <p className="text-xs text-muted-foreground">.xlsx / .xls</p>
+                        <p className="text-base font-medium">Selecionar bruto</p>
+                        <p className="text-sm text-muted-foreground">.xlsx / .xls</p>
                       </div>
                     </>
                   )}
@@ -522,16 +522,16 @@ export function FormatarFaturamentoCard() {
               </div>
 
               {/* Exclusões */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-xs font-semibold flex items-center justify-center">2</span>
-                  <Label className="text-sm font-medium">Arquivo de Exclusões</Label>
+                  <span className="h-7 w-7 rounded-full bg-primary/15 text-primary text-sm font-semibold flex items-center justify-center">2</span>
+                  <Label className="text-base font-medium">Arquivo de Exclusões</Label>
                 </div>
                 <button
                   type="button"
                   onClick={() => exclRef.current?.click()}
                   className={cn(
-                    "group relative w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-3 py-5 text-center transition-all",
+                    "group relative w-full flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-all",
                     exclFile
                       ? "border-primary/50 bg-primary/5"
                       : "border-border/70 bg-muted/20 hover:bg-muted/40 hover:border-primary/40",
@@ -546,12 +546,12 @@ export function FormatarFaturamentoCard() {
                   />
                   {exclFile ? (
                     <>
-                      <div className="h-9 w-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5" />
+                      <div className="h-12 w-12 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                        <CheckCircle2 className="h-6 w-6" />
                       </div>
                       <div className="min-w-0 w-full">
-                        <p className="text-sm font-medium truncate">{exclFile.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="text-base font-medium truncate">{exclFile.name}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
                           {(exclFile.size / 1024).toFixed(0)} KB · clique para trocar
                         </p>
                       </div>
@@ -563,19 +563,19 @@ export function FormatarFaturamentoCard() {
                           setExclFile(null);
                           if (exclRef.current) exclRef.current.value = "";
                         }}
-                        className="absolute top-1.5 right-1.5 rounded-md p-1 hover:bg-background/80"
+                        className="absolute top-2 right-2 rounded-md p-1.5 hover:bg-background/80"
                       >
-                        <X className="h-3.5 w-3.5 text-muted-foreground" />
+                        <X className="h-4 w-4 text-muted-foreground" />
                       </span>
                     </>
                   ) : (
                     <>
-                      <div className="h-9 w-9 rounded-lg bg-muted text-muted-foreground flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                        <FileMinus2 className="h-5 w-5" />
+                      <div className="h-12 w-12 rounded-xl bg-muted text-muted-foreground flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                        <FileMinus2 className="h-6 w-6" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium">Selecionar exclusões</p>
-                        <p className="text-xs text-muted-foreground">.xlsx / .xls</p>
+                        <p className="text-base font-medium">Selecionar exclusões</p>
+                        <p className="text-sm text-muted-foreground">.xlsx / .xls</p>
                       </div>
                     </>
                   )}
@@ -583,17 +583,15 @@ export function FormatarFaturamentoCard() {
               </div>
             </div>
 
-            {/* Modo prorata fixo — todas as empresas usam prorata */}
-
-
             {/* Dica */}
-            <div className="flex items-start gap-2 rounded-lg bg-muted/40 border border-border/60 px-3 py-2">
-              <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground leading-relaxed">
+            <div className="flex items-start gap-3 rounded-lg bg-muted/40 border border-border/60 px-4 py-3">
+              <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 Bruto normalmente começa com <span className="font-mono text-foreground/80">hNr8B1</span> e exclusões com <span className="font-mono text-foreground/80">A05MV</span>. Empresas de período específico são detectadas automaticamente e o cálculo prorata é aplicado.
               </p>
             </div>
           </div>
+
 
           <DialogFooter className="px-6 py-4 border-t border-border/60 bg-muted/20">
             <Button variant="outline" onClick={() => setExclOpen(false)} disabled={exclProcessing}>
