@@ -204,13 +204,14 @@ export function GerarHistoricoDialog({
   // Quando carregar dados, se houver histórico salvo, abre direto no preview
   useEffect(() => {
     if (!open) return;
+    if (modo === "coparticipacao") return; // coparticipação não persiste versão separada
     if (savedRecord?.texto_historico) {
       const textoCarregado = deveIncluirObsDda ? garantirObsDda(savedRecord.texto_historico) : savedRecord.texto_historico;
       setTexto(textoCarregado);
       setTextoOriginalGerado(textoCarregado);
       setStep("preview");
     }
-  }, [open, savedRecord, deveIncluirObsDda]);
+  }, [open, savedRecord, deveIncluirObsDda, modo]);
 
   useEffect(() => {
     if (!open || step !== "preview" || !deveIncluirObsDda || !texto || texto.includes(OBS_DDA)) return;
