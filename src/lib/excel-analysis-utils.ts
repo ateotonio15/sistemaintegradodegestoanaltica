@@ -1239,6 +1239,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   }
 
 
+  return comCnpj.map((g) => {
     const buildFromResumo = (qtd: number, mens: number, vals: number[]): CategoriaResultado => {
       const total = vals.reduce((s, v) => s + v, 0);
       const beneficiarios = qtd || 0;
@@ -1271,7 +1272,14 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         (a, b) => a.idadeInicial - b.idadeInicial,
       );
     }
-
+    const coparticAcc = coparticPorBloco.get(g.cnpj || g.nome);
+    if (coparticAcc && (coparticAcc.quantidade !== 0 || coparticAcc.total !== 0)) {
+      bloco.coparticipacao = {
+        quantidade: coparticAcc.quantidade,
+        total: coparticAcc.total,
+        substipulantes: coparticAcc.substipulantes,
+      };
+    }
 
     return bloco;
   });
