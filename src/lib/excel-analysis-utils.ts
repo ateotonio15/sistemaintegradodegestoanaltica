@@ -920,6 +920,77 @@ export function compararExcelComPdfSimplificado(
  * direto desta aba (consolidados). Caso contrário, devolve `null` e o caller
  * cai no parser de beneficiários.
  */
+/**
+ * Extrai itens de "Coparticipação — Empresarial" do pivot da aba RESUMO.
+ * Aceita rótulo do pivot e cabeçalhos Qtd/Valor em linhas diferentes.
+ */
+function parseCoparticipacaoRows(
+  rows: unknown[][],
+): { nome: string; quantidade: number; total: number }[] {
+  const items: { nome: string; quantidade: number; total: number }[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    let hdrCol = -1;
+    for (let c = 0; c < r.length; c++) {
+      const t = norm(r[c]);
+      if (t && t.includes("copartic") && t.includes("empresarial")) {
+        hdrCol = c;
+        break;
+      }
+    }
+    if (hdrCol < 0) continue;
+    let qtdCol = -1;
+    let valCol = -1;
+    const scanCols = (rr: unknown[]) => {
+      for (let c = 0; c < rr.length; c++) {
+        const t = norm(rr[c]);
+        if (!t) continue;
+        if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
+        if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
+      }
+    };
+    scanCols(r);
+    if ((qtdCol < 0 || valCol < 0) && i > 0) scanCols(rows[i - 1] || []);
+    if (qtdCol < 0) qtdCol = hdrCol + 1;
+    if (valCol < 0) valCol = hdrCol + 2;
+    for (let j = i + 1; j < rows.length; j++) {
+      const rr = rows[j] || [];
+      const label = cellToText(rr[hdrCol]).trim();
+      const norml = norm(label);
+      if (!label) continue;
+      if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
+      if (norml.includes("copartic")) continue; // pula linha-título do próprio pivot
+      const nomeLimpo = label.replace(/^\s*pj\s*[-–—:]?\s*/i, "").trim();
+      if (!nomeLimpo) continue;
+      const qtd = qtdCol >= 0 ? Math.round(toNumber(rr[qtdCol])) : 0;
+      const val = valCol >= 0 ? toNumber(rr[valCol]) : 0;
+      const qtdOk = !isNaN(qtd) && qtd !== 0;
+      const valOk = !isNaN(val) && val !== 0;
+      if (!qtdOk && !valOk) continue;
+      items.push({
+        nome: nomeLimpo,
+        quantidade: isNaN(qtd) ? 0 : qtd,
+        total: isNaN(val) ? 0 : val,
+      });
+    }
+    break;
+  }
+  return items;
+}
+
+/**
+ * Lê a aba RESUMO do workbook (se existir) e retorna as linhas como matriz.
+ */
+function lerRowsAbaResumo(wb: ExcelJS.Workbook): unknown[][] | null {
+  const ws = wb.worksheets.find((s) => norm(s.name).includes("resumo"));
+  if (!ws) return null;
+  const rows: unknown[][] = [];
+  ws.eachRow({ includeEmpty: true }, (row) => {
+    rows.push((row.values as unknown[]).slice(1));
+  });
+  return rows;
+}
+
 function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   const ws = wb.worksheets.find((s) => norm(s.name).includes("resumo"));
   if (!ws) return null;
@@ -1171,58 +1242,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   }
 
   // ----- Coparticipação — Empresarial (pivot da aba RESUMO) -----
-  // Procura o cabeçalho do pivot (uma célula com "coparticipação"/"coparticipacao"
-  // seguido, na mesma linha, de colunas de Qtd e Valor). Em seguida, lê as
-  // linhas subsequentes ("PJ - <NOME>" | Qtd | Valor) até "Total Geral".
-  const coparticipItems: { nome: string; quantidade: number; total: number }[] = [];
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i] || [];
-    let hdrCol = -1;
-    for (let c = 0; c < r.length; c++) {
-      const t = norm(r[c]);
-      if (t && t.includes("copartic") && t.includes("empresarial")) {
-        hdrCol = c;
-        break;
-      }
-    }
-    if (hdrCol < 0) continue;
-    // Colunas de Qtd/Valor: procura na mesma linha, na anterior, ou fallback hdrCol+1/+2.
-    let qtdCol = -1;
-    let valCol = -1;
-    const scanCols = (rr: unknown[]) => {
-      for (let c = 0; c < rr.length; c++) {
-        const t = norm(rr[c]);
-        if (!t) continue;
-        if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
-        if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
-      }
-    };
-    scanCols(r);
-    if ((qtdCol < 0 || valCol < 0) && i > 0) scanCols(rows[i - 1] || []);
-    if (qtdCol < 0) qtdCol = hdrCol + 1;
-    if (valCol < 0) valCol = hdrCol + 2;
-    for (let j = i + 1; j < rows.length; j++) {
-      const rr = rows[j] || [];
-      const label = cellToText(rr[hdrCol]).trim();
-      const norml = norm(label);
-      if (!label) continue;
-      if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
-      // Remove prefixo "PJ - " / "PJ -" / "PJ:"
-      const nomeLimpo = label.replace(/^\s*pj\s*[-–—:]?\s*/i, "").trim();
-      if (!nomeLimpo) continue;
-      const qtd = qtdCol >= 0 ? Math.round(toNumber(rr[qtdCol])) : 0;
-      const val = valCol >= 0 ? toNumber(rr[valCol]) : 0;
-      const qtdOk = !isNaN(qtd) && qtd !== 0;
-      const valOk = !isNaN(val) && val !== 0;
-      if (!qtdOk && !valOk) continue;
-      coparticipItems.push({
-        nome: nomeLimpo,
-        quantidade: isNaN(qtd) ? 0 : qtd,
-        total: isNaN(val) ? 0 : val,
-      });
-    }
-    break;
-  }
+  const coparticipItems = parseCoparticipacaoRows(rows);
 
   // Distribui itens de coparticipação nos blocos por match de nome. Fallback:
   // se houver apenas um bloco, tudo vai para ele.
@@ -1806,6 +1826,50 @@ export async function analisarExcelFinanceiroPorCnpj(
     });
   }
 
+
+  // Coparticipação — Empresarial: lê pivot da aba RESUMO e distribui nos blocos.
+  const rowsResumo = lerRowsAbaResumo(wb);
+  if (rowsResumo && blocos.length > 0) {
+    const coparticipItems = parseCoparticipacaoRows(rowsResumo);
+    if (coparticipItems.length > 0) {
+      const acumPorChave = new Map<
+        string,
+        { substipulantes: CoparticipacaoSubstipulante[]; quantidade: number; total: number }
+      >();
+      for (const item of coparticipItems) {
+        const alvoKey = normMatch(item.nome);
+        let match: AnalisePorCnpj | null = null;
+        if (blocos.length === 1) {
+          match = blocos[0];
+        } else {
+          match =
+            blocos.find((b) => normMatch(b.nome) === alvoKey) ||
+            blocos.find((b) => {
+              const bk = normMatch(b.nome);
+              return bk && (alvoKey.includes(bk) || bk.includes(alvoKey));
+            }) ||
+            null;
+        }
+        if (!match) continue;
+        const key = match.cnpj || match.nome;
+        const acc = acumPorChave.get(key) || { substipulantes: [], quantidade: 0, total: 0 };
+        acc.substipulantes.push(item);
+        acc.quantidade += item.quantidade;
+        acc.total += item.total;
+        acumPorChave.set(key, acc);
+      }
+      for (const b of blocos) {
+        const acc = acumPorChave.get(b.cnpj || b.nome);
+        if (acc && (acc.quantidade !== 0 || acc.total !== 0)) {
+          b.coparticipacao = {
+            quantidade: acc.quantidade,
+            total: acc.total,
+            substipulantes: acc.substipulantes,
+          };
+        }
+      }
+    }
+  }
 
   return mesclarBlocosPorNomeForcado(blocos);
 }
