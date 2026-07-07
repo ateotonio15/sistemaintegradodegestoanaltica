@@ -1436,14 +1436,26 @@ export default function Financeiro() {
       [...xlsAnexos, ...pdfAnexos].map((a) => a.storage_path).sort().join("|") +
       `::${tipoAnalise}::v${ANALISE_PARSER_VERSION}`;
 
+    console.log("[MOTHER]", row.id, row.empresa_nome, {
+      anexosTotal: anexos.length,
+      xls: xlsAnexos.length,
+      pdf: pdfAnexos.length,
+      cacheKey,
+      anexos: anexos.map((a) => ({ nome: a.nome_arquivo, mime: a.mime_type, shared: !!a._compartilhado_grupo })),
+    });
+
     if (!opts.force) {
       const hit = motherAnalysisCache.current.get(row.id);
-      if (hit && hit.key === cacheKey) return hit;
+      if (hit && hit.key === cacheKey) {
+        console.log("[MOTHER] cache hit", { temXls: hit.temXls, resultados: hit.resultados.length });
+        return hit;
+      }
     }
 
     if (xlsAnexos.length === 0) {
       const empty = { key: cacheKey, resultados: [], comparacoes: [], notasOrfas: [], temXls: false };
       motherAnalysisCache.current.set(row.id, empty);
+      console.log("[MOTHER] no xls, returning empty");
       return empty;
     }
 
