@@ -487,7 +487,7 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
             // Um novo pagador/grupo começa quando a primeira célula não é indentada
             // e não é uma linha de total. Marca uma borda superior mais escura.
             const firstIndent = row[0]?.indent ?? 0;
-            const isNewGroup = !isTotalRow && firstIndent === 0 && i > 0 && !!first;
+            const isNewGroup = !isTotalRow && firstIndent === 0 && !!first;
             const zebra = ri % 2 === 0;
             const rowBg = isTotalRow
               ? "bg-primary/5"
