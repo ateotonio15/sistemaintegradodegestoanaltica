@@ -124,9 +124,58 @@ function diasDoMes(d: Date): number {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
 }
 
+/** Somente dígitos (para comparação de CNPJ). */
+function onlyDigits(s: unknown): string {
+  return String(s ?? "").replace(/\D/g, "");
+}
+
+/**
+ * Proporcional de exclusão para empresa de PERÍODO específico.
+ * O "fim do ciclo" é o dia (diaInicioCiclo - 1) na próxima ocorrência ≥ dResc.
+ * Ex.: ciclo 10/07 → 09/08 (diaInicio=10). Rescisão 05/07 → fim 09/07;
+ * rescisão 20/07 → fim 09/08.
+ */
+function calcularProporcionalPeriodo(
+  dResc: Date,
+  mensalidade: number,
+  diaInicioCiclo: number,
+): number | null {
+  const diaFim = diaInicioCiclo === 1 ? 0 : diaInicioCiclo - 1; // 0 ⇒ último dia do mês
+  let year = dResc.getUTCFullYear();
+  let month = dResc.getUTCMonth();
+  const diaResc = dResc.getUTCDate();
+
+  let cycleEnd: Date;
+  if (diaFim === 0) {
+    cycleEnd = new Date(Date.UTC(year, month + 1, 0, 12));
+  } else {
+    if (diaResc > diaFim) month += 1;
+    const lastDom = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    const diaFimSafe = Math.min(diaFim, lastDom);
+    cycleEnd = new Date(Date.UTC(year, month, diaFimSafe, 12));
+  }
+
+  const cycleStart = new Date(cycleEnd);
+  cycleStart.setUTCMonth(cycleStart.getUTCMonth() - 1);
+  cycleStart.setUTCDate(cycleStart.getUTCDate() + 1);
+
+  const totalDiasCiclo =
+    Math.round((cycleEnd.getTime() - cycleStart.getTime()) / 86400000) + 1;
+  const diasProp = Math.round((cycleEnd.getTime() - dResc.getTime()) / 86400000) + 1;
+  if (totalDiasCiclo <= 0 || diasProp <= 0) return null;
+  const v = -1 * (mensalidade / totalDiasCiclo) * diasProp;
+  return Math.round(v * 100) / 100;
+}
+
+export interface AdicionarExclusoesOpts {
+  /** Mapa CNPJ (somente dígitos) → dia de início do ciclo (1..31) para empresas de período. */
+  periodoPorCnpj?: Map<string, number>;
+}
+
 export async function adicionarExclusoesAoBruto(
   brutoBuf: ArrayBuffer,
   exclusoesBuf: ArrayBuffer,
+  opts?: AdicionarExclusoesOpts,
 ): Promise<ArrayBuffer> {
   const wbBruto = XLSX.read(brutoBuf, { type: "array", cellDates: true });
   const wbExc = XLSX.read(exclusoesBuf, { type: "array", cellDates: true });
@@ -247,18 +296,38 @@ export async function adicionarExclusoesAoBruto(
     const planoRaw = idxPlano >= 0 ? pickFromExcl(headersBruto[idxPlano], linhaExc, normExcMap) : "";
     const planoNorm = normalizarPlano(planoRaw);
     const mensalidade = planoNorm ? mensalidadePorPlano.get(planoNorm) ?? null : null;
+
+    // Resolve CNPJ da linha (para consultar se a empresa é de PERÍODO específico)
+    let cnpjLinha = "";
+    if (idxCnpj >= 0) {
+      const raw = pickFromExcl(headersBruto[idxCnpj], linhaExc, normExcMap);
+      cnpjLinha = String(raw ?? "").trim();
+    }
+    if (!cnpjLinha && idxPagador >= 0) {
+      const pagVal = String(pickFromExcl(headersBruto[idxPagador], linhaExc, normExcMap) ?? "");
+      const key = normText(pagVal);
+      cnpjLinha = (key ? pagadorCnpjMap.get(key) : "") ?? "";
+    }
+    const diaInicioPeriodo = opts?.periodoPorCnpj?.get(onlyDigits(cnpjLinha));
+
     let valorProporcional: number | "" = "";
     if (mensalidade != null && idxRescExc != null) {
       const dResc = toDateSafe(linhaExc[idxRescExc]);
       if (dResc) {
-        const totalDias = diasDoMes(dResc);
-        const diasProp = totalDias - dResc.getUTCDate() + 1;
-        if (diasProp > 0) {
-          const v = -1 * (mensalidade / totalDias) * diasProp;
-          valorProporcional = Math.round(v * 100) / 100;
+        if (diaInicioPeriodo && diaInicioPeriodo >= 1 && diaInicioPeriodo <= 31) {
+          const v = calcularProporcionalPeriodo(dResc, mensalidade, diaInicioPeriodo);
+          if (v != null) valorProporcional = v;
+        } else {
+          const totalDias = diasDoMes(dResc);
+          const diasProp = totalDias - dResc.getUTCDate() + 1;
+          if (diasProp > 0) {
+            const v = -1 * (mensalidade / totalDias) * diasProp;
+            valorProporcional = Math.round(v * 100) / 100;
+          }
         }
       }
     }
+
 
     const nova: unknown[] = headersBruto.map((h, ci) => {
       if (ci === idxTipo) return "Exclusão";
