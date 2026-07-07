@@ -22,6 +22,20 @@ export interface InclusaoResultado {
   mesesDetalhe?: RetroativaMesDetalhe[];
 }
 
+/** Item por sub-estipulante ("PJ - <NOME>") no pivot de Coparticipação. */
+export interface CoparticipacaoSubstipulante {
+  nome: string;
+  quantidade: number;
+  total: number;
+}
+
+/** Bloco de Coparticipação — Empresarial extraído do pivot da aba RESUMO. */
+export interface CoparticipacaoResultado {
+  quantidade: number;
+  total: number;
+  substipulantes?: CoparticipacaoSubstipulante[];
+}
+
 
 
 export interface AnaliseResultado {
