@@ -1827,6 +1827,50 @@ export async function analisarExcelFinanceiroPorCnpj(
   }
 
 
+  // Coparticipação — Empresarial: lê pivot da aba RESUMO e distribui nos blocos.
+  const rowsResumo = lerRowsAbaResumo(wb);
+  if (rowsResumo && blocos.length > 0) {
+    const coparticipItems = parseCoparticipacaoRows(rowsResumo);
+    if (coparticipItems.length > 0) {
+      const acumPorChave = new Map<
+        string,
+        { substipulantes: CoparticipacaoSubstipulante[]; quantidade: number; total: number }
+      >();
+      for (const item of coparticipItems) {
+        const alvoKey = normMatch(item.nome);
+        let match: AnalisePorCnpj | null = null;
+        if (blocos.length === 1) {
+          match = blocos[0];
+        } else {
+          match =
+            blocos.find((b) => normMatch(b.nome) === alvoKey) ||
+            blocos.find((b) => {
+              const bk = normMatch(b.nome);
+              return bk && (alvoKey.includes(bk) || bk.includes(alvoKey));
+            }) ||
+            null;
+        }
+        if (!match) continue;
+        const key = match.cnpj || match.nome;
+        const acc = acumPorChave.get(key) || { substipulantes: [], quantidade: 0, total: 0 };
+        acc.substipulantes.push(item);
+        acc.quantidade += item.quantidade;
+        acc.total += item.total;
+        acumPorChave.set(key, acc);
+      }
+      for (const b of blocos) {
+        const acc = acumPorChave.get(b.cnpj || b.nome);
+        if (acc && (acc.quantidade !== 0 || acc.total !== 0)) {
+          b.coparticipacao = {
+            quantidade: acc.quantidade,
+            total: acc.total,
+            substipulantes: acc.substipulantes,
+          };
+        }
+      }
+    }
+  }
+
   return mesclarBlocosPorNomeForcado(blocos);
 }
 
