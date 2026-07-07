@@ -296,10 +296,40 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
 
   useEffect(() => () => { pdfDoc?.destroy(); }, [pdfDoc]);
 
+  // ESC sai do modo tela cheia
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreen(false); };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [fullscreen]);
+
   const currentSheet = sheets?.[activeSheet];
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className={cn(
+      "flex flex-col min-h-0",
+      fullscreen
+        ? "fixed inset-0 z-[100] bg-background h-screen"
+        : "h-full",
+    )}>
+      {/* Botão flutuante de tela cheia — sempre visível */}
+      <Button
+        variant={fullscreen ? "default" : "secondary"}
+        size="sm"
+        onClick={() => setFullscreen((v) => !v)}
+        className="absolute top-2 right-2 z-20 h-8 gap-1.5 shadow-md"
+        title={fullscreen ? "Sair da tela cheia (ESC)" : "Tela cheia"}
+      >
+        {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+        <span className="text-xs">{fullscreen ? "Sair" : "Tela cheia"}</span>
+      </Button>
+
       {pdfDoc && (
         <div className="flex items-center justify-center gap-1 px-3 py-2 border-b bg-muted/30 shrink-0">
           <Button variant="ghost" size="icon" className="h-7 w-7"
