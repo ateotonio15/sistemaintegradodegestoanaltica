@@ -305,6 +305,22 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     enabled: !!boletoConfirmadoPor,
   });
 
+  // Nome de quem enviou a nota
+  const enviadoPorId = (movimentacao as any)?.enviado_por_user_id as string | null | undefined;
+  const { data: enviadoPorNome } = useQuery({
+    queryKey: ["profile-name", enviadoPorId],
+    queryFn: async () => {
+      if (!enviadoPorId) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", enviadoPorId)
+        .maybeSingle();
+      return data?.display_name ?? null;
+    },
+    enabled: !!enviadoPorId,
+  });
+
   // Nota emitida = existe anexo PDF OU data_envio_nota preenchida.
   // Espelha a lógica de calcularStatusFinanceiro em src/lib/financeiro-utils.ts.
   const notaEmitida =
@@ -995,7 +1011,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
               ) : dataEnvioNota ? (
                 <p className="text-[11px] text-success flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
-                  Nota marcada como enviada.
+                  Nota marcada como enviada{enviadoPorNome ? ` por ${enviadoPorNome}` : ""}.
                 </p>
               ) : null}
               {temIrmaos && (
