@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { FileSpreadsheet, Loader2, Download, UploadCloud, X, FilePlus2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatarFaturamentoExcel, type ModoFaturamento } from "@/lib/faturamento-formatter";
-import { adicionarExclusoesAoBruto } from "@/lib/faturamento-exclusoes";
+import { adicionarExclusoesAoBruto, detectarCnpjsDePeriodo, type CnpjPeriodoSuspeita } from "@/lib/faturamento-exclusoes";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -32,6 +32,13 @@ export function FormatarFaturamentoCard() {
   const [exclModo, setExclModo] = useState<ModoFaturamento>("nao_prorata");
   const brutoRef = useRef<HTMLInputElement>(null);
   const exclRef = useRef<HTMLInputElement>(null);
+
+  // Auto-detecção de empresas de PERÍODO (via dia da competência ≠ 01)
+  const [suspeitasOpen, setSuspeitasOpen] = useState(false);
+  const [suspeitas, setSuspeitas] = useState<CnpjPeriodoSuspeita[]>([]);
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [pendingBufs, setPendingBufs] = useState<{ bruto: ArrayBuffer; excl: ArrayBuffer } | null>(null);
+  const [marcandoPeriodo, setMarcandoPeriodo] = useState(false);
 
 
   function pickFile(f: File | null | undefined) {
@@ -186,6 +193,26 @@ export function FormatarFaturamentoCard() {
     setter(f);
   }
 
+  async function gerarFinal(
+    brutoBuf: ArrayBuffer,
+    exclBuf: ArrayBuffer,
+    periodoPorCnpj: Map<string, number>,
+  ) {
+    const mergedBuf = await adicionarExclusoesAoBruto(brutoBuf, exclBuf, { periodoPorCnpj });
+    const finalBuf = await normalizeBrToXlsxBuffer(mergedBuf);
+    const { blob, filename } = await formatarFaturamentoExcel(finalBuf, exclModo, {
+      pularResumo: true,
+      periodoPorCnpj,
+    });
+    downloadBlob(blob, filename);
+    toast.success(`Exclusões adicionadas e formatação aplicada: ${filename}`);
+    setBrutoFile(null);
+    setExclFile(null);
+    if (brutoRef.current) brutoRef.current.value = "";
+    if (exclRef.current) exclRef.current.value = "";
+    setExclOpen(false);
+  }
+
   async function handleAdicionarExclusoes() {
     if (!brutoFile || !exclFile) {
       toast.error("Selecione o arquivo bruto e o arquivo de exclusões.");
@@ -196,25 +223,88 @@ export function FormatarFaturamentoCard() {
       const brutoBuf = await normalizeBrToXlsxBuffer(await brutoFile.arrayBuffer());
       const exclBuf = await normalizeBrToXlsxBuffer(await exclFile.arrayBuffer());
 
-      // Busca empresas com cobrança em PERÍODO específico → CNPJ → dia início do ciclo
       const periodoPorCnpj = await fetchPeriodoPorCnpj();
 
-      const mergedBuf = await adicionarExclusoesAoBruto(brutoBuf, exclBuf, { periodoPorCnpj });
-      const finalBuf = await normalizeBrToXlsxBuffer(mergedBuf);
-      const { blob, filename } = await formatarFaturamentoExcel(finalBuf, exclModo, { pularResumo: true, periodoPorCnpj });
+      // Auto-detecção: CNPJs com competência dia ≠ 01 e ainda não cadastrados como PERÍODO
+      const suspeitosDetectados = detectarCnpjsDePeriodo(brutoBuf);
+      const naoCadastrados = suspeitosDetectados.filter((s) => !periodoPorCnpj.has(s.digits));
 
-      downloadBlob(blob, filename);
-      toast.success(`Exclusões adicionadas e formatação aplicada: ${filename}`);
-      setBrutoFile(null);
-      setExclFile(null);
-      if (brutoRef.current) brutoRef.current.value = "";
-      if (exclRef.current) exclRef.current.value = "";
-      setExclOpen(false);
+      if (naoCadastrados.length > 0) {
+        setSuspeitas(naoCadastrados);
+        setSelecionadas(new Set(naoCadastrados.map((s) => s.digits)));
+        setPendingBufs({ bruto: brutoBuf, excl: exclBuf });
+        setSuspeitasOpen(true);
+        setExclProcessing(false);
+        return;
+      }
+
+      await gerarFinal(brutoBuf, exclBuf, periodoPorCnpj);
     } catch (err) {
       console.error(err);
       toast.error(`Falha ao adicionar exclusões: ${err instanceof Error ? err.message : "erro desconhecido"}`);
     } finally {
       setExclProcessing(false);
+    }
+  }
+
+  async function marcarSuspeitasEContinuar(marcar: boolean) {
+    if (!pendingBufs) {
+      setSuspeitasOpen(false);
+      return;
+    }
+    try {
+      setMarcandoPeriodo(true);
+      const { supabase } = await import("@/integrations/supabase/client");
+
+      if (marcar && selecionadas.size > 0) {
+        const alvos = suspeitas.filter((s) => selecionadas.has(s.digits));
+        // Busca empresas cadastradas para casar por dígitos do CNPJ
+        const { data: empresas } = await supabase
+          .from("empresas")
+          .select("id, cnpj")
+          .not("cnpj", "is", null);
+        const porDigits = new Map<string, string>();
+        (empresas ?? []).forEach((e: any) => {
+          const d = String(e.cnpj ?? "").replace(/\D/g, "");
+          if (d) porDigits.set(d, e.id);
+        });
+
+        let atualizadas = 0;
+        let semCadastro = 0;
+        for (const s of alvos) {
+          const id = porDigits.get(s.digits);
+          if (!id) {
+            semCadastro += 1;
+            continue;
+          }
+          const { error } = await supabase
+            .from("empresas")
+            .update({
+              periodo_especifico_cobranca: true,
+              periodo_cobranca_inicio: s.dataSugerida,
+            } as any)
+            .eq("id", id);
+          if (!error) atualizadas += 1;
+        }
+        if (atualizadas > 0) toast.success(`${atualizadas} empresa(s) marcada(s) como período.`);
+        if (semCadastro > 0)
+          toast.warning(`${semCadastro} CNPJ(s) não localizados no cadastro — não foram marcados.`);
+      }
+
+      setSuspeitasOpen(false);
+      setExclProcessing(true);
+      // Refaz o mapa após as atualizações
+      const periodoPorCnpj = await fetchPeriodoPorCnpj();
+      await gerarFinal(pendingBufs.bruto, pendingBufs.excl, periodoPorCnpj);
+    } catch (err) {
+      console.error(err);
+      toast.error(`Falha ao concluir: ${err instanceof Error ? err.message : "erro desconhecido"}`);
+    } finally {
+      setMarcandoPeriodo(false);
+      setExclProcessing(false);
+      setPendingBufs(null);
+      setSuspeitas([]);
+      setSelecionadas(new Set());
     }
   }
 
@@ -483,6 +573,70 @@ export function FormatarFaturamentoCard() {
                 <Download className="h-4 w-4 mr-2" />
               )}
               Gerar arquivo final
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-sugestão de cadastro como PERÍODO */}
+      <Dialog open={suspeitasOpen} onOpenChange={(o) => !marcandoPeriodo && setSuspeitasOpen(o)}>
+        <DialogContent className="sm:max-w-[620px]">
+          <DialogHeader>
+            <DialogTitle>Empresas de período detectadas</DialogTitle>
+            <DialogDescription>
+              {suspeitas.length} CNPJ{suspeitas.length > 1 ? "s parecem ser" : " parece ser"} de{" "}
+              <strong>período específico</strong> (competência com dia ≠ 01), mas ainda{" "}
+              {suspeitas.length > 1 ? "não estão cadastrados" : "não está cadastrado"}. Deseja marcar
+              automaticamente? Isso ajusta o cálculo proporcional das exclusões.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[320px] overflow-auto rounded-lg border border-border/60 divide-y">
+            {suspeitas.map((s) => {
+              const checked = selecionadas.has(s.digits);
+              return (
+                <label
+                  key={s.digits}
+                  className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => {
+                      const next = new Set(selecionadas);
+                      if (e.target.checked) next.add(s.digits);
+                      else next.delete(s.digits);
+                      setSelecionadas(next);
+                    }}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{s.nome || "(sem nome)"}</p>
+                    <p className="text-[11px] text-muted-foreground font-mono">
+                      {s.cnpj} · ciclo dia {String(s.diaCiclo).padStart(2, "0")}
+                    </p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => marcarSuspeitasEContinuar(false)}
+              disabled={marcandoPeriodo}
+            >
+              Continuar sem marcar
+            </Button>
+            <Button
+              onClick={() => marcarSuspeitasEContinuar(true)}
+              disabled={marcandoPeriodo || selecionadas.size === 0}
+            >
+              {marcandoPeriodo ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              Marcar {selecionadas.size} e continuar
             </Button>
           </DialogFooter>
         </DialogContent>
