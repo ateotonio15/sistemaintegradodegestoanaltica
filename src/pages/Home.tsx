@@ -126,7 +126,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     items: [
       {
         slug: "saude-empresas",
-        label: "Saúde nas Empresas",
+        label: "Analise dos Dados",
         description: "Empresas, ações, triagens e fichas de bioimpedância",
         icon: Stethoscope,
         to: "/saude-empresas",

@@ -54,7 +54,7 @@ const allNavItems = [
   { to: "/plantoes/calendario", label: "Calendário Plantões", icon: Calendar, adminOnly: true },
   { to: "/uber", label: "Uber Corporativo", icon: Car, adminOnly: true },
   { to: "/uber/dashboard", label: "Dashboard Uber", icon: LayoutDashboard, adminOnly: true },
-  { to: "/saude-empresas", label: "Saúde nas Empresas", icon: Stethoscope },
+  { to: "/saude-empresas", label: "Analise dos Dados", icon: Stethoscope },
   { to: "/saude-empresas/visao-geral", label: "Visão Geral · Saúde", icon: Activity },
   { to: "/saude-empresas/preventivas", label: "Calendário de Ações", icon: CalendarClock },
   { to: "/saude-empresas/palestras", label: "Calendário Palestras", icon: Mic },
