@@ -1178,16 +1178,29 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i] || [];
     let hdrCol = -1;
-    let qtdCol = -1;
-    let valCol = -1;
     for (let c = 0; c < r.length; c++) {
       const t = norm(r[c]);
-      if (!t) continue;
-      if (hdrCol < 0 && t.includes("copartic")) hdrCol = c;
-      if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
-      if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
+      if (t && t.includes("copartic") && t.includes("empresarial")) {
+        hdrCol = c;
+        break;
+      }
     }
-    if (hdrCol < 0 || (qtdCol < 0 && valCol < 0)) continue;
+    if (hdrCol < 0) continue;
+    // Colunas de Qtd/Valor: procura na mesma linha, na anterior, ou fallback hdrCol+1/+2.
+    let qtdCol = -1;
+    let valCol = -1;
+    const scanCols = (rr: unknown[]) => {
+      for (let c = 0; c < rr.length; c++) {
+        const t = norm(rr[c]);
+        if (!t) continue;
+        if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
+        if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
+      }
+    };
+    scanCols(r);
+    if ((qtdCol < 0 || valCol < 0) && i > 0) scanCols(rows[i - 1] || []);
+    if (qtdCol < 0) qtdCol = hdrCol + 1;
+    if (valCol < 0) valCol = hdrCol + 2;
     for (let j = i + 1; j < rows.length; j++) {
       const rr = rows[j] || [];
       const label = cellToText(rr[hdrCol]).trim();
