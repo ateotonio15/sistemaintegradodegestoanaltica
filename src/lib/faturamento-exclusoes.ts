@@ -296,18 +296,38 @@ export async function adicionarExclusoesAoBruto(
     const planoRaw = idxPlano >= 0 ? pickFromExcl(headersBruto[idxPlano], linhaExc, normExcMap) : "";
     const planoNorm = normalizarPlano(planoRaw);
     const mensalidade = planoNorm ? mensalidadePorPlano.get(planoNorm) ?? null : null;
+
+    // Resolve CNPJ da linha (para consultar se a empresa é de PERÍODO específico)
+    let cnpjLinha = "";
+    if (idxCnpj >= 0) {
+      const raw = pickFromExcl(headersBruto[idxCnpj], linhaExc, normExcMap);
+      cnpjLinha = String(raw ?? "").trim();
+    }
+    if (!cnpjLinha && idxPagador >= 0) {
+      const pagVal = String(pickFromExcl(headersBruto[idxPagador], linhaExc, normExcMap) ?? "");
+      const key = normText(pagVal);
+      cnpjLinha = (key ? pagadorCnpjMap.get(key) : "") ?? "";
+    }
+    const diaInicioPeriodo = opts?.periodoPorCnpj?.get(onlyDigits(cnpjLinha));
+
     let valorProporcional: number | "" = "";
     if (mensalidade != null && idxRescExc != null) {
       const dResc = toDateSafe(linhaExc[idxRescExc]);
       if (dResc) {
-        const totalDias = diasDoMes(dResc);
-        const diasProp = totalDias - dResc.getUTCDate() + 1;
-        if (diasProp > 0) {
-          const v = -1 * (mensalidade / totalDias) * diasProp;
-          valorProporcional = Math.round(v * 100) / 100;
+        if (diaInicioPeriodo && diaInicioPeriodo >= 1 && diaInicioPeriodo <= 31) {
+          const v = calcularProporcionalPeriodo(dResc, mensalidade, diaInicioPeriodo);
+          if (v != null) valorProporcional = v;
+        } else {
+          const totalDias = diasDoMes(dResc);
+          const diasProp = totalDias - dResc.getUTCDate() + 1;
+          if (diasProp > 0) {
+            const v = -1 * (mensalidade / totalDias) * diasProp;
+            valorProporcional = Math.round(v * 100) / 100;
+          }
         }
       }
     }
+
 
     const nova: unknown[] = headersBruto.map((h, ci) => {
       if (ci === idxTipo) return "Exclusão";
