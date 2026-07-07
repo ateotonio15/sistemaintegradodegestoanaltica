@@ -77,6 +77,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   executiva_user_id: null,
   telefone_empresa: "",
   contato_empresa: "",
+  endereco: "",
   vidas: 0,
   tipo_contrato: "EMPRESARIAL",
   exige_po_pc: false,
