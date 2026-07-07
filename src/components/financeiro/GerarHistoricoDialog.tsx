@@ -80,6 +80,7 @@ interface Props {
   row: FinanceiroRow | null;
   resultados: AnaliseResultado[] | null;
   anexosNomes: string[];
+  modo?: "mensalidade" | "coparticipacao";
 }
 
 export function GerarHistoricoDialog({
@@ -88,6 +89,7 @@ export function GerarHistoricoDialog({
   row,
   resultados,
   anexosNomes,
+  modo = "mensalidade",
 }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
