@@ -461,8 +461,8 @@ export function FormatarFaturamentoCard() {
               {/* Bruto */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-[11px] font-semibold flex items-center justify-center">1</span>
-                  <Label className="text-xs font-medium">Arquivo Bruto</Label>
+                  <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-xs font-semibold flex items-center justify-center">1</span>
+                  <Label className="text-sm font-medium">Arquivo Bruto</Label>
                 </div>
                 <button
                   type="button"
