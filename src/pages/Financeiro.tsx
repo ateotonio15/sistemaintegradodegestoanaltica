@@ -2677,6 +2677,17 @@ export default function Financeiro() {
             anexosNomes={historicoRow ? ((anexosMap[historicoRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
           />
         )}
+
+        {canManageFinanceiro && (
+          <GerarHistoricoDialog
+            open={historicoCopDialogOpen}
+            onOpenChange={setHistoricoCopDialogOpen}
+            row={historicoCopRow}
+            resultados={historicoCopRow ? (analiseResultados[historicoCopRow.rowKey ?? historicoCopRow.id] ?? analiseResultados[historicoCopRow.id] ?? null) : null}
+            anexosNomes={historicoCopRow ? ((anexosMap[historicoCopRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
+            modo="coparticipacao"
+          />
+        )}
       </div>
     </>
   );
