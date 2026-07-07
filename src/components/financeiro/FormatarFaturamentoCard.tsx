@@ -197,22 +197,12 @@ export function FormatarFaturamentoCard() {
       const exclBuf = await normalizeBrToXlsxBuffer(await exclFile.arrayBuffer());
 
       // Busca empresas com cobrança em PERÍODO específico → CNPJ → dia início do ciclo
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data: empresasPeriodo } = await supabase
-        .from("empresas")
-        .select("cnpj, periodo_cobranca_inicio")
-        .eq("periodo_especifico_cobranca", true)
-        .not("periodo_cobranca_inicio", "is", null);
-      const periodoPorCnpj = new Map<string, number>();
-      (empresasPeriodo ?? []).forEach((e: any) => {
-        const digits = String(e.cnpj ?? "").replace(/\D/g, "");
-        const m = /^\d{4}-\d{2}-(\d{2})$/.exec(String(e.periodo_cobranca_inicio ?? ""));
-        if (digits && m) periodoPorCnpj.set(digits, parseInt(m[1], 10));
-      });
+      const periodoPorCnpj = await fetchPeriodoPorCnpj();
 
       const mergedBuf = await adicionarExclusoesAoBruto(brutoBuf, exclBuf, { periodoPorCnpj });
       const finalBuf = await normalizeBrToXlsxBuffer(mergedBuf);
-      const { blob, filename } = await formatarFaturamentoExcel(finalBuf, exclModo, { pularResumo: true });
+      const { blob, filename } = await formatarFaturamentoExcel(finalBuf, exclModo, { pularResumo: true, periodoPorCnpj });
+
       downloadBlob(blob, filename);
       toast.success(`Exclusões adicionadas e formatação aplicada: ${filename}`);
       setBrutoFile(null);
