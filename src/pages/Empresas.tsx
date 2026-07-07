@@ -77,6 +77,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   executiva_user_id: null,
   telefone_empresa: "",
   contato_empresa: "",
+  endereco: "",
   vidas: 0,
   tipo_contrato: "EMPRESARIAL",
   exige_po_pc: false,
@@ -316,6 +317,7 @@ export default function Empresas() {
           contato_empresa: values.contato_empresa,
           telefone_empresa: values.telefone_empresa,
           email_empresa: values.email_empresa,
+          endereco: (values as any).endereco,
           executiva_user_id: (values as any).executiva_user_id,
         }).eq("id", editingId);
         if (error) throw error;
@@ -569,6 +571,7 @@ export default function Empresas() {
       grupo_contrato: (e as any).grupo_contrato ?? "",
       telefone_empresa: (e as any).telefone_empresa ?? "",
       contato_empresa: (e as any).contato_empresa ?? "",
+      endereco: (e as any).endereco ?? "",
       contrato_faixa_etaria: (e as any).contrato_faixa_etaria ?? false,
       pagamento_via_deposito: (e as any).pagamento_via_deposito ?? false,
       vidas: (e as any).vidas ?? 0,
@@ -1027,6 +1030,10 @@ export default function Empresas() {
                             <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
                           </div>
                           <div className="space-y-2 animate-fade-in">
+                            <Label className="text-sm font-medium">Endereço</Label>
+                            <Input value={(form as any).endereco ?? ""} onChange={(e) => setForm({ ...form, endereco: e.target.value } as any)} placeholder="Endereço da empresa" className="rounded-lg" />
+                          </div>
+                          <div className="space-y-2 animate-fade-in">
                             <Label className="text-sm font-medium">Prazo (Entrada sem carência)</Label>
                             <Input value={(form as any).prazo ?? ""} onChange={(e) => setForm({ ...form, prazo: e.target.value } as any)} placeholder="Ex: 30 dias" className="rounded-lg" />
                           </div>
@@ -1440,6 +1447,10 @@ export default function Empresas() {
                       <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
                     </div>
                     <div className="space-y-2">
+                      <Label className="text-sm font-medium">Endereço</Label>
+                      <Input value={(form as any).endereco ?? ""} onChange={(e) => setForm({ ...form, endereco: e.target.value } as any)} placeholder="Endereço da empresa" className="rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
                       <Label className="text-sm font-medium">Telefone da Empresa</Label>
                       <Input value={(form as any).telefone_empresa ?? ""} onChange={(e) => setForm({ ...form, telefone_empresa: e.target.value } as any)} placeholder="(92) 99999-9999" className="rounded-lg" />
                     </div>
@@ -1815,6 +1826,7 @@ export default function Empresas() {
                       <DetailRow label="E-mail" value={detailEmpresa.email_empresa} />
                       <DetailRow label="Telefone" value={(detailEmpresa as any).telefone_empresa} />
                       <DetailRow label="Contato" value={(detailEmpresa as any).contato_empresa} />
+                      <DetailRow label="Endereço" value={(detailEmpresa as any).endereco} />
                     </dl>
                   </section>
 
