@@ -439,21 +439,22 @@ export function FormatarFaturamentoCard() {
       <Dialog open={exclOpen} onOpenChange={setExclOpen}>
         <DialogContent className="sm:max-w-[880px] p-0 overflow-hidden gap-0">
           {/* Header com faixa gradiente */}
-          <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-5 border-b border-border/60">
-            <div className="flex items-start gap-3">
-              <div className="h-11 w-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/20">
-                <FilePlus2 className="h-5 w-5" />
+          <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-8 pt-7 pb-6 border-b border-border/60">
+            <div className="flex items-start gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/20">
+                <FilePlus2 className="h-7 w-7" />
               </div>
               <div className="min-w-0">
-                <DialogHeader className="space-y-1 text-left">
-                  <DialogTitle className="text-xl leading-tight">Adicionar Exclusões ao Faturamento</DialogTitle>
-                  <DialogDescription className="text-sm leading-relaxed">
+                <DialogHeader className="space-y-1.5 text-left">
+                  <DialogTitle className="text-2xl leading-tight">Adicionar Exclusões ao Faturamento</DialogTitle>
+                  <DialogDescription className="text-base leading-relaxed">
                     Envie o arquivo <strong>bruto</strong> e o arquivo de <strong>exclusões</strong>. As linhas serão anexadas ao final do bruto com <span className="text-foreground font-medium">Tipo Cobrança = "Exclusão"</span> e o cálculo <strong>prorata</strong> será aplicado automaticamente.
                   </DialogDescription>
                 </DialogHeader>
               </div>
             </div>
           </div>
+
 
           <div className="px-6 py-5 space-y-5">
             {/* Uploads lado a lado */}
