@@ -577,6 +577,70 @@ export function FormatarFaturamentoCard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Auto-sugestão de cadastro como PERÍODO */}
+      <Dialog open={suspeitasOpen} onOpenChange={(o) => !marcandoPeriodo && setSuspeitasOpen(o)}>
+        <DialogContent className="sm:max-w-[620px]">
+          <DialogHeader>
+            <DialogTitle>Empresas de período detectadas</DialogTitle>
+            <DialogDescription>
+              {suspeitas.length} CNPJ{suspeitas.length > 1 ? "s parecem ser" : " parece ser"} de{" "}
+              <strong>período específico</strong> (competência com dia ≠ 01), mas ainda{" "}
+              {suspeitas.length > 1 ? "não estão cadastrados" : "não está cadastrado"}. Deseja marcar
+              automaticamente? Isso ajusta o cálculo proporcional das exclusões.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[320px] overflow-auto rounded-lg border border-border/60 divide-y">
+            {suspeitas.map((s) => {
+              const checked = selecionadas.has(s.digits);
+              return (
+                <label
+                  key={s.digits}
+                  className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => {
+                      const next = new Set(selecionadas);
+                      if (e.target.checked) next.add(s.digits);
+                      else next.delete(s.digits);
+                      setSelecionadas(next);
+                    }}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{s.nome || "(sem nome)"}</p>
+                    <p className="text-[11px] text-muted-foreground font-mono">
+                      {s.cnpj} · ciclo dia {String(s.diaCiclo).padStart(2, "0")}
+                    </p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => marcarSuspeitasEContinuar(false)}
+              disabled={marcandoPeriodo}
+            >
+              Continuar sem marcar
+            </Button>
+            <Button
+              onClick={() => marcarSuspeitasEContinuar(true)}
+              disabled={marcandoPeriodo || selecionadas.size === 0}
+            >
+              {marcandoPeriodo ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              Marcar {selecionadas.size} e continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
