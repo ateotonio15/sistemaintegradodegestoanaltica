@@ -409,55 +409,39 @@ export default function Arquivos() {
 
   return (
     <>
-      <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
-        <header className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
-              <FolderArchive className="h-6 w-6 text-primary" />
+      <div className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+        {/* Header com faixa gradiente */}
+        <header className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-primary/[0.04] to-transparent p-6 md:p-8">
+          <div className="pointer-events-none absolute -top-16 -right-16 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+          <div className="relative flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-primary/15 text-primary flex items-center justify-center ring-1 ring-primary/20 shadow-sm">
+                <FolderArchive className="h-7 w-7" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Repositório Financeiro</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Gestão documental dos arquivos enviados manualmente pelo Financeiro
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  <span className="font-semibold text-foreground">{grouped.length}</span> empresa{grouped.length === 1 ? "" : "s"}
+                  <span className="mx-1.5 text-muted-foreground/50">·</span>
+                  <span className="font-semibold text-foreground">{filtered.length}</span> arquivo{filtered.length === 1 ? "" : "s"}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Repositório Financeiro</h1>
-              <p className="text-sm text-muted-foreground">
-                Gestão documental dos arquivos enviados manualmente pelo Financeiro
-              </p>
-            </div>
+            {canEditFinanceiro && (
+              <Button onClick={() => openUpload()} className="gap-2 shadow-sm" size="lg">
+                <Plus className="h-4 w-4" />
+                Adicionar arquivo
+              </Button>
+            )}
           </div>
-          {canEditFinanceiro && (
-            <Button onClick={() => openUpload()} className="gap-2" size="lg">
-              <Plus className="h-4 w-4" />
-              Adicionar arquivo
-            </Button>
-          )}
         </header>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <KpiCard icon={<Files className="h-4 w-4" />} label="Total" value={kpis.total.toString()} />
-          <KpiCard
-            icon={<FileText className="h-4 w-4 text-rose-500" />}
-            label="PDFs"
-            value={kpis.pdfs.toString()}
-          />
-          <KpiCard
-            icon={<FileSpreadsheet className="h-4 w-4 text-emerald-500" />}
-            label="Excels"
-            value={kpis.excels.toString()}
-          />
-          <KpiCard
-            icon={<Clock className="h-4 w-4 text-blue-500" />}
-            label="Últimos 7 dias"
-            value={kpis.recentes.toString()}
-          />
-          <KpiCard
-            icon={<HardDrive className="h-4 w-4 text-amber-500" />}
-            label="Espaço"
-            value={formatBytes(kpis.espaco)}
-          />
-        </div>
-
         {/* Filtros */}
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="pt-5 pb-5">
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <div className="relative md:col-span-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -465,7 +449,7 @@ export default function Arquivos() {
                   placeholder="Buscar arquivo, empresa, contrato, competência..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 bg-background"
                 />
               </div>
               <Select value={empresaFilter} onValueChange={setEmpresaFilter}>
@@ -520,16 +504,9 @@ export default function Arquivos() {
         </Card>
 
         {/* Lista agrupada: Empresa → Contrato → Competência */}
-        <Card>
-          <CardHeader className="pb-3 flex-row items-center justify-between">
-            <CardTitle className="text-base">
-              Repositório por contrato{" "}
-              <span className="text-muted-foreground font-normal">
-                ({grouped.length} empresa{grouped.length === 1 ? "" : "s"} • {filtered.length} arquivo{filtered.length === 1 ? "" : "s"})
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="pt-5">
+
             {isLoading ? (
               <p className="text-center text-muted-foreground py-12">Carregando...</p>
             ) : grouped.length === 0 ? (
