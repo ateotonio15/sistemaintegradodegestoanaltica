@@ -1878,6 +1878,16 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
     const exc = somaQT(arr, "exclusoes"); if (exc) novoBloco.exclusoes = exc;
     const dev = somaQT(arr, "devolucoes"); if (dev) novoBloco.devolucoes = dev;
     const ade = somaQT(arr, "taxaAdesao"); if (ade) novoBloco.taxaAdesao = ade;
+    // Coparticipação: soma quantidade/total e concatena substipulantes.
+    const copartics = arr.map((x) => x.coparticipacao).filter(Boolean) as CoparticipacaoResultado[];
+    if (copartics.length > 0) {
+      const substipulantes = copartics.flatMap((c) => c.substipulantes || []);
+      novoBloco.coparticipacao = {
+        quantidade: copartics.reduce((s, c) => s + c.quantidade, 0),
+        total: copartics.reduce((s, c) => s + c.total, 0),
+        ...(substipulantes.length ? { substipulantes } : {}),
+      };
+    }
     if (faixasMap.size > 0) {
       novoBloco.faixasEtarias = Array.from(faixasMap.values()).sort((a, b) => a.idadeInicial - b.idadeInicial);
     }
