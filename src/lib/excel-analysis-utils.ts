@@ -1224,6 +1224,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     break;
   }
 
+  console.log('__DBG_COPARTIC__ items=', JSON.stringify(coparticipItems));
   // Distribui itens de coparticipação nos blocos por match de nome. Fallback:
   // se houver apenas um bloco, tudo vai para ele.
   const coparticPorBloco = new Map<string, { substipulantes: CoparticipacaoSubstipulante[]; quantidade: number; total: number }>();
