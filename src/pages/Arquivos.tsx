@@ -198,6 +198,17 @@ export default function Arquivos() {
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
   }, [arquivosPorEmpresa, selectedEmpresaId, searchArquivo]);
 
+  // Agrupa por competência (mais recentes primeiro)
+  const arquivosPorCompetencia = useMemo(() => {
+    const map = new Map<string, ArquivoRow[]>();
+    for (const a of arquivosEmpresa) {
+      const arr = map.get(a.competencia) ?? [];
+      arr.push(a);
+      map.set(a.competencia, arr);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [arquivosEmpresa]);
+
   // Auto-seleciona primeiro arquivo quando muda de empresa
   useEffect(() => {
     if (arquivosEmpresa.length === 0) {
@@ -386,36 +397,49 @@ export default function Arquivos() {
                   )}
                 </div>
               ) : (
-                <div className="divide-y">
-                  {arquivosEmpresa.map((a) => {
-                    const active = a.id === selectedArquivoId;
-                    return (
-                      <button
-                        key={a.id}
-                        onClick={() => setSelectedArquivoId(a.id)}
-                        className={cn(
-                          "w-full text-left px-3 py-2.5 flex items-start gap-2.5 transition-colors",
-                          active ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/40 border-l-2 border-l-transparent",
-                        )}
-                      >
-                        <div className="shrink-0 mt-0.5">{iconForExt(a.extensao)}</div>
-                        <div className="min-w-0 flex-1">
-                          <div className={cn("text-xs font-medium truncate", active && "text-primary")} title={a.nome_original}>
-                            {a.nome_original}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                            <span>{a.categoria}</span>
-                            <span className="text-muted-foreground/40">·</span>
-                            <span>{compLabel(a.competencia)}</span>
-                          </div>
-                        </div>
-                        <div className="text-[10px] text-muted-foreground text-right shrink-0 space-y-0.5">
-                          <div>{formatDateBR(new Date(a.created_at))}</div>
-                          <div>{formatBytes(a.tamanho_bytes)}</div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                <div>
+                  {arquivosPorCompetencia.map(([comp, lista]) => (
+                    <div key={comp}>
+                      <div className="sticky top-0 z-10 flex items-center justify-between px-3 py-1.5 bg-muted/80 backdrop-blur border-y border-border/60">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          {compLabel(comp)}
+                        </span>
+                        <Badge variant="outline" className="h-4 text-[9px] px-1.5">
+                          {lista.length}
+                        </Badge>
+                      </div>
+                      <div className="divide-y">
+                        {lista.map((a) => {
+                          const active = a.id === selectedArquivoId;
+                          return (
+                            <button
+                              key={a.id}
+                              onClick={() => setSelectedArquivoId(a.id)}
+                              className={cn(
+                                "w-full text-left px-3 py-2.5 flex items-start gap-2.5 transition-colors",
+                                active ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/40 border-l-2 border-l-transparent",
+                              )}
+                            >
+                              <div className="shrink-0 mt-0.5">{iconForExt(a.extensao)}</div>
+                              <div className="min-w-0 flex-1">
+                                <div className={cn("text-xs font-medium truncate", active && "text-primary")} title={a.nome_original}>
+                                  {a.nome_original}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                                  <span>{a.categoria}</span>
+                                  <span className="text-muted-foreground/40">·</span>
+                                  <span>{formatBytes(a.tamanho_bytes)}</span>
+                                </div>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground text-right shrink-0">
+                                {formatDateBR(new Date(a.created_at))}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
