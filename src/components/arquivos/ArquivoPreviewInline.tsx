@@ -484,19 +484,31 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
             const isTotalRow =
               /^total/i.test(first) ||
               row.some((c) => c.bold && c.isNumber);
+            // Um novo pagador/grupo começa quando a primeira célula não é indentada
+            // e não é uma linha de total. Marca uma borda superior mais escura.
+            const firstIndent = row[0]?.indent ?? 0;
+            const isNewGroup = !isTotalRow && firstIndent === 0 && i > 0 && !!first;
             const zebra = ri % 2 === 0;
-            const rowBg = isTotalRow ? "bg-primary/5" : zebra ? "bg-muted/20" : "bg-background";
+            const rowBg = isTotalRow
+              ? "bg-primary/5"
+              : isNewGroup
+              ? "bg-muted/40"
+              : zebra
+              ? "bg-muted/20"
+              : "bg-background";
+            const topBorder = isTotalRow
+              ? "border-t-2 border-primary/60"
+              : isNewGroup
+              ? "border-t-2 border-border"
+              : "";
             return (
               <tr
                 key={ri}
-                className={cn(
-                  "transition-colors",
-                  isTotalRow && "border-t-2 border-primary/40",
-                  "hover:bg-primary/[0.03]",
-                )}
+                className={cn("transition-colors hover:bg-primary/[0.03]", topBorder)}
               >
                 <td className={cn(
-                  "border-b border-r border-border/50 px-2 py-1.5 text-muted-foreground text-[10px] sticky left-0 z-10 w-10 text-center",
+                  "border-b border-r border-border/60 px-2 py-1.5 text-muted-foreground text-[10px] sticky left-0 z-10 w-10 text-center",
+                  topBorder,
                   rowBg,
                 )}>
                   {ri + 1}
@@ -504,16 +516,17 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
                 {Array.from({ length: maxCols }).map((_, ci) => {
                   const cell = row[ci] ?? { text: "", isNumber: false, bold: false, indent: 0 };
                   const numericCol = numericCols.has(ci);
-                  const bold = cell.bold || isTotalRow;
+                  const bold = cell.bold || isTotalRow || isNewGroup;
                   const align = cell.isNumber || numericCol ? "text-right tabular-nums" : "text-left";
                   const indentPx = ci === 0 && cell.indent > 0 ? cell.indent * 14 : 0;
                   return (
                     <td
                       key={ci}
                       className={cn(
-                        "border-b border-border/40 px-3 py-1.5 whitespace-nowrap max-w-[420px] overflow-hidden text-ellipsis",
+                        "border-b border-border/60 px-3 py-1.5 whitespace-nowrap max-w-[420px] overflow-hidden text-ellipsis",
                         align,
                         bold ? "font-semibold text-foreground" : "text-foreground/90",
+                        topBorder,
                         rowBg,
                       )}
                       style={indentPx ? { paddingLeft: `${12 + indentPx}px` } : undefined}
