@@ -1826,6 +1826,7 @@ export default function Empresas() {
                       <DetailRow label="E-mail" value={detailEmpresa.email_empresa} />
                       <DetailRow label="Telefone" value={(detailEmpresa as any).telefone_empresa} />
                       <DetailRow label="Contato" value={(detailEmpresa as any).contato_empresa} />
+                      <DetailRow label="Endereço" value={(detailEmpresa as any).endereco} />
                     </dl>
                   </section>
 
