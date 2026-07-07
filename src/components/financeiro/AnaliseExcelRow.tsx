@@ -50,6 +50,7 @@ interface Props {
   comparacoes?: ComparacaoQualquer[] | null;
   onReanalisar?: () => void;
   onGerarHistorico?: () => void;
+  onGerarHistoricoCoparticipacao?: () => void;
   contexto?: ContextoAnalise;
 }
 
