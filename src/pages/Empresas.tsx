@@ -769,7 +769,7 @@ export default function Empresas() {
                   )}
                 </>
               )}
-              <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => {
+              <Dialog open={dialogOpen && !isExecutivo && !isEnfermeira} onOpenChange={(open) => {
                 setDialogOpen(open);
                 if (open && !editingId && !draftEmpresaId) {
                   setDraftEmpresaId(crypto.randomUUID());
