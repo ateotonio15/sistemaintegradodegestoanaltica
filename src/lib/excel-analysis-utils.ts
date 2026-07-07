@@ -920,6 +920,77 @@ export function compararExcelComPdfSimplificado(
  * direto desta aba (consolidados). Caso contrário, devolve `null` e o caller
  * cai no parser de beneficiários.
  */
+/**
+ * Extrai itens de "Coparticipação — Empresarial" do pivot da aba RESUMO.
+ * Aceita rótulo do pivot e cabeçalhos Qtd/Valor em linhas diferentes.
+ */
+function parseCoparticipacaoRows(
+  rows: unknown[][],
+): { nome: string; quantidade: number; total: number }[] {
+  const items: { nome: string; quantidade: number; total: number }[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    let hdrCol = -1;
+    for (let c = 0; c < r.length; c++) {
+      const t = norm(r[c]);
+      if (t && t.includes("copartic") && t.includes("empresarial")) {
+        hdrCol = c;
+        break;
+      }
+    }
+    if (hdrCol < 0) continue;
+    let qtdCol = -1;
+    let valCol = -1;
+    const scanCols = (rr: unknown[]) => {
+      for (let c = 0; c < rr.length; c++) {
+        const t = norm(rr[c]);
+        if (!t) continue;
+        if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
+        if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
+      }
+    };
+    scanCols(r);
+    if ((qtdCol < 0 || valCol < 0) && i > 0) scanCols(rows[i - 1] || []);
+    if (qtdCol < 0) qtdCol = hdrCol + 1;
+    if (valCol < 0) valCol = hdrCol + 2;
+    for (let j = i + 1; j < rows.length; j++) {
+      const rr = rows[j] || [];
+      const label = cellToText(rr[hdrCol]).trim();
+      const norml = norm(label);
+      if (!label) continue;
+      if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
+      if (norml.includes("copartic")) continue; // pula linha-título do próprio pivot
+      const nomeLimpo = label.replace(/^\s*pj\s*[-–—:]?\s*/i, "").trim();
+      if (!nomeLimpo) continue;
+      const qtd = qtdCol >= 0 ? Math.round(toNumber(rr[qtdCol])) : 0;
+      const val = valCol >= 0 ? toNumber(rr[valCol]) : 0;
+      const qtdOk = !isNaN(qtd) && qtd !== 0;
+      const valOk = !isNaN(val) && val !== 0;
+      if (!qtdOk && !valOk) continue;
+      items.push({
+        nome: nomeLimpo,
+        quantidade: isNaN(qtd) ? 0 : qtd,
+        total: isNaN(val) ? 0 : val,
+      });
+    }
+    break;
+  }
+  return items;
+}
+
+/**
+ * Lê a aba RESUMO do workbook (se existir) e retorna as linhas como matriz.
+ */
+function lerRowsAbaResumo(wb: ExcelJS.Workbook): unknown[][] | null {
+  const ws = wb.worksheets.find((s) => norm(s.name).includes("resumo"));
+  if (!ws) return null;
+  const rows: unknown[][] = [];
+  ws.eachRow({ includeEmpty: true }, (row) => {
+    rows.push((row.values as unknown[]).slice(1));
+  });
+  return rows;
+}
+
 function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   const ws = wb.worksheets.find((s) => norm(s.name).includes("resumo"));
   if (!ws) return null;
