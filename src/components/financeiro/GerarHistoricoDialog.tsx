@@ -474,15 +474,17 @@ export function GerarHistoricoDialog({
                   <RotateCcw className="h-4 w-4" />
                   Histórico padrão
                 </Button>
-                <Button
-                  variant="secondary"
-                  onClick={handleSalvar}
-                  disabled={!textoFinal.trim() || salvando}
-                  className="gap-1"
-                >
-                  <Save className="h-4 w-4" />
-                  {salvando ? "Salvando..." : "Salvar histórico"}
-                </Button>
+                {podeSalvar && (
+                  <Button
+                    variant="secondary"
+                    onClick={handleSalvar}
+                    disabled={!textoFinal.trim() || salvando}
+                    className="gap-1"
+                  >
+                    <Save className="h-4 w-4" />
+                    {salvando ? "Salvando..." : "Salvar histórico"}
+                  </Button>
+                )}
                 <Button onClick={handleCopiar} className="gap-1">
                   <Copy className="h-4 w-4" />
                   Copiar histórico
