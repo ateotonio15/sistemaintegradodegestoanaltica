@@ -357,7 +357,13 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                       </div>
                     ) : (
                       <div className="rounded-lg border border-border bg-card overflow-hidden">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-sm table-fixed">
+                          <colgroup>
+                            <col style={{ width: "40%" }} />
+                            <col style={{ width: "20%" }} />
+                            <col style={{ width: "20%" }} />
+                            <col style={{ width: "20%" }} />
+                          </colgroup>
                           <thead>
                             <tr className="bg-muted/50">
                               <th className="text-left font-medium text-muted-foreground px-3 py-2">
