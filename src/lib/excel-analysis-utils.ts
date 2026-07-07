@@ -1171,58 +1171,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   }
 
   // ----- Coparticipação — Empresarial (pivot da aba RESUMO) -----
-  // Procura o cabeçalho do pivot (uma célula com "coparticipação"/"coparticipacao"
-  // seguido, na mesma linha, de colunas de Qtd e Valor). Em seguida, lê as
-  // linhas subsequentes ("PJ - <NOME>" | Qtd | Valor) até "Total Geral".
-  const coparticipItems: { nome: string; quantidade: number; total: number }[] = [];
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i] || [];
-    let hdrCol = -1;
-    for (let c = 0; c < r.length; c++) {
-      const t = norm(r[c]);
-      if (t && t.includes("copartic") && t.includes("empresarial")) {
-        hdrCol = c;
-        break;
-      }
-    }
-    if (hdrCol < 0) continue;
-    // Colunas de Qtd/Valor: procura na mesma linha, na anterior, ou fallback hdrCol+1/+2.
-    let qtdCol = -1;
-    let valCol = -1;
-    const scanCols = (rr: unknown[]) => {
-      for (let c = 0; c < rr.length; c++) {
-        const t = norm(rr[c]);
-        if (!t) continue;
-        if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
-        if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
-      }
-    };
-    scanCols(r);
-    if ((qtdCol < 0 || valCol < 0) && i > 0) scanCols(rows[i - 1] || []);
-    if (qtdCol < 0) qtdCol = hdrCol + 1;
-    if (valCol < 0) valCol = hdrCol + 2;
-    for (let j = i + 1; j < rows.length; j++) {
-      const rr = rows[j] || [];
-      const label = cellToText(rr[hdrCol]).trim();
-      const norml = norm(label);
-      if (!label) continue;
-      if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
-      // Remove prefixo "PJ - " / "PJ -" / "PJ:"
-      const nomeLimpo = label.replace(/^\s*pj\s*[-–—:]?\s*/i, "").trim();
-      if (!nomeLimpo) continue;
-      const qtd = qtdCol >= 0 ? Math.round(toNumber(rr[qtdCol])) : 0;
-      const val = valCol >= 0 ? toNumber(rr[valCol]) : 0;
-      const qtdOk = !isNaN(qtd) && qtd !== 0;
-      const valOk = !isNaN(val) && val !== 0;
-      if (!qtdOk && !valOk) continue;
-      coparticipItems.push({
-        nome: nomeLimpo,
-        quantidade: isNaN(qtd) ? 0 : qtd,
-        total: isNaN(val) ? 0 : val,
-      });
-    }
-    break;
-  }
+  const coparticipItems = parseCoparticipacaoRows(rows);
 
   // Distribui itens de coparticipação nos blocos por match de nome. Fallback:
   // se houver apenas um bloco, tudo vai para ele.
