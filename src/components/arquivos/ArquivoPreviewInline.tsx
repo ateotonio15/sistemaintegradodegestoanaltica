@@ -321,13 +321,19 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
       {/* Botão flutuante de tela cheia — sempre visível */}
       <Button
         variant={fullscreen ? "default" : "secondary"}
-        size="sm"
-        onClick={() => setFullscreen((v) => !v)}
-        className="absolute top-2 right-2 z-20 h-8 gap-1.5 shadow-md"
+        size="icon"
+        onClick={() =>
+          setFullscreen((v) => {
+            const next = !v;
+            if (next) { setManualZoom(true); setScale(2.0); }
+            else { setManualZoom(false); }
+            return next;
+          })
+        }
+        className="absolute top-2 right-2 z-20 h-8 w-8 shadow-md"
         title={fullscreen ? "Sair da tela cheia (ESC)" : "Tela cheia"}
       >
-        {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-        <span className="text-xs">{fullscreen ? "Sair" : "Tela cheia"}</span>
+        {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
       </Button>
 
       {pdfDoc && (
