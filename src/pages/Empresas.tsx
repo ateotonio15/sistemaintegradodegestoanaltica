@@ -744,7 +744,7 @@ export default function Empresas() {
               {`${filtered.length} empresa(s) ${showInativas ? "inativas" : "ativas"}`}
             </p>
           </div>
-          {(canEdit && !isExecutivo) && (
+          {(canEdit && !isExecutivo && !isEnfermeira) && (
             <div className="flex gap-2">
               {canFullEdit && (
                 <>
