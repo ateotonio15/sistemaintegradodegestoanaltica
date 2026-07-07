@@ -114,6 +114,9 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
         (r.taxaAdesao && ((r.taxaAdesao.quantidade ?? 0) > 0 || (r.taxaAdesao.total ?? 0) > 0)),
     );
 
+  const temCoparticipacao =
+    !!resultados && resultados.some((r) => (r.coparticipacao?.total ?? 0) > 0);
+
   const handleAnaliseCompleta = () => {
     if (!contexto?.nomeExcel) {
       toast({
