@@ -236,9 +236,9 @@ export default function Empresas() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin, role, isViewOnly, isExecutivo, isFinanceiro, user } = useAuth();
+  const { isAdmin, role, isViewOnly, isExecutivo, isFinanceiro, isEnfermeira, user } = useAuth();
   const isComumLike = role === "comum" || role === "administradoras";
-  const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo || isFinanceiro);
+  const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo || isFinanceiro || isEnfermeira);
   const canFullEdit = isAdmin || isComumLike;
   const isComum = isComumLike;
   const { canManage: canManagePrioridade } = usePrioridadeMaxima();
