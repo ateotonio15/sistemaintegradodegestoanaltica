@@ -756,16 +756,4 @@ export default function Arquivos() {
   );
 }
 
-function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <Card>
-      <CardContent className="pt-5 pb-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {icon}
-          <span>{label}</span>
-        </div>
-        <p className="text-2xl font-bold mt-1">{value}</p>
-      </CardContent>
-    </Card>
-  );
-}
+
