@@ -1363,6 +1363,27 @@ export default function Financeiro() {
     await runAnalise(row, { force: true });
   };
 
+  // Re-executa a análise da linha expandida sempre que os anexos daquela
+  // movimentação mudarem (upload/exclusão logo após a linha ter sido aberta).
+  // Antes, se o usuário abria a linha antes do upload concluir, a análise
+  // ficava travada em "Nenhum Excel anexado" até clicar em Reanalisar.
+  useEffect(() => {
+    if (!expandedRowId) return;
+    const row = sortedRows.find((r) => (r.rowKey ?? r.id) === expandedRowId);
+    if (!row) return;
+    const anexosDaLinha = (anexosMap[row.id] || []) as any[];
+    const sig = anexosDaLinha
+      .map((a) => a.storage_path || `${a.nome_arquivo}`)
+      .sort()
+      .join("|");
+    const cached = motherAnalysisCache.current.get(row.id);
+    const cachedSig = (cached?.key || "").split("::")[0];
+    if (sig !== cachedSig) {
+      runAnalise(row, { force: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedRowId, anexosMap]);
+
   const handleGerarHistorico = (row: FinanceiroRow) => {
     setHistoricoRow(row);
     setHistoricoDialogOpen(true);
