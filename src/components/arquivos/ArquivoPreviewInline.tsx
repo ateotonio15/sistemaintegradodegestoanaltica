@@ -246,8 +246,8 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
         const page = await pdfDoc.getPage(pageNumber);
         if (cancelled || !pdfContainerRef.current) return;
         const viewport = page.getViewport({ scale: 1 });
-        const availableWidth = Math.max(320, pdfContainerRef.current.clientWidth - 32);
-        const fittedScale = Math.max(0.6, Math.min(2.2, availableWidth / viewport.width));
+        const availableWidth = Math.max(320, pdfContainerRef.current.clientWidth - 24);
+        const fittedScale = Math.max(0.6, Math.min(3.0, availableWidth / viewport.width));
         setScale(Number(fittedScale.toFixed(2)));
       } catch {}
     };
