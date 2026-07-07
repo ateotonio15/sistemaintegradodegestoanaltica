@@ -33,6 +33,13 @@ export function FormatarFaturamentoCard() {
   const brutoRef = useRef<HTMLInputElement>(null);
   const exclRef = useRef<HTMLInputElement>(null);
 
+  // Auto-detecção de empresas de PERÍODO (via dia da competência ≠ 01)
+  const [suspeitasOpen, setSuspeitasOpen] = useState(false);
+  const [suspeitas, setSuspeitas] = useState<CnpjPeriodoSuspeita[]>([]);
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [pendingBufs, setPendingBufs] = useState<{ bruto: ArrayBuffer; excl: ArrayBuffer } | null>(null);
+  const [marcandoPeriodo, setMarcandoPeriodo] = useState(false);
+
 
   function pickFile(f: File | null | undefined) {
     if (!f) return;
