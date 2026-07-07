@@ -1937,6 +1937,16 @@ export default function Empresas() {
                   {(detailEmpresa as any).contrato_suspenso ? "Reativar / Histórico" : "Suspender Contrato"}
                 </Button>
               )}
+              {isEnfermeira && detailEmpresa && (
+                <Button
+                  variant="default"
+                  className="rounded-lg gap-2"
+                  onClick={() => { const emp = detailEmpresa; setDetailEmpresa(null); openEdit(emp); }}
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar Contato
+                </Button>
+              )}
               <Button variant="outline" onClick={() => { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); }} className="rounded-lg">Fechar</Button>
             </DialogFooter>
           </DialogContent>
