@@ -1170,8 +1170,75 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     }
   }
 
+  // ----- Coparticipação — Empresarial (pivot da aba RESUMO) -----
+  // Procura o cabeçalho do pivot (uma célula com "coparticipação"/"coparticipacao"
+  // seguido, na mesma linha, de colunas de Qtd e Valor). Em seguida, lê as
+  // linhas subsequentes ("PJ - <NOME>" | Qtd | Valor) até "Total Geral".
+  const coparticipItems: { nome: string; quantidade: number; total: number }[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    let hdrCol = -1;
+    let qtdCol = -1;
+    let valCol = -1;
+    for (let c = 0; c < r.length; c++) {
+      const t = norm(r[c]);
+      if (!t) continue;
+      if (hdrCol < 0 && t.includes("copartic")) hdrCol = c;
+      if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
+      if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
+    }
+    if (hdrCol < 0 || (qtdCol < 0 && valCol < 0)) continue;
+    for (let j = i + 1; j < rows.length; j++) {
+      const rr = rows[j] || [];
+      const label = cellToText(rr[hdrCol]).trim();
+      const norml = norm(label);
+      if (!label) continue;
+      if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
+      // Remove prefixo "PJ - " / "PJ -" / "PJ:"
+      const nomeLimpo = label.replace(/^\s*pj\s*[-–—:]?\s*/i, "").trim();
+      if (!nomeLimpo) continue;
+      const qtd = qtdCol >= 0 ? Math.round(toNumber(rr[qtdCol])) : 0;
+      const val = valCol >= 0 ? toNumber(rr[valCol]) : 0;
+      const qtdOk = !isNaN(qtd) && qtd !== 0;
+      const valOk = !isNaN(val) && val !== 0;
+      if (!qtdOk && !valOk) continue;
+      coparticipItems.push({
+        nome: nomeLimpo,
+        quantidade: isNaN(qtd) ? 0 : qtd,
+        total: isNaN(val) ? 0 : val,
+      });
+    }
+    break;
+  }
 
-  return comCnpj.map((g) => {
+  // Distribui itens de coparticipação nos blocos por match de nome. Fallback:
+  // se houver apenas um bloco, tudo vai para ele.
+  const coparticPorBloco = new Map<string, { substipulantes: CoparticipacaoSubstipulante[]; quantidade: number; total: number }>();
+  for (const item of coparticipItems) {
+    const alvoKey = normMatch(item.nome);
+    let match: Acc | null = null;
+    if (comCnpj.length === 1) {
+      match = comCnpj[0];
+    } else {
+      // Preferir match exato, senão contém-contém
+      match =
+        comCnpj.find((b) => normMatch(b.nome) === alvoKey) ||
+        comCnpj.find((b) => {
+          const bk = normMatch(b.nome);
+          return bk && (alvoKey.includes(bk) || bk.includes(alvoKey));
+        }) ||
+        null;
+    }
+    if (!match) continue;
+    const key = match.cnpj || match.nome;
+    const acc = coparticPorBloco.get(key) || { substipulantes: [], quantidade: 0, total: 0 };
+    acc.substipulantes.push(item);
+    acc.quantidade += item.quantidade;
+    acc.total += item.total;
+    coparticPorBloco.set(key, acc);
+  }
+
+
     const buildFromResumo = (qtd: number, mens: number, vals: number[]): CategoriaResultado => {
       const total = vals.reduce((s, v) => s + v, 0);
       const beneficiarios = qtd || 0;
