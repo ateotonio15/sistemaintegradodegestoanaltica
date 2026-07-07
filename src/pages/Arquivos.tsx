@@ -455,33 +455,87 @@ export default function Arquivos() {
                       <div className="divide-y">
                         {lista.map((a) => {
                           const active = a.id === selectedArquivoId;
-                          return (
-                            <button
-                              key={a.id}
-                              onClick={() => setSelectedArquivoId(a.id)}
-                              className={cn(
-                                "w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors",
-                                active ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/40 border-l-2 border-l-transparent",
-                              )}
-                            >
-                              <div className="shrink-0 mt-0.5 h-6 w-6 flex items-center justify-center">
-                                {iconForExt(a.extensao)}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className={cn("text-sm font-medium truncate leading-snug", active && "text-primary")} title={a.nome_original}>
-                                  {a.nome_original}
+                            return (
+                              <div
+                                key={a.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setSelectedArquivoId(a.id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setSelectedArquivoId(a.id);
+                                  }
+                                }}
+                                className={cn(
+                                  "w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors cursor-pointer",
+                                  active ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/40 border-l-2 border-l-transparent",
+                                )}
+                              >
+                                <div className="shrink-0 mt-0.5 h-6 w-6 flex items-center justify-center">
+                                  {iconForExt(a.extensao)}
                                 </div>
-                                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-                                  <span>{a.categoria}</span>
-                                  <span className="text-muted-foreground/40">·</span>
-                                  <span>{formatBytes(a.tamanho_bytes)}</span>
+                                <div className="min-w-0 flex-1">
+                                  <div className={cn("text-sm font-medium truncate leading-snug", active && "text-primary")} title={a.nome_original}>
+                                    {a.nome_original}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5 flex-wrap">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn("h-5 text-[10px] px-1.5 font-medium border", categoriaChipClass(a.categoria))}
+                                    >
+                                      {a.categoria}
+                                    </Badge>
+                                    {canEditFinanceiro && (
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="h-5 w-5 rounded hover:bg-muted flex items-center justify-center text-muted-foreground"
+                                            title="Mover para outra pasta"
+                                          >
+                                            <MoreHorizontal className="h-3.5 w-3.5" />
+                                          </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuLabel className="flex items-center gap-2 text-xs">
+                                            <FolderInput className="h-3.5 w-3.5" />
+                                            Mover para pasta
+                                          </DropdownMenuLabel>
+                                          <DropdownMenuSeparator />
+                                          {CATEGORIAS.map((cat) => (
+                                            <DropdownMenuItem
+                                              key={cat}
+                                              disabled={a.categoria === cat}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleChangeCategoria(a, cat);
+                                              }}
+                                            >
+                                              <Badge
+                                                variant="outline"
+                                                className={cn("h-5 text-[10px] px-1.5 mr-2 border", categoriaChipClass(cat))}
+                                              >
+                                                {cat}
+                                              </Badge>
+                                              {a.categoria === cat && (
+                                                <span className="ml-auto text-[10px] text-muted-foreground">atual</span>
+                                              )}
+                                            </DropdownMenuItem>
+                                          ))}
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    )}
+                                    <span className="text-muted-foreground/40">·</span>
+                                    <span>{formatBytes(a.tamanho_bytes)}</span>
+                                  </div>
+                                </div>
+                                <div className="text-xs text-muted-foreground text-right shrink-0 mt-0.5">
+                                  {formatDateBR(new Date(a.created_at))}
                                 </div>
                               </div>
-                              <div className="text-xs text-muted-foreground text-right shrink-0 mt-0.5">
-                                {formatDateBR(new Date(a.created_at))}
-                              </div>
-                            </button>
-                          );
+                            );
                         })}
                       </div>
                     </div>
