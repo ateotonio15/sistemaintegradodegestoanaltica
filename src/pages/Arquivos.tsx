@@ -351,16 +351,6 @@ export default function Arquivos() {
 
 
 
-  const kpis = useMemo(() => {
-    const total = arquivos.length;
-    const pdfs = arquivos.filter((a) => tipoArquivo(a.extensao) === "PDF").length;
-    const excels = arquivos.filter((a) => tipoArquivo(a.extensao) === "Excel").length;
-    const seteDias = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const recentes = arquivos.filter((a) => new Date(a.created_at).getTime() >= seteDias).length;
-    const espaco = arquivos.reduce((acc, a) => acc + (a.tamanho_bytes ?? 0), 0);
-    return { total, pdfs, excels, recentes, espaco };
-  }, [arquivos]);
-
   async function handleDownload(a: ArquivoRow) {
     try {
       const { data, error } = await supabase.storage.from(a.bucket || DEFAULT_BUCKET).download(a.storage_path);
