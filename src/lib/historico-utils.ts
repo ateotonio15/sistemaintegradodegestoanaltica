@@ -234,7 +234,9 @@ export function gerarHistoricoCoparticipacaoTexto(
 
   const linhas: string[] = [];
   linhas.push(`Período de: ${periodoCop}.`);
-  linhas.push(`Coparticipação: ${fmtBR(totalCopartic)} ${opts.dataVencimento}.`);
+  linhas.push(`Coparticipação: ${fmtBR(totalCopartic)}`);
+  linhas.push("");
+  linhas.push(`Data de Vencimento: ${opts.dataVencimento}.`);
   linhas.push("");
 
   if (opts.pagamentoViaDeposito) {
