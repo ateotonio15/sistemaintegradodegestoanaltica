@@ -437,7 +437,7 @@ export function FormatarFaturamentoCard() {
       </CardContent>
 
       <Dialog open={exclOpen} onOpenChange={setExclOpen}>
-        <DialogContent className="sm:max-w-[680px] p-0 overflow-hidden gap-0">
+        <DialogContent className="sm:max-w-[880px] p-0 overflow-hidden gap-0">
           {/* Header com faixa gradiente */}
           <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-5 border-b border-border/60">
             <div className="flex items-start gap-3">
