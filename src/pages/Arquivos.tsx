@@ -44,11 +44,7 @@ import {
   Image as ImageIcon,
   Download,
   Eye,
-  // Upload icon removed: replaced by Plus on Adicionar arquivo button
   Trash2,
-  Files,
-  HardDrive,
-  Clock,
   Building2,
   FileSignature,
   CalendarDays,
