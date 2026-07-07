@@ -581,49 +581,8 @@ export function FormatarFaturamentoCard() {
               </div>
             </div>
 
-            {/* Modo de formatação */}
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-[11px] font-semibold flex items-center justify-center">3</span>
-                <Label className="text-xs font-medium">Modo de formatação final</Label>
-              </div>
-              <RadioGroup
-                value={exclModo}
-                onValueChange={(v) => setExclModo(v as ModoFaturamento)}
-                className="grid grid-cols-2 gap-2"
-              >
-                <label
-                  htmlFor="excl-np"
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-3 py-2.5 cursor-pointer transition-all",
-                    exclModo === "nao_prorata"
-                      ? "border-primary/60 bg-primary/5 ring-1 ring-primary/20"
-                      : "border-border/70 hover:bg-muted/40",
-                  )}
-                >
-                  <RadioGroupItem value="nao_prorata" id="excl-np" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium">Não Prorata</p>
-                    <p className="text-[10px] text-muted-foreground">Valores cheios</p>
-                  </div>
-                </label>
-                <label
-                  htmlFor="excl-pr"
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-3 py-2.5 cursor-pointer transition-all",
-                    exclModo === "prorata"
-                      ? "border-primary/60 bg-primary/5 ring-1 ring-primary/20"
-                      : "border-border/70 hover:bg-muted/40",
-                  )}
-                >
-                  <RadioGroupItem value="prorata" id="excl-pr" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium">Prorata</p>
-                    <p className="text-[10px] text-muted-foreground">Proporcional por dias</p>
-                  </div>
-                </label>
-              </RadioGroup>
-            </div>
+            {/* Modo prorata fixo — todas as empresas usam prorata */}
+
 
             {/* Dica */}
             <div className="flex items-start gap-2 rounded-lg bg-muted/40 border border-border/60 px-3 py-2">
