@@ -1930,6 +1930,8 @@ export function cruzarExcelComPdfs(
       exclusoes: bloco.exclusoes,
       devolucoes: bloco.devolucoes,
       taxaAdesao: bloco.taxaAdesao,
+      faixasEtarias: bloco.faixasEtarias,
+      coparticipacao: bloco.coparticipacao,
       avisos: bloco.avisos,
 
 
