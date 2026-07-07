@@ -7,16 +7,20 @@ const QK_DEMANDAS = ["demandas"] as const;
 const QK_IMPORTACOES = ["importacoes"] as const;
 
 export function useDemandas() {
-  const { user, loading } = useAuth();
+  const { user, loading, isExecutivoExterno } = useAuth();
   return useQuery({
-    queryKey: QK_DEMANDAS,
+    queryKey: [...QK_DEMANDAS, isExecutivoExterno ? `own:${user?.id ?? ""}` : "all"],
     enabled: !loading && !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("demandas")
         .select("*")
         .order("data_reclamacao", { ascending: false })
         .order("created_at", { ascending: false });
+      if (isExecutivoExterno && user?.id) {
+        query = query.eq("created_by", user.id);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as Demanda[];
     },
