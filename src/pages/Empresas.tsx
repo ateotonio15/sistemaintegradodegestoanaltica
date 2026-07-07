@@ -236,9 +236,9 @@ export default function Empresas() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin, role, isViewOnly, isExecutivo, isFinanceiro, user } = useAuth();
+  const { isAdmin, role, isViewOnly, isExecutivo, isFinanceiro, isEnfermeira, user } = useAuth();
   const isComumLike = role === "comum" || role === "administradoras";
-  const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo || isFinanceiro);
+  const canEdit = !isViewOnly && (isAdmin || isComumLike || isExecutivo || isFinanceiro || isEnfermeira);
   const canFullEdit = isAdmin || isComumLike;
   const isComum = isComumLike;
   const { canManage: canManagePrioridade } = usePrioridadeMaxima();
@@ -312,14 +312,17 @@ export default function Empresas() {
 
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
-      if (isExecutivo && editingId) {
-        const { error } = await supabase.from("empresas").update({
+      if ((isExecutivo || isEnfermeira) && editingId) {
+        const restrictedPayload: any = {
           contato_empresa: values.contato_empresa,
           telefone_empresa: values.telefone_empresa,
           email_empresa: values.email_empresa,
           endereco: (values as any).endereco,
-          executiva_user_id: (values as any).executiva_user_id,
-        }).eq("id", editingId);
+        };
+        if (isExecutivo) {
+          restrictedPayload.executiva_user_id = (values as any).executiva_user_id;
+        }
+        const { error } = await supabase.from("empresas").update(restrictedPayload).eq("id", editingId);
         if (error) throw error;
         return;
       }
@@ -741,7 +744,7 @@ export default function Empresas() {
               {`${filtered.length} empresa(s) ${showInativas ? "inativas" : "ativas"}`}
             </p>
           </div>
-          {(canEdit && !isExecutivo) && (
+          {(canEdit && !isExecutivo && !isEnfermeira) && (
             <div className="flex gap-2">
               {canFullEdit && (
                 <>
@@ -766,7 +769,7 @@ export default function Empresas() {
                   )}
                 </>
               )}
-              <Dialog open={dialogOpen && !isExecutivo} onOpenChange={(open) => {
+              <Dialog open={dialogOpen && !isExecutivo && !isEnfermeira} onOpenChange={(open) => {
                 setDialogOpen(open);
                 if (open && !editingId && !draftEmpresaId) {
                   setDraftEmpresaId(crypto.randomUUID());
@@ -1435,11 +1438,11 @@ export default function Empresas() {
             </div>
           )}
 
-          {/* Executivo edit dialog - restricted to contato, telefone, email + executiva */}
-          {isExecutivo && (
-            <Dialog open={dialogOpen && isExecutivo} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+          {/* Restricted edit dialog - Executivo edits contato + executiva; Enfermeira edits somente contato */}
+          {(isExecutivo || isEnfermeira) && (
+            <Dialog open={dialogOpen && (isExecutivo || isEnfermeira)} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
               <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-xl">
-                <DialogHeader><DialogTitle>Editar Informações</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{isEnfermeira ? "Editar Contato" : "Editar Informações"}</DialogTitle></DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
                   <div className="grid gap-4">
                     <div className="space-y-2">
@@ -1458,22 +1461,24 @@ export default function Empresas() {
                       <Label className="text-sm font-medium">E-mail da Empresa</Label>
                       <Input type="email" value={form.email_empresa ?? ""} onChange={(e) => setForm({ ...form, email_empresa: e.target.value })} className="rounded-lg" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Executiva Responsável</Label>
-                      <Select
-                        value={(form as any).executiva_user_id ?? ""}
-                        onValueChange={(v) => setForm({ ...form, executiva_user_id: v || null } as any)}
-                      >
-                        <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
-                        <SelectContent>
-                          {executivoUsers.map((u) => (
-                            <SelectItem key={u.user_id} value={u.user_id}>
-                              {u.display_name || u.user_id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {isExecutivo && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Executiva Responsável</Label>
+                        <Select
+                          value={(form as any).executiva_user_id ?? ""}
+                          onValueChange={(v) => setForm({ ...form, executiva_user_id: v || null } as any)}
+                        >
+                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a executiva" /></SelectTrigger>
+                          <SelectContent>
+                            {executivoUsers.map((u) => (
+                              <SelectItem key={u.user_id} value={u.user_id}>
+                                {u.display_name || u.user_id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
@@ -1930,6 +1935,16 @@ export default function Empresas() {
                 >
                   <Ban className="h-4 w-4" />
                   {(detailEmpresa as any).contrato_suspenso ? "Reativar / Histórico" : "Suspender Contrato"}
+                </Button>
+              )}
+              {isEnfermeira && detailEmpresa && (
+                <Button
+                  variant="default"
+                  className="rounded-lg gap-2"
+                  onClick={() => { const emp = detailEmpresa; setDetailEmpresa(null); openEdit(emp); }}
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar Contato
                 </Button>
               )}
               <Button variant="outline" onClick={() => { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); }} className="rounded-lg">Fechar</Button>
