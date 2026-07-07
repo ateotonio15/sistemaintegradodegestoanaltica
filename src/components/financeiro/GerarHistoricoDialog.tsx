@@ -37,6 +37,7 @@ import {
   calcularVencimentoPadrao,
   detectarCompetencia,
   gerarHistoricoTexto,
+  gerarHistoricoCoparticipacaoTexto,
   isoToBR,
 } from "@/lib/historico-utils";
 import { calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
