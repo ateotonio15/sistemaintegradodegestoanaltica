@@ -928,55 +928,99 @@ function parseCoparticipacaoRows(
   rows: unknown[][],
 ): { nome: string; quantidade: number; total: number }[] {
   const items: { nome: string; quantidade: number; total: number }[] = [];
+
+  // Descobre colunas de Qtd/Valor a partir de qualquer linha-cabeçalho do arquivo.
+  let qtdCol = -1;
+  let valCol = -1;
+  const scanCols = (rr: unknown[]) => {
+    for (let c = 0; c < rr.length; c++) {
+      const t = norm(rr[c]);
+      if (!t) continue;
+      if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
+      if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
+    }
+  };
+  for (const r of rows) scanCols(r || []);
+
+  // Localiza qualquer célula com "coparticipação ... empresarial"
+  let anchorRow = -1;
+  let anchorCol = -1;
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i] || [];
-    let hdrCol = -1;
     for (let c = 0; c < r.length; c++) {
       const t = norm(r[c]);
       if (t && t.includes("copartic") && t.includes("empresarial")) {
-        hdrCol = c;
+        anchorRow = i;
+        anchorCol = c;
         break;
       }
     }
-    if (hdrCol < 0) continue;
-    let qtdCol = -1;
-    let valCol = -1;
-    const scanCols = (rr: unknown[]) => {
-      for (let c = 0; c < rr.length; c++) {
-        const t = norm(rr[c]);
-        if (!t) continue;
-        if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
-        if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
+    if (anchorRow >= 0) break;
+  }
+  if (anchorRow < 0) return items;
+
+  if (qtdCol < 0) qtdCol = anchorCol + 1;
+  if (valCol < 0) valCol = anchorCol + 2;
+
+  const anchorQtd = Math.round(toNumber((rows[anchorRow] || [])[qtdCol]));
+  const anchorVal = toNumber((rows[anchorRow] || [])[valCol]);
+  const anchorEhLeaf = (!isNaN(anchorQtd) && anchorQtd !== 0) || (!isNaN(anchorVal) && anchorVal !== 0);
+
+  const pushItem = (label: string, qtd: number, val: number) => {
+    const nomeLimpo = label.replace(/^\s*pj\s*[-–—:]?\s*/i, "").trim();
+    if (!nomeLimpo) return;
+    const qtdOk = !isNaN(qtd) && qtd !== 0;
+    const valOk = !isNaN(val) && val !== 0;
+    if (!qtdOk && !valOk) return;
+    items.push({
+      nome: nomeLimpo,
+      quantidade: isNaN(qtd) ? 0 : qtd,
+      total: isNaN(val) ? 0 : val,
+    });
+  };
+
+  if (anchorEhLeaf) {
+    // Formato B: "Coparticipação - Empresarial" é linha-filha.
+    // Cada linha PJ acima (na mesma coluna) tem a próxima linha "Coparticipação".
+    for (let i = 0; i < rows.length; i++) {
+      const rr = rows[i] || [];
+      const label = cellToText(rr[anchorCol]).trim();
+      if (!/^\s*pj\s*[-–—:]/i.test(label)) continue;
+      // Confere se a próxima linha não vazia é "Coparticipação - Empresarial"
+      let j = i + 1;
+      while (j < rows.length) {
+        const nx = cellToText((rows[j] || [])[anchorCol]).trim();
+        if (nx) break;
+        j++;
       }
-    };
-    scanCols(r);
-    if ((qtdCol < 0 || valCol < 0) && i > 0) scanCols(rows[i - 1] || []);
-    if (qtdCol < 0) qtdCol = hdrCol + 1;
-    if (valCol < 0) valCol = hdrCol + 2;
-    for (let j = i + 1; j < rows.length; j++) {
+      const proxLabel = norm((rows[j] || [])[anchorCol]);
+      if (!(proxLabel && proxLabel.includes("copartic") && proxLabel.includes("empresarial"))) continue;
+      const qtd = Math.round(toNumber(rr[qtdCol]));
+      const val = toNumber(rr[valCol]);
+      pushItem(label, qtd, val);
+    }
+    // Fallback: se nenhum PJ pai foi identificado, registra a própria âncora.
+    if (items.length === 0) {
+      pushItem("Coparticipação", anchorQtd, anchorVal);
+    }
+  } else {
+    // Formato A (original): âncora é título; filhos vêm nas linhas seguintes.
+    for (let j = anchorRow + 1; j < rows.length; j++) {
       const rr = rows[j] || [];
-      const label = cellToText(rr[hdrCol]).trim();
+      const label = cellToText(rr[anchorCol]).trim();
       const norml = norm(label);
       if (!label) continue;
       if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
-      if (norml.includes("copartic")) continue; // pula linha-título do próprio pivot
-      const nomeLimpo = label.replace(/^\s*pj\s*[-–—:]?\s*/i, "").trim();
-      if (!nomeLimpo) continue;
-      const qtd = qtdCol >= 0 ? Math.round(toNumber(rr[qtdCol])) : 0;
-      const val = valCol >= 0 ? toNumber(rr[valCol]) : 0;
-      const qtdOk = !isNaN(qtd) && qtd !== 0;
-      const valOk = !isNaN(val) && val !== 0;
-      if (!qtdOk && !valOk) continue;
-      items.push({
-        nome: nomeLimpo,
-        quantidade: isNaN(qtd) ? 0 : qtd,
-        total: isNaN(val) ? 0 : val,
-      });
+      if (norml.includes("copartic")) continue;
+      const qtd = Math.round(toNumber(rr[qtdCol]));
+      const val = toNumber(rr[valCol]);
+      pushItem(label, qtd, val);
     }
-    break;
   }
+
   return items;
 }
+
 
 /**
  * Lê a aba RESUMO do workbook (se existir) e retorna as linhas como matriz.
