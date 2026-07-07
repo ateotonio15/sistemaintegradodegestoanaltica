@@ -25,6 +25,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 const blobCache = new Map<string, Promise<Blob>>();
 const signedUrlCache = new Map<string, Promise<string>>();
 const parsedExcelCache = new Map<string, SheetData[]>();
+// Cache de PDFs já carregados — reabrir o mesmo PDF é praticamente instantâneo
+const pdfDocCache = new Map<string, Promise<PDFDocumentProxy>>();
 
 function getBlob(bucket: string, storagePath: string): Promise<Blob> {
   const key = `${bucket}:${storagePath}`;
@@ -167,7 +169,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
     (async () => {
       setLoading(true);
       setError(null);
-      setPdfDoc((prev) => { prev?.destroy(); return null; });
+      setPdfDoc(null); // não destruir — está em cache global
       setPageNumber(1);
       setManualZoom(false);
       // Só limpa sheets se for outro arquivo Excel
@@ -177,16 +179,24 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
 
       try {
         if (isPdf) {
-          // PDF: usa URL assinada com range requests → primeira página aparece rápido
-          const url = await getSignedUrl(bucket, storagePath);
+          // Cache do documento — reabrir o mesmo PDF é instantâneo
+          let pdfPromise = pdfDocCache.get(cacheKey);
+          if (!pdfPromise) {
+            const url = await getSignedUrl(bucket, storagePath);
+            if (cancelled) return;
+            pdfPromise = pdfjsLib.getDocument({
+              url,
+              disableRange: false,
+              disableStream: false,
+              disableAutoFetch: true,   // baixa só as páginas visíveis
+              rangeChunkSize: 65536,
+            }).promise.catch((e) => { pdfDocCache.delete(cacheKey); throw e; });
+            pdfDocCache.set(cacheKey, pdfPromise);
+          }
+          const doc = await pdfPromise;
           if (cancelled) return;
-          loadedPdf = await pdfjsLib.getDocument({
-            url,
-            disableRange: false,
-            disableStream: false,
-          }).promise;
-          if (cancelled) { loadedPdf.destroy(); return; }
-          setPdfDoc(loadedPdf);
+          loadedPdf = doc;
+          setPdfDoc(doc);
         } else if (isExcel) {
           const cached = parsedExcelCache.get(cacheKey);
           if (cached) {
@@ -273,7 +283,8 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
         if (!context) throw new Error("Canvas indisponível");
-        const outputScale = window.devicePixelRatio || 1;
+        // Limita o output scale: acima disso, o ganho visual é mínimo mas o custo de render dobra
+        const outputScale = Math.min(window.devicePixelRatio || 1, 1.5);
         canvas.width = Math.floor(viewport.width * outputScale);
         canvas.height = Math.floor(viewport.height * outputScale);
         canvas.style.width = `${Math.floor(viewport.width)}px`;
@@ -294,7 +305,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
     return () => { cancelled = true; renderTask?.cancel(); };
   }, [pdfDoc, pageNumber, scale]);
 
-  useEffect(() => () => { pdfDoc?.destroy(); }, [pdfDoc]);
+  // Não destruímos o pdfDoc no unmount: ele fica em cache global para reabertura instantânea
 
   // ESC sai do modo tela cheia
   useEffect(() => {
