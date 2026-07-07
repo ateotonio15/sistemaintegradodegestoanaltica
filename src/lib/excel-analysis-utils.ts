@@ -58,6 +58,8 @@ export interface AnaliseResultado {
   taxaAdesao?: InclusaoResultado;
   /** Detalhamento por faixa etária quando disponível na RESUMO. */
   faixasEtarias?: FaixaEtariaResumo[];
+  /** Coparticipação — Empresarial (pivot da aba RESUMO). */
+  coparticipacao?: CoparticipacaoResultado;
   avisos: string[];
 }
 
@@ -75,6 +77,8 @@ export interface AnalisePorCnpj {
   taxaAdesao?: InclusaoResultado;
   /** Detalhamento por faixa etária (quando a aba RESUMO contém faixas). */
   faixasEtarias?: FaixaEtariaResumo[];
+  /** Coparticipação — Empresarial (pivot da aba RESUMO). */
+  coparticipacao?: CoparticipacaoResultado;
   avisos: string[];
 }
 
