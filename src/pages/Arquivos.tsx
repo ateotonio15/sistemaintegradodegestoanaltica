@@ -472,7 +472,7 @@ export default function Arquivos() {
                 </div>
 
                 {/* Prévia */}
-                <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-hidden relative">
                   <ArquivoPreviewInline
                     key={selectedArquivo.id}
                     bucket={selectedArquivo.bucket || DEFAULT_BUCKET}
