@@ -179,16 +179,24 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
 
       try {
         if (isPdf) {
-          // PDF: usa URL assinada com range requests → primeira página aparece rápido
-          const url = await getSignedUrl(bucket, storagePath);
+          // Cache do documento — reabrir o mesmo PDF é instantâneo
+          let pdfPromise = pdfDocCache.get(cacheKey);
+          if (!pdfPromise) {
+            const url = await getSignedUrl(bucket, storagePath);
+            if (cancelled) return;
+            pdfPromise = pdfjsLib.getDocument({
+              url,
+              disableRange: false,
+              disableStream: false,
+              disableAutoFetch: true,   // baixa só as páginas visíveis
+              rangeChunkSize: 65536,
+            }).promise.catch((e) => { pdfDocCache.delete(cacheKey); throw e; });
+            pdfDocCache.set(cacheKey, pdfPromise);
+          }
+          const doc = await pdfPromise;
           if (cancelled) return;
-          loadedPdf = await pdfjsLib.getDocument({
-            url,
-            disableRange: false,
-            disableStream: false,
-          }).promise;
-          if (cancelled) { loadedPdf.destroy(); return; }
-          setPdfDoc(loadedPdf);
+          loadedPdf = doc;
+          setPdfDoc(doc);
         } else if (isExcel) {
           const cached = parsedExcelCache.get(cacheKey);
           if (cached) {
