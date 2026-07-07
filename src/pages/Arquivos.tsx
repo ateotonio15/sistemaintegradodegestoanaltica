@@ -271,6 +271,21 @@ export default function Arquivos() {
     }
   }
 
+  async function handleChangeCategoria(a: ArquivoRow, novaCategoria: string) {
+    if (a.categoria === novaCategoria) return;
+    try {
+      const { error } = await supabase
+        .from("financeiro_arquivos")
+        .update({ categoria: novaCategoria })
+        .eq("id", a.id);
+      if (error) throw error;
+      toast.success(`Movido para "${novaCategoria}"`);
+      queryClient.invalidateQueries({ queryKey: ["financeiro-arquivos"] });
+    } catch (e: any) {
+      toast.error("Erro ao mover: " + (e?.message ?? "desconhecido"));
+    }
+  }
+
   async function handleDelete(a: ArquivoRow) {
     try {
       const { error } = await supabase
