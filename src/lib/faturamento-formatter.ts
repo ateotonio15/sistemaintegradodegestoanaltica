@@ -218,6 +218,52 @@ export async function formatarFaturamentoExcel(
     }
   }
 
+  // Recalcula valor proporcional de EXCLUSÃO para empresas de PERÍODO específico
+  // usando o dia de início do ciclo (fim = diaInicio - 1 na próxima ocorrência ≥ rescisão).
+  if (
+    opts.periodoPorCnpj && opts.periodoPorCnpj.size > 0 &&
+    iTipo >= 0 && iDtResc >= 0 && iValor >= 0 && iCNPJ >= 0 && iPlano >= 0
+  ) {
+    const { calcularProporcionalPeriodo } = await import("./faturamento-exclusoes");
+    // mensalidade mais frequente por plano (linhas de Mensalidade)
+    const counts = new Map<string, Map<number, number>>();
+    for (const r of rows1) {
+      if (lower(r[iTipo]) !== "mensalidade") continue;
+      const plano = norm(r[iPlano]);
+      const v = typeof r[iValor] === "number" ? r[iValor] : parseFloat(String(r[iValor] ?? "0"));
+      if (!plano || !isFinite(v) || v <= 0) continue;
+      if (!counts.has(plano)) counts.set(plano, new Map());
+      const inner = counts.get(plano)!;
+      inner.set(v, (inner.get(v) ?? 0) + 1);
+    }
+    const mensPorPlano = new Map<string, number>();
+    for (const [plano, m] of counts) {
+      let bv = 0, bc = 0;
+      for (const [v, c] of m) if (c > bc || (c === bc && v > bv)) { bv = v; bc = c; }
+      if (bv > 0) mensPorPlano.set(plano, bv);
+    }
+    const parseBRDate = (s: string): Date | null => {
+      const m = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/.exec(s.trim());
+      if (!m) { const d = new Date(s); return isNaN(d.getTime()) ? null : d; }
+      let y = parseInt(m[3], 10); if (y < 100) y += 2000;
+      return new Date(Date.UTC(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10), 12));
+    };
+    for (const r of rows1) {
+      if (lower(r[iTipo]) !== "exclusão") continue;
+      const cnpjDigits = String(r[iCNPJ] ?? "").replace(/\D/g, "");
+      const diaInicio = opts.periodoPorCnpj.get(cnpjDigits);
+      if (!diaInicio) continue;
+      const plano = norm(r[iPlano]);
+      const mens = mensPorPlano.get(plano);
+      if (!mens) continue;
+      const rv = r[iDtResc];
+      const dResc = rv instanceof Date ? rv : parseBRDate(String(rv ?? ""));
+      if (!dResc) continue;
+      const v = calcularProporcionalPeriodo(dResc, mens, diaInicio);
+      if (v != null) r[iValor] = v;
+    }
+  }
+
   // Remove Dt_rescisão if empty
   let dropDtResc = false;
   if (iDtResc >= 0) {
@@ -226,6 +272,7 @@ export async function formatarFaturamentoExcel(
       return v === null || v === undefined || String(v).trim() === "";
     });
   }
+
 
   // Build final headers + rows (with QTD after Valor, optionally drop Dt_rescisão)
   const finalHeaders: string[] = [];
