@@ -593,15 +593,15 @@ export function FormatarFaturamentoCard() {
           </div>
 
 
-          <DialogFooter className="px-6 py-4 border-t border-border/60 bg-muted/20">
-            <Button variant="outline" onClick={() => setExclOpen(false)} disabled={exclProcessing}>
+          <DialogFooter className="px-8 py-5 border-t border-border/60 bg-muted/20">
+            <Button variant="outline" size="lg" className="text-base" onClick={() => setExclOpen(false)} disabled={exclProcessing}>
               Cancelar
             </Button>
-            <Button onClick={handleAdicionarExclusoes} disabled={!brutoFile || !exclFile || exclProcessing}>
+            <Button size="lg" className="text-base" onClick={handleAdicionarExclusoes} disabled={!brutoFile || !exclFile || exclProcessing}>
               {exclProcessing ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
               ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Sparkles className="h-5 w-5 mr-2" />
               )}
               Gerar arquivo final
             </Button>
