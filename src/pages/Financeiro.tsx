@@ -2622,6 +2622,7 @@ export default function Financeiro() {
           onToggleExpand={handleToggleExpand}
           onReanalisar={handleReanalisar}
           onGerarHistorico={canManageFinanceiro ? handleGerarHistorico : undefined}
+          onGerarHistoricoCoparticipacao={canManageFinanceiro ? handleGerarHistoricoCoparticipacao : undefined}
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
