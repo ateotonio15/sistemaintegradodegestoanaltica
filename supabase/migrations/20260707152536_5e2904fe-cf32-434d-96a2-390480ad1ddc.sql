@@ -1,0 +1,1 @@
+CREATE POLICY "Enfermeira update contato empresas" ON public.empresas FOR UPDATE USING (has_role(auth.uid(), 'enfermeira'::app_role)) WITH CHECK (has_role(auth.uid(), 'enfermeira'::app_role));
