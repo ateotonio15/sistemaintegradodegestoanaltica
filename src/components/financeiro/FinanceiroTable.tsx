@@ -315,6 +315,7 @@ export function FinanceiroTable({
                       comparacoes={analiseComparacoes?.[rowKey] ?? analiseComparacoes?.[row.id] ?? null}
                       onReanalisar={onReanalisar ? () => onReanalisar(row) : undefined}
                       onGerarHistorico={onGerarHistorico ? () => onGerarHistorico(row) : undefined}
+                      onGerarHistoricoCoparticipacao={onGerarHistoricoCoparticipacao ? () => onGerarHistoricoCoparticipacao(row) : undefined}
                       contexto={{
                         empresaNome: row.empresa_nome,
                         empresaCnpj: row.empresa_cnpj,
