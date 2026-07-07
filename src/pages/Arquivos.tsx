@@ -5,6 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -28,6 +36,8 @@ import {
   Upload,
   ChevronRight,
   FileQuestion,
+  MoreHorizontal,
+  FolderInput,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
@@ -36,6 +46,25 @@ import { ArquivoPreviewInline } from "@/components/arquivos/ArquivoPreviewInline
 import { useAuth } from "@/hooks/useAuth";
 import { compLabel, formatBytes, tipoArquivo } from "@/lib/arquivos-utils";
 import { cn } from "@/lib/utils";
+
+const CATEGORIAS = ["Mensalidade", "Reajuste", "Implantação", "Retroativo"] as const;
+type Categoria = (typeof CATEGORIAS)[number];
+
+function categoriaChipClass(cat: string): string {
+  switch (cat) {
+    case "Mensalidade":
+      return "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30";
+    case "Reajuste":
+      return "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30";
+    case "Implantação":
+      return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30";
+    case "Retroativo":
+      return "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30";
+    default:
+      return "bg-muted text-muted-foreground border-border";
+  }
+}
+
 
 const DEFAULT_BUCKET = "arquivos-financeiro";
 
