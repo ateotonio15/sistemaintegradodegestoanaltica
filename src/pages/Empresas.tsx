@@ -1888,7 +1888,7 @@ export default function Empresas() {
               </div>
             )}
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col sm:flex-row gap-2 px-6 py-4 border-t bg-background sticky bottom-0">
               {(isComum || isAdmin) && detailEmpresa && (
                 <>
                   {detailEmpresa.status_empresa === "Ativa" ? (
