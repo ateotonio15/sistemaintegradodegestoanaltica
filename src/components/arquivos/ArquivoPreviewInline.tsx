@@ -147,6 +147,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
   const [activeSheet, setActiveSheet] = useState(0);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [manualZoom, setManualZoom] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
 
