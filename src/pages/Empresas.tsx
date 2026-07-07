@@ -1030,6 +1030,10 @@ export default function Empresas() {
                             <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
                           </div>
                           <div className="space-y-2 animate-fade-in">
+                            <Label className="text-sm font-medium">Endereço</Label>
+                            <Input value={(form as any).endereco ?? ""} onChange={(e) => setForm({ ...form, endereco: e.target.value } as any)} placeholder="Endereço da empresa" className="rounded-lg" />
+                          </div>
+                          <div className="space-y-2 animate-fade-in">
                             <Label className="text-sm font-medium">Prazo (Entrada sem carência)</Label>
                             <Input value={(form as any).prazo ?? ""} onChange={(e) => setForm({ ...form, prazo: e.target.value } as any)} placeholder="Ex: 30 dias" className="rounded-lg" />
                           </div>
