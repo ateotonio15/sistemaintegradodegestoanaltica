@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { FileSpreadsheet, Loader2, Download, UploadCloud, X, FilePlus2 } from "lucide-react";
+import { FileSpreadsheet, Loader2, Download, UploadCloud, X, FilePlus2, FileMinus2, Sparkles, Info, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatarFaturamentoExcel, type ModoFaturamento } from "@/lib/faturamento-formatter";
 import { adicionarExclusoesAoBruto, detectarCnpjsDePeriodo, type CnpjPeriodoSuspeita } from "@/lib/faturamento-exclusoes";
