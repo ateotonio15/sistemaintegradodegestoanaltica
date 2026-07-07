@@ -70,6 +70,21 @@ export interface HistoricoOpts {
   periodoCobrancaLabel?: string | null;
   /** Tipo de análise da movimentação. Quando "faixa_etaria", gera histórico detalhado por faixas. */
   tipoAnalise?: string | null;
+  /** Rótulo do período de coparticipação (geralmente mês anterior à mensalidade). Ex.: "Junho/2026". */
+  coparticipacaoPeriodoLabel?: string | null;
+}
+
+/** Retorna o rótulo "Mes/AAAA" do mês anterior a um label "Mes/AAAA". */
+export function mesAnteriorLabel(label: string): string | null {
+  const m = /^([A-Za-zÇç]+)\/(\d{4})$/.exec(label.trim());
+  if (!m) return null;
+  const key = m[1].toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const mes = MESES_MAP[key];
+  const ano = parseInt(m[2], 10);
+  if (mes === undefined || !Number.isFinite(ano)) return null;
+  const novoMes = mes === 0 ? 11 : mes - 1;
+  const novoAno = mes === 0 ? ano - 1 : ano;
+  return `${MESES_PT[novoMes]}/${novoAno}`;
 }
 
 
@@ -196,6 +211,46 @@ export function gerarHistoricoTexto(
     linhas.push(
       "Suspensão de PIS e COFINS, trânsito em julgado conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
     );
+  }
+
+  // ============= Bloco de Coparticipação (histórico adicional) =============
+  const totalCopartic = resultados.reduce(
+    (acc, r) => acc + (r.coparticipacao?.total ?? 0),
+    0,
+  );
+  if (totalCopartic > 0) {
+    const periodoCop =
+      (opts.coparticipacaoPeriodoLabel && opts.coparticipacaoPeriodoLabel.trim()) ||
+      mesAnteriorLabel(opts.competenciaLabel) ||
+      opts.competenciaLabel;
+
+    linhas.push("");
+    linhas.push("");
+    linhas.push(`Período de: ${periodoCop}.`);
+    linhas.push(`Coparticipação: ${fmtBR(totalCopartic)} ${opts.dataVencimento}.`);
+    linhas.push("");
+
+    if (opts.pagamentoViaDeposito) {
+      linhas.push(
+        "OBS.: Dados bancários para depósito: Banco Itaú, Agência: 0071, Conta Corrente: 11663-6.",
+      );
+      linhas.push("");
+      linhas.push(
+        "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+      );
+      linhas.push(
+        "Decisão judicial conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+      );
+    } else {
+      linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
+      linhas.push("");
+      linhas.push(
+        "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+      );
+      linhas.push(
+        "Suspensão de PIS e COFINS, trânsito em julgado conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+      );
+    }
   }
 
   return linhas.join("\n");
