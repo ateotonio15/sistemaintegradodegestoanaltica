@@ -452,34 +452,59 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
     if (total > 0 && numCount / total >= 0.5) numericCols.add(c);
   }
 
+  const headerRow = rows[0];
+  const bodyRows = rows.slice(1);
+
   return (
     <div className="flex-1 min-h-0 overflow-auto bg-background">
       <table className="text-xs border-collapse w-full">
+        <thead>
+          <tr>
+            <th className="sticky top-0 left-0 z-30 border-b border-r border-border bg-primary/15 backdrop-blur-sm px-2 py-2 text-muted-foreground text-[10px] w-10 text-center font-semibold">
+              #
+            </th>
+            {Array.from({ length: maxCols }).map((_, ci) => {
+              const cell = headerRow?.[ci] ?? { text: "", isNumber: false, bold: false, indent: 0 };
+              return (
+                <th
+                  key={ci}
+                  className="sticky top-0 z-20 border-b border-border bg-primary/15 backdrop-blur-sm px-3 py-2 whitespace-nowrap max-w-[420px] overflow-hidden text-ellipsis text-left uppercase tracking-wide text-[10.5px] text-primary font-semibold"
+                  title={cell.text}
+                >
+                  {cell.text}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
         <tbody>
-          {rows.map((row, ri) => {
+          {bodyRows.map((row, i) => {
+            const ri = i + 1;
             const first = row[0]?.text?.trim() ?? "";
             const isTotalRow =
               /^total/i.test(first) ||
               row.some((c) => c.bold && c.isNumber);
-            const isHeader = ri === 0;
+            const zebra = ri % 2 === 0;
+            const rowBg = isTotalRow ? "bg-primary/5" : zebra ? "bg-muted/20" : "bg-background";
             return (
               <tr
                 key={ri}
                 className={cn(
                   "transition-colors",
-                  isHeader && "bg-primary/10 sticky top-0 z-10",
-                  isTotalRow && !isHeader && "bg-primary/5 border-t-2 border-primary/40",
-                  !isHeader && !isTotalRow && ri % 2 === 0 && "bg-muted/20",
-                  !isHeader && "hover:bg-primary/[0.03]",
+                  isTotalRow && "border-t-2 border-primary/40",
+                  "hover:bg-primary/[0.03]",
                 )}
               >
-                <td className="border-b border-r border-border/50 px-2 py-1.5 text-muted-foreground text-[10px] sticky left-0 bg-inherit w-10 text-center">
+                <td className={cn(
+                  "border-b border-r border-border/50 px-2 py-1.5 text-muted-foreground text-[10px] sticky left-0 z-10 w-10 text-center",
+                  rowBg,
+                )}>
                   {ri + 1}
                 </td>
                 {Array.from({ length: maxCols }).map((_, ci) => {
                   const cell = row[ci] ?? { text: "", isNumber: false, bold: false, indent: 0 };
                   const numericCol = numericCols.has(ci);
-                  const bold = cell.bold || isHeader || isTotalRow;
+                  const bold = cell.bold || isTotalRow;
                   const align = cell.isNumber || numericCol ? "text-right tabular-nums" : "text-left";
                   const indentPx = ci === 0 && cell.indent > 0 ? cell.indent * 14 : 0;
                   return (
@@ -488,9 +513,8 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
                       className={cn(
                         "border-b border-border/40 px-3 py-1.5 whitespace-nowrap max-w-[420px] overflow-hidden text-ellipsis",
                         align,
-                        bold && "font-semibold text-foreground",
-                        !bold && "text-foreground/90",
-                        isHeader && "uppercase tracking-wide text-[10.5px] text-primary",
+                        bold ? "font-semibold text-foreground" : "text-foreground/90",
+                        rowBg,
                       )}
                       style={indentPx ? { paddingLeft: `${12 + indentPx}px` } : undefined}
                       title={cell.text}
