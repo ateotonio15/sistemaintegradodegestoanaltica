@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS cs_avaliacao_formularios_auth_read ON public.cs_avaliacao_formularios;
