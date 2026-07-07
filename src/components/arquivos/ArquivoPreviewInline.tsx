@@ -304,7 +304,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
     return () => { cancelled = true; renderTask?.cancel(); };
   }, [pdfDoc, pageNumber, scale]);
 
-  useEffect(() => () => { pdfDoc?.destroy(); }, [pdfDoc]);
+  // Não destruímos o pdfDoc no unmount: ele fica em cache global para reabertura instantânea
 
   // ESC sai do modo tela cheia
   useEffect(() => {
