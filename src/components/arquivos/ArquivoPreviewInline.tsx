@@ -8,6 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Maximize2,
+  Minimize2,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
