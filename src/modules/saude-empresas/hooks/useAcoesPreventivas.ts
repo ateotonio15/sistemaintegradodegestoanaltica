@@ -87,7 +87,7 @@ export function useExecutivas() {
       return (profs ?? [])
         .map((p: any) => ({
           user_id: p.user_id,
-          display_name: p.display_name ?? p.username ?? "—",
+          display_name: p.display_name ?? "—",
           username: p.username ?? "",
         }))
         .sort((a, b) => a.display_name.localeCompare(b.display_name));

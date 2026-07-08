@@ -72,7 +72,7 @@ export function useAgendamentoMutations() {
   const authorName = async (): Promise<string | null> => {
     if (!user) return null;
     const { data } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
-    return data?.display_name || data?.username || user.email || null;
+    return data?.display_name || user.email || null;
   };
 
   const createMany = useMutation({
@@ -160,7 +160,7 @@ export function useExecutivas() {
       if (e2) throw e2;
       const nomes = new Set<string>();
       (profs ?? []).forEach((p) => {
-        const nome = p.display_name || p.username;
+        const nome = p.display_name;
         if (nome) nomes.add(nome);
       });
       return Array.from(nomes).sort();

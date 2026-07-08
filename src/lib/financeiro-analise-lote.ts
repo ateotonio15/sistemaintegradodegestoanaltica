@@ -173,7 +173,7 @@ export async function executarAnaliseCompetencia(
       .select("display_name")
       .eq("user_id", auth.user.id)
       .maybeSingle();
-    executado_por_nome = prof?.display_name || prof?.username || null;
+    executado_por_nome = prof?.display_name || null;
   }
 
   // 1) Cria a execução

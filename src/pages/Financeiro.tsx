@@ -452,7 +452,7 @@ export default function Financeiro() {
       if (error) throw error;
       const map: Record<string, string> = {};
       data.forEach((p: any) => {
-        map[p.user_id] = p.display_name || p.username || "—";
+        map[p.user_id] = p.display_name || "—";
       });
       return map;
     },
@@ -491,7 +491,7 @@ export default function Financeiro() {
         .in("user_id", allUploaderIds);
       if (error) throw error;
       const map: Record<string, string> = {};
-      data.forEach((p: any) => { map[p.user_id] = p.display_name || p.username || "—"; });
+      data.forEach((p: any) => { map[p.user_id] = p.display_name || "—"; });
       return map;
     },
     enabled: allUploaderIds.length > 0,

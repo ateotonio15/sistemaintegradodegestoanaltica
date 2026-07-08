@@ -111,7 +111,7 @@ export function AnexosViewerDialog({
         .select("display_name")
         .eq("user_id", user.id)
         .maybeSingle();
-      const nome = prof?.display_name || prof?.username || user.email || "Usuário";
+      const nome = prof?.display_name || user.email || "Usuário";
 
       // Replica para todos do grupo financeiro (se houver). Quando não há grupo,
       // a RPC atualiza apenas a movimentação alvo.

@@ -36,7 +36,7 @@ function useExecutivasProfiles() {
         .in("user_id", ids);
       if (pErr) throw pErr;
       return (profs ?? [])
-        .map((p: any) => ({ user_id: p.user_id, nome: p.display_name || p.username || "" }))
+        .map((p: any) => ({ user_id: p.user_id, nome: p.display_name || "" }))
         .filter((p) => p.nome)
         .sort((a, b) => a.nome.localeCompare(b.nome));
     },

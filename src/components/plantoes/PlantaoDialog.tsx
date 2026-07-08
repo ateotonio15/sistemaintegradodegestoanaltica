@@ -115,7 +115,7 @@ export function PlantaoDialog({
         .select("display_name")
         .eq("user_id", user!.id)
         .maybeSingle();
-      return (data?.display_name || data?.username || "") as string;
+      return (data?.display_name || "") as string;
     },
   });
 

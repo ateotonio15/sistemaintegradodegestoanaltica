@@ -378,7 +378,7 @@ export default function PainelTvFinanceiro() {
       if (error) throw error;
       const m: Record<string, string> = {};
       (data || []).forEach((p: any) => {
-        m[p.user_id] = p.display_name || p.username || "—";
+        m[p.user_id] = p.display_name || "—";
       });
       return m;
     },
@@ -594,7 +594,7 @@ export default function PainelTvFinanceiro() {
       }
       const nomes = new Set<string>();
       (profs || []).forEach((p: any) => {
-        const nome = (p.display_name || p.username || "").trim();
+        const nome = (p.display_name || "").trim();
         if (nome) nomes.add(nome);
       });
       return Array.from(nomes).sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -2025,7 +2025,7 @@ function MetaHistoricoButton() {
           .select("user_id, display_name")
           .in("user_id", uploaderIds);
         (profs || []).forEach((p: any) => {
-          nomesMap[p.user_id] = (p.display_name || p.username || "—").trim();
+          nomesMap[p.user_id] = (p.display_name || "—").trim();
         });
       }
 
