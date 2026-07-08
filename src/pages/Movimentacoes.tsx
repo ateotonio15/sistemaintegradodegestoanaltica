@@ -750,7 +750,7 @@ export default function Movimentacoes() {
                           </TableCell>
 
                           <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{respContratoOf(m.empresas) || "—"}</TableCell>
                           <TableCell><Badge variant="outline" className="rounded-md">{tipo}</Badge></TableCell>
                           <TableCell>{m.periodo || formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                           <TableCell>
