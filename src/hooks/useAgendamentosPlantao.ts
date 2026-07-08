@@ -71,7 +71,7 @@ export function useAgendamentoMutations() {
 
   const authorName = async (): Promise<string | null> => {
     if (!user) return null;
-    const { data } = await supabase.from("profiles").select("display_name,username").eq("user_id", user.id).maybeSingle();
+    const { data } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
     return data?.display_name || data?.username || user.email || null;
   };
 
@@ -155,7 +155,7 @@ export function useExecutivas() {
       if (ids.length === 0) return [];
       const { data: profs, error: e2 } = await supabase
         .from("profiles")
-        .select("user_id, display_name, username")
+        .select("user_id, display_name")
         .in("user_id", ids);
       if (e2) throw e2;
       const nomes = new Set<string>();

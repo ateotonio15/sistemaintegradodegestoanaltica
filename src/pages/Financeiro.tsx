@@ -447,7 +447,7 @@ export default function Financeiro() {
       if (uploaderIds.length === 0) return {};
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, display_name, username")
+        .select("user_id, display_name")
         .in("user_id", uploaderIds);
       if (error) throw error;
       const map: Record<string, string> = {};
@@ -487,7 +487,7 @@ export default function Financeiro() {
       if (allUploaderIds.length === 0) return {};
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, display_name, username")
+        .select("user_id, display_name")
         .in("user_id", allUploaderIds);
       if (error) throw error;
       const map: Record<string, string> = {};

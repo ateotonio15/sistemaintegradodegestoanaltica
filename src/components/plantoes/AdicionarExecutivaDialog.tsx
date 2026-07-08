@@ -32,7 +32,7 @@ function useExecutivasProfiles() {
       if (!ids.length) return [] as { user_id: string; nome: string }[];
       const { data: profs, error: pErr } = await supabase
         .from("profiles")
-        .select("user_id, display_name, username")
+        .select("user_id, display_name")
         .in("user_id", ids);
       if (pErr) throw pErr;
       return (profs ?? [])

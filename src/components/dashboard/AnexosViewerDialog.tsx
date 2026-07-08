@@ -108,7 +108,7 @@ export function AnexosViewerDialog({
       // Busca o nome do usuário atual
       const { data: prof } = await supabase
         .from("profiles")
-        .select("display_name, username")
+        .select("display_name")
         .eq("user_id", user.id)
         .maybeSingle();
       const nome = prof?.display_name || prof?.username || user.email || "Usuário";

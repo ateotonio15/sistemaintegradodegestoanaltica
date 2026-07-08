@@ -81,7 +81,7 @@ export function useExecutivas() {
       if (!ids.length) return [] as { user_id: string; display_name: string; username: string }[];
       const { data: profs, error: pErr } = await sb
         .from("profiles")
-        .select("user_id, display_name, username")
+        .select("user_id, display_name")
         .in("user_id", ids);
       if (pErr) throw pErr;
       return (profs ?? [])
