@@ -231,6 +231,19 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
               </div>
             )}
 
+            {temDivergenciaResponsavel && (
+              <div className="rounded-lg border border-rose-500/40 bg-rose-500/5 p-3 text-xs">
+                <div className="font-medium text-rose-600 mb-0.5 flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" /> Divergência de Responsável — revisão manual
+                </div>
+                <div className="text-muted-foreground">
+                  O cadastro da empresa pode estar desatualizado. Confirme quem é o responsável correto antes de alterar (na aba Empresas ou editando a movimentação).
+                </div>
+              </div>
+            )}
+
+
+
             <ScrollArea className="max-h-[55vh] pr-2">
               {totalDiv === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
