@@ -66,7 +66,7 @@ export default function UberCorridas() {
       }
       return true;
     });
-  }, [corridas, empresa, colaborador, periodo, dataInicio, dataFim, search]);
+  }, [corridas, empresa, colaborador, responsavel, periodo, dataInicio, dataFim, search]);
 
 
   const totals = useMemo(() => {
