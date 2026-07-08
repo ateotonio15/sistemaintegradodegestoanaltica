@@ -386,6 +386,41 @@ export function AnexosViewerDialog({
     },
   });
 
+  // Data do PDF anexado na competência anterior (para referência do Financeiro)
+  const mesAnterior = (() => {
+    if (!mesReferencia) return null;
+    const m = /^(\d{4})-(\d{2})/.exec(mesReferencia);
+    if (!m) return null;
+    let y = parseInt(m[1], 10);
+    let mo = parseInt(m[2], 10) - 1;
+    if (mo <= 0) { mo = 12; y -= 1; }
+    return `${y}-${String(mo).padStart(2, "0")}`;
+  })();
+
+  const { data: pdfAnterior } = useQuery<{ created_at: string; nome_arquivo: string } | null>({
+    queryKey: ["anexo-pdf-competencia-anterior", empresaId, mesAnterior, periodo],
+    enabled: open && !!empresaId && !!mesAnterior,
+    queryFn: async () => {
+      const { data: movs } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("id")
+        .eq("empresa_id", empresaId!)
+        .eq("mes_referencia", mesAnterior!)
+        .eq("periodo", periodo);
+      const ids = (movs ?? []).map((m) => m.id);
+      if (!ids.length) return null;
+      const { data: anx } = await supabase
+        .from("anexos_financeiro")
+        .select("nome_arquivo, created_at")
+        .in("financeiro_movimentacao_id", ids)
+        .ilike("nome_arquivo", "%.pdf")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const row = (anx ?? [])[0];
+      return row ? { created_at: row.created_at, nome_arquivo: row.nome_arquivo } : null;
+    },
+  });
+
 
 
   const handleDownload = async (bucket: string, path: string, nome: string) => {
