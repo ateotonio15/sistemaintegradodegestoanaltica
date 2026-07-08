@@ -3,8 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ShieldCheck, Wrench, Loader2 } from "lucide-react";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 type EmpresaData = {
   id: string;
@@ -60,6 +63,8 @@ interface Props {
 
 export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verificar" }: Props) {
   const [open, setOpen] = useState(false);
+  const [corrigindo, setCorrigindo] = useState(false);
+  const queryClient = useQueryClient();
 
   const resultado = useMemo(() => {
     const linhas: LinhaVerificacao[] = [];
@@ -127,6 +132,36 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
 
   const totalDiv = resultado.linhas.length + resultado.semEmpresa.length;
 
+  const corrigiveis = useMemo(() => {
+    const items: { id: string; updates: Record<string, string> }[] = [];
+    for (const { mov, divergencias } of resultado.linhas) {
+      const updates: Record<string, string> = {};
+      for (const d of divergencias) {
+        if (d.campo === "Tipo de movimentação") updates.tipo_movimentacao = d.esperado;
+        else if (d.campo === "Período") updates.periodo = d.esperado;
+        else if (d.campo === "Responsável") updates.responsavel_movimentacao = d.esperado;
+      }
+      if (Object.keys(updates).length) items.push({ id: mov.id, updates });
+    }
+    return items;
+  }, [resultado.linhas]);
+
+  async function handleCorrigir() {
+    if (!corrigiveis.length) return;
+    setCorrigindo(true);
+    let ok = 0;
+    let fail = 0;
+    for (const item of corrigiveis) {
+      const { error } = await supabase.from("movimentacoes").update(item.updates as any).eq("id", item.id);
+      if (error) fail++;
+      else ok++;
+    }
+    setCorrigindo(false);
+    if (fail === 0) toast.success(`${ok} movimentação(ões) corrigida(s)`);
+    else toast.error(`${ok} corrigida(s), ${fail} com erro`);
+    await queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+  }
+
   return (
     <>
       <Button
@@ -168,6 +203,25 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
                 <div className="text-2xl font-bold text-rose-600">{resultado.semEmpresa.length}</div>
               </div>
             </div>
+
+            {corrigiveis.length > 0 && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                <div className="text-sm">
+                  <div className="font-medium">Correção automática disponível</div>
+                  <div className="text-xs text-muted-foreground">
+                    {corrigiveis.length} movimentação(ões) podem ser ajustadas com os dados do cadastro (tipo, período e responsável).
+                  </div>
+                </div>
+                <Button onClick={handleCorrigir} disabled={corrigindo}>
+                  {corrigindo ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Wrench className="mr-2 h-4 w-4" />
+                  )}
+                  Corrigir {corrigiveis.length}
+                </Button>
+              </div>
+            )}
 
             <ScrollArea className="max-h-[55vh] pr-2">
               {totalDiv === 0 ? (
