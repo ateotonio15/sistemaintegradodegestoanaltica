@@ -29,6 +29,7 @@ export default function UberCorridas() {
   const [search, setSearch] = useState("");
   const [empresa, setEmpresa] = useState<string>("all");
   const [colaborador, setColaborador] = useState<string>("all");
+  const [responsavel, setResponsavel] = useState<string>("all");
   const [periodo, setPeriodo] = useState<string>("30");
   const [dataInicio, setDataInicio] = useState<string>("");
   const [dataFim, setDataFim] = useState<string>("");
@@ -40,6 +41,7 @@ export default function UberCorridas() {
 
   const empresas = useMemo(() => Array.from(new Set(corridas.map((c) => c.empresa).filter(Boolean))).sort() as string[], [corridas]);
   const colaboradores = useMemo(() => Array.from(new Set(corridas.map((c) => c.colaborador).filter(Boolean))).sort() as string[], [corridas]);
+  const responsaveis = useMemo(() => Array.from(new Set(corridas.map((c) => c.responsavel).filter(Boolean))).sort() as string[], [corridas]);
 
   const filtered = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -49,6 +51,7 @@ export default function UberCorridas() {
     return corridas.filter((c) => {
       if (empresa !== "all" && c.empresa !== empresa) return false;
       if (colaborador !== "all" && c.colaborador !== colaborador) return false;
+      if (responsavel !== "all" && c.responsavel !== responsavel) return false;
       if (usarRange) {
         if (dataInicio && c.data < dataInicio) return false;
         if (dataFim && c.data > dataFim) return false;
@@ -63,7 +66,7 @@ export default function UberCorridas() {
       }
       return true;
     });
-  }, [corridas, empresa, colaborador, periodo, dataInicio, dataFim, search]);
+  }, [corridas, empresa, colaborador, responsavel, periodo, dataInicio, dataFim, search]);
 
 
   const totals = useMemo(() => {
@@ -154,6 +157,13 @@ export default function UberCorridas() {
           <SelectContent>
             <SelectItem value="all">Todos colaboradores</SelectItem>
             {colaboradores.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={responsavel} onValueChange={setResponsavel}>
+          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos responsáveis</SelectItem>
+            {responsaveis.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={periodo} onValueChange={setPeriodo} disabled={!!(dataInicio || dataFim)}>
