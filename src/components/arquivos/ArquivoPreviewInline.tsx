@@ -553,12 +553,15 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
             <th className="sticky top-0 left-0 z-30 border-b border-r border-border bg-primary/15 backdrop-blur-sm px-2 py-2 text-muted-foreground text-[10px] w-10 text-center font-semibold">
               #
             </th>
-            {Array.from({ length: maxCols }).map((_, ci) => {
+              {Array.from({ length: maxCols }).map((_, ci) => {
               const cell = headerRow?.[ci] ?? { text: "", isNumber: false, bold: false, indent: 0 };
               return (
                 <th
                   key={ci}
-                  className="sticky top-0 z-20 border-b border-border bg-primary/15 backdrop-blur-sm px-3 py-2 whitespace-nowrap max-w-[420px] overflow-hidden text-ellipsis text-left uppercase tracking-wide text-[10.5px] text-primary font-semibold"
+                    className={cn(
+                      "sticky top-0 z-20 border-b border-border bg-primary/15 backdrop-blur-sm py-2 whitespace-nowrap overflow-hidden text-ellipsis text-left uppercase tracking-wide text-[10.5px] text-primary font-semibold",
+                      ci === 0 ? "w-48 max-w-48 px-2" : "max-w-[420px] px-3",
+                    )}
                   title={cell.text}
                 >
                   {cell.text}
@@ -613,7 +616,8 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
                     <td
                       key={ci}
                       className={cn(
-                        "border-b border-border/60 px-3 py-1.5 whitespace-nowrap max-w-[420px] overflow-hidden text-ellipsis",
+                        "border-b border-border/60 py-1.5 whitespace-nowrap overflow-hidden text-ellipsis",
+                        ci === 0 ? "w-48 max-w-48 px-2" : "max-w-[420px] px-3",
                         align,
                         bold ? "font-semibold text-foreground" : "text-foreground/90",
                         topBorder,
