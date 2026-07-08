@@ -3960,6 +3960,13 @@ export type Database = {
         Args: { p_empresa_id: string; p_grupo_id: string }
         Returns: string
       }
+      admin_list_usernames: {
+        Args: never
+        Returns: {
+          user_id: string
+          username: string
+        }[]
+      }
       alertar_financeiro_nota: {
         Args: {
           p_empresa_id: string
@@ -4134,6 +4141,7 @@ export type Database = {
         }[]
       }
       get_email_by_username: { Args: { _username: string }; Returns: string }
+      get_my_username: { Args: never; Returns: string }
       get_user_display_names: {
         Args: { _ids: string[] }
         Returns: {
