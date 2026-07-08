@@ -217,7 +217,7 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
                 <div className="text-sm">
                   <div className="font-medium">Correção automática disponível</div>
                   <div className="text-xs text-muted-foreground">
-                    {corrigiveis.length} movimentação(ões) podem ser ajustadas com os dados do cadastro (tipo, período e responsável).
+                    {corrigiveis.length} movimentação(ões) podem ter <b>tipo</b> e <b>período</b> ajustados com os dados do cadastro. O campo <b>Responsável</b> não é corrigido automaticamente — revise manualmente.
                   </div>
                 </div>
                 <Button onClick={handleCorrigir} disabled={corrigindo}>
