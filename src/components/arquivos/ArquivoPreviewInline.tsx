@@ -213,13 +213,46 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
             wb.eachSheet((ws) => {
               const rows: ExcelCell[][] = [];
               const maxCol = ws.actualColumnCount || ws.columnCount || 0;
-              ws.eachRow({ includeEmpty: false }, (row) => {
+              // Mesclas: só a célula superior-esquerda mantém o texto na prévia.
+              // Sem isso, valores como "EMPRESA: XYZ" aparecem repetidos em todas
+              // as colunas cobertas pelo merge e impedem detectar colunas vazias.
+              const mergedSkip = new Set<string>();
+              const merges: any = (ws as any).model?.merges;
+              const mergeList: string[] = Array.isArray(merges)
+                ? merges
+                : merges && typeof merges === "object"
+                ? Object.keys(merges)
+                : [];
+              const colLetterToNum = (s: string) => {
+                let n = 0;
+                for (const ch of s) n = n * 26 + (ch.charCodeAt(0) - 64);
+                return n;
+              };
+              for (const range of mergeList) {
+                const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(range);
+                if (!m) continue;
+                const c1 = colLetterToNum(m[1]);
+                const r1 = parseInt(m[2], 10);
+                const c2 = colLetterToNum(m[3]);
+                const r2 = parseInt(m[4], 10);
+                for (let rr = r1; rr <= r2; rr++) {
+                  for (let cc = c1; cc <= c2; cc++) {
+                    if (rr === r1 && cc === c1) continue;
+                    mergedSkip.add(`${rr}:${cc}`);
+                  }
+                }
+              }
+              ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
                 if (rows.length >= 500) return;
                 const r: ExcelCell[] = [];
                 const outline = row.outlineLevel ?? 0;
                 for (let c = 1; c <= maxCol; c++) {
                   const cell = row.getCell(c);
-                  r.push(parseCell(cell.value, cell, outline));
+                  if (mergedSkip.has(`${rowNumber}:${c}`)) {
+                    r.push({ text: "", isNumber: false, bold: false, indent: 0 });
+                  } else {
+                    r.push(parseCell(cell.value, cell, outline));
+                  }
                 }
                 rows.push(r);
               });
