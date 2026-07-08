@@ -756,7 +756,7 @@ export default function Movimentacoes() {
                           <TableCell>
                             <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{m.responsavel_movimentacao || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{respContratoOf(m.empresas) || m.responsavel_movimentacao || "—"}</TableCell>
                           {true && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
