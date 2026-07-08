@@ -29,6 +29,7 @@ export default function UberCorridas() {
   const [search, setSearch] = useState("");
   const [empresa, setEmpresa] = useState<string>("all");
   const [colaborador, setColaborador] = useState<string>("all");
+  const [responsavel, setResponsavel] = useState<string>("all");
   const [periodo, setPeriodo] = useState<string>("30");
   const [dataInicio, setDataInicio] = useState<string>("");
   const [dataFim, setDataFim] = useState<string>("");
