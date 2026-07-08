@@ -94,6 +94,28 @@ export default function Movimentacoes() {
     enabled: !!user,
   });
 
+  const { data: profilesMap = new Map<string, string>() } = useQuery({
+    queryKey: ["profiles-map-mov"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name");
+      if (error) throw error;
+      const m = new Map<string, string>();
+      (data ?? []).forEach((p: any) => { if (p.user_id) m.set(p.user_id, p.display_name || ""); });
+      return m;
+    },
+    enabled: !!user,
+  });
+
+  const respContratoOf = (emp: any): string => {
+    if (!emp) return "";
+    const uid = emp.responsavel_user_id;
+    if (uid) {
+      const nm = profilesMap.get(uid);
+      if (nm) return nm;
+    }
+    return emp.responsavel_contrato ?? "";
+  };
+
   const { data: movimentacoes = [], isLoading } = useQuery({
     queryKey: ["movimentacoes", filterMes, activeTab],
     queryFn: async () => {
@@ -274,7 +296,7 @@ export default function Movimentacoes() {
         "Contrato": m.empresas?.codigo_contrato ?? "",
         "CNPJ": m.empresas?.cnpj ?? "",
         "Empresa": m.empresas?.nome ?? "",
-        "Resp. Contrato": m.empresas?.responsavel_contrato ?? "",
+        "Resp. Contrato": respContratoOf(m.empresas),
         "TIPO DE MOVIMENTAÇÃO": tipo,
         "PERÍODO DE MOVIMENTAÇÃO": formatPeriodoEmpresa(m.empresas as any),
         "Envio Empresa": m.data_envio_empresa ?? "",
@@ -728,7 +750,7 @@ export default function Movimentacoes() {
                           </TableCell>
 
                           <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">{(m.empresas as any)?.responsavel_contrato || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{respContratoOf(m.empresas) || "—"}</TableCell>
                           <TableCell><Badge variant="outline" className="rounded-md">{tipo}</Badge></TableCell>
                           <TableCell>{m.periodo || formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                           <TableCell>
