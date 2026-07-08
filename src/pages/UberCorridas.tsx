@@ -51,6 +51,7 @@ export default function UberCorridas() {
     return corridas.filter((c) => {
       if (empresa !== "all" && c.empresa !== empresa) return false;
       if (colaborador !== "all" && c.colaborador !== colaborador) return false;
+      if (responsavel !== "all" && c.responsavel !== responsavel) return false;
       if (usarRange) {
         if (dataInicio && c.data < dataInicio) return false;
         if (dataFim && c.data > dataFim) return false;
