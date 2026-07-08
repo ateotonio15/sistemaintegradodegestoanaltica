@@ -204,6 +204,25 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
               </div>
             </div>
 
+            {corrigiveis.length > 0 && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                <div className="text-sm">
+                  <div className="font-medium">Correção automática disponível</div>
+                  <div className="text-xs text-muted-foreground">
+                    {corrigiveis.length} movimentação(ões) podem ser ajustadas com os dados do cadastro (tipo, período e responsável).
+                  </div>
+                </div>
+                <Button onClick={handleCorrigir} disabled={corrigindo}>
+                  {corrigindo ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Wrench className="mr-2 h-4 w-4" />
+                  )}
+                  Corrigir {corrigiveis.length}
+                </Button>
+              </div>
+            )}
+
             <ScrollArea className="max-h-[55vh] pr-2">
               {totalDiv === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
