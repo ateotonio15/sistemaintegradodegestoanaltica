@@ -94,6 +94,28 @@ export default function Movimentacoes() {
     enabled: !!user,
   });
 
+  const { data: profilesMap = new Map<string, string>() } = useQuery({
+    queryKey: ["profiles-map-mov"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name");
+      if (error) throw error;
+      const m = new Map<string, string>();
+      (data ?? []).forEach((p: any) => { if (p.user_id) m.set(p.user_id, p.display_name || ""); });
+      return m;
+    },
+    enabled: !!user,
+  });
+
+  const respContratoOf = (emp: any): string => {
+    if (!emp) return "";
+    const uid = emp.responsavel_user_id;
+    if (uid) {
+      const nm = profilesMap.get(uid);
+      if (nm) return nm;
+    }
+    return emp.responsavel_contrato ?? "";
+  };
+
   const { data: movimentacoes = [], isLoading } = useQuery({
     queryKey: ["movimentacoes", filterMes, activeTab],
     queryFn: async () => {
