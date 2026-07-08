@@ -132,6 +132,9 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
 
   const totalDiv = resultado.linhas.length + resultado.semEmpresa.length;
 
+  // Auto-correção NÃO altera "Responsável" — o cadastro pode estar desatualizado
+  // e trocar automaticamente já causou correções indevidas (ex.: Bajaj).
+  // Responsável fica sempre para revisão manual.
   const corrigiveis = useMemo(() => {
     const items: { id: string; updates: Record<string, string> }[] = [];
     for (const { mov, divergencias } of resultado.linhas) {
@@ -139,12 +142,17 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
       for (const d of divergencias) {
         if (d.campo === "Tipo de movimentação") updates.tipo_movimentacao = d.esperado;
         else if (d.campo === "Período") updates.periodo = d.esperado;
-        else if (d.campo === "Responsável") updates.responsavel_movimentacao = d.esperado;
+        // Responsável: intencionalmente não auto-corrigido.
       }
       if (Object.keys(updates).length) items.push({ id: mov.id, updates });
     }
     return items;
   }, [resultado.linhas]);
+
+  const temDivergenciaResponsavel = useMemo(
+    () => resultado.linhas.some((l) => l.divergencias.some((d) => d.campo === "Responsável")),
+    [resultado.linhas]
+  );
 
   async function handleCorrigir() {
     if (!corrigiveis.length) return;
