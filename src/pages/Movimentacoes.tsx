@@ -31,6 +31,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { VerificacaoDadosDialog } from "@/components/movimentacoes/VerificacaoDadosDialog";
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 
 import ExcelJS from "exceljs";
