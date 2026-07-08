@@ -157,7 +157,20 @@ export function GerarHistoricoDialog({
     const temPeriodoEspecifico = !!(empresaInfo as any)?.periodo_especifico_cobranca;
     const dataBase = (empresaInfo as any)?.periodo_cobranca_inicio as string | null | undefined;
     if (temPeriodoEspecifico && dataBase && row?.mes_referencia) {
-      const intervalo = calcularPeriodoCobranca(dataBase, row.mes_referencia);
+      // Movimentações de período 25-30 são competências do mês anterior,
+      // mas a cobrança/emissão é feita no mês seguinte. Nesse caso, avançar 1 mês.
+      let mesRef = row.mes_referencia;
+      if ((row as any)?.periodo === "25-30") {
+        const m = /^(\d{4})-(\d{2})$/.exec(mesRef);
+        if (m) {
+          const ano = Number(m[1]);
+          const mes = Number(m[2]);
+          const nextAno = mes === 12 ? ano + 1 : ano;
+          const nextMes = mes === 12 ? 1 : mes + 1;
+          mesRef = `${nextAno}-${String(nextMes).padStart(2, "0")}`;
+        }
+      }
+      const intervalo = calcularPeriodoCobranca(dataBase, mesRef);
       if (intervalo) {
         return {
           label: formatPeriodoCobranca(intervalo.inicio, intervalo.fim),
