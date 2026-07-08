@@ -115,41 +115,51 @@ export default function Demandas() {
     return (d.executiva || "").trim().toLowerCase() === profileName && profileName.length > 0;
   };
 
-  // Unifica variações do mesmo nome (ex.: "Ana Beatriz" e "Ana Beatriz dos Santos Nogueira").
-  // Se os tokens de um nome estão contidos em outro, agrupa e usa o mais longo como canônico.
+  // Fonte da verdade: nomes de executivos cadastrados na aba Usuários.
+  const { data: executivosProfiles = [] } = useQuery({
+    queryKey: ["executivos-profiles"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["executivo", "executivo_externo"] as any);
+      const ids = Array.from(new Set((roles || []).map((r: any) => r.user_id)));
+      if (!ids.length) return [] as string[];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", ids);
+      return (profs || [])
+        .map((p: any) => (p.display_name || "").trim())
+        .filter(Boolean) as string[];
+    },
+  });
+
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .split(/\s+/)
+      .filter((t) => t.length > 2 && !["dos", "das", "de", "da", "do"].includes(t));
+
+  // Mapeia cada nome gravado em demandas para o nome oficial do cadastro.
+  // Match = maior número de tokens em comum (mínimo 1) com um perfil.
   const executivaCanonicalMap = useMemo(() => {
-    const norm = (s: string) =>
-      s
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .split(/\s+/)
-        .filter((t) => t.length > 2 && !["dos", "das", "de", "da", "do"].includes(t));
+    const profiles = executivosProfiles.map((n) => ({ n, t: new Set(norm(n)) }));
     const raw = Array.from(new Set(demandas.map((d) => (d.executiva || "").trim()).filter(Boolean)));
-    const tokens = raw.map((n) => ({ n, t: new Set(norm(n)) }));
-    tokens.sort((a, b) => b.t.size - a.t.size); // mais longo primeiro
     const map: Record<string, string> = {};
-    const canonicos: string[] = [];
-    for (const { n, t } of tokens) {
-      let matched: string | null = null;
-      for (const c of canonicos) {
-        const ct = new Set(norm(c));
-        // considera match quando um nome é subconjunto do outro (ex.: "Jaina" ⊂ "Jaina Oliveira")
-        const inter = [...t].filter((x) => ct.has(x));
-        const subset = inter.length > 0 && inter.length >= Math.min(t.size, ct.size);
-        if (subset) {
-          matched = c;
-          break;
-        }
+    for (const nome of raw) {
+      const t = new Set(norm(nome));
+      let best: { n: string; score: number } | null = null;
+      for (const p of profiles) {
+        const inter = [...t].filter((x) => p.t.has(x)).length;
+        if (inter > 0 && (!best || inter > best.score)) best = { n: p.n, score: inter };
       }
-      if (matched) map[n] = matched;
-      else {
-        canonicos.push(n);
-        map[n] = n;
-      }
+      map[nome] = best?.n || nome;
     }
     return map;
-  }, [demandas]);
+  }, [demandas, executivosProfiles]);
 
   const canonicalExecutiva = (nome: string | null | undefined) =>
     executivaCanonicalMap[(nome || "").trim()] || (nome || "").trim();
@@ -158,6 +168,8 @@ export default function Demandas() {
     const setSet = new Set<string>();
     const empSet = new Set<string>();
     const exeSet = new Set<string>();
+    // Sempre mostra todos os executivos cadastrados, mesmo sem demandas ainda.
+    executivosProfiles.forEach((n) => exeSet.add(n));
     demandas.forEach((d) => {
       if (d.empresa) empSet.add(d.empresa);
       if (d.setor_responsavel) setSet.add(d.setor_responsavel);
@@ -168,7 +180,7 @@ export default function Demandas() {
       setores: Array.from(setSet).sort(),
       executivas: Array.from(exeSet).sort(),
     };
-  }, [demandas, executivaCanonicalMap]);
+  }, [demandas, executivaCanonicalMap, executivosProfiles]);
 
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
