@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import "pdfjs-dist/web/pdf_viewer.css";
 import ExcelJS from "exceljs";
 import { Button } from "@/components/ui/button";
 import {
@@ -151,6 +152,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
   const [manualZoom, setManualZoom] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const textLayerRef = useRef<HTMLDivElement | null>(null);
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
 
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase();
@@ -294,6 +296,32 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
         context.fillRect(0, 0, viewport.width, viewport.height);
         renderTask = page.render({ canvas, canvasContext: context, viewport, background: "hsl(0 0% 100%)" });
         await renderTask.promise;
+
+        // Text layer para permitir seleção/cópia de texto
+        const textLayerDiv = textLayerRef.current;
+        if (textLayerDiv && !cancelled) {
+          textLayerDiv.innerHTML = "";
+          textLayerDiv.style.width = `${Math.floor(viewport.width)}px`;
+          textLayerDiv.style.height = `${Math.floor(viewport.height)}px`;
+          textLayerDiv.style.setProperty("--scale-factor", String(viewport.scale));
+          try {
+            const textContentSource = await page.getTextContent();
+            if (cancelled) return;
+            const TextLayerCtor: any = (pdfjsLib as any).TextLayer;
+            if (TextLayerCtor) {
+              const tl = new TextLayerCtor({ textContentSource, container: textLayerDiv, viewport });
+              await tl.render();
+            } else if ((pdfjsLib as any).renderTextLayer) {
+              await (pdfjsLib as any).renderTextLayer({
+                textContentSource,
+                container: textLayerDiv,
+                viewport,
+              }).promise;
+            }
+          } catch {
+            /* seleção de texto é opcional — falhas não devem quebrar a prévia */
+          }
+        }
       } catch (err: any) {
         if (!cancelled && err?.name !== "RenderingCancelledException") {
           setError(err?.message ?? "Erro ao renderizar PDF");
@@ -403,7 +431,13 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
                   </div>
                 )}
                 <div className="flex min-h-full justify-center pb-6">
-                  <canvas ref={canvasRef} className="h-fit max-w-none rounded-sm shadow-md bg-white" />
+                  <div className="relative h-fit">
+                    <canvas ref={canvasRef} className="block h-fit max-w-none rounded-sm shadow-md bg-white" />
+                    <div
+                      ref={textLayerRef}
+                      className="textLayer absolute inset-0 overflow-hidden opacity-100 leading-none"
+                    />
+                  </div>
                 </div>
               </div>
             )}
