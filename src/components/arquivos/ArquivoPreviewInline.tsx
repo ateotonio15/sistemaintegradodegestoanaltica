@@ -617,7 +617,7 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
                       key={ci}
                       className={cn(
                         "border-b border-border/60 py-1.5 whitespace-nowrap overflow-hidden text-ellipsis",
-                        ci === 0 ? "w-48 max-w-48 px-2" : "max-w-[420px] px-3",
+                        ci === 0 ? "w-12 max-w-12 px-1" : "max-w-[420px] px-3",
                         align,
                         bold ? "font-semibold text-foreground" : "text-foreground/90",
                         topBorder,
