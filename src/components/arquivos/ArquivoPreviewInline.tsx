@@ -481,19 +481,17 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
     );
   }
 
-  // Determina largura máxima em colunas
-  const maxColsRaw = rows.reduce((m, r) => Math.max(m, r.length), 0);
+  const isEmptyCell = (cell?: ExcelCell) => !cell || cell.text.trim() === "";
 
-  // Remove colunas totalmente vazias à esquerda (comum em abas ADESAO/EXCLUSAO
-  // exportadas com coluna A em branco), preservando o alinhamento das demais.
-  let leadingEmpty = 0;
-  for (let c = 0; c < maxColsRaw; c++) {
-    const allEmpty = rows.every((r) => !r[c] || r[c].text === "");
-    if (allEmpty) leadingEmpty++;
-    else break;
-  }
-  const trimmedRows = leadingEmpty > 0 ? rows.map((r) => r.slice(leadingEmpty)) : rows;
-  const maxCols = maxColsRaw - leadingEmpty;
+  // Remove qualquer coluna totalmente vazia, não apenas as primeiras.
+  // Alguns modelos vêm com colunas intermediárias vazias/formatadas que criam
+  // um vão grande antes dos dados úteis na prévia.
+  const maxColsRaw = rows.reduce((m, r) => Math.max(m, r.length), 0);
+  const visibleColumns = Array.from({ length: maxColsRaw }, (_, c) => c).filter(
+    (c) => rows.some((r) => !isEmptyCell(r[c])),
+  );
+  const trimmedRows = rows.map((r) => visibleColumns.map((c) => r[c] ?? { text: "", isNumber: false, bold: false, indent: 0 }));
+  const maxCols = visibleColumns.length;
 
   // Detecta colunas numéricas (>50% das linhas com número naquela coluna)
   const numericCols = new Set<number>();
@@ -513,7 +511,7 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
 
   return (
     <div className="flex-1 min-h-0 overflow-auto bg-background">
-      <table className="text-xs border-collapse w-full">
+      <table className="text-xs border-collapse w-max min-w-max">
         <thead>
           <tr>
             <th className="sticky top-0 left-0 z-30 border-b border-r border-border bg-primary/15 backdrop-blur-sm px-2 py-2 text-muted-foreground text-[10px] w-10 text-center font-semibold">
