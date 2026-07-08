@@ -30,6 +30,9 @@ export default function UberCorridas() {
   const [empresa, setEmpresa] = useState<string>("all");
   const [colaborador, setColaborador] = useState<string>("all");
   const [periodo, setPeriodo] = useState<string>("30");
+  const [dataInicio, setDataInicio] = useState<string>("");
+  const [dataFim, setDataFim] = useState<string>("");
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [edit, setEdit] = useState<UberCorrida | null>(null);
@@ -40,12 +43,16 @@ export default function UberCorridas() {
 
   const filtered = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const limite = periodo === "all" ? null : new Date(today.getTime() - Number(periodo) * 86400000);
+    const usarRange = !!(dataInicio || dataFim);
+    const limite = usarRange || periodo === "all" ? null : new Date(today.getTime() - Number(periodo) * 86400000);
     const q = search.trim().toLowerCase();
     return corridas.filter((c) => {
       if (empresa !== "all" && c.empresa !== empresa) return false;
       if (colaborador !== "all" && c.colaborador !== colaborador) return false;
-      if (limite) {
+      if (usarRange) {
+        if (dataInicio && c.data < dataInicio) return false;
+        if (dataFim && c.data > dataFim) return false;
+      } else if (limite) {
         const [y, m, d] = c.data.split("-").map(Number);
         const dt = new Date(y, m - 1, d);
         if (dt < limite) return false;
@@ -56,7 +63,8 @@ export default function UberCorridas() {
       }
       return true;
     });
-  }, [corridas, empresa, colaborador, periodo, search]);
+  }, [corridas, empresa, colaborador, periodo, dataInicio, dataFim, search]);
+
 
   const totals = useMemo(() => {
     const validas = filtered.filter((c) => !c.cancelada);
@@ -148,7 +156,7 @@ export default function UberCorridas() {
             {colaboradores.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={periodo} onValueChange={setPeriodo}>
+        <Select value={periodo} onValueChange={setPeriodo} disabled={!!(dataInicio || dataFim)}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="7">7 dias</SelectItem>
@@ -158,7 +166,17 @@ export default function UberCorridas() {
             <SelectItem value="all">Tudo</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground">De</span>
+          <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-[150px]" />
+          <span className="text-xs text-muted-foreground">até</span>
+          <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-[150px]" />
+          {(dataInicio || dataFim) && (
+            <Button variant="ghost" size="sm" onClick={() => { setDataInicio(""); setDataFim(""); }}>Limpar</Button>
+          )}
+        </div>
       </Card>
+
 
       {/* Table */}
       <Card>
