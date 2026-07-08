@@ -134,9 +134,9 @@ export default function Demandas() {
       let matched: string | null = null;
       for (const c of canonicos) {
         const ct = new Set(norm(c));
-        // subset em qualquer direção (compartilham pelo menos 2 tokens em comum)
+        // considera match quando um nome é subconjunto do outro (ex.: "Jaina" ⊂ "Jaina Oliveira")
         const inter = [...t].filter((x) => ct.has(x));
-        const subset = inter.length >= Math.min(t.size, ct.size) && inter.length >= 2;
+        const subset = inter.length > 0 && inter.length >= Math.min(t.size, ct.size);
         if (subset) {
           matched = c;
           break;
