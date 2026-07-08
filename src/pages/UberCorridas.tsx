@@ -156,7 +156,7 @@ export default function UberCorridas() {
             {colaboradores.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={periodo} onValueChange={setPeriodo}>
+        <Select value={periodo} onValueChange={setPeriodo} disabled={!!(dataInicio || dataFim)}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="7">7 dias</SelectItem>
@@ -166,7 +166,17 @@ export default function UberCorridas() {
             <SelectItem value="all">Tudo</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground">De</span>
+          <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-[150px]" />
+          <span className="text-xs text-muted-foreground">até</span>
+          <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-[150px]" />
+          {(dataInicio || dataFim) && (
+            <Button variant="ghost" size="sm" onClick={() => { setDataInicio(""); setDataFim(""); }}>Limpar</Button>
+          )}
+        </div>
       </Card>
+
 
       {/* Table */}
       <Card>
