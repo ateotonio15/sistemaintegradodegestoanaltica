@@ -132,6 +132,9 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
 
   const totalDiv = resultado.linhas.length + resultado.semEmpresa.length;
 
+  // Auto-correção NÃO altera "Responsável" — o cadastro pode estar desatualizado
+  // e trocar automaticamente já causou correções indevidas (ex.: Bajaj).
+  // Responsável fica sempre para revisão manual.
   const corrigiveis = useMemo(() => {
     const items: { id: string; updates: Record<string, string> }[] = [];
     for (const { mov, divergencias } of resultado.linhas) {
@@ -139,12 +142,17 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
       for (const d of divergencias) {
         if (d.campo === "Tipo de movimentação") updates.tipo_movimentacao = d.esperado;
         else if (d.campo === "Período") updates.periodo = d.esperado;
-        else if (d.campo === "Responsável") updates.responsavel_movimentacao = d.esperado;
+        // Responsável: intencionalmente não auto-corrigido.
       }
       if (Object.keys(updates).length) items.push({ id: mov.id, updates });
     }
     return items;
   }, [resultado.linhas]);
+
+  const temDivergenciaResponsavel = useMemo(
+    () => resultado.linhas.some((l) => l.divergencias.some((d) => d.campo === "Responsável")),
+    [resultado.linhas]
+  );
 
   async function handleCorrigir() {
     if (!corrigiveis.length) return;
@@ -209,7 +217,7 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
                 <div className="text-sm">
                   <div className="font-medium">Correção automática disponível</div>
                   <div className="text-xs text-muted-foreground">
-                    {corrigiveis.length} movimentação(ões) podem ser ajustadas com os dados do cadastro (tipo, período e responsável).
+                    {corrigiveis.length} movimentação(ões) podem ter <b>tipo</b> e <b>período</b> ajustados com os dados do cadastro. O campo <b>Responsável</b> não é corrigido automaticamente — revise manualmente.
                   </div>
                 </div>
                 <Button onClick={handleCorrigir} disabled={corrigindo}>
@@ -222,6 +230,19 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
                 </Button>
               </div>
             )}
+
+            {temDivergenciaResponsavel && (
+              <div className="rounded-lg border border-rose-500/40 bg-rose-500/5 p-3 text-xs">
+                <div className="font-medium text-rose-600 mb-0.5 flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" /> Divergência de Responsável — revisão manual
+                </div>
+                <div className="text-muted-foreground">
+                  O cadastro da empresa pode estar desatualizado. Confirme quem é o responsável correto antes de alterar (na aba Empresas ou editando a movimentação).
+                </div>
+              </div>
+            )}
+
+
 
             <ScrollArea className="max-h-[55vh] pr-2">
               {totalDiv === 0 ? (
