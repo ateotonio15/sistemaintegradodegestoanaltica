@@ -43,12 +43,16 @@ export default function UberCorridas() {
 
   const filtered = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const limite = periodo === "all" ? null : new Date(today.getTime() - Number(periodo) * 86400000);
+    const usarRange = !!(dataInicio || dataFim);
+    const limite = usarRange || periodo === "all" ? null : new Date(today.getTime() - Number(periodo) * 86400000);
     const q = search.trim().toLowerCase();
     return corridas.filter((c) => {
       if (empresa !== "all" && c.empresa !== empresa) return false;
       if (colaborador !== "all" && c.colaborador !== colaborador) return false;
-      if (limite) {
+      if (usarRange) {
+        if (dataInicio && c.data < dataInicio) return false;
+        if (dataFim && c.data > dataFim) return false;
+      } else if (limite) {
         const [y, m, d] = c.data.split("-").map(Number);
         const dt = new Date(y, m - 1, d);
         if (dt < limite) return false;
@@ -59,7 +63,8 @@ export default function UberCorridas() {
       }
       return true;
     });
-  }, [corridas, empresa, colaborador, periodo, search]);
+  }, [corridas, empresa, colaborador, periodo, dataInicio, dataFim, search]);
+
 
   const totals = useMemo(() => {
     const validas = filtered.filter((c) => !c.cancelada);
