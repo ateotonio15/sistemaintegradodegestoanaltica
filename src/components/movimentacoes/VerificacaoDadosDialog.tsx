@@ -63,6 +63,8 @@ interface Props {
 
 export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verificar" }: Props) {
   const [open, setOpen] = useState(false);
+  const [corrigindo, setCorrigindo] = useState(false);
+  const queryClient = useQueryClient();
 
   const resultado = useMemo(() => {
     const linhas: LinhaVerificacao[] = [];
