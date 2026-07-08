@@ -322,6 +322,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
             /* seleção de texto é opcional — falhas não devem quebrar a prévia */
           }
         }
+      } catch (err: any) {
         if (!cancelled && err?.name !== "RenderingCancelledException") {
           setError(err?.message ?? "Erro ao renderizar PDF");
         }
