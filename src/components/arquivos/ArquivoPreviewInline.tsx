@@ -542,9 +542,12 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
   const headerRow = trimmedRows[0];
   const bodyRows = trimmedRows.slice(1);
 
+  const isResumo = /resumo/i.test(sheet.name);
+
   return (
     <div className="flex-1 min-h-0 overflow-auto bg-background">
-      <table className="text-xs border-collapse w-max min-w-max">
+      <table className={cn("text-xs border-collapse", isResumo ? "w-full" : "w-max min-w-max")}>
+
         <thead>
           <tr>
             <th className="sticky top-0 left-0 z-30 border-b border-r border-border bg-primary/15 backdrop-blur-sm px-2 py-2 text-muted-foreground text-[10px] w-10 text-center font-semibold">
