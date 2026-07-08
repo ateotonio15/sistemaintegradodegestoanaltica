@@ -177,7 +177,7 @@ export default function Demandas() {
       if (dataFim && d.data_reclamacao > dataFim) return false;
       if (empresa !== "__all__" && d.empresa !== empresa) return false;
       if (setor !== "__all__" && d.setor_responsavel !== setor) return false;
-      if (executiva !== "__all__" && d.executiva !== executiva) return false;
+      if (executiva !== "__all__" && canonicalExecutiva(d.executiva) !== executiva) return false;
       if (status !== "todos") {
         const st = getStatus(d);
         if (status === "em_aberto" && st !== "Pendente") return false;
