@@ -152,6 +152,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
   const [manualZoom, setManualZoom] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const textLayerRef = useRef<HTMLDivElement | null>(null);
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
 
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase();
