@@ -402,7 +402,7 @@ export function AnexosViewerDialog({
     enabled: open && !!empresaId && !!mesAnterior,
     queryFn: async () => {
       const { data: movs } = await supabase
-        .from("financeiro_movimentacoes")
+        .from("movimentacoes")
         .select("id")
         .eq("empresa_id", empresaId!)
         .eq("mes_referencia", mesAnterior!)
@@ -410,10 +410,9 @@ export function AnexosViewerDialog({
       const ids = (movs ?? []).map((m) => m.id);
       if (!ids.length) return null;
       const { data: anx } = await supabase
-        .from("anexos_financeiro")
+        .from("anexos_movimentacao")
         .select("nome_arquivo, created_at")
-        .in("financeiro_movimentacao_id", ids)
-        .ilike("nome_arquivo", "%.pdf")
+        .in("movimentacao_id", ids)
         .order("created_at", { ascending: false })
         .limit(1);
       const row = (anx ?? [])[0];
