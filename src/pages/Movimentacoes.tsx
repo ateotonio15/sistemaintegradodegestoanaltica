@@ -264,7 +264,7 @@ export default function Movimentacoes() {
       const status = calcularStatus(m);
       if (filterPeriodo !== "all" && m.periodo !== filterPeriodo) return false;
       if (filterStatus !== "all" && status !== filterStatus) return false;
-      if (filterResponsavel && !(m.responsavel_movimentacao ?? "").toLowerCase().includes(filterResponsavel.toLowerCase())) return false;
+      if (filterResponsavel && !(respContratoOf(m.empresas) || m.responsavel_movimentacao || "").toLowerCase().includes(filterResponsavel.toLowerCase())) return false;
       if (somentePendentes && status === "Enviado ao financeiro") return false;
       if (term) {
         const nome = (m.empresas?.nome ?? "").toLowerCase();
@@ -756,7 +756,7 @@ export default function Movimentacoes() {
                           <TableCell>
                             <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{m.responsavel_movimentacao || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{respContratoOf(m.empresas) || m.responsavel_movimentacao || "—"}</TableCell>
                           {true && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
