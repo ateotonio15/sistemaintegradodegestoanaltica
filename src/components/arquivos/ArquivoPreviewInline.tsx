@@ -560,7 +560,7 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
                   key={ci}
                     className={cn(
                       "sticky top-0 z-20 border-b border-border bg-primary/15 backdrop-blur-sm py-2 whitespace-nowrap overflow-hidden text-ellipsis text-left uppercase tracking-wide text-[10.5px] text-primary font-semibold",
-                      ci === 0 ? "w-48 max-w-48 px-2" : "max-w-[420px] px-3",
+                      ci === 0 ? "w-12 max-w-12 px-1" : "max-w-[420px] px-3",
                     )}
                   title={cell.text}
                 >
@@ -617,7 +617,7 @@ function ExcelSheetView({ sheet }: { sheet: SheetData }) {
                       key={ci}
                       className={cn(
                         "border-b border-border/60 py-1.5 whitespace-nowrap overflow-hidden text-ellipsis",
-                        ci === 0 ? "w-48 max-w-48 px-2" : "max-w-[420px] px-3",
+                        ci === 0 ? "w-12 max-w-12 px-1" : "max-w-[420px] px-3",
                         align,
                         bold ? "font-semibold text-foreground" : "text-foreground/90",
                         topBorder,
