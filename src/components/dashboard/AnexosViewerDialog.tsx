@@ -402,7 +402,7 @@ export function AnexosViewerDialog({
     enabled: open && !!empresaId && !!mesAnterior,
     queryFn: async () => {
       const { data: movs } = await supabase
-        .from("financeiro_movimentacoes")
+        .from("movimentacoes")
         .select("id")
         .eq("empresa_id", empresaId!)
         .eq("mes_referencia", mesAnterior!)
@@ -410,10 +410,9 @@ export function AnexosViewerDialog({
       const ids = (movs ?? []).map((m) => m.id);
       if (!ids.length) return null;
       const { data: anx } = await supabase
-        .from("anexos_financeiro")
+        .from("anexos_movimentacao")
         .select("nome_arquivo, created_at")
-        .in("financeiro_movimentacao_id", ids)
-        .ilike("nome_arquivo", "%.pdf")
+        .in("movimentacao_id", ids)
         .order("created_at", { ascending: false })
         .limit(1);
       const row = (anx ?? [])[0];
@@ -468,7 +467,7 @@ export function AnexosViewerDialog({
           <div className="flex items-center gap-2 rounded-md border border-info/30 bg-info/5 px-3 py-2 text-xs text-foreground">
             <FileText className="h-3.5 w-3.5 text-info shrink-0" />
             <span className="min-w-0">
-              PDF da competência anterior ({mesAnterior}) anexado em{" "}
+              Anexo do Cadastro da competência anterior ({mesAnterior}) enviado em{" "}
               <strong className="text-info">{formatDateTime(pdfAnterior.created_at)}</strong>
             </span>
           </div>
