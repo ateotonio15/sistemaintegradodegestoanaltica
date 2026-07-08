@@ -292,11 +292,40 @@ export function GerarHistoricoDialog({
   };
 
   const handleCopiar = async () => {
+    const texto = textoFinal;
+    // Tenta API moderna (requer contexto seguro e foco)
     try {
-      await navigator.clipboard.writeText(textoFinal);
-      toast.success("Histórico copiado.");
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(texto);
+        toast.success("Histórico copiado.");
+        return;
+      }
     } catch {
-      toast.error("Não foi possível copiar.");
+      // cai no fallback
+    }
+    // Fallback via textarea + execCommand (funciona em iframes sem permissão de clipboard)
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = texto;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "0";
+      ta.style.left = "0";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, texto.length);
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (ok) {
+        toast.success("Histórico copiado.");
+        return;
+      }
+      throw new Error("execCommand copy retornou false");
+    } catch (e) {
+      console.error("Falha ao copiar histórico:", e);
+      toast.error("Não foi possível copiar. Selecione o texto manualmente (Ctrl+C).");
     }
   };
 
