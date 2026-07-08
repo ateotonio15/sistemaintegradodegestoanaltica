@@ -264,7 +264,7 @@ export default function Movimentacoes() {
       const status = calcularStatus(m);
       if (filterPeriodo !== "all" && m.periodo !== filterPeriodo) return false;
       if (filterStatus !== "all" && status !== filterStatus) return false;
-      if (filterResponsavel && !(m.responsavel_movimentacao ?? "").toLowerCase().includes(filterResponsavel.toLowerCase())) return false;
+      if (filterResponsavel && !(respContratoOf(m.empresas) || m.responsavel_movimentacao || "").toLowerCase().includes(filterResponsavel.toLowerCase())) return false;
       if (somentePendentes && status === "Enviado ao financeiro") return false;
       if (term) {
         const nome = (m.empresas?.nome ?? "").toLowerCase();
