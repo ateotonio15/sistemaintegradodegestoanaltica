@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -102,6 +102,7 @@ export function GerarHistoricoDialog({
   const [textoOriginalGerado, setTextoOriginalGerado] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [confirmRegen, setConfirmRegen] = useState(false);
+  const historicoTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Empresa info
   const { data: empresaInfo } = useQuery({
@@ -293,6 +294,11 @@ export function GerarHistoricoDialog({
 
   const handleCopiar = async () => {
     const texto = textoFinal;
+    if (!texto.trim()) {
+      toast.error("Não há histórico para copiar.");
+      return;
+    }
+
     // Tenta API moderna (requer contexto seguro e foco)
     try {
       if (navigator.clipboard && window.isSecureContext) {
@@ -303,21 +309,16 @@ export function GerarHistoricoDialog({
     } catch {
       // cai no fallback
     }
-    // Fallback via textarea + execCommand (funciona em iframes sem permissão de clipboard)
+
+    // Fallback: usa o próprio textarea visível dentro do Dialog, evitando bloqueio do focus-trap.
     try {
-      const ta = document.createElement("textarea");
-      ta.value = texto;
-      ta.setAttribute("readonly", "");
-      ta.style.position = "fixed";
-      ta.style.top = "0";
-      ta.style.left = "0";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
+      const ta = historicoTextareaRef.current;
+      if (!ta) throw new Error("textarea do histórico não encontrado");
+
       ta.focus();
       ta.select();
       ta.setSelectionRange(0, texto.length);
       const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
       if (ok) {
         toast.success("Histórico copiado.");
         return;
@@ -325,7 +326,9 @@ export function GerarHistoricoDialog({
       throw new Error("execCommand copy retornou false");
     } catch (e) {
       console.error("Falha ao copiar histórico:", e);
-      toast.error("Não foi possível copiar. Selecione o texto manualmente (Ctrl+C).");
+      historicoTextareaRef.current?.focus();
+      historicoTextareaRef.current?.select();
+      toast.error("Não foi possível copiar automaticamente. O texto foi selecionado para Ctrl+C.");
     }
   };
 
@@ -472,6 +475,7 @@ export function GerarHistoricoDialog({
                 )}
               </div>
               <Textarea
+                ref={historicoTextareaRef}
                 value={textoFinal}
                 onChange={(e) => setTexto(e.target.value)}
                 rows={16}
