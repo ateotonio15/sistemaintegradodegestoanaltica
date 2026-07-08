@@ -212,10 +212,10 @@ export async function salvarAnalise(input: SalvarAnaliseInput): Promise<Financei
     if (analisado_por) {
       const { data: prof } = await supabase
         .from("profiles")
-        .select("display_name, username")
+        .select("display_name")
         .eq("user_id", analisado_por)
         .maybeSingle();
-      analisado_por_nome = prof?.display_name || prof?.username || null;
+      analisado_por_nome = prof?.display_name || null;
     }
   } catch {
     // ignora

@@ -107,8 +107,8 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
     enabled: !!user?.id,
     queryFn: async () => {
       const { data } = await (supabase as any)
-        .from("profiles").select("display_name, username").eq("user_id", user!.id).maybeSingle();
-      return data as { display_name: string | null; username: string | null } | null;
+        .from("profiles").select("display_name").eq("user_id", user!.id).maybeSingle();
+      return data as { display_name: string | null } | null;
     },
   });
 
@@ -432,7 +432,7 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
         canEdit={canEdit}
         isReadOnly={isReadOnly}
         userNome={profile?.display_name ?? null}
-        userUsername={profile?.username ?? null}
+        userUsername={null}
       />
     </div>
   );

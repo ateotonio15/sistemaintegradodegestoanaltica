@@ -81,14 +81,14 @@ export function useExecutivas() {
       if (!ids.length) return [] as { user_id: string; display_name: string; username: string }[];
       const { data: profs, error: pErr } = await sb
         .from("profiles")
-        .select("user_id, display_name, username")
+        .select("user_id, display_name")
         .in("user_id", ids);
       if (pErr) throw pErr;
       return (profs ?? [])
         .map((p: any) => ({
           user_id: p.user_id,
-          display_name: p.display_name ?? p.username ?? "—",
-          username: p.username ?? "",
+          display_name: p.display_name ?? "—",
+          username: "",
         }))
         .sort((a, b) => a.display_name.localeCompare(b.display_name));
     },

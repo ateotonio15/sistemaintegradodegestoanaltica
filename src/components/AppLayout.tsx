@@ -182,12 +182,13 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: p } = await supabase
         .from("profiles")
-        .select("display_name, username")
+        .select("display_name")
         .eq("user_id", user!.id)
         .maybeSingle();
-      return data;
+      const { data: uname } = await supabase.rpc("get_my_username");
+      return { display_name: p?.display_name ?? null, username: (uname as string) ?? null };
     },
     enabled: !!user?.id,
   });

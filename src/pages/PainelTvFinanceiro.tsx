@@ -373,12 +373,12 @@ export default function PainelTvFinanceiro() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, display_name, username")
+        .select("user_id, display_name")
         .in("user_id", profileIds);
       if (error) throw error;
       const m: Record<string, string> = {};
       (data || []).forEach((p: any) => {
-        m[p.user_id] = p.display_name || p.username || "—";
+        m[p.user_id] = p.display_name || "—";
       });
       return m;
     },
@@ -586,7 +586,7 @@ export default function PainelTvFinanceiro() {
       if (ids.length === 0) return [] as string[];
       const { data: profs, error: errProfs } = await supabase
         .from("profiles")
-        .select("user_id, display_name, username")
+        .select("user_id, display_name")
         .in("user_id", ids);
       if (errProfs) {
         console.error("[escala] erro ao carregar profiles:", errProfs);
@@ -594,7 +594,7 @@ export default function PainelTvFinanceiro() {
       }
       const nomes = new Set<string>();
       (profs || []).forEach((p: any) => {
-        const nome = (p.display_name || p.username || "").trim();
+        const nome = (p.display_name || "").trim();
         if (nome) nomes.add(nome);
       });
       return Array.from(nomes).sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -2022,10 +2022,10 @@ function MetaHistoricoButton() {
       if (uploaderIds.length > 0) {
         const { data: profs } = await supabase
           .from("profiles")
-          .select("user_id, display_name, username")
+          .select("user_id, display_name")
           .in("user_id", uploaderIds);
         (profs || []).forEach((p: any) => {
-          nomesMap[p.user_id] = (p.display_name || p.username || "—").trim();
+          nomesMap[p.user_id] = (p.display_name || "—").trim();
         });
       }
 

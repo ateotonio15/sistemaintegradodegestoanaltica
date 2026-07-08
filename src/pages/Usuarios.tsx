@@ -95,8 +95,12 @@ export default function Usuarios() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users-management"],
     queryFn: async () => {
-      const { data: profiles, error: pErr } = await supabase.from("profiles").select("user_id, display_name, username");
+      const { data: profiles, error: pErr } = await supabase.from("profiles").select("user_id, display_name");
       if (pErr) throw pErr;
+
+      const { data: usernames } = await supabase.rpc("admin_list_usernames");
+      const usernameMap = new Map<string, string>();
+      (usernames as any[] | null)?.forEach((u) => usernameMap.set(u.user_id, u.username));
 
       const { data: roles, error: rErr } = await supabase.from("user_roles").select("user_id, role");
       if (rErr) throw rErr;
@@ -115,7 +119,7 @@ export default function Usuarios() {
       return (profiles || []).map((p) => ({
         user_id: p.user_id,
         display_name: p.display_name,
-        username: (p as any).username ?? null,
+        username: usernameMap.get(p.user_id) ?? null,
         role: rolesMap.get(p.user_id) ?? "comum",
         empresas: linksMap.get(p.user_id) || [],
       })) as UserProfile[];

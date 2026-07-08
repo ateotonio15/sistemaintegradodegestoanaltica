@@ -64,10 +64,10 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("display_name, username")
+        .select("display_name")
         .eq("user_id", user!.id)
         .maybeSingle();
-      return (data?.display_name || data?.username || "") as string;
+      return (data?.display_name || "") as string;
     },
   });
 

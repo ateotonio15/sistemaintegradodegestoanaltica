@@ -66,9 +66,9 @@ export function AgendamentoPlantaoDialog({ open, onOpenChange, editing, defaultD
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("display_name,username").eq("user_id", user.id).maybeSingle().then(({ data }) => {
-      setMeuNome(data?.display_name || data?.username || null);
-      setMeuUsername(data?.username || null);
+    supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+      setMeuNome(data?.display_name || null);
+      setMeuUsername(null);
     });
   }, [user]);
 
