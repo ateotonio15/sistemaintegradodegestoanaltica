@@ -431,7 +431,13 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
                   </div>
                 )}
                 <div className="flex min-h-full justify-center pb-6">
-                  <canvas ref={canvasRef} className="h-fit max-w-none rounded-sm shadow-md bg-white" />
+                  <div className="relative h-fit">
+                    <canvas ref={canvasRef} className="block h-fit max-w-none rounded-sm shadow-md bg-white" />
+                    <div
+                      ref={textLayerRef}
+                      className="textLayer absolute inset-0 overflow-hidden opacity-100 leading-none"
+                    />
+                  </div>
                 </div>
               </div>
             )}
