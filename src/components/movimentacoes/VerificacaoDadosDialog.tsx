@@ -152,7 +152,7 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
     let ok = 0;
     let fail = 0;
     for (const item of corrigiveis) {
-      const { error } = await supabase.from("movimentacoes").update(item.updates).eq("id", item.id);
+      const { error } = await supabase.from("movimentacoes").update(item.updates as any).eq("id", item.id);
       if (error) fail++;
       else ok++;
     }
