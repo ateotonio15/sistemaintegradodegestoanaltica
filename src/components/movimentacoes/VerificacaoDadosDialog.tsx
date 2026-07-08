@@ -132,6 +132,36 @@ export function VerificacaoDadosDialog({ movimentacoes, triggerLabel = "Verifica
 
   const totalDiv = resultado.linhas.length + resultado.semEmpresa.length;
 
+  const corrigiveis = useMemo(() => {
+    const items: { id: string; updates: Record<string, string> }[] = [];
+    for (const { mov, divergencias } of resultado.linhas) {
+      const updates: Record<string, string> = {};
+      for (const d of divergencias) {
+        if (d.campo === "Tipo de movimentação") updates.tipo_movimentacao = d.esperado;
+        else if (d.campo === "Período") updates.periodo = d.esperado;
+        else if (d.campo === "Responsável") updates.responsavel_movimentacao = d.esperado;
+      }
+      if (Object.keys(updates).length) items.push({ id: mov.id, updates });
+    }
+    return items;
+  }, [resultado.linhas]);
+
+  async function handleCorrigir() {
+    if (!corrigiveis.length) return;
+    setCorrigindo(true);
+    let ok = 0;
+    let fail = 0;
+    for (const item of corrigiveis) {
+      const { error } = await supabase.from("movimentacoes").update(item.updates).eq("id", item.id);
+      if (error) fail++;
+      else ok++;
+    }
+    setCorrigindo(false);
+    if (fail === 0) toast.success(`${ok} movimentação(ões) corrigida(s)`);
+    else toast.error(`${ok} corrigida(s), ${fail} com erro`);
+    await queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+  }
+
   return (
     <>
       <Button
