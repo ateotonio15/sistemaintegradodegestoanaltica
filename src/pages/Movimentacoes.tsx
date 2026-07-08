@@ -296,7 +296,7 @@ export default function Movimentacoes() {
         "Contrato": m.empresas?.codigo_contrato ?? "",
         "CNPJ": m.empresas?.cnpj ?? "",
         "Empresa": m.empresas?.nome ?? "",
-        "Resp. Contrato": m.empresas?.responsavel_contrato ?? "",
+        "Resp. Contrato": respContratoOf(m.empresas),
         "TIPO DE MOVIMENTAÇÃO": tipo,
         "PERÍODO DE MOVIMENTAÇÃO": formatPeriodoEmpresa(m.empresas as any),
         "Envio Empresa": m.data_envio_empresa ?? "",
