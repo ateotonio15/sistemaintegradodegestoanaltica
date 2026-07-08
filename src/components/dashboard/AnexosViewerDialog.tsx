@@ -464,6 +464,16 @@ export function AnexosViewerDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {pdfAnterior && (
+          <div className="flex items-center gap-2 rounded-md border border-info/30 bg-info/5 px-3 py-2 text-xs text-info-foreground/90">
+            <FileText className="h-3.5 w-3.5 text-info shrink-0" />
+            <span className="min-w-0">
+              PDF da competência anterior ({mesAnterior}) anexado em{" "}
+              <strong>{formatDateTime(pdfAnterior.created_at)}</strong>
+            </span>
+          </div>
+        )}
+
         <div className="max-h-[420px] overflow-y-auto">
           {isLoading ? (
             <p className="text-sm text-muted-foreground py-8 text-center">Carregando...</p>
