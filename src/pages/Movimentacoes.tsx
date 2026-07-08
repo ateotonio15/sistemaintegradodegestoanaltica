@@ -454,6 +454,7 @@ export default function Movimentacoes() {
             >
               <RefreshCw className="mr-2 h-4 w-4" />Atualizar
             </Button>
+            <VerificacaoDadosDialog movimentacoes={movimentacoes as any} />
             <Button variant="outline" onClick={handleExportExcel} className="rounded-lg">
               <Download className="mr-2 h-4 w-4" />Exportar Excel
             </Button>
