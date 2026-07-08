@@ -41,6 +41,7 @@ export default function UberCorridas() {
 
   const empresas = useMemo(() => Array.from(new Set(corridas.map((c) => c.empresa).filter(Boolean))).sort() as string[], [corridas]);
   const colaboradores = useMemo(() => Array.from(new Set(corridas.map((c) => c.colaborador).filter(Boolean))).sort() as string[], [corridas]);
+  const responsaveis = useMemo(() => Array.from(new Set(corridas.map((c) => c.responsavel).filter(Boolean))).sort() as string[], [corridas]);
 
   const filtered = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
