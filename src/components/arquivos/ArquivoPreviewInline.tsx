@@ -296,7 +296,32 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
         context.fillRect(0, 0, viewport.width, viewport.height);
         renderTask = page.render({ canvas, canvasContext: context, viewport, background: "hsl(0 0% 100%)" });
         await renderTask.promise;
-      } catch (err: any) {
+
+        // Text layer para permitir seleção/cópia de texto
+        const textLayerDiv = textLayerRef.current;
+        if (textLayerDiv && !cancelled) {
+          textLayerDiv.innerHTML = "";
+          textLayerDiv.style.width = `${Math.floor(viewport.width)}px`;
+          textLayerDiv.style.height = `${Math.floor(viewport.height)}px`;
+          textLayerDiv.style.setProperty("--scale-factor", String(viewport.scale));
+          try {
+            const textContentSource = await page.getTextContent();
+            if (cancelled) return;
+            const TextLayerCtor: any = (pdfjsLib as any).TextLayer;
+            if (TextLayerCtor) {
+              const tl = new TextLayerCtor({ textContentSource, container: textLayerDiv, viewport });
+              await tl.render();
+            } else if ((pdfjsLib as any).renderTextLayer) {
+              await (pdfjsLib as any).renderTextLayer({
+                textContentSource,
+                container: textLayerDiv,
+                viewport,
+              }).promise;
+            }
+          } catch {
+            /* seleção de texto é opcional — falhas não devem quebrar a prévia */
+          }
+        }
         if (!cancelled && err?.name !== "RenderingCancelledException") {
           setError(err?.message ?? "Erro ao renderizar PDF");
         }
