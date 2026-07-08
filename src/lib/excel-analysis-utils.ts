@@ -979,14 +979,42 @@ function parseCoparticipacaoRows(
     });
   };
 
-  if (anchorEhLeaf) {
+  // Detecta se existem linhas PJ APÓS a âncora, na mesma coluna (Formato A —
+  // âncora é título, mesmo que traga totais agregados).
+  let temPjAposAncora = false;
+  for (let j = anchorRow + 1; j < rows.length; j++) {
+    const rr = rows[j] || [];
+    const label = cellToText(rr[anchorCol]).trim();
+    const norml = norm(label);
+    if (!label) continue;
+    if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
+    if (norml.includes("copartic")) continue;
+    if (/^\s*pj\s*[-–—:]/i.test(label)) {
+      temPjAposAncora = true;
+      break;
+    }
+  }
+
+  if (temPjAposAncora) {
+    // Formato A: âncora é título; filhos vêm nas linhas seguintes (PJ - ...).
+    for (let j = anchorRow + 1; j < rows.length; j++) {
+      const rr = rows[j] || [];
+      const label = cellToText(rr[anchorCol]).trim();
+      const norml = norm(label);
+      if (!label) continue;
+      if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
+      if (norml.includes("copartic")) continue;
+      const qtd = Math.round(toNumber(rr[qtdCol]));
+      const val = toNumber(rr[valCol]);
+      pushItem(label, qtd, val);
+    }
+  } else if (anchorEhLeaf) {
     // Formato B: "Coparticipação - Empresarial" é linha-filha.
     // Cada linha PJ acima (na mesma coluna) tem a próxima linha "Coparticipação".
     for (let i = 0; i < rows.length; i++) {
       const rr = rows[i] || [];
       const label = cellToText(rr[anchorCol]).trim();
       if (!/^\s*pj\s*[-–—:]/i.test(label)) continue;
-      // Confere se a próxima linha não vazia é "Coparticipação - Empresarial"
       let j = i + 1;
       while (j < rows.length) {
         const nx = cellToText((rows[j] || [])[anchorCol]).trim();
@@ -999,12 +1027,11 @@ function parseCoparticipacaoRows(
       const val = toNumber(rr[valCol]);
       pushItem(label, qtd, val);
     }
-    // Fallback: se nenhum PJ pai foi identificado, registra a própria âncora.
     if (items.length === 0) {
       pushItem("Coparticipação", anchorQtd, anchorVal);
     }
   } else {
-    // Formato A (original): âncora é título; filhos vêm nas linhas seguintes.
+    // Formato A puro (âncora sem totais).
     for (let j = anchorRow + 1; j < rows.length; j++) {
       const rr = rows[j] || [];
       const label = cellToText(rr[anchorCol]).trim();
@@ -1020,6 +1047,7 @@ function parseCoparticipacaoRows(
 
   return items;
 }
+
 
 
 /**
