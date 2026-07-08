@@ -30,6 +30,9 @@ export default function UberCorridas() {
   const [empresa, setEmpresa] = useState<string>("all");
   const [colaborador, setColaborador] = useState<string>("all");
   const [periodo, setPeriodo] = useState<string>("30");
+  const [dataInicio, setDataInicio] = useState<string>("");
+  const [dataFim, setDataFim] = useState<string>("");
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [edit, setEdit] = useState<UberCorrida | null>(null);
