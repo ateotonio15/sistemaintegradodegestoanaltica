@@ -115,6 +115,45 @@ export default function Demandas() {
     return (d.executiva || "").trim().toLowerCase() === profileName && profileName.length > 0;
   };
 
+  // Unifica variações do mesmo nome (ex.: "Ana Beatriz" e "Ana Beatriz dos Santos Nogueira").
+  // Se os tokens de um nome estão contidos em outro, agrupa e usa o mais longo como canônico.
+  const executivaCanonicalMap = useMemo(() => {
+    const norm = (s: string) =>
+      s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .split(/\s+/)
+        .filter((t) => t.length > 2 && !["dos", "das", "de", "da", "do"].includes(t));
+    const raw = Array.from(new Set(demandas.map((d) => (d.executiva || "").trim()).filter(Boolean)));
+    const tokens = raw.map((n) => ({ n, t: new Set(norm(n)) }));
+    tokens.sort((a, b) => b.t.size - a.t.size); // mais longo primeiro
+    const map: Record<string, string> = {};
+    const canonicos: string[] = [];
+    for (const { n, t } of tokens) {
+      let matched: string | null = null;
+      for (const c of canonicos) {
+        const ct = new Set(norm(c));
+        // subset em qualquer direção (compartilham pelo menos 2 tokens em comum)
+        const inter = [...t].filter((x) => ct.has(x));
+        const subset = inter.length >= Math.min(t.size, ct.size) && inter.length >= 2;
+        if (subset) {
+          matched = c;
+          break;
+        }
+      }
+      if (matched) map[n] = matched;
+      else {
+        canonicos.push(n);
+        map[n] = n;
+      }
+    }
+    return map;
+  }, [demandas]);
+
+  const canonicalExecutiva = (nome: string | null | undefined) =>
+    executivaCanonicalMap[(nome || "").trim()] || (nome || "").trim();
+
   const opts = useMemo(() => {
     const setSet = new Set<string>();
     const empSet = new Set<string>();
@@ -122,14 +161,14 @@ export default function Demandas() {
     demandas.forEach((d) => {
       if (d.empresa) empSet.add(d.empresa);
       if (d.setor_responsavel) setSet.add(d.setor_responsavel);
-      if (d.executiva) exeSet.add(d.executiva);
+      if (d.executiva) exeSet.add(canonicalExecutiva(d.executiva));
     });
     return {
       empresas: Array.from(empSet).sort(),
       setores: Array.from(setSet).sort(),
       executivas: Array.from(exeSet).sort(),
     };
-  }, [demandas]);
+  }, [demandas, executivaCanonicalMap]);
 
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -138,7 +177,7 @@ export default function Demandas() {
       if (dataFim && d.data_reclamacao > dataFim) return false;
       if (empresa !== "__all__" && d.empresa !== empresa) return false;
       if (setor !== "__all__" && d.setor_responsavel !== setor) return false;
-      if (executiva !== "__all__" && d.executiva !== executiva) return false;
+      if (executiva !== "__all__" && canonicalExecutiva(d.executiva) !== executiva) return false;
       if (status !== "todos") {
         const st = getStatus(d);
         if (status === "em_aberto" && st !== "Pendente") return false;
