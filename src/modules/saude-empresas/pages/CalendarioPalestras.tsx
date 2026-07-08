@@ -66,7 +66,7 @@ export default function CalendarioPalestras() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("profiles").select("display_name").eq("user_id", user!.id).maybeSingle();
-      return data as { display_name: string | null; username: string | null } | null;
+      return data as { display_name: string | null } | null;
     },
   });
 
