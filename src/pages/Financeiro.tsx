@@ -701,7 +701,12 @@ export default function Financeiro() {
     const limparDispensa: string[] = [];
     allRows.forEach((r) => {
       if (r.faturamento_iniciado_por !== user.id) return;
-      const ativo = r.status === "Em faturamento" || r.status === "Faturado";
+      // Enquanto o faturamento foi iniciado por este usuário e a nota ainda
+      // não foi enviada ao cliente, o chip de acompanhamento deve existir —
+      // independente do status derivado (Faturado, Nota emitida, Aguardando
+      // validação). Antes filtrávamos só "Em faturamento"/"Faturado", o que
+      // fazia o chip sumir após anexar o PDF (status vira "Nota emitida").
+      const ativo = !!r.faturamento_iniciado_em && r.status !== "Enviada";
       if (!ativo) return;
       const rowMes = r.mes_referencia || mes;
       // Se o chip está oculto persistido nesta competência, NÃO reativa.
