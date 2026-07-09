@@ -437,6 +437,12 @@ export default function CalendarioPalestras() {
         canEdit={canEdit && !isReadOnly}
         userNome={profile?.display_name ?? null}
       />
+
+      <RelatorioMensalDialog
+        open={relatorioOpen}
+        onOpenChange={setRelatorioOpen}
+        defaultDate={cursor}
+      />
     </div>
   );
 }
