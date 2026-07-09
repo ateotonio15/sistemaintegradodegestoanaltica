@@ -1119,8 +1119,9 @@ function parseCoparticipacaoResumoPorCnpj(
       const rr = rows[j] || [];
       const lblJ = cellToText(rr[idxLabel]).trim();
       const lblJNorm = norm(lblJ);
+      const lblJSemSep = lblJNorm.replace(/[^a-z0-9]/g, "");
       // Nova âncora ou próximo bloco de CNPJ → para
-      if ((lblJNorm.includes("copartic") || lblJNorm.includes("co partic")) && j > i + 1) break;
+      if (lblJSemSep.includes("coparticipacao") && j > i + 1) break;
       if (reCnpj.test(lblJ)) break;
       // Verifica se qualquer célula é "total"
       let temTotal = false;
