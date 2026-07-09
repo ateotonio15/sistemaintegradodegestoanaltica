@@ -251,27 +251,21 @@ export function DashboardFinanceiro() {
     [exclusoes],
   );
 
-  const foraPrazoTudo = useMemo(() => {
+  const foraPrazoTudo = useMemo<ForaPrazoItem[]>(() => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    const result: Array<{
-      empresa_id: string;
-      empresa_nome: string;
-      periodo: string;
-      data_limite: Date;
-      dias_atraso: number;
-    }> = [];
+    const result: ForaPrazoItem[] = [];
 
     for (const emp of ativasNaoSuspensas as any[]) {
       const periodo = emp.periodo_movimentacao as string | null;
       if (!periodo || !PERIODO_FIM[periodo]) continue;
-      const limite = getDataLimitePeriodo(mesAtual, periodo);
+      const limite = getDataLimitePeriodo(competenciaSel, periodo);
       if (!limite) continue;
       if (hoje.getTime() <= limite.getTime()) continue; // ainda dentro do prazo
 
       // mov correspondente nesta competência
       const mov = (movs as any[]).find(
-        (m) => m.empresa_id === emp.id && m.mes_referencia === mesAtual && m.periodo === periodo,
+        (m) => m.empresa_id === emp.id && m.mes_referencia === competenciaSel && m.periodo === periodo,
       );
       const anexosMov = mov ? anexosPorMov.get(mov.id) ?? [] : [];
       const status = mov
@@ -288,10 +282,13 @@ export function DashboardFinanceiro() {
         periodo,
         data_limite: limite,
         dias_atraso: diff,
+        responsavel_user_id: emp.responsavel_user_id ?? null,
+        mov_id: mov?.id ?? null,
       });
     }
     return result.sort((a, b) => b.dias_atraso - a.dias_atraso);
-  }, [ativasNaoSuspensas, movs, anexosPorMov, exclusoesSet, mesAtual]);
+  }, [ativasNaoSuspensas, movs, anexosPorMov, exclusoesSet, competenciaSel]);
+
 
   const foraPrazoFiltrado = useMemo(() => {
     if (foraPrazoFiltro === "todos") return foraPrazoTudo;
