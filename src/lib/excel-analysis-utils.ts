@@ -1078,30 +1078,36 @@ function parseCoparticipacaoResumoPorCnpj(
     if (!lblNorm) continue;
     // Aceita "coparticipação", "co-participação", "co participação"…
     // Ignora quando é o pivot "Coparticipação - Empresarial" (parser antigo cuida).
+    const lblSemSep = lblNorm.replace(/[^a-z0-9]/g, "");
     const isAnchor =
-      (lblNorm.includes("copartic") || lblNorm.includes("co partic")) &&
+      lblSemSep.includes("coparticipacao") &&
       !lblNorm.includes("empresarial") &&
       !/^\s*pj\s*[-–—:]/i.test(lbl);
     if (!isAnchor) continue;
 
     // Localiza a empresa do CNPJ imediatamente acima da âncora.
     let empresaNome = "";
+    const cleanupNome = (s: string) => s
+      .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*/gi, "")
+      .trim()
+      .replace(/^[-–—:]\s*/, "")
+      .replace(/[-–—:]\s*$/, "")
+      .trim();
     for (let k = i - 1; k >= 0 && !empresaNome; k--) {
       const rk = rows[k] || [];
       for (const cell of rk) {
         const txt = cellToText(cell);
         const m = txt.match(reCnpj);
         if (m) {
-          empresaNome = txt.slice(0, m.index)
-            .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*$/i, "")
-            .trim()
-            .replace(/[-–—:]\s*$/, "")
-            .trim();
+          let n = cleanupNome(txt.slice(0, m.index));
+          if (!n) n = cleanupNome(txt.slice((m.index ?? 0) + m[1].length));
+          empresaNome = n;
           break;
         }
       }
     }
     if (!empresaNome) continue;
+
 
     // Varre até 25 linhas abaixo procurando:
     // - linhas de plano com valor → soma
