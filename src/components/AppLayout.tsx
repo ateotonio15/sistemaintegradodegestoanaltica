@@ -652,7 +652,87 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                     )}
                   </div>
                   <div className="max-h-96 overflow-y-auto">
-                    {pendingNotifs.length === 0 ? (
+                    {pendingSaude.map((n) => {
+                      const statusColor =
+                        n.status_notif === "cancelado" ? "text-rose-500"
+                        : n.status_notif === "atualizado" ? "text-amber-500"
+                        : "text-emerald-500";
+                      const statusBg =
+                        n.status_notif === "cancelado" ? "bg-rose-500/10"
+                        : n.status_notif === "atualizado" ? "bg-amber-500/10"
+                        : "bg-emerald-500/10";
+                      const target = n.event_source === "palestra"
+                        ? "/saude-empresas/palestras"
+                        : "/saude-empresas/preventivas";
+                      const horario = n.hora_inicio
+                        ? `${n.hora_inicio.slice(0,5)}${n.hora_fim ? " às " + n.hora_fim.slice(0,5) : ""}`
+                        : null;
+                      return (
+                        <div
+                          key={n.id}
+                          className="p-3.5 border-b last:border-0 hover:bg-accent/50 transition-colors cursor-pointer"
+                          onClick={() => { markSaudeAsRead(n.id); navigate(target); }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5", statusBg)}>
+                              {n.event_source === "palestra"
+                                ? <Mic className={cn("h-4 w-4", statusColor)} />
+                                : <HeartPulse className={cn("h-4 w-4", statusColor)} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={cn("text-xs font-semibold mb-1", statusColor)}>{n.titulo}</p>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                                  <span className="font-medium truncate">{n.nome_empresa}</span>
+                                </div>
+                                {n.tema && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <FileText className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">Tema: {n.tema}</span>
+                                  </div>
+                                )}
+                                {n.data_evento && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Calendar className="h-3 w-3 shrink-0" />
+                                    <span>{formatDateBR(n.data_evento)}{horario ? ` · ${horario}` : ""}</span>
+                                  </div>
+                                )}
+                                {n.local && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Building className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">{n.local}</span>
+                                  </div>
+                                )}
+                                {n.executiva && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <User className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">Executiva: {n.executiva}</span>
+                                  </div>
+                                )}
+                                {n.motivo_cancelamento && (
+                                  <div className="flex items-center gap-1.5 text-xs text-rose-500">
+                                    <MessageSquareWarning className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">Motivo: {n.motivo_cancelamento}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mt-1.5">
+                                {format(new Date(n.created_at), "dd/MM/yyyy HH:mm")}
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); markSaudeAsRead(n.id); }}
+                              className="shrink-0 p-1.5 rounded-lg hover:bg-primary/10 transition-colors"
+                              title="Confirmar ciência"
+                            >
+                              <Check className="h-4 w-4 text-primary" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {pendingNotifs.length === 0 && pendingSaude.length === 0 ? (
                       <div className="p-8 text-center text-sm text-muted-foreground">
                         Nenhuma notificação pendente ✅
                       </div>
