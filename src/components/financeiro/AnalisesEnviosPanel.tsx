@@ -29,6 +29,8 @@ import { getCurrentMesReferencia, formatMesReferencia, PERIODOS_FIN } from "@/li
 type StatusEnvio =
   | "Concluído"
   | "Nota pendente"
+  | "Financeiro atrasado"
+  | "Financeiro crítico"
   | "Anexo em atraso"
   | "Sem anexo"
   | "Sem movimentação";
