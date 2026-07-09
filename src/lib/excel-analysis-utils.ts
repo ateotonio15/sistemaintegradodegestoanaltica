@@ -1410,7 +1410,11 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   }
 
   // ----- Coparticipação — Empresarial (pivot da aba RESUMO) -----
-  const coparticipItems = parseCoparticipacaoRows(rows);
+  let coparticipItems = parseCoparticipacaoRows(rows);
+  // Fallback SECULUS: bloco "CO-PARTICIPAÇÃO MMM/AA" logo abaixo de cada CNPJ.
+  if (coparticipItems.length === 0) {
+    coparticipItems = parseCoparticipacaoResumoPorCnpj(rows, idxLabel, idxValor);
+  }
 
   // Distribui itens de coparticipação nos blocos por match de nome. Fallback:
   // se houver apenas um bloco, tudo vai para ele.
