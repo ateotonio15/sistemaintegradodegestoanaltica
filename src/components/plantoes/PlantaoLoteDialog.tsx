@@ -63,10 +63,8 @@ export function PlantaoLoteDialog({ open, onOpenChange }: { open: boolean; onOpe
     if (!emp) return;
     setSaving(true);
     try {
-      // Ensure a plantoes_empresas row exists mirroring the selected empresa
-      const { error: upErr } = await sb
-        .from("plantoes_empresas")
-        .upsert({ id: emp.id, nome: emp.nome, ativo: true }, { onConflict: "id" });
+      // Ensure a plantoes_empresas row exists mirroring the selected empresa (bypasses RLS via SECURITY DEFINER)
+      const { error: upErr } = await sb.rpc("ensure_plantao_empresa", { _id: emp.id, _nome: emp.nome });
       if (upErr) throw upErr;
 
       const payload = {
