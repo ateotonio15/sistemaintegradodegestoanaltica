@@ -1257,12 +1257,17 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     const m = labelRaw.match(reCnpj);
     if (m) {
       const cnpj = normalizarCnpj(m[1]);
-      const nome = labelRaw
-        .slice(0, m.index)
-        .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*$/i, "")
+      const cleanupNome = (s: string) => s
+        .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*/gi, "")
         .trim()
+        .replace(/^[-–—:]\s*/, "")
         .replace(/[-–—:]\s*$/, "")
         .trim();
+      let nome = cleanupNome(labelRaw.slice(0, m.index));
+      if (!nome) {
+        // Formato SECULUS: "CNPJ: XX.XXX.XXX/XXXX-XX SECULUS (FÁBRICA)"
+        nome = cleanupNome(labelRaw.slice((m.index ?? 0) + m[1].length));
+      }
       cur = {
         cnpj, nome: nome || "Sem nome",
         enfValores: [], enfQtd: 0, enfMens: 0,
@@ -1276,8 +1281,10 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       };
 
       blocos.push(cur);
+      inCoparticBlock = false;
       continue;
     }
+
 
     if (!cur) continue;
 
