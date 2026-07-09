@@ -148,11 +148,12 @@ export function DashboardFinanceiro() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id, mime_type, nome_arquivo");
+        .select("id, financeiro_movimentacao_id, mime_type, nome_arquivo, created_at, uploaded_by, origem");
       if (error) throw error;
       return data ?? [];
     },
   });
+
 
   const { data: cobrancas = [] } = useQuery<CobrancaRow[]>({
     queryKey: ["fin-dash-cobrancas"],
