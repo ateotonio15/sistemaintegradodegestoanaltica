@@ -606,16 +606,20 @@ function TimelineDialog({ alvo, onClose }: { alvo: AnaliseRow | null; onClose: (
 }
 
 function MetricBox({
-  label, value, hint, bad, good,
-}: { label: string; value: string; hint: string; bad?: boolean; good?: boolean }) {
+  label, value, hint, bad, warn, good,
+}: { label: string; value: string; hint: string; bad?: boolean; warn?: boolean; good?: boolean }) {
   return (
     <div className={cn(
       "rounded-lg border p-3",
       bad ? "border-destructive/30 bg-destructive/5" :
+      warn ? "border-amber-500/30 bg-amber-500/5" :
       good ? "border-success/30 bg-success/5" : "bg-muted/30",
     )}>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn("text-lg font-bold", bad ? "text-destructive" : good ? "text-success" : "text-foreground")}>
+      <p className={cn("text-lg font-bold",
+        bad ? "text-destructive" :
+        warn ? "text-amber-600" :
+        good ? "text-success" : "text-foreground")}>
         {value}
       </p>
       <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>
