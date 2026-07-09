@@ -1230,6 +1230,11 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   const blocos: Acc[] = [];
   let cur: Acc | null = null;
   let breakIdx = rows.length;
+  // Formato SECULUS: dentro do bloco "CO-PARTICIPAÇÃO MMM/AA" as mesmas
+  // linhas de plano aparecem novamente com apenas o valor. Não devem
+  // duplicar em enfermaria/apartamento — a coparticipação é somada à parte
+  // pelo `parseCoparticipacaoResumoPorCnpj`.
+  let inCoparticBlock = false;
 
 
   for (let i = headerIdx + 1; i < rows.length; i++) {
@@ -1245,14 +1250,28 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       labelNorm.startsWith("contrato ")
     ) { breakIdx = i; break; }
 
+    // Entra em "CO-PARTICIPAÇÃO ..." → ignora linhas até o próximo TOTAL/CNPJ.
+    if (
+      (labelNorm.includes("copartic") || labelNorm.includes("co partic")) &&
+      !labelNorm.includes("empresarial") &&
+      !/^\s*pj\s*[-–—:]/i.test(labelRaw)
+    ) {
+      inCoparticBlock = true;
+      continue;
+    }
+
     // Pula linhas de subtotal/total de bloco (ex.: "TOTAL ENFERMARIA", "SUBTOTAL APARTAMENTO",
     // "TOTAL EMPRESA", "TOTAL CONTRATO"), que repetiriam valores já contabilizados nos módulos.
     if (
       /^sub[\s-]*total\b/.test(labelNorm) ||
       (/^total\b/.test(labelNorm) && !labelNorm.startsWith("total geral"))
     ) {
+      inCoparticBlock = false;
       continue;
     }
+
+    if (inCoparticBlock) continue;
+
 
     const m = labelRaw.match(reCnpj);
     if (m) {
