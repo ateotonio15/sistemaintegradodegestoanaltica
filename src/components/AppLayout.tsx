@@ -71,6 +71,27 @@ interface Notificacao {
   created_at: string;
 }
 
+interface NotifSaude {
+  id: string;
+  event_source: string;
+  event_id: string;
+  event_type: string;
+  status_notif: "novo" | "atualizado" | "cancelado";
+  nome_empresa: string;
+  data_evento: string | null;
+  hora_inicio: string | null;
+  hora_fim: string | null;
+  local: string | null;
+  tema: string | null;
+  campanha: string | null;
+  responsavel: string | null;
+  executiva: string | null;
+  motivo_cancelamento: string | null;
+  titulo: string;
+  mensagem: string | null;
+  created_at: string;
+}
+
 function formatDateBR(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   try {
