@@ -484,7 +484,7 @@ export function DashboardFinanceiro() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remover empresa do painel?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{removerAlvo?.empresa_nome}</strong> ({removerAlvo?.periodo}) deixará de aparecer em "Empresas fora do prazo" para a competência {formatMesReferencia(mesAtual)}. Essa exceção fica registrada apenas para este mês.
+              <strong>{removerAlvo?.empresa_nome}</strong> ({removerAlvo?.periodo}) deixará de aparecer em "Empresas fora do prazo" para a competência {formatMesReferencia(competenciaSel)}. Essa exceção fica registrada apenas para este mês.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -500,9 +500,26 @@ export function DashboardFinanceiro() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Análise de tempos por empresa */}
+      <AnaliseTemposDialog
+        alvo={analiseAlvo}
+        competencia={competenciaSel}
+        onClose={() => setAnaliseAlvo(null)}
+      />
+
+      {/* Cobrança por e-mail */}
+      <CobrancaEmailDialog
+        open={cobrancaOpen}
+        onOpenChange={setCobrancaOpen}
+        itens={foraPrazoFiltrado}
+        empresas={empresas as any[]}
+        competencia={competenciaSel}
+      />
     </div>
   );
 }
+
 
 function KpiCard({ label, value, icon: Icon, accent, bg }: { label: string; value: number; icon: any; accent: string; bg: string }) {
   return (
