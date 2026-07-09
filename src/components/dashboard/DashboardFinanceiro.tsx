@@ -378,23 +378,46 @@ export function DashboardFinanceiro() {
                 Empresas fora do prazo
                 <Badge variant="destructive" className="ml-1">{foraPrazoFiltrado.length}</Badge>
               </CardTitle>
-              <Select value={foraPrazoFiltro} onValueChange={setForaPrazoFiltro}>
-                <SelectTrigger className="h-8 w-[140px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os períodos</SelectItem>
-                  {PERIODOS_FIN.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p} {totalPorPeriodo[p] ? `(${totalPorPeriodo[p]})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Select value={competenciaSel} onValueChange={setCompetenciaSel}>
+                  <SelectTrigger className="h-8 w-[150px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {competenciasOptions.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {formatMesReferencia(c)} {c === mesAtual ? "(atual)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={foraPrazoFiltro} onValueChange={setForaPrazoFiltro}>
+                  <SelectTrigger className="h-8 w-[140px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os períodos</SelectItem>
+                    {PERIODOS_FIN.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p} {totalPorPeriodo[p] ? `(${totalPorPeriodo[p]})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8"
+                  onClick={() => setCobrancaOpen(true)}
+                  disabled={foraPrazoFiltrado.length === 0}
+                >
+                  <Mail className="h-3.5 w-3.5 mr-1" /> Cobrança por e-mail
+                </Button>
+              </div>
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Competência {formatMesReferencia(mesAtual)}
+                <Clock className="h-3 w-3" /> Competência {formatMesReferencia(competenciaSel)}
               </span>
               <span>·</span>
               <span>
@@ -416,12 +439,21 @@ export function DashboardFinanceiro() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold truncate text-foreground">{e.empresa_nome}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      Período {e.periodo} · Limite {formatDateBR(e.data_limite.toISOString().slice(0, 10))} · {formatMesReferencia(mesAtual)}
+                      Período {e.periodo} · Limite {formatDateBR(e.data_limite.toISOString().slice(0, 10))} · {formatMesReferencia(competenciaSel)}
                     </p>
                   </div>
                   <Badge variant="destructive" className="shrink-0">
                     {e.dias_atraso} {e.dias_atraso === 1 ? "dia" : "dias"}
                   </Badge>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary"
+                    onClick={() => setAnaliseAlvo(e)}
+                    title="Ver análise de tempos"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -437,6 +469,7 @@ export function DashboardFinanceiro() {
           </CardContent>
         </Card>
       </div>
+
 
 
       {/* Contratos recém implantados aguardando primeiro fechamento */}
