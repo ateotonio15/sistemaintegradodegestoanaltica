@@ -156,7 +156,13 @@ export function AnalisesEnviosPanel() {
         const mov = movMap.get(`${emp.id}__${comp}__${periodo}`);
         const anexosMov = mov ? (anexosPorMov.get(mov.id) ?? []) : [];
         const diaEmissao = mov?.dia_emissao ?? null;
-        const deadlineCadastro = diaEmissao
+        // Regra especial: movimentações de fim de mês (período 25-30) ou
+        // emissão no dia 01 só têm nota emitida no 1º dia útil do mês seguinte.
+        // Assim, o prazo do Cadastro é estendido para o dia 02 do mês seguinte.
+        const emissaoNoMesSeguinte = periodo === "25-30" || diaEmissao === 1;
+        const deadlineCadastro = emissaoNoMesSeguinte
+          ? new Date(y, mo, 2, 23, 59, 59)
+          : diaEmissao
           ? new Date(y, mo - 1, diaEmissao, 23, 59, 59)
           : new Date(y, mo - 1, fim + 2, 23, 59, 59);
         const primeiroAnexo = anexosMov[0]?.created_at ? new Date(anexosMov[0].created_at) : null;
