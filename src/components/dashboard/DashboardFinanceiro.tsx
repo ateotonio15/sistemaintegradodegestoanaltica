@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -12,14 +12,6 @@ import {
   Building2,
   CalendarClock,
   AlertTriangle,
-  Wallet,
-  Clock,
-  X,
-  TimerOff,
-  BarChart3,
-  Mail,
-  Copy,
-  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/date-utils";
@@ -27,31 +19,20 @@ import { FaturamentosEnviadoFinanceiro } from "./FaturamentosEnviadoFinanceiro";
 import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroativosParaCobrar";
-
-
 import { ImplantacoesAguardandoFechamentoCard } from "./ImplantacoesAguardandoFechamentoCard";
-import { calcularStatusFinanceiro, getCurrentMesReferencia, formatMesReferencia, PERIODOS_FIN } from "@/lib/financeiro-utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
+import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
+
+interface CobrancaRow {
+  id: string;
+  motivo: string;
+  data: string;
+  observacao: string | null;
+  status: string;
+  financeiro_movimentacao_id: string;
+  empresa_id: string;
+  empresa_nome: string;
+}
+
 
 interface CobrancaRow {
   id: string;
