@@ -534,6 +534,19 @@ function TimelineDialog({ alvo, onClose }: { alvo: AnaliseRow | null; onClose: (
                 hint={
                   alvo.envioNota
                     ? `Nota enviada em ${formatDateBR(alvo.envioNota.toISOString().slice(0, 10))}`
+                    : alvo.primeiroAnexo
+                    ? "Contando desde o 1º anexo (limite: 2 dias)"
+                    : "Aguardando envio"
+                }
+                bad={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro >= 5}
+                warn={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro >= 3 && alvo.tempoFinanceiro < 5}
+                good={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro <= 2}
+              />
+                    : `${alvo.tempoFinanceiro} dia(s)`
+                }
+                hint={
+                  alvo.envioNota
+                    ? `Nota enviada em ${formatDateBR(alvo.envioNota.toISOString().slice(0, 10))}`
                     : "Aguardando envio"
                 }
                 bad={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro > 2}
