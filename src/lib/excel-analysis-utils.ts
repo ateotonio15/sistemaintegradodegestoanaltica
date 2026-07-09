@@ -1251,14 +1251,16 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     ) { breakIdx = i; break; }
 
     // Entra em "CO-PARTICIPAÇÃO ..." → ignora linhas até o próximo TOTAL/CNPJ.
+    const labelSemSep = labelNorm.replace(/[^a-z0-9]/g, "");
     if (
-      (labelNorm.includes("copartic") || labelNorm.includes("co partic")) &&
+      labelSemSep.includes("coparticipacao") &&
       !labelNorm.includes("empresarial") &&
       !/^\s*pj\s*[-–—:]/i.test(labelRaw)
     ) {
       inCoparticBlock = true;
       continue;
     }
+
 
     // Pula linhas de subtotal/total de bloco (ex.: "TOTAL ENFERMARIA", "SUBTOTAL APARTAMENTO",
     // "TOTAL EMPRESA", "TOTAL CONTRATO"), que repetiriam valores já contabilizados nos módulos.
