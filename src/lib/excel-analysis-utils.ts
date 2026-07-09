@@ -1048,6 +1048,110 @@ function parseCoparticipacaoRows(
   return items;
 }
 
+/**
+ * Fallback para RESUMO no formato SECULUS:
+ *   CNPJ: XX.XXX.XXX/XXXX-XX EMPRESA (FILIAL)
+ *   plano | qtd | mensalidade | total
+ *   ...
+ *   TOTAL (subtotal mensalidade)
+ *   CO-PARTICIPAÇÃO MMM/AA        ← anchor sem "empresarial"
+ *   plano |     |            | valor
+ *   ...
+ *   TOTAL (subtotal coparticipação)
+ *
+ * Emite um item por bloco de CNPJ com nome = nome da empresa do CNPJ acima,
+ * quantidade = 0 e total = soma dos planos (ou valor da linha TOTAL).
+ */
+function parseCoparticipacaoResumoPorCnpj(
+  rows: unknown[][],
+  idxLabel: number,
+  idxValor: number,
+): { nome: string; quantidade: number; total: number }[] {
+  const items: { nome: string; quantidade: number; total: number }[] = [];
+  if (idxLabel < 0 || idxValor < 0) return items;
+  const reCnpj = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/;
+
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const lbl = cellToText(r[idxLabel]).trim();
+    const lblNorm = norm(lbl);
+    if (!lblNorm) continue;
+    // Aceita "coparticipação", "co-participação", "co participação"…
+    // Ignora quando é o pivot "Coparticipação - Empresarial" (parser antigo cuida).
+    const lblSemSep = lblNorm.replace(/[^a-z0-9]/g, "");
+    const isAnchor =
+      lblSemSep.includes("coparticipacao") &&
+      !lblNorm.includes("empresarial") &&
+      !/^\s*pj\s*[-–—:]/i.test(lbl);
+    if (!isAnchor) continue;
+
+    // Localiza a empresa do CNPJ imediatamente acima da âncora.
+    // Usa padrão estrito (com separadores formatados) para evitar falsos
+    // positivos em valores numéricos de subtotais tipo "58198.064000000006".
+    const reCnpjEstrito = /\b(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})\b/;
+    let empresaNome = "";
+    const cleanupNome = (s: string) => s
+      .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*/gi, "")
+      .trim()
+      .replace(/^[-–—:]\s*/, "")
+      .replace(/[-–—:]\s*$/, "")
+      .trim();
+    for (let k = i - 1; k >= 0 && !empresaNome; k--) {
+      const rk = rows[k] || [];
+      const txt = cellToText(rk[idxLabel]);
+      const m = txt.match(reCnpjEstrito);
+      if (m) {
+        let n = cleanupNome(txt.slice(0, m.index));
+        if (!n) n = cleanupNome(txt.slice((m.index ?? 0) + m[1].length));
+        empresaNome = n;
+      }
+    }
+    if (!empresaNome) continue;
+
+
+
+    // Varre até 25 linhas abaixo procurando:
+    // - linhas de plano com valor → soma
+    // - linha "TOTAL" → usa esse valor (prioritário)
+    // Para se encontrar outra âncora, um novo CNPJ, "Total Geral" ou fim.
+    let somaPlanos = 0;
+    let totalDaLinha = NaN;
+    for (let j = i + 1; j < Math.min(rows.length, i + 25); j++) {
+      const rr = rows[j] || [];
+      const lblJ = cellToText(rr[idxLabel]).trim();
+      const lblJNorm = norm(lblJ);
+      const lblJSemSep = lblJNorm.replace(/[^a-z0-9]/g, "");
+      // Nova âncora ou próximo bloco de CNPJ → para
+      if (lblJSemSep.includes("coparticipacao") && j > i + 1) break;
+      if (reCnpj.test(lblJ)) break;
+      // Verifica se qualquer célula é "total"
+      let temTotal = false;
+      let temTotalGeral = false;
+      for (const c of rr) {
+        const t = norm(c);
+        if (!t) continue;
+        if (t.startsWith("total geral")) { temTotalGeral = true; break; }
+        if (t === "total" || t === "totais") temTotal = true;
+      }
+      if (temTotalGeral) break;
+      const val = toNumber(rr[idxValor]);
+      if (temTotal) {
+        if (!isNaN(val) && val !== 0) totalDaLinha = val;
+        break;
+      }
+      if (lblJNorm && !isNaN(val) && val !== 0) {
+        somaPlanos += val;
+      }
+    }
+    const total = !isNaN(totalDaLinha) ? totalDaLinha : somaPlanos;
+    if (total !== 0) {
+      items.push({ nome: empresaNome, quantidade: 0, total });
+    }
+  }
+  return items;
+}
+
+
 
 
 /**
@@ -1134,6 +1238,11 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   const blocos: Acc[] = [];
   let cur: Acc | null = null;
   let breakIdx = rows.length;
+  // Formato SECULUS: dentro do bloco "CO-PARTICIPAÇÃO MMM/AA" as mesmas
+  // linhas de plano aparecem novamente com apenas o valor. Não devem
+  // duplicar em enfermaria/apartamento — a coparticipação é somada à parte
+  // pelo `parseCoparticipacaoResumoPorCnpj`.
+  let inCoparticBlock = false;
 
 
   for (let i = headerIdx + 1; i < rows.length; i++) {
@@ -1149,24 +1258,47 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       labelNorm.startsWith("contrato ")
     ) { breakIdx = i; break; }
 
+    // Entra em "CO-PARTICIPAÇÃO ..." → ignora linhas até o próximo TOTAL/CNPJ.
+    const labelSemSep = labelNorm.replace(/[^a-z0-9]/g, "");
+    if (
+      labelSemSep.includes("coparticipacao") &&
+      !labelNorm.includes("empresarial") &&
+      !/^\s*pj\s*[-–—:]/i.test(labelRaw)
+    ) {
+      inCoparticBlock = true;
+      continue;
+    }
+
+
     // Pula linhas de subtotal/total de bloco (ex.: "TOTAL ENFERMARIA", "SUBTOTAL APARTAMENTO",
     // "TOTAL EMPRESA", "TOTAL CONTRATO"), que repetiriam valores já contabilizados nos módulos.
     if (
       /^sub[\s-]*total\b/.test(labelNorm) ||
       (/^total\b/.test(labelNorm) && !labelNorm.startsWith("total geral"))
     ) {
+      inCoparticBlock = false;
       continue;
     }
 
+    // CNPJ header sempre finaliza o bloco de coparticipação anterior.
     const m = labelRaw.match(reCnpj);
+    if (m) inCoparticBlock = false;
+
+    if (inCoparticBlock) continue;
+
     if (m) {
       const cnpj = normalizarCnpj(m[1]);
-      const nome = labelRaw
-        .slice(0, m.index)
-        .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*$/i, "")
+      const cleanupNome = (s: string) => s
+        .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*/gi, "")
         .trim()
+        .replace(/^[-–—:]\s*/, "")
         .replace(/[-–—:]\s*$/, "")
         .trim();
+      let nome = cleanupNome(labelRaw.slice(0, m.index));
+      if (!nome) {
+        // Formato SECULUS: "CNPJ: XX.XXX.XXX/XXXX-XX SECULUS (FÁBRICA)"
+        nome = cleanupNome(labelRaw.slice((m.index ?? 0) + m[1].length));
+      }
       cur = {
         cnpj, nome: nome || "Sem nome",
         enfValores: [], enfQtd: 0, enfMens: 0,
@@ -1180,8 +1312,10 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       };
 
       blocos.push(cur);
+      inCoparticBlock = false;
       continue;
     }
+
 
     if (!cur) continue;
 
@@ -1314,7 +1448,11 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   }
 
   // ----- Coparticipação — Empresarial (pivot da aba RESUMO) -----
-  const coparticipItems = parseCoparticipacaoRows(rows);
+  let coparticipItems = parseCoparticipacaoRows(rows);
+  // Fallback SECULUS: bloco "CO-PARTICIPAÇÃO MMM/AA" logo abaixo de cada CNPJ.
+  if (coparticipItems.length === 0) {
+    coparticipItems = parseCoparticipacaoResumoPorCnpj(rows, idxLabel, idxValor);
+  }
 
   // Distribui itens de coparticipação nos blocos por match de nome. Fallback:
   // se houver apenas um bloco, tudo vai para ele.
