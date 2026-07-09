@@ -71,6 +71,27 @@ interface Notificacao {
   created_at: string;
 }
 
+interface NotifSaude {
+  id: string;
+  event_source: string;
+  event_id: string;
+  event_type: string;
+  status_notif: "novo" | "atualizado" | "cancelado";
+  nome_empresa: string;
+  data_evento: string | null;
+  hora_inicio: string | null;
+  hora_fim: string | null;
+  local: string | null;
+  tema: string | null;
+  campanha: string | null;
+  responsavel: string | null;
+  executiva: string | null;
+  motivo_cancelamento: string | null;
+  titulo: string;
+  mensagem: string | null;
+  created_at: string;
+}
+
 function formatDateBR(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   try {
@@ -258,6 +279,70 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     await supabase.from("notificacoes_lidas").insert(rows);
     queryClient.invalidateQueries({ queryKey: ["notificacoes-lidas", user.id] });
   }, [user, pendingNotifs, queryClient]);
+
+  // ============================================================
+  // Notificações de Saúde (Palestras + Ações Preventivas)
+  // Visíveis para enfermeira e admin (Fase 1)
+  // ============================================================
+  const canSeeSaude = !!user && (isEnfermeira || isAdmin);
+
+  const { data: notifSaude = [] } = useQuery({
+    queryKey: ["notificacoes-saude"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notificacoes_saude" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as unknown as NotifSaude[];
+    },
+    enabled: canSeeSaude,
+  });
+
+  const { data: lidasSaudeIds = [] } = useQuery({
+    queryKey: ["notificacoes-saude-lidas", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notificacoes_saude_lidas" as any)
+        .select("notificacao_id")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return (data ?? []).map((d: any) => d.notificacao_id as string);
+    },
+    enabled: canSeeSaude,
+  });
+
+  useEffect(() => {
+    if (!canSeeSaude || !user) return;
+    const channel = supabase
+      .channel("notif-saude-rt-" + user.id)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notificacoes_saude" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["notificacoes-saude"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, canSeeSaude, queryClient]);
+
+  const pendingSaude = useMemo(() => {
+    const lidasSet = new Set(lidasSaudeIds);
+    return notifSaude.filter((n) => !lidasSet.has(n.id)).slice(0, 30);
+  }, [notifSaude, lidasSaudeIds]);
+
+  const markSaudeAsRead = useCallback(async (id: string) => {
+    if (!user) return;
+    await supabase.from("notificacoes_saude_lidas" as any).insert({ notificacao_id: id, user_id: user.id });
+    queryClient.invalidateQueries({ queryKey: ["notificacoes-saude-lidas", user.id] });
+  }, [user, queryClient]);
+
+  const markAllSaudeAsRead = useCallback(async () => {
+    if (!user || pendingSaude.length === 0) return;
+    const rows = pendingSaude.map((n) => ({ notificacao_id: n.id, user_id: user.id }));
+    await supabase.from("notificacoes_saude_lidas" as any).insert(rows);
+    queryClient.invalidateQueries({ queryKey: ["notificacoes-saude-lidas", user.id] });
+  }, [user, pendingSaude, queryClient]);
+
+  const totalPendentes = pendingNotifs.length + pendingSaude.length;
 
   const displayName = profile?.display_name || user?.email || "Usuário";
   const username = profile?.username || "—";
@@ -549,9 +634,9 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                 <PopoverTrigger asChild>
                   <button className="relative p-2.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
                     <Bell className="h-4 w-4" />
-                    {pendingNotifs.length > 0 && (
+                    {totalPendentes > 0 && (
                       <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-scale-in">
-                        {pendingNotifs.length > 9 ? "9+" : pendingNotifs.length}
+                        {totalPendentes > 9 ? "9+" : totalPendentes}
                       </span>
                     )}
                   </button>
@@ -559,15 +644,95 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                 <PopoverContent className="w-96 p-0 rounded-xl shadow-lg" align="end">
                   <div className="p-3.5 border-b flex items-center justify-between">
                     <h4 className="font-semibold text-sm">Notificações</h4>
-                    {pendingNotifs.length > 0 && (
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={markAllAsRead}>
+                    {(pendingNotifs.length > 0 || pendingSaude.length > 0) && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={() => { markAllAsRead(); markAllSaudeAsRead(); }}>
                         <CheckCheck className="h-3.5 w-3.5" />
                         Marcar todas como lidas
                       </Button>
                     )}
                   </div>
                   <div className="max-h-96 overflow-y-auto">
-                    {pendingNotifs.length === 0 ? (
+                    {pendingSaude.map((n) => {
+                      const statusColor =
+                        n.status_notif === "cancelado" ? "text-rose-500"
+                        : n.status_notif === "atualizado" ? "text-amber-500"
+                        : "text-emerald-500";
+                      const statusBg =
+                        n.status_notif === "cancelado" ? "bg-rose-500/10"
+                        : n.status_notif === "atualizado" ? "bg-amber-500/10"
+                        : "bg-emerald-500/10";
+                      const target = n.event_source === "palestra"
+                        ? "/saude-empresas/palestras"
+                        : "/saude-empresas/preventivas";
+                      const horario = n.hora_inicio
+                        ? `${n.hora_inicio.slice(0,5)}${n.hora_fim ? " às " + n.hora_fim.slice(0,5) : ""}`
+                        : null;
+                      return (
+                        <div
+                          key={n.id}
+                          className="p-3.5 border-b last:border-0 hover:bg-accent/50 transition-colors cursor-pointer"
+                          onClick={() => { markSaudeAsRead(n.id); navigate(target); }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5", statusBg)}>
+                              {n.event_source === "palestra"
+                                ? <Mic className={cn("h-4 w-4", statusColor)} />
+                                : <HeartPulse className={cn("h-4 w-4", statusColor)} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={cn("text-xs font-semibold mb-1", statusColor)}>{n.titulo}</p>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                                  <span className="font-medium truncate">{n.nome_empresa}</span>
+                                </div>
+                                {n.tema && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <FileText className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">Tema: {n.tema}</span>
+                                  </div>
+                                )}
+                                {n.data_evento && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Calendar className="h-3 w-3 shrink-0" />
+                                    <span>{formatDateBR(n.data_evento)}{horario ? ` · ${horario}` : ""}</span>
+                                  </div>
+                                )}
+                                {n.local && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Building className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">{n.local}</span>
+                                  </div>
+                                )}
+                                {n.executiva && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <User className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">Executiva: {n.executiva}</span>
+                                  </div>
+                                )}
+                                {n.motivo_cancelamento && (
+                                  <div className="flex items-center gap-1.5 text-xs text-rose-500">
+                                    <MessageSquareWarning className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">Motivo: {n.motivo_cancelamento}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mt-1.5">
+                                {format(new Date(n.created_at), "dd/MM/yyyy HH:mm")}
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); markSaudeAsRead(n.id); }}
+                              className="shrink-0 p-1.5 rounded-lg hover:bg-primary/10 transition-colors"
+                              title="Confirmar ciência"
+                            >
+                              <Check className="h-4 w-4 text-primary" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {pendingNotifs.length === 0 && pendingSaude.length === 0 ? (
                       <div className="p-8 text-center text-sm text-muted-foreground">
                         Nenhuma notificação pendente ✅
                       </div>

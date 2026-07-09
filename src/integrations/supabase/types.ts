@@ -3006,6 +3006,101 @@ export type Database = {
           },
         ]
       }
+      notificacoes_saude: {
+        Row: {
+          campanha: string | null
+          created_at: string
+          data_evento: string | null
+          empresa_id: string | null
+          event_id: string
+          event_source: string
+          event_type: string
+          executiva: string | null
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+          local: string | null
+          mensagem: string | null
+          motivo_cancelamento: string | null
+          nome_empresa: string
+          responsavel: string | null
+          status_notif: string
+          tema: string | null
+          titulo: string
+        }
+        Insert: {
+          campanha?: string | null
+          created_at?: string
+          data_evento?: string | null
+          empresa_id?: string | null
+          event_id: string
+          event_source: string
+          event_type: string
+          executiva?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          local?: string | null
+          mensagem?: string | null
+          motivo_cancelamento?: string | null
+          nome_empresa: string
+          responsavel?: string | null
+          status_notif: string
+          tema?: string | null
+          titulo: string
+        }
+        Update: {
+          campanha?: string | null
+          created_at?: string
+          data_evento?: string | null
+          empresa_id?: string | null
+          event_id?: string
+          event_source?: string
+          event_type?: string
+          executiva?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          local?: string | null
+          mensagem?: string | null
+          motivo_cancelamento?: string | null
+          nome_empresa?: string
+          responsavel?: string | null
+          status_notif?: string
+          tema?: string | null
+          titulo?: string
+        }
+        Relationships: []
+      }
+      notificacoes_saude_lidas: {
+        Row: {
+          created_at: string
+          id: string
+          notificacao_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notificacao_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notificacao_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_saude_lidas_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "notificacoes_saude"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       painel_tv_meta_diaria: {
         Row: {
           created_at: string
