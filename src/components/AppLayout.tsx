@@ -634,9 +634,9 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                 <PopoverTrigger asChild>
                   <button className="relative p-2.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
                     <Bell className="h-4 w-4" />
-                    {pendingNotifs.length > 0 && (
+                    {totalPendentes > 0 && (
                       <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-scale-in">
-                        {pendingNotifs.length > 9 ? "9+" : pendingNotifs.length}
+                        {totalPendentes > 9 ? "9+" : totalPendentes}
                       </span>
                     )}
                   </button>
