@@ -644,8 +644,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                 <PopoverContent className="w-96 p-0 rounded-xl shadow-lg" align="end">
                   <div className="p-3.5 border-b flex items-center justify-between">
                     <h4 className="font-semibold text-sm">Notificações</h4>
-                    {pendingNotifs.length > 0 && (
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={markAllAsRead}>
+                    {(pendingNotifs.length > 0 || pendingSaude.length > 0) && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={() => { markAllAsRead(); markAllSaudeAsRead(); }}>
                         <CheckCheck className="h-3.5 w-3.5" />
                         Marcar todas como lidas
                       </Button>
