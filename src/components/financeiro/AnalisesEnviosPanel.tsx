@@ -172,12 +172,22 @@ export function AnalisesEnviosPanel() {
         const primeiroAnexo = anexosMov[0]?.created_at ? new Date(anexosMov[0].created_at) : null;
         const envioNota = mov?.data_envio_nota ? new Date(mov.data_envio_nota) : null;
 
+        // Tempo do Financeiro: dias entre 1º anexo e envio da nota.
+        // Se ainda não enviou, conta os dias entre o 1º anexo e HOJE.
+        const tempoFinanceiro = primeiroAnexo
+          ? envioNota
+            ? diffDays(envioNota, primeiroAnexo)
+            : diffDays(hoje, primeiroAnexo)
+          : null;
+
         let status: StatusEnvio;
         if (!mov) status = "Sem movimentação";
         else if (envioNota) status = "Concluído";
         else if (!primeiroAnexo) {
           status = hoje > deadlineCadastro ? "Sem anexo" : "Nota pendente";
         } else if (primeiroAnexo > deadlineCadastro) status = "Anexo em atraso";
+        else if (tempoFinanceiro != null && tempoFinanceiro >= 5) status = "Financeiro crítico";
+        else if (tempoFinanceiro != null && tempoFinanceiro >= 3) status = "Financeiro atrasado";
         else status = "Nota pendente";
 
         out.push({
@@ -190,7 +200,7 @@ export function AnalisesEnviosPanel() {
           primeiroAnexo,
           envioNota,
           atrasoCadastro: primeiroAnexo ? diffDays(primeiroAnexo, deadlineCadastro) : null,
-          tempoFinanceiro: envioNota && primeiroAnexo ? diffDays(envioNota, primeiroAnexo) : null,
+          tempoFinanceiro,
           status,
           mov_id: mov?.id ?? null,
         });
