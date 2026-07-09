@@ -424,7 +424,8 @@ export function AnalisesEnviosPanel() {
                     <TableCell className={cn(
                       "text-center text-sm font-semibold",
                       r.tempoFinanceiro == null ? "text-muted-foreground" :
-                      r.tempoFinanceiro > 2 ? "text-warning" : "text-success",
+                      r.tempoFinanceiro >= 5 ? "text-destructive" :
+                      r.tempoFinanceiro >= 3 ? "text-amber-600" : "text-success",
                     )}>
                       {r.tempoFinanceiro == null ? "—" : `${r.tempoFinanceiro}d`}
                     </TableCell>
