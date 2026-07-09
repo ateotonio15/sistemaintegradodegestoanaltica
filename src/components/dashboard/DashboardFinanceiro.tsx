@@ -99,10 +99,25 @@ export function DashboardFinanceiro() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const mesAtual = getCurrentMesReferencia();
+  const [competenciaSel, setCompetenciaSel] = useState<string>(mesAtual);
   const [foraPrazoFiltro, setForaPrazoFiltro] = useState<string>("todos");
   const [removerAlvo, setRemoverAlvo] = useState<{ empresa_id: string; empresa_nome: string; periodo: string } | null>(
     null,
   );
+  const [analiseAlvo, setAnaliseAlvo] = useState<ForaPrazoItem | null>(null);
+  const [cobrancaOpen, setCobrancaOpen] = useState(false);
+
+  // Últimas 12 competências (mês/ano) — YYYY-MM
+  const competenciasOptions = useMemo(() => {
+    const arr: string[] = [];
+    const [y, m] = mesAtual.split("-").map(Number);
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(y, m - 1 - i, 1);
+      arr.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return arr;
+  }, [mesAtual]);
+
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["fin-dash-empresas"],
