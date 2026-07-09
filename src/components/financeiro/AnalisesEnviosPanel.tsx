@@ -94,18 +94,6 @@ export function AnalisesEnviosPanel() {
   const [detalhe, setDetalhe] = useState<AnaliseRow | null>(null);
 
   /* ─── Data ─── */
-  const { data: empresas = [] } = useQuery({
-    queryKey: ["analises-envios-empresas"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("empresas")
-        .select("id, nome, status_empresa, contrato_suspenso, periodo_movimentacao")
-        .eq("status_empresa", "Ativa");
-      if (error) throw error;
-      return (data ?? []).filter((e: any) => !e.contrato_suspenso && e.periodo_movimentacao);
-    },
-  });
-
   const { data: movs = [], isLoading: loadingMovs } = useQuery({
     queryKey: ["analises-envios-movs", competenciasSel.join(",")],
     enabled: competenciasSel.length > 0,
@@ -114,6 +102,24 @@ export function AnalisesEnviosPanel() {
         .from("financeiro_movimentacoes")
         .select("id, empresa_id, mes_referencia, periodo, dia_emissao, data_envio_nota, aguardando_nota_em, data_vencimento")
         .in("mes_referencia", competenciasSel);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const empresaIds = useMemo(
+    () => Array.from(new Set((movs as any[]).map((m) => m.empresa_id))),
+    [movs],
+  );
+
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["analises-envios-empresas", empresaIds.join(",")],
+    enabled: empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome, status_empresa, contrato_suspenso, periodo_movimentacao")
+        .in("id", empresaIds);
       if (error) throw error;
       return data ?? [];
     },
@@ -143,71 +149,72 @@ export function AnalisesEnviosPanel() {
       list.push(a);
       anexosPorMov.set(a.financeiro_movimentacao_id, list);
     }
-    const movMap = new Map<string, any>();
-    for (const m of movs as any[]) {
-      movMap.set(`${m.empresa_id}__${m.mes_referencia}__${m.periodo}`, m);
-    }
+    const empMap = new Map<string, any>();
+    for (const e of empresas as any[]) empMap.set(e.id, e);
 
     const out: AnaliseRow[] = [];
     const hoje = new Date();
 
-    for (const comp of competenciasSel) {
+    for (const mov of movs as any[]) {
+      const emp = empMap.get(mov.empresa_id);
+      if (!emp) continue;
+      // Ignora empresas inativas ou suspensas
+      if (emp.status_empresa !== "Ativa" || emp.contrato_suspenso) continue;
+
+      const periodo = mov.periodo as string;
+      const fim = PERIODO_FIM[periodo];
+      if (!fim) continue;
+
+      const comp = mov.mes_referencia as string;
       const [y, mo] = comp.split("-").map(Number);
-      for (const emp of empresas as any[]) {
-        const periodo = emp.periodo_movimentacao as string;
-        const fim = PERIODO_FIM[periodo];
-        if (!fim) continue;
-        const mov = movMap.get(`${emp.id}__${comp}__${periodo}`);
-        const anexosMov = mov ? (anexosPorMov.get(mov.id) ?? []) : [];
-        const diaEmissao = mov?.dia_emissao ?? null;
-        // Regra especial: movimentações de fim de mês (período 25-30) ou
-        // emissão no dia 01 só têm nota emitida no 1º dia útil do mês seguinte.
-        // Assim, o prazo do Cadastro é estendido para o dia 02 do mês seguinte.
-        const emissaoNoMesSeguinte = periodo === "25-30" || diaEmissao === 1;
-        const deadlineCadastro = emissaoNoMesSeguinte
-          ? new Date(y, mo, 2, 12, 0, 0)
-          : diaEmissao
-          ? new Date(y, mo - 1, diaEmissao, 12, 0, 0)
-          : new Date(y, mo - 1, fim + 2, 12, 0, 0);
-        const primeiroAnexo = anexosMov[0]?.created_at ? new Date(anexosMov[0].created_at) : null;
-        const envioNota = mov?.data_envio_nota ? new Date(mov.data_envio_nota) : null;
+      const anexosMov = anexosPorMov.get(mov.id) ?? [];
+      const diaEmissao = mov?.dia_emissao ?? null;
+      // Regra especial: movimentações de fim de mês (período 25-30) ou
+      // emissão no dia 01 só têm nota emitida no 1º dia útil do mês seguinte.
+      // Assim, o prazo do Cadastro é estendido para o dia 02 do mês seguinte.
+      const emissaoNoMesSeguinte = periodo === "25-30" || diaEmissao === 1;
+      const deadlineCadastro = emissaoNoMesSeguinte
+        ? new Date(y, mo, 2, 12, 0, 0)
+        : diaEmissao
+        ? new Date(y, mo - 1, diaEmissao, 12, 0, 0)
+        : new Date(y, mo - 1, fim + 2, 12, 0, 0);
+      const primeiroAnexo = anexosMov[0]?.created_at ? new Date(anexosMov[0].created_at) : null;
+      const envioNota = mov?.data_envio_nota ? new Date(mov.data_envio_nota) : null;
 
-        // Tempo do Financeiro: dias entre 1º anexo e envio da nota.
-        // Se ainda não enviou, conta os dias entre o 1º anexo e HOJE.
-        const tempoFinanceiro = primeiroAnexo
-          ? envioNota
-            ? diffDays(envioNota, primeiroAnexo)
-            : diffDays(hoje, primeiroAnexo)
-          : null;
+      // Tempo do Financeiro: dias entre 1º anexo e envio da nota.
+      // Se ainda não enviou, conta os dias entre o 1º anexo e HOJE.
+      const tempoFinanceiro = primeiroAnexo
+        ? envioNota
+          ? diffDays(envioNota, primeiroAnexo)
+          : diffDays(hoje, primeiroAnexo)
+        : null;
 
-        let status: StatusEnvio;
-        if (!mov) status = "Sem movimentação";
-        else if (envioNota) status = "Concluído";
-        else if (!primeiroAnexo) {
-          status = hoje > deadlineCadastro ? "Sem anexo" : "Nota pendente";
-        } else if (primeiroAnexo > deadlineCadastro) status = "Anexo em atraso";
-        else if (tempoFinanceiro != null && tempoFinanceiro >= 5) status = "Financeiro crítico";
-        else if (tempoFinanceiro != null && tempoFinanceiro >= 3) status = "Financeiro atrasado";
-        else status = "Nota pendente";
+      let status: StatusEnvio;
+      if (envioNota) status = "Concluído";
+      else if (!primeiroAnexo) {
+        status = hoje > deadlineCadastro ? "Sem anexo" : "Nota pendente";
+      } else if (primeiroAnexo > deadlineCadastro) status = "Anexo em atraso";
+      else if (tempoFinanceiro != null && tempoFinanceiro >= 5) status = "Financeiro crítico";
+      else if (tempoFinanceiro != null && tempoFinanceiro >= 3) status = "Financeiro atrasado";
+      else status = "Nota pendente";
 
-        out.push({
-          key: `${emp.id}__${comp}__${periodo}`,
-          empresa_id: emp.id,
-          empresa_nome: emp.nome,
-          competencia: comp,
-          periodo,
-          deadlineCadastro,
-          primeiroAnexo,
-          envioNota,
-          atrasoCadastro: primeiroAnexo ? diffDays(primeiroAnexo, deadlineCadastro) : null,
-          tempoFinanceiro,
-          status,
-          mov_id: mov?.id ?? null,
-        });
-      }
+      out.push({
+        key: mov.id,
+        empresa_id: emp.id,
+        empresa_nome: emp.nome,
+        competencia: comp,
+        periodo,
+        deadlineCadastro,
+        primeiroAnexo,
+        envioNota,
+        atrasoCadastro: primeiroAnexo ? diffDays(primeiroAnexo, deadlineCadastro) : null,
+        tempoFinanceiro,
+        status,
+        mov_id: mov.id,
+      });
     }
     return out;
-  }, [empresas, movs, anexos, competenciasSel]);
+  }, [empresas, movs, anexos]);
 
   /* ─── Filters ─── */
   const rowsFiltrados = useMemo(() => {
