@@ -72,6 +72,8 @@ function statusBadgeClass(s: StatusEnvio): string {
   switch (s) {
     case "Concluído": return "bg-success/15 text-success border border-success/30";
     case "Nota pendente": return "bg-warning/15 text-warning border border-warning/30";
+    case "Financeiro atrasado": return "bg-amber-500/15 text-amber-600 border border-amber-500/30";
+    case "Financeiro crítico": return "bg-destructive/15 text-destructive border border-destructive/30";
     case "Anexo em atraso": return "bg-amber-500/15 text-amber-600 border border-amber-500/30";
     case "Sem anexo": return "bg-destructive/15 text-destructive border border-destructive/30";
     case "Sem movimentação": return "bg-muted text-muted-foreground border border-border";
@@ -79,7 +81,7 @@ function statusBadgeClass(s: StatusEnvio): string {
 }
 
 const STATUS_OPTS: (StatusEnvio | "Todos")[] = [
-  "Todos", "Concluído", "Nota pendente", "Anexo em atraso", "Sem anexo", "Sem movimentação",
+  "Todos", "Concluído", "Nota pendente", "Financeiro atrasado", "Financeiro crítico", "Anexo em atraso", "Sem anexo", "Sem movimentação",
 ];
 
 export function AnalisesEnviosPanel() {
