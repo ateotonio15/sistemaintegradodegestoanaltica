@@ -29,6 +29,8 @@ import { getCurrentMesReferencia, formatMesReferencia, PERIODOS_FIN } from "@/li
 type StatusEnvio =
   | "Concluído"
   | "Nota pendente"
+  | "Financeiro atrasado"
+  | "Financeiro crítico"
   | "Anexo em atraso"
   | "Sem anexo"
   | "Sem movimentação";
@@ -70,6 +72,8 @@ function statusBadgeClass(s: StatusEnvio): string {
   switch (s) {
     case "Concluído": return "bg-success/15 text-success border border-success/30";
     case "Nota pendente": return "bg-warning/15 text-warning border border-warning/30";
+    case "Financeiro atrasado": return "bg-amber-500/15 text-amber-600 border border-amber-500/30";
+    case "Financeiro crítico": return "bg-destructive/15 text-destructive border border-destructive/30";
     case "Anexo em atraso": return "bg-amber-500/15 text-amber-600 border border-amber-500/30";
     case "Sem anexo": return "bg-destructive/15 text-destructive border border-destructive/30";
     case "Sem movimentação": return "bg-muted text-muted-foreground border border-border";
@@ -77,7 +81,7 @@ function statusBadgeClass(s: StatusEnvio): string {
 }
 
 const STATUS_OPTS: (StatusEnvio | "Todos")[] = [
-  "Todos", "Concluído", "Nota pendente", "Anexo em atraso", "Sem anexo", "Sem movimentação",
+  "Todos", "Concluído", "Nota pendente", "Financeiro atrasado", "Financeiro crítico", "Anexo em atraso", "Sem anexo", "Sem movimentação",
 ];
 
 export function AnalisesEnviosPanel() {
@@ -168,12 +172,22 @@ export function AnalisesEnviosPanel() {
         const primeiroAnexo = anexosMov[0]?.created_at ? new Date(anexosMov[0].created_at) : null;
         const envioNota = mov?.data_envio_nota ? new Date(mov.data_envio_nota) : null;
 
+        // Tempo do Financeiro: dias entre 1º anexo e envio da nota.
+        // Se ainda não enviou, conta os dias entre o 1º anexo e HOJE.
+        const tempoFinanceiro = primeiroAnexo
+          ? envioNota
+            ? diffDays(envioNota, primeiroAnexo)
+            : diffDays(hoje, primeiroAnexo)
+          : null;
+
         let status: StatusEnvio;
         if (!mov) status = "Sem movimentação";
         else if (envioNota) status = "Concluído";
         else if (!primeiroAnexo) {
           status = hoje > deadlineCadastro ? "Sem anexo" : "Nota pendente";
         } else if (primeiroAnexo > deadlineCadastro) status = "Anexo em atraso";
+        else if (tempoFinanceiro != null && tempoFinanceiro >= 5) status = "Financeiro crítico";
+        else if (tempoFinanceiro != null && tempoFinanceiro >= 3) status = "Financeiro atrasado";
         else status = "Nota pendente";
 
         out.push({
@@ -186,7 +200,7 @@ export function AnalisesEnviosPanel() {
           primeiroAnexo,
           envioNota,
           atrasoCadastro: primeiroAnexo ? diffDays(primeiroAnexo, deadlineCadastro) : null,
-          tempoFinanceiro: envioNota && primeiroAnexo ? diffDays(envioNota, primeiroAnexo) : null,
+          tempoFinanceiro,
           status,
           mov_id: mov?.id ?? null,
         });
@@ -410,7 +424,8 @@ export function AnalisesEnviosPanel() {
                     <TableCell className={cn(
                       "text-center text-sm font-semibold",
                       r.tempoFinanceiro == null ? "text-muted-foreground" :
-                      r.tempoFinanceiro > 2 ? "text-warning" : "text-success",
+                      r.tempoFinanceiro >= 5 ? "text-destructive" :
+                      r.tempoFinanceiro >= 3 ? "text-amber-600" : "text-success",
                     )}>
                       {r.tempoFinanceiro == null ? "—" : `${r.tempoFinanceiro}d`}
                     </TableCell>
@@ -519,9 +534,12 @@ function TimelineDialog({ alvo, onClose }: { alvo: AnaliseRow | null; onClose: (
                 hint={
                   alvo.envioNota
                     ? `Nota enviada em ${formatDateBR(alvo.envioNota.toISOString().slice(0, 10))}`
+                    : alvo.primeiroAnexo
+                    ? "Contando desde o 1º anexo (limite: 2 dias)"
                     : "Aguardando envio"
                 }
-                bad={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro > 2}
+                bad={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro >= 5}
+                warn={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro >= 3 && alvo.tempoFinanceiro < 5}
                 good={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro <= 2}
               />
             </div>
@@ -588,16 +606,20 @@ function TimelineDialog({ alvo, onClose }: { alvo: AnaliseRow | null; onClose: (
 }
 
 function MetricBox({
-  label, value, hint, bad, good,
-}: { label: string; value: string; hint: string; bad?: boolean; good?: boolean }) {
+  label, value, hint, bad, warn, good,
+}: { label: string; value: string; hint: string; bad?: boolean; warn?: boolean; good?: boolean }) {
   return (
     <div className={cn(
       "rounded-lg border p-3",
       bad ? "border-destructive/30 bg-destructive/5" :
+      warn ? "border-amber-500/30 bg-amber-500/5" :
       good ? "border-success/30 bg-success/5" : "bg-muted/30",
     )}>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn("text-lg font-bold", bad ? "text-destructive" : good ? "text-success" : "text-foreground")}>
+      <p className={cn("text-lg font-bold",
+        bad ? "text-destructive" :
+        warn ? "text-amber-600" :
+        good ? "text-success" : "text-foreground")}>
         {value}
       </p>
       <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>
