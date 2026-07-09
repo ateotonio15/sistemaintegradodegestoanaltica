@@ -1048,6 +1048,102 @@ function parseCoparticipacaoRows(
   return items;
 }
 
+/**
+ * Fallback para RESUMO no formato SECULUS:
+ *   CNPJ: XX.XXX.XXX/XXXX-XX EMPRESA (FILIAL)
+ *   plano | qtd | mensalidade | total
+ *   ...
+ *   TOTAL (subtotal mensalidade)
+ *   CO-PARTICIPAÇÃO MMM/AA        ← anchor sem "empresarial"
+ *   plano |     |            | valor
+ *   ...
+ *   TOTAL (subtotal coparticipação)
+ *
+ * Emite um item por bloco de CNPJ com nome = nome da empresa do CNPJ acima,
+ * quantidade = 0 e total = soma dos planos (ou valor da linha TOTAL).
+ */
+function parseCoparticipacaoResumoPorCnpj(
+  rows: unknown[][],
+  idxLabel: number,
+  idxValor: number,
+): { nome: string; quantidade: number; total: number }[] {
+  const items: { nome: string; quantidade: number; total: number }[] = [];
+  if (idxLabel < 0 || idxValor < 0) return items;
+  const reCnpj = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/;
+
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const lbl = cellToText(r[idxLabel]).trim();
+    const lblNorm = norm(lbl);
+    if (!lblNorm) continue;
+    // Aceita "coparticipação", "co-participação", "co participação"…
+    // Ignora quando é o pivot "Coparticipação - Empresarial" (parser antigo cuida).
+    const isAnchor =
+      (lblNorm.includes("copartic") || lblNorm.includes("co partic")) &&
+      !lblNorm.includes("empresarial") &&
+      !/^\s*pj\s*[-–—:]/i.test(lbl);
+    if (!isAnchor) continue;
+
+    // Localiza a empresa do CNPJ imediatamente acima da âncora.
+    let empresaNome = "";
+    for (let k = i - 1; k >= 0 && !empresaNome; k--) {
+      const rk = rows[k] || [];
+      for (const cell of rk) {
+        const txt = cellToText(cell);
+        const m = txt.match(reCnpj);
+        if (m) {
+          empresaNome = txt.slice(0, m.index)
+            .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*$/i, "")
+            .trim()
+            .replace(/[-–—:]\s*$/, "")
+            .trim();
+          break;
+        }
+      }
+    }
+    if (!empresaNome) continue;
+
+    // Varre até 25 linhas abaixo procurando:
+    // - linhas de plano com valor → soma
+    // - linha "TOTAL" → usa esse valor (prioritário)
+    // Para se encontrar outra âncora, um novo CNPJ, "Total Geral" ou fim.
+    let somaPlanos = 0;
+    let totalDaLinha = NaN;
+    for (let j = i + 1; j < Math.min(rows.length, i + 25); j++) {
+      const rr = rows[j] || [];
+      const lblJ = cellToText(rr[idxLabel]).trim();
+      const lblJNorm = norm(lblJ);
+      // Nova âncora ou próximo bloco de CNPJ → para
+      if ((lblJNorm.includes("copartic") || lblJNorm.includes("co partic")) && j > i + 1) break;
+      if (reCnpj.test(lblJ)) break;
+      // Verifica se qualquer célula é "total"
+      let temTotal = false;
+      let temTotalGeral = false;
+      for (const c of rr) {
+        const t = norm(c);
+        if (!t) continue;
+        if (t.startsWith("total geral")) { temTotalGeral = true; break; }
+        if (t === "total" || t === "totais") temTotal = true;
+      }
+      if (temTotalGeral) break;
+      const val = toNumber(rr[idxValor]);
+      if (temTotal) {
+        if (!isNaN(val) && val !== 0) totalDaLinha = val;
+        break;
+      }
+      if (lblJNorm && !isNaN(val) && val !== 0) {
+        somaPlanos += val;
+      }
+    }
+    const total = !isNaN(totalDaLinha) ? totalDaLinha : somaPlanos;
+    if (total !== 0) {
+      items.push({ nome: empresaNome, quantidade: 0, total });
+    }
+  }
+  return items;
+}
+
+
 
 
 /**
