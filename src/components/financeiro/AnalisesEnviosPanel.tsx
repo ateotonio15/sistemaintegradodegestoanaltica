@@ -161,10 +161,10 @@ export function AnalisesEnviosPanel() {
         // Assim, o prazo do Cadastro é estendido para o dia 02 do mês seguinte.
         const emissaoNoMesSeguinte = periodo === "25-30" || diaEmissao === 1;
         const deadlineCadastro = emissaoNoMesSeguinte
-          ? new Date(y, mo, 2, 23, 59, 59)
+          ? new Date(y, mo, 2, 12, 0, 0)
           : diaEmissao
-          ? new Date(y, mo - 1, diaEmissao, 23, 59, 59)
-          : new Date(y, mo - 1, fim + 2, 23, 59, 59);
+          ? new Date(y, mo - 1, diaEmissao, 12, 0, 0)
+          : new Date(y, mo - 1, fim + 2, 12, 0, 0);
         const primeiroAnexo = anexosMov[0]?.created_at ? new Date(anexosMov[0].created_at) : null;
         const envioNota = mov?.data_envio_nota ? new Date(mov.data_envio_nota) : null;
 
