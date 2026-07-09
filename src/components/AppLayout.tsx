@@ -280,6 +280,70 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     queryClient.invalidateQueries({ queryKey: ["notificacoes-lidas", user.id] });
   }, [user, pendingNotifs, queryClient]);
 
+  // ============================================================
+  // Notificações de Saúde (Palestras + Ações Preventivas)
+  // Visíveis para enfermeira e admin (Fase 1)
+  // ============================================================
+  const canSeeSaude = !!user && (isEnfermeira || isAdmin);
+
+  const { data: notifSaude = [] } = useQuery({
+    queryKey: ["notificacoes-saude"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notificacoes_saude" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as unknown as NotifSaude[];
+    },
+    enabled: canSeeSaude,
+  });
+
+  const { data: lidasSaudeIds = [] } = useQuery({
+    queryKey: ["notificacoes-saude-lidas", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notificacoes_saude_lidas" as any)
+        .select("notificacao_id")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return (data ?? []).map((d: any) => d.notificacao_id as string);
+    },
+    enabled: canSeeSaude,
+  });
+
+  useEffect(() => {
+    if (!canSeeSaude || !user) return;
+    const channel = supabase
+      .channel("notif-saude-rt-" + user.id)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notificacoes_saude" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["notificacoes-saude"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, canSeeSaude, queryClient]);
+
+  const pendingSaude = useMemo(() => {
+    const lidasSet = new Set(lidasSaudeIds);
+    return notifSaude.filter((n) => !lidasSet.has(n.id)).slice(0, 30);
+  }, [notifSaude, lidasSaudeIds]);
+
+  const markSaudeAsRead = useCallback(async (id: string) => {
+    if (!user) return;
+    await supabase.from("notificacoes_saude_lidas" as any).insert({ notificacao_id: id, user_id: user.id });
+    queryClient.invalidateQueries({ queryKey: ["notificacoes-saude-lidas", user.id] });
+  }, [user, queryClient]);
+
+  const markAllSaudeAsRead = useCallback(async () => {
+    if (!user || pendingSaude.length === 0) return;
+    const rows = pendingSaude.map((n) => ({ notificacao_id: n.id, user_id: user.id }));
+    await supabase.from("notificacoes_saude_lidas" as any).insert(rows);
+    queryClient.invalidateQueries({ queryKey: ["notificacoes-saude-lidas", user.id] });
+  }, [user, pendingSaude, queryClient]);
+
+  const totalPendentes = pendingNotifs.length + pendingSaude.length;
+
   const displayName = profile?.display_name || user?.email || "Usuário";
   const username = profile?.username || "—";
   const email = user?.email || "—";
