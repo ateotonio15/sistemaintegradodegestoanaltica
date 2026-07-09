@@ -16,6 +16,10 @@ import {
   Clock,
   X,
   TimerOff,
+  BarChart3,
+  Mail,
+  Copy,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/date-utils";
@@ -39,6 +43,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 
 interface CobrancaRow {
   id: string;
@@ -50,6 +63,17 @@ interface CobrancaRow {
   empresa_id: string;
   empresa_nome: string;
 }
+
+interface ForaPrazoItem {
+  empresa_id: string;
+  empresa_nome: string;
+  periodo: string;
+  data_limite: Date;
+  dias_atraso: number;
+  responsavel_user_id: string | null;
+  mov_id: string | null;
+}
+
 
 /* ─── Helpers para "Fora do prazo" ─── */
 const PERIODO_FIM: Record<string, number> = {
