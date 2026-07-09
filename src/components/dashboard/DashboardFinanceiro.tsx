@@ -182,12 +182,12 @@ export function DashboardFinanceiro() {
   });
 
   const { data: exclusoes = [] } = useQuery({
-    queryKey: ["fora-prazo-exclusoes", mesAtual],
+    queryKey: ["fora-prazo-exclusoes", competenciaSel],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("fora_prazo_exclusoes")
         .select("empresa_id, periodo, mes_referencia")
-        .eq("mes_referencia", mesAtual);
+        .eq("mes_referencia", competenciaSel);
       if (error) throw error;
       return data ?? [];
     },
@@ -203,14 +203,14 @@ export function DashboardFinanceiro() {
       const { error } = await supabase.from("fora_prazo_exclusoes").insert({
         empresa_id: alvo.empresa_id,
         periodo: alvo.periodo,
-        mes_referencia: mesAtual,
+        mes_referencia: competenciaSel,
         removido_por: user?.id,
         removido_por_nome: profile?.display_name ?? null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fora-prazo-exclusoes", mesAtual] });
+      qc.invalidateQueries({ queryKey: ["fora-prazo-exclusoes", competenciaSel] });
       toast({ title: "Empresa removida", description: "Empresa removida do painel para esta competência." });
       setRemoverAlvo(null);
     },
@@ -218,6 +218,7 @@ export function DashboardFinanceiro() {
       toast({ title: "Erro ao remover", description: err.message, variant: "destructive" });
     },
   });
+
 
   const minhasEmpresasIds = useMemo(() => {
     if (!user) return new Set<string>();
