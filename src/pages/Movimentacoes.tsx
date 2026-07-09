@@ -31,7 +31,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
-import { VerificacaoDadosDialog } from "@/components/movimentacoes/VerificacaoDadosDialog";
+
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 
 import ExcelJS from "exceljs";
@@ -476,7 +476,7 @@ export default function Movimentacoes() {
             >
               <RefreshCw className="mr-2 h-4 w-4" />Atualizar
             </Button>
-            <VerificacaoDadosDialog movimentacoes={movimentacoes as any} />
+            
             <Button variant="outline" onClick={handleExportExcel} className="rounded-lg">
               <Download className="mr-2 h-4 w-4" />Exportar Excel
             </Button>
