@@ -542,16 +542,6 @@ function TimelineDialog({ alvo, onClose }: { alvo: AnaliseRow | null; onClose: (
                 warn={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro >= 3 && alvo.tempoFinanceiro < 5}
                 good={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro <= 2}
               />
-                    : `${alvo.tempoFinanceiro} dia(s)`
-                }
-                hint={
-                  alvo.envioNota
-                    ? `Nota enviada em ${formatDateBR(alvo.envioNota.toISOString().slice(0, 10))}`
-                    : "Aguardando envio"
-                }
-                bad={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro > 2}
-                good={alvo.tempoFinanceiro != null && alvo.tempoFinanceiro <= 2}
-              />
             </div>
 
             <Separator />
