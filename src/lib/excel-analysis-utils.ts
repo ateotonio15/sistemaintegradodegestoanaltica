@@ -1280,10 +1280,12 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       continue;
     }
 
+    // CNPJ header sempre finaliza o bloco de coparticipação anterior.
+    const m = labelRaw.match(reCnpj);
+    if (m) inCoparticBlock = false;
+
     if (inCoparticBlock) continue;
 
-
-    const m = labelRaw.match(reCnpj);
     if (m) {
       const cnpj = normalizarCnpj(m[1]);
       const cleanupNome = (s: string) => s
