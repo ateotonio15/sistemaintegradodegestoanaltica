@@ -27,6 +27,7 @@ import { feriadoEm } from "../lib/feriados";
 import { GESTANTES_2026, CAMPANHAS, MESES_PT } from "../lib/palestras-calendario";
 import { PalestraDialog } from "../components/PalestraDialog";
 import { BloqueioDialog } from "../components/BloqueioDialog";
+import { RelatorioMensalDialog } from "../components/RelatorioMensalDialog";
 
 // Card style: fundo tintado + borda lateral colorida (status)
 const STATUS_CARD: Record<string, string> = {
@@ -82,6 +83,7 @@ export default function CalendarioPalestras() {
   const [bloqOpen, setBloqOpen] = useState(false);
   const [editingB, setEditingB] = useState<Bloqueio | null>(null);
   const [preselectBloq, setPreselectBloq] = useState<Date | null>(null);
+  const [relatorioOpen, setRelatorioOpen] = useState(false);
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
@@ -238,6 +240,9 @@ export default function CalendarioPalestras() {
               </Button>
               <Button variant="outline" onClick={exportXlsx}>
                 <FileSpreadsheet className="h-4 w-4 mr-1" /> Exportar Excel
+              </Button>
+              <Button variant="outline" onClick={() => setRelatorioOpen(true)}>
+                <BarChart3 className="h-4 w-4 mr-1" /> Gerar Relatório Mensal
               </Button>
               <div className="flex gap-2">
                 {podeEditar && (
