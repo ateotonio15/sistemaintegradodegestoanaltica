@@ -1086,6 +1086,9 @@ function parseCoparticipacaoResumoPorCnpj(
     if (!isAnchor) continue;
 
     // Localiza a empresa do CNPJ imediatamente acima da âncora.
+    // Usa padrão estrito (com separadores formatados) para evitar falsos
+    // positivos em valores numéricos de subtotais tipo "58198.064000000006".
+    const reCnpjEstrito = /\b(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})\b/;
     let empresaNome = "";
     const cleanupNome = (s: string) => s
       .replace(/\b(cnpj|c\.n\.p\.j\.?)\b\s*[:\-]?\s*/gi, "")
@@ -1095,18 +1098,16 @@ function parseCoparticipacaoResumoPorCnpj(
       .trim();
     for (let k = i - 1; k >= 0 && !empresaNome; k--) {
       const rk = rows[k] || [];
-      for (const cell of rk) {
-        const txt = cellToText(cell);
-        const m = txt.match(reCnpj);
-        if (m) {
-          let n = cleanupNome(txt.slice(0, m.index));
-          if (!n) n = cleanupNome(txt.slice((m.index ?? 0) + m[1].length));
-          empresaNome = n;
-          break;
-        }
+      const txt = cellToText(rk[idxLabel]);
+      const m = txt.match(reCnpjEstrito);
+      if (m) {
+        let n = cleanupNome(txt.slice(0, m.index));
+        if (!n) n = cleanupNome(txt.slice((m.index ?? 0) + m[1].length));
+        empresaNome = n;
       }
     }
     if (!empresaNome) continue;
+
 
 
     // Varre até 25 linhas abaixo procurando:
