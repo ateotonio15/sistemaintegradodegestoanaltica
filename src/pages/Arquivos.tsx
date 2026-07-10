@@ -198,12 +198,7 @@ export default function Arquivos() {
     for (const [k, arr] of m) arr.sort();
     return m;
   }, [movsEmpresa]);
-      const arr = m.get(mv.mes_referencia) ?? [];
-      for (const l of labels) if (!arr.includes(l)) arr.push(l);
-      m.set(mv.mes_referencia, arr);
-    }
-    return m;
-  }, [movsEmpresa]);
+
 
 
   const empresasMap = useMemo(() => {
