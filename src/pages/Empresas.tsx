@@ -892,7 +892,26 @@ export default function Empresas() {
                         <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
+                        <div className="flex items-center justify-between gap-2">
+                          <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
+                          {editingId && (form as any).tipo_contrato !== "ADMINISTRADORA" && (
+                            respUnlocked ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                                <Unlock className="h-3 w-3" /> Liberado
+                              </span>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 gap-1 text-[11px] text-muted-foreground hover:text-primary"
+                                onClick={() => setRespLockOpen(true)}
+                              >
+                                <Lock className="h-3 w-3" /> Bloqueado — alterar
+                              </Button>
+                            )
+                          )}
+                        </div>
                         {(form as any).tipo_contrato === "ADMINISTRADORA" ? (
                           <Input
                             value={(form as any).responsavel_contrato || "Márcia Cristina"}
@@ -903,6 +922,7 @@ export default function Empresas() {
                           <Select
                             value={form.responsavel_user_id ?? ""}
                             onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
+                            disabled={!!editingId && !respUnlocked}
                           >
                             <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
                             <SelectContent>
