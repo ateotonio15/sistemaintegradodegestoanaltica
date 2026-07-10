@@ -38,7 +38,8 @@ import { PrioridadeDialog } from "@/components/prioridade/PrioridadeDialog";
 import { PrioridadeInfoCard } from "@/components/prioridade/PrioridadeInfoCard";
 import { PrioridadeHistoricoDialog } from "@/components/prioridade/PrioridadeHistoricoDialog";
 import { usePrioridadeMaxima } from "@/hooks/usePrioridadeMaxima";
-import { Star, History as HistoryIcon } from "lucide-react";
+import { Star, History as HistoryIcon, Lock, Unlock } from "lucide-react";
+import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDialog";
 
 type Empresa = Tables<"empresas">;
 
@@ -121,6 +122,15 @@ export default function Empresas() {
   const anexoInputRef = useRef<HTMLInputElement>(null);
   const [importingAnexo, setImportingAnexo] = useState(false);
   const [loadingRevisao, setLoadingRevisao] = useState(false);
+  const [respLockOpen, setRespLockOpen] = useState(false);
+  const [respUnlocked, setRespUnlocked] = useState(false);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.rpc("get_my_username" as any).then(({ data }) => {
+      if (typeof data === "string") setCurrentUsername(data);
+    });
+  }, []);
 
   const handleRevisarEmpresas = async () => {
     if (loadingRevisao) return;
@@ -551,6 +561,7 @@ export default function Empresas() {
     setDataImplantacao("");
     setDataVencimentoFatura("");
     setDataEmissaoFatura("");
+    setRespUnlocked(false);
   };
 
   const openEdit = (e: Empresa) => {
@@ -731,6 +742,12 @@ export default function Empresas() {
 
   return (
     <>
+      <ResponsavelLockDialog
+        open={respLockOpen}
+        onOpenChange={setRespLockOpen}
+        onUnlocked={() => setRespUnlocked(true)}
+        currentUsername={currentUsername}
+      />
       <div className="space-y-6">
 
 
@@ -881,7 +898,26 @@ export default function Empresas() {
                         <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
+                        <div className="flex items-center justify-between gap-2">
+                          <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
+                          {editingId && (form as any).tipo_contrato !== "ADMINISTRADORA" && (
+                            respUnlocked ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                                <Unlock className="h-3 w-3" /> Liberado
+                              </span>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 gap-1 text-[11px] text-muted-foreground hover:text-primary"
+                                onClick={() => setRespLockOpen(true)}
+                              >
+                                <Lock className="h-3 w-3" /> Bloqueado — alterar
+                              </Button>
+                            )
+                          )}
+                        </div>
                         {(form as any).tipo_contrato === "ADMINISTRADORA" ? (
                           <Input
                             value={(form as any).responsavel_contrato || "Márcia Cristina"}
@@ -892,6 +928,7 @@ export default function Empresas() {
                           <Select
                             value={form.responsavel_user_id ?? ""}
                             onValueChange={(v) => setForm({ ...form, responsavel_user_id: v || null })}
+                            disabled={!!editingId && !respUnlocked}
                           >
                             <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
                             <SelectContent>
