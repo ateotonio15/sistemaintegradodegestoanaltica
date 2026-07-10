@@ -122,6 +122,15 @@ export default function Empresas() {
   const anexoInputRef = useRef<HTMLInputElement>(null);
   const [importingAnexo, setImportingAnexo] = useState(false);
   const [loadingRevisao, setLoadingRevisao] = useState(false);
+  const [respLockOpen, setRespLockOpen] = useState(false);
+  const [respUnlocked, setRespUnlocked] = useState(false);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.rpc("get_my_username" as any).then(({ data }) => {
+      if (typeof data === "string") setCurrentUsername(data);
+    });
+  }, []);
 
   const handleRevisarEmpresas = async () => {
     if (loadingRevisao) return;
