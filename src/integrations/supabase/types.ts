@@ -3725,6 +3725,30 @@ export type Database = {
           },
         ]
       }
+      security_locks: {
+        Row: {
+          created_at: string
+          lock_key: string
+          password_hash: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          lock_key: string
+          password_hash: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          lock_key?: string
+          password_hash?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       triagens: {
         Row: {
           acao_id: string
@@ -4308,6 +4332,10 @@ export type Database = {
         }
         Returns: string
       }
+      set_lock_password: {
+        Args: { _lock_key: string; _new_password: string }
+        Returns: undefined
+      }
       simular_redistribuicao_ferias: {
         Args: { p_user_id: string }
         Returns: Json
@@ -4319,6 +4347,10 @@ export type Database = {
       solicitar_reajuste: { Args: { p_empresa_id: string }; Returns: string }
       tem_movimentacao_pendente: {
         Args: { p_empresa_id: string }
+        Returns: boolean
+      }
+      verify_lock_password: {
+        Args: { _lock_key: string; _password: string }
         Returns: boolean
       }
       vincular_empresas_por_responsavel: { Args: never; Returns: undefined }
