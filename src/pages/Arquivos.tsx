@@ -173,6 +173,34 @@ export default function Arquivos() {
     },
   });
 
+  // Movimentações da empresa selecionada — para mostrar o tipo ao lado da competência
+  const { data: movsEmpresa = [] } = useQuery({
+    queryKey: ["arquivos-movs-empresa", selectedEmpresaId],
+    enabled: !!selectedEmpresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("mes_referencia, tipo_cobranca, tipo_lancamento")
+        .eq("empresa_id", selectedEmpresaId!);
+      if (error) throw error;
+      return (data ?? []) as { mes_referencia: string; tipo_cobranca: string | null; tipo_lancamento: string | null }[];
+    },
+  });
+
+  const movsPorCompetencia = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const mv of movsEmpresa) {
+      const labels: string[] = [];
+      if (mv.tipo_lancamento === "primeira_mensalidade") labels.push("Primeira Mensalidade");
+      else if (mv.tipo_lancamento === "fechamento_periodo") labels.push("Fechamento do Período");
+      if (mv.tipo_cobranca) labels.push(mv.tipo_cobranca);
+      const arr = m.get(mv.mes_referencia) ?? [];
+      for (const l of labels) if (!arr.includes(l)) arr.push(l);
+      m.set(mv.mes_referencia, arr);
+    }
+    return m;
+  }, [movsEmpresa]);
+
 
   const empresasMap = useMemo(() => {
     const m = new Map<string, Empresa>();
@@ -458,11 +486,22 @@ export default function Arquivos() {
                 <div>
                   {arquivosPorCompetencia.map(([comp, lista]) => (
                     <div key={comp}>
-                      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-muted/80 backdrop-blur border-y border-border/60">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          {compLabel(comp)}
-                        </span>
-                        <Badge variant="outline" className="h-5 text-[10px] px-1.5">
+                      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-muted/80 backdrop-blur border-y border-border/60 gap-2">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            {compLabel(comp)}
+                          </span>
+                          {(movsPorCompetencia.get(comp) ?? []).map((tipo) => (
+                            <Badge
+                              key={tipo}
+                              variant="outline"
+                              className="h-5 text-[10px] px-1.5 font-medium border-primary/40 text-primary bg-primary/5"
+                            >
+                              {tipo}
+                            </Badge>
+                          ))}
+                        </div>
+                        <Badge variant="outline" className="h-5 text-[10px] px-1.5 shrink-0">
                           {lista.length}
                         </Badge>
                       </div>
