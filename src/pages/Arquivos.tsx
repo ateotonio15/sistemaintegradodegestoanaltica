@@ -173,6 +173,34 @@ export default function Arquivos() {
     },
   });
 
+  // Movimentações da empresa selecionada — para mostrar o tipo ao lado da competência
+  const { data: movsEmpresa = [] } = useQuery({
+    queryKey: ["arquivos-movs-empresa", selectedEmpresaId],
+    enabled: !!selectedEmpresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("mes_referencia, tipo_cobranca, tipo_lancamento")
+        .eq("empresa_id", selectedEmpresaId!);
+      if (error) throw error;
+      return (data ?? []) as { mes_referencia: string; tipo_cobranca: string | null; tipo_lancamento: string | null }[];
+    },
+  });
+
+  const movsPorCompetencia = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const mv of movsEmpresa) {
+      const labels: string[] = [];
+      if (mv.tipo_lancamento === "primeira_mensalidade") labels.push("Primeira Mensalidade");
+      else if (mv.tipo_lancamento === "fechamento_periodo") labels.push("Fechamento do Período");
+      if (mv.tipo_cobranca) labels.push(mv.tipo_cobranca);
+      const arr = m.get(mv.mes_referencia) ?? [];
+      for (const l of labels) if (!arr.includes(l)) arr.push(l);
+      m.set(mv.mes_referencia, arr);
+    }
+    return m;
+  }, [movsEmpresa]);
+
 
   const empresasMap = useMemo(() => {
     const m = new Map<string, Empresa>();
