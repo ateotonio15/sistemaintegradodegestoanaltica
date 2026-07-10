@@ -486,11 +486,22 @@ export default function Arquivos() {
                 <div>
                   {arquivosPorCompetencia.map(([comp, lista]) => (
                     <div key={comp}>
-                      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-muted/80 backdrop-blur border-y border-border/60">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          {compLabel(comp)}
-                        </span>
-                        <Badge variant="outline" className="h-5 text-[10px] px-1.5">
+                      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-muted/80 backdrop-blur border-y border-border/60 gap-2">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            {compLabel(comp)}
+                          </span>
+                          {(movsPorCompetencia.get(comp) ?? []).map((tipo) => (
+                            <Badge
+                              key={tipo}
+                              variant="outline"
+                              className="h-5 text-[10px] px-1.5 font-medium border-primary/40 text-primary bg-primary/5"
+                            >
+                              {tipo}
+                            </Badge>
+                          ))}
+                        </div>
+                        <Badge variant="outline" className="h-5 text-[10px] px-1.5 shrink-0">
                           {lista.length}
                         </Badge>
                       </div>
