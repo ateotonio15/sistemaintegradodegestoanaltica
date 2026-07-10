@@ -38,7 +38,8 @@ import { PrioridadeDialog } from "@/components/prioridade/PrioridadeDialog";
 import { PrioridadeInfoCard } from "@/components/prioridade/PrioridadeInfoCard";
 import { PrioridadeHistoricoDialog } from "@/components/prioridade/PrioridadeHistoricoDialog";
 import { usePrioridadeMaxima } from "@/hooks/usePrioridadeMaxima";
-import { Star, History as HistoryIcon } from "lucide-react";
+import { Star, History as HistoryIcon, Lock, Unlock } from "lucide-react";
+import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDialog";
 
 type Empresa = Tables<"empresas">;
 
