@@ -1279,21 +1279,24 @@ export default function Financeiro() {
       }
       const linhasDedup = Array.from(linhasMap.values());
 
-      // Buscar existentes para separar inserções de atualizações
+      // Buscar existentes para separar inserções de atualizações.
+      // Chave inclui tipo_lancamento — assim a linha "normal" (fechamento) NÃO é
+      // considerada existente só porque há uma "primeira_mensalidade" no mesmo período.
       const { data: existentes, error: exErr } = await supabase
         .from("financeiro_movimentacoes")
-        .select("id, empresa_id, periodo, data_vencimento, tipo_cobranca, dia_emissao")
+        .select("id, empresa_id, periodo, tipo_lancamento, data_vencimento, tipo_cobranca, dia_emissao")
         .eq("mes_referencia", mes);
       if (exErr) throw exErr;
 
+      const keyOf = (r: any) => `${r.empresa_id}|${r.periodo}|${r.tipo_lancamento ?? "normal"}`;
       const existentesMap = new Map(
-        (existentes || []).map((r: any) => [`${r.empresa_id}|${r.periodo}`, r]),
+        (existentes || []).map((r: any) => [keyOf(r), r]),
       );
-      const novas = linhasDedup.filter((l) => !existentesMap.has(`${l.empresa_id}|${l.periodo}`));
+      const novas = linhasDedup.filter((l) => !existentesMap.has(keyOf(l)));
 
       // Atualiza linhas já existentes que estejam sem dados que vieram da competência anterior
       for (const l of linhasDedup) {
-        const existente: any = existentesMap.get(`${l.empresa_id}|${l.periodo}`);
+        const existente: any = existentesMap.get(keyOf(l));
         if (!existente) continue;
         const patch: any = {};
         if (!existente.data_vencimento && l.data_vencimento) patch.data_vencimento = l.data_vencimento;
