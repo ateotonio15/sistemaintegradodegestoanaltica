@@ -173,33 +173,32 @@ export default function Arquivos() {
     },
   });
 
-  // Movimentações da empresa selecionada — para mostrar o tipo ao lado da competência
+  // Movimentações da empresa selecionada — para mostrar o período ao lado da competência
   const { data: movsEmpresa = [] } = useQuery({
     queryKey: ["arquivos-movs-empresa", selectedEmpresaId],
     enabled: !!selectedEmpresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
-        .select("mes_referencia, tipo_cobranca, tipo_lancamento")
+        .select("mes_referencia, periodo")
         .eq("empresa_id", selectedEmpresaId!);
       if (error) throw error;
-      return (data ?? []) as { mes_referencia: string; tipo_cobranca: string | null; tipo_lancamento: string | null }[];
+      return (data ?? []) as { mes_referencia: string; periodo: string | null }[];
     },
   });
 
   const movsPorCompetencia = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const mv of movsEmpresa) {
-      const labels: string[] = [];
-      if (mv.tipo_lancamento === "primeira_mensalidade") labels.push("Primeira Mensalidade");
-      else if (mv.tipo_lancamento === "fechamento_periodo") labels.push("Fechamento do Período");
-      if (mv.tipo_cobranca) labels.push(mv.tipo_cobranca);
+      if (!mv.periodo) continue;
       const arr = m.get(mv.mes_referencia) ?? [];
-      for (const l of labels) if (!arr.includes(l)) arr.push(l);
+      if (!arr.includes(mv.periodo)) arr.push(mv.periodo);
       m.set(mv.mes_referencia, arr);
     }
+    for (const [k, arr] of m) arr.sort();
     return m;
   }, [movsEmpresa]);
+
 
 
   const empresasMap = useMemo(() => {
