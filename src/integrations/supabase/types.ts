@@ -308,6 +308,7 @@ export type Database = {
       }
       anexos_financeiro: {
         Row: {
+          bucket: string
           compartilhado_grupo: boolean
           contrato_origem_id: string | null
           created_at: string
@@ -322,6 +323,7 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
+          bucket?: string
           compartilhado_grupo?: boolean
           contrato_origem_id?: string | null
           created_at?: string
@@ -336,6 +338,7 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
+          bucket?: string
           compartilhado_grupo?: boolean
           contrato_origem_id?: string | null
           created_at?: string
