@@ -150,15 +150,29 @@ export default function Arquivos() {
   const { data: arquivos = [], isLoading } = useQuery({
     queryKey: ["financeiro-arquivos"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("financeiro_arquivos")
-        .select("*")
-        .eq("status", "ativo")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as ArquivoRow[];
+      const pageSize = 1000;
+      const all: ArquivoRow[] = [];
+      let from = 0;
+      // Pagina para contornar o limite padrão de 1000 linhas do PostgREST
+      // e garantir que arquivos antigos (competências anteriores) também apareçam.
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data, error } = await supabase
+          .from("financeiro_arquivos")
+          .select("*")
+          .eq("status", "ativo")
+          .order("created_at", { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        const batch = (data ?? []) as ArquivoRow[];
+        all.push(...batch);
+        if (batch.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
   });
+
 
   const empresasMap = useMemo(() => {
     const m = new Map<string, Empresa>();
