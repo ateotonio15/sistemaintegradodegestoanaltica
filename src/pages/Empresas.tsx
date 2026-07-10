@@ -742,6 +742,12 @@ export default function Empresas() {
 
   return (
     <>
+      <ResponsavelLockDialog
+        open={respLockOpen}
+        onOpenChange={setRespLockOpen}
+        onUnlocked={() => setRespUnlocked(true)}
+        currentUsername={currentUsername}
+      />
       <div className="space-y-6">
 
 
