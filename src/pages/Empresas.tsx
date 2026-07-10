@@ -561,6 +561,7 @@ export default function Empresas() {
     setDataImplantacao("");
     setDataVencimentoFatura("");
     setDataEmissaoFatura("");
+    setRespUnlocked(false);
   };
 
   const openEdit = (e: Empresa) => {
