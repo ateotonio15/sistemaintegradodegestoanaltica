@@ -1,69 +1,71 @@
-## Plano — Aba "Calendário de Plantões" (novo módulo de agenda)
+## Dashboard Executivo — Saúde Ocupacional
 
-### Contexto
-Hoje `/plantoes/calendario` só reaproveita a lista de empresas de plantão e mostra uma grade vazia. A especificação pede um módulo executivo próprio, com CRUD, filtros, feriados, cancelamento com motivo e exportação. Vou construir isso como um módulo novo baseado em uma nova tabela `agendamentos_plantao`, sem tocar em `plantoes` / `plantoes_empresas` (esses continuam sendo do módulo "Plantões nas empresas", que já foi desvinculado do calendário).
+Nova página `/saude-empresas/dashboard-executivo` (link no menu do módulo Saúde nas Empresas). Não substitui o módulo existente — adiciona uma camada executiva para diretoria, com dados reais consolidados quando disponíveis e fallback para os números de Julho/2026 fornecidos.
 
-### 1. Banco (migration)
-Nova tabela `public.agendamentos_plantao`:
-- `id uuid pk`, `empresa_id uuid` (FK empresas), `empresa_nome text` (snapshot)
-- `data date` (obrigatório), `hora_inicio time`, `hora_fim time`
-- `executiva text` (nome_completo), `status enum` (`a_confirmar|confirmado|concluido|cancelado`)
-- `observacao text`, `motivo_cancelamento text`
-- `criado_por text`, `editado_por text`, `created_at`, `updated_at`
-- GRANTs para `authenticated` e `service_role`; RLS:
-  - SELECT: todos autenticados
-  - INSERT/UPDATE/DELETE: perfis `admin`, `interno`, `coordenacao`
-  - `externo`: SELECT apenas onde `executiva = seu nome` (carteira)
-  - `enfermeira` / `qualidade`: sem escrita
-- Trigger `updated_at` + realtime publication.
+### 1. Layout (estilo consultoria)
 
-### 2. Hooks
-- `useAgendamentosPlantao(range)` — lista por intervalo + realtime.
-- `useAgendamentoMutations` — create (multi-datas → N inserts), update, delete.
-- `useExecutivas()` — reaproveitar se existir; caso não, criar leitura de `profiles` (`interno|externo|coordenacao`, ativos).
-- `useFeriados` já existe e será usado tanto para exibição quanto para bloqueio de datas.
+- Paleta: Teal profundo `#004d40`, verde hospitalar `#1b998b`, slate `#0f172a` / `#f8fafc`. Tokens novos no `index.css` (semânticos: `--exec-primary`, `--exec-accent`, `--exec-surface`, gradientes e sombras premium).
+- Tipografia display para títulos (fonte serif condensada tipo "Instrument Serif" para números-chave; Inter para corpo).
+- Header fixo com: título, seletor Mês/Ano (default Julho 2026), botão "Simular mês" (força Out/Nov), botão "Exportar PDF", botão "Modo Apresentação".
 
-### 3. Nova página `PlantoesCalendario.tsx` (reescrita)
-Layout Seg–Sex (5 colunas):
-- Header: título + subtítulo + botões "Exportar Excel" / "+ Novo evento" (gated por permissão).
-- Filtros: `EmpresaAutocomplete` (Todas), Executiva (Todas + lista), Status (Todos + 4), "Limpar filtros".
-- Legenda de feriados (Nacional/Estadual/Municipal).
-- Navegador de mês (◀ Hoje ▶) em pt-BR.
-- Grade só útil (Seg–Sex): dias com badge de feriado, chips com hora · empresa · executiva coloridos por status:
-  - `a_confirmar` amarelo, `confirmado` verde-100, `concluido` emerald-700 branco.
-  - `cancelado` **não** aparece na grade (mas fica na base).
-- Clique em célula vazia → modal Novo com data pré-preenchida; clique em chip → modal Edição.
+### 2. KPIs + Filtros
 
-### 4. Modal Novo/Editar
-- Campos na ordem: Empresa (`EmpresaAutocomplete`), Data (Calendar `mode="multiple"`, `weekStartsOn=1`, desabilita fim de semana + feriados; travado em 1 data ao editar), Hora início/fim, Observação, Status, Executiva responsável (só `mayara.meireles` pode alterar; demais veem próprio nome desabilitado), Motivo do cancelamento (visível/obrigatório apenas se status = `cancelado`).
-- Validações: empresa obrigatória, ≥1 data, hora_fim > hora_inicio, data não pode ser feriado (toast com nome do feriado) nem fim de semana.
-- Auditoria automática: `criado_por` no insert; `editado_por`+`updated_at` no update.
-- Rodapé Edição: botão Excluir com `AlertDialog`.
+- 6 KPI cards animados (fade + count-up): Total Ações, Empresas Atendidas, Palestras, Sinais Vitais, PSA, Coletas Preventivas + linha Média Semanal e Campanhas Ativas.
+- Filtros: Empresa (multi), Tipo de Ação, Executiva Responsável.
 
-### 5. Exportação Excel
-Arquivo `calendario-plantoes-YYYY-MM.xlsx` com colunas: Data · Empresa · Horário início · Horário fim · Executiva · Status · Motivo cancelamento · Observação · Criado por · Última edição (`editado_por` em `dd/MM/yyyy HH:mm`). Inclui cancelados.
+### 3. Gráficos (Recharts)
 
-### 6. Permissões (frontend + RLS)
-| Perfil | Ação |
-|---|---|
-| admin / interno / coordenacao | CRUD completo |
-| enfermeira | leitura total |
-| externo | leitura só da sua carteira |
-| qualidade | sem acesso à rota |
+- Barras horizontais: distribuição por campanha (Sinais Vitais 16, Hepatites Virais 12, Palestras Gerais 2 — usa dados reais quando existirem, senão fallback Jul/26).
+- Donut de engajamento Sinais Vitais vs Palestras (53.3% / 46.7%).
+- Ranking Top Empresas Atendidas (Nippon Seiki, Klabin, Elgin, PST, TPV, Winlogis).
 
-Campo Executiva desbloqueado apenas para `mayara.meireles` (regra temporária, comentada no código).
+### 4. Sinais Vitais & Triagem
 
-### 7. Realtime + UX
-- Invalida query após create/update/delete; realtime channel em `agendamentos_plantao`.
-- `toast` em sucesso/erro/validação.
-- Loading discreto; `pointer-events-auto` no Calendar dentro do Popover.
+- Painel com PA/Glicemia agregando por empresa (reusa `triagens` existentes).
+- Gráfico radar de alterações clínicas por empresa (PA alta, glicemia alta, IMC, tabagismo).
+- Tabela com busca global (Elgin, PST, TPV…).
 
-### Ordem de execução
-1. Migration `agendamentos_plantao` + RLS + realtime → aguardar aprovação do usuário.
-2. Após aprovação: criar hooks, modal e reescrever a página.
-3. Verificar build e testar rota `/plantoes/calendario`.
+### 5. Módulos condicionais
 
-### Perguntas antes de começar
-1. **Empresas**: uso a lista completa de `empresas` (todas ativas) ou continuo restringindo às empresas ligadas a plantão (`plantoes_empresas`)? A spec fala "iaempresasativa" (ilegível) — assumo `empresas` ativas gerais, confirme.
-2. **Perfil `externo`**: tenho como identificar a "carteira" via `executiva = nome_completo` do próprio usuário logado, correto? Ou existe outro vínculo?
-3. **Substituição total**: posso descartar o código atual da página (que ainda referencia `usePlantaoEmpresas` só para popular filtro)? A nova página não terá mais nada do módulo antigo.
+- Hook `useCampanhaMes(mes, forcedMes?)`:
+  - `mes === 10` → renderiza módulo **Outubro Rosa** (mamografias agendadas/realizadas, engajamento feminino, laço rosa SVG grande em card hero).
+  - `mes === 11` → renderiza módulo **Novembro Azul** (PSA realizados, triagem masculina, adesão operária).
+  - Outros meses → nada.
+- Botão "Simular mês" abre popover com Outubro/Novembro/Reset → seta `forcedMes` local (não altera dados, só a visualização das abas).
+
+### 6. Exportação e Apresentação
+
+- **PDF Executivo**: usa `jspdf` + `html2canvas` (já instalados no projeto) para snapshotar cada seção como slide A4 paisagem estilo BCG (capa teal com título + KPIs, seção gráficos, seção triagem, apêndice).
+- **Modo Apresentação**: rota interna com estado (não fullscreen route separada) que:
+  - Entra em `document.documentElement.requestFullscreen()`.
+  - Renderiza slides sequenciais (Capa → KPIs → Distribuição → Engajamento → Top Empresas → Triagem → [Módulo condicional] → Encerramento).
+  - Navegação por ←/→/Space, indicador de progresso, contador N/Total, sair com Esc.
+
+### Detalhes técnicos
+
+```
+src/modules/saude-empresas/
+  pages/DashboardExecutivo.tsx          # página principal
+  components/executive/
+    ExecHeader.tsx                       # seletor mês + botões
+    KpiGrid.tsx                          # 6 cards animados
+    CampanhaBarChart.tsx
+    EngajamentoDonut.tsx
+    TopEmpresasChart.tsx
+    TriagemPanel.tsx
+    OutubroRosaModule.tsx
+    NovembroAzulModule.tsx
+    SimuladorMesButton.tsx
+    ApresentacaoOverlay.tsx              # fullscreen slides
+  hooks/useDashboardExecutivo.ts         # fetch + fallback Jul/26
+  lib/exec-export-pdf.ts                 # jspdf/html2canvas
+  lib/exec-mock-julho-2026.ts            # dados fallback
+```
+
+- Rota adicionada em `src/App.tsx`, link no menu do módulo Saúde.
+- Query padrão puxa de `acoes_saude`, `palestras_saude`, `acoes_preventivas`, `triagens` filtrando por mês/ano; se retorno < esperado para Jul/26, mescla com mock consolidado.
+- Nenhuma alteração em schema/migrations.
+
+### Fora de escopo
+
+- Não altera o fluxo existente de agendamento/calendário/relatório mensal PPTX (já implementado). Este dashboard é uma camada de leitura executiva.
