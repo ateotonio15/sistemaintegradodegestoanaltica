@@ -499,51 +499,87 @@ export async function gerarPptxRelatorio(
       });
   }
 
-  // Slide 4 — Empresas Atendidas
-  const s4 = pptx.addSlide();
-  s4.background = conteudoBg;
-  slideTitle(s4, "Empresas Atendidas", `${m.totalEmpresas} empresas · ${m.totalAcoes} ações`);
-  if (m.totalAcoes === 0) semDados(s4);
-  else {
+  // Helper: renderiza uma tabela paginada respeitando SAFE.h
+  const ROWS_PER_PAGE = 15;
+  const renderTablePaged = (
+    titulo: string,
+    subtitulo: (page: number, total: number, from: number, to: number, totalRows: number) => string,
+    header: string[],
+    allRows: string[][],
+    colW: number[],
+  ) => {
+    if (allRows.length === 0) {
+      const s = pptx.addSlide();
+      s.background = conteudoBg;
+      slideTitle(s, titulo, subtitulo(1, 1, 0, 0, 0));
+      semDados(s);
+      return;
+    }
+    const totalPages = Math.max(1, Math.ceil(allRows.length / ROWS_PER_PAGE));
+    for (let p = 0; p < totalPages; p++) {
+      const from = p * ROWS_PER_PAGE;
+      const to = Math.min(from + ROWS_PER_PAGE, allRows.length);
+      const slide = pptx.addSlide();
+      slide.background = conteudoBg;
+      slideTitle(slide, titulo, subtitulo(p + 1, totalPages, from + 1, to, allRows.length));
+      const chunk = allRows.slice(from, to);
+      const headerRow = header.map((h) => ({
+        text: h,
+        options: { bold: true, color: COLORS.WHITE, fill: { color: COLORS.NAVY }, align: "left", valign: "middle" },
+      }));
+      const bodyRows = chunk.map((row, i) =>
+        row.map((cell) => ({
+          text: cell,
+          options: {
+            color: COLORS.NAVY,
+            fill: { color: i % 2 === 0 ? COLORS.WHITE : COLORS.LIGHT },
+            valign: "middle",
+          },
+        })));
+      slide.addTable([headerRow as any, ...bodyRows] as any, {
+        x: SAFE.x, y: SAFE.y, w: SAFE.w,
+        colW,
+        rowH: 0.3,
+        fontSize: 9, fontFace: "Calibri",
+        border: { pt: 0.5, color: COLORS.BORDER },
+        margin: 0.06,
+      });
+    }
+  };
+
+  // Slide(s) 4 — Empresas Atendidas
+  {
     const header = ["Empresa", "Cidade", "Data", "Tipo", "Executiva", "Responsável"];
-    const rows = acoes.slice(0, 24).map((a) => [
+    const rows = acoes.map((a) => [
       a.empresaNome, a.cidade ?? "—", formatDateBR(a.data),
       a.tipoLabel, a.executiva ?? "—", a.enfermeira ?? a.responsavel ?? "—",
     ]);
-    s4.addTable([header, ...rows] as any, {
-      x: SAFE.x, y: SAFE.y, w: SAFE.w,
-      colW: [3.0, 2.0, 1.2, 1.8, 2.3, 1.93],
-      fontSize: 10, fontFace: "Calibri",
-      border: { pt: 0.5, color: COLORS.BORDER },
-      fill: { color: COLORS.WHITE },
-    });
-    if (acoes.length > 24) {
-      s4.addText(`+ ${acoes.length - 24} registros — ver Excel completo`, {
-        x: SAFE.x, y: SAFE.y + SAFE.h + 0.1, w: SAFE.w, h: 0.3,
-        fontSize: 10, italic: true, color: COLORS.GREY, fontFace: "Calibri",
-      });
-    }
+    renderTablePaged(
+      "Empresas Atendidas",
+      (p, tp, from, to, tot) => tp > 1
+        ? `${m.totalEmpresas} empresas · ${m.totalAcoes} ações · Página ${p}/${tp} (registros ${from}–${to} de ${tot})`
+        : `${m.totalEmpresas} empresas · ${m.totalAcoes} ações`,
+      header, rows,
+      [3.2, 2.2, 1.0, 1.6, 2.3, 1.93],
+    );
   }
 
-  // Slide 5 — Ações Realizadas
-  const s5 = pptx.addSlide();
-  s5.background = conteudoBg;
-  slideTitle(s5, "Ações Realizadas", "Detalhamento das ações do período");
-  if (m.totalAcoes === 0) semDados(s5);
-  else {
+  // Slide(s) 5 — Ações Realizadas
+  {
     const header = ["Empresa", "Tema", "Campanha", "Data", "Horário", "Responsável"];
-    const rows = acoes.slice(0, 24).map((a) => [
+    const rows = acoes.map((a) => [
       a.empresaNome, a.tema ?? "—", a.campanha, formatDateBR(a.data),
       `${a.horarioInicio?.slice(0, 5) ?? "--:--"} – ${a.horarioFim?.slice(0, 5) ?? "--:--"}`,
       a.executiva ?? a.responsavel ?? "—",
     ]);
-    s5.addTable([header, ...rows] as any, {
-      x: SAFE.x, y: SAFE.y, w: SAFE.w,
-      colW: [2.6, 2.6, 1.9, 1.2, 1.6, 2.33],
-      fontSize: 10, fontFace: "Calibri",
-      border: { pt: 0.5, color: COLORS.BORDER },
-      fill: { color: COLORS.WHITE },
-    });
+    renderTablePaged(
+      "Ações Realizadas",
+      (p, tp, from, to, tot) => tp > 1
+        ? `Detalhamento das ações · Página ${p}/${tp} (registros ${from}–${to} de ${tot})`
+        : "Detalhamento das ações do período",
+      header, rows,
+      [2.8, 2.6, 1.9, 1.0, 1.6, 2.33],
+    );
   }
 
   // Slide 6 — Campanhas
