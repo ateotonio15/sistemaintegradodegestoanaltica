@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
@@ -43,8 +43,23 @@ type EmpresaOption = {
   tipo_movimentacao: string | null;
   periodo_movimentacao: string | null;
   responsavel_contrato: string | null;
+  responsavel_user_id?: string | null;
   data_corte: number | null;
   tipo_contrato?: string | null;
+};
+
+type EmpresaResponsavel = {
+  id?: string | null;
+  responsavel_contrato?: string | null;
+  responsavel_user_id?: string | null;
+} | null | undefined;
+
+type FeriasOriginalRow = {
+  responsavel_original_nome: string | null;
+  ferias_cadastro_empresas?: {
+    empresa_id: string | null;
+    status: string | null;
+  }[] | null;
 };
 
 const emptyForm = {
@@ -106,8 +121,36 @@ export default function Movimentacoes() {
     enabled: !!user,
   });
 
-  const respContratoOf = (emp: any): string => {
+  const { data: feriasOriginalMap = new Map<string, string>() } = useQuery({
+    queryKey: ["ferias-original-owner-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ferias_cadastro")
+        .select("id, responsavel_original_nome, ferias_cadastro_empresas(empresa_id, status)")
+        .in("status", ["em_andamento", "aguardando_retorno_contratos"]);
+      if (error) throw error;
+
+      const m = new Map<string, string>();
+      ((data ?? []) as unknown as FeriasOriginalRow[]).forEach((f) => {
+        const original = (f.responsavel_original_nome ?? "").trim();
+        if (!original) return;
+        (f.ferias_cadastro_empresas ?? []).forEach((e) => {
+          if (e.empresa_id && ["redistribuida", "aguardando_fechamento"].includes(e.status)) {
+            m.set(e.empresa_id, original);
+          }
+        });
+      });
+      return m;
+    },
+    enabled: !!user,
+  });
+
+  const respContratoOf = useCallback((emp: EmpresaResponsavel): string => {
     if (!emp) return "";
+    // Durante férias, a empresa pode estar temporariamente com outro responsável.
+    // Para Movimentações, mostra sempre o dono original do contrato.
+    const originalFerias = emp.id ? feriasOriginalMap.get(emp.id) : undefined;
+    if (originalFerias) return originalFerias;
     // Prioriza o texto "Responsável pelo Contrato" cadastrado na aba Empresas.
     if (emp.responsavel_contrato) return emp.responsavel_contrato;
     const uid = emp.responsavel_user_id;
@@ -116,7 +159,7 @@ export default function Movimentacoes() {
       if (nm) return nm;
     }
     return "";
-  };
+  }, [feriasOriginalMap, profilesMap]);
 
   const { data: movimentacoes = [], isLoading } = useQuery({
     queryKey: ["movimentacoes", filterMes, activeTab],
@@ -276,7 +319,7 @@ export default function Movimentacoes() {
       }
       return true;
     });
-  }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm]);
+  }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm, respContratoOf]);
 
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
