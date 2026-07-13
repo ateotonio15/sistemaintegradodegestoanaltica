@@ -10,6 +10,7 @@ export const SETORES = [
   "Direção Clínica",
   "Financeiro",
   "Laboratório",
+  "Serviço Social",
   "T.I",
 ];
 
@@ -49,6 +50,7 @@ export const RECLAMACOES = [
   "Indisponibilidade de dados",
   "Telemedicina",
   "Aplicativo",
+  "Veracidade de Atestado",
 ];
 
 // Fallback por tipo (chave = tipo)
@@ -124,6 +126,9 @@ export const RECLAMACOES_POR_SETOR_TIPO: Record<string, Record<string, string[]>
     "T.I": ["Indisponibilidade de dados", "Telemedicina"],
     "Aplicativo Samel": ["Aplicativo", "Indisponibilidade de dados"],
     "Portal": ["Indisponibilidade de dados", "Falha de processo"],
+  },
+  "Serviço Social": {
+    "Reclamação": ["Veracidade de Atestado"],
   },
 };
 
