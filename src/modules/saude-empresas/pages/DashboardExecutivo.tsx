@@ -143,7 +143,7 @@ export default function DashboardExecutivo() {
                 </SelectContent>
               </Select>
 
-              <SimuladorMesButton forced={forcedMes} onChange={setForcedMes} />
+              {devMode && <SimuladorMesButton forced={forcedMes} onChange={setForcedMes} />}
 
               <Button variant="outline" className="gap-2 border-[#004d40]/30 text-[#004d40]" onClick={handlePdf} disabled={!data}>
                 <FileText className="h-4 w-4" /> PDF
