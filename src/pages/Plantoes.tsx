@@ -48,7 +48,12 @@ export default function Plantoes() {
   usePlantoesRealtime();
 
   const today = new Date().toISOString().slice(0, 10);
-  const [from, setFrom] = useState<string>(today);
+  const defaultFrom = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  })();
+  const [from, setFrom] = useState<string>(defaultFrom);
   const [to, setTo] = useState<string>(today);
   const [busca, setBusca] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState<string>("all");
@@ -133,7 +138,7 @@ export default function Plantoes() {
     setExecFilter("all");
     setAtividadeFilter("all");
     setSortBy("recente");
-    setFrom(today);
+    setFrom(defaultFrom);
     setTo(today);
   };
 
