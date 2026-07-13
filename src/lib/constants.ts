@@ -50,6 +50,7 @@ export const RECLAMACOES = [
   "Indisponibilidade de dados",
   "Telemedicina",
   "Aplicativo",
+  "Veracidade de Atestado",
 ];
 
 // Fallback por tipo (chave = tipo)
