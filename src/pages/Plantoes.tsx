@@ -138,7 +138,7 @@ export default function Plantoes() {
     setExecFilter("all");
     setAtividadeFilter("all");
     setSortBy("recente");
-    setFrom(today);
+    setFrom(defaultFrom);
     setTo(today);
   };
 
