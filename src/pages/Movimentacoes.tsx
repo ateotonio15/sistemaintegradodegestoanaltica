@@ -59,8 +59,10 @@ type FeriasOriginalRow = {
   ferias_cadastro_empresas?: {
     empresa_id: string | null;
     status: string | null;
+    responsavel_temporario_nome: string | null;
   }[] | null;
 };
+
 
 const emptyForm = {
   empresa_id: "",
