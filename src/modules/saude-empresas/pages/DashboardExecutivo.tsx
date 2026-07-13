@@ -87,9 +87,9 @@ export default function DashboardExecutivo() {
           </div>
         ),
       },
-      { title: "Distribuição por Campanha", subtitle: "Ações executadas no mês", render: () => <div className="max-w-4xl"><CampanhaBarChart data={data.campanhas} /></div> },
-      { title: "Engajamento do Mês", subtitle: "Sinais Vitais vs Palestras", render: () => <div className="max-w-2xl mx-auto"><EngajamentoDonut data={data.engajamento} /></div> },
-      { title: "Top Empresas", subtitle: "Ranking por ações realizadas", render: () => <div className="max-w-4xl"><TopEmpresasChart data={data.topEmpresas} /></div> },
+      { title: "Distribuição por Campanha", subtitle: "Ações executadas no mês", render: () => <div className="max-w-4xl"><CampanhaBarChart data={campanhasFiltradas} /></div> },
+      { title: "Engajamento do Mês", subtitle: "Sinais Vitais vs Palestras", render: () => <div className="max-w-2xl mx-auto"><EngajamentoDonut data={engajamentoFiltrado} /></div> },
+      { title: "Top Empresas", subtitle: "Ranking por ações realizadas", render: () => <div className="max-w-4xl"><TopEmpresasChart data={topEmpresasFiltradas} /></div> },
       { title: "Sinais Vitais & Triagem", subtitle: "Alterações clínicas por empresa", render: () => <TriagemPanel data={data.triagemAgg} /> },
     ];
     if (showOutubro) base.push({ title: "Outubro Rosa", subtitle: "Prevenção ao câncer de mama", render: () => <OutubroRosaModule /> });
