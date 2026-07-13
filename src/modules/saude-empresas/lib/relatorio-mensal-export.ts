@@ -450,53 +450,232 @@ export async function gerarPptxRelatorio(
     });
   }
 
-  // Slide 3 — Indicadores
+  // Slide 3 — Indicadores (Executivo)
   const s3 = pptx.addSlide();
   s3.background = conteudoBg;
-  slideTitle(s3, "Indicadores", "Distribuição por empresa, tipo e semana");
-  if (m.totalAcoes === 0) semDados(s3);
-  else {
-    const chartW = (SAFE.w - 0.3) / 2;
-    const chartH = (SAFE.h - 0.3) / 2;
-    const topEmp = m.porEmpresa.slice(0, 8).map((e) => ({
-      ...e,
-      nome: e.nome.length > 26 ? e.nome.slice(0, 24) + "…" : e.nome,
-    }));
+  if (m.totalAcoes === 0) {
+    slideTitle(s3, "Indicadores", "Distribuição por empresa, tipo e semana");
+    semDados(s3);
+  } else {
+    // Paleta executiva verde
+    const DARK_G = "1B4332";
+    const MID_G  = "40916C";
+    const LIGHT_G = "74C69D";
+    const ACCENT_G = "2D6A4F";
+    const SOFT_G = "D8F3DC";
+    const GOLD = "E9B44C";
+
+    // === Header custom ===
+    s3.addText("Indicadores de Ações nas Empresas", {
+      x: SAFE.x, y: 0.55, w: 8.6, h: 0.5,
+      fontSize: 22, bold: true, color: DARK_G, fontFace: "Calibri",
+    });
+    s3.addText("Distribuição por empresa, tipo e semana", {
+      x: SAFE.x, y: 1.02, w: 8.6, h: 0.3,
+      fontSize: 12, color: ACCENT_G, fontFace: "Calibri",
+    });
+    // Period pill
+    s3.addShape("roundRect", {
+      x: SAFE.x, y: 1.38, w: 1.6, h: 0.32,
+      fill: { color: SOFT_G }, line: { color: ACCENT_G, width: 0.75 },
+      rectRadius: 0.16,
+    });
+    s3.addText(periodo, {
+      x: SAFE.x, y: 1.38, w: 1.6, h: 0.32,
+      fontSize: 10, bold: true, color: DARK_G, fontFace: "Calibri",
+      align: "center", valign: "middle",
+    });
+    // Divider
+    s3.addShape("line", {
+      x: SAFE.x, y: 1.82, w: SAFE.w, h: 0,
+      line: { color: ACCENT_G, width: 0.75 },
+    });
+
+    // === KPI mini-cards ===
+    const total = m.totalAcoes;
+    const kpiRow = [
+      { label: "Total Ações", valor: `${total}`, cor: DARK_G },
+      { label: "Empresas", valor: `${m.totalEmpresas}`, cor: ACCENT_G },
+      { label: "Palestras", valor: `${m.totalPalestras}${m.totalPalestras>0?` (${Math.round(m.totalPalestras/total*100)}%)`:""}`, cor: MID_G },
+      { label: "Sinais Vitais", valor: `${m.totalSinaisVitais}${m.totalSinaisVitais>0?` (${Math.round(m.totalSinaisVitais/total*100)}%)`:""}`, cor: LIGHT_G },
+    ].filter((k) => Number(String(k.valor).split(" ")[0]) > 0);
+
+    const kpiY = 1.95, kpiH = 0.7, kpiGap = 0.15;
+    const kpiW = (SAFE.w - kpiGap * (kpiRow.length - 1)) / kpiRow.length;
+    kpiRow.forEach((k, i) => {
+      const x = SAFE.x + i * (kpiW + kpiGap);
+      s3.addShape("rect", { x, y: kpiY, w: 0.08, h: kpiH, fill: { color: k.cor }, line: { color: k.cor } });
+      s3.addShape("roundRect", {
+        x: x + 0.08, y: kpiY, w: kpiW - 0.08, h: kpiH,
+        fill: { color: "FFFFFF" }, line: { color: "E5E7EB", width: 0.5 }, rectRadius: 0.05,
+      });
+      s3.addText(k.valor, {
+        x: x + 0.18, y: kpiY + 0.05, w: kpiW - 0.28, h: 0.38,
+        fontSize: 20, bold: true, color: k.cor, fontFace: "Calibri", valign: "middle",
+      });
+      s3.addText(k.label.toUpperCase(), {
+        x: x + 0.18, y: kpiY + 0.42, w: kpiW - 0.28, h: 0.25,
+        fontSize: 9, bold: true, color: "6B7280", charSpacing: 1, fontFace: "Calibri",
+      });
+    });
+
+    // === Charts area ===
+    const chartsY = kpiY + kpiH + 0.2; // 2.85
+    const chartW = (SAFE.w - 0.25) / 2;
+    const topChartH = 2.0;
+
+    // --- Bar chart: Top empresas ---
+    const topEmp = m.porEmpresa.slice(0, 8);
+    // Gerar gradiente de verdes (mais alto = mais escuro)
+    const greenPalette = [DARK_G, ACCENT_G, MID_G, MID_G, "52B788", "52B788", LIGHT_G, LIGHT_G];
+    const barColors = topEmp.map((_, i) => greenPalette[Math.min(i, greenPalette.length - 1)]);
+
+    s3.addText("Top Empresas", {
+      x: SAFE.x, y: chartsY, w: chartW, h: 0.3,
+      fontSize: 13, bold: true, color: DARK_G, fontFace: "Calibri",
+    });
+    const maxBar = Math.max(...topEmp.map((e) => e.qtd), 1);
     s3.addChart(pptx.ChartType.bar,
       [{ name: "Ações", labels: topEmp.map((e) => e.nome), values: topEmp.map((e) => e.qtd) }],
       {
-        x: SAFE.x, y: SAFE.y, w: chartW, h: chartH,
-        barDir: "bar", chartColors: [COLORS.NAVY], barGapWidthPct: 45,
-        showTitle: true, title: "Ações por empresa (top 8)",
-        titleFontSize: 12, titleColor: COLORS.NAVY,
+        x: SAFE.x, y: chartsY + 0.32, w: chartW, h: topChartH - 0.32,
+        barDir: "bar",
+        chartColors: barColors,
+        chartColorsOpacity: 100,
+        barGapWidthPct: 30,
         showValue: true,
         dataLabelPosition: "outEnd",
-        dataLabelFontSize: 9, dataLabelColor: COLORS.NAVY, dataLabelFontBold: true,
+        dataLabelFontSize: 10, dataLabelColor: DARK_G, dataLabelFontBold: true,
         showLegend: false,
-        catAxisLabelFontSize: 8, valAxisLabelFontSize: 8,
-        valAxisMinVal: 0,
+        catAxisLabelFontSize: 9, catAxisLabelColor: DARK_G,
+        valAxisLabelFontSize: 8, valAxisLabelColor: "6B7280",
+        valAxisMinVal: 0, valAxisMaxVal: maxBar, valAxisMajorUnit: 1,
+        valGridLine: { style: "solid", size: 0.5, color: "E5E7EB" },
+        catGridLine: { style: "none" },
       });
+
+    // --- Donut: Distribuição por tipo ---
+    const donutX = SAFE.x + chartW + 0.25;
+    s3.addText("Distribuição por Tipo", {
+      x: donutX, y: chartsY, w: chartW, h: 0.3,
+      fontSize: 13, bold: true, color: DARK_G, fontFace: "Calibri",
+    });
+    const donutH = topChartH - 0.32;
+    const donutW = donutH * 1.05;
     s3.addChart(pptx.ChartType.doughnut,
       [{ name: "Tipo", labels: m.porTipo.map((t) => t.tipo), values: m.porTipo.map((t) => t.qtd) }],
       {
-        x: SAFE.x + chartW + 0.3, y: SAFE.y, w: chartW, h: chartH,
-        chartColors: [COLORS.NAVY, COLORS.GREEN, COLORS.AMBER, COLORS.RED, COLORS.GREY],
-        showLegend: true, legendPos: "b", legendFontSize: 10,
-        showTitle: true, title: "Ações por tipo",
-        titleFontSize: 12, titleColor: COLORS.NAVY,
-        showPercent: true, dataLabelColor: COLORS.WHITE, dataLabelFontSize: 10, dataLabelFontBold: true,
+        x: donutX, y: chartsY + 0.32, w: donutW, h: donutH,
+        chartColors: [DARK_G, "52B788", MID_G, LIGHT_G, ACCENT_G],
+        showLegend: false,
+        holeSize: 58,
+        showPercent: true,
+        dataLabelColor: "FFFFFF", dataLabelFontSize: 10, dataLabelFontBold: true,
+        dataLabelPosition: "ctr",
       });
-    s3.addChart(pptx.ChartType.line,
-      [{ name: "Ações", labels: m.porSemana.map((s) => s.semana), values: m.porSemana.map((s) => s.qtd) }],
+    // Centro do donut (total)
+    const donutCx = donutX + donutW / 2;
+    const donutCy = chartsY + 0.32 + donutH / 2;
+    s3.addText(`${total}`, {
+      x: donutCx - 0.5, y: donutCy - 0.28, w: 1.0, h: 0.4,
+      fontSize: 24, bold: true, color: DARK_G, fontFace: "Calibri",
+      align: "center", valign: "middle",
+    });
+    s3.addText("Total", {
+      x: donutCx - 0.5, y: donutCy + 0.10, w: 1.0, h: 0.22,
+      fontSize: 9, color: "6B7280", fontFace: "Calibri",
+      align: "center", valign: "middle",
+    });
+    // Legenda customizada à direita
+    const legX = donutX + donutW + 0.15;
+    const legW = chartW - donutW - 0.15;
+    const legendColors = [DARK_G, "52B788", MID_G, LIGHT_G, ACCENT_G];
+    m.porTipo.slice(0, 5).forEach((t, i) => {
+      const ly = chartsY + 0.45 + i * 0.30;
+      s3.addShape("rect", {
+        x: legX, y: ly + 0.05, w: 0.15, h: 0.15,
+        fill: { color: legendColors[i] }, line: { color: legendColors[i] },
+      });
+      const p = Math.round((t.qtd / total) * 100);
+      s3.addText(
+        [
+          { text: `${t.tipo}\n`, options: { bold: true, color: DARK_G, fontSize: 10 } },
+          { text: `${t.qtd} · ${p}%`, options: { color: "6B7280", fontSize: 9 } },
+        ] as any,
+        {
+          x: legX + 0.22, y: ly, w: legW - 0.22, h: 0.45,
+          fontFace: "Calibri", valign: "top",
+        },
+      );
+    });
+
+    // --- Linha: Evolução semanal ---
+    const lineY = chartsY + topChartH + 0.15; // ~5.0
+    const lineH = SAFE.y + SAFE.h - lineY - 0.35; // deixa espaço para trend text
+    // Simplificar labels: "Sem 1" apenas
+    const semLabels = m.porSemana.map((s) => s.semana.split(" (")[0]);
+    const semRanges = m.porSemana.map((s) => {
+      const m2 = s.semana.match(/\(([^)]+)\)/);
+      return m2 ? m2[1] : "";
+    });
+    const peakIdx = m.porSemana.reduce((best, s, i, arr) =>
+      s.qtd > arr[best].qtd ? i : best, 0);
+
+    s3.addText("Evolução Semanal de Ações", {
+      x: SAFE.x, y: lineY, w: SAFE.w, h: 0.3,
+      fontSize: 13, bold: true, color: DARK_G, fontFace: "Calibri",
+    });
+    s3.addChart(pptx.ChartType.area,
+      [{ name: "Ações", labels: semLabels, values: m.porSemana.map((s) => s.qtd) }],
       {
-        x: SAFE.x, y: SAFE.y + chartH + 0.3, w: SAFE.w, h: chartH,
-        chartColors: [COLORS.GREEN], lineSize: 3,
-        showTitle: true, title: "Evolução semanal",
-        titleFontSize: 12, titleColor: COLORS.NAVY,
+        x: SAFE.x, y: lineY + 0.32, w: SAFE.w, h: lineH - 0.32,
+        chartColors: [DARK_G],
+        chartColorsOpacity: 30,
+        lineSize: 3,
+        lineDataSymbol: "circle",
+        lineDataSymbolSize: 9,
+        lineDataSymbolLineColor: "FFFFFF",
+        lineDataSymbolLineSize: 1.5,
         showValue: true, showLegend: false,
-        dataLabelPosition: "t", dataLabelFontSize: 9, dataLabelColor: COLORS.NAVY,
-        catAxisLabelFontSize: 10, valAxisLabelFontSize: 10,
+        dataLabelPosition: "t",
+        dataLabelFontSize: 11, dataLabelColor: DARK_G, dataLabelFontBold: true,
+        catAxisLabelFontSize: 10, catAxisLabelColor: DARK_G, catAxisLabelFontBold: true,
+        valAxisLabelFontSize: 8, valAxisLabelColor: "6B7280",
+        valGridLine: { style: "solid", size: 0.5, color: "E5E7EB" },
+        catGridLine: { style: "none" },
+        valAxisMinVal: 0, valAxisMajorUnit: 1,
       });
+
+    // Sub-labels de datas abaixo das semanas
+    if (semRanges.some((r) => r)) {
+      const rangeW = (SAFE.w - 0.5) / semRanges.length;
+      semRanges.forEach((r, i) => {
+        if (!r) return;
+        s3.addText(r, {
+          x: SAFE.x + 0.4 + i * rangeW, y: lineY + lineH - 0.05, w: rangeW, h: 0.2,
+          fontSize: 8, color: "6B7280", fontFace: "Calibri", align: "center",
+        });
+      });
+    }
+
+    // Trend summary
+    const first = m.porSemana[0]?.qtd ?? 0;
+    const peak = m.porSemana[peakIdx]?.qtd ?? 0;
+    const last = m.porSemana[m.porSemana.length - 1]?.qtd ?? 0;
+    const growth = first > 0 ? Math.round(((peak - first) / first) * 100) : (peak > 0 ? 100 : 0);
+    const drop = peak > 0 ? Math.round(((last - peak) / peak) * 100) : 0;
+    const trendParts = [
+      { text: "▲ ", options: { color: ACCENT_G, bold: true } },
+      { text: `Pico Sem ${peakIdx + 1} = ${peak}`, options: { color: DARK_G, bold: true } },
+      { text: `   ·   Sem 1 → Pico: ${growth >= 0 ? "+" : ""}${growth}%`, options: { color: "6B7280" } },
+    ];
+    if (peakIdx < m.porSemana.length - 1) {
+      trendParts.push({ text: `   ·   Pico → Final: ${drop >= 0 ? "+" : ""}${drop}%`, options: { color: "6B7280" } });
+    }
+    s3.addText(trendParts as any, {
+      x: SAFE.x, y: SAFE.y + SAFE.h - 0.3, w: SAFE.w, h: 0.28,
+      fontSize: 10, fontFace: "Calibri", align: "center",
+    });
   }
 
   // Helper: renderiza uma tabela paginada respeitando SAFE.h
