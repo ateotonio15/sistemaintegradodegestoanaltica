@@ -170,6 +170,7 @@ export default function SaudeEmpresasLista() {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline"><Link to="/saude-empresas/visao-geral"><BarChart3 className="h-4 w-4 mr-1" />Visão geral</Link></Button>
+          <Button asChild className="bg-[#004d40] hover:bg-[#003c33] text-white"><Link to="/saude-empresas/dashboard-executivo"><BarChart3 className="h-4 w-4 mr-1" />Dashboard Executivo</Link></Button>
           {canCreate && (
             <Button onClick={() => setModalOpen(true)}>
               <Plus className="h-4 w-4 mr-1" />Nova ação
