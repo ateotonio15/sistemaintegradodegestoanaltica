@@ -108,12 +108,14 @@ export default function Movimentacoes() {
 
   const respContratoOf = (emp: any): string => {
     if (!emp) return "";
+    // Prioriza o texto "Responsável pelo Contrato" cadastrado na aba Empresas.
+    if (emp.responsavel_contrato) return emp.responsavel_contrato;
     const uid = emp.responsavel_user_id;
     if (uid) {
       const nm = profilesMap.get(uid);
       if (nm) return nm;
     }
-    return emp.responsavel_contrato ?? "";
+    return "";
   };
 
   const { data: movimentacoes = [], isLoading } = useQuery({
