@@ -549,8 +549,20 @@ export default function Financeiro() {
 
   // Linhas enriquecidas
   const allRows: FinanceiroRow[] = useMemo(() => {
+    const lancamentosRegulares = new Set(
+      financeiroRaw
+        .filter((f) => ["normal", "fechamento_periodo"].includes((f as any).tipo_lancamento ?? "normal"))
+        .map((f) => `${f.empresa_id}|${f.mes_referencia}|${f.periodo}`),
+    );
+
     return financeiroRaw
       .filter((f) => {
+        if (
+          (f as any).tipo_lancamento === "primeira_mensalidade" &&
+          lancamentosRegulares.has(`${f.empresa_id}|${f.mes_referencia}|${f.periodo}`)
+        ) {
+          return false;
+        }
         const emp = empresasMap[f.empresa_id];
         if (emp?.nao_faturado_financeiro) return false;
         // Oculta empresas desativadas (rescindidas/suspensas/inativas) pelo cadastro
