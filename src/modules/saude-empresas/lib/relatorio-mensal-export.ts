@@ -613,7 +613,7 @@ export async function gerarPptxRelatorio(
     linhas.push(`Média semanal: ${m.mediaSemanal} ações/semana`);
     s7.addText(linhas.map((t) => ({ text: t, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any, {
       x: SAFE.x + 0.3, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
-      fontSize: 14, fontFace: "Calibri", paraSpaceAfter: 8,
+      fontSize: 14, fontFace: "Calibri", paraSpaceAfter: 8, valign: "top",
     });
 
     painel(s7, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Comparativo com mês anterior");
