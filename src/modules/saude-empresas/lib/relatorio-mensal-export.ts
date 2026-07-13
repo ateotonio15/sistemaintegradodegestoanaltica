@@ -650,12 +650,13 @@ export function gerarPdfRelatorio(
 
   // Resumo
   secao("Resumo Geral");
-  const kpis = [
+  const kpisAll: Array<[string, number]> = [
     ["Total de ações", m.totalAcoes], ["Empresas atendidas", m.totalEmpresas],
     ["Palestras", m.totalPalestras], ["PSA", m.totalPsa],
     ["Sinais Vitais", m.totalSinaisVitais], ["Coletas Preventivas", m.totalPreventivas],
     ["Campanhas", m.totalCampanhas], ["Média semanal", m.mediaSemanal],
   ];
+  const kpis = kpisAll.filter(([, v]) => Number(v) > 0);
   autoTable(doc, {
     startY: 80,
     head: [["Indicador", "Valor"]],
