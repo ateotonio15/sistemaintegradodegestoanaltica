@@ -59,8 +59,10 @@ type FeriasOriginalRow = {
   ferias_cadastro_empresas?: {
     empresa_id: string | null;
     status: string | null;
+    responsavel_temporario_nome: string | null;
   }[] | null;
 };
+
 
 const emptyForm = {
   empresa_id: "",
@@ -121,37 +123,55 @@ export default function Movimentacoes() {
     enabled: !!user,
   });
 
-  const { data: feriasOriginalMap = new Map<string, string>() } = useQuery({
-    queryKey: ["ferias-original-owner-map"],
+  const { data: feriasMaps = { original: new Map<string, string>(), substituto: new Map<string, string>() } } = useQuery({
+    queryKey: ["ferias-owner-maps"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ferias_cadastro")
-        .select("id, responsavel_original_nome, ferias_cadastro_empresas(empresa_id, status)")
+        .select("id, responsavel_original_nome, ferias_cadastro_empresas(empresa_id, status, responsavel_temporario_nome)")
         .in("status", ["em_andamento", "aguardando_retorno_contratos"]);
       if (error) throw error;
 
-      const m = new Map<string, string>();
+      const original = new Map<string, string>();
+      const substituto = new Map<string, string>();
       ((data ?? []) as unknown as FeriasOriginalRow[]).forEach((f) => {
-        const original = (f.responsavel_original_nome ?? "").trim();
-        if (!original) return;
+        const originalNome = (f.responsavel_original_nome ?? "").trim();
         (f.ferias_cadastro_empresas ?? []).forEach((e) => {
-          if (e.empresa_id && ["redistribuida", "aguardando_fechamento"].includes(e.status)) {
-            m.set(e.empresa_id, original);
-          }
+          if (!e.empresa_id) return;
+          if (!["redistribuida", "aguardando_fechamento"].includes(e.status ?? "")) return;
+          if (originalNome) original.set(e.empresa_id, originalNome);
+          const sub = (e.responsavel_temporario_nome ?? "").trim();
+          if (sub) substituto.set(e.empresa_id, sub);
         });
       });
-      return m;
+      return { original, substituto };
     },
     enabled: !!user,
   });
 
+  const feriasOriginalMap = feriasMaps.original;
+  const feriasSubstitutoMap = feriasMaps.substituto;
+
+  // Resp. Contrato (aba Movimentações): durante férias, mostra o substituto que
+  // está tocando a movimentação; caso contrário, o responsável cadastrado na aba Empresas.
   const respContratoOf = useCallback((emp: EmpresaResponsavel): string => {
     if (!emp) return "";
-    // Durante férias, a empresa pode estar temporariamente com outro responsável.
-    // Para Movimentações, mostra sempre o dono original do contrato.
-    const originalFerias = emp.id ? feriasOriginalMap.get(emp.id) : undefined;
-    if (originalFerias) return originalFerias;
-    // Prioriza o texto "Responsável pelo Contrato" cadastrado na aba Empresas.
+    const sub = emp.id ? feriasSubstitutoMap.get(emp.id) : undefined;
+    if (sub) return sub;
+    if (emp.responsavel_contrato) return emp.responsavel_contrato;
+    const uid = emp.responsavel_user_id;
+    if (uid) {
+      const nm = profilesMap.get(uid);
+      if (nm) return nm;
+    }
+    return "";
+  }, [feriasSubstitutoMap, profilesMap]);
+
+  // Resp. Mov.: sempre o dono original do contrato (mesmo durante férias).
+  const respMovOf = useCallback((emp: EmpresaResponsavel): string => {
+    if (!emp) return "";
+    const original = emp.id ? feriasOriginalMap.get(emp.id) : undefined;
+    if (original) return original;
     if (emp.responsavel_contrato) return emp.responsavel_contrato;
     const uid = emp.responsavel_user_id;
     if (uid) {
@@ -160,6 +180,7 @@ export default function Movimentacoes() {
     }
     return "";
   }, [feriasOriginalMap, profilesMap]);
+
 
   const { data: movimentacoes = [], isLoading } = useQuery({
     queryKey: ["movimentacoes", filterMes, activeTab],
@@ -801,7 +822,7 @@ export default function Movimentacoes() {
                           <TableCell>
                             <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{respContratoOf(m.empresas) || m.responsavel_movimentacao || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{respMovOf(m.empresas) || m.responsavel_movimentacao || "—"}</TableCell>
                           {true && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
