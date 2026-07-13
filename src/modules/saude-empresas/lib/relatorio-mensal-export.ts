@@ -318,12 +318,12 @@ async function totalMesAnterior(f: FiltrosRelatorio): Promise<number | null> {
 // ============================================================
 function slideTitle(slide: any, titulo: string, subtitulo?: string) {
   slide.addText(titulo, {
-    x: SAFE.x, y: 0.7, w: 8.6, h: 0.5,
+    x: SAFE.x, y: 0.55, w: 8.6, h: 0.5,
     fontSize: 26, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
   });
   if (subtitulo) {
     slide.addText(subtitulo, {
-      x: SAFE.x, y: 1.2, w: 8.6, h: 0.35,
+      x: SAFE.x, y: 1.05, w: 8.6, h: 0.35,
       fontSize: 13, color: COLORS.GREEN, fontFace: "Calibri",
     });
   }
