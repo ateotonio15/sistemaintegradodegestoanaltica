@@ -14,9 +14,20 @@ const items = [
 ] as const;
 
 export function KpiGrid({ kpis }: { kpis: ExecKpis }) {
+  const visible = items.filter((it) => {
+    const v = (kpis as any)[it.key] as number;
+    return typeof v === "number" && v > 0;
+  });
+  // grid adaptável ao número de KPIs visíveis
+  const cols =
+    visible.length <= 2 ? "grid-cols-1 sm:grid-cols-2"
+    : visible.length === 3 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+    : visible.length <= 4 ? "grid-cols-2 lg:grid-cols-4"
+    : visible.length <= 6 ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-6"
+    : "grid-cols-2 md:grid-cols-4";
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {items.map((it, idx) => {
+    <div className={`grid ${cols} gap-4`}>
+      {visible.map((it, idx) => {
         const Icon = it.icon;
         const value = (kpis as any)[it.key] as number;
         return (
@@ -44,4 +55,11 @@ export function KpiGrid({ kpis }: { kpis: ExecKpis }) {
       })}
     </div>
   );
+}
+
+export function countHiddenKpis(kpis: ExecKpis) {
+  return items.filter((it) => {
+    const v = (kpis as any)[it.key] as number;
+    return !(typeof v === "number" && v > 0);
+  }).length;
 }

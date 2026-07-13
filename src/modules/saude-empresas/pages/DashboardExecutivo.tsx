@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Download, FileText, Presentation as PresentationIcon } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowLeft, FileText, Presentation as PresentationIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useDashboardExecutivo } from "../hooks/useDashboardExecutivo";
-import { KpiGrid } from "../components/executive/KpiGrid";
+import { KpiGrid, countHiddenKpis } from "../components/executive/KpiGrid";
 import { CampanhaBarChart } from "../components/executive/CampanhaBarChart";
 import { EngajamentoDonut } from "../components/executive/EngajamentoDonut";
 import { TopEmpresasChart } from "../components/executive/TopEmpresasChart";
@@ -16,9 +16,12 @@ import { SimuladorMesButton } from "../components/executive/SimuladorMesButton";
 import { ApresentacaoOverlay, type Slide } from "../components/executive/ApresentacaoOverlay";
 import { exportExecutivePdf } from "../lib/exec-export-pdf";
 import { MESES_PT } from "../lib/palestras-calendario";
+import { OUTUBRO_ROSA, NOVEMBRO_AZUL } from "../lib/exec-mock-julho-2026";
 
 export default function DashboardExecutivo() {
   const now = new Date();
+  const [searchParams] = useSearchParams();
+  const devMode = searchParams.get("dev") === "1";
   const [mes, setMes] = useState<number>(7);
   const [ano, setAno] = useState<number>(2026);
   const [forcedMes, setForcedMes] = useState<number | null>(null);
@@ -27,8 +30,20 @@ export default function DashboardExecutivo() {
   const { data, isLoading } = useDashboardExecutivo({ mes, ano });
 
   const mesExibido = forcedMes ?? mes;
-  const showOutubro = mesExibido === 10;
-  const showNovembro = mesExibido === 11;
+  // Ativação condicional: só carrega quando é o mês real E há registros ativos
+  const outubroTemDados = OUTUBRO_ROSA.mamografiasRealizadas > 0 || OUTUBRO_ROSA.mamografiasAgendadas > 0;
+  const novembroTemPsa = NOVEMBRO_AZUL.psaRealizados > 0;
+  const showOutubro = (mesExibido === 10) && (forcedMes === 10 || outubroTemDados);
+  const showNovembro = (mesExibido === 11) && (forcedMes === 11 || novembroTemPsa);
+
+  // Filtragem de valores zerados em gráficos
+  const campanhasFiltradas = useMemo(() => (data?.campanhas ?? []).filter((c) => c.valor > 0), [data]);
+  const engajamentoFiltrado = useMemo(() => (data?.engajamento ?? []).filter((e) => e.valor > 0), [data]);
+  const topEmpresasFiltradas = useMemo(() => (data?.topEmpresas ?? []).filter((e) => e.acoes > 0), [data]);
+  const hiddenKpis = data ? countHiddenKpis(data.kpis) : 0;
+  const hiddenCampanhas = (data?.campanhas.length ?? 0) - campanhasFiltradas.length;
+  const hasHidden = hiddenKpis + hiddenCampanhas > 0;
+
 
   const anos = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 2 + i);
 
@@ -72,9 +87,9 @@ export default function DashboardExecutivo() {
           </div>
         ),
       },
-      { title: "Distribuição por Campanha", subtitle: "Ações executadas no mês", render: () => <div className="max-w-4xl"><CampanhaBarChart data={data.campanhas} /></div> },
-      { title: "Engajamento do Mês", subtitle: "Sinais Vitais vs Palestras", render: () => <div className="max-w-2xl mx-auto"><EngajamentoDonut data={data.engajamento} /></div> },
-      { title: "Top Empresas", subtitle: "Ranking por ações realizadas", render: () => <div className="max-w-4xl"><TopEmpresasChart data={data.topEmpresas} /></div> },
+      { title: "Distribuição por Campanha", subtitle: "Ações executadas no mês", render: () => <div className="max-w-4xl"><CampanhaBarChart data={campanhasFiltradas} /></div> },
+      { title: "Engajamento do Mês", subtitle: "Sinais Vitais vs Palestras", render: () => <div className="max-w-2xl mx-auto"><EngajamentoDonut data={engajamentoFiltrado} /></div> },
+      { title: "Top Empresas", subtitle: "Ranking por ações realizadas", render: () => <div className="max-w-4xl"><TopEmpresasChart data={topEmpresasFiltradas} /></div> },
       { title: "Sinais Vitais & Triagem", subtitle: "Alterações clínicas por empresa", render: () => <TriagemPanel data={data.triagemAgg} /> },
     ];
     if (showOutubro) base.push({ title: "Outubro Rosa", subtitle: "Prevenção ao câncer de mama", render: () => <OutubroRosaModule /> });
@@ -88,7 +103,7 @@ export default function DashboardExecutivo() {
       ),
     });
     return base;
-  }, [data, mes, ano, showOutubro, showNovembro]);
+  }, [data, mes, ano, showOutubro, showNovembro, campanhasFiltradas, engajamentoFiltrado, topEmpresasFiltradas]);
 
   return (
     <div
@@ -128,7 +143,7 @@ export default function DashboardExecutivo() {
                 </SelectContent>
               </Select>
 
-              <SimuladorMesButton forced={forcedMes} onChange={setForcedMes} />
+              {devMode && <SimuladorMesButton forced={forcedMes} onChange={setForcedMes} />}
 
               <Button variant="outline" className="gap-2 border-[#004d40]/30 text-[#004d40]" onClick={handlePdf} disabled={!data}>
                 <FileText className="h-4 w-4" /> PDF
@@ -153,18 +168,25 @@ export default function DashboardExecutivo() {
             <>
               <KpiGrid kpis={data.kpis} />
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <CampanhaBarChart data={data.campanhas} />
-                <EngajamentoDonut data={data.engajamento} />
+              <div className={`grid gap-4 ${campanhasFiltradas.length && engajamentoFiltrado.length ? "lg:grid-cols-2" : "grid-cols-1"}`}>
+                {campanhasFiltradas.length > 0 && <CampanhaBarChart data={campanhasFiltradas} />}
+                {engajamentoFiltrado.length > 0 && <EngajamentoDonut data={engajamentoFiltrado} />}
               </div>
 
-              <TopEmpresasChart data={data.topEmpresas} />
+              {topEmpresasFiltradas.length > 0 && <TopEmpresasChart data={topEmpresasFiltradas} />}
 
               {showOutubro && <OutubroRosaModule />}
               {showNovembro && <NovembroAzulModule />}
 
               <TriagemPanel data={data.triagemAgg} />
+
+              {hasHidden && (
+                <p className="pt-2 text-center text-xs italic text-muted-foreground">
+                  Nota: Campanhas com volume zero de dados estão temporariamente ocultadas do sumário para simplificar a análise executiva.
+                </p>
+              )}
             </>
+
           )}
         </div>
       </div>
