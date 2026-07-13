@@ -127,6 +127,9 @@ export const RECLAMACOES_POR_SETOR_TIPO: Record<string, Record<string, string[]>
     "Aplicativo Samel": ["Aplicativo", "Indisponibilidade de dados"],
     "Portal": ["Indisponibilidade de dados", "Falha de processo"],
   },
+  "Serviço Social": {
+    "Reclamação": ["Veracidade de Atestado"],
+  },
 };
 
 /**
