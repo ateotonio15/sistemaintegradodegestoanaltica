@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Download, FileText, Presentation as PresentationIcon } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowLeft, FileText, Presentation as PresentationIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useDashboardExecutivo } from "../hooks/useDashboardExecutivo";
-import { KpiGrid } from "../components/executive/KpiGrid";
+import { KpiGrid, countHiddenKpis } from "../components/executive/KpiGrid";
 import { CampanhaBarChart } from "../components/executive/CampanhaBarChart";
 import { EngajamentoDonut } from "../components/executive/EngajamentoDonut";
 import { TopEmpresasChart } from "../components/executive/TopEmpresasChart";
@@ -16,9 +16,12 @@ import { SimuladorMesButton } from "../components/executive/SimuladorMesButton";
 import { ApresentacaoOverlay, type Slide } from "../components/executive/ApresentacaoOverlay";
 import { exportExecutivePdf } from "../lib/exec-export-pdf";
 import { MESES_PT } from "../lib/palestras-calendario";
+import { OUTUBRO_ROSA, NOVEMBRO_AZUL } from "../lib/exec-mock-julho-2026";
 
 export default function DashboardExecutivo() {
   const now = new Date();
+  const [searchParams] = useSearchParams();
+  const devMode = searchParams.get("dev") === "1";
   const [mes, setMes] = useState<number>(7);
   const [ano, setAno] = useState<number>(2026);
   const [forcedMes, setForcedMes] = useState<number | null>(null);
@@ -27,8 +30,20 @@ export default function DashboardExecutivo() {
   const { data, isLoading } = useDashboardExecutivo({ mes, ano });
 
   const mesExibido = forcedMes ?? mes;
-  const showOutubro = mesExibido === 10;
-  const showNovembro = mesExibido === 11;
+  // Ativação condicional: só carrega quando é o mês real E há registros ativos
+  const outubroTemDados = OUTUBRO_ROSA.mamografiasRealizadas > 0 || OUTUBRO_ROSA.mamografiasAgendadas > 0;
+  const novembroTemPsa = NOVEMBRO_AZUL.psaRealizados > 0;
+  const showOutubro = (mesExibido === 10) && (forcedMes === 10 || outubroTemDados);
+  const showNovembro = (mesExibido === 11) && (forcedMes === 11 || novembroTemPsa);
+
+  // Filtragem de valores zerados em gráficos
+  const campanhasFiltradas = useMemo(() => (data?.campanhas ?? []).filter((c) => c.valor > 0), [data]);
+  const engajamentoFiltrado = useMemo(() => (data?.engajamento ?? []).filter((e) => e.valor > 0), [data]);
+  const topEmpresasFiltradas = useMemo(() => (data?.topEmpresas ?? []).filter((e) => e.acoes > 0), [data]);
+  const hiddenKpis = data ? countHiddenKpis(data.kpis) : 0;
+  const hiddenCampanhas = (data?.campanhas.length ?? 0) - campanhasFiltradas.length;
+  const hasHidden = hiddenKpis + hiddenCampanhas > 0;
+
 
   const anos = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 2 + i);
 
