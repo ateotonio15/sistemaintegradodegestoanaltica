@@ -25,7 +25,7 @@ const COLORS = {
   BORDER: "E5E7EB",
 } as const;
 
-const SAFE = { x: 0.55, y: 1.9, w: 12.23, h: 4.3 } as const;
+const SAFE = { x: 0.55, y: 1.7, w: 12.23, h: 4.9 } as const;
 
 // ============================================================
 // Tipos
@@ -318,12 +318,12 @@ async function totalMesAnterior(f: FiltrosRelatorio): Promise<number | null> {
 // ============================================================
 function slideTitle(slide: any, titulo: string, subtitulo?: string) {
   slide.addText(titulo, {
-    x: SAFE.x, y: 0.7, w: 8.6, h: 0.5,
+    x: SAFE.x, y: 0.55, w: 8.6, h: 0.5,
     fontSize: 26, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
   });
   if (subtitulo) {
     slide.addText(subtitulo, {
-      x: SAFE.x, y: 1.2, w: 8.6, h: 0.35,
+      x: SAFE.x, y: 1.05, w: 8.6, h: 0.35,
       fontSize: 13, color: COLORS.GREEN, fontFace: "Calibri",
     });
   }
@@ -458,16 +458,23 @@ export async function gerarPptxRelatorio(
   else {
     const chartW = (SAFE.w - 0.3) / 2;
     const chartH = (SAFE.h - 0.3) / 2;
-    const topEmp = m.porEmpresa.slice(0, 8);
+    const topEmp = m.porEmpresa.slice(0, 8).map((e) => ({
+      ...e,
+      nome: e.nome.length > 26 ? e.nome.slice(0, 24) + "…" : e.nome,
+    }));
     s3.addChart(pptx.ChartType.bar,
       [{ name: "Ações", labels: topEmp.map((e) => e.nome), values: topEmp.map((e) => e.qtd) }],
       {
         x: SAFE.x, y: SAFE.y, w: chartW, h: chartH,
-        barDir: "bar", chartColors: [COLORS.NAVY],
+        barDir: "bar", chartColors: [COLORS.NAVY], barGapWidthPct: 45,
         showTitle: true, title: "Ações por empresa (top 8)",
         titleFontSize: 12, titleColor: COLORS.NAVY,
-        showValue: true, showLegend: false,
-        catAxisLabelFontSize: 9, valAxisLabelFontSize: 9,
+        showValue: true,
+        dataLabelPosition: "outEnd",
+        dataLabelFontSize: 9, dataLabelColor: COLORS.NAVY, dataLabelFontBold: true,
+        showLegend: false,
+        catAxisLabelFontSize: 8, valAxisLabelFontSize: 8,
+        valAxisMinVal: 0,
       });
     s3.addChart(pptx.ChartType.doughnut,
       [{ name: "Tipo", labels: m.porTipo.map((t) => t.tipo), values: m.porTipo.map((t) => t.qtd) }],
@@ -487,55 +494,92 @@ export async function gerarPptxRelatorio(
         showTitle: true, title: "Evolução semanal",
         titleFontSize: 12, titleColor: COLORS.NAVY,
         showValue: true, showLegend: false,
+        dataLabelPosition: "t", dataLabelFontSize: 9, dataLabelColor: COLORS.NAVY,
         catAxisLabelFontSize: 10, valAxisLabelFontSize: 10,
       });
   }
 
-  // Slide 4 — Empresas Atendidas
-  const s4 = pptx.addSlide();
-  s4.background = conteudoBg;
-  slideTitle(s4, "Empresas Atendidas", `${m.totalEmpresas} empresas · ${m.totalAcoes} ações`);
-  if (m.totalAcoes === 0) semDados(s4);
-  else {
+  // Helper: renderiza uma tabela paginada respeitando SAFE.h
+  const ROWS_PER_PAGE = 15;
+  const renderTablePaged = (
+    titulo: string,
+    subtitulo: (page: number, total: number, from: number, to: number, totalRows: number) => string,
+    header: string[],
+    allRows: string[][],
+    colW: number[],
+  ) => {
+    if (allRows.length === 0) {
+      const s = pptx.addSlide();
+      s.background = conteudoBg;
+      slideTitle(s, titulo, subtitulo(1, 1, 0, 0, 0));
+      semDados(s);
+      return;
+    }
+    const totalPages = Math.max(1, Math.ceil(allRows.length / ROWS_PER_PAGE));
+    for (let p = 0; p < totalPages; p++) {
+      const from = p * ROWS_PER_PAGE;
+      const to = Math.min(from + ROWS_PER_PAGE, allRows.length);
+      const slide = pptx.addSlide();
+      slide.background = conteudoBg;
+      slideTitle(slide, titulo, subtitulo(p + 1, totalPages, from + 1, to, allRows.length));
+      const chunk = allRows.slice(from, to);
+      const headerRow = header.map((h) => ({
+        text: h,
+        options: { bold: true, color: COLORS.WHITE, fill: { color: COLORS.NAVY }, align: "left", valign: "middle" },
+      }));
+      const bodyRows = chunk.map((row, i) =>
+        row.map((cell) => ({
+          text: cell,
+          options: {
+            color: COLORS.NAVY,
+            fill: { color: i % 2 === 0 ? COLORS.WHITE : COLORS.LIGHT },
+            valign: "middle",
+          },
+        })));
+      slide.addTable([headerRow as any, ...bodyRows] as any, {
+        x: SAFE.x, y: SAFE.y, w: SAFE.w,
+        colW,
+        rowH: 0.3,
+        fontSize: 9, fontFace: "Calibri",
+        border: { pt: 0.5, color: COLORS.BORDER },
+        margin: 0.06,
+      });
+    }
+  };
+
+  // Slide(s) 4 — Empresas Atendidas
+  {
     const header = ["Empresa", "Cidade", "Data", "Tipo", "Executiva", "Responsável"];
-    const rows = acoes.slice(0, 24).map((a) => [
+    const rows = acoes.map((a) => [
       a.empresaNome, a.cidade ?? "—", formatDateBR(a.data),
       a.tipoLabel, a.executiva ?? "—", a.enfermeira ?? a.responsavel ?? "—",
     ]);
-    s4.addTable([header, ...rows] as any, {
-      x: SAFE.x, y: SAFE.y, w: SAFE.w,
-      colW: [3.0, 2.0, 1.2, 1.8, 2.3, 1.93],
-      fontSize: 10, fontFace: "Calibri",
-      border: { pt: 0.5, color: COLORS.BORDER },
-      fill: { color: COLORS.WHITE },
-    });
-    if (acoes.length > 24) {
-      s4.addText(`+ ${acoes.length - 24} registros — ver Excel completo`, {
-        x: SAFE.x, y: SAFE.y + SAFE.h + 0.1, w: SAFE.w, h: 0.3,
-        fontSize: 10, italic: true, color: COLORS.GREY, fontFace: "Calibri",
-      });
-    }
+    renderTablePaged(
+      "Empresas Atendidas",
+      (p, tp, from, to, tot) => tp > 1
+        ? `${m.totalEmpresas} empresas · ${m.totalAcoes} ações · Página ${p}/${tp} (registros ${from}–${to} de ${tot})`
+        : `${m.totalEmpresas} empresas · ${m.totalAcoes} ações`,
+      header, rows,
+      [3.2, 2.2, 1.0, 1.6, 2.3, 1.93],
+    );
   }
 
-  // Slide 5 — Ações Realizadas
-  const s5 = pptx.addSlide();
-  s5.background = conteudoBg;
-  slideTitle(s5, "Ações Realizadas", "Detalhamento das ações do período");
-  if (m.totalAcoes === 0) semDados(s5);
-  else {
+  // Slide(s) 5 — Ações Realizadas
+  {
     const header = ["Empresa", "Tema", "Campanha", "Data", "Horário", "Responsável"];
-    const rows = acoes.slice(0, 24).map((a) => [
+    const rows = acoes.map((a) => [
       a.empresaNome, a.tema ?? "—", a.campanha, formatDateBR(a.data),
       `${a.horarioInicio?.slice(0, 5) ?? "--:--"} – ${a.horarioFim?.slice(0, 5) ?? "--:--"}`,
       a.executiva ?? a.responsavel ?? "—",
     ]);
-    s5.addTable([header, ...rows] as any, {
-      x: SAFE.x, y: SAFE.y, w: SAFE.w,
-      colW: [2.6, 2.6, 1.9, 1.2, 1.6, 2.33],
-      fontSize: 10, fontFace: "Calibri",
-      border: { pt: 0.5, color: COLORS.BORDER },
-      fill: { color: COLORS.WHITE },
-    });
+    renderTablePaged(
+      "Ações Realizadas",
+      (p, tp, from, to, tot) => tp > 1
+        ? `Detalhamento das ações · Página ${p}/${tp} (registros ${from}–${to} de ${tot})`
+        : "Detalhamento das ações do período",
+      header, rows,
+      [2.8, 2.6, 1.9, 1.0, 1.6, 2.33],
+    );
   }
 
   // Slide 6 — Campanhas
@@ -569,7 +613,7 @@ export async function gerarPptxRelatorio(
     linhas.push(`Média semanal: ${m.mediaSemanal} ações/semana`);
     s7.addText(linhas.map((t) => ({ text: t, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any, {
       x: SAFE.x + 0.3, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
-      fontSize: 14, fontFace: "Calibri", paraSpaceAfter: 8,
+      fontSize: 14, fontFace: "Calibri", paraSpaceAfter: 8, valign: "top",
     });
 
     painel(s7, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Comparativo com mês anterior");
