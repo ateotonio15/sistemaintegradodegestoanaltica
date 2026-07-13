@@ -428,10 +428,7 @@ export async function gerarPptxRelatorio(
   if (m.totalAcoes === 0) { semDados(s2); }
   else {
     const gap = 0.2;
-    const cols = 4;
-    const kW = (SAFE.w - gap * (cols - 1)) / cols;
-    const kH = (SAFE.h - gap) / 2;
-    const kpis = [
+    const allKpis = [
       { label: "Total de ações", valor: m.totalAcoes, cor: COLORS.NAVY, sub: "Realizadas no período" },
       { label: "Empresas atendidas", valor: m.totalEmpresas, cor: COLORS.GREEN, sub: "Distintas" },
       { label: "Palestras", valor: m.totalPalestras, cor: COLORS.AMBER },
@@ -441,6 +438,12 @@ export async function gerarPptxRelatorio(
       { label: "Campanhas", valor: m.totalCampanhas, cor: COLORS.AMBER, sub: "Diferentes" },
       { label: "Média semanal", valor: m.mediaSemanal, cor: COLORS.RED, sub: "Ações/semana" },
     ];
+    // Regra: ocultar KPIs zerados (mantém apenas com valor > 0)
+    const kpis = allKpis.filter((k) => Number(k.valor) > 0);
+    const cols = Math.min(4, Math.max(1, kpis.length));
+    const rowsCount = Math.ceil(kpis.length / cols);
+    const kW = (SAFE.w - gap * (cols - 1)) / cols;
+    const kH = rowsCount > 1 ? (SAFE.h - gap) / 2 : SAFE.h * 0.55;
     kpis.forEach((k, i) => {
       const col = i % cols; const row = Math.floor(i / cols);
       kpiCard(s2, SAFE.x + col * (kW + gap), SAFE.y + row * (kH + gap), kW, kH, k.label, k.valor, k.cor, k.sub);
@@ -647,12 +650,13 @@ export function gerarPdfRelatorio(
 
   // Resumo
   secao("Resumo Geral");
-  const kpis = [
+  const kpisAll: Array<[string, number]> = [
     ["Total de ações", m.totalAcoes], ["Empresas atendidas", m.totalEmpresas],
     ["Palestras", m.totalPalestras], ["PSA", m.totalPsa],
     ["Sinais Vitais", m.totalSinaisVitais], ["Coletas Preventivas", m.totalPreventivas],
     ["Campanhas", m.totalCampanhas], ["Média semanal", m.mediaSemanal],
   ];
+  const kpis = kpisAll.filter(([, v]) => Number(v) > 0);
   autoTable(doc, {
     startY: 80,
     head: [["Indicador", "Valor"]],
