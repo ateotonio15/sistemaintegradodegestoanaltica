@@ -43,8 +43,19 @@ type EmpresaOption = {
   tipo_movimentacao: string | null;
   periodo_movimentacao: string | null;
   responsavel_contrato: string | null;
+  responsavel_user_id?: string | null;
   data_corte: number | null;
   tipo_contrato?: string | null;
+};
+
+type EmpresaResponsavel = Pick<EmpresaOption, "id" | "responsavel_contrato" | "responsavel_user_id"> | null | undefined;
+
+type FeriasOriginalRow = {
+  responsavel_original_nome: string | null;
+  ferias_cadastro_empresas?: {
+    empresa_id: string | null;
+    status: string | null;
+  }[] | null;
 };
 
 const emptyForm = {
@@ -110,16 +121,16 @@ export default function Movimentacoes() {
     queryKey: ["ferias-original-owner-map"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("ferias_cadastro" as any)
+        .from("ferias_cadastro")
         .select("id, responsavel_original_nome, ferias_cadastro_empresas(empresa_id, status)")
         .in("status", ["em_andamento", "aguardando_retorno_contratos"]);
       if (error) throw error;
 
       const m = new Map<string, string>();
-      (data ?? []).forEach((f: any) => {
+      ((data ?? []) as unknown as FeriasOriginalRow[]).forEach((f) => {
         const original = (f.responsavel_original_nome ?? "").trim();
         if (!original) return;
-        ((f.ferias_cadastro_empresas ?? []) as any[]).forEach((e) => {
+        (f.ferias_cadastro_empresas ?? []).forEach((e) => {
           if (e.empresa_id && ["redistribuida", "aguardando_fechamento"].includes(e.status)) {
             m.set(e.empresa_id, original);
           }
@@ -130,7 +141,7 @@ export default function Movimentacoes() {
     enabled: !!user,
   });
 
-  const respContratoOf = useCallback((emp: any): string => {
+  const respContratoOf = useCallback((emp: EmpresaResponsavel): string => {
     if (!emp) return "";
     // Durante férias, a empresa pode estar temporariamente com outro responsável.
     // Para Movimentações, mostra sempre o dono original do contrato.
