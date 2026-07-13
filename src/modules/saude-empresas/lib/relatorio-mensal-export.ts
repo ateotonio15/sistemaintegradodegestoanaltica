@@ -522,7 +522,7 @@ export async function gerarPptxRelatorio(
     // === Charts area ===
     const chartsY = kpiY + kpiH + 0.2; // 2.85
     const chartW = (SAFE.w - 0.25) / 2;
-    const topChartH = 2.0;
+    const topChartH = Math.max(2.0, SAFE.y + SAFE.h - chartsY - 0.1);
 
     // --- Bar chart: Top empresas ---
     const topEmp = m.porEmpresa.slice(0, 8);
