@@ -458,16 +458,23 @@ export async function gerarPptxRelatorio(
   else {
     const chartW = (SAFE.w - 0.3) / 2;
     const chartH = (SAFE.h - 0.3) / 2;
-    const topEmp = m.porEmpresa.slice(0, 8);
+    const topEmp = m.porEmpresa.slice(0, 8).map((e) => ({
+      ...e,
+      nome: e.nome.length > 26 ? e.nome.slice(0, 24) + "…" : e.nome,
+    }));
     s3.addChart(pptx.ChartType.bar,
       [{ name: "Ações", labels: topEmp.map((e) => e.nome), values: topEmp.map((e) => e.qtd) }],
       {
         x: SAFE.x, y: SAFE.y, w: chartW, h: chartH,
-        barDir: "bar", chartColors: [COLORS.NAVY],
+        barDir: "bar", chartColors: [COLORS.NAVY], barGapWidthPct: 45,
         showTitle: true, title: "Ações por empresa (top 8)",
         titleFontSize: 12, titleColor: COLORS.NAVY,
-        showValue: true, showLegend: false,
-        catAxisLabelFontSize: 9, valAxisLabelFontSize: 9,
+        showValue: true,
+        dataLabelPosition: "outEnd",
+        dataLabelFontSize: 9, dataLabelColor: COLORS.NAVY, dataLabelFontBold: true,
+        showLegend: false,
+        catAxisLabelFontSize: 8, valAxisLabelFontSize: 8,
+        valAxisMinVal: 0,
       });
     s3.addChart(pptx.ChartType.doughnut,
       [{ name: "Tipo", labels: m.porTipo.map((t) => t.tipo), values: m.porTipo.map((t) => t.qtd) }],
@@ -487,6 +494,7 @@ export async function gerarPptxRelatorio(
         showTitle: true, title: "Evolução semanal",
         titleFontSize: 12, titleColor: COLORS.NAVY,
         showValue: true, showLegend: false,
+        dataLabelPosition: "t", dataLabelFontSize: 9, dataLabelColor: COLORS.NAVY,
         catAxisLabelFontSize: 10, valAxisLabelFontSize: 10,
       });
   }
