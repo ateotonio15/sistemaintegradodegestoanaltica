@@ -48,7 +48,11 @@ type EmpresaOption = {
   tipo_contrato?: string | null;
 };
 
-type EmpresaResponsavel = Pick<EmpresaOption, "id" | "responsavel_contrato" | "responsavel_user_id"> | null | undefined;
+type EmpresaResponsavel = {
+  id?: string | null;
+  responsavel_contrato?: string | null;
+  responsavel_user_id?: string | null;
+} | null | undefined;
 
 type FeriasOriginalRow = {
   responsavel_original_nome: string | null;
@@ -145,7 +149,7 @@ export default function Movimentacoes() {
     if (!emp) return "";
     // Durante férias, a empresa pode estar temporariamente com outro responsável.
     // Para Movimentações, mostra sempre o dono original do contrato.
-    const originalFerias = feriasOriginalMap.get(emp.id);
+    const originalFerias = emp.id ? feriasOriginalMap.get(emp.id) : undefined;
     if (originalFerias) return originalFerias;
     // Prioriza o texto "Responsável pelo Contrato" cadastrado na aba Empresas.
     if (emp.responsavel_contrato) return emp.responsavel_contrato;
