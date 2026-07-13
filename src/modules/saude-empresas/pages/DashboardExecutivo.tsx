@@ -103,7 +103,7 @@ export default function DashboardExecutivo() {
       ),
     });
     return base;
-  }, [data, mes, ano, showOutubro, showNovembro]);
+  }, [data, mes, ano, showOutubro, showNovembro, campanhasFiltradas, engajamentoFiltrado, topEmpresasFiltradas]);
 
   return (
     <div
