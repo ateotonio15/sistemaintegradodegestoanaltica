@@ -168,18 +168,25 @@ export default function DashboardExecutivo() {
             <>
               <KpiGrid kpis={data.kpis} />
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <CampanhaBarChart data={data.campanhas} />
-                <EngajamentoDonut data={data.engajamento} />
+              <div className={`grid gap-4 ${campanhasFiltradas.length && engajamentoFiltrado.length ? "lg:grid-cols-2" : "grid-cols-1"}`}>
+                {campanhasFiltradas.length > 0 && <CampanhaBarChart data={campanhasFiltradas} />}
+                {engajamentoFiltrado.length > 0 && <EngajamentoDonut data={engajamentoFiltrado} />}
               </div>
 
-              <TopEmpresasChart data={data.topEmpresas} />
+              {topEmpresasFiltradas.length > 0 && <TopEmpresasChart data={topEmpresasFiltradas} />}
 
               {showOutubro && <OutubroRosaModule />}
               {showNovembro && <NovembroAzulModule />}
 
               <TriagemPanel data={data.triagemAgg} />
+
+              {hasHidden && (
+                <p className="pt-2 text-center text-xs italic text-muted-foreground">
+                  Nota: Campanhas com volume zero de dados estão temporariamente ocultadas do sumário para simplificar a análise executiva.
+                </p>
+              )}
             </>
+
           )}
         </div>
       </div>
