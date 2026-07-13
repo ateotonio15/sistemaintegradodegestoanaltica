@@ -25,7 +25,7 @@ const COLORS = {
   BORDER: "E5E7EB",
 } as const;
 
-const SAFE = { x: 0.55, y: 1.9, w: 12.23, h: 4.3 } as const;
+const SAFE = { x: 0.55, y: 1.7, w: 12.23, h: 4.9 } as const;
 
 // ============================================================
 // Tipos
