@@ -51,6 +51,7 @@ import SaudeAcaoTriagens from "./modules/saude-empresas/pages/SaudeAcaoTriagens"
 import SaudeVisaoGeral from "./modules/saude-empresas/pages/SaudeVisaoGeral";
 import CalendarioPreventivas from "./modules/saude-empresas/pages/CalendarioPreventivas";
 import CalendarioPalestras from "./modules/saude-empresas/pages/CalendarioPalestras";
+import DashboardExecutivo from "./modules/saude-empresas/pages/DashboardExecutivo";
 import MailingBrindes from "./pages/MailingBrindes";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -200,6 +201,7 @@ const AppRoutes = () => (
       <Route element={<RoleGate allow={["admin", "enfermeira", "executivo", "coordenadora", "diretora", "diretora_saude"]} />}>
         <Route path="/saude-empresas" element={<SaudeEmpresasLista />} />
         <Route path="/saude-empresas/visao-geral" element={<SaudeVisaoGeral />} />
+        <Route path="/saude-empresas/dashboard-executivo" element={<DashboardExecutivo />} />
         <Route path="/saude-empresas/preventivas" element={<CalendarioPreventivas />} />
         <Route path="/saude-empresas/palestras" element={<CalendarioPalestras />} />
         <Route path="/saude-empresas/empresa/:empresaId" element={<SaudeEmpresaAcoes />} />
