@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
@@ -130,7 +130,7 @@ export default function Movimentacoes() {
     enabled: !!user,
   });
 
-  const respContratoOf = (emp: any): string => {
+  const respContratoOf = useCallback((emp: any): string => {
     if (!emp) return "";
     // Durante férias, a empresa pode estar temporariamente com outro responsável.
     // Para Movimentações, mostra sempre o dono original do contrato.
@@ -144,7 +144,7 @@ export default function Movimentacoes() {
       if (nm) return nm;
     }
     return "";
-  };
+  }, [feriasOriginalMap, profilesMap]);
 
   const { data: movimentacoes = [], isLoading } = useQuery({
     queryKey: ["movimentacoes", filterMes, activeTab],
@@ -304,7 +304,7 @@ export default function Movimentacoes() {
       }
       return true;
     });
-  }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm, feriasOriginalMap]);
+  }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm, respContratoOf]);
 
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
