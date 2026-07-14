@@ -70,13 +70,12 @@ Deno.serve(async (req) => {
     const callerId = claims?.claims?.sub;
     if (!callerId) return json(401, { error: "Não autorizado" });
 
-    const { data: role } = await admin
+    const { data: roles } = await admin
       .from("user_roles")
       .select("role")
       .eq("user_id", callerId)
-      .eq("role", "admin_interno")
-      .maybeSingle();
-    if (!role) return json(403, { error: "Apenas admin_interno" });
+      .in("role", ["admin_interno", "admin"]);
+    if (!roles || roles.length === 0) return json(403, { error: "Apenas admin ou admin_interno" });
 
     const body = await req.json();
     const action = String(body?.action ?? "");
