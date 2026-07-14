@@ -139,6 +139,13 @@ function AdminInternoGate() {
   return <Outlet />;
 }
 
+function AdminOuInternoGate() {
+  const { loading, isAdmin, isAdminInterno } = useAuth();
+  if (loading) return <Loading />;
+  if (!isAdmin && !isAdminInterno) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
 function HomeRoute() {
   return <Home />;
 }
