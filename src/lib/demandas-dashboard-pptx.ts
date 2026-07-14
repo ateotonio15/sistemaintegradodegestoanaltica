@@ -1,8 +1,8 @@
 // Exportador de PPTX para o Dashboard de Reclamações (indicadores executivos).
 // Recebe um snapshot já calculado da página e monta um deck com os principais indicadores.
 
-import waveAsset from "@/assets/ppt_wave.png.asset.json";
-import logoAsset from "@/assets/ppt_logo.png.asset.json";
+import bgCapaAsset from "@/assets/saude_bg_capa.png.asset.json";
+import bgConteudoAsset from "@/assets/saude_bg_conteudo.png.asset.json";
 
 async function urlToDataUrl(url: string): Promise<string> {
   const resp = await fetch(url);
@@ -115,37 +115,18 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   pptx.layout = "LAYOUT_WIDE";
   pptx.title = "Dashboard de Reclamações — Painel Executivo";
 
-  // Carrega imagens do template (fundo aquarela + logo) como data URLs.
-  const [waveData, logoData] = await Promise.all([
-    urlToDataUrl(waveAsset.url).catch(() => ""),
-    urlToDataUrl(logoAsset.url).catch(() => ""),
+  // Carrega fundos do template já existente no banco (capa e conteúdo).
+  const [bgCapaData, bgConteudoData] = await Promise.all([
+    urlToDataUrl(bgCapaAsset.url).catch(() => ""),
+    urlToDataUrl(bgConteudoAsset.url).catch(() => ""),
   ]);
 
   const addBackground = (slide: any, variant: "capa" | "conteudo") => {
-    slide.background = { color: C.WHITE };
-    if (waveData) {
-      // Onda decorativa inferior-esquerda
-      slide.addImage({
-        data: waveData,
-        x: 0, y: variant === "capa" ? 6.02 : 6.35,
-        w: variant === "capa" ? 5.07 : 4.5,
-        h: variant === "capa" ? 1.48 : 1.15,
-      });
-      if (variant === "capa") {
-        // Onda superior-direita rotacionada
-        slide.addImage({
-          data: waveData,
-          x: 8.25, y: -0.03, w: 5.11, h: 1.55, rotate: 180,
-        });
-      }
-    }
-    if (logoData) {
-      slide.addImage({
-        data: logoData,
-        x: variant === "capa" ? 0.55 : 12.55,
-        y: variant === "capa" ? 0.4 : 0.15,
-        w: 0.65, h: 0.6,
-      });
+    const data = variant === "capa" ? bgCapaData : bgConteudoData;
+    if (data) {
+      slide.background = { data };
+    } else {
+      slide.background = { color: C.WHITE };
     }
   };
 
