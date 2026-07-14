@@ -11,6 +11,7 @@ import {
   Gauge,
   Heart,
   LayoutDashboard,
+  Network,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -629,113 +630,150 @@ function DesempenhoSection() {
 // ------------------------------------------------------------
 function SetoresSection() {
   const data = [
-    { name: "Direção Clínica", value: 57, color: C.amber },
-    { name: "Outros Setores", value: 43, color: C.teal },
+    { name: "Direção Clínica", value: 57, color: C.teal },
+    { name: "Outros Setores", value: 43, color: "#CBD5E1" },
+  ];
+
+  const fatores = [
+    {
+      icon: Users,
+      title: "Direção Clínica:",
+      desc: (
+        <>
+          Concentra <strong style={{ color: C.text }}>57% das demandas</strong> totais do
+          período, sendo o principal ofensor operacional.
+        </>
+      ),
+    },
+    {
+      icon: Clock,
+      title: "Agenda Cirúrgica:",
+      desc: (
+        <>
+          Tempo médio de resposta de <strong style={{ color: C.text }}>74h</strong> (SLA de 168h),
+          com apenas 4% sem SLA definido.
+        </>
+      ),
+    },
+    {
+      icon: Network,
+      title: "Demais Setores:",
+      desc: (
+        <>
+          Desempenho ágil com média de <strong style={{ color: C.text }}>13h</strong> (SLA de 72h)
+          e 5% sem SLA.
+        </>
+      ),
+    },
   ];
 
   return (
     <div className="grid gap-6">
-      <div>
-        <Kicker>Distribuição operacional</Kicker>
-        <h2 className="mt-2 text-2xl font-semibold md:text-3xl">Setores &amp; Motivos</h2>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Panel>
-          <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: C.muted }}>
-            Fatores de Concentração
+      <Panel className="relative overflow-hidden">
+        <div
+          aria-hidden
+          className="absolute left-0 top-6 h-8 w-1 rounded-r"
+          style={{ background: C.teal }}
+        />
+        <div className="pl-4">
+          <h3 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            Distribuição de Setores &amp; Motivos
           </h3>
-          <ul className="mt-4 space-y-3">
-            {[
-              {
-                icon: Heart,
-                title: "Direção Clínica",
-                desc: "57% das demandas operacionais totais.",
-                tone: C.amber,
-                bg: C.amberSoft,
-              },
-              {
-                icon: Clock,
-                title: "Agenda Cirúrgica",
-                desc: "Tempo de resposta de 74h controlado.",
-                tone: C.blue,
-                bg: C.blueSoft,
-              },
-              {
-                icon: Activity,
-                title: "Outros Setores",
-                desc: "Resolução ultra-rápida de 13h.",
-                tone: C.teal,
-                bg: C.tealSoft,
-              },
-            ].map((it) => {
-              const Icon = it.icon;
-              return (
-                <li
-                  key={it.title}
-                  className="group flex items-start gap-3 rounded-xl p-4 transition-all hover:-translate-y-0.5"
-                  style={{ background: "rgba(15,23,42,0.6)", border: `1px solid ${C.border}` }}
-                >
-                  <div
-                    className="grid h-10 w-10 place-items-center rounded-lg"
-                    style={{ background: it.bg, color: it.tone }}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{it.title}</p>
-                    <p className="mt-0.5 text-xs" style={{ color: C.muted }}>
-                      {it.desc}
+        </div>
+
+        <div className="mt-10 grid gap-8 lg:grid-cols-2 lg:items-center">
+          {/* Coluna esquerda: fatores de concentração */}
+          <div>
+            <h4 className="text-xl font-semibold tracking-tight md:text-2xl">
+              Fatores de Concentração
+            </h4>
+            <ul className="mt-5 space-y-4">
+              {fatores.map((f) => {
+                const Icon = f.icon;
+                return (
+                  <li key={f.title} className="flex items-start gap-3">
+                    <div
+                      className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md"
+                      style={{ color: C.teal }}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <p className="text-sm leading-relaxed md:text-base" style={{ color: C.muted }}>
+                      <span className="font-semibold" style={{ color: C.text }}>
+                        {f.title}
+                      </span>{" "}
+                      {f.desc}
                     </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </Panel>
-
-        <Panel>
-          <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: C.muted }}>
-            Proporção de Demandas
-          </h3>
-          <div className="mt-2 h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={70}
-                  outerRadius={110}
-                  paddingAngle={2}
-                  stroke="none"
-                >
-                  {data.map((d) => (
-                    <Cell key={d.name} fill={d.color} />
-                  ))}
-                </Pie>
-                <ReTooltip
-                  contentStyle={{
-                    background: C.panel,
-                    border: `1px solid ${C.borderStrong}`,
-                    borderRadius: 12,
-                    color: C.text,
-                  }}
-                  formatter={(v: number, n: string) => [`${v}%`, n]}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  wrapperStyle={{ color: C.muted, fontSize: 12 }}
-                  iconType="circle"
-                />
-              </PieChart>
-            </ResponsiveContainer>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-        </Panel>
-      </div>
+
+          {/* Coluna direita: donut */}
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: "rgba(15,23,42,0.6)", border: `1px solid ${C.border}` }}
+          >
+            <div className="relative h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={80}
+                    outerRadius={115}
+                    paddingAngle={2}
+                    stroke="none"
+                    startAngle={90}
+                    endAngle={-270}
+                  >
+                    {data.map((d) => (
+                      <Cell key={d.name} fill={d.color} />
+                    ))}
+                  </Pie>
+                  <ReTooltip
+                    contentStyle={{
+                      background: C.panel,
+                      border: `1px solid ${C.borderStrong}`,
+                      borderRadius: 12,
+                      color: C.text,
+                    }}
+                    formatter={(v: number, n: string) => [`${v}%`, n]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              {/* Centro do donut */}
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-4xl font-bold tracking-tight" style={{ color: C.teal }}>
+                    57%
+                  </span>
+                  <span className="text-xs font-medium" style={{ color: C.muted }}>
+                    D. CLÍNICA
+                  </span>
+                </div>
+              </div>
+            </div>
+            {/* Legenda */}
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-6 text-xs" style={{ color: C.muted }}>
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: C.teal }} />
+                Direção Clínica (57%)
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#CBD5E1" }} />
+                Outros Setores (43%)
+              </span>
+            </div>
+          </div>
+        </div>
+      </Panel>
     </div>
   );
 }
+
 
 // ------------------------------------------------------------
 // 4) Matriz de Risco
