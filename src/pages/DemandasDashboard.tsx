@@ -52,6 +52,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ApresentacaoIndicadores, { type ApresentacaoHandle } from "@/pages/ApresentacaoIndicadores";
 import { useDemandas } from "@/hooks/useDemandas";
 import { parseLocalDate, type Demanda } from "@/lib/demandas-utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ============================================================
    Constantes de SLA / Negócio
@@ -158,6 +160,17 @@ function lastDayOfMonth(d = new Date()) {
 ============================================================ */
 export default function DemandasDashboard() {
   const { data: demandas = [], isLoading } = useDemandas();
+  const { data: empresasVidas = [] } = useQuery({
+    queryKey: ["empresas-vidas-min"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("empresas").select("nome,vidas");
+      if (error) throw error;
+      return (data ?? []) as { nome: string; vidas: number | null }[];
+    },
+  });
+
+
 
   // ===== Filtros =====
   const [dataIni, setDataIni] = useState<string>(toISO(firstDayOfMonth()));
@@ -400,6 +413,39 @@ export default function DemandasDashboard() {
       .slice(0, 8);
   }, [filtered]);
 
+  // ===== Ranking Empresas: Vidas vs. Reclamações =====
+  const rankingEmpresasVidas = useMemo(() => {
+    const norm = (s: string) => (s || "").trim().toUpperCase();
+    const vidasMap = new Map<string, { nome: string; vidas: number }>();
+    empresasVidas.forEach((e) => {
+      const k = norm(e.nome);
+      if (!k) return;
+      const v = Number(e.vidas ?? 0);
+      const cur = vidasMap.get(k);
+      if (cur) cur.vidas += v;
+      else vidasMap.set(k, { nome: e.nome, vidas: v });
+    });
+    const recMap = new Map<string, number>();
+    filtered.forEach((d) => {
+      const k = norm(d.empresa || "");
+      if (!k) return;
+      recMap.set(k, (recMap.get(k) ?? 0) + 1);
+    });
+    const rows: { empresa: string; vidas: number; reclamacoes: number; indice: number }[] = [];
+    recMap.forEach((rec, k) => {
+      const v = vidasMap.get(k);
+      const vidas = v?.vidas ?? 0;
+      const nome = v?.nome ?? k;
+      const indice = vidas > 0 ? (rec / vidas) * 100 : 0;
+      rows.push({ empresa: nome, vidas, reclamacoes: rec, indice });
+    });
+    return rows
+      .sort((a, b) => b.indice - a.indice || b.reclamacoes - a.reclamacoes)
+      .slice(0, 15);
+  }, [filtered, empresasVidas]);
+
+
+
 
 
   // ===== Reincidências =====
@@ -529,6 +575,7 @@ export default function DemandasDashboard() {
                       monthlySeries: monthlySeries6m,
                       volumeSetor,
                       volumeTipo,
+                      rankingEmpresasVidas,
                       reincidencias,
                       gargalos,
                       insights: insights.map((i) => i.text),
