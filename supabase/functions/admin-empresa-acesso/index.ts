@@ -128,7 +128,6 @@ Deno.serve(async (req) => {
     }
 
     if (action === "gerar_usuario") {
-      if (vinc?.user_id) return json(400, { error: "Empresa já possui usuário" });
       const { data: emp, error: eErr } = await admin
         .from("empresas")
         .select("nome, codigo_contrato")
@@ -142,23 +141,34 @@ Deno.serve(async (req) => {
       const username = await resolverUsernameUnico(admin, base);
       const emailInterno = `${username.toLowerCase()}@login.interno`;
 
-      const { data: novo, error: userErr } = await admin.auth.admin.createUser({
-        email: emailInterno,
-        password: senhaInicial,
-        email_confirm: true,
-        user_metadata: { display_name: emp.nome, username },
-      });
-      if (userErr) throw userErr;
-      const userId = novo.user.id;
+      let userId = vinc?.user_id as string | undefined;
+
+      if (userId) {
+        // Já existe vínculo — apenas preenche username/senha no usuário atual
+        await admin.auth.admin.updateUserById(userId, {
+          password: senhaInicial,
+          email: emailInterno,
+          user_metadata: { display_name: emp.nome, username },
+        });
+      } else {
+        const { data: novo, error: userErr } = await admin.auth.admin.createUser({
+          email: emailInterno,
+          password: senhaInicial,
+          email_confirm: true,
+          user_metadata: { display_name: emp.nome, username },
+        });
+        if (userErr) throw userErr;
+        userId = novo.user.id;
+        await admin
+          .from("empresa_usuarios")
+          .insert({ user_id: userId, empresa_id, papel: "admin_empresa" });
+        await admin.from("user_roles").insert({ user_id: userId, role: "comum" });
+      }
 
       await admin
         .from("profiles")
         .update({ username, must_change_password: true, display_name: emp.nome })
         .eq("user_id", userId);
-      await admin
-        .from("empresa_usuarios")
-        .insert({ user_id: userId, empresa_id, papel: "admin_empresa" });
-      await admin.from("user_roles").insert({ user_id: userId, role: "comum" });
       await admin
         .from("empresas")
         .update({ email_empresa: emailInterno })
@@ -166,6 +176,7 @@ Deno.serve(async (req) => {
 
       return json(200, { ok: true, username, senha: senhaInicial });
     }
+
 
     return json(400, { error: "Ação inválida" });
   } catch (err) {
