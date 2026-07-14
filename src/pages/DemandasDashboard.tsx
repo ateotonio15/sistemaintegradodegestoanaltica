@@ -668,6 +668,12 @@ export default function DemandasDashboard() {
             <GargalosPanel data={gargalos} />
           </>
         )}
+          </TabsContent>
+
+          <TabsContent value="apresentacao" className="mt-6 animate-in fade-in duration-300 -mx-4 lg:-mx-8">
+            <ApresentacaoIndicadores />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
