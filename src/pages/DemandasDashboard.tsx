@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import ApresentacaoIndicadores from "@/pages/ApresentacaoIndicadores";
+import ApresentacaoIndicadores, { type ApresentacaoHandle } from "@/pages/ApresentacaoIndicadores";
 import { useDemandas } from "@/hooks/useDemandas";
 import { parseLocalDate, type Demanda } from "@/lib/demandas-utils";
 
