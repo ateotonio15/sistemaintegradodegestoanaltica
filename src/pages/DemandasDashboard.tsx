@@ -52,6 +52,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ApresentacaoIndicadores, { type ApresentacaoHandle } from "@/pages/ApresentacaoIndicadores";
 import { useDemandas } from "@/hooks/useDemandas";
 import { parseLocalDate, type Demanda } from "@/lib/demandas-utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ============================================================
    Constantes de SLA / Negócio
