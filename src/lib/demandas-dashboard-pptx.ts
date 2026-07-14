@@ -227,104 +227,10 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   const m = snap.metrics;
   const p = snap.metricsAnterior;
 
-  // ================= SLIDE 1 — CAPA COMPARATIVA =================
-  const s1 = pptx.addSlide();
-  addBackground(s1, "capa");
-
-  // Cartão-envelope com todo conteúdo
-  slideHeader(
-    s1,
-    "Dashboard de Reclamações",
-    `Painel executivo · ${mesAtualLabel} vs. ${mesAntLabel}`,
-    periodoLabel,
-  );
-
-  // Grid 3x2 de KPIs comparativos
+  // Variáveis de layout compartilhadas
   const gap = 0.2;
   const cols = 3;
   const kW = (SAFE.w - gap * (cols - 1)) / cols;
-  const kH = (SAFE.h - 0.9 - gap) / 2; // reserva espaço para frase-resumo
-  const gridY = SAFE.y;
-
-  const corSla = m.slaNoPrazoPct >= 92 ? C.POSITIVE : m.slaNoPrazoPct >= 80 ? C.WARNING : C.NEGATIVE;
-  const corBacklog = m.pctEmAberto > 30 ? C.NEGATIVE : m.pctEmAberto > 15 ? C.WARNING : C.POSITIVE;
-  const corScore = m.score >= 85 ? C.POSITIVE : m.score >= 70 ? C.WARNING : C.NEGATIVE;
-  const corFora = m.acimaDaMeta ? C.NEGATIVE : C.POSITIVE;
-
-  const cards: Array<{
-    label: string; atual: string; anterior: string | null;
-    delta: number | null; unit: "pp" | "pct" | "abs"; inverse: boolean; cor: string;
-  }> = [
-    {
-      label: "SLA no prazo", atual: `${m.slaNoPrazoPct}%`,
-      anterior: p ? `${p.slaNoPrazoPct}%` : null,
-      delta: delta(m.slaNoPrazoPct, p?.slaNoPrazoPct, "pp"),
-      unit: "pp", inverse: false, cor: corSla,
-    },
-    {
-      label: "Backlog em aberto", atual: `${m.emAberto}`,
-      anterior: p ? `${p.emAberto}` : null,
-      delta: deltaAbs(m.emAberto, p?.emAberto),
-      unit: "pct", inverse: true, cor: corBacklog,
-    },
-    {
-      label: "Pontuação operacional", atual: `${m.score}`,
-      anterior: p ? `${p.score}` : null,
-      delta: delta(m.score, p?.score, "pp"),
-      unit: "pp", inverse: false, cor: corScore,
-    },
-    {
-      label: "Total de demandas", atual: `${m.total}`,
-      anterior: p ? `${p.total}` : null,
-      delta: deltaAbs(m.total, p?.total),
-      unit: "pct", inverse: false, cor: C.PRIMARY,
-    },
-    {
-      label: "Fora do prazo", atual: `${m.pctForaDoPrazo}%`,
-      anterior: p ? `${p.pctForaDoPrazo}%` : null,
-      delta: delta(m.pctForaDoPrazo, p?.pctForaDoPrazo, "pp"),
-      unit: "pp", inverse: true, cor: corFora,
-    },
-    {
-      label: "Tempo médio de resolução", atual: `${m.tempoMedioDias.toFixed(1)}d`,
-      anterior: p ? `${p.tempoMedioDias.toFixed(1)}d` : null,
-      delta: p ? Math.round(((m.tempoMedioDias - p.tempoMedioDias) / (p.tempoMedioDias || 1)) * 100) : null,
-      unit: "pct", inverse: true, cor: C.PRIMARY,
-    },
-  ];
-
-  cards.forEach((c, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const x = SAFE.x + col * (kW + gap);
-    const y = gridY + row * (kH + gap);
-    kpiComparativo(s1, x, y, kW, kH, c.label, c.atual, c.anterior, c.delta, c.unit, c.inverse, c.cor);
-  });
-
-  // Frase-resumo automática
-  const frases: string[] = [];
-  if (p) {
-    const dSla = delta(m.slaNoPrazoPct, p.slaNoPrazoPct, "pp")!;
-    const dBack = deltaAbs(m.emAberto, p.emAberto)!;
-    const dFora = delta(m.pctForaDoPrazo, p.pctForaDoPrazo, "pp")!;
-    const verboSla = dSla > 0 ? "subiu" : dSla < 0 ? "recuou" : "manteve-se";
-    const verboBack = dBack > 0 ? "cresceu" : dBack < 0 ? "recuou" : "manteve-se";
-    if (dSla !== 0) frases.push(`SLA no prazo ${verboSla} ${Math.abs(dSla)} p.p.`);
-    if (dBack !== 0) frases.push(`backlog ${verboBack} ${Math.abs(dBack)}%`);
-    if (dFora !== 0) frases.push(`fora do prazo variou ${dFora > 0 ? "+" : ""}${dFora} p.p.`);
-  }
-  const resumo = frases.length
-    ? `${frases.join(" · ").charAt(0).toUpperCase()}${frases.join(" · ").slice(1)} em relação a ${mesAntLabel}.`
-    : "Sem dado comparável do mês anterior para todos os indicadores.";
-
-  const resumoY = gridY + 2 * (kH + gap) + 0.05;
-  card(s1, SAFE.x, resumoY, SAFE.w, 0.75);
-  s1.addText(resumo, {
-    x: SAFE.x + 0.25, y: resumoY + 0.12, w: SAFE.w - 0.5, h: 0.5,
-    fontSize: 14, bold: true, color: C.INK, fontFace: "Calibri", valign: "middle",
-  });
-
-  slideFooter(s1, filtroLabel);
 
   // ================= SLIDE — VISÃO ESTRATÉGICA =================
   {
@@ -564,131 +470,8 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
 
 
 
-  // ================= SLIDE 2 — RESUMO EXECUTIVO =================
-  const s2 = pptx.addSlide();
-  addBackground(s2, "conteudo");
-  slideHeader(s2, "Resumo Executivo", "Indicadores-chave do mês corrente com definição", periodoLabel);
 
-  const defs: Array<{ label: string; value: string; cor: string; def: string }> = [
-    { label: "SLA no prazo", value: `${m.slaNoPrazoPct}%`, cor: corSla,
-      def: "% de demandas resolvidas dentro do prazo aplicável ao setor." },
-    { label: "Backlog em aberto", value: `${m.emAberto}`, cor: corBacklog,
-      def: `Demandas ainda não resolvidas no fim do período (${m.pctEmAberto}% do total).` },
-    { label: "Pontuação operacional", value: `${m.score}`, cor: corScore,
-      def: "Índice ponderado (SLA 40% · resolução 30% · prazo 20% · backlog 10%)." },
-    { label: "Total de demandas", value: `${m.total}`, cor: C.PRIMARY,
-      def: `Volume total do período — ${m.resolvidas} resolvidas (${m.pctResolvidas}%).` },
-    { label: "Fora do prazo", value: `${m.pctForaDoPrazo}%`, cor: corFora,
-      def: m.acimaDaMeta ? "Acima da meta de 8% — requer atenção." : "Dentro da meta (≤ 8%)." },
-    { label: "Tempo médio de resolução", value: `${m.tempoMedioDias.toFixed(1)}d`, cor: C.PRIMARY,
-      def: "Dias corridos entre abertura e resolução para demandas resolvidas." },
-  ];
 
-  const rH = (SAFE.h - gap) / 2;
-  defs.forEach((d, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const x = SAFE.x + col * (kW + gap);
-    const y = SAFE.y + row * (rH + gap);
-    kpiSimples(s2, x, y, kW, rH, d.label, d.value, d.def, d.cor);
-  });
-  slideFooter(s2, filtroLabel);
-
-  // ================= SLIDE 3 — TEMPO DE RESPOSTA & TENDÊNCIAS =================
-  const s3 = pptx.addSlide();
-  addBackground(s3, "conteudo");
-  slideHeader(s3, "Tempo de Resposta & Tendências", "Tempo médio por tipo de setor e variação vs. início do período", periodoLabel);
-
-  const colW = (SAFE.w - 0.25) / 2;
-  card(s3, SAFE.x, SAFE.y, colW, SAFE.h);
-  s3.addText("TEMPO MÉDIO (HORAS ÚTEIS)", {
-    x: SAFE.x + 0.25, y: SAFE.y + 0.18, w: colW - 0.5, h: 0.3,
-    fontSize: 10, bold: true, color: C.MUTED, charSpacing: 2, fontFace: "Calibri",
-  });
-  const t = snap.temposSegmentados;
-  const bloco = (y0: number, titulo: string, valor: string, sub: string, corValor: string) => {
-    s3.addText(titulo, {
-      x: SAFE.x + 0.3, y: y0, w: colW - 0.6, h: 0.35,
-      fontSize: 13, bold: true, color: C.INK, fontFace: "Calibri",
-    });
-    s3.addText(valor, {
-      x: SAFE.x + 0.3, y: y0 + 0.35, w: colW - 0.6, h: 0.9,
-      fontSize: 40, bold: true, color: corValor, fontFace: "Calibri",
-    });
-    s3.addText(sub, {
-      x: SAFE.x + 0.3, y: y0 + 1.25, w: colW - 0.6, h: 0.3,
-      fontSize: 11, color: C.MUTED, fontFace: "Calibri",
-    });
-  };
-  bloco(SAFE.y + 0.65, "Agenda Cirúrgica · SLA 168h",
-    `${t.cirurgica.horas.toFixed(0)}h`,
-    `${t.cirurgica.foraPct}% acima do SLA`,
-    t.cirurgica.foraPct > 10 ? C.NEGATIVE : C.PRIMARY);
-  bloco(SAFE.y + 3.1, "Demais Setores · SLA 72h",
-    `${t.demais.horas.toFixed(0)}h`,
-    `${t.demais.foraPct}% acima do SLA`,
-    t.demais.foraPct > 10 ? C.NEGATIVE : C.PRIMARY);
-
-  card(s3, SAFE.x + colW + 0.25, SAFE.y, colW, SAFE.h);
-  s3.addText("VARIAÇÃO NO PERÍODO", {
-    x: SAFE.x + colW + 0.5, y: SAFE.y + 0.18, w: colW - 0.5, h: 0.3,
-    fontSize: 10, bold: true, color: C.MUTED, charSpacing: 2, fontFace: "Calibri",
-  });
-  const tr = snap.tendencias;
-  if (tr) {
-    const linhas = [
-      { label: "SLA no prazo", val: tr.slaDelta, inverse: false },
-      { label: "Backlog em aberto", val: tr.backlogDelta, inverse: true },
-      { label: "Fora do prazo", val: tr.foraDelta, inverse: true },
-    ];
-    linhas.forEach((ln, i) => {
-      const y0 = SAFE.y + 0.65 + i * 1.55;
-      const arrow = ln.val > 0 ? "▲" : ln.val < 0 ? "▼" : "▬";
-      const good = ln.val === 0 ? null : ln.inverse ? ln.val < 0 : ln.val > 0;
-      const cor = good === null ? C.MUTED : good ? C.POSITIVE : C.NEGATIVE;
-      s3.addText(ln.label, {
-        x: SAFE.x + colW + 0.5, y: y0, w: colW - 0.5, h: 0.3,
-        fontSize: 12, color: C.INK_SOFT, fontFace: "Calibri",
-      });
-      s3.addText(`${arrow} ${ln.val > 0 ? "+" : ""}${ln.val}%`, {
-        x: SAFE.x + colW + 0.5, y: y0 + 0.3, w: colW - 0.5, h: 0.7,
-        fontSize: 30, bold: true, color: cor, fontFace: "Calibri",
-      });
-    });
-  } else {
-    s3.addText("Sem dado comparável.", {
-      x: SAFE.x + colW + 0.5, y: SAFE.y + 1.0, w: colW - 0.5, h: 0.4,
-      fontSize: 12, color: C.MUTED, italic: true, fontFace: "Calibri",
-    });
-  }
-  slideFooter(s3, filtroLabel);
-
-  // ================= SLIDE 4 — EVOLUÇÃO MENSAL (6 MESES) =================
-  if (snap.monthlySeries.length > 0) {
-    const s4 = pptx.addSlide();
-    addBackground(s4, "conteudo");
-    slideHeader(s4, "Evolução Mensal", "Últimos 6 meses — SLA no prazo, fora do prazo e backlog", periodoLabel);
-    card(s4, SAFE.x, SAFE.y, SAFE.w, SAFE.h);
-
-    const labels = snap.monthlySeries.map((x) => x.label);
-    s4.addChart(pptx.ChartType.line,
-      [
-        { name: "SLA no prazo (%)", labels, values: snap.monthlySeries.map((x) => x.sla) },
-        { name: "Fora do prazo (%)", labels, values: snap.monthlySeries.map((x) => x.fora) },
-        { name: "Backlog (qtd)", labels, values: snap.monthlySeries.map((x) => x.aberto) },
-      ],
-      {
-        x: SAFE.x + 0.25, y: SAFE.y + 0.35, w: SAFE.w - 0.5, h: SAFE.h - 0.55,
-        chartColors: [C.POSITIVE, C.NEGATIVE, C.PRIMARY],
-        showLegend: true, legendPos: "b", legendFontSize: 11, legendColor: C.INK,
-        catAxisLabelFontSize: 10, catAxisLabelColor: C.INK_SOFT,
-        valAxisLabelFontSize: 10, valAxisLabelColor: C.INK_SOFT,
-        lineDataSymbolSize: 8, lineSize: 2.5,
-        showValue: false,
-      },
-    );
-    slideFooter(s4, filtroLabel);
-  }
 
   // ================= SLIDE 5 — VOLUME POR SETOR =================
   if (snap.volumeSetor.length > 0) {
@@ -710,27 +493,6 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
     slideFooter(s5, filtroLabel);
   }
 
-  // ================= SLIDE 6 — REINCIDÊNCIAS =================
-  if (snap.reincidencias.length > 0) {
-    const s6 = pptx.addSlide();
-    addBackground(s6, "conteudo");
-    slideHeader(s6, "Reincidências por Setor", "Taxa de reincidência (%) — setores acima de 20% requerem plano de ação", periodoLabel);
-    card(s6, SAFE.x, SAFE.y, SAFE.w, SAFE.h);
-    // Cor semântica: barras acima de 20 = negativo, demais = warning
-    const acima = snap.reincidencias.some((r) => r.taxa > 20);
-    s6.addChart(pptx.ChartType.bar,
-      [{ name: "Taxa (%)", labels: snap.reincidencias.map((r) => r.setor), values: snap.reincidencias.map((r) => r.taxa) }],
-      {
-        x: SAFE.x + 0.25, y: SAFE.y + 0.35, w: SAFE.w - 0.5, h: SAFE.h - 0.55,
-        barDir: "bar", chartColors: [acima ? C.NEGATIVE : C.WARNING],
-        showValue: true, dataLabelFontSize: 11, dataLabelColor: C.INK, dataLabelPosition: "outEnd",
-        catAxisLabelFontSize: 11, catAxisLabelColor: C.INK,
-        valAxisLabelFontSize: 10, valAxisLabelColor: C.INK_SOFT,
-        showLegend: false, barGapWidthPct: 40,
-      },
-    );
-    slideFooter(s6, filtroLabel);
-  }
 
   // ================= SLIDE 7 — GARGALOS =================
   if (snap.gargalos.length > 0) {
@@ -776,59 +538,6 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
     slideFooter(s7, filtroLabel);
   }
 
-  // ================= SLIDE 8 — INSIGHTS & RECOMENDAÇÕES =================
-  const recs: string[] = [];
-  if (m.acimaDaMeta) {
-    recs.push("Definir plano de ação semanal com os setores acima da meta de 8% fora do prazo e revisar prazos internos.");
-  }
-  if (snap.reincidencias[0] && snap.reincidencias[0].taxa > 20) {
-    recs.push(`Investigar causa-raiz das reincidências em ${snap.reincidencias[0].setor} (${snap.reincidencias[0].taxa}%) e padronizar tratativa.`);
-  }
-  if (snap.gargalos[0]) {
-    recs.push(`Priorizar squad em ${snap.gargalos[0].setor} · ${snap.gargalos[0].tipo}, que concentra o maior impacto (${snap.gargalos[0].qtd} demandas, tempo médio ${snap.gargalos[0].tempoMedio.toFixed(1)}d).`);
-  }
-  if (p && m.emAberto > p.emAberto) {
-    recs.push("Ampliar capacidade de resposta no curto prazo — backlog cresceu vs. o mês anterior.");
-  }
-  const recsFinal = recs.slice(0, 3);
-
-  if (snap.insights.length > 0 || recsFinal.length > 0) {
-    const s8 = pptx.addSlide();
-    addBackground(s8, "conteudo");
-    slideHeader(s8, "Insights & Recomendações", "Análise automática do período com ações objetivas", periodoLabel);
-
-    const cW = (SAFE.w - 0.25) / 2;
-    card(s8, SAFE.x, SAFE.y, cW, SAFE.h);
-    s8.addText("OBSERVAÇÕES DO PERÍODO", {
-      x: SAFE.x + 0.25, y: SAFE.y + 0.18, w: cW - 0.5, h: 0.3,
-      fontSize: 10, bold: true, color: C.MUTED, charSpacing: 2, fontFace: "Calibri",
-    });
-    s8.addText(
-      (snap.insights.length ? snap.insights : ["Sem observações críticas no período."]).map(
-        (f) => ({ text: f, options: { bullet: { code: "25CF" }, color: C.INK } }),
-      ) as any,
-      {
-        x: SAFE.x + 0.35, y: SAFE.y + 0.6, w: cW - 0.65, h: SAFE.h - 0.8,
-        fontSize: 14, fontFace: "Calibri", paraSpaceAfter: 10,
-      },
-    );
-
-    card(s8, SAFE.x + cW + 0.25, SAFE.y, cW, SAFE.h);
-    s8.addText("RECOMENDAÇÕES DE AÇÃO", {
-      x: SAFE.x + cW + 0.5, y: SAFE.y + 0.18, w: cW - 0.5, h: 0.3,
-      fontSize: 10, bold: true, color: C.MUTED, charSpacing: 2, fontFace: "Calibri",
-    });
-    s8.addText(
-      (recsFinal.length ? recsFinal : ["Manter cadência atual — indicadores dentro do esperado."]).map(
-        (f, i) => ({ text: f, options: { bullet: { code: "25B6" }, color: C.INK } }),
-      ) as any,
-      {
-        x: SAFE.x + cW + 0.6, y: SAFE.y + 0.6, w: cW - 0.75, h: SAFE.h - 0.8,
-        fontSize: 14, bold: false, fontFace: "Calibri", paraSpaceAfter: 10,
-      },
-    );
-    slideFooter(s8, filtroLabel);
-  }
 
   // ================= SLIDE FINAL — RANKING EMPRESAS: VIDAS vs. RECLAMAÇÕES =================
   if (snap.rankingEmpresasVidas && snap.rankingEmpresasVidas.length > 0) {
