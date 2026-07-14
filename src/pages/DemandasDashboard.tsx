@@ -476,6 +476,13 @@ export default function DemandasDashboard() {
           </p>
         </div>
 
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList>
+            <TabsTrigger value="dashboard">Dashboard Reclamações</TabsTrigger>
+            <TabsTrigger value="apresentacao">Apresentação Executiva</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-6 mt-6 animate-in fade-in duration-300">
         {/* Filtros */}
         <Card className="p-4 shadow-sm">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
