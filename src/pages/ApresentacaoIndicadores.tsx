@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Activity,
   AlertTriangle,
@@ -891,18 +892,52 @@ type SortKey = "vidas" | "reclamacoes" | "indice";
 function RankingSection() {
   const [sortKey, setSortKey] = useState<SortKey>("indice");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      setLoading(true);
+      const [empRes, demRes] = await Promise.all([
+        supabase.from("empresas").select("nome, vidas").gt("vidas", 0),
+        supabase.from("demandas").select("empresa"),
+      ]);
+      if (cancel) return;
+      const contagem = new Map<string, number>();
+      (demRes.data ?? []).forEach((d: any) => {
+        const k = (d.empresa ?? "").toString().trim().toLowerCase();
+        if (!k) return;
+        contagem.set(k, (contagem.get(k) ?? 0) + 1);
+      });
+      const lista: Empresa[] = (empRes.data ?? [])
+        .map((e: any) => ({
+          nome: (e.nome ?? "").toString().trim(),
+          vidas: Number(e.vidas) || 0,
+          reclamacoes: contagem.get((e.nome ?? "").toString().trim().toLowerCase()) ?? 0,
+        }))
+        .filter((e) => e.vidas > 0 && e.reclamacoes > 0);
+      setEmpresas(lista);
+      setLoading(false);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, []);
 
   const rows = useMemo(() => {
-    const enriched = EMPRESAS.map((e) => ({
+    const enriched = empresas.map((e) => ({
       ...e,
       indice: +((e.reclamacoes / e.vidas) * 100).toFixed(2),
     }));
-    return enriched.sort((a, b) => {
-      const va = a[sortKey];
-      const vb = b[sortKey];
-      return sortDir === "asc" ? va - vb : vb - va;
-    });
-  }, [sortKey, sortDir]);
+    return enriched
+      .sort((a, b) => {
+        const va = a[sortKey];
+        const vb = b[sortKey];
+        return sortDir === "asc" ? va - vb : vb - va;
+      })
+      .slice(0, 15);
+  }, [empresas, sortKey, sortDir]);
 
   function toggle(k: SortKey) {
     if (k === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -912,42 +947,67 @@ function RankingSection() {
     }
   }
 
-  const chartData = rows.map((r) => ({
-    nome: r.nome.split(" ")[0],
-    Reclamações: r.reclamacoes,
-    Índice: r.indice,
-  }));
-
   return (
     <div className="grid gap-6">
-      <div>
-        <Kicker>Parceiros corporativos</Kicker>
-        <h2 className="mt-2 text-2xl font-semibold md:text-3xl">Ranking de Empresas — Vidas vs. Reclamações</h2>
-      </div>
+      <Panel className="relative overflow-hidden">
+        <div
+          aria-hidden
+          className="absolute left-0 top-6 h-8 w-1 rounded-r"
+          style={{ background: C.teal }}
+        />
+        <div className="pl-4">
+          <h3 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            Ranking Empresas: Vidas vs. Reclamações
+          </h3>
+          <p className="mt-1 text-sm" style={{ color: C.muted }}>
+            {loading
+              ? "Carregando dados..."
+              : `Top ${rows.length} empresas do banco — ordenado por ${
+                  sortKey === "indice"
+                    ? "índice de sinistralidade"
+                    : sortKey === "vidas"
+                      ? "vidas"
+                      : "reclamações"
+                }.`}
+          </p>
+        </div>
 
-      <Panel>
-        <div className="overflow-x-auto">
+        <div className="mt-6 overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr style={{ color: C.muted }} className="text-left text-xs uppercase tracking-wider">
-                <th className="py-3 pr-4">Empresa</th>
-                <SortableTh label="Vidas" active={sortKey === "vidas"} dir={sortDir} onClick={() => toggle("vidas")} />
+                <th className="py-3 pr-4">Empresa Cliente</th>
+                <SortableTh label="Quantidade de Vidas" active={sortKey === "vidas"} dir={sortDir} onClick={() => toggle("vidas")} />
                 <SortableTh
-                  label="Reclamações"
+                  label="Quantidade de Reclamações"
                   active={sortKey === "reclamacoes"}
                   dir={sortDir}
                   onClick={() => toggle("reclamacoes")}
                 />
                 <SortableTh
-                  label="Índice"
+                  label="Índice de Sinistralidade (Reclamações/Vidas)"
                   active={sortKey === "indice"}
                   dir={sortDir}
                   onClick={() => toggle("indice")}
                 />
-                <th className="py-3 pl-4">Status</th>
+                <th className="py-3 pl-4">Status de Alerta</th>
               </tr>
             </thead>
             <tbody>
+              {loading && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-sm" style={{ color: C.muted }}>
+                    Carregando ranking...
+                  </td>
+                </tr>
+              )}
+              {!loading && rows.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-sm" style={{ color: C.muted }}>
+                    Nenhuma empresa com reclamações registradas.
+                  </td>
+                </tr>
+              )}
               <AnimatePresence initial={false}>
                 {rows.map((r, i) => {
                   const st = statusFrom(r.indice);
@@ -981,35 +1041,10 @@ function RankingSection() {
           </table>
         </div>
       </Panel>
-
-      <Panel>
-        <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: C.muted }}>
-          Comparativo visual — Reclamações vs. Índice (%)
-        </h3>
-        <div className="mt-4 h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
-              <CartesianGrid stroke={C.border} horizontal={false} />
-              <XAxis type="number" stroke={C.muted} fontSize={11} />
-              <YAxis dataKey="nome" type="category" stroke={C.muted} fontSize={11} width={80} />
-              <ReTooltip
-                contentStyle={{
-                  background: C.panel,
-                  border: `1px solid ${C.borderStrong}`,
-                  borderRadius: 12,
-                  color: C.text,
-                }}
-              />
-              <Legend wrapperStyle={{ color: C.muted, fontSize: 12 }} />
-              <Bar dataKey="Reclamações" fill={C.blue} radius={[0, 6, 6, 0]} />
-              <Bar dataKey="Índice" fill={C.amber} radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </Panel>
     </div>
   );
 }
+
 
 function SortableTh({
   label,
