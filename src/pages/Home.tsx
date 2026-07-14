@@ -344,6 +344,14 @@ const SHORTCUTS: Shortcut[] = [
     group: "utilitarios",
     show: (c) => c.canHonda,
   },
+  {
+    to: "/admin/fila-atendimento",
+    label: "Fila de Atendimento",
+    description: "Atendimentos recebidos das empresas por setor",
+    icon: MessageSquareWarning,
+    group: "utilitarios",
+    show: () => true,
+  },
 ];
 
 export default function Home() {
