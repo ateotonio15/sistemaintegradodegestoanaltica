@@ -11,6 +11,7 @@ import {
   Gauge,
   Heart,
   LayoutDashboard,
+  Network,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
