@@ -199,19 +199,14 @@ export default function DemandasDashboard() {
   ]);
 
   // ===== Métricas agregadas =====
-  const metrics = useMemo(() => {
-    const total = filtered.length;
-    const resolvidas = filtered.filter(isResolved).length;
+  const computeMetrics = (list: Demanda[]) => {
+    const total = list.length;
+    const resolvidas = list.filter(isResolved).length;
     const emAberto = total - resolvidas;
-    const noPrazo = filtered.filter((d) => !isForaPrazo(d)).length;
+    const noPrazo = list.filter((d) => !isForaPrazo(d)).length;
     const foraPrazo = total - noPrazo;
-    const tempos = filtered
-      .filter(isResolved)
-      .map(diasCorridos)
-      .filter((v) => v >= 0);
-    const tempoMedioDias = tempos.length
-      ? tempos.reduce((a, b) => a + b, 0) / tempos.length
-      : 0;
+    const tempos = list.filter(isResolved).map(diasCorridos).filter((v) => v >= 0);
+    const tempoMedioDias = tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
     const pctResolvidas = total ? Math.round((resolvidas / total) * 100) : 0;
     const pctEmAberto = total ? Math.round((emAberto / total) * 100) : 0;
     const slaNoPrazoPct = total ? Math.round((noPrazo / total) * 100) : 0;
@@ -227,7 +222,60 @@ export default function DemandasDashboard() {
       total, resolvidas, emAberto, pctResolvidas, pctEmAberto,
       slaNoPrazoPct, tempoMedioDias, pctForaDoPrazo, acimaDaMeta, score,
     };
-  }, [filtered]);
+  };
+  const metrics = useMemo(() => computeMetrics(filtered), [filtered]);
+
+  // ===== Período anterior (mês imediatamente anterior) =====
+  const prevPeriod = useMemo(() => {
+    if (!ini || !fim) return null;
+    const pIni = new Date(ini.getFullYear(), ini.getMonth() - 1, ini.getDate());
+    const pFim = new Date(fim.getFullYear(), fim.getMonth() - 1, fim.getDate());
+    return { ini: pIni, fim: pFim };
+  }, [ini, fim]);
+
+  const prevFiltered = useMemo(() => {
+    if (!prevPeriod) return [];
+    return demandas.filter((d) => {
+      const abertura = parseLocalDate(d.data_reclamacao);
+      if (!abertura) return false;
+      const resolvida = isResolved(d);
+      const encerramento = resolvida ? dataFimEfetiva(d) : new Date();
+      if (abertura > prevPeriod.fim) return false;
+      if (encerramento < prevPeriod.ini) return false;
+      if (empresa !== "__all__" && d.empresa !== empresa) return false;
+      if (executiva !== "__all__" && d.executiva !== executiva) return false;
+      return true;
+    });
+  }, [demandas, prevPeriod, empresa, executiva]);
+
+  const prevMetrics = useMemo(
+    () => (prevFiltered.length ? computeMetrics(prevFiltered) : null),
+    [prevFiltered],
+  );
+
+  // ===== Série mensal 6 meses (para evolução em contexto) =====
+  const monthlySeries6m = useMemo(() => {
+    if (!fim) return [];
+    const base = new Date(fim.getFullYear(), fim.getMonth(), 1);
+    const out: { label: string; sla: number; fora: number; aberto: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const s = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      const e = new Date(s.getFullYear(), s.getMonth() + 1, 0);
+      const label = s.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+      const arr = demandas.filter((d) => {
+        if (empresa !== "__all__" && d.empresa !== empresa) return false;
+        if (executiva !== "__all__" && d.executiva !== executiva) return false;
+        const x = parseLocalDate(d.data_reclamacao);
+        return x && x >= s && x <= e;
+      });
+      const sla = arr.length ? Math.round((arr.filter((d) => !isForaPrazo(d)).length / arr.length) * 100) : 0;
+      const fora = arr.length ? Math.round((arr.filter(isForaPrazo).length / arr.length) * 100) : 0;
+      const aberto = arr.filter((d) => !isResolved(d)).length;
+      out.push({ label, sla, fora, aberto });
+    }
+    return out;
+  }, [demandas, empresa, executiva, fim]);
+
 
   const scoreStatus =
     metrics.score >= 85 ? "saudavel" : metrics.score >= 70 ? "atencao" : "critico";
