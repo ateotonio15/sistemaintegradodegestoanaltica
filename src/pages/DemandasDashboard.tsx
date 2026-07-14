@@ -398,6 +398,9 @@ export default function DemandasDashboard() {
       .map(([tipo, n]) => ({ tipo, n, pct: Math.round((n / tot) * 100) }))
       .sort((a, b) => b.n - a.n)
       .slice(0, 8);
+  }, [filtered]);
+
+
 
   // ===== Reincidências =====
   const reincidencias = useMemo(() => {
