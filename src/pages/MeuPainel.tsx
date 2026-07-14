@@ -27,11 +27,20 @@ export default function MeuPainel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, cnpj, status_empresa, portal_secoes")
+        .select("id, nome, cnpj, status_empresa, portal_secoes, tipo_movimentacao, periodo_movimentacao, data_implantacao, data_corte, dia_movimentacao, prazo, responsavel_contrato, executiva_user_id")
         .eq("id", empresaVinculadaId!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      let executivaNome: string | null = null;
+      if ((data as any)?.executiva_user_id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", (data as any).executiva_user_id)
+          .maybeSingle();
+        executivaNome = (prof as any)?.display_name ?? null;
+      }
+      return { ...(data as any), executiva_nome: executivaNome };
     },
   });
 
