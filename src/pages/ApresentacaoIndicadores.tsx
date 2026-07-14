@@ -330,12 +330,126 @@ function OverviewSection() {
 // 2) Desempenho Geral
 // ------------------------------------------------------------
 function DesempenhoSection() {
+  const mesAnterior = 220;
+  const mesAtual = 181;
+  const variacao = ((mesAtual - mesAnterior) / mesAnterior) * 100;
+  const volumeData = [
+    { mes: "JUNHO", valor: mesAnterior, fill: C.muted },
+    { mes: "JULHO", valor: mesAtual, fill: C.teal },
+  ];
+
   return (
     <div className="grid gap-6">
       <div>
         <Kicker>Desempenho geral</Kicker>
         <h2 className="mt-2 text-2xl font-semibold md:text-3xl">Comparativo com o mês anterior</h2>
       </div>
+
+      {/* Volume de Reclamações Recebidas — bloco no padrão referência */}
+      <Panel className="relative overflow-hidden">
+        <div
+          aria-hidden
+          className="absolute left-0 top-6 h-8 w-1 rounded-r"
+          style={{ background: C.teal }}
+        />
+        <div className="pl-4">
+          <h3 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            Volume de Reclamações Recebidas
+          </h3>
+        </div>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          {/* Coluna esquerda: cards + pill */}
+          <div className="space-y-4">
+            <div
+              className="rounded-2xl px-6 py-5"
+              style={{ background: "rgba(15,23,42,0.6)", border: `1px solid ${C.border}` }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.22em]" style={{ color: C.muted }}>
+                    Mês anterior
+                  </p>
+                  <p className="mt-1 text-sm" style={{ color: C.muted }}>
+                    Junho 2026
+                  </p>
+                </div>
+                <p className="text-5xl font-bold tracking-tight" style={{ color: C.text }}>
+                  {mesAnterior}
+                </p>
+              </div>
+            </div>
+
+            <div
+              className="relative overflow-hidden rounded-2xl px-6 py-5"
+              style={{ background: C.tealSoft, border: `1px solid rgba(45,212,191,0.35)` }}
+            >
+              <div className="absolute left-0 top-0 h-full w-1" style={{ background: C.teal }} />
+              <div className="flex items-center justify-between pl-2">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.22em]" style={{ color: C.teal }}>
+                    Mês atual
+                  </p>
+                  <p className="mt-1 text-sm" style={{ color: C.muted }}>
+                    Julho 2026
+                  </p>
+                </div>
+                <p className="text-5xl font-bold tracking-tight" style={{ color: C.teal }}>
+                  {mesAtual}
+                </p>
+              </div>
+            </div>
+
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium"
+              style={{ background: "rgba(16,185,129,0.14)", color: C.green }}
+            >
+              <TrendingDown className="h-4 w-4" />
+              {variacao.toFixed(1)}% Redução no Volume de Reclamações
+            </div>
+          </div>
+
+          {/* Coluna direita: gráfico visível */}
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: "rgba(15,23,42,0.6)", border: `1px solid ${C.border}` }}
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={volumeData} margin={{ top: 24, right: 16, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+                <XAxis
+                  dataKey="mes"
+                  tick={{ fill: C.muted, fontSize: 12, fontWeight: 600 }}
+                  axisLine={{ stroke: C.border }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: C.muted, fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={36}
+                />
+                <ReTooltip
+                  cursor={{ fill: "rgba(148,163,184,0.08)" }}
+                  contentStyle={{
+                    background: C.panel,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 12,
+                    color: C.text,
+                  }}
+                  labelStyle={{ color: C.muted, fontSize: 11 }}
+                />
+                <Bar dataKey="valor" radius={[8, 8, 0, 0]} label={{ position: "top", fill: C.text, fontWeight: 700, fontSize: 16 }}>
+                  {volumeData.map((entry, index) => (
+                    <Cell key={index} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </Panel>
+
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {/* Card 1 — SLA */}
