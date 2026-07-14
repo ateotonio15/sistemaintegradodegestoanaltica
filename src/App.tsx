@@ -57,6 +57,7 @@ import ApresentacaoIndicadores from "./pages/ApresentacaoIndicadores";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import CadastrarEmpresa from "./pages/CadastrarEmpresa";
+import FilaAtendimento from "./pages/FilaAtendimento";
 import TrocarSenha from "./pages/TrocarSenha";
 import Portal from "./pages/Portal";
 import MeuPainel from "./pages/MeuPainel";
@@ -160,6 +161,7 @@ const AppRoutes = () => (
       <Route path="/trocar-senha" element={<TrocarSenha />} />
       <Route element={<AdminInternoGate />}>
         <Route path="/admin/cadastrar-empresa" element={<CadastrarEmpresa />} />
+        <Route path="/admin/fila-atendimento" element={<FilaAtendimento />} />
       </Route>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/dashboard" element={<HomeRoute />} />
