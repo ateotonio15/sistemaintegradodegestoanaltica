@@ -856,7 +856,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
       { text: "EMPRESA CLIENTE", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "left" } },
       { text: "VIDAS", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
       { text: "RECLAMAÇÕES", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
-      { text: "ÍNDICE", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
+      { text: "% DO CONTRATO", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
       { text: "STATUS", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "center" } },
     ];
 
