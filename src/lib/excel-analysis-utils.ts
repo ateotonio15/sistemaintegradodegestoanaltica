@@ -2266,8 +2266,8 @@ export function cruzarExcelComPdfs(
     cmp.valorLiquido = pdf?.valorLiquido ?? null;
     cmp.tributos = pdf?.tributos ?? null;
     if (pdf && matchPorNome) {
-      cmp.avisos = [
-        ...(cmp.avisos || []),
+      cmp.excel.avisos = [
+        ...(cmp.excel.avisos || []),
         "NF casada pelo nome do tomador (Excel sem coluna de CNPJ).",
       ];
     }
