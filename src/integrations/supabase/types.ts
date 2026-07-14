@@ -1492,6 +1492,8 @@ export type Database = {
           periodo_cobranca_inicio: string | null
           periodo_especifico_cobranca: boolean
           periodo_movimentacao: string | null
+          portal_ativo: boolean
+          portal_secoes: Json
           prazo: string | null
           primeira_competencia_financeira: string | null
           primeiro_fechamento_em: string | null
@@ -1551,6 +1553,8 @@ export type Database = {
           periodo_cobranca_inicio?: string | null
           periodo_especifico_cobranca?: boolean
           periodo_movimentacao?: string | null
+          portal_ativo?: boolean
+          portal_secoes?: Json
           prazo?: string | null
           primeira_competencia_financeira?: string | null
           primeiro_fechamento_em?: string | null
@@ -1610,6 +1614,8 @@ export type Database = {
           periodo_cobranca_inicio?: string | null
           periodo_especifico_cobranca?: boolean
           periodo_movimentacao?: string | null
+          portal_ativo?: boolean
+          portal_secoes?: Json
           prazo?: string | null
           primeira_competencia_financeira?: string | null
           primeiro_fechamento_em?: string | null
