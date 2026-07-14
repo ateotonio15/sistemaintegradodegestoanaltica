@@ -1798,6 +1798,44 @@ export default function Financeiro() {
       }
     });
 
+    // Fallback por sobreposição de tokens quando a empresa tem regra
+    // "agrupar_por_nome" (ex.: Jabil): CNPJs do Excel podem não bater com o
+    // cadastro, mas queremos casar matriz↔matriz e filial↔filial pelo nome.
+    if (indices.length === 0 && nomeAlvo) {
+      const padroes = getForceGroupByNamePatterns();
+      const empresaTemRegra = padroes.some((p) => nomeAlvo.includes(p));
+      if (empresaTemRegra) {
+        const tokens = (s: string) =>
+          new Set(s.split(/[^a-z0-9]+/i).filter((t) => t.length >= 2));
+        const alvoTokens = tokens(nomeAlvo);
+        let melhorScore = -Infinity;
+        let melhorIdx = -1;
+        mother.resultados.forEach((r, i) => {
+          const bcnpj = onlyDigits((r as any).cnpj);
+          // Ignora blocos que pertencem a outros pagadores cadastrados com CNPJ exato
+          if (bcnpj && cnpjAlvo && bcnpj !== cnpjAlvo) {
+            // ainda pode ser candidato se a regra manda agrupar por nome
+          }
+          const bnome = normTxt((r as any).pagador || (r as any).nomeExibicao);
+          if (!bnome) return;
+          const btokens = tokens(bnome);
+          // score = tokens em comum − 0.5 × tokens extras no bloco (favorece
+          // matriz para empresa-matriz e filial para empresa-filial)
+          let comum = 0;
+          alvoTokens.forEach((t) => { if (btokens.has(t)) comum++; });
+          const extras = Array.from(btokens).filter((t) => !alvoTokens.has(t)).length;
+          const score = comum - extras * 0.5;
+          if (score > melhorScore && comum > 0) {
+            melhorScore = score;
+            melhorIdx = i;
+          }
+        });
+        if (melhorIdx >= 0) indices.push(melhorIdx);
+      }
+    }
+
+
+
     if (indices.length === 0) {
       // Quando a linha representa a empresa-mãe (sem pagador específico) e não
       // achamos bloco com CNPJ exato, antes devolvíamos TODOS os blocos da
