@@ -449,6 +449,41 @@ export type Database = {
           },
         ]
       }
+      atendimentos_mensagens: {
+        Row: {
+          atendimento_id: string
+          autor_id: string
+          autor_tipo: string
+          criado_em: string
+          id: string
+          mensagem: string
+        }
+        Insert: {
+          atendimento_id: string
+          autor_id: string
+          autor_tipo: string
+          criado_em?: string
+          id?: string
+          mensagem: string
+        }
+        Update: {
+          atendimento_id?: string
+          autor_id?: string
+          autor_tipo?: string
+          criado_em?: string
+          id?: string
+          mensagem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimentos_mensagens_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atendimentos_redirecionamentos: {
         Row: {
           atendimento_id: string

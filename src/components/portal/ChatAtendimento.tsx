@@ -10,7 +10,8 @@ import ReactMarkdown from "react-markdown";
 
 type Msg =
   | { role: "user"; text: string }
-  | { role: "assistant"; text: string; setor?: string };
+  | { role: "assistant"; text: string; setor?: string; atendimentoId?: string }
+  | { role: "staff"; text: string; setor?: string };
 
 const setorLabel: Record<string, string> = {
   cadastro: "Cadastro",
@@ -28,10 +29,29 @@ export function ChatAtendimento() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const subscribedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
+
+  function subscribeRespostas(atendimentoId: string) {
+    if (subscribedRef.current.has(atendimentoId)) return;
+    subscribedRef.current.add(atendimentoId);
+    const channel = supabase
+      .channel(`atd-msg-${atendimentoId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "atendimentos_mensagens", filter: `atendimento_id=eq.${atendimentoId}` },
+        (payload) => {
+          const row = payload.new as any;
+          if (row?.autor_tipo !== "staff") return;
+          setMessages((m) => [...m, { role: "staff", text: row.mensagem as string }]);
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }
 
   async function enviar() {
     const texto = input.trim();
@@ -45,14 +65,17 @@ export function ChatAtendimento() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
+      const atendimentoId = (data as any).atendimento_id as string | undefined;
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
           text: (data as any).resposta as string,
           setor: (data as any).setor_destino as string,
+          atendimentoId,
         },
       ]);
+      if (atendimentoId) subscribeRespostas(atendimentoId);
     } catch (err: any) {
       const msg = err?.message ?? "Erro ao enviar solicitação";
       toast.error(msg);
@@ -92,6 +115,11 @@ export function ChatAtendimento() {
                 {m.role === "assistant" && m.setor && (
                   <div className="mb-1">
                     <Badge variant="secondary">Encaminhado: {setorLabel[m.setor] ?? m.setor}</Badge>
+                  </div>
+                )}
+                {m.role === "staff" && (
+                  <div className="mb-1">
+                    <Badge>Resposta da equipe</Badge>
                   </div>
                 )}
                 <div className="prose prose-sm max-w-none dark:prose-invert">

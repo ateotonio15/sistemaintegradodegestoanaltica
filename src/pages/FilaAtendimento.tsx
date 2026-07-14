@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, ArrowRightLeft, CheckCircle2, PlayCircle } from "lucide-react";
+import { Loader2, ArrowRightLeft, CheckCircle2, PlayCircle, Send } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 type Setor = "cadastro" | "relacionamento" | "financeiro";
 type Status = "aberto" | "em_andamento" | "resolvido";
@@ -49,11 +50,14 @@ const statusBadge = (s: Status) => {
 
 export default function FilaAtendimento() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [tab, setTab] = useState<Setor>("cadastro");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [redirectSetor, setRedirectSetor] = useState<Setor | "">("");
   const [redirectObs, setRedirectObs] = useState("");
   const [saving, setSaving] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
 
   const { data: atendimentos, isLoading } = useQuery({
     queryKey: ["fila-atendimentos"],
@@ -86,6 +90,40 @@ export default function FilaAtendimento() {
       return (data ?? []) as unknown as Redirecionamento[];
     },
   });
+
+  const { data: mensagens } = useQuery({
+    queryKey: ["atendimento-mensagens", selectedId],
+    enabled: !!selectedId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("atendimentos_mensagens")
+        .select("*")
+        .eq("atendimento_id", selectedId!)
+        .order("criado_em", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; autor_tipo: "staff" | "empresa"; mensagem: string; criado_em: string }>;
+    },
+  });
+
+  async function enviarResposta() {
+    if (!selected || !user || !replyText.trim()) return;
+    setSendingReply(true);
+    const { error } = await (supabase as any).from("atendimentos_mensagens").insert({
+      atendimento_id: selected.id,
+      autor_tipo: "staff",
+      autor_id: user.id,
+      mensagem: replyText.trim(),
+    });
+    setSendingReply(false);
+    if (error) return toast.error(error.message);
+    setReplyText("");
+    toast.success("Mensagem enviada");
+    qc.invalidateQueries({ queryKey: ["atendimento-mensagens", selected.id] });
+    if (selected.status === "aberto") {
+      await supabase.from("atendimentos").update({ status: "em_andamento" }).eq("id", selected.id);
+      qc.invalidateQueries({ queryKey: ["fila-atendimentos"] });
+    }
+  }
 
   const filtered = useMemo(() => {
     const list = (atendimentos ?? []).filter((a) => a.setor_destino === tab);
@@ -270,6 +308,49 @@ export default function FilaAtendimento() {
                   {selected.mensagem_original}
                 </div>
               </div>
+
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold mb-2">Conversa com a empresa</h4>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 mb-2">
+                  {(!mensagens || mensagens.length === 0) ? (
+                    <p className="text-xs text-muted-foreground">Nenhuma mensagem trocada ainda.</p>
+                  ) : (
+                    mensagens.map((m) => (
+                      <div key={m.id} className={m.autor_tipo === "staff" ? "flex justify-end" : "flex justify-start"}>
+                        <div className={
+                          m.autor_tipo === "staff"
+                            ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
+                            : "max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm"
+                        }>
+                          <div className="whitespace-pre-wrap">{m.mensagem}</div>
+                          <div className={"text-[10px] mt-1 opacity-70"}>
+                            {new Date(m.criado_em).toLocaleString("pt-BR")}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="flex items-end gap-2">
+                  <Textarea
+                    placeholder="Escreva uma resposta para a empresa..."
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    rows={2}
+                    className="resize-none"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        enviarResposta();
+                      }
+                    }}
+                  />
+                  <Button onClick={enviarResposta} disabled={sendingReply || !replyText.trim()} size="icon">
+                    {sendingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
 
               <div className="flex flex-wrap gap-2">
                 <Button
