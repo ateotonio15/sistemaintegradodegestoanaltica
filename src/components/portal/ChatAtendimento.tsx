@@ -10,7 +10,8 @@ import ReactMarkdown from "react-markdown";
 
 type Msg =
   | { role: "user"; text: string }
-  | { role: "assistant"; text: string; setor?: string };
+  | { role: "assistant"; text: string; setor?: string; atendimentoId?: string }
+  | { role: "staff"; text: string; setor?: string };
 
 const setorLabel: Record<string, string> = {
   cadastro: "Cadastro",
