@@ -17,7 +17,10 @@ import {
   Users,
   Repeat,
   Zap,
+  FileDown,
 } from "lucide-react";
+import { exportDashboardReclamacoesPptx } from "@/lib/demandas-dashboard-pptx";
+import { toast } from "@/hooks/use-toast";
 import {
   LineChart,
   Line,
