@@ -48,6 +48,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import ApresentacaoIndicadores from "@/pages/ApresentacaoIndicadores";
 import { useDemandas } from "@/hooks/useDemandas";
 import { parseLocalDate, type Demanda } from "@/lib/demandas-utils";
 
@@ -474,6 +476,13 @@ export default function DemandasDashboard() {
           </p>
         </div>
 
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList>
+            <TabsTrigger value="dashboard">Dashboard Reclamações</TabsTrigger>
+            <TabsTrigger value="apresentacao">Apresentação Executiva</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-6 mt-6 animate-in fade-in duration-300">
         {/* Filtros */}
         <Card className="p-4 shadow-sm">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
@@ -659,6 +668,12 @@ export default function DemandasDashboard() {
             <GargalosPanel data={gargalos} />
           </>
         )}
+          </TabsContent>
+
+          <TabsContent value="apresentacao" className="mt-6 animate-in fade-in duration-300 -mx-4 lg:-mx-8">
+            <ApresentacaoIndicadores />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
