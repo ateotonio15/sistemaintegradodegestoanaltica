@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, ArrowRightLeft, CheckCircle2, PlayCircle } from "lucide-react";
+import { Loader2, ArrowRightLeft, CheckCircle2, PlayCircle, Send } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 type Setor = "cadastro" | "relacionamento" | "financeiro";
 type Status = "aberto" | "em_andamento" | "resolvido";
