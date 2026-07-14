@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,19 @@ import { toast } from "sonner";
 import { Copy, Check } from "lucide-react";
 
 interface Resultado {
-  email: string;
-  senha_provisoria: string;
+  username: string;
+  senha_inicial: string;
+}
+
+function previewUsername(nome: string): string {
+  const limpo = nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return limpo.slice(0, 2).join("_").toUpperCase();
 }
 
 export default function CadastrarEmpresa() {
@@ -19,7 +30,7 @@ export default function CadastrarEmpresa() {
     cnpj: "",
     valor_mensal: "",
     data_inicio: "",
-    email: "",
+    codigo_contrato: "",
   });
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -28,10 +39,12 @@ export default function CadastrarEmpresa() {
   const setF = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((p) => ({ ...p, [k]: e.target.value }));
 
+  const usuarioPreview = useMemo(() => previewUsername(form.nome), [form.nome]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.nome || !form.email || !form.valor_mensal || !form.data_inicio) {
-      toast.error("Preencha nome, e-mail, valor e data de início.");
+    if (!form.nome || !form.codigo_contrato || !form.valor_mensal || !form.data_inicio) {
+      toast.error("Preencha nome, código da empresa, valor e data de início.");
       return;
     }
     setLoading(true);
@@ -42,13 +55,16 @@ export default function CadastrarEmpresa() {
           cnpj: form.cnpj.trim() || null,
           valor_mensal: Number(form.valor_mensal.replace(",", ".")),
           data_inicio: form.data_inicio,
-          email: form.email.trim().toLowerCase(),
+          codigo_contrato: form.codigo_contrato.trim(),
         },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      setResultado(data as Resultado);
-      setForm({ nome: "", cnpj: "", valor_mensal: "", data_inicio: "", email: "" });
+      setResultado({
+        username: (data as any).username,
+        senha_inicial: (data as any).senha_inicial,
+      });
+      setForm({ nome: "", cnpj: "", valor_mensal: "", data_inicio: "", codigo_contrato: "" });
       toast.success("Empresa cadastrada com sucesso");
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao cadastrar empresa");
@@ -60,7 +76,7 @@ export default function CadastrarEmpresa() {
   async function copiar() {
     if (!resultado) return;
     await navigator.clipboard.writeText(
-      `Acesso ao portal:\nE-mail: ${resultado.email}\nSenha provisória: ${resultado.senha_provisoria}`,
+      `Acesso ao portal:\nUsuário: ${resultado.username}\nSenha inicial: ${resultado.senha_inicial}\n(A empresa será obrigada a trocar a senha no primeiro login.)`,
     );
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2000);
@@ -72,8 +88,9 @@ export default function CadastrarEmpresa() {
         <CardHeader>
           <CardTitle>Cadastrar Empresa</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Cria a empresa, o contrato e o usuário de acesso ao portal. Uma senha
-            provisória é gerada e mostrada uma única vez.
+            O usuário de login é gerado a partir das duas primeiras palavras do nome
+            da empresa. A senha inicial é o código da empresa. No primeiro login o
+            usuário será obrigado a trocar a senha.
           </p>
         </CardHeader>
         <CardContent>
@@ -81,6 +98,14 @@ export default function CadastrarEmpresa() {
             <div className="grid gap-2">
               <Label htmlFor="nome">Nome da empresa *</Label>
               <Input id="nome" value={form.nome} onChange={setF("nome")} required />
+              {usuarioPreview && (
+                <p className="text-xs text-muted-foreground">
+                  Usuário gerado: <strong className="font-mono">{usuarioPreview}</strong>
+                  <span className="ml-1">
+                    (pode receber sufixo numérico se já existir)
+                  </span>
+                </p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="cnpj">CNPJ</Label>
@@ -88,8 +113,15 @@ export default function CadastrarEmpresa() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="valor">Valor mensal do contrato *</Label>
-                <Input id="valor" inputMode="decimal" value={form.valor_mensal} onChange={setF("valor_mensal")} placeholder="0,00" required />
+                <Label htmlFor="codigo">Código da empresa *</Label>
+                <Input
+                  id="codigo"
+                  value={form.codigo_contrato}
+                  onChange={setF("codigo_contrato")}
+                  placeholder="Ex.: 1234"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Será a senha inicial.</p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="inicio">Data de início *</Label>
@@ -97,8 +129,15 @@ export default function CadastrarEmpresa() {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="email">E-mail de acesso *</Label>
-              <Input id="email" type="email" value={form.email} onChange={setF("email")} required />
+              <Label htmlFor="valor">Valor mensal do contrato *</Label>
+              <Input
+                id="valor"
+                inputMode="decimal"
+                value={form.valor_mensal}
+                onChange={setF("valor_mensal")}
+                placeholder="0,00"
+                required
+              />
             </div>
             <Button type="submit" disabled={loading}>
               {loading ? "Cadastrando..." : "Cadastrar empresa"}
@@ -115,13 +154,18 @@ export default function CadastrarEmpresa() {
           {resultado && (
             <div className="grid gap-3">
               <p className="text-sm text-muted-foreground">
-                Copie e entregue estas credenciais ao responsável da empresa. A senha
-                provisória <strong>não será mostrada novamente</strong>. No primeiro
-                login o usuário será obrigado a trocá-la.
+                Repasse estas credenciais ao responsável da empresa. No primeiro login
+                ele será obrigado a trocar a senha.
               </p>
               <div className="grid gap-2 rounded-md border bg-muted/40 p-3 text-sm">
-                <div><span className="text-muted-foreground">E-mail:</span> <strong>{resultado.email}</strong></div>
-                <div><span className="text-muted-foreground">Senha provisória:</span> <strong className="font-mono">{resultado.senha_provisoria}</strong></div>
+                <div>
+                  <span className="text-muted-foreground">Usuário:</span>{" "}
+                  <strong className="font-mono">{resultado.username}</strong>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Senha inicial:</span>{" "}
+                  <strong className="font-mono">{resultado.senha_inicial}</strong>
+                </div>
               </div>
               <Button onClick={copiar} variant="secondary">
                 {copiado ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}

@@ -6,16 +6,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-function gerarSenhaProvisoria(): string {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghijkmnpqrstuvwxyz";
-  const digits = "23456789";
-  const symbols = "!@#$%&*";
-  const all = upper + lower + digits + symbols;
-  const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
-  const base = [pick(upper), pick(lower), pick(digits), pick(symbols)];
-  for (let i = 0; i < 10; i++) base.push(pick(all));
-  return base.sort(() => Math.random() - 0.5).join("");
+// Gera "ADATA_ELECTRONICS" a partir de "Adata Electronics Ltda"
+function gerarUsernameBase(nome: string): string {
+  const limpo = nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/[^a-zA-Z0-9\s]/g, " ") // remove pontuação
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const duas = limpo.slice(0, 2).join("_").toUpperCase();
+  return duas || "EMPRESA";
+}
+
+async function resolverUsernameUnico(
+  admin: ReturnType<typeof createClient>,
+  base: string,
+): Promise<string> {
+  let candidato = base;
+  let n = 1;
+  // tenta base, depois base2, base3...
+  while (true) {
+    const { data } = await admin
+      .from("profiles")
+      .select("user_id")
+      .ilike("username", candidato)
+      .maybeSingle();
+    if (!data) return candidato;
+    n += 1;
+    candidato = `${base}${n}`;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -52,7 +72,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Só admin_interno pode chamar
     const { data: role } = await admin
       .from("user_roles")
       .select("role")
@@ -67,26 +86,35 @@ Deno.serve(async (req) => {
       cnpj,
       valor_mensal,
       data_inicio,
-      email,
+      codigo_contrato,
     }: {
       nome: string;
       cnpj?: string;
       valor_mensal: number;
       data_inicio: string;
-      email: string;
+      codigo_contrato: string;
     } = body;
 
-    if (!nome || !email || !valor_mensal || !data_inicio) {
-      throw new Error("Campos obrigatórios ausentes");
+    if (!nome || !valor_mensal || !data_inicio || !codigo_contrato) {
+      throw new Error(
+        "Campos obrigatórios: nome, valor_mensal, data_inicio, codigo_contrato",
+      );
     }
 
-    // 1. Criar empresa
+    // 1. Username único a partir do nome
+    const base = gerarUsernameBase(nome);
+    const username = await resolverUsernameUnico(admin, base);
+    const emailInterno = `${username.toLowerCase()}@login.interno`;
+    const senhaInicial = String(codigo_contrato).trim();
+
+    // 2. Criar empresa
     const { data: empresa, error: empErr } = await admin
       .from("empresas")
       .insert({
         nome,
         cnpj: cnpj ?? null,
-        email_empresa: email,
+        codigo_contrato: senhaInicial,
+        email_empresa: emailInterno,
         status_empresa: "ativo",
         data_implantacao: data_inicio,
       })
@@ -94,7 +122,7 @@ Deno.serve(async (req) => {
       .single();
     if (empErr) throw empErr;
 
-    // 2. Criar contrato
+    // 3. Contrato
     const { error: contratoErr } = await admin.from("contratos").insert({
       empresa_id: empresa.id,
       valor_mensal,
@@ -103,35 +131,37 @@ Deno.serve(async (req) => {
     });
     if (contratoErr) throw contratoErr;
 
-    // 3. Criar user auth
-    const senha = gerarSenhaProvisoria();
+    // 4. Usuário no Auth
     const { data: novo, error: userErr } = await admin.auth.admin.createUser({
-      email,
-      password: senha,
+      email: emailInterno,
+      password: senhaInicial,
       email_confirm: true,
-      user_metadata: { display_name: nome },
+      user_metadata: { display_name: nome, username },
     });
     if (userErr) {
-      // rollback empresa/contrato para não deixar lixo
       await admin.from("empresas").delete().eq("id", empresa.id);
       throw userErr;
     }
     const userId = novo.user.id;
 
-    // 4. Marcar troca de senha obrigatória + display_name
+    // 5. Preenche profile (username + troca de senha obrigatória)
     await admin
       .from("profiles")
-      .update({ must_change_password: true, display_name: nome })
+      .update({
+        username,
+        must_change_password: true,
+        display_name: nome,
+      })
       .eq("user_id", userId);
 
-    // 5. Vincular à empresa como admin_empresa
+    // 6. Vincular à empresa
     await admin.from("empresa_usuarios").insert({
       user_id: userId,
       empresa_id: empresa.id,
       papel: "admin_empresa",
     });
 
-    // 6. Papel base 'comum' em user_roles (visibilidade real vem do vínculo)
+    // 7. Papel base
     await admin
       .from("user_roles")
       .insert({ user_id: userId, role: "comum" });
@@ -140,24 +170,16 @@ Deno.serve(async (req) => {
       JSON.stringify({
         empresa_id: empresa.id,
         user_id: userId,
-        email,
-        senha_provisoria: senha,
+        username,
+        senha_inicial: senhaInicial,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     const message = String((err as Error)?.message || "Erro inesperado");
-    const emailExists =
-      message.toLowerCase().includes("already been registered") ||
-      message.toLowerCase().includes("email_exists");
-    return new Response(
-      JSON.stringify({
-        error: emailExists ? "Já existe um usuário com este e-mail" : message,
-      }),
-      {
-        status: emailExists ? 409 : 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
