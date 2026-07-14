@@ -190,7 +190,19 @@ export default function MeuPainel() {
 
 
 
-              <Info label="Fim da vigência" value={fmtDate(contrato?.data_fim) === "-" ? "Sem prazo definido" : fmtDate(contrato?.data_fim)} />
+              <Info label="Fim da vigência" value={(() => {
+                const emp: any = empresa;
+                if (!emp) return "-";
+                let dia: number | null = null;
+                if (emp.periodo_movimentacao) {
+                  dia = Number(emp.periodo_movimentacao.split("-")[1]);
+                } else if (emp.data_corte) {
+                  dia = Number(emp.data_corte);
+                }
+                if (!dia) return "-";
+                const now = new Date();
+                return `${String(dia).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+              })()} />
 
               <Info label="Tipo de Movimentação" value={(empresa as any)?.tipo_movimentacao ?? "-"} />
               <Info
