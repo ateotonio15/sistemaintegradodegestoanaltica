@@ -160,6 +160,9 @@ export default function MeuPainel() {
           </CardContent>
         </Card>
 
+        {/* Chat de atendimento com IA */}
+        <ChatAtendimento />
+
         {/* Movimentações financeiras */}
         <Card>
           <CardHeader>
