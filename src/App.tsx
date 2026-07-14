@@ -59,6 +59,7 @@ import NotFound from "./pages/NotFound";
 import CadastrarEmpresa from "./pages/CadastrarEmpresa";
 import TrocarSenha from "./pages/TrocarSenha";
 import Portal from "./pages/Portal";
+import MeuPainel from "./pages/MeuPainel";
 
 // Desativa gatilhos globais de foco/reconexão: voltar para a aba não deve reiniciar/refazer telas.
 focusManager.setEventListener(() => () => {});
@@ -95,12 +96,14 @@ function AppShell() {
   if (mustChangePassword && location.pathname !== "/trocar-senha") {
     return <Navigate to="/trocar-senha" replace />;
   }
-  // Empresas com papel admin_empresa (e não admin_interno) só enxergam o portal
-  if (isAdminEmpresa && !isAdminInterno && !location.pathname.startsWith("/portal")) {
-    return <Navigate to="/portal" replace />;
+  // Empresas com papel admin_empresa/colaborador (e não admin_interno) só enxergam suas telas
+  const empresaOnlyPaths = ["/portal", "/meu-painel", "/trocar-senha"];
+  const isEmpresaPath = empresaOnlyPaths.some((p) => location.pathname.startsWith(p));
+  if (isAdminEmpresa && !isAdminInterno && !isEmpresaPath) {
+    return <Navigate to="/meu-painel" replace />;
   }
-  // Portal roda com layout próprio (sem sidebar)
-  if (location.pathname.startsWith("/portal") || location.pathname === "/trocar-senha") {
+  // Telas do portal/meu painel rodam com layout próprio (sem sidebar)
+  if (isEmpresaPath) {
     return <Outlet />;
   }
   return (
@@ -153,6 +156,7 @@ const AppRoutes = () => (
     <Route path="/avaliar/:token" element={<CSResponderToken />} />
     <Route element={<AppShell />}>
       <Route path="/portal" element={<Portal />} />
+      <Route path="/meu-painel" element={<MeuPainel />} />
       <Route path="/trocar-senha" element={<TrocarSenha />} />
       <Route element={<AdminInternoGate />}>
         <Route path="/admin/cadastrar-empresa" element={<CadastrarEmpresa />} />
