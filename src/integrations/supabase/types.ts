@@ -788,6 +788,44 @@ export type Database = {
           },
         ]
       }
+      contratos: {
+        Row: {
+          created_at: string
+          data_fim: string | null
+          data_inicio: string | null
+          empresa_id: string
+          id: string
+          status: string
+          valor_mensal: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          empresa_id: string
+          id?: string
+          status?: string
+          valor_mensal?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          empresa_id?: string
+          id?: string
+          status?: string
+          valor_mensal?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cs_avaliacao_formularios: {
         Row: {
           created_at: string
@@ -1301,18 +1339,21 @@ export type Database = {
           created_at: string
           empresa_id: string
           id: string
+          papel: string
           user_id: string
         }
         Insert: {
           created_at?: string
           empresa_id: string
           id?: string
+          papel?: string
           user_id: string
         }
         Update: {
           created_at?: string
           empresa_id?: string
           id?: string
+          papel?: string
           user_id?: string
         }
         Relationships: [
@@ -2891,6 +2932,44 @@ export type Database = {
         }
         Relationships: []
       }
+      movimentacao_financeira: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string | null
+          empresa_id: string
+          id: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          tipo: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacao_financeira_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimentacoes: {
         Row: {
           created_at: string
@@ -4007,6 +4086,41 @@ export type Database = {
         }
         Relationships: []
       }
+      vidas_ativas: {
+        Row: {
+          created_at: string
+          data_inclusao: string
+          empresa_id: string
+          id: string
+          nome_beneficiario: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          data_inclusao?: string
+          empresa_id: string
+          id?: string
+          nome_beneficiario: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          data_inclusao?: string
+          empresa_id?: string
+          id?: string
+          nome_beneficiario?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vidas_ativas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vidas_historico_administradoras: {
         Row: {
           calculado_em: string
@@ -4280,6 +4394,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_interno: { Args: never; Returns: boolean }
       is_saude_editor: { Args: { _uid: string }; Returns: boolean }
       is_saude_reader: { Args: { _uid: string }; Returns: boolean }
       liberar_reajuste_financeiro: {
@@ -4349,6 +4464,7 @@ export type Database = {
         Args: { p_empresa_id: string }
         Returns: boolean
       }
+      user_pode_ver_empresa: { Args: { _empresa: string }; Returns: boolean }
       verify_lock_password: {
         Args: { _lock_key: string; _password: string }
         Returns: boolean
@@ -4387,6 +4503,7 @@ export type Database = {
         | "coordenadora"
         | "diretora_saude"
         | "executivo_externo"
+        | "admin_interno"
       bloqueio_periodo: "dia_todo" | "manha" | "tarde"
       ferias_empresa_status:
         | "pendente_inicio"
@@ -4572,6 +4689,7 @@ export const Constants = {
         "coordenadora",
         "diretora_saude",
         "executivo_externo",
+        "admin_interno",
       ],
       bloqueio_periodo: ["dia_todo", "manha", "tarde"],
       ferias_empresa_status: [
