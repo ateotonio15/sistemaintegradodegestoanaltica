@@ -152,6 +152,11 @@ const AppRoutes = () => (
     <Route path="/carteira-samel/avaliacoes/rh/responder/:formId" element={<CSResponderRH />} />
     <Route path="/avaliar/:token" element={<CSResponderToken />} />
     <Route element={<AppShell />}>
+      <Route path="/portal" element={<Portal />} />
+      <Route path="/trocar-senha" element={<TrocarSenha />} />
+      <Route element={<AdminInternoGate />}>
+        <Route path="/admin/cadastrar-empresa" element={<CadastrarEmpresa />} />
+      </Route>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/dashboard" element={<HomeRoute />} />
       <Route element={<RoleGate allow={["admin"]} />}>
