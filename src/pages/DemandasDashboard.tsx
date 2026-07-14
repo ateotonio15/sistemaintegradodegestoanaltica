@@ -575,6 +575,7 @@ export default function DemandasDashboard() {
                       monthlySeries: monthlySeries6m,
                       volumeSetor,
                       volumeTipo,
+                      rankingEmpresasVidas,
                       reincidencias,
                       gargalos,
                       insights: insights.map((i) => i.text),
