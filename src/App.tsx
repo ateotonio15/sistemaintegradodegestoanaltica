@@ -95,12 +95,14 @@ function AppShell() {
   if (mustChangePassword && location.pathname !== "/trocar-senha") {
     return <Navigate to="/trocar-senha" replace />;
   }
-  // Empresas com papel admin_empresa (e não admin_interno) só enxergam o portal
-  if (isAdminEmpresa && !isAdminInterno && !location.pathname.startsWith("/portal")) {
-    return <Navigate to="/portal" replace />;
+  // Empresas com papel admin_empresa/colaborador (e não admin_interno) só enxergam suas telas
+  const empresaOnlyPaths = ["/portal", "/meu-painel", "/trocar-senha"];
+  const isEmpresaPath = empresaOnlyPaths.some((p) => location.pathname.startsWith(p));
+  if (isAdminEmpresa && !isAdminInterno && !isEmpresaPath) {
+    return <Navigate to="/meu-painel" replace />;
   }
-  // Portal roda com layout próprio (sem sidebar)
-  if (location.pathname.startsWith("/portal") || location.pathname === "/trocar-senha") {
+  // Telas do portal/meu painel rodam com layout próprio (sem sidebar)
+  if (isEmpresaPath) {
     return <Outlet />;
   }
   return (
