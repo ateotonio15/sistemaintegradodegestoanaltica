@@ -116,6 +116,22 @@ export default function EmpresasAcesso() {
     setNovaSenha({ user: row.username, senha: (res as any).senha });
   }
 
+  async function gerarUsuario(row: Row) {
+    if (!confirm(`Gerar usuário de acesso para "${row.nome}"?`)) return;
+    const { data: res, error } = await supabase.functions.invoke("admin-empresa-acesso", {
+      body: { action: "gerar_usuario", empresa_id: row.id },
+    });
+    if (error || (res as any)?.error) {
+      return toast({
+        title: "Erro",
+        description: error?.message || (res as any)?.error,
+        variant: "destructive",
+      });
+    }
+    qc.invalidateQueries({ queryKey: ["empresas-acesso"] });
+    setNovaSenha({ user: (res as any).username, senha: (res as any).senha });
+  }
+
   return (
     <div className="container mx-auto py-6 space-y-4">
       <div>
