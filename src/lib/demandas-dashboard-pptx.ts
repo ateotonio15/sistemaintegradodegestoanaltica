@@ -1,8 +1,8 @@
 // Exportador de PPTX para o Dashboard de Reclamações (indicadores executivos).
 // Recebe um snapshot já calculado da página e monta um deck com os principais indicadores.
 
-import waveAsset from "@/assets/ppt_wave.png.asset.json";
-import logoAsset from "@/assets/ppt_logo.png.asset.json";
+import bgCapaAsset from "@/assets/saude_bg_capa.png.asset.json";
+import bgConteudoAsset from "@/assets/saude_bg_conteudo.png.asset.json";
 
 async function urlToDataUrl(url: string): Promise<string> {
   const resp = await fetch(url);
