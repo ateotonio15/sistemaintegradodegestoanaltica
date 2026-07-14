@@ -115,40 +115,74 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   pptx.layout = "LAYOUT_WIDE";
   pptx.title = "Dashboard de Reclamações — Painel Executivo";
 
+  // Carrega imagens do template (fundo aquarela + logo) como data URLs.
+  const [waveData, logoData] = await Promise.all([
+    urlToDataUrl(waveAsset.url).catch(() => ""),
+    urlToDataUrl(logoAsset.url).catch(() => ""),
+  ]);
+
+  const addBackground = (slide: any, variant: "capa" | "conteudo") => {
+    slide.background = { color: C.WHITE };
+    if (waveData) {
+      // Onda decorativa inferior-esquerda
+      slide.addImage({
+        data: waveData,
+        x: 0, y: variant === "capa" ? 6.02 : 6.35,
+        w: variant === "capa" ? 5.07 : 4.5,
+        h: variant === "capa" ? 1.48 : 1.15,
+      });
+      if (variant === "capa") {
+        // Onda superior-direita rotacionada
+        slide.addImage({
+          data: waveData,
+          x: 8.25, y: -0.03, w: 5.11, h: 1.55, rotate: 180,
+        });
+      }
+    }
+    if (logoData) {
+      slide.addImage({
+        data: logoData,
+        x: variant === "capa" ? 0.55 : 12.55,
+        y: variant === "capa" ? 0.4 : 0.15,
+        w: 0.65, h: 0.6,
+      });
+    }
+  };
+
   const periodoLabel = `Período: ${fmtDateBR(snap.periodo.inicio)} a ${fmtDateBR(snap.periodo.fim)}`;
   const filtroLabel = `Empresa: ${snap.filtros.empresa} · Executiva: ${snap.filtros.executiva}`;
 
   // ===== Slide 1 — Capa =====
   const s1 = pptx.addSlide();
-  s1.background = { color: C.NAVY };
+  addBackground(s1, "capa");
   s1.addText("PAINEL EXECUTIVO", {
-    x: 0.7, y: 2.2, w: 12, h: 0.5,
-    fontSize: 14, bold: true, color: "7DD3FC", charSpacing: 8, fontFace: "Calibri",
+    x: 0.7, y: 2.4, w: 12, h: 0.5,
+    fontSize: 14, bold: true, color: C.GREEN, charSpacing: 8, fontFace: "Calibri",
   });
   s1.addText("Dashboard de Reclamações", {
-    x: 0.7, y: 2.7, w: 12, h: 1.0,
-    fontSize: 44, bold: true, color: C.WHITE, fontFace: "Calibri",
+    x: 0.7, y: 2.9, w: 12, h: 1.0,
+    fontSize: 44, bold: true, color: C.NAVY, fontFace: "Calibri",
   });
   s1.addText("Visão estratégica · SLA, risco operacional e tendências", {
-    x: 0.7, y: 3.8, w: 12, h: 0.5,
-    fontSize: 16, color: "CBD5E1", fontFace: "Calibri",
+    x: 0.7, y: 4.0, w: 12, h: 0.5,
+    fontSize: 16, color: C.GREY, fontFace: "Calibri",
   });
   s1.addText([
     { text: `${periodoLabel}\n`, options: { bold: true } },
     { text: filtroLabel, options: {} },
   ] as any, {
-    x: 0.7, y: 4.7, w: 12, h: 1.0,
-    fontSize: 13, color: C.WHITE, fontFace: "Calibri", paraSpaceAfter: 4,
+    x: 0.7, y: 4.9, w: 12, h: 1.0,
+    fontSize: 13, color: C.NAVY, fontFace: "Calibri", paraSpaceAfter: 4,
   });
   s1.addText(`Gerado em ${new Date().toLocaleString("pt-BR")}`, {
-    x: 0.7, y: 6.9, w: 12, h: 0.3,
-    fontSize: 10, color: C.MUTED, fontFace: "Calibri",
+    x: 0.7, y: 7.0, w: 12, h: 0.3,
+    fontSize: 10, color: C.GREY, fontFace: "Calibri",
   });
 
   // ===== Slide 2 — Resumo executivo (KPIs) =====
   const m = snap.metrics;
   const s2 = pptx.addSlide();
-  s2.background = { color: C.LIGHT };
+  addBackground(s2, "conteudo");
   slideTitle(s2, "Resumo Executivo", `${periodoLabel} · ${filtroLabel}`);
 
   const gap = 0.22;
