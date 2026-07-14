@@ -91,6 +91,40 @@ export default function FilaAtendimento() {
     },
   });
 
+  const { data: mensagens } = useQuery({
+    queryKey: ["atendimento-mensagens", selectedId],
+    enabled: !!selectedId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("atendimentos_mensagens")
+        .select("*")
+        .eq("atendimento_id", selectedId!)
+        .order("criado_em", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; autor_tipo: "staff" | "empresa"; mensagem: string; criado_em: string }>;
+    },
+  });
+
+  async function enviarResposta() {
+    if (!selected || !user || !replyText.trim()) return;
+    setSendingReply(true);
+    const { error } = await (supabase as any).from("atendimentos_mensagens").insert({
+      atendimento_id: selected.id,
+      autor_tipo: "staff",
+      autor_id: user.id,
+      mensagem: replyText.trim(),
+    });
+    setSendingReply(false);
+    if (error) return toast.error(error.message);
+    setReplyText("");
+    toast.success("Mensagem enviada");
+    qc.invalidateQueries({ queryKey: ["atendimento-mensagens", selected.id] });
+    if (selected.status === "aberto") {
+      await supabase.from("atendimentos").update({ status: "em_andamento" }).eq("id", selected.id);
+      qc.invalidateQueries({ queryKey: ["fila-atendimentos"] });
+    }
+  }
+
   const filtered = useMemo(() => {
     const list = (atendimentos ?? []).filter((a) => a.setor_destino === tab);
     const order: Record<Status, number> = { aberto: 0, em_andamento: 1, resolvido: 2 };
