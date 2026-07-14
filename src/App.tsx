@@ -53,6 +53,7 @@ import CalendarioPreventivas from "./modules/saude-empresas/pages/CalendarioPrev
 import CalendarioPalestras from "./modules/saude-empresas/pages/CalendarioPalestras";
 import DashboardExecutivo from "./modules/saude-empresas/pages/DashboardExecutivo";
 import MailingBrindes from "./pages/MailingBrindes";
+import ApresentacaoIndicadores from "./pages/ApresentacaoIndicadores";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -187,6 +188,7 @@ const AppRoutes = () => (
       <Route path="/demandas" element={<Demandas />} />
       <Route path="/demandas/nova" element={<NovaDemanda />} />
       <Route path="/demandas/dashboard" element={<DemandasDashboard />} />
+      <Route path="/demandas/apresentacao" element={<ApresentacaoIndicadores />} />
       <Route path="/demandas/fora-do-prazo" element={<DemandasForaDoPrazo />} />
 
       <Route path="/plantoes" element={<Plantoes />} />
