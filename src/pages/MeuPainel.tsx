@@ -173,7 +173,23 @@ export default function MeuPainel() {
               <Info label="CNPJ" value={empresa?.cnpj ?? "-"} />
               <Info label="Valor mensal" value={fmtMoney(Number(contrato?.valor_mensal ?? 0))} />
               <Info label="Status" value={contrato?.status ?? "-"} />
-              <Info label="Início da vigência" value={fmtDate((empresa as any)?.data_implantacao)} />
+              <Info label="Início da vigência" value={(() => {
+                const emp: any = empresa;
+                if (!emp) return "-";
+                let periodo: string | null = null;
+                if (emp.tipo_movimentacao === "Diária" && emp.data_corte) {
+                  const d = Number(emp.data_corte);
+                  periodo = d <= 5 ? "01-05" : d <= 10 ? "05-10" : d <= 15 ? "10-15" : d <= 20 ? "15-20" : d <= 25 ? "20-25" : "25-30";
+                } else if (emp.periodo_movimentacao) {
+                  periodo = emp.periodo_movimentacao;
+                }
+                if (!periodo) return "-";
+                const [ini] = periodo.split("-").map(Number);
+                const startDay = periodo === "01-05" ? 1 : ini + 1;
+                const now = new Date();
+                return `${String(startDay).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+              })()} />
+
               <Info label="Fim da vigência" value={fmtDate(contrato?.data_fim) === "-" ? "Sem prazo definido" : fmtDate(contrato?.data_fim)} />
 
               <Info label="Tipo de Movimentação" value={(empresa as any)?.tipo_movimentacao ?? "-"} />
