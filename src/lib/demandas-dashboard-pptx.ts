@@ -46,6 +46,7 @@ export type DashboardSnapshot = {
   reincidencias: { setor: string; total: number; reinc: number; taxa: number }[];
   gargalos: { setor: string; tipo: string; qtd: number; tempoMedio: number; foraPct: number }[];
   insights: string[];
+  rankingEmpresasVidas?: { empresa: string; vidas: number; reclamacoes: number; indice: number }[];
 };
 
 // Paleta petróleo / verde-azulado / grafite. Semântica fixa.
