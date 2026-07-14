@@ -449,6 +449,44 @@ export type Database = {
           },
         ]
       }
+      atendimentos_redirecionamentos: {
+        Row: {
+          atendimento_id: string
+          criado_em: string
+          id: string
+          observacao: string | null
+          redirecionado_por: string
+          setor_de: string
+          setor_para: string
+        }
+        Insert: {
+          atendimento_id: string
+          criado_em?: string
+          id?: string
+          observacao?: string | null
+          redirecionado_por: string
+          setor_de: string
+          setor_para: string
+        }
+        Update: {
+          atendimento_id?: string
+          criado_em?: string
+          id?: string
+          observacao?: string | null
+          redirecionado_por?: string
+          setor_de?: string
+          setor_para?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimentos_redirecionamentos_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avaliacoes_config: {
         Row: {
           dia_envio: number
