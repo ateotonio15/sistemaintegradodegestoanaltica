@@ -194,62 +194,34 @@ export function ChatAtendimento() {
                 <History className="h-3.5 w-3.5" />
                 Conversas anteriores
               </div>
-              <Accordion type="single" collapsible className="w-full">
-                {historico!.map((a) => {
-                  const ms = msgsPorAtd[a.id] ?? [];
-                  return (
-                    <AccordionItem key={a.id} value={a.id}>
-                      <AccordionTrigger className="text-left">
-                        <div className="flex-1 min-w-0 pr-2">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <Badge variant="outline" className="text-[10px] capitalize">
-                              {setorLabel[a.setor_destino] ?? a.setor_destino}
-                            </Badge>
-                            <Badge variant="secondary" className="text-[10px] capitalize">
-                              {a.status.replace("_", " ")}
-                            </Badge>
-                            <span className="text-[10px] text-muted-foreground">
-                              {new Date(a.criado_em).toLocaleString("pt-BR")}
-                            </span>
-                          </div>
-                          <div className="text-xs text-muted-foreground line-clamp-1">
-                            {a.resumo || a.mensagem_original}
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-2">
-                          <div className="flex justify-end">
-                            <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-xs text-primary-foreground">
-                              <div className="whitespace-pre-wrap">{a.mensagem_original}</div>
-                            </div>
-                          </div>
-                          {ms.map((m) => (
-                            <div key={m.id} className={m.autor_tipo === "empresa" ? "flex justify-end" : "flex justify-start"}>
-                              <div className={
-                                m.autor_tipo === "empresa"
-                                  ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-xs text-primary-foreground"
-                                  : "max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-xs"
-                              }>
-                                {m.autor_tipo === "staff" && (
-                                  <div className="mb-1"><Badge className="text-[9px]">Equipe</Badge></div>
-                                )}
-                                <div className="whitespace-pre-wrap">{m.mensagem}</div>
-                                <div className="text-[9px] opacity-70 mt-1">
-                                  {new Date(m.criado_em).toLocaleString("pt-BR")}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                          {ms.length === 0 && (
-                            <p className="text-[11px] text-muted-foreground">Sem respostas da equipe ainda.</p>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
+              <div className="divide-y rounded-lg border bg-background/50">
+                {historico!.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => setOpenHistId(a.id)}
+                    className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex items-center gap-2"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <Badge variant="outline" className="text-[10px] capitalize">
+                          {setorLabel[a.setor_destino] ?? a.setor_destino}
+                        </Badge>
+                        <Badge variant="secondary" className="text-[10px] capitalize">
+                          {a.status.replace("_", " ")}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(a.criado_em).toLocaleString("pt-BR")}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground line-clamp-1">
+                        {a.resumo || a.mensagem_original}
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
