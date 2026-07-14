@@ -81,9 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const roles = (rolesRes.data ?? []).map((r: any) => r.role as string);
     const primaryRole = (roles.find((r) => r !== "admin_interno") ?? roles[0] ?? "comum") as UserRole;
+    const papel = ((empresaRes.data as any)?.papel ?? null) as string | null;
     setRole(primaryRole);
     setIsAdminInterno(roles.includes("admin_interno"));
-    setIsAdminEmpresa(((empresaRes.data as any)?.papel ?? null) === "admin_empresa");
+    setIsAdminEmpresa(papel === "admin_empresa" || papel === "colaborador");
     setEmpresaVinculadaId(((empresaRes.data as any)?.empresa_id as string) ?? null);
     setMustChangePassword(Boolean((profileRes.data as any)?.must_change_password));
     setLoading(false);
