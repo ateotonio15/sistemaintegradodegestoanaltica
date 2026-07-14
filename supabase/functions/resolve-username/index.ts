@@ -92,6 +92,30 @@ Deno.serve(async (req) => {
       return invalidCredentialsResponse();
     }
 
+    // Bloqueia acesso se a empresa vinculada estiver com portal_ativo = false
+    const userId = signIn.user?.id;
+    if (userId) {
+      const { data: vinc } = await admin
+        .from("empresa_usuarios")
+        .select("empresa_id")
+        .eq("user_id", userId)
+        .limit(1)
+        .maybeSingle();
+      if (vinc?.empresa_id) {
+        const { data: emp } = await admin
+          .from("empresas")
+          .select("portal_ativo")
+          .eq("id", vinc.empresa_id)
+          .maybeSingle();
+        if (emp && emp.portal_ativo === false) {
+          return new Response(
+            JSON.stringify({ error: "Acesso ao portal está bloqueado. Fale com a Samel." }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({
         session: {
