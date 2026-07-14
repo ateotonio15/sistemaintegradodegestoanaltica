@@ -439,24 +439,33 @@ export default function DemandasDashboard() {
               size="sm"
               variant="outline"
               className="h-8 gap-1.5"
-              disabled={filtered.length === 0}
+              disabled={activeTab === "dashboard" && filtered.length === 0}
               onClick={async () => {
                 try {
-                  await exportDashboardReclamacoesPptx({
-                    periodo: { inicio: dataIni, fim: dataFim },
-                    filtros: {
-                      empresa: empresa === "__all__" ? "Todas" : empresa,
-                      executiva: executiva === "__all__" ? "Todas" : executiva,
-                    },
-                    metrics,
-                    temposSegmentados,
-                    tendencias,
-                    monthlySeries,
-                    volumeSetor,
-                    reincidencias,
-                    gargalos,
-                    insights: insights.map((i) => i.text),
-                  });
+                  if (activeTab === "apresentacao") {
+                    if (!apresentacaoRef.current) {
+                      toast({ title: "Aguarde", description: "Apresentação ainda carregando.", variant: "destructive" });
+                      return;
+                    }
+                    toast({ title: "Gerando apresentação", description: "Capturando slides..." });
+                    await apresentacaoRef.current.exportPptx();
+                  } else {
+                    await exportDashboardReclamacoesPptx({
+                      periodo: { inicio: dataIni, fim: dataFim },
+                      filtros: {
+                        empresa: empresa === "__all__" ? "Todas" : empresa,
+                        executiva: executiva === "__all__" ? "Todas" : executiva,
+                      },
+                      metrics,
+                      temposSegmentados,
+                      tendencias,
+                      monthlySeries,
+                      volumeSetor,
+                      reincidencias,
+                      gargalos,
+                      insights: insights.map((i) => i.text),
+                    });
+                  }
                   toast({ title: "Apresentação gerada", description: "O arquivo .pptx foi baixado." });
                 } catch (err: any) {
                   toast({ title: "Erro ao gerar PPT", description: err?.message ?? String(err), variant: "destructive" });
