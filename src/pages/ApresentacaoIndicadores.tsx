@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Activity,
