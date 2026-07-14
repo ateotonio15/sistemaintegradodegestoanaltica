@@ -1,6 +1,20 @@
 // Exportador de PPTX para o Dashboard de Reclamações (indicadores executivos).
 // Recebe um snapshot já calculado da página e monta um deck com os principais indicadores.
 
+import waveAsset from "@/assets/ppt_wave.png.asset.json";
+import logoAsset from "@/assets/ppt_logo.png.asset.json";
+
+async function urlToDataUrl(url: string): Promise<string> {
+  const resp = await fetch(url);
+  const blob = await resp.blob();
+  return await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+
 export type DashboardSnapshot = {
   periodo: { inicio: string; fim: string };
   filtros: { empresa: string; executiva: string };
