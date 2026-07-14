@@ -24,6 +24,32 @@ function genPassword(len = 12): string {
   return out;
 }
 
+function gerarUsernameBase(nome: string): string {
+  const limpo = nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return (limpo.slice(0, 2).join("_").toUpperCase()) || "EMPRESA";
+}
+
+async function resolverUsernameUnico(admin: any, base: string): Promise<string> {
+  let candidato = base;
+  let n = 1;
+  while (true) {
+    const { data } = await admin
+      .from("profiles")
+      .select("user_id")
+      .ilike("username", candidato)
+      .maybeSingle();
+    if (!data) return candidato;
+    n += 1;
+    candidato = `${base}${n}`;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
