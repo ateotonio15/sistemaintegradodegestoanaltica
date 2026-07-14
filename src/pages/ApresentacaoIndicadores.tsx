@@ -71,7 +71,15 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 // ------------------------------------------------------------
 export type ApresentacaoHandle = { exportPptx: () => Promise<void> };
 
-const ApresentacaoIndicadores = forwardRef<ApresentacaoHandle>(function ApresentacaoIndicadores(_props, ref) {
+export interface ApresentacaoProps {
+  dataIni?: string;
+  dataFim?: string;
+  empresa?: string;
+  executiva?: string;
+}
+
+const ApresentacaoIndicadores = forwardRef<ApresentacaoHandle, ApresentacaoProps>(function ApresentacaoIndicadores(props, ref) {
+  const { dataIni, dataFim, empresa, executiva } = props;
   const [active, setActive] = useState<SectionId>("overview");
   const contentRef = useRef<HTMLElement>(null);
 
