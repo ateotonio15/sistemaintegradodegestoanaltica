@@ -127,6 +127,13 @@ function RoleGate({
   return <Outlet />;
 }
 
+function AdminInternoGate() {
+  const { loading, isAdminInterno } = useAuth();
+  if (loading) return <Loading />;
+  if (!isAdminInterno) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
 function HomeRoute() {
   return <Home />;
 }
