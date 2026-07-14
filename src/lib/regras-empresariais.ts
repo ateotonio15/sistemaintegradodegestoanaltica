@@ -43,6 +43,20 @@ const BUILTIN_REGRAS: RegraEmpresarial[] = [
       "exclusões, devoluções, retroativas, taxa de adesão e faixas etárias são somados " +
       "antes da comparação com o PDF. O aviso do bloco lista todos os CNPJs agrupados.",
   },
+  {
+    id: "builtin:jabil_industrial",
+    padrao: "jabil industrial do brasil",
+    empresa: "Jabil Industrial do Brasil LTDA",
+    tipo: "agrupar_por_nome",
+    origem: "builtin",
+    descricao:
+      'Beneficiários cujo subestipulante contenha "JABIL INDUSTRIAL DO BRASIL" são ' +
+      "agrupados pelo NOME completo do pagador (ignorando CNPJ). Como matriz e filial " +
+      'têm nomes distintos ("JABIL INDUSTRIAL DO BRASIL LTDA" vs. ' +
+      '"JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL"), cada uma continua em seu próprio ' +
+      "bloco de análise — tratadas como empresas independentes — mas eventuais CNPJs " +
+      "distintos dentro do mesmo nome são consolidados.",
+  },
 ];
 
 function loadCustom(): RegraEmpresarial[] {
