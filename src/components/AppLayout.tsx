@@ -849,17 +849,30 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                     </div>
                     <DropdownMenuSeparator />
                     {isAdminInterno && (
-                      <Button
-                        asChild
-                        variant="secondary"
-                        size="sm"
-                        className="w-full gap-2 rounded-lg"
-                      >
-                        <Link to="/admin/cadastrar-empresa">
-                          <Plus className="h-4 w-4" />
-                          Cadastrar Empresa (portal)
-                        </Link>
-                      </Button>
+                      <>
+                        <Button
+                          asChild
+                          variant="secondary"
+                          size="sm"
+                          className="w-full gap-2 rounded-lg"
+                        >
+                          <Link to="/admin/cadastrar-empresa">
+                            <Plus className="h-4 w-4" />
+                            Cadastrar Empresa (portal)
+                          </Link>
+                        </Button>
+                        <Button
+                          asChild
+                          variant="secondary"
+                          size="sm"
+                          className="w-full gap-2 rounded-lg"
+                        >
+                          <Link to="/admin/fila-atendimento">
+                            <Plus className="h-4 w-4" />
+                            Fila de Atendimento
+                          </Link>
+                        </Button>
+                      </>
                     )}
                     <Button
                       variant="destructive"
