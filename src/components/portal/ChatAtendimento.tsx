@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ArrowLeft } from "lucide-react";
 import { MessageCircle, Send, Loader2, History } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -164,6 +164,21 @@ export function ChatAtendimento() {
   return (
     <Card className="flex h-[520px] flex-col">
       <CardHeader className="flex flex-row items-center gap-2 border-b">
+        {started && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 -ml-2"
+            onClick={() => {
+              setStarted(false);
+              setMessages([]);
+              setInput("");
+            }}
+            aria-label="Voltar"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
         <MessageCircle className="h-5 w-5 text-primary" />
         <CardTitle>Atendimento</CardTitle>
       </CardHeader>
