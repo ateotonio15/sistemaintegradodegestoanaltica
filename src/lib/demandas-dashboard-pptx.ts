@@ -324,6 +324,116 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
 
   slideFooter(s1, filtroLabel);
 
+  // ================= SLIDE — VISÃO ESTRATÉGICA =================
+  {
+    const sv = pptx.addSlide();
+    addBackground(sv, "conteudo");
+    slideHeader(sv, "Visão Estratégica", "Comparativo com o mês anterior — Volume de Reclamações Recebidas", periodoLabel);
+
+    // Kicker
+    sv.addText("DESEMPENHO GERAL", {
+      x: SAFE.x, y: SAFE.y, w: SAFE.w, h: 0.3,
+      fontSize: 11, bold: true, color: C.MUTED, charSpacing: 3, fontFace: "Calibri",
+    });
+    sv.addText("Volume de Reclamações Recebidas", {
+      x: SAFE.x, y: SAFE.y + 0.28, w: SAFE.w, h: 0.5,
+      fontSize: 22, bold: true, color: C.INK, fontFace: "Calibri",
+    });
+
+    const contentY = SAFE.y + 0.9;
+    const contentH = SAFE.h - 0.9;
+    const leftW = 5.2;
+    const rightX = SAFE.x + leftW + 0.3;
+    const rightW = SAFE.w - leftW - 0.3;
+
+    const totalAtual = m.total;
+    const totalAnt = p?.total ?? null;
+    const deltaPct = totalAnt && totalAnt > 0 ? ((totalAtual - totalAnt) / totalAnt) * 100 : null;
+    const reducao = deltaPct !== null && deltaPct < 0;
+
+    // Card mês anterior
+    const cardH = 1.6;
+    card(sv, SAFE.x, contentY, leftW, cardH);
+    sv.addText("MÊS ANTERIOR", {
+      x: SAFE.x + 0.3, y: contentY + 0.2, w: leftW - 0.3, h: 0.3,
+      fontSize: 10, bold: true, color: C.MUTED, charSpacing: 3, fontFace: "Calibri",
+    });
+    sv.addText(mesAntLabel, {
+      x: SAFE.x + 0.3, y: contentY + 0.5, w: leftW - 3, h: 0.4,
+      fontSize: 14, color: C.INK_SOFT, fontFace: "Calibri",
+    });
+    sv.addText(totalAnt !== null ? `${totalAnt}` : "—", {
+      x: SAFE.x + leftW - 2.5, y: contentY + 0.2, w: 2.2, h: cardH - 0.4,
+      fontSize: 54, bold: true, color: C.INK, fontFace: "Calibri", align: "right", valign: "middle",
+    });
+
+    // Card mês atual (destacado)
+    const card2Y = contentY + cardH + 0.2;
+    sv.addShape("roundRect", {
+      x: SAFE.x, y: card2Y, w: leftW, h: cardH,
+      fill: { color: C.CARD },
+      line: { color: C.PRIMARY, width: 2 },
+      rectRadius: 0.1,
+      shadow: { type: "outer", color: "9AA5B1", opacity: 0.18, blur: 6, offset: 1.5, angle: 90 },
+    });
+    sv.addText("MÊS ATUAL", {
+      x: SAFE.x + 0.3, y: card2Y + 0.2, w: leftW - 0.3, h: 0.3,
+      fontSize: 10, bold: true, color: C.PRIMARY, charSpacing: 3, fontFace: "Calibri",
+    });
+    sv.addText(mesAtualLabel, {
+      x: SAFE.x + 0.3, y: card2Y + 0.5, w: leftW - 3, h: 0.4,
+      fontSize: 14, color: C.INK_SOFT, fontFace: "Calibri",
+    });
+    sv.addText(`${totalAtual}`, {
+      x: SAFE.x + leftW - 2.5, y: card2Y + 0.2, w: 2.2, h: cardH - 0.4,
+      fontSize: 54, bold: true, color: C.PRIMARY, fontFace: "Calibri", align: "right", valign: "middle",
+    });
+
+    // Faixa de delta
+    const badgeY = card2Y + cardH + 0.2;
+    const badgeH = contentH - (badgeY - contentY) - 0.05;
+    if (deltaPct !== null) {
+      const cor = reducao ? C.POSITIVE : deltaPct > 0 ? C.NEGATIVE : C.MUTED;
+      const arrow = reducao ? "▼" : deltaPct > 0 ? "▲" : "■";
+      const label = reducao ? "Redução no Volume de Reclamações" : deltaPct > 0 ? "Aumento no Volume de Reclamações" : "Volume estável";
+      sv.addShape("roundRect", {
+        x: SAFE.x, y: badgeY, w: leftW, h: Math.max(0.6, badgeH),
+        fill: { color: cor, transparency: 85 },
+        line: { color: cor, width: 1 },
+        rectRadius: 0.08,
+      });
+      sv.addText(`${arrow} ${deltaPct > 0 ? "+" : ""}${deltaPct.toFixed(1)}%  ${label}`, {
+        x: SAFE.x + 0.25, y: badgeY, w: leftW - 0.5, h: Math.max(0.6, badgeH),
+        fontSize: 13, bold: true, color: cor, fontFace: "Calibri", valign: "middle",
+      });
+    }
+
+    // Gráfico de barras à direita
+    card(sv, rightX, contentY, rightW, contentH - 0.05);
+    sv.addChart(pptx.ChartType.bar,
+      [{
+        name: "Volume",
+        labels: [mesAntLabel, mesAtualLabel],
+        values: [totalAnt ?? 0, totalAtual],
+      }],
+      {
+        x: rightX + 0.25, y: contentY + 0.25, w: rightW - 0.5, h: contentH - 0.55,
+        barDir: "col",
+        chartColors: [C.PRIMARY],
+        chartColorsOpacity: 100,
+        showValue: true, dataLabelFontSize: 14, dataLabelColor: C.INK, dataLabelPosition: "outEnd",
+        dataLabelFontBold: true,
+        catAxisLabelFontSize: 12, catAxisLabelColor: C.INK,
+        valAxisLabelFontSize: 10, valAxisLabelColor: C.INK_SOFT,
+        showLegend: false, barGapWidthPct: 60,
+      },
+    );
+
+    slideFooter(sv, filtroLabel);
+  }
+
+
+
   // ================= SLIDE 2 — RESUMO EXECUTIVO =================
   const s2 = pptx.addSlide();
   addBackground(s2, "conteudo");
