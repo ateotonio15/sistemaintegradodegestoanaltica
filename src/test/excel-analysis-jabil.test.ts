@@ -3,9 +3,7 @@ import ExcelJS from "exceljs";
 import { analisarExcelFinanceiroPorCnpj } from "../lib/excel-analysis-utils";
 
 async function workbookToBuffer(wb: ExcelJS.Workbook): Promise<ArrayBuffer> {
-  const buffer = await wb.xlsx.writeBuffer();
-  if (buffer instanceof ArrayBuffer) return buffer;
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+  return (await wb.xlsx.writeBuffer()) as ArrayBuffer;
 }
 
 describe("análise financeira Jabil", () => {
