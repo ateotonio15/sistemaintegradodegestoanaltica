@@ -189,7 +189,7 @@ export default function Auth() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={1}
                     placeholder="••••••••"
                     autoComplete="current-password"
                     className="h-12 pl-10 pr-11 rounded-xl bg-background/60 border-border/70 transition-all focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary"
