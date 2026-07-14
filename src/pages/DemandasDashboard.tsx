@@ -387,6 +387,18 @@ export default function DemandasDashboard() {
       .slice(0, 8);
   }, [filtered]);
 
+  const volumeTipo = useMemo(() => {
+    const map = new Map<string, number>();
+    filtered.forEach((d) => {
+      const t = d.tipo_reclamacao || "—";
+      map.set(t, (map.get(t) ?? 0) + 1);
+    });
+    const tot = filtered.length || 1;
+    return Array.from(map.entries())
+      .map(([tipo, n]) => ({ tipo, n, pct: Math.round((n / tot) * 100) }))
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 8);
+
   // ===== Reincidências =====
   const reincidencias = useMemo(() => {
     const bySetor = new Map<string, Demanda[]>();
