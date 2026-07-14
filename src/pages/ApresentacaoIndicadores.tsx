@@ -212,7 +212,14 @@ const ApresentacaoIndicadores = forwardRef<ApresentacaoHandle, ApresentacaoProps
             {active === "desempenho" && <DesempenhoSection />}
             {active === "setores" && <SetoresSection />}
             {active === "risco" && <RiscoSection />}
-            {active === "ranking" && <RankingSection />}
+            {active === "ranking" && (
+              <RankingSection
+                dataIni={dataIni}
+                dataFim={dataFim}
+                empresa={empresa}
+                executiva={executiva}
+              />
+            )}
           </motion.section>
         </AnimatePresence>
 
