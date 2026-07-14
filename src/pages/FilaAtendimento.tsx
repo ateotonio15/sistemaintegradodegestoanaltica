@@ -309,6 +309,49 @@ export default function FilaAtendimento() {
                 </div>
               </div>
 
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold mb-2">Conversa com a empresa</h4>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 mb-2">
+                  {(!mensagens || mensagens.length === 0) ? (
+                    <p className="text-xs text-muted-foreground">Nenhuma mensagem trocada ainda.</p>
+                  ) : (
+                    mensagens.map((m) => (
+                      <div key={m.id} className={m.autor_tipo === "staff" ? "flex justify-end" : "flex justify-start"}>
+                        <div className={
+                          m.autor_tipo === "staff"
+                            ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
+                            : "max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm"
+                        }>
+                          <div className="whitespace-pre-wrap">{m.mensagem}</div>
+                          <div className={"text-[10px] mt-1 opacity-70"}>
+                            {new Date(m.criado_em).toLocaleString("pt-BR")}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="flex items-end gap-2">
+                  <Textarea
+                    placeholder="Escreva uma resposta para a empresa..."
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    rows={2}
+                    className="resize-none"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        enviarResposta();
+                      }
+                    }}
+                  />
+                  <Button onClick={enviarResposta} disabled={sendingReply || !replyText.trim()} size="icon">
+                    {sendingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
