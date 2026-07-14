@@ -830,6 +830,61 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
     slideFooter(s8, filtroLabel);
   }
 
+  // ================= SLIDE FINAL — RANKING EMPRESAS: VIDAS vs. RECLAMAÇÕES =================
+  if (snap.rankingEmpresasVidas && snap.rankingEmpresasVidas.length > 0) {
+    const sr = pptx.addSlide();
+    addBackground(sr, "conteudo");
+    slideHeader(
+      sr,
+      "Ranking Empresas: Vidas vs. Reclamações",
+      "Top 15 empresas — índice de sinistralidade (reclamações ÷ vidas)",
+      periodoLabel,
+    );
+    card(sr, SAFE.x, SAFE.y, SAFE.w, SAFE.h);
+
+    const rows = snap.rankingEmpresasVidas.slice(0, 15);
+
+    const statusOf = (idx: number): { label: string; cor: string } => {
+      if (idx <= 0) return { label: "S/ vidas", cor: C.MUTED };
+      if (idx < 1) return { label: "Excelente", cor: C.POSITIVE };
+      if (idx < 2) return { label: "Estável", cor: C.ACCENT };
+      if (idx < 3) return { label: "Atenção", cor: C.WARNING };
+      return { label: "Crítico", cor: C.NEGATIVE };
+    };
+
+    const headerRow = [
+      { text: "EMPRESA CLIENTE", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "left" } },
+      { text: "VIDAS", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
+      { text: "RECLAMAÇÕES", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
+      { text: "ÍNDICE", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
+      { text: "STATUS", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "center" } },
+    ];
+
+    const bodyRows = rows.map((r) => {
+      const st = statusOf(r.indice);
+      return [
+        { text: r.empresa, options: { color: C.INK, bold: true, valign: "middle", align: "left" } },
+        { text: r.vidas.toLocaleString("pt-BR"), options: { color: C.INK, valign: "middle", align: "right" } },
+        { text: r.reclamacoes.toLocaleString("pt-BR"), options: { color: C.INK, valign: "middle", align: "right" } },
+        { text: r.vidas > 0 ? `${r.indice.toFixed(2)}%` : "—", options: { color: st.cor, bold: true, valign: "middle", align: "right" } },
+        { text: st.label, options: { color: "FFFFFF", bold: true, fill: { color: st.cor }, valign: "middle", align: "center" } },
+      ];
+    });
+
+    sr.addTable([headerRow as any, ...(bodyRows as any)], {
+      x: SAFE.x + 0.25, y: SAFE.y + 0.25, w: SAFE.w - 0.5,
+      colW: [4.4, 1.6, 2.0, 1.6, 2.13],
+      rowH: 0.34,
+      fontFace: "Calibri",
+      fontSize: 11,
+      border: { type: "solid", pt: 0.5, color: C.BORDER },
+    });
+
+    slideFooter(sr, filtroLabel);
+  }
+
+
+
   const fname = `Dashboard_Reclamacoes_${snap.periodo.inicio}_a_${snap.periodo.fim}.pptx`;
   await pptx.writeFile({ fileName: fname });
 }
