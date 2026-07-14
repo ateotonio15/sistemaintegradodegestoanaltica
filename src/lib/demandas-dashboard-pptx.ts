@@ -475,69 +475,87 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
 
 
 
-  // ================= SLIDE 5 — VOLUME POR SETOR =================
-  if (snap.volumeSetor.length > 0) {
-    const s5 = pptx.addSlide();
-    addBackground(s5, "conteudo");
-    slideHeader(s5, "Volume por Setor", "Ranking dos setores com maior número de demandas no período", periodoLabel);
-    card(s5, SAFE.x, SAFE.y, SAFE.w, SAFE.h);
-    s5.addChart(pptx.ChartType.bar,
-      [{ name: "Demandas", labels: snap.volumeSetor.map((v) => v.setor), values: snap.volumeSetor.map((v) => v.n) }],
-      {
-        x: SAFE.x + 0.25, y: SAFE.y + 0.35, w: SAFE.w - 0.5, h: SAFE.h - 0.55,
-        barDir: "bar", chartColors: [C.PRIMARY],
-        showValue: true, dataLabelFontSize: 11, dataLabelColor: C.INK, dataLabelPosition: "outEnd",
-        catAxisLabelFontSize: 11, catAxisLabelColor: C.INK,
-        valAxisLabelFontSize: 10, valAxisLabelColor: C.INK_SOFT,
-        showLegend: false, barGapWidthPct: 40,
-      },
+  // ================= SLIDE — VOLUME POR SETOR + PRINCIPAIS GARGALOS =================
+  if (snap.volumeSetor.length > 0 || snap.gargalos.length > 0) {
+    const sc = pptx.addSlide();
+    addBackground(sc, "conteudo");
+    slideHeader(
+      sc,
+      "Volume por Setor & Principais Gargalos",
+      "Ranking de setores por demandas e cruzamento setor × tipo por impacto",
+      periodoLabel,
     );
-    slideFooter(s5, filtroLabel);
-  }
 
+    const gap = 0.25;
+    const leftW = 5.2;
+    const rightX = SAFE.x + leftW + gap;
+    const rightW = SAFE.w - leftW - gap;
 
-  // ================= SLIDE 7 — GARGALOS =================
-  if (snap.gargalos.length > 0) {
-    const s7 = pptx.addSlide();
-    addBackground(s7, "conteudo");
-    slideHeader(s7, "Principais Gargalos", "Setor × tipo — ordenado por impacto (volume × tempo médio)", periodoLabel);
-    card(s7, SAFE.x, SAFE.y, SAFE.w, SAFE.h);
+    // ===== ESQUERDA: Volume por Setor =====
+    if (snap.volumeSetor.length > 0) {
+      card(sc, SAFE.x, SAFE.y, leftW, SAFE.h);
+      sc.addText("Volume por Setor", {
+        x: SAFE.x + 0.25, y: SAFE.y + 0.15, w: leftW - 0.5, h: 0.3,
+        fontSize: 12, bold: true, color: C.INK, fontFace: "Calibri",
+      });
+      sc.addChart(pptx.ChartType.bar,
+        [{ name: "Demandas", labels: snap.volumeSetor.map((v) => v.setor), values: snap.volumeSetor.map((v) => v.n) }],
+        {
+          x: SAFE.x + 0.2, y: SAFE.y + 0.55, w: leftW - 0.4, h: SAFE.h - 0.75,
+          barDir: "bar", chartColors: [C.PRIMARY],
+          showValue: true, dataLabelFontSize: 9, dataLabelColor: C.INK, dataLabelPosition: "outEnd",
+          catAxisLabelFontSize: 9, catAxisLabelColor: C.INK,
+          valAxisLabelFontSize: 8, valAxisLabelColor: C.INK_SOFT,
+          showLegend: false, barGapWidthPct: 40,
+        },
+      );
+    }
 
-    const header = [
-      { text: "Setor", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "left" } },
-      { text: "Tipo", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "left" } },
-      { text: "Qtd.", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "center" } },
-      { text: "Tempo médio (dias)", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "center" } },
-      { text: "% fora do prazo", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "center" } },
-    ];
-    const rows = [
-      header,
-      ...snap.gargalos.map((g) => {
-        const critical = g.foraPct > 8 && g.qtd >= 5;
-        const fill = critical ? { color: "FBEBE9" } : { color: C.CARD };
-        return [
-          { text: g.setor, options: { color: C.INK, fill, align: "left" } },
-          { text: g.tipo, options: { color: C.INK, fill, align: "left" } },
-          { text: String(g.qtd), options: { color: C.INK, fill, align: "center" } },
-          { text: g.tempoMedio.toFixed(1), options: { color: C.INK, fill, align: "center" } },
-          {
-            text: `${g.foraPct}%`,
-            options: {
-              color: g.foraPct > 8 ? C.NEGATIVE : C.POSITIVE,
-              bold: true, fill, align: "center",
+    // ===== DIREITA: Principais Gargalos =====
+    if (snap.gargalos.length > 0) {
+      card(sc, rightX, SAFE.y, rightW, SAFE.h);
+      sc.addText("Principais Gargalos", {
+        x: rightX + 0.25, y: SAFE.y + 0.15, w: rightW - 0.5, h: 0.3,
+        fontSize: 12, bold: true, color: C.INK, fontFace: "Calibri",
+      });
+
+      const header = [
+        { text: "Setor", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "left" } },
+        { text: "Tipo", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "left" } },
+        { text: "Qtd.", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "center" } },
+        { text: "Dias", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "center" } },
+        { text: "% fora", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "center" } },
+      ];
+      const rows = [
+        header,
+        ...snap.gargalos.slice(0, 10).map((g) => {
+          const critical = g.foraPct > 8 && g.qtd >= 5;
+          const fill = critical ? { color: "FBEBE9" } : { color: C.CARD };
+          return [
+            { text: g.setor, options: { color: C.INK, fill, align: "left" } },
+            { text: g.tipo, options: { color: C.INK, fill, align: "left" } },
+            { text: String(g.qtd), options: { color: C.INK, fill, align: "center" } },
+            { text: g.tempoMedio.toFixed(1), options: { color: C.INK, fill, align: "center" } },
+            {
+              text: `${g.foraPct}%`,
+              options: {
+                color: g.foraPct > 8 ? C.NEGATIVE : C.POSITIVE,
+                bold: true, fill, align: "center",
+              },
             },
-          },
-        ];
-      }),
-    ];
-    s7.addTable(rows as any, {
-      x: SAFE.x + 0.3, y: SAFE.y + 0.55, w: SAFE.w - 0.6,
-      colW: [3.4, 3.4, 1.2, 2.2, 1.83],
-      fontSize: 12, fontFace: "Calibri",
-      border: { pt: 0.5, color: C.BORDER },
-      rowH: 0.42, valign: "middle",
-    });
-    slideFooter(s7, filtroLabel);
+          ];
+        }),
+      ];
+      sc.addTable(rows as any, {
+        x: rightX + 0.2, y: SAFE.y + 0.55, w: rightW - 0.4,
+        colW: [1.9, 1.9, 0.7, 0.8, 0.9],
+        fontSize: 9, fontFace: "Calibri",
+        border: { pt: 0.5, color: C.BORDER },
+        rowH: 0.34, valign: "middle",
+      });
+    }
+
+    slideFooter(sc, filtroLabel);
   }
 
 
