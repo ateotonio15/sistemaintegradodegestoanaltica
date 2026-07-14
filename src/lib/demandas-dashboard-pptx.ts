@@ -208,7 +208,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
 
   // ===== Slide 3 — Tempo médio + Tendências =====
   const s3 = pptx.addSlide();
-  s3.background = { color: C.LIGHT };
+  addBackground(s3, "conteudo");
   slideTitle(s3, "Tempo de resposta & Tendências", periodoLabel);
 
   const colW = (SAFE.w - 0.3) / 2;
@@ -261,7 +261,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   // ===== Slide 4 — Evolução Mensal =====
   if (snap.monthlySeries.length > 0) {
     const s4 = pptx.addSlide();
-    s4.background = { color: C.LIGHT };
+    addBackground(s4, "conteudo");
     slideTitle(s4, "Evolução Mensal", "SLA no prazo, fora do prazo e backlog");
     const labels = snap.monthlySeries.map((x) => x.label);
     s4.addChart(pptx.ChartType.line,
@@ -283,7 +283,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   // ===== Slide 5 — Volume por setor =====
   if (snap.volumeSetor.length > 0) {
     const s5 = pptx.addSlide();
-    s5.background = { color: C.LIGHT };
+    addBackground(s5, "conteudo");
     slideTitle(s5, "Volume por Setor", "Top setores em número de demandas");
     s5.addChart(pptx.ChartType.bar,
       [{ name: "Demandas", labels: snap.volumeSetor.map((v) => v.setor), values: snap.volumeSetor.map((v) => v.n) }],
@@ -299,7 +299,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   // ===== Slide 6 — Reincidências =====
   if (snap.reincidencias.length > 0) {
     const s6 = pptx.addSlide();
-    s6.background = { color: C.LIGHT };
+    addBackground(s6, "conteudo");
     slideTitle(s6, "Reincidências por Setor", "Taxa de reincidência (%) — quanto menor, melhor");
     s6.addChart(pptx.ChartType.bar,
       [{ name: "Taxa de reincidência (%)", labels: snap.reincidencias.map((r) => r.setor), values: snap.reincidencias.map((r) => r.taxa) }],
@@ -315,7 +315,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   // ===== Slide 7 — Gargalos =====
   if (snap.gargalos.length > 0) {
     const s7 = pptx.addSlide();
-    s7.background = { color: C.LIGHT };
+    addBackground(s7, "conteudo");
     slideTitle(s7, "Principais Gargalos", "Setor × tipo com maior impacto (volume × tempo médio)");
     painel(s7, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Top 5 gargalos");
     const rows = [
@@ -346,7 +346,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   // ===== Slide 8 — Insights =====
   if (snap.insights.length > 0) {
     const s8 = pptx.addSlide();
-    s8.background = { color: C.LIGHT };
+    addBackground(s8, "conteudo");
     slideTitle(s8, "Insights & Recomendações", "Análise automática dos indicadores");
     painel(s8, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Observações do período");
     s8.addText(
