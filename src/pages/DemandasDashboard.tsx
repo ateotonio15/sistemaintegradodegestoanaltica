@@ -413,6 +413,39 @@ export default function DemandasDashboard() {
       .slice(0, 8);
   }, [filtered]);
 
+  // ===== Ranking Empresas: Vidas vs. Reclamações =====
+  const rankingEmpresasVidas = useMemo(() => {
+    const norm = (s: string) => (s || "").trim().toUpperCase();
+    const vidasMap = new Map<string, { nome: string; vidas: number }>();
+    empresasVidas.forEach((e) => {
+      const k = norm(e.nome);
+      if (!k) return;
+      const v = Number(e.vidas ?? 0);
+      const cur = vidasMap.get(k);
+      if (cur) cur.vidas += v;
+      else vidasMap.set(k, { nome: e.nome, vidas: v });
+    });
+    const recMap = new Map<string, number>();
+    filtered.forEach((d) => {
+      const k = norm(d.empresa || "");
+      if (!k) return;
+      recMap.set(k, (recMap.get(k) ?? 0) + 1);
+    });
+    const rows: { empresa: string; vidas: number; reclamacoes: number; indice: number }[] = [];
+    recMap.forEach((rec, k) => {
+      const v = vidasMap.get(k);
+      const vidas = v?.vidas ?? 0;
+      const nome = v?.nome ?? k;
+      const indice = vidas > 0 ? (rec / vidas) * 100 : 0;
+      rows.push({ empresa: nome, vidas, reclamacoes: rec, indice });
+    });
+    return rows
+      .sort((a, b) => b.indice - a.indice || b.reclamacoes - a.reclamacoes)
+      .slice(0, 15);
+  }, [filtered, empresasVidas]);
+
+
+
 
 
   // ===== Reincidências =====
