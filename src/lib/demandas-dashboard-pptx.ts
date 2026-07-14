@@ -837,7 +837,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
     slideHeader(
       sr,
       "Ranking Empresas: Vidas vs. Reclamações",
-      "Top 15 empresas — índice de sinistralidade (reclamações ÷ vidas)",
+      "Top 15 empresas — % que as reclamações representam sobre o contrato (reclamações ÷ vidas)",
       periodoLabel,
     );
     card(sr, SAFE.x, SAFE.y, SAFE.w, SAFE.h);
@@ -856,7 +856,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
       { text: "EMPRESA CLIENTE", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "left" } },
       { text: "VIDAS", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
       { text: "RECLAMAÇÕES", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
-      { text: "ÍNDICE", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
+      { text: "% DO CONTRATO", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "right" } },
       { text: "STATUS", options: { bold: true, color: C.MUTED, fill: { color: C.CARD_SOFT }, valign: "middle", align: "center" } },
     ];
 
