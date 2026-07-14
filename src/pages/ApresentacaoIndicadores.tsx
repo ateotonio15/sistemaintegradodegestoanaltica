@@ -1003,7 +1003,7 @@ function RankingSection({ dataIni, dataFim, empresa, executiva }: RankingSection
     return () => {
       cancel = true;
     };
-  }, []);
+  }, [dataIni, dataFim, empresa, executiva]);
 
   const rows = useMemo(() => {
     const enriched = empresas.map((e) => ({
