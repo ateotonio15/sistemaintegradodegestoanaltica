@@ -190,7 +190,8 @@ const ApresentacaoIndicadores = forwardRef<ApresentacaoHandle>(function Apresent
       </header>
 
       {/* Conteúdo */}
-      <main className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">
+      <main ref={contentRef} className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">
+        {/* Instant switch when exporting; keeps snapshots crisp */}
         <AnimatePresence mode="wait">
           <motion.section
             key={active}
