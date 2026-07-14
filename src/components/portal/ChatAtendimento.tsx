@@ -42,18 +42,24 @@ interface MsgHist {
 
 export function ChatAtendimento() {
   const { empresaVinculadaId } = useAuth();
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: "assistant",
-      text: "Olá! Descreva sua solicitação e eu encaminho para o setor certo (Cadastro, Relacionamento ou Financeiro).",
-    },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [started, setStarted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const subscribedRef = useRef<Set<string>>(new Set());
-  const hasStarted = messages.some((m) => m.role === "user");
+  const hasStarted = started;
   const [openHistId, setOpenHistId] = useState<string | null>(null);
+
+  function iniciarConversa() {
+    setStarted(true);
+    setMessages([
+      {
+        role: "assistant",
+        text: "Olá! Descreva sua solicitação e eu encaminho para o setor certo (Cadastro, Relacionamento ou Financeiro).",
+      },
+    ]);
+  }
 
   const { data: historico } = useQuery({
     queryKey: ["portal-atendimentos-hist", empresaVinculadaId],
@@ -235,25 +241,34 @@ export function ChatAtendimento() {
             </div>
           )}
         </div>
-        <div className="border-t p-3">
-          <div className="flex items-end gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onKey}
-              placeholder="Descreva sua solicitação..."
-              rows={2}
-              disabled={loading}
-              className="resize-none"
-            />
-            <Button onClick={enviar} disabled={loading || !input.trim()} size="icon">
-              <Send className="h-4 w-4" />
+        {!started ? (
+          <div className="border-t p-3">
+            <Button onClick={iniciarConversa} className="w-full">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Iniciar nova conversa
             </Button>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Enter para enviar · Shift+Enter para nova linha
-          </p>
-        </div>
+        ) : (
+          <div className="border-t p-3">
+            <div className="flex items-end gap-2">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={onKey}
+                placeholder="Descreva sua solicitação..."
+                rows={2}
+                disabled={loading}
+                className="resize-none"
+              />
+              <Button onClick={enviar} disabled={loading || !input.trim()} size="icon">
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Enter para enviar · Shift+Enter para nova linha
+            </p>
+          </div>
+        )}
       </CardContent>
 
       <Dialog open={!!openHistId} onOpenChange={(o) => !o && setOpenHistId(null)}>
