@@ -42,6 +42,7 @@ export type DashboardSnapshot = {
   tendencias: { slaDelta: number; backlogDelta: number; foraDelta: number } | null;
   monthlySeries: { label: string; sla: number; fora: number; aberto: number }[];
   volumeSetor: { setor: string; n: number; pct: number }[];
+  volumeTipo: { tipo: string; n: number; pct: number }[];
   reincidencias: { setor: string; total: number; reinc: number; taxa: number }[];
   gargalos: { setor: string; tipo: string; qtd: number; tempoMedio: number; foraPct: number }[];
   insights: string[];
@@ -431,6 +432,134 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
 
     slideFooter(sv, filtroLabel);
   }
+
+  // ================= SLIDE — DISTRIBUIÇÃO DE SETORES & MOTIVOS =================
+  {
+    const sd = pptx.addSlide();
+    addBackground(sd, "conteudo");
+    slideHeader(sd, "Distribuição de Setores & Motivos", "Concentração por setor responsável e principais tipos de reclamação", periodoLabel);
+
+    const topSetor = snap.volumeSetor[0];
+    const topTipo = snap.volumeTipo[0];
+    const cirurgica = snap.temposSegmentados.cirurgica;
+    const demais = snap.temposSegmentados.demais;
+
+    const leftW = 5.6;
+    const rightX = SAFE.x + leftW + 0.3;
+    const rightW = SAFE.w - leftW - 0.3;
+
+    // ===== ESQUERDA: Fatores de Concentração =====
+    card(sd, SAFE.x, SAFE.y, leftW, SAFE.h);
+    sd.addText("Fatores de Concentração", {
+      x: SAFE.x + 0.3, y: SAFE.y + 0.2, w: leftW - 0.6, h: 0.4,
+      fontSize: 16, bold: true, color: C.INK, fontFace: "Calibri",
+    });
+
+    const fatores: { icon: string; titulo: string; texto: string }[] = [];
+    if (topSetor) {
+      fatores.push({
+        icon: "●", titulo: `${topSetor.setor}:`,
+        texto: `Concentra ${topSetor.pct}% das demandas totais do período, sendo o principal ofensor operacional.`,
+      });
+    }
+    fatores.push({
+      icon: "◐", titulo: "Agenda Cirúrgica:",
+      texto: `Tempo médio de resposta de ${Math.round(cirurgica.horas)}h (SLA de 168h), com ${cirurgica.foraPct}% fora do SLA.`,
+    });
+    fatores.push({
+      icon: "◇", titulo: "Demais Setores:",
+      texto: `Desempenho ágil com média de ${Math.round(demais.horas)}h (SLA de 72h) e ${demais.foraPct}% sem SLA.`,
+    });
+    if (topTipo) {
+      fatores.push({
+        icon: "▲", titulo: `Tipo predominante — ${topTipo.tipo}:`,
+        texto: `${topTipo.pct}% das reclamações do período (${topTipo.n} registros).`,
+      });
+    }
+
+    const blocoY = SAFE.y + 0.7;
+    const blocoH = (SAFE.h - 0.85) / fatores.length;
+    fatores.forEach((f, i) => {
+      const y = blocoY + i * blocoH;
+      sd.addText(f.icon, {
+        x: SAFE.x + 0.3, y, w: 0.35, h: blocoH,
+        fontSize: 14, bold: true, color: C.PRIMARY, fontFace: "Calibri", valign: "top",
+      });
+      sd.addText(
+        [
+          { text: f.titulo + " ", options: { bold: true, color: C.INK } },
+          { text: f.texto, options: { color: C.INK_SOFT } },
+        ],
+        {
+          x: SAFE.x + 0.7, y, w: leftW - 0.9, h: blocoH,
+          fontSize: 12, fontFace: "Calibri", valign: "top", paraSpaceAfter: 4,
+        },
+      );
+    });
+
+    // ===== DIREITA: Donut de setores + barras de tipos =====
+    const halfH = (SAFE.h - 0.2) / 2;
+
+    // Donut setores (top 1 vs outros)
+    card(sd, rightX, SAFE.y, rightW, halfH);
+    sd.addText("Concentração por Setor", {
+      x: rightX + 0.25, y: SAFE.y + 0.15, w: rightW - 0.5, h: 0.3,
+      fontSize: 12, bold: true, color: C.INK, fontFace: "Calibri",
+    });
+    if (topSetor) {
+      const outrosPct = Math.max(0, 100 - topSetor.pct);
+      sd.addChart(pptx.ChartType.doughnut,
+        [{
+          name: "Setores",
+          labels: [topSetor.setor, "Outros Setores"],
+          values: [topSetor.pct, outrosPct],
+        }],
+        {
+          x: rightX + 0.25, y: SAFE.y + 0.5, w: rightW - 0.5, h: halfH - 0.6,
+          chartColors: [C.PRIMARY, C.BORDER],
+          showLegend: true, legendPos: "b", legendFontSize: 10, legendColor: C.INK,
+          holeSize: 65,
+          showValue: false,
+          dataLabelFontSize: 10, dataLabelColor: C.INK,
+        },
+      );
+    }
+
+    // Barras tipos
+    const b2y = SAFE.y + halfH + 0.2;
+    card(sd, rightX, b2y, rightW, halfH);
+    sd.addText("Top Tipos de Reclamação", {
+      x: rightX + 0.25, y: b2y + 0.15, w: rightW - 0.5, h: 0.3,
+      fontSize: 12, bold: true, color: C.INK, fontFace: "Calibri",
+    });
+    if (snap.volumeTipo.length > 0) {
+      const tops = snap.volumeTipo.slice(0, 5);
+      sd.addChart(pptx.ChartType.bar,
+        [{
+          name: "Reclamações",
+          labels: tops.map((t) => t.tipo),
+          values: tops.map((t) => t.n),
+        }],
+        {
+          x: rightX + 0.25, y: b2y + 0.5, w: rightW - 0.5, h: halfH - 0.6,
+          barDir: "bar", chartColors: [C.ACCENT],
+          showValue: true, dataLabelFontSize: 10, dataLabelColor: C.INK, dataLabelPosition: "outEnd",
+          catAxisLabelFontSize: 10, catAxisLabelColor: C.INK,
+          valAxisLabelFontSize: 9, valAxisLabelColor: C.INK_SOFT,
+          showLegend: false, barGapWidthPct: 40,
+        },
+      );
+    } else {
+      sd.addText("Sem dados de tipo no período.", {
+        x: rightX + 0.25, y: b2y + 0.5, w: rightW - 0.5, h: halfH - 0.6,
+        fontSize: 12, color: C.MUTED, fontFace: "Calibri", align: "center", valign: "middle",
+      });
+    }
+
+    slideFooter(sd, filtroLabel);
+  }
+
+
 
 
 
