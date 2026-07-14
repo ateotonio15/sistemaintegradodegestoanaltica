@@ -160,6 +160,17 @@ function lastDayOfMonth(d = new Date()) {
 ============================================================ */
 export default function DemandasDashboard() {
   const { data: demandas = [], isLoading } = useDemandas();
+  const { data: empresasVidas = [] } = useQuery({
+    queryKey: ["empresas-vidas-min"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("empresas").select("nome,vidas");
+      if (error) throw error;
+      return (data ?? []) as { nome: string; vidas: number | null }[];
+    },
+  });
+
+
 
   // ===== Filtros =====
   const [dataIni, setDataIni] = useState<string>(toISO(firstDayOfMonth()));
