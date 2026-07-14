@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Send, Loader2 } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { MessageCircle, Send, Loader2, History } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { useAuth } from "@/hooks/useAuth";
 
 type Msg =
   | { role: "user"; text: string }
@@ -19,7 +22,25 @@ const setorLabel: Record<string, string> = {
   financeiro: "Financeiro",
 };
 
+interface AtendimentoHist {
+  id: string;
+  mensagem_original: string;
+  resumo: string | null;
+  setor_destino: string;
+  status: string;
+  criado_em: string;
+}
+
+interface MsgHist {
+  id: string;
+  atendimento_id: string;
+  autor_tipo: "staff" | "empresa";
+  mensagem: string;
+  criado_em: string;
+}
+
 export function ChatAtendimento() {
+  const { empresaVinculadaId } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
@@ -30,6 +51,37 @@ export function ChatAtendimento() {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const subscribedRef = useRef<Set<string>>(new Set());
+  const hasStarted = messages.some((m) => m.role === "user");
+
+  const { data: historico } = useQuery({
+    queryKey: ["portal-atendimentos-hist", empresaVinculadaId],
+    enabled: !!empresaVinculadaId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("atendimentos")
+        .select("id, mensagem_original, resumo, setor_destino, status, criado_em")
+        .eq("empresa_id", empresaVinculadaId!)
+        .order("criado_em", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []) as AtendimentoHist[];
+    },
+  });
+
+  const ids = (historico ?? []).map((a) => a.id);
+  const { data: histMsgs } = useQuery({
+    queryKey: ["portal-atendimentos-hist-msgs", ids.join(",")],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("atendimentos_mensagens")
+        .select("id, atendimento_id, autor_tipo, mensagem, criado_em")
+        .in("atendimento_id", ids)
+        .order("criado_em", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as MsgHist[];
+    },
+  });
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -95,6 +147,12 @@ export function ChatAtendimento() {
     }
   }
 
+  const showHistorico = !hasStarted && (historico?.length ?? 0) > 0;
+  const msgsPorAtd = (histMsgs ?? []).reduce<Record<string, MsgHist[]>>((acc, m) => {
+    (acc[m.atendimento_id] ??= []).push(m);
+    return acc;
+  }, {});
+
   return (
     <Card className="flex h-[520px] flex-col">
       <CardHeader className="flex flex-row items-center gap-2 border-b">
@@ -128,6 +186,72 @@ export function ChatAtendimento() {
               </div>
             </div>
           ))}
+
+          {showHistorico && (
+            <div className="pt-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                <History className="h-3.5 w-3.5" />
+                Conversas anteriores
+              </div>
+              <Accordion type="single" collapsible className="w-full">
+                {historico!.map((a) => {
+                  const ms = msgsPorAtd[a.id] ?? [];
+                  return (
+                    <AccordionItem key={a.id} value={a.id}>
+                      <AccordionTrigger className="text-left">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <Badge variant="outline" className="text-[10px] capitalize">
+                              {setorLabel[a.setor_destino] ?? a.setor_destino}
+                            </Badge>
+                            <Badge variant="secondary" className="text-[10px] capitalize">
+                              {a.status.replace("_", " ")}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(a.criado_em).toLocaleString("pt-BR")}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground line-clamp-1">
+                            {a.resumo || a.mensagem_original}
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-end">
+                            <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-xs text-primary-foreground">
+                              <div className="whitespace-pre-wrap">{a.mensagem_original}</div>
+                            </div>
+                          </div>
+                          {ms.map((m) => (
+                            <div key={m.id} className={m.autor_tipo === "empresa" ? "flex justify-end" : "flex justify-start"}>
+                              <div className={
+                                m.autor_tipo === "empresa"
+                                  ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-xs text-primary-foreground"
+                                  : "max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-xs"
+                              }>
+                                {m.autor_tipo === "staff" && (
+                                  <div className="mb-1"><Badge className="text-[9px]">Equipe</Badge></div>
+                                )}
+                                <div className="whitespace-pre-wrap">{m.mensagem}</div>
+                                <div className="text-[9px] opacity-70 mt-1">
+                                  {new Date(m.criado_em).toLocaleString("pt-BR")}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {ms.length === 0 && (
+                            <p className="text-[11px] text-muted-foreground">Sem respostas da equipe ainda.</p>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            </div>
+          )}
+
           {loading && (
             <div className="flex justify-start">
               <div className="inline-flex items-center gap-2 rounded-2xl rounded-bl-sm bg-muted px-4 py-2 text-sm text-muted-foreground">
