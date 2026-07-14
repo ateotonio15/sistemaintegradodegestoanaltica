@@ -56,6 +56,9 @@ import MailingBrindes from "./pages/MailingBrindes";
 import ApresentacaoIndicadores from "./pages/ApresentacaoIndicadores";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import CadastrarEmpresa from "./pages/CadastrarEmpresa";
+import TrocarSenha from "./pages/TrocarSenha";
+import Portal from "./pages/Portal";
 
 // Desativa gatilhos globais de foco/reconexão: voltar para a aba não deve reiniciar/refazer telas.
 focusManager.setEventListener(() => () => {});
