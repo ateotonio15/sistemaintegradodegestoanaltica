@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Activity,
@@ -68,8 +69,57 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 // ------------------------------------------------------------
 // Página principal
 // ------------------------------------------------------------
-export default function ApresentacaoIndicadores() {
+export type ApresentacaoHandle = { exportPptx: () => Promise<void> };
+
+const ApresentacaoIndicadores = forwardRef<ApresentacaoHandle>(function ApresentacaoIndicadores(_props, ref) {
   const [active, setActive] = useState<SectionId>("overview");
+  const contentRef = useRef<HTMLElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    async exportPptx() {
+      const { default: PptxGenJS } = await import("pptxgenjs");
+      const pptx = new PptxGenJS();
+      pptx.layout = "LAYOUT_WIDE";
+      pptx.title = "Apresentação Executiva — Reclamações";
+
+      const slideW = 13.333;
+      const slideH = 7.5;
+
+      for (const s of SECTIONS) {
+        setActive(s.id);
+        // Wait for section transition + recharts animation
+        await new Promise((r) => setTimeout(r, 1100));
+        const el = contentRef.current;
+        if (!el) continue;
+        const dataUrl = await toPng(el, {
+          pixelRatio: 2,
+          backgroundColor: "#0B1220",
+          cacheBust: true,
+        });
+        const rect = el.getBoundingClientRect();
+        const imgAspect = rect.width / rect.height;
+        const slideAspect = slideW / slideH;
+        let w: number, h: number, x: number, y: number;
+        if (imgAspect > slideAspect) {
+          w = slideW - 0.3;
+          h = w / imgAspect;
+          x = 0.15;
+          y = (slideH - h) / 2;
+        } else {
+          h = slideH - 0.3;
+          w = h * imgAspect;
+          y = 0.15;
+          x = (slideW - w) / 2;
+        }
+        const slide = pptx.addSlide();
+        slide.background = { color: "0B1220" };
+        slide.addImage({ data: dataUrl, x, y, w, h });
+      }
+
+      const fname = `Apresentacao_Executiva_${new Date().toISOString().slice(0, 10)}.pptx`;
+      await pptx.writeFile({ fileName: fname });
+    },
+  }));
 
   return (
     <div
@@ -140,7 +190,8 @@ export default function ApresentacaoIndicadores() {
       </header>
 
       {/* Conteúdo */}
-      <main className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">
+      <main ref={contentRef} className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">
+        {/* Instant switch when exporting; keeps snapshots crisp */}
         <AnimatePresence mode="wait">
           <motion.section
             key={active}
@@ -177,7 +228,9 @@ export default function ApresentacaoIndicadores() {
       </main>
     </div>
   );
-}
+});
+
+export default ApresentacaoIndicadores;
 
 // ------------------------------------------------------------
 // Componentes reutilizáveis

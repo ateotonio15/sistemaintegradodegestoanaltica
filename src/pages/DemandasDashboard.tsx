@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import ApresentacaoIndicadores from "@/pages/ApresentacaoIndicadores";
+import ApresentacaoIndicadores, { type ApresentacaoHandle } from "@/pages/ApresentacaoIndicadores";
 import { useDemandas } from "@/hooks/useDemandas";
 import { parseLocalDate, type Demanda } from "@/lib/demandas-utils";
 
@@ -164,6 +164,8 @@ export default function DemandasDashboard() {
   const [dataFim, setDataFim] = useState<string>(toISO(lastDayOfMonth()));
   const [empresa, setEmpresa] = useState<string>("__all__");
   const [executiva, setExecutiva] = useState<string>("__all__");
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const apresentacaoRef = useRef<ApresentacaoHandle | null>(null);
 
   const empresas = useMemo(
     () =>
@@ -437,24 +439,33 @@ export default function DemandasDashboard() {
               size="sm"
               variant="outline"
               className="h-8 gap-1.5"
-              disabled={filtered.length === 0}
+              disabled={activeTab === "dashboard" && filtered.length === 0}
               onClick={async () => {
                 try {
-                  await exportDashboardReclamacoesPptx({
-                    periodo: { inicio: dataIni, fim: dataFim },
-                    filtros: {
-                      empresa: empresa === "__all__" ? "Todas" : empresa,
-                      executiva: executiva === "__all__" ? "Todas" : executiva,
-                    },
-                    metrics,
-                    temposSegmentados,
-                    tendencias,
-                    monthlySeries,
-                    volumeSetor,
-                    reincidencias,
-                    gargalos,
-                    insights: insights.map((i) => i.text),
-                  });
+                  if (activeTab === "apresentacao") {
+                    if (!apresentacaoRef.current) {
+                      toast({ title: "Aguarde", description: "Apresentação ainda carregando.", variant: "destructive" });
+                      return;
+                    }
+                    toast({ title: "Gerando apresentação", description: "Capturando slides..." });
+                    await apresentacaoRef.current.exportPptx();
+                  } else {
+                    await exportDashboardReclamacoesPptx({
+                      periodo: { inicio: dataIni, fim: dataFim },
+                      filtros: {
+                        empresa: empresa === "__all__" ? "Todas" : empresa,
+                        executiva: executiva === "__all__" ? "Todas" : executiva,
+                      },
+                      metrics,
+                      temposSegmentados,
+                      tendencias,
+                      monthlySeries,
+                      volumeSetor,
+                      reincidencias,
+                      gargalos,
+                      insights: insights.map((i) => i.text),
+                    });
+                  }
                   toast({ title: "Apresentação gerada", description: "O arquivo .pptx foi baixado." });
                 } catch (err: any) {
                   toast({ title: "Erro ao gerar PPT", description: err?.message ?? String(err), variant: "destructive" });
@@ -476,7 +487,7 @@ export default function DemandasDashboard() {
           </p>
         </div>
 
-        <Tabs defaultValue="dashboard" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
             <TabsTrigger value="dashboard">Dashboard Reclamações</TabsTrigger>
             <TabsTrigger value="apresentacao">Apresentação Executiva</TabsTrigger>
@@ -671,7 +682,7 @@ export default function DemandasDashboard() {
           </TabsContent>
 
           <TabsContent value="apresentacao" className="mt-6 animate-in fade-in duration-300 -mx-4 lg:-mx-8">
-            <ApresentacaoIndicadores />
+            <ApresentacaoIndicadores ref={apresentacaoRef} />
           </TabsContent>
         </Tabs>
       </div>
