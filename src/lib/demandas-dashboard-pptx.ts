@@ -299,19 +299,19 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
 
     // Faixa de delta
     const badgeY = card2Y + cardH + 0.2;
-    const badgeH = contentH - (badgeY - contentY) - 0.05;
+    const badgeH = 0.7;
     if (deltaPct !== null) {
       const cor = reducao ? C.POSITIVE : deltaPct > 0 ? C.NEGATIVE : C.MUTED;
       const arrow = reducao ? "▼" : deltaPct > 0 ? "▲" : "■";
       const label = reducao ? "Redução no Volume de Reclamações" : deltaPct > 0 ? "Aumento no Volume de Reclamações" : "Volume estável";
       sv.addShape("roundRect", {
-        x: SAFE.x, y: badgeY, w: leftW, h: Math.max(0.6, badgeH),
+        x: SAFE.x, y: badgeY, w: leftW, h: badgeH,
         fill: { color: cor, transparency: 85 },
         line: { color: cor, width: 1 },
         rectRadius: 0.08,
       });
       sv.addText(`${arrow} ${deltaPct > 0 ? "+" : ""}${deltaPct.toFixed(1)}%  ${label}`, {
-        x: SAFE.x + 0.25, y: badgeY, w: leftW - 0.5, h: Math.max(0.6, badgeH),
+        x: SAFE.x + 0.25, y: badgeY, w: leftW - 0.5, h: badgeH,
         fontSize: 13, bold: true, color: cor, fontFace: "Calibri", valign: "middle",
       });
     }
