@@ -500,19 +500,24 @@ export default function DemandasDashboard() {
                   } else {
                     await exportDashboardReclamacoesPptx({
                       periodo: { inicio: dataIni, fim: dataFim },
+                      periodoAnterior: prevPeriod
+                        ? { inicio: toISO(prevPeriod.ini), fim: toISO(prevPeriod.fim) }
+                        : null,
                       filtros: {
                         empresa: empresa === "__all__" ? "Todas" : empresa,
                         executiva: executiva === "__all__" ? "Todas" : executiva,
                       },
                       metrics,
+                      metricsAnterior: prevMetrics,
                       temposSegmentados,
                       tendencias,
-                      monthlySeries,
+                      monthlySeries: monthlySeries6m,
                       volumeSetor,
                       reincidencias,
                       gargalos,
                       insights: insights.map((i) => i.text),
                     });
+
                   }
                   toast({ title: "Apresentação gerada", description: "O arquivo .pptx foi baixado." });
                 } catch (err: any) {
