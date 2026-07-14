@@ -53,6 +53,7 @@ export function ChatAtendimento() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const subscribedRef = useRef<Set<string>>(new Set());
   const hasStarted = messages.some((m) => m.role === "user");
+  const [openHistId, setOpenHistId] = useState<string | null>(null);
 
   const { data: historico } = useQuery({
     queryKey: ["portal-atendimentos-hist", empresaVinculadaId],
