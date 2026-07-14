@@ -405,6 +405,50 @@ export type Database = {
         }
         Relationships: []
       }
+      atendimentos: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          empresa_id: string
+          id: string
+          mensagem_original: string
+          resumo: string | null
+          setor_destino: string
+          setor_original: string
+          status: string
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          empresa_id: string
+          id?: string
+          mensagem_original: string
+          resumo?: string | null
+          setor_destino: string
+          setor_original: string
+          status?: string
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          empresa_id?: string
+          id?: string
+          mensagem_original?: string
+          resumo?: string | null
+          setor_destino?: string
+          setor_original?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avaliacoes_config: {
         Row: {
           dia_envio: number
