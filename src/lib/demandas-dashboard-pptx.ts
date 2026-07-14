@@ -1,6 +1,20 @@
 // Exportador de PPTX para o Dashboard de Reclamações (indicadores executivos).
 // Recebe um snapshot já calculado da página e monta um deck com os principais indicadores.
 
+import waveAsset from "@/assets/ppt_wave.png.asset.json";
+import logoAsset from "@/assets/ppt_logo.png.asset.json";
+
+async function urlToDataUrl(url: string): Promise<string> {
+  const resp = await fetch(url);
+  const blob = await resp.blob();
+  return await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+
 export type DashboardSnapshot = {
   periodo: { inicio: string; fim: string };
   filtros: { empresa: string; executiva: string };
@@ -101,40 +115,74 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   pptx.layout = "LAYOUT_WIDE";
   pptx.title = "Dashboard de Reclamações — Painel Executivo";
 
+  // Carrega imagens do template (fundo aquarela + logo) como data URLs.
+  const [waveData, logoData] = await Promise.all([
+    urlToDataUrl(waveAsset.url).catch(() => ""),
+    urlToDataUrl(logoAsset.url).catch(() => ""),
+  ]);
+
+  const addBackground = (slide: any, variant: "capa" | "conteudo") => {
+    slide.background = { color: C.WHITE };
+    if (waveData) {
+      // Onda decorativa inferior-esquerda
+      slide.addImage({
+        data: waveData,
+        x: 0, y: variant === "capa" ? 6.02 : 6.35,
+        w: variant === "capa" ? 5.07 : 4.5,
+        h: variant === "capa" ? 1.48 : 1.15,
+      });
+      if (variant === "capa") {
+        // Onda superior-direita rotacionada
+        slide.addImage({
+          data: waveData,
+          x: 8.25, y: -0.03, w: 5.11, h: 1.55, rotate: 180,
+        });
+      }
+    }
+    if (logoData) {
+      slide.addImage({
+        data: logoData,
+        x: variant === "capa" ? 0.55 : 12.55,
+        y: variant === "capa" ? 0.4 : 0.15,
+        w: 0.65, h: 0.6,
+      });
+    }
+  };
+
   const periodoLabel = `Período: ${fmtDateBR(snap.periodo.inicio)} a ${fmtDateBR(snap.periodo.fim)}`;
   const filtroLabel = `Empresa: ${snap.filtros.empresa} · Executiva: ${snap.filtros.executiva}`;
 
   // ===== Slide 1 — Capa =====
   const s1 = pptx.addSlide();
-  s1.background = { color: C.NAVY };
+  addBackground(s1, "capa");
   s1.addText("PAINEL EXECUTIVO", {
-    x: 0.7, y: 2.2, w: 12, h: 0.5,
-    fontSize: 14, bold: true, color: "7DD3FC", charSpacing: 8, fontFace: "Calibri",
+    x: 0.7, y: 2.4, w: 12, h: 0.5,
+    fontSize: 14, bold: true, color: C.GREEN, charSpacing: 8, fontFace: "Calibri",
   });
   s1.addText("Dashboard de Reclamações", {
-    x: 0.7, y: 2.7, w: 12, h: 1.0,
-    fontSize: 44, bold: true, color: C.WHITE, fontFace: "Calibri",
+    x: 0.7, y: 2.9, w: 12, h: 1.0,
+    fontSize: 44, bold: true, color: C.NAVY, fontFace: "Calibri",
   });
   s1.addText("Visão estratégica · SLA, risco operacional e tendências", {
-    x: 0.7, y: 3.8, w: 12, h: 0.5,
-    fontSize: 16, color: "CBD5E1", fontFace: "Calibri",
+    x: 0.7, y: 4.0, w: 12, h: 0.5,
+    fontSize: 16, color: C.GREY, fontFace: "Calibri",
   });
   s1.addText([
     { text: `${periodoLabel}\n`, options: { bold: true } },
     { text: filtroLabel, options: {} },
   ] as any, {
-    x: 0.7, y: 4.7, w: 12, h: 1.0,
-    fontSize: 13, color: C.WHITE, fontFace: "Calibri", paraSpaceAfter: 4,
+    x: 0.7, y: 4.9, w: 12, h: 1.0,
+    fontSize: 13, color: C.NAVY, fontFace: "Calibri", paraSpaceAfter: 4,
   });
   s1.addText(`Gerado em ${new Date().toLocaleString("pt-BR")}`, {
-    x: 0.7, y: 6.9, w: 12, h: 0.3,
-    fontSize: 10, color: C.MUTED, fontFace: "Calibri",
+    x: 0.7, y: 7.0, w: 12, h: 0.3,
+    fontSize: 10, color: C.GREY, fontFace: "Calibri",
   });
 
   // ===== Slide 2 — Resumo executivo (KPIs) =====
   const m = snap.metrics;
   const s2 = pptx.addSlide();
-  s2.background = { color: C.LIGHT };
+  addBackground(s2, "conteudo");
   slideTitle(s2, "Resumo Executivo", `${periodoLabel} · ${filtroLabel}`);
 
   const gap = 0.22;
@@ -160,7 +208,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
 
   // ===== Slide 3 — Tempo médio + Tendências =====
   const s3 = pptx.addSlide();
-  s3.background = { color: C.LIGHT };
+  addBackground(s3, "conteudo");
   slideTitle(s3, "Tempo de resposta & Tendências", periodoLabel);
 
   const colW = (SAFE.w - 0.3) / 2;
@@ -213,7 +261,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   // ===== Slide 4 — Evolução Mensal =====
   if (snap.monthlySeries.length > 0) {
     const s4 = pptx.addSlide();
-    s4.background = { color: C.LIGHT };
+    addBackground(s4, "conteudo");
     slideTitle(s4, "Evolução Mensal", "SLA no prazo, fora do prazo e backlog");
     const labels = snap.monthlySeries.map((x) => x.label);
     s4.addChart(pptx.ChartType.line,
@@ -235,7 +283,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   // ===== Slide 5 — Volume por setor =====
   if (snap.volumeSetor.length > 0) {
     const s5 = pptx.addSlide();
-    s5.background = { color: C.LIGHT };
+    addBackground(s5, "conteudo");
     slideTitle(s5, "Volume por Setor", "Top setores em número de demandas");
     s5.addChart(pptx.ChartType.bar,
       [{ name: "Demandas", labels: snap.volumeSetor.map((v) => v.setor), values: snap.volumeSetor.map((v) => v.n) }],
@@ -251,7 +299,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   // ===== Slide 6 — Reincidências =====
   if (snap.reincidencias.length > 0) {
     const s6 = pptx.addSlide();
-    s6.background = { color: C.LIGHT };
+    addBackground(s6, "conteudo");
     slideTitle(s6, "Reincidências por Setor", "Taxa de reincidência (%) — quanto menor, melhor");
     s6.addChart(pptx.ChartType.bar,
       [{ name: "Taxa de reincidência (%)", labels: snap.reincidencias.map((r) => r.setor), values: snap.reincidencias.map((r) => r.taxa) }],
@@ -267,7 +315,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   // ===== Slide 7 — Gargalos =====
   if (snap.gargalos.length > 0) {
     const s7 = pptx.addSlide();
-    s7.background = { color: C.LIGHT };
+    addBackground(s7, "conteudo");
     slideTitle(s7, "Principais Gargalos", "Setor × tipo com maior impacto (volume × tempo médio)");
     painel(s7, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Top 5 gargalos");
     const rows = [
@@ -298,7 +346,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   // ===== Slide 8 — Insights =====
   if (snap.insights.length > 0) {
     const s8 = pptx.addSlide();
-    s8.background = { color: C.LIGHT };
+    addBackground(s8, "conteudo");
     slideTitle(s8, "Insights & Recomendações", "Análise automática dos indicadores");
     painel(s8, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Observações do período");
     s8.addText(
