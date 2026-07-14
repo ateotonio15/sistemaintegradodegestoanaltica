@@ -173,8 +173,9 @@ export default function MeuPainel() {
               <Info label="CNPJ" value={empresa?.cnpj ?? "-"} />
               <Info label="Valor mensal" value={fmtMoney(Number(contrato?.valor_mensal ?? 0))} />
               <Info label="Status" value={contrato?.status ?? "-"} />
-              <Info label="Início da vigência" value={fmtDate(contrato?.data_inicio)} />
+              <Info label="Início da vigência" value={fmtDate((empresa as any)?.data_implantacao)} />
               <Info label="Fim da vigência" value={fmtDate(contrato?.data_fim) === "-" ? "Sem prazo definido" : fmtDate(contrato?.data_fim)} />
+
               <Info label="Tipo de Movimentação" value={(empresa as any)?.tipo_movimentacao ?? "-"} />
               <Info
                 label="Período de Movimentação"
