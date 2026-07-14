@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { LogOut, Building2, FileText, Users, Wallet, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ChatAtendimento } from "@/components/portal/ChatAtendimento";
 
 function fmtMoney(v: number | null | undefined) {
   if (v == null) return "-";
