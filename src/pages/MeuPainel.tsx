@@ -175,6 +175,31 @@ export default function MeuPainel() {
               <Info label="Status" value={contrato?.status ?? "-"} />
               <Info label="Início da vigência" value={fmtDate(contrato?.data_inicio)} />
               <Info label="Fim da vigência" value={fmtDate(contrato?.data_fim) === "-" ? "Sem prazo definido" : fmtDate(contrato?.data_fim)} />
+              <Info label="Tipo de Movimentação" value={(empresa as any)?.tipo_movimentacao ?? "-"} />
+              <Info
+                label="Período de Movimentação"
+                value={
+                  (empresa as any)?.tipo_movimentacao === "Diária"
+                    ? `Diária (corte dia ${(empresa as any)?.data_corte ? fmtDate((empresa as any).data_corte) : "-"})`
+                    : ((empresa as any)?.periodo_movimentacao ?? "-")
+                }
+              />
+              <Info label="Data de Implantação" value={fmtDate((empresa as any)?.data_implantacao)} />
+              <Info label="Data de Corte" value={fmtDate((empresa as any)?.data_corte)} />
+              <Info label="Prazo (sem carência)" value={(empresa as any)?.prazo ?? "-"} />
+            </CardContent>
+          </Card>
+        )}
+
+        {secoes.contrato && (
+          <Card>
+            <CardHeader className="flex flex-row items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle>Responsáveis</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              <Info label="Responsável pelo Contrato" value={(empresa as any)?.responsavel_contrato ?? "-"} />
+              <Info label="Executiva Responsável" value={(empresa as any)?.executiva_nome ?? "-"} />
             </CardContent>
           </Card>
         )}
