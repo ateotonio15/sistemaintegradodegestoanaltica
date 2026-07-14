@@ -42,18 +42,24 @@ interface MsgHist {
 
 export function ChatAtendimento() {
   const { empresaVinculadaId } = useAuth();
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: "assistant",
-      text: "Olá! Descreva sua solicitação e eu encaminho para o setor certo (Cadastro, Relacionamento ou Financeiro).",
-    },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [started, setStarted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const subscribedRef = useRef<Set<string>>(new Set());
-  const hasStarted = messages.some((m) => m.role === "user");
+  const hasStarted = started;
   const [openHistId, setOpenHistId] = useState<string | null>(null);
+
+  function iniciarConversa() {
+    setStarted(true);
+    setMessages([
+      {
+        role: "assistant",
+        text: "Olá! Descreva sua solicitação e eu encaminho para o setor certo (Cadastro, Relacionamento ou Financeiro).",
+      },
+    ]);
+  }
 
   const { data: historico } = useQuery({
     queryKey: ["portal-atendimentos-hist", empresaVinculadaId],
