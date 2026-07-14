@@ -29,10 +29,29 @@ export function ChatAtendimento() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const subscribedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
+
+  function subscribeRespostas(atendimentoId: string) {
+    if (subscribedRef.current.has(atendimentoId)) return;
+    subscribedRef.current.add(atendimentoId);
+    const channel = supabase
+      .channel(`atd-msg-${atendimentoId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "atendimentos_mensagens", filter: `atendimento_id=eq.${atendimentoId}` },
+        (payload) => {
+          const row = payload.new as any;
+          if (row?.autor_tipo !== "staff") return;
+          setMessages((m) => [...m, { role: "staff", text: row.mensagem as string }]);
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }
 
   async function enviar() {
     const texto = input.trim();
