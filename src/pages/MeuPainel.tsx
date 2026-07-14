@@ -214,14 +214,15 @@ export default function MeuPainel() {
                 }
               />
               <Info label="Data de Implantação" value={fmtDate((empresa as any)?.data_implantacao)} />
-              <Info label="Data de Corte" value={(() => {
-                const emp: any = empresa;
-                if (!emp) return "-";
-                let dia: number | null = null;
-                if (emp.periodo_movimentacao) dia = Number(emp.periodo_movimentacao.split("-")[1]);
-                else if (emp.data_corte) dia = Number(emp.data_corte);
-                return dia ? String(dia).padStart(2, "0") : "-";
-              })()} />
+              {(empresa as any)?.tipo_movimentacao === "Diária" && (
+                <Info label="Data de Corte" value={(() => {
+                  const emp: any = empresa;
+                  let dia: number | null = null;
+                  if (emp?.periodo_movimentacao) dia = Number(emp.periodo_movimentacao.split("-")[1]);
+                  else if (emp?.data_corte) dia = Number(emp.data_corte);
+                  return dia ? String(dia).padStart(2, "0") : "-";
+                })()} />
+              )}
               <Info label="Prazo (sem carência)" value={(empresa as any)?.prazo ?? "-"} />
             </CardContent>
           </Card>
