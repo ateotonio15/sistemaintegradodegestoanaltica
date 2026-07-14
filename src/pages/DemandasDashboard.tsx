@@ -17,7 +17,10 @@ import {
   Users,
   Repeat,
   Zap,
+  FileDown,
 } from "lucide-react";
+import { exportDashboardReclamacoesPptx } from "@/lib/demandas-dashboard-pptx";
+import { toast } from "@/hooks/use-toast";
 import {
   LineChart,
   Line,
@@ -428,6 +431,37 @@ export default function DemandasDashboard() {
               <ArrowLeft className="h-3 w-3" />
               Voltar para registros
             </Link>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5"
+              disabled={filtered.length === 0}
+              onClick={async () => {
+                try {
+                  await exportDashboardReclamacoesPptx({
+                    periodo: { inicio: dataIni, fim: dataFim },
+                    filtros: {
+                      empresa: empresa === "__all__" ? "Todas" : empresa,
+                      executiva: executiva === "__all__" ? "Todas" : executiva,
+                    },
+                    metrics,
+                    temposSegmentados,
+                    tendencias,
+                    monthlySeries,
+                    volumeSetor,
+                    reincidencias,
+                    gargalos,
+                    insights: insights.map((i) => i.text),
+                  });
+                  toast({ title: "Apresentação gerada", description: "O arquivo .pptx foi baixado." });
+                } catch (err: any) {
+                  toast({ title: "Erro ao gerar PPT", description: err?.message ?? String(err), variant: "destructive" });
+                }
+              }}
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              Exportar PPT
+            </Button>
           </div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Painel Executivo
