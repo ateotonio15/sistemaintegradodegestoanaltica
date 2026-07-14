@@ -117,6 +117,11 @@ export function ChatAtendimento() {
                     <Badge variant="secondary">Encaminhado: {setorLabel[m.setor] ?? m.setor}</Badge>
                   </div>
                 )}
+                {m.role === "staff" && (
+                  <div className="mb-1">
+                    <Badge>Resposta da equipe</Badge>
+                  </div>
+                )}
                 <div className="prose prose-sm max-w-none dark:prose-invert">
                   <ReactMarkdown>{m.text}</ReactMarkdown>
                 </div>
