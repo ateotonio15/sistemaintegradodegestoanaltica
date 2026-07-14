@@ -160,7 +160,7 @@ const COL_TIPO_COBRANCA = [
 ];
 const COL_VALOR = ["valor", "mensalidade", "valor mensalidade", "vlr", "preco", "valor total"];
 const COL_CNPJ = ["cnpj", "cnpj pagador", "cnpj do pagador", "cnpj empresa"];
-const COL_PAGADOR = ["pagador", "nome pagador", "nome do pagador", "razao social", "razão social", "empresa", "contratante", "nome empresa", "nome da empresa"];
+const COL_PAGADOR = ["subestipulante", "sub estipulante", "sub-estipulante", "pagador", "nome pagador", "nome do pagador", "razao social", "razão social", "empresa", "contratante", "nome empresa", "nome da empresa"];
 const COL_FAIXA_ETARIA = ["fx etaria", "fx etária", "faixa etaria", "faixa etária", "grupo faixa etaria", "grupo faixa etária"];
 
 /** Normalização "agressiva" para casamento de nomes: remove pontuação e colapsa espaços. */
@@ -266,6 +266,19 @@ function findColumnIndex(header: unknown[], aliases: string[]): number {
         hMatch.includes(aliasMatch)
       ) return i;
     }
+  }
+  return -1;
+}
+
+/**
+ * Coluna de pagador precisa priorizar Subestipulante quando existir.
+ * Em alguns relatórios (ex.: Jabil) há também "Contratante" antes dela,
+ * mas Contratante é o contrato-mãe e não separa matriz/filial.
+ */
+function findPagadorColumnIndex(header: unknown[]): number {
+  for (const alias of COL_PAGADOR) {
+    const idx = findColumnIndex(header, [alias]);
+    if (idx >= 0) return idx;
   }
   return -1;
 }
@@ -416,7 +429,7 @@ export async function analisarExcelFinanceiroPorPagador(
       idxTipo = t;
       idxValor = v;
       idxCnpj = findColumnIndex(r, COL_CNPJ);
-      idxPagador = findColumnIndex(r, COL_PAGADOR);
+      idxPagador = findPagadorColumnIndex(r);
       idxFaixa = findColumnIndex(r, COL_FAIXA_ETARIA);
       break;
     }
@@ -1572,7 +1585,7 @@ export async function analisarExcelFinanceiroPorCnpj(
       idxTipo = t;
       idxValor = v;
       idxCnpj = findColumnIndex(r, COL_CNPJ);
-      idxPagador = findColumnIndex(r, COL_PAGADOR);
+      idxPagador = findPagadorColumnIndex(r);
       idxFaixa = findColumnIndex(r, COL_FAIXA_ETARIA);
       break;
     }
@@ -2102,9 +2115,14 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
   for (const b of blocos) {
     const tag = matchForce(b.nome);
     if (!tag) { ordem.push(b); continue; }
-    const list = grupos.get(tag) || [];
+    // Jabil deve ser agrupada pelo nome completo: matriz e filial são empresas
+    // distintas, mas CNPJs diferentes dentro do mesmo nome continuam somados.
+    const groupKey = tag.includes("jabil industrial do brasil")
+      ? `${tag}::${normMatch(b.nome)}`
+      : tag;
+    const list = grupos.get(groupKey) || [];
     list.push(b);
-    grupos.set(tag, list);
+    grupos.set(groupKey, list);
   }
   if (grupos.size === 0) return blocos;
 
