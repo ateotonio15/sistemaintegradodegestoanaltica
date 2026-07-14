@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider, focusManager, onlineManager } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AppLayout } from "@/components/AppLayout";
@@ -56,6 +56,9 @@ import MailingBrindes from "./pages/MailingBrindes";
 import ApresentacaoIndicadores from "./pages/ApresentacaoIndicadores";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import CadastrarEmpresa from "./pages/CadastrarEmpresa";
+import TrocarSenha from "./pages/TrocarSenha";
+import Portal from "./pages/Portal";
 
 // Desativa gatilhos globais de foco/reconexão: voltar para a aba não deve reiniciar/refazer telas.
 focusManager.setEventListener(() => () => {});
@@ -85,9 +88,21 @@ const Loading = () => (
 
 // Shell único e persistente: AppLayout monta UMA vez; só o <Outlet/> troca entre rotas.
 function AppShell() {
-  const { user, loading } = useAuth();
+  const { user, loading, mustChangePassword, isAdminEmpresa, isAdminInterno } = useAuth();
+  const location = useLocation();
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/auth" replace />;
+  if (mustChangePassword && location.pathname !== "/trocar-senha") {
+    return <Navigate to="/trocar-senha" replace />;
+  }
+  // Empresas com papel admin_empresa (e não admin_interno) só enxergam o portal
+  if (isAdminEmpresa && !isAdminInterno && !location.pathname.startsWith("/portal")) {
+    return <Navigate to="/portal" replace />;
+  }
+  // Portal roda com layout próprio (sem sidebar)
+  if (location.pathname.startsWith("/portal") || location.pathname === "/trocar-senha") {
+    return <Outlet />;
+  }
   return (
     <AppLayout>
       <Outlet />
@@ -112,6 +127,13 @@ function RoleGate({
   return <Outlet />;
 }
 
+function AdminInternoGate() {
+  const { loading, isAdminInterno } = useAuth();
+  if (loading) return <Loading />;
+  if (!isAdminInterno) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
 function HomeRoute() {
   return <Home />;
 }
@@ -130,6 +152,11 @@ const AppRoutes = () => (
     <Route path="/carteira-samel/avaliacoes/rh/responder/:formId" element={<CSResponderRH />} />
     <Route path="/avaliar/:token" element={<CSResponderToken />} />
     <Route element={<AppShell />}>
+      <Route path="/portal" element={<Portal />} />
+      <Route path="/trocar-senha" element={<TrocarSenha />} />
+      <Route element={<AdminInternoGate />}>
+        <Route path="/admin/cadastrar-empresa" element={<CadastrarEmpresa />} />
+      </Route>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/dashboard" element={<HomeRoute />} />
       <Route element={<RoleGate allow={["admin"]} />}>

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { clearSessionNamespace } from "@/hooks/useSessionState";
 import type { User, Session } from "@supabase/supabase-js";
 
-type UserRole = "admin" | "comum" | "executivo" | "executivo_externo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras" | null;
+type UserRole = "admin" | "comum" | "executivo" | "executivo_externo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras" | "admin_interno" | null;
 
 interface AuthContextType {
   user: User | null;
@@ -20,8 +20,13 @@ interface AuthContextType {
   isVendas: boolean;
   isDiretora: boolean;
   isAdministradoras: boolean;
+  isAdminInterno: boolean;
+  isAdminEmpresa: boolean;
+  empresaVinculadaId: string | null;
+  mustChangePassword: boolean;
   canEditFinanceiro: boolean;
   signOut: () => Promise<void>;
+  refreshAuthFlags: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -39,8 +44,13 @@ const AuthContext = createContext<AuthContextType>({
   isVendas: false,
   isDiretora: false,
   isAdministradoras: false,
+  isAdminInterno: false,
+  isAdminEmpresa: false,
+  empresaVinculadaId: null,
+  mustChangePassword: false,
   canEditFinanceiro: false,
   signOut: async () => {},
+  refreshAuthFlags: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -48,6 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole>(null);
+  const [isAdminInterno, setIsAdminInterno] = useState(false);
+  const [isAdminEmpresa, setIsAdminEmpresa] = useState(false);
+  const [empresaVinculadaId, setEmpresaVinculadaId] = useState<string | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const roleRef = useRef<UserRole>(null);
   const lastUserIdRef = useRef<string | null>(null);
   const roleRequestRef = useRef(0);
@@ -56,19 +70,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     roleRef.current = role;
   }, [role]);
 
-  const fetchRole = useCallback(async (userId: string) => {
+  const loadFlags = useCallback(async (userId: string) => {
     const requestId = ++roleRequestRef.current;
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    // Se um pedido mais recente sobrescreveu este, abandone sem mexer em role/loading
-    // (o pedido mais novo é quem vai finalizar o loading).
+    const [rolesRes, profileRes, empresaRes] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("profiles").select("must_change_password").eq("user_id", userId).maybeSingle(),
+      supabase.from("empresa_usuarios").select("empresa_id, papel").eq("user_id", userId).limit(1).maybeSingle(),
+    ]);
     if (requestId !== roleRequestRef.current) return;
-    setRole((data?.role as UserRole) ?? "comum");
+
+    const roles = (rolesRes.data ?? []).map((r: any) => r.role as string);
+    const primaryRole = (roles.find((r) => r !== "admin_interno") ?? roles[0] ?? "comum") as UserRole;
+    setRole(primaryRole);
+    setIsAdminInterno(roles.includes("admin_interno"));
+    setIsAdminEmpresa(((empresaRes.data as any)?.papel ?? null) === "admin_empresa");
+    setEmpresaVinculadaId(((empresaRes.data as any)?.empresa_id as string) ?? null);
+    setMustChangePassword(Boolean((profileRes.data as any)?.must_change_password));
     setLoading(false);
   }, []);
+
+  const refreshAuthFlags = useCallback(async () => {
+    if (user?.id) await loadFlags(user.id);
+  }, [user?.id, loadFlags]);
 
   useEffect(() => {
     const applySession = async (nextSession: Session | null) => {
@@ -82,11 +105,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastUserIdRef.current = null;
         roleRequestRef.current += 1;
         setRole(null);
+        setIsAdminInterno(false);
+        setIsAdminEmpresa(false);
+        setEmpresaVinculadaId(null);
+        setMustChangePassword(false);
         setLoading(false);
         return;
       }
 
-      // TOKEN_REFRESHED/SIGNED_IN ao voltar foco não deve derrubar o layout para "Carregando".
       if (lastUserIdRef.current === nextUserId && roleRef.current) {
         setLoading(false);
         return;
@@ -94,11 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       lastUserIdRef.current = nextUserId;
       if (!roleRef.current) setLoading(true);
-      // Importante: não usar .finally(setLoading(false)) aqui — fetchRole só
-      // libera o loading quando ele próprio é o pedido vencedor, evitando que
-      // um pedido abortado deixe loading=false com role=null (o que faria as
-      // rotas com `allow` redirecionarem indevidamente para /).
-      void fetchRole(nextUserId);
+      void loadFlags(nextUserId);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -115,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchRole]);
+  }, [loadFlags]);
 
   const signOut = async () => {
     clearSessionNamespace("financeiro");
@@ -135,8 +157,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isVendas: role === "vendas",
       isDiretora: role === "diretora",
       isAdministradoras: role === "administradoras",
+      isAdminInterno,
+      isAdminEmpresa,
+      empresaVinculadaId,
+      mustChangePassword,
       canEditFinanceiro: role === "admin" || role === "financeiro",
       signOut,
+      refreshAuthFlags,
     }}>
       {children}
     </AuthContext.Provider>
