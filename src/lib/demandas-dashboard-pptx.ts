@@ -426,8 +426,10 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
           chartColors: [C.PRIMARY, C.BORDER],
           showLegend: true, legendPos: "b", legendFontSize: 10, legendColor: C.INK,
           holeSize: 65,
-          showValue: false,
-          dataLabelFontSize: 10, dataLabelColor: C.INK,
+          showPercent: true,
+          dataLabelFontSize: 11, dataLabelColor: "FFFFFF",
+          dataLabelFormatCode: "0\"%\"",
+          dataLabelPosition: "ctr",
         },
       );
     }
