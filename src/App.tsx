@@ -156,6 +156,7 @@ const AppRoutes = () => (
     <Route path="/avaliar/:token" element={<CSResponderToken />} />
     <Route element={<AppShell />}>
       <Route path="/portal" element={<Portal />} />
+      <Route path="/meu-painel" element={<MeuPainel />} />
       <Route path="/trocar-senha" element={<TrocarSenha />} />
       <Route element={<AdminInternoGate />}>
         <Route path="/admin/cadastrar-empresa" element={<CadastrarEmpresa />} />
