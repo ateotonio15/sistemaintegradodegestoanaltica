@@ -440,7 +440,7 @@ export default function DemandasDashboard() {
       rows.push({ empresa: nome, vidas, reclamacoes: rec, indice });
     });
     return rows
-      .sort((a, b) => b.indice - a.indice || b.reclamacoes - a.reclamacoes)
+      .sort((a, b) => b.reclamacoes - a.reclamacoes || b.indice - a.indice)
       .slice(0, 15);
   }, [filtered, empresasVidas]);
 
