@@ -50,11 +50,14 @@ const statusBadge = (s: Status) => {
 
 export default function FilaAtendimento() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [tab, setTab] = useState<Setor>("cadastro");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [redirectSetor, setRedirectSetor] = useState<Setor | "">("");
   const [redirectObs, setRedirectObs] = useState("");
   const [saving, setSaving] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
 
   const { data: atendimentos, isLoading } = useQuery({
     queryKey: ["fila-atendimentos"],
