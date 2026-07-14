@@ -176,7 +176,9 @@ export default function EmpresasAcesso() {
                             </button>
                           </div>
                         ) : (
-                          <Badge variant="outline">Sem usuário</Badge>
+                          <Button size="sm" variant="secondary" onClick={() => gerarUsuario(row)}>
+                            Gerar usuário
+                          </Button>
                         )}
                       </td>
                       <td className="py-2 pr-4">
