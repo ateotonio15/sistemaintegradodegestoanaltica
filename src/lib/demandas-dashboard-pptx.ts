@@ -42,6 +42,7 @@ export type DashboardSnapshot = {
   tendencias: { slaDelta: number; backlogDelta: number; foraDelta: number } | null;
   monthlySeries: { label: string; sla: number; fora: number; aberto: number }[];
   volumeSetor: { setor: string; n: number; pct: number }[];
+  volumeTipo: { tipo: string; n: number; pct: number }[];
   reincidencias: { setor: string; total: number; reinc: number; taxa: number }[];
   gargalos: { setor: string; tipo: string; qtd: number; tempoMedio: number; foraPct: number }[];
   insights: string[];
