@@ -161,6 +161,7 @@ const AppRoutes = () => (
       <Route path="/trocar-senha" element={<TrocarSenha />} />
       <Route element={<AdminInternoGate />}>
         <Route path="/admin/cadastrar-empresa" element={<CadastrarEmpresa />} />
+        <Route path="/admin/fila-atendimento" element={<FilaAtendimento />} />
       </Route>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/dashboard" element={<HomeRoute />} />
