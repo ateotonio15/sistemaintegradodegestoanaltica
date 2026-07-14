@@ -24,6 +24,32 @@ function genPassword(len = 12): string {
   return out;
 }
 
+function gerarUsernameBase(nome: string): string {
+  const limpo = nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return (limpo.slice(0, 2).join("_").toUpperCase()) || "EMPRESA";
+}
+
+async function resolverUsernameUnico(admin: any, base: string): Promise<string> {
+  let candidato = base;
+  let n = 1;
+  while (true) {
+    const { data } = await admin
+      .from("profiles")
+      .select("user_id")
+      .ilike("username", candidato)
+      .maybeSingle();
+    if (!data) return candidato;
+    n += 1;
+    candidato = `${base}${n}`;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -100,6 +126,46 @@ Deno.serve(async (req) => {
       const { error } = await admin.from("empresas").update(patch).eq("id", empresa_id);
       if (error) throw error;
       return json(200, { ok: true });
+    }
+
+    if (action === "gerar_usuario") {
+      if (vinc?.user_id) return json(400, { error: "Empresa já possui usuário" });
+      const { data: emp, error: eErr } = await admin
+        .from("empresas")
+        .select("nome, codigo_contrato")
+        .eq("id", empresa_id)
+        .single();
+      if (eErr) throw eErr;
+      if (!emp?.nome) return json(400, { error: "Empresa sem nome" });
+      const senhaInicial = String(emp.codigo_contrato ?? "").trim();
+      if (!senhaInicial) return json(400, { error: "Empresa sem código (senha inicial)" });
+      const base = gerarUsernameBase(emp.nome);
+      const username = await resolverUsernameUnico(admin, base);
+      const emailInterno = `${username.toLowerCase()}@login.interno`;
+
+      const { data: novo, error: userErr } = await admin.auth.admin.createUser({
+        email: emailInterno,
+        password: senhaInicial,
+        email_confirm: true,
+        user_metadata: { display_name: emp.nome, username },
+      });
+      if (userErr) throw userErr;
+      const userId = novo.user.id;
+
+      await admin
+        .from("profiles")
+        .update({ username, must_change_password: true, display_name: emp.nome })
+        .eq("user_id", userId);
+      await admin
+        .from("empresa_usuarios")
+        .insert({ user_id: userId, empresa_id, papel: "admin_empresa" });
+      await admin.from("user_roles").insert({ user_id: userId, role: "comum" });
+      await admin
+        .from("empresas")
+        .update({ email_empresa: emailInterno })
+        .eq("id", empresa_id);
+
+      return json(200, { ok: true, username, senha: senhaInicial });
     }
 
     return json(400, { error: "Ação inválida" });
