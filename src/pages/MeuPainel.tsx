@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { LogOut, Building2, FileText, Users, Wallet, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ChatAtendimento } from "@/components/portal/ChatAtendimento";
 
 function fmtMoney(v: number | null | undefined) {
   if (v == null) return "-";
@@ -158,6 +159,9 @@ export default function MeuPainel() {
             <Info label="Fim da vigência" value={fmtDate(contrato?.data_fim) === "-" ? "Sem prazo definido" : fmtDate(contrato?.data_fim)} />
           </CardContent>
         </Card>
+
+        {/* Chat de atendimento com IA */}
+        <ChatAtendimento />
 
         {/* Movimentações financeiras */}
         <Card>
