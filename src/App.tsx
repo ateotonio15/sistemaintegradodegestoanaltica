@@ -61,6 +61,7 @@ import FilaAtendimento from "./pages/FilaAtendimento";
 import TrocarSenha from "./pages/TrocarSenha";
 import Portal from "./pages/Portal";
 import MeuPainel from "./pages/MeuPainel";
+import EmpresasAcesso from "./pages/EmpresasAcesso";
 
 // Desativa gatilhos globais de foco/reconexão: voltar para a aba não deve reiniciar/refazer telas.
 focusManager.setEventListener(() => () => {});
@@ -161,6 +162,7 @@ const AppRoutes = () => (
       <Route path="/trocar-senha" element={<TrocarSenha />} />
       <Route element={<AdminInternoGate />}>
         <Route path="/admin/cadastrar-empresa" element={<CadastrarEmpresa />} />
+        <Route path="/admin/empresas-acesso" element={<EmpresasAcesso />} />
       </Route>
       <Route path="/admin/fila-atendimento" element={<FilaAtendimento />} />
       <Route path="/" element={<HomeRoute />} />

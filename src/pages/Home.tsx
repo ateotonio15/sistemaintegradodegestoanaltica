@@ -345,6 +345,14 @@ const SHORTCUTS: Shortcut[] = [
     show: (c) => c.canHonda,
   },
   {
+    to: "/admin/empresas-acesso",
+    label: "Acessos das Empresas",
+    description: "Usuários, senhas e visibilidade do portal",
+    icon: KeyRound,
+    group: "utilitarios",
+    show: (c) => c.isAdmin,
+  },
+  {
     to: "/admin/fila-atendimento",
     label: "Fila de Atendimento",
     description: "Atendimentos recebidos das empresas por setor",
