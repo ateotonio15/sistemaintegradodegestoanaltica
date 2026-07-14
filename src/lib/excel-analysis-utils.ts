@@ -2215,6 +2215,7 @@ export function cruzarExcelComPdfs(
   const usados = new Set<number>();
   const comparacoes: ComparacaoResultado[] = blocos.map((bloco) => {
     let pdf: (AnalisePdfResultado & { arquivo: string }) | null = null;
+    let matchPorNome = false;
     if (bloco.cnpj) {
       const idx = pdfs.findIndex(
         (p, i) => !usados.has(i) && normalizarCnpj(p.tomadorCnpj) === bloco.cnpj,
@@ -2222,6 +2223,21 @@ export function cruzarExcelComPdfs(
       if (idx >= 0) {
         usados.add(idx);
         pdf = pdfs[idx];
+      }
+    }
+    // Fallback por nome: quando o Excel não traz CNPJ (ex.: Jabil, cujas planilhas
+    // não têm coluna CNPJ), casa o bloco pelo nome do tomador da NFS-e.
+    if (!pdf) {
+      const alvo = normMatch(bloco.nomeExibicao || bloco.nome);
+      if (alvo) {
+        const idx = pdfs.findIndex(
+          (p, i) => !usados.has(i) && !!p.tomadorNome && normMatch(p.tomadorNome) === alvo,
+        );
+        if (idx >= 0) {
+          usados.add(idx);
+          pdf = pdfs[idx];
+          matchPorNome = true;
+        }
       }
     }
     const excelResult: AnaliseResultado = {
@@ -2249,10 +2265,16 @@ export function cruzarExcelComPdfs(
     cmp.nfNumero = pdf?.nfNumero ?? null;
     cmp.valorLiquido = pdf?.valorLiquido ?? null;
     cmp.tributos = pdf?.tributos ?? null;
+    if (pdf && matchPorNome) {
+      cmp.avisos = [
+        ...(cmp.avisos || []),
+        "NF casada pelo nome do tomador (Excel sem coluna de CNPJ).",
+      ];
+    }
     if (!pdf) {
       cmp.motivoSemPdf = bloco.cnpj
         ? "NF não localizada para este CNPJ"
-        : "CNPJ não identificado na planilha";
+        : "NF não localizada para este tomador (Excel sem CNPJ; nome não bateu com nenhuma NF)";
       // Ausência de NF não é divergência — apenas informativo via motivoSemPdf.
     }
     return cmp;
