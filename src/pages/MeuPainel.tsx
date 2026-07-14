@@ -27,13 +27,17 @@ export default function MeuPainel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, cnpj, status_empresa")
+        .select("id, nome, cnpj, status_empresa, portal_secoes")
         .eq("id", empresaVinculadaId!)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
   });
+
+  const secoes = ((empresa as any)?.portal_secoes ?? {
+    contrato: true, vidas: true, movimentacoes: true, chat: true,
+  }) as Record<string, boolean>;
 
   const { data: contrato } = useQuery({
     queryKey: ["meu-painel", "contrato", empresaVinculadaId],
