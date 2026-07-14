@@ -1804,7 +1804,12 @@ export default function Financeiro() {
     if (indices.length === 0 && nomeAlvo) {
       const padroes = getForceGroupByNamePatterns();
       const empresaTemRegra = padroes.some((p) => nomeAlvo.includes(p));
-      if (empresaTemRegra) {
+      const algumBlocoTemRegra = padroes.some((p) =>
+        mother.resultados.some((r) =>
+          normTxt((r as any).pagador || (r as any).nomeExibicao).includes(p),
+        ),
+      );
+      if (empresaTemRegra || algumBlocoTemRegra) {
         const tokens = (s: string) =>
           new Set(s.split(/[^a-z0-9]+/i).filter((t) => t.length >= 2));
         const alvoTokens = tokens(nomeAlvo);
