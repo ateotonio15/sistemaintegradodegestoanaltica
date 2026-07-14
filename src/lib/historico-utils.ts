@@ -32,11 +32,12 @@ export function detectarCompetencia(
       .toUpperCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
-    const re = new RegExp(`(${Object.keys(MESES_MAP).join("|")})\\s*[/_-]?\\s*(\\d{4})`);
+    const re = new RegExp(`(${Object.keys(MESES_MAP).join("|")})\\s*[/_-]?\\s*(\\d{2}|\\d{4})`);
     const r = re.exec(upper);
     if (r) {
       const mes = MESES_MAP[r[1]];
-      const ano = parseInt(r[2], 10);
+      const anoRaw = parseInt(r[2], 10);
+      const ano = r[2].length === 2 ? 2000 + anoRaw : anoRaw;
       return { label: `${MESES_PT[mes]}/${ano}`, mes, ano };
     }
   }
