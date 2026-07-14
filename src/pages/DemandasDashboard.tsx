@@ -478,7 +478,7 @@ export default function DemandasDashboard() {
           </p>
         </div>
 
-        <Tabs defaultValue="dashboard" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
             <TabsTrigger value="dashboard">Dashboard Reclamações</TabsTrigger>
             <TabsTrigger value="apresentacao">Apresentação Executiva</TabsTrigger>
