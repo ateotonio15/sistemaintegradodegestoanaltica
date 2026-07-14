@@ -164,6 +164,8 @@ export default function DemandasDashboard() {
   const [dataFim, setDataFim] = useState<string>(toISO(lastDayOfMonth()));
   const [empresa, setEmpresa] = useState<string>("__all__");
   const [executiva, setExecutiva] = useState<string>("__all__");
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const apresentacaoRef = useRef<ApresentacaoHandle | null>(null);
 
   const empresas = useMemo(
     () =>
