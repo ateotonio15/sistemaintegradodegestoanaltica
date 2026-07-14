@@ -228,7 +228,9 @@ const ApresentacaoIndicadores = forwardRef<ApresentacaoHandle>(function Apresent
       </main>
     </div>
   );
-}
+});
+
+export default ApresentacaoIndicadores;
 
 // ------------------------------------------------------------
 // Componentes reutilizáveis
