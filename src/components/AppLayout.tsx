@@ -848,6 +848,19 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                       </div>
                     </div>
                     <DropdownMenuSeparator />
+                    {isAdminInterno && (
+                      <Button
+                        asChild
+                        variant="secondary"
+                        size="sm"
+                        className="w-full gap-2 rounded-lg"
+                      >
+                        <Link to="/admin/cadastrar-empresa">
+                          <Plus className="h-4 w-4" />
+                          Cadastrar Empresa (portal)
+                        </Link>
+                      </Button>
+                    )}
                     <Button
                       variant="destructive"
                       size="sm"
