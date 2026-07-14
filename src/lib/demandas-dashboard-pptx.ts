@@ -548,7 +548,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
     slideHeader(
       sr,
       "Ranking Empresas: Vidas vs. Reclamações",
-      "Top 15 empresas — % que as reclamações representam sobre o contrato (reclamações ÷ vidas)",
+      "Top 15 empresas por volume de reclamações — % representa reclamações ÷ vidas do contrato",
       periodoLabel,
     );
     card(sr, SAFE.x, SAFE.y, SAFE.w, SAFE.h);
