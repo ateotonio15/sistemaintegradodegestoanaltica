@@ -46,14 +46,17 @@ export function ChatAtendimento() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
+      const atendimentoId = (data as any).atendimento_id as string | undefined;
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
           text: (data as any).resposta as string,
           setor: (data as any).setor_destino as string,
+          atendimentoId,
         },
       ]);
+      if (atendimentoId) subscribeRespostas(atendimentoId);
     } catch (err: any) {
       const msg = err?.message ?? "Erro ao enviar solicitação";
       toast.error(msg);
