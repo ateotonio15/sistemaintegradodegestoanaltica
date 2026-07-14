@@ -71,7 +71,15 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 // ------------------------------------------------------------
 export type ApresentacaoHandle = { exportPptx: () => Promise<void> };
 
-const ApresentacaoIndicadores = forwardRef<ApresentacaoHandle>(function ApresentacaoIndicadores(_props, ref) {
+export interface ApresentacaoProps {
+  dataIni?: string;
+  dataFim?: string;
+  empresa?: string;
+  executiva?: string;
+}
+
+const ApresentacaoIndicadores = forwardRef<ApresentacaoHandle, ApresentacaoProps>(function ApresentacaoIndicadores(props, ref) {
+  const { dataIni, dataFim, empresa, executiva } = props;
   const [active, setActive] = useState<SectionId>("overview");
   const contentRef = useRef<HTMLElement>(null);
 
@@ -204,7 +212,14 @@ const ApresentacaoIndicadores = forwardRef<ApresentacaoHandle>(function Apresent
             {active === "desempenho" && <DesempenhoSection />}
             {active === "setores" && <SetoresSection />}
             {active === "risco" && <RiscoSection />}
-            {active === "ranking" && <RankingSection />}
+            {active === "ranking" && (
+              <RankingSection
+                dataIni={dataIni}
+                dataFim={dataFim}
+                empresa={empresa}
+                executiva={executiva}
+              />
+            )}
           </motion.section>
         </AnimatePresence>
 
@@ -942,7 +957,14 @@ function statusFrom(indice: number) {
 
 type SortKey = "vidas" | "reclamacoes" | "indice";
 
-function RankingSection() {
+interface RankingSectionProps {
+  dataIni?: string;
+  dataFim?: string;
+  empresa?: string;
+  executiva?: string;
+}
+
+function RankingSection({ dataIni, dataFim, empresa, executiva }: RankingSectionProps) {
   const [sortKey, setSortKey] = useState<SortKey>("indice");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
@@ -952,9 +974,14 @@ function RankingSection() {
     let cancel = false;
     (async () => {
       setLoading(true);
+      let demQ: any = supabase.from("demandas").select("empresa,data_reclamacao,executiva");
+      if (dataIni) demQ = demQ.gte("data_reclamacao", dataIni);
+      if (dataFim) demQ = demQ.lte("data_reclamacao", dataFim);
+      if (empresa && empresa !== "Todas" && empresa !== "__all__") demQ = demQ.eq("empresa", empresa);
+      if (executiva && executiva !== "Todas" && executiva !== "__all__") demQ = demQ.eq("executiva", executiva);
       const [empRes, demRes] = await Promise.all([
         supabase.from("empresas").select("nome, vidas").gt("vidas", 0),
-        supabase.from("demandas").select("empresa"),
+        demQ,
       ]);
       if (cancel) return;
       const contagem = new Map<string, number>();
@@ -976,7 +1003,7 @@ function RankingSection() {
     return () => {
       cancel = true;
     };
-  }, []);
+  }, [dataIni, dataFim, empresa, executiva]);
 
   const rows = useMemo(() => {
     const enriched = empresas.map((e) => ({

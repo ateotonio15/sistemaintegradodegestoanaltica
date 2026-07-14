@@ -798,7 +798,13 @@ export default function DemandasDashboard() {
           </TabsContent>
 
           <TabsContent value="apresentacao" className="mt-6 animate-in fade-in duration-300 -mx-4 lg:-mx-8">
-            <ApresentacaoIndicadores ref={apresentacaoRef} />
+            <ApresentacaoIndicadores
+              ref={apresentacaoRef}
+              dataIni={dataIni}
+              dataFim={dataFim}
+              empresa={empresa === "__all__" ? undefined : empresa}
+              executiva={executiva === "__all__" ? undefined : executiva}
+            />
           </TabsContent>
         </Tabs>
       </div>
