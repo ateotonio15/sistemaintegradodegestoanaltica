@@ -204,7 +204,7 @@ export default function MeuPainel() {
                     : ((empresa as any)?.valor_apartamento_centavos ?? 0) / 100
                 )}
               />
-              <Info label="Status" value={contrato?.status ?? "-"} />
+              <Info label="Status" value={(empresa as any)?.status_empresa ?? "-"} />
               <Info label="Início da vigência" value={(() => {
                 const emp: any = empresa;
                 if (!emp) return "-";
