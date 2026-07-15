@@ -160,7 +160,7 @@ export default function MeuPainel() {
                     <Wallet className="h-4 w-4 text-primary" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{fmtMoney(Number(contrato?.valor_mensal ?? 0))}</div>
+                    <div className="text-3xl font-bold">{fmtMoney(((empresa as any)?.valor_enfermaria_centavos ?? 0) / 100)}</div>
                     <p className="text-xs text-muted-foreground">Contrato vigente</p>
                   </CardContent>
                 </Card>
