@@ -399,8 +399,8 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
       ];
     const labels = series.map((s) => s.label);
 
-    // Formato do label: oculta valores < 8% (evita sobreposição em fatias pequenas)
-    const hideSmall = '[<8]"";0"%"';
+    // Oculta rótulos < 5% (evita sobreposição em fatias pequenas)
+    const hideSmall = '[<5]"";0"%"';
 
     sp.addChart(pptx.ChartType.bar,
       [
@@ -413,7 +413,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
         barDir: "bar", barGrouping: "stacked",
         chartColors: ["16A34A", "DC2626", "D97706"],
         showValue: true,
-        dataLabelFontSize: 11, dataLabelColor: "FFFFFF", dataLabelFontBold: true,
+        dataLabelFontSize: 10, dataLabelColor: "FFFFFF", dataLabelFontBold: true,
         dataLabelPosition: "ctr", dataLabelFormatCode: hideSmall,
         catAxisLabelFontSize: 12, catAxisLabelColor: C.INK, catAxisLabelFontBold: true,
         valAxisLabelFontSize: 9, valAxisLabelColor: C.INK_SOFT,
