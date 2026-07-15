@@ -81,7 +81,7 @@ export default function MeuPainel() {
   });
 
   const { data: movsContrato } = useQuery({
-    queryKey: ["meu-painel", "movs-contrato", empresaVinculadaId],
+    queryKey: ["meu-painel", "movs-contrato", empresaVinculadaId, "v2-2026-05"],
     enabled: !!empresaVinculadaId,
     queryFn: async () => {
       const { data, error } = await supabase
