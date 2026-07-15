@@ -110,11 +110,11 @@ export default function Usuarios() {
 
       const rolesMap = new Map(roles.map((r) => [r.user_id, r.role as AppRole]));
       const linksMap = new Map<string, { id: string; nome: string }[]>();
-      // Usuários do portal da empresa (papel admin_empresa/colaborador) NÃO devem
+      // Usuários do portal da empresa (papel admin_empresa) NÃO devem
       // aparecer na tela de usuários internos do sistema.
       const portalUserIds = new Set<string>();
       links.forEach((l: any) => {
-        if (l.papel === "admin_empresa" || l.papel === "colaborador") {
+        if (l.papel === "admin_empresa") {
           portalUserIds.add(l.user_id);
           return;
         }

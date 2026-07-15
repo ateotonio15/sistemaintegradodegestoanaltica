@@ -84,7 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const papel = ((empresaRes.data as any)?.papel ?? null) as string | null;
     setRole(primaryRole);
     setIsAdminInterno(roles.includes("admin_interno"));
-    setIsAdminEmpresa(papel === "admin_empresa" || papel === "colaborador");
+    // Usuário do portal da empresa: apenas quando o papel for admin_empresa.
+    // "colaborador" também é usado para vincular usuários internos (Cadastro/Executivo)
+    // a empresas, então não deve forçar o redirecionamento para o portal.
+    setIsAdminEmpresa(papel === "admin_empresa");
     setEmpresaVinculadaId(((empresaRes.data as any)?.empresa_id as string) ?? null);
     setMustChangePassword(Boolean((profileRes.data as any)?.must_change_password));
     setLoading(false);
