@@ -118,9 +118,6 @@ export default function Usuarios() {
           portalUserIds.add(l.user_id);
           return;
         }
-          portalUserIds.add(l.user_id);
-          return;
-        }
         const list = linksMap.get(l.user_id) || [];
         if (l.empresas) list.push({ id: l.empresas.id, nome: l.empresas.nome });
         linksMap.set(l.user_id, list);
