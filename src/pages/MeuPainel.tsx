@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Building2, FileText, Users, Wallet, CalendarClock, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { LogOut, Building2, FileText, Users, Wallet, CalendarClock, AlertTriangle, CheckCircle2, Clock, Moon, Sun } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChatAtendimento } from "@/components/portal/ChatAtendimento";
@@ -22,6 +23,7 @@ function fmtDate(v: string | null | undefined) {
 
 export default function MeuPainel() {
   const { user, empresaVinculadaId, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const { data: empresa } = useQuery({
     queryKey: ["meu-painel", "empresa", empresaVinculadaId],
@@ -128,9 +130,14 @@ export default function MeuPainel() {
               <div className="text-xs text-muted-foreground">{user?.email}</div>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="mr-2 h-4 w-4" /> Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="mr-2 h-4 w-4" /> Sair
+            </Button>
+          </div>
         </div>
       </header>
 
