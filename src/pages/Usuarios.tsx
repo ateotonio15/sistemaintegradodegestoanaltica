@@ -105,24 +105,33 @@ export default function Usuarios() {
       const { data: roles, error: rErr } = await supabase.from("user_roles").select("user_id, role");
       if (rErr) throw rErr;
 
-      const { data: links, error: lErr } = await supabase.from("empresa_usuarios").select("user_id, empresa_id, empresas(id, nome)");
+      const { data: links, error: lErr } = await supabase.from("empresa_usuarios").select("user_id, empresa_id, papel, empresas(id, nome)");
       if (lErr) throw lErr;
 
       const rolesMap = new Map(roles.map((r) => [r.user_id, r.role as AppRole]));
       const linksMap = new Map<string, { id: string; nome: string }[]>();
+      // Usuários do portal da empresa (papel admin_empresa/colaborador) NÃO devem
+      // aparecer na tela de usuários internos do sistema.
+      const portalUserIds = new Set<string>();
       links.forEach((l: any) => {
+        if (l.papel === "admin_empresa" || l.papel === "colaborador") {
+          portalUserIds.add(l.user_id);
+          return;
+        }
         const list = linksMap.get(l.user_id) || [];
         if (l.empresas) list.push({ id: l.empresas.id, nome: l.empresas.nome });
         linksMap.set(l.user_id, list);
       });
 
-      return (profiles || []).map((p) => ({
-        user_id: p.user_id,
-        display_name: p.display_name,
-        username: usernameMap.get(p.user_id) ?? null,
-        role: rolesMap.get(p.user_id) ?? "comum",
-        empresas: linksMap.get(p.user_id) || [],
-      })) as UserProfile[];
+      return (profiles || [])
+        .filter((p) => !portalUserIds.has(p.user_id))
+        .map((p) => ({
+          user_id: p.user_id,
+          display_name: p.display_name,
+          username: usernameMap.get(p.user_id) ?? null,
+          role: rolesMap.get(p.user_id) ?? "comum",
+          empresas: linksMap.get(p.user_id) || [],
+        })) as UserProfile[];
     },
   });
 
