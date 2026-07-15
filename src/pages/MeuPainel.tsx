@@ -146,7 +146,7 @@ export default function MeuPainel() {
                   <Users className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{vidasAtivas ?? "-"}</div>
+                  <div className="text-3xl font-bold">{(empresa as any)?.vidas ?? "-"}</div>
                   <p className="text-xs text-muted-foreground">Beneficiários com status ativo</p>
                 </CardContent>
               </Card>
