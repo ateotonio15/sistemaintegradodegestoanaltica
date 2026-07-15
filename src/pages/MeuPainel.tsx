@@ -96,6 +96,25 @@ export default function MeuPainel() {
     },
   });
 
+  const { data: notasFinanceiro } = useQuery({
+    queryKey: ["meu-painel", "notas-financeiro", empresaVinculadaId],
+    enabled: !!empresaVinculadaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("mes_referencia, periodo, data_envio_nota")
+        .eq("empresa_id", empresaVinculadaId!)
+        .not("data_envio_nota", "is", null);
+      if (error) throw error;
+      const map = new Map<string, string>();
+      (data ?? []).forEach((f: any) => {
+        map.set(`${f.mes_referencia}__${f.periodo}`, f.data_envio_nota);
+      });
+      return map;
+    },
+  });
+
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -288,12 +307,14 @@ export default function MeuPainel() {
                           <th className="py-2 pr-4">Período</th>
                           <th className="py-2 pr-4">Enviado p/ empresa</th>
                           <th className="py-2 pr-4">Enviado ao financeiro</th>
+                          <th className="py-2 pr-4">Nota emitida</th>
                           <th className="py-2 pr-4">Status</th>
                         </tr>
                       </thead>
                       <tbody>
                         {movsContrato.map((m: any) => {
                           const status = calcularStatus(m);
+                          const dataNota = notasFinanceiro?.get(`${m.mes_referencia}__${m.periodo}`) ?? null;
                           return (
                             <tr key={m.id} className="border-b last:border-0">
                               <td className="py-2 pr-4 font-medium">{formatMesReferencia(m.mes_referencia)}</td>
@@ -323,12 +344,25 @@ export default function MeuPainel() {
                                 )}
                               </td>
                               <td className="py-2 pr-4">
+                                {dataNota ? (
+                                  <span className="inline-flex items-center gap-1 text-foreground">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                                    {fmtDate(dataNota)}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                    <Clock className="h-3.5 w-3.5" /> Pendente
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 pr-4">
                                 <Badge className={cn("text-xs", statusColor(status))}>{status}</Badge>
                               </td>
                             </tr>
                           );
                         })}
                       </tbody>
+
                     </table>
                   </div>
                 )}
