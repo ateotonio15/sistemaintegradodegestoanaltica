@@ -96,6 +96,25 @@ export default function MeuPainel() {
     },
   });
 
+  const { data: notasFinanceiro } = useQuery({
+    queryKey: ["meu-painel", "notas-financeiro", empresaVinculadaId],
+    enabled: !!empresaVinculadaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("mes_referencia, periodo, data_envio_nota")
+        .eq("empresa_id", empresaVinculadaId!)
+        .not("data_envio_nota", "is", null);
+      if (error) throw error;
+      const map = new Map<string, string>();
+      (data ?? []).forEach((f: any) => {
+        map.set(`${f.mes_referencia}__${f.periodo}`, f.data_envio_nota);
+      });
+      return map;
+    },
+  });
+
+
 
   return (
     <div className="min-h-screen bg-background">
