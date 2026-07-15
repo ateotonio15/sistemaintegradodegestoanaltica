@@ -281,9 +281,9 @@ export default function DemandasDashboard() {
         const x = parseLocalDate(d.data_reclamacao);
         return x && x >= s && x <= e;
       });
-      const sla = arr.length ? Math.round((arr.filter((d) => !isForaPrazo(d)).length / arr.length) * 100) : 0;
+      const sla = arr.length ? Math.round((arr.filter((d) => !isForaPrazo(d) && isResolved(d)).length / arr.length) * 100) : 0;
       const fora = arr.length ? Math.round((arr.filter(isForaPrazo).length / arr.length) * 100) : 0;
-      const aberto = arr.filter((d) => !isResolved(d)).length;
+      const aberto = arr.length ? Math.max(0, 100 - sla - fora) : 0;
       out.push({ label, sla, fora, aberto });
     }
     return out;
