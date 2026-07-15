@@ -29,7 +29,7 @@ export default function MeuPainel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, cnpj, status_empresa, portal_secoes, tipo_movimentacao, periodo_movimentacao, data_implantacao, data_corte, dia_movimentacao, prazo, responsavel_contrato, executiva_user_id")
+        .select("id, nome, cnpj, status_empresa, portal_secoes, tipo_movimentacao, periodo_movimentacao, data_implantacao, data_corte, dia_movimentacao, prazo, responsavel_contrato, executiva_user_id, valor_enfermaria_centavos")
         .eq("id", empresaVinculadaId!)
         .maybeSingle();
       if (error) throw error;
@@ -160,7 +160,7 @@ export default function MeuPainel() {
                     <Wallet className="h-4 w-4 text-primary" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{fmtMoney(Number(contrato?.valor_mensal ?? 0))}</div>
+                    <div className="text-3xl font-bold">{fmtMoney(((empresa as any)?.valor_enfermaria_centavos ?? 0) / 100)}</div>
                     <p className="text-xs text-muted-foreground">Contrato vigente</p>
                   </CardContent>
                 </Card>
@@ -195,7 +195,7 @@ export default function MeuPainel() {
             <CardContent className="grid gap-3 sm:grid-cols-2">
               <Info label="Empresa" value={empresa?.nome ?? "-"} />
               <Info label="CNPJ" value={empresa?.cnpj ?? "-"} />
-              <Info label="Valor mensal" value={fmtMoney(Number(contrato?.valor_mensal ?? 0))} />
+              <Info label="Valor mensal" value={fmtMoney(((empresa as any)?.valor_enfermaria_centavos ?? 0) / 100)} />
               <Info label="Status" value={contrato?.status ?? "-"} />
               <Info label="Início da vigência" value={(() => {
                 const emp: any = empresa;
