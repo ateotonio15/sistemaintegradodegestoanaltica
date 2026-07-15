@@ -4,10 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Building2, FileText, Users, Wallet, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { LogOut, Building2, FileText, Users, Wallet, CalendarClock, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChatAtendimento } from "@/components/portal/ChatAtendimento";
+import { contratoDentroDoPeriodo, calcularStatus, statusColor, formatMesReferencia } from "@/lib/movimentacao-utils";
+import { cn } from "@/lib/utils";
 
 function fmtMoney(v: number | null | undefined) {
   if (v == null) return "-";
