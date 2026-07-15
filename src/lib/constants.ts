@@ -10,6 +10,7 @@ export const SETORES = [
   "Direção Clínica",
   "Financeiro",
   "Laboratório",
+  "Oncologia",
   "Serviço Social",
   "T.I",
 ];
