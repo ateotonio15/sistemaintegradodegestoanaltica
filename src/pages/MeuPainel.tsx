@@ -199,7 +199,7 @@ export default function MeuPainel() {
               <Info
                 label="Valor mensal de Apartamento"
                 value={fmtMoney(
-                  contrato?.valor_mensal != null
+                  Number(contrato?.valor_mensal ?? 0) > 0
                     ? Number(contrato.valor_mensal)
                     : ((empresa as any)?.valor_apartamento_centavos ?? 0) / 100
                 )}
