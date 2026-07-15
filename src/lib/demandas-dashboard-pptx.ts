@@ -248,97 +248,220 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
       fontSize: 22, bold: true, color: C.INK, fontFace: "Calibri",
     });
 
-    const contentY = SAFE.y + 0.9;
-    const contentH = SAFE.h - 0.9;
-    const leftW = 5.2;
-    const rightX = SAFE.x + leftW + 0.3;
-    const rightW = SAFE.w - leftW - 0.3;
-
     const totalAtual = m.total;
-    const totalAnt = p?.total ?? null;
-    const deltaPct = totalAnt && totalAnt > 0 ? ((totalAtual - totalAnt) / totalAnt) * 100 : null;
+    const totalAnt = p?.total ?? 0;
+    const totalAcumulado = totalAtual + totalAnt;
+    const mediaMensal = totalAcumulado / 2;
+    const deltaPct = totalAnt > 0 ? ((totalAtual - totalAnt) / totalAnt) * 100 : null;
     const reducao = deltaPct !== null && deltaPct < 0;
+    const diffAbs = totalAtual - totalAnt;
 
-    // Card mês anterior
-    const cardH = 1.6;
-    card(sv, SAFE.x, contentY, leftW, cardH);
-    sv.addText("MÊS ANTERIOR", {
-      x: SAFE.x + 0.3, y: contentY + 0.2, w: leftW - 0.3, h: 0.3,
-      fontSize: 10, bold: true, color: C.MUTED, charSpacing: 3, fontFace: "Calibri",
-    });
-    sv.addText(mesAntLabel, {
-      x: SAFE.x + 0.3, y: contentY + 0.5, w: leftW - 3, h: 0.4,
-      fontSize: 14, color: C.INK_SOFT, fontFace: "Calibri",
-    });
-    sv.addText(totalAnt !== null ? `${totalAnt}` : "—", {
-      x: SAFE.x + leftW - 2.5, y: contentY + 0.2, w: 2.2, h: cardH - 0.4,
-      fontSize: 54, bold: true, color: C.INK, fontFace: "Calibri", align: "right", valign: "middle",
-    });
+    // ===== Linha de 3 cartões métricos =====
+    const cardsY = SAFE.y + 0.9;
+    const cardsH = 1.5;
+    const cardGap = 0.2;
+    const cardW = (SAFE.w - cardGap * 2) / 3;
 
-    // Card mês atual (destacado)
-    const card2Y = contentY + cardH + 0.2;
-    sv.addShape("roundRect", {
-      x: SAFE.x, y: card2Y, w: leftW, h: cardH,
-      fill: { color: C.CARD },
-      line: { color: C.PRIMARY, width: 2 },
-      rectRadius: 0.1,
-      shadow: { type: "outer", color: "9AA5B1", opacity: 0.18, blur: 6, offset: 1.5, angle: 90 },
-    });
-    sv.addText("MÊS ATUAL", {
-      x: SAFE.x + 0.3, y: card2Y + 0.2, w: leftW - 0.3, h: 0.3,
-      fontSize: 10, bold: true, color: C.PRIMARY, charSpacing: 3, fontFace: "Calibri",
-    });
-    sv.addText(mesAtualLabel, {
-      x: SAFE.x + 0.3, y: card2Y + 0.5, w: leftW - 3, h: 0.4,
-      fontSize: 14, color: C.INK_SOFT, fontFace: "Calibri",
-    });
-    sv.addText(`${totalAtual}`, {
-      x: SAFE.x + leftW - 2.5, y: card2Y + 0.2, w: 2.2, h: cardH - 0.4,
-      fontSize: 54, bold: true, color: C.PRIMARY, fontFace: "Calibri", align: "right", valign: "middle",
-    });
-
-    // Faixa de delta
-    const badgeY = card2Y + cardH + 0.2;
-    const badgeH = 0.7;
-    if (deltaPct !== null) {
-      const cor = reducao ? C.POSITIVE : deltaPct > 0 ? C.NEGATIVE : C.MUTED;
-      const arrow = reducao ? "▼" : deltaPct > 0 ? "▲" : "■";
-      const label = reducao ? "Redução no Volume de Reclamações" : deltaPct > 0 ? "Aumento no Volume de Reclamações" : "Volume estável";
+    const drawMetricCard = (
+      cx: number, label: string, valueTxt: string, sub: string, cor: string, destaque: boolean, icon: string,
+    ) => {
       sv.addShape("roundRect", {
-        x: SAFE.x, y: badgeY, w: leftW, h: badgeH,
-        fill: { color: cor, transparency: 85 },
-        line: { color: cor, width: 1 },
-        rectRadius: 0.08,
+        x: cx, y: cardsY, w: cardW, h: cardsH,
+        fill: { color: C.CARD },
+        line: { color: destaque ? cor : C.BORDER, width: destaque ? 2 : 0.5 },
+        rectRadius: 0.1,
+        shadow: { type: "outer", color: "9AA5B1", opacity: 0.18, blur: 6, offset: 1.5, angle: 90 },
       });
-      sv.addText(`${arrow} ${deltaPct > 0 ? "+" : ""}${deltaPct.toFixed(1)}%  ${label}`, {
-        x: SAFE.x + 0.25, y: badgeY, w: leftW - 0.5, h: badgeH,
-        fontSize: 13, bold: true, color: cor, fontFace: "Calibri", valign: "middle",
+      sv.addText(`${icon}  ${label}`, {
+        x: cx + 0.25, y: cardsY + 0.15, w: cardW - 0.5, h: 0.3,
+        fontSize: 10, bold: true, color: destaque ? cor : C.MUTED, charSpacing: 2, fontFace: "Calibri",
       });
-    }
+      sv.addText(valueTxt, {
+        x: cx + 0.25, y: cardsY + 0.42, w: cardW - 0.5, h: 0.72,
+        fontSize: 40, bold: true, color: cor, fontFace: "Calibri", align: "center", valign: "middle",
+      });
+      sv.addText(sub, {
+        x: cx + 0.25, y: cardsY + cardsH - 0.4, w: cardW - 0.5, h: 0.32,
+        fontSize: 11, color: C.INK_SOFT, fontFace: "Calibri", align: "center",
+      });
+    };
 
-    // Gráfico de barras à direita
-    card(sv, rightX, contentY, rightW, contentH - 0.05);
+    drawMetricCard(SAFE.x, "MÊS ANTERIOR", `${totalAnt}`, mesAntLabel, C.INK, false, "▣");
+    drawMetricCard(SAFE.x + cardW + cardGap, "MÊS ATUAL", `${totalAtual}`, mesAtualLabel, C.PRIMARY, true, "◆");
+    drawMetricCard(SAFE.x + (cardW + cardGap) * 2, "TOTAL ACUMULADO", `${totalAcumulado.toLocaleString("pt-BR")}`, "PERÍODO CONSOLIDADO", "1B4332", false, "📊");
+
+    // ===== Gráfico de barras — 3 barras coloridas =====
+    const chartY = cardsY + cardsH + 0.25;
+    const chartH = SAFE.h - (chartY - SAFE.y) - 0.9;
+    card(sv, SAFE.x, chartY, SAFE.w, chartH);
+
+    sv.addText(`Média mensal: ${Math.round(mediaMensal)} reclamações/mês`, {
+      x: SAFE.x + 0.3, y: chartY + 0.1, w: SAFE.w - 0.6, h: 0.3,
+      fontSize: 11, italic: true, color: C.MUTED, fontFace: "Calibri", align: "right",
+    });
+
     sv.addChart(pptx.ChartType.bar,
       [{
         name: "Volume",
-        labels: [mesAntLabel, mesAtualLabel],
-        values: [totalAnt ?? 0, totalAtual],
+        labels: [mesAntLabel, mesAtualLabel, "Total Acumulado"],
+        values: [totalAnt, totalAtual, totalAcumulado],
       }],
       {
-        x: rightX + 0.25, y: contentY + 0.25, w: rightW - 0.5, h: contentH - 0.55,
+        x: SAFE.x + 0.3, y: chartY + 0.4, w: SAFE.w - 0.6, h: chartH - 0.55,
         barDir: "col",
-        chartColors: [C.PRIMARY],
+        chartColors: ["40916C", "40916C", "1B4332"],
         chartColorsOpacity: 100,
-        showValue: true, dataLabelFontSize: 14, dataLabelColor: C.INK, dataLabelPosition: "outEnd",
+        showValue: true, dataLabelFontSize: 13, dataLabelColor: C.INK, dataLabelPosition: "outEnd",
         dataLabelFontBold: true,
         catAxisLabelFontSize: 12, catAxisLabelColor: C.INK,
         valAxisLabelFontSize: 10, valAxisLabelColor: C.INK_SOFT,
-        showLegend: false, barGapWidthPct: 60,
+        showLegend: false, barGapWidthPct: 55,
+      },
+    );
+
+    // ===== Análise de tendência =====
+    const trendY = SAFE.y + SAFE.h - 0.6;
+    const trendCor = reducao ? C.POSITIVE : deltaPct !== null && deltaPct > 0 ? C.NEGATIVE : C.MUTED;
+    const trendIcon = reducao ? "📉" : deltaPct !== null && deltaPct > 0 ? "📈" : "▬";
+    const trendVerbo = reducao ? "Redução" : deltaPct !== null && deltaPct > 0 ? "Aumento" : "Estabilidade";
+    const deltaTxt = deltaPct !== null ? `${Math.abs(deltaPct).toFixed(1)}%` : "—";
+    const absTxt = deltaPct !== null ? `${Math.abs(diffAbs)} reclamações a ${diffAbs < 0 ? "menos" : "mais"}` : "sem comparativo";
+
+    sv.addText(
+      [
+        { text: `${trendIcon} `, options: { fontSize: 12 } },
+        { text: `${trendVerbo} de ${deltaTxt} de ${mesAntLabel} para ${mesAtualLabel} (${absTxt}).   `, options: { bold: true, color: trendCor } },
+        { text: `📊 Total acumulado: ${totalAcumulado.toLocaleString("pt-BR")} reclamações.   `, options: { color: C.INK_SOFT } },
+        { text: `📈 Média mensal: ${Math.round(mediaMensal)} reclamações/mês.`, options: { color: C.INK_SOFT } },
+      ],
+      {
+        x: SAFE.x, y: trendY, w: SAFE.w, h: 0.5,
+        fontSize: 11, fontFace: "Calibri", valign: "middle",
       },
     );
 
     slideFooter(sv, filtroLabel);
   }
+
+  // ================= SLIDE — PRAZO DE RESPOSTA (Análise Detalhada) =================
+  {
+    const sp = pptx.addSlide();
+    addBackground(sp, "conteudo");
+    slideHeader(sp, "Prazo de Resposta — Análise Detalhada", "Respondidas no prazo × Fora do prazo × Em aberto", periodoLabel);
+
+    // Cálculo de valores absolutos a partir das métricas
+    const totalAtual = m.total;
+    const foraCount = Math.round((totalAtual * m.pctForaDoPrazo) / 100);
+    const emAbertoCount = m.emAberto;
+    const noPrazoCount = Math.max(0, totalAtual - foraCount - emAbertoCount);
+    const pctNo = totalAtual > 0 ? Math.round((noPrazoCount / totalAtual) * 100) : 0;
+    const pctFora = totalAtual > 0 ? Math.round((foraCount / totalAtual) * 100) : 0;
+    const pctAberto = totalAtual > 0 ? Math.round((emAbertoCount / totalAtual) * 100) : 0;
+
+    // ===== 3 Cartões métricos =====
+    const cardsY = SAFE.y + 0.1;
+    const cardsH = 1.5;
+    const cardGap = 0.2;
+    const cardW = (SAFE.w - cardGap * 2) / 3;
+
+    const drawStatusCard = (
+      cx: number, icon: string, label: string, valueTxt: string, sub: string, cor: string,
+    ) => {
+      card(sp, cx, cardsY, cardW, cardsH);
+      sp.addText(`${icon}  ${label}`, {
+        x: cx + 0.25, y: cardsY + 0.15, w: cardW - 0.5, h: 0.3,
+        fontSize: 11, bold: true, color: cor, charSpacing: 2, fontFace: "Calibri",
+      });
+      sp.addText(valueTxt, {
+        x: cx + 0.25, y: cardsY + 0.42, w: cardW - 0.5, h: 0.75,
+        fontSize: 42, bold: true, color: cor, fontFace: "Calibri", align: "center", valign: "middle",
+      });
+      sp.addText(sub, {
+        x: cx + 0.25, y: cardsY + cardsH - 0.4, w: cardW - 0.5, h: 0.32,
+        fontSize: 11, color: C.INK_SOFT, fontFace: "Calibri", align: "center",
+      });
+    };
+
+    drawStatusCard(SAFE.x, "✅", "NO PRAZO", `${noPrazoCount}`, `${pctNo}% do total`, "16A34A");
+    drawStatusCard(SAFE.x + cardW + cardGap, "❌", "FORA DO PRAZO", `${foraCount}`, `${pctFora}% do total`, "DC2626");
+    drawStatusCard(SAFE.x + (cardW + cardGap) * 2, "🔄", "EM ABERTO", `${emAbertoCount}`, `${pctAberto}% • ${mesAtualLabel}`, "D97706");
+
+    // ===== Gráfico de barras empilhadas (100%) =====
+    const chartY = cardsY + cardsH + 0.2;
+    const chartH = 2.4;
+    card(sp, SAFE.x, chartY, SAFE.w, chartH);
+    sp.addText("Evolução mensal — % de cumprimento de prazo", {
+      x: SAFE.x + 0.3, y: chartY + 0.1, w: SAFE.w - 0.6, h: 0.3,
+      fontSize: 12, bold: true, color: C.INK, fontFace: "Calibri",
+    });
+
+    const series = snap.monthlySeries.length > 0
+      ? snap.monthlySeries.slice(-2)
+      : [
+        { label: mesAntLabel, sla: 0, fora: 0, aberto: 0 },
+        { label: mesAtualLabel, sla: pctNo, fora: pctFora, aberto: pctAberto },
+      ];
+    const labels = series.map((s) => s.label);
+
+    sp.addChart(pptx.ChartType.bar,
+      [
+        { name: "No prazo", labels, values: series.map((s) => s.sla) },
+        { name: "Fora do prazo", labels, values: series.map((s) => s.fora) },
+        { name: "Em aberto", labels, values: series.map((s) => s.aberto) },
+      ],
+      {
+        x: SAFE.x + 0.3, y: chartY + 0.45, w: SAFE.w - 0.6, h: chartH - 0.6,
+        barDir: "col", barGrouping: "percentStacked",
+        chartColors: ["16A34A", "DC2626", "D97706"],
+        showValue: true, dataLabelFontSize: 10, dataLabelColor: "FFFFFF",
+        dataLabelPosition: "ctr", dataLabelFormatCode: "0\"%\"",
+        catAxisLabelFontSize: 11, catAxisLabelColor: C.INK,
+        valAxisLabelFontSize: 9, valAxisLabelColor: C.INK_SOFT,
+        showLegend: true, legendPos: "b", legendFontSize: 10, legendColor: C.INK,
+        barGapWidthPct: 60,
+      },
+    );
+
+    // ===== Caixa de análise de evolução =====
+    const anYs = chartY + chartH + 0.2;
+    const anH = SAFE.y + SAFE.h - anYs - 0.1;
+    sp.addShape("roundRect", {
+      x: SAFE.x, y: anYs, w: SAFE.w, h: anH,
+      fill: { color: "F8F9FA" },
+      line: { color: "2D6A4F", width: 0 },
+      rectRadius: 0.05,
+    });
+    // Borda esquerda 4px verde
+    sp.addShape("rect", {
+      x: SAFE.x, y: anYs, w: 0.06, h: anH,
+      fill: { color: "2D6A4F" }, line: { color: "2D6A4F", width: 0 },
+    });
+
+    const prevSla = snap.monthlySeries.length >= 2 ? snap.monthlySeries[snap.monthlySeries.length - 2].sla : null;
+    const currSla = snap.monthlySeries.length >= 1 ? snap.monthlySeries[snap.monthlySeries.length - 1].sla : pctNo;
+    const slaTrend = prevSla !== null ? (currSla >= prevSla ? "melhora" : "piora") : "estabilidade";
+    const topSetor = snap.volumeSetor[0]?.setor ?? "—";
+
+    sp.addText("🤖 ANÁLISE DE EVOLUÇÃO", {
+      x: SAFE.x + 0.25, y: anYs + 0.1, w: SAFE.w - 0.5, h: 0.3,
+      fontSize: 12, bold: true, color: "2D6A4F", fontFace: "Calibri",
+    });
+    sp.addText(
+      [
+        { text: `• Tendência: ${slaTrend} no cumprimento de prazos de ${mesAntLabel} para ${mesAtualLabel}.\n`, options: {} },
+        { text: `• Ponto crítico: ${topSetor} concentra o maior volume do período — monitorar SLA de perto.\n`, options: {} },
+        { text: `• Destaque: ${pctNo}% das reclamações do mês atual foram respondidas dentro do prazo.\n`, options: {} },
+        { text: `• Recomendação: atenção às ${emAbertoCount} demandas em aberto de ${mesAtualLabel} — risco de vencimento de SLA nas próximas 72h.`, options: {} },
+      ],
+      {
+        x: SAFE.x + 0.25, y: anYs + 0.4, w: SAFE.w - 0.5, h: anH - 0.5,
+        fontSize: 11, color: "1F2937", fontFace: "Calibri", valign: "top", paraSpaceAfter: 2,
+      },
+    );
+
+    slideFooter(sp, filtroLabel);
+  }
+
 
   // ================= SLIDE — DISTRIBUIÇÃO DE SETORES & MOTIVOS =================
   {
