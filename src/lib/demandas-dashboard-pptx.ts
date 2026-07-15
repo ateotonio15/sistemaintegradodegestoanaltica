@@ -64,8 +64,8 @@ const C = {
   ACCENT: "14808F",       // teal médio (destaques de gráfico)
 } as const;
 
-const SAFE = { x: 0.55, y: 1.4, w: 12.23, h: 5.8 } as const;
-const HEADER = { x: 0.4, y: 0.35, w: 12.53, h: 0.85 } as const;
+const SAFE = { x: 0.55, y: 1.4, w: 12.23, h: 5.1 } as const;
+const HEADER = { x: 0.4, y: 0.35, w: 9.6, h: 0.85 } as const;
 
 function fmtDateBR(iso: string) {
   const [y, m, d] = iso.split("-");
@@ -91,12 +91,12 @@ function slideHeader(slide: any, titulo: string, sub: string, periodo: string) {
     fontSize: 22, bold: true, color: C.INK, fontFace: "Calibri",
   });
   slide.addText(sub, {
-    x: HEADER.x + 0.25, y: HEADER.y + 0.5, w: 8, h: 0.3,
+    x: HEADER.x + 0.25, y: HEADER.y + 0.5, w: HEADER.w - 2.6, h: 0.3,
     fontSize: 11, color: C.MUTED, fontFace: "Calibri",
   });
   slide.addText(periodo, {
-    x: HEADER.x + 8.3, y: HEADER.y + 0.5, w: HEADER.w - 8.6, h: 0.3,
-    fontSize: 11, color: C.PRIMARY, bold: true, fontFace: "Calibri", align: "right",
+    x: HEADER.x + HEADER.w - 2.4, y: HEADER.y + 0.5, w: 2.15, h: 0.3,
+    fontSize: 10, color: C.PRIMARY, bold: true, fontFace: "Calibri", align: "right",
   });
 }
 
