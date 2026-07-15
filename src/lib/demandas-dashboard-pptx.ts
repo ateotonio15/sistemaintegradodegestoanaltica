@@ -410,7 +410,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
       ],
       {
         x: SAFE.x + 0.3, y: chartY + 0.45, w: SAFE.w - 0.6, h: chartH - 0.6,
-        barDir: "bar", barGrouping: "percentStacked",
+        barDir: "bar", barGrouping: "stacked",
         chartColors: ["16A34A", "DC2626", "D97706"],
         showValue: true,
         dataLabelFontSize: 11, dataLabelColor: "FFFFFF", dataLabelFontBold: true,
@@ -418,6 +418,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
         catAxisLabelFontSize: 12, catAxisLabelColor: C.INK, catAxisLabelFontBold: true,
         valAxisLabelFontSize: 9, valAxisLabelColor: C.INK_SOFT,
         valAxisMinVal: 0, valAxisMaxVal: 100,
+        valAxisLabelFormatCode: '0"%"',
         showLegend: true, legendPos: "b", legendFontSize: 10, legendColor: C.INK,
         barGapWidthPct: 40,
       },
