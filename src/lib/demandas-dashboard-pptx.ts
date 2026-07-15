@@ -64,8 +64,8 @@ const C = {
   ACCENT: "14808F",       // teal médio (destaques de gráfico)
 } as const;
 
-const SAFE = { x: 0.55, y: 1.4, w: 12.23, h: 5.8 } as const;
-const HEADER = { x: 0.4, y: 0.35, w: 12.53, h: 0.85 } as const;
+const SAFE = { x: 0.55, y: 1.4, w: 12.23, h: 5.1 } as const;
+const HEADER = { x: 0.4, y: 0.35, w: 9.6, h: 0.85 } as const;
 
 function fmtDateBR(iso: string) {
   const [y, m, d] = iso.split("-");
