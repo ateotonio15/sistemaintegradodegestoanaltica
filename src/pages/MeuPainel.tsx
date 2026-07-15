@@ -29,7 +29,7 @@ export default function MeuPainel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, cnpj, status_empresa, portal_secoes, tipo_movimentacao, periodo_movimentacao, data_implantacao, data_corte, dia_movimentacao, prazo, responsavel_contrato, executiva_user_id, valor_enfermaria_centavos")
+        .select("id, nome, cnpj, status_empresa, portal_secoes, tipo_movimentacao, periodo_movimentacao, data_implantacao, data_corte, dia_movimentacao, prazo, responsavel_contrato, executiva_user_id, valor_enfermaria_centavos, valor_apartamento_centavos")
         .eq("id", empresaVinculadaId!)
         .maybeSingle();
       if (error) throw error;
@@ -196,6 +196,7 @@ export default function MeuPainel() {
               <Info label="Empresa" value={empresa?.nome ?? "-"} />
               <Info label="CNPJ" value={empresa?.cnpj ?? "-"} />
               <Info label="Valor mensal de Enfermaria" value={fmtMoney(((empresa as any)?.valor_enfermaria_centavos ?? 0) / 100)} />
+              <Info label="Valor mensal de Apartamento" value={fmtMoney(((empresa as any)?.valor_apartamento_centavos ?? 0) / 100)} />
               <Info label="Status" value={contrato?.status ?? "-"} />
               <Info label="Início da vigência" value={(() => {
                 const emp: any = empresa;
