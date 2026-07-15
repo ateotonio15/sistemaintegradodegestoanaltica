@@ -88,9 +88,10 @@ export default function MeuPainel() {
         .from("movimentacoes")
         .select("id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, created_at")
         .eq("empresa_id", empresaVinculadaId!)
+        .gte("mes_referencia", "2026-05")
         .order("mes_referencia", { ascending: false })
         .order("periodo", { ascending: false })
-        .limit(12);
+        .limit(24);
       if (error) throw error;
       return data ?? [];
     },
