@@ -119,14 +119,29 @@ export default function MeuPainel() {
 
 
 
+  const empresaNome = (empresa as any)?.nome ?? "Meu Painel";
+  const initials = (name?: string | null) =>
+    (name ?? "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0]?.toUpperCase())
+      .join("") || "—";
+
+  const statusEmpresa = String((empresa as any)?.status_empresa ?? "").toLowerCase();
+  const isAtivo = statusEmpresa === "ativa" || statusEmpresa === "ativo";
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-card/40 backdrop-blur-sm sticky top-0 z-20">
         <div className="container mx-auto flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
-            <Building2 className="h-6 w-6 text-primary" />
+            <div className="relative">
+              <Building2 className="h-6 w-6 text-primary" />
+              <div className="absolute inset-0 -z-10 blur-xl bg-primary/30 rounded-full" />
+            </div>
             <div>
-              <div className="font-semibold">{empresa?.nome ?? "Meu Painel"}</div>
+              <div className="font-semibold leading-tight">{empresaNome}</div>
               <div className="text-xs text-muted-foreground">{user?.email}</div>
             </div>
           </div>
@@ -141,253 +156,296 @@ export default function MeuPainel() {
         </div>
       </header>
 
-      <main className="container mx-auto grid gap-6 py-8">
-        <h1 className="text-2xl font-bold">Meu Painel</h1>
+      <main className="container mx-auto grid gap-8 py-10 animate-fade-in">
+        {/* Hero header */}
+        <section className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-1.5">
+              Portal do Cliente
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight">{empresaNome}</h1>
+          </div>
+          {(empresa as any)?.cnpj && (
+            <div className="text-sm text-muted-foreground">
+              CNPJ: <span className="text-foreground font-mono">{(empresa as any).cnpj}</span>
+            </div>
+          )}
+        </section>
 
+        {/* KPIs */}
         {(secoes.vidas || secoes.contrato) && (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-3">
             {secoes.vidas && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Vidas ativas</CardTitle>
-                  <Users className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{(empresa as any)?.vidas ?? "-"}</div>
-                  <p className="text-xs text-muted-foreground">Beneficiários com status ativo</p>
-                </CardContent>
-              </Card>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary/40">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full -mr-16 -mt-16 pointer-events-none" />
+                <p className="text-sm font-medium text-muted-foreground mb-2">Vidas ativas</p>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-4xl font-bold tracking-tight">
+                    {(empresa as any)?.vidas ?? "—"}
+                  </h3>
+                  <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    beneficiários
+                  </span>
+                </div>
+              </div>
             )}
 
             {secoes.contrato && (
               <>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Valor mensal de Enfermaria</CardTitle>
-                    <Wallet className="h-4 w-4 text-primary" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">{fmtMoney(((empresa as any)?.valor_enfermaria_centavos ?? 0) / 100)}</div>
-                    <p className="text-xs text-muted-foreground">Contrato vigente</p>
-                  </CardContent>
-                </Card>
+                <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary/40">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16 pointer-events-none" />
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Valor mensal de Enfermaria</p>
+                  <div className="flex items-baseline gap-2">
+                    <h3 className="text-4xl font-bold tracking-tight">
+                      {fmtMoney(((empresa as any)?.valor_enfermaria_centavos ?? 0) / 100)}
+                    </h3>
+                    <span className="text-muted-foreground text-sm font-medium">/mês</span>
+                  </div>
+                </div>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Status do contrato</CardTitle>
-                    <FileText className="h-4 w-4 text-primary" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold capitalize">
-                      <Badge variant={contrato?.status === "ativo" ? "default" : "secondary"} className="text-base">
-                        {contrato?.status ?? "-"}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Vigência: {fmtDate(contrato?.data_inicio)} → {fmtDate(contrato?.data_fim) === "-" ? "sem prazo" : fmtDate(contrato?.data_fim)}
-                    </p>
-                  </CardContent>
-                </Card>
+                <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary/40">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Status do contrato</p>
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-3 h-3 rounded-full",
+                      isAtivo
+                        ? "bg-primary shadow-[0_0_12px_hsl(var(--primary))] animate-pulse"
+                        : "bg-muted-foreground",
+                    )} />
+                    <h3 className="text-2xl font-semibold tracking-tight uppercase">
+                      {(empresa as any)?.status_empresa ?? "—"}
+                    </h3>
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Vigência: {fmtDate(contrato?.data_inicio)} → {fmtDate(contrato?.data_fim) === "-" ? "sem prazo" : fmtDate(contrato?.data_fim)}
+                  </p>
+                </div>
               </>
             )}
           </div>
         )}
 
-        {secoes.contrato && (
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              <CardTitle>Resumo do contrato</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <Info label="Empresa" value={empresa?.nome ?? "-"} />
-              <Info label="CNPJ" value={empresa?.cnpj ?? "-"} />
-              <Info label="Valor mensal de Enfermaria" value={fmtMoney(((empresa as any)?.valor_enfermaria_centavos ?? 0) / 100)} />
-              <Info
-                label="Valor mensal de Apartamento"
-                value={fmtMoney(
-                  Number(contrato?.valor_mensal ?? 0) > 0
-                    ? Number(contrato.valor_mensal)
-                    : ((empresa as any)?.valor_apartamento_centavos ?? 0) / 100
-                )}
-              />
-              <Info label="Status" value={(empresa as any)?.status_empresa ?? "-"} />
-              <Info label="Início da vigência" value={(() => {
-                const emp: any = empresa;
-                if (!emp) return "-";
-                let dia: number | null = null;
-                if (emp.periodo_movimentacao) {
-                  dia = Number(emp.periodo_movimentacao.split("-")[0]);
-                } else if (emp.data_corte) {
-                  const d = Number(emp.data_corte);
-                  dia = d <= 5 ? 1 : d <= 10 ? 5 : d <= 15 ? 10 : d <= 20 ? 15 : d <= 25 ? 20 : 25;
-                }
-                if (!dia) return "-";
-                const now = new Date();
-                return `${String(dia).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
-              })()} />
-
-
-
-              <Info label="Fim da vigência" value={(() => {
-                const emp: any = empresa;
-                if (!emp) return "-";
-                let dia: number | null = null;
-                if (emp.periodo_movimentacao) {
-                  dia = Number(emp.periodo_movimentacao.split("-")[1]);
-                } else if (emp.data_corte) {
-                  dia = Number(emp.data_corte);
-                }
-                if (!dia) return "-";
-                const now = new Date();
-                return `${String(dia).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
-              })()} />
-
-              <Info label="Tipo de Movimentação" value={(empresa as any)?.tipo_movimentacao ?? "-"} />
-              <Info
-                label="Período de Movimentação"
-                value={
-                  (empresa as any)?.tipo_movimentacao === "Diária"
-                    ? `Diária (corte dia ${(empresa as any)?.data_corte ? fmtDate((empresa as any).data_corte) : "-"})`
-                    : ((empresa as any)?.periodo_movimentacao ?? "-")
-                }
-              />
-              <Info label="Data de Implantação" value={fmtDate((empresa as any)?.data_implantacao)} />
-              {(empresa as any)?.tipo_movimentacao === "Diária" && (
-                <Info label="Data de Corte" value={(() => {
-                  const emp: any = empresa;
-                  let dia: number | null = null;
-                  if (emp?.periodo_movimentacao) dia = Number(emp.periodo_movimentacao.split("-")[1]);
-                  else if (emp?.data_corte) dia = Number(emp.data_corte);
-                  return dia ? String(dia).padStart(2, "0") : "-";
-                })()} />
-              )}
-              <Info label="Prazo (sem carência)" value={(empresa as any)?.prazo ?? "-"} />
-            </CardContent>
-          </Card>
-        )}
-
-        {secoes.contrato && (
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <CardTitle>Responsáveis</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <Info label="Responsável pelo Contrato" value={(empresa as any)?.responsavel_contrato ?? "-"} />
-              <Info label="Executiva Responsável" value={(empresa as any)?.executiva_nome ?? "-"} />
-            </CardContent>
-          </Card>
-        )}
-
-        {secoes.chat && <ChatAtendimento />}
-
-        {secoes.movimentacoes && (() => {
-          const noPeriodo = empresa ? contratoDentroDoPeriodo(empresa as any) : false;
-          return (
-            <Card>
-              <CardHeader className="flex flex-row items-center gap-2">
-                <CalendarClock className="h-5 w-5 text-primary" />
-                <div className="flex-1">
-                  <CardTitle>Movimentações do contrato</CardTitle>
-                  <p className="text-xs text-muted-foreground">Envios do cadastro e do financeiro, por competência.</p>
+        {/* Two-column layout */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left column: Resumo + Movimentações */}
+          <div className="lg:col-span-2 space-y-6">
+            {secoes.contrato && (
+              <section className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    Resumo do contrato
+                  </h2>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {noPeriodo && (
-                  <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3">
-                    <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-semibold text-foreground">Contrato dentro do período de movimentação</p>
-                      <p className="text-muted-foreground text-xs">
-                        Este contrato está no período{" "}
-                        <strong>
-                          {(empresa as any)?.tipo_movimentacao === "Diária"
-                            ? `corte dia ${(empresa as any)?.data_corte ?? "-"}`
-                            : (empresa as any)?.periodo_movimentacao ?? "-"}
-                        </strong>
-                        . Envie ou aguarde a movimentação da competência atual.
-                      </p>
+                <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-8">
+                  <Info label="Empresa" value={empresaNome} />
+                  <Info label="CNPJ" value={(empresa as any)?.cnpj ?? "—"} />
+                  <Info label="Status" value={(empresa as any)?.status_empresa ?? "—"} />
+                  <Info
+                    label="Valor mensal de Enfermaria"
+                    value={fmtMoney(((empresa as any)?.valor_enfermaria_centavos ?? 0) / 100)}
+                  />
+                  <Info
+                    label="Valor mensal de Apartamento"
+                    value={fmtMoney(
+                      Number(contrato?.valor_mensal ?? 0) > 0
+                        ? Number(contrato!.valor_mensal)
+                        : ((empresa as any)?.valor_apartamento_centavos ?? 0) / 100
+                    )}
+                  />
+                  <Info label="Tipo de Movimentação" value={(empresa as any)?.tipo_movimentacao ?? "—"} />
+                  <Info
+                    label="Início da vigência"
+                    value={(() => {
+                      const emp: any = empresa;
+                      if (!emp) return "—";
+                      let dia: number | null = null;
+                      if (emp.periodo_movimentacao) {
+                        dia = Number(emp.periodo_movimentacao.split("-")[0]);
+                      } else if (emp.data_corte) {
+                        const d = Number(emp.data_corte);
+                        dia = d <= 5 ? 1 : d <= 10 ? 5 : d <= 15 ? 10 : d <= 20 ? 15 : d <= 25 ? 20 : 25;
+                      }
+                      if (!dia) return "—";
+                      const now = new Date();
+                      return `${String(dia).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+                    })()}
+                  />
+                  <Info
+                    label="Fim da vigência"
+                    value={(() => {
+                      const emp: any = empresa;
+                      if (!emp) return "—";
+                      let dia: number | null = null;
+                      if (emp.periodo_movimentacao) {
+                        dia = Number(emp.periodo_movimentacao.split("-")[1]);
+                      } else if (emp.data_corte) {
+                        dia = Number(emp.data_corte);
+                      }
+                      if (!dia) return "—";
+                      const now = new Date();
+                      return `${String(dia).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+                    })()}
+                  />
+                  <Info
+                    label="Período de Movimentação"
+                    value={
+                      (empresa as any)?.tipo_movimentacao === "Diária"
+                        ? `Diária (corte dia ${(empresa as any)?.data_corte ? fmtDate((empresa as any).data_corte) : "—"})`
+                        : ((empresa as any)?.periodo_movimentacao ?? "—")
+                    }
+                  />
+                  <Info label="Data de Implantação" value={fmtDate((empresa as any)?.data_implantacao)} />
+                  <Info label="Prazo (sem carência)" value={(empresa as any)?.prazo ?? "—"} />
+                </div>
+              </section>
+            )}
+
+            {secoes.movimentacoes && (() => {
+              const noPeriodo = empresa ? contratoDentroDoPeriodo(empresa as any) : false;
+              return (
+                <section className="rounded-xl border border-border bg-card overflow-hidden">
+                  <div className="px-6 py-4 border-b border-border">
+                    <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                      <CalendarClock className="h-4 w-4 text-primary" />
+                      Movimentações do contrato
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-1">Envios do cadastro e do financeiro, por competência.</p>
+                  </div>
+
+                  {noPeriodo && (
+                    <div className="mx-6 mt-4 flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3">
+                      <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <p className="font-semibold text-foreground">Contrato dentro do período de movimentação</p>
+                        <p className="text-muted-foreground text-xs">
+                          Este contrato está no período{" "}
+                          <strong>
+                            {(empresa as any)?.tipo_movimentacao === "Diária"
+                              ? `corte dia ${(empresa as any)?.data_corte ?? "—"}`
+                              : (empresa as any)?.periodo_movimentacao ?? "—"}
+                          </strong>
+                          . Envie ou aguarde a movimentação da competência atual.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {!movsContrato || movsContrato.length === 0 ? (
+                    <p className="text-sm text-muted-foreground p-6">Nenhuma movimentação registrada.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-muted/40">
+                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Competência</th>
+                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Período</th>
+                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Enviado p/ empresa</th>
+                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Enviado ao financeiro</th>
+                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Nota emitida</th>
+                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/60">
+                          {movsContrato.map((m: any) => {
+                            const status = calcularStatus(m);
+                            const dataNota = notasFinanceiro?.get(`${m.mes_referencia}__${m.periodo}`) ?? null;
+                            return (
+                              <tr key={m.id} className="hover:bg-muted/30 transition-colors">
+                                <td className="px-6 py-4 text-sm font-medium">{formatMesReferencia(m.mes_referencia)}</td>
+                                <td className="px-6 py-4 text-sm text-muted-foreground">{m.periodo}</td>
+                                <td className="px-6 py-4 text-sm">
+                                  {m.data_envio_empresa ? (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-warning" />
+                                      {fmtDate(m.data_envio_empresa)}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                                      <Clock className="h-3.5 w-3.5" /> Pendente
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 text-sm">
+                                  {m.data_envio_financeiro ? (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                                      {fmtDate(m.data_envio_financeiro)}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                                      <Clock className="h-3.5 w-3.5" /> Pendente
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 text-sm">
+                                  {dataNota ? (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                                      {fmtDate(dataNota)}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                                      <Clock className="h-3.5 w-3.5" /> Pendente
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 text-sm">
+                                  <Badge className={cn("text-[10px] font-medium border", statusColor(status))}>
+                                    {status}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
+          </div>
+
+          {/* Right column: Responsáveis + Atendimento */}
+          <div className="space-y-6">
+            {secoes.contrato && (
+              <section className="rounded-xl border border-border bg-card p-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-6 flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  Responsáveis
+                </h2>
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center font-bold text-primary text-sm">
+                      {initials((empresa as any)?.responsavel_contrato)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{(empresa as any)?.responsavel_contrato ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground">Responsável pelo Contrato</p>
                     </div>
                   </div>
-                )}
-
-                {!movsContrato || movsContrato.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="text-left text-muted-foreground">
-                        <tr className="border-b">
-                          <th className="py-2 pr-4">Competência</th>
-                          <th className="py-2 pr-4">Período</th>
-                          <th className="py-2 pr-4">Enviado p/ empresa</th>
-                          <th className="py-2 pr-4">Enviado ao financeiro</th>
-                          <th className="py-2 pr-4">Nota emitida</th>
-                          <th className="py-2 pr-4">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {movsContrato.map((m: any) => {
-                          const status = calcularStatus(m);
-                          const dataNota = notasFinanceiro?.get(`${m.mes_referencia}__${m.periodo}`) ?? null;
-                          return (
-                            <tr key={m.id} className="border-b last:border-0">
-                              <td className="py-2 pr-4 font-medium">{formatMesReferencia(m.mes_referencia)}</td>
-                              <td className="py-2 pr-4">{m.periodo}</td>
-                              <td className="py-2 pr-4">
-                                {m.data_envio_empresa ? (
-                                  <span className="inline-flex items-center gap-1 text-foreground">
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-warning" />
-                                    {fmtDate(m.data_envio_empresa)}
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-muted-foreground">
-                                    <Clock className="h-3.5 w-3.5" /> Pendente
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-2 pr-4">
-                                {m.data_envio_financeiro ? (
-                                  <span className="inline-flex items-center gap-1 text-foreground">
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-success" />
-                                    {fmtDate(m.data_envio_financeiro)}
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-muted-foreground">
-                                    <Clock className="h-3.5 w-3.5" /> Pendente
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-2 pr-4">
-                                {dataNota ? (
-                                  <span className="inline-flex items-center gap-1 text-foreground">
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-success" />
-                                    {fmtDate(dataNota)}
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-muted-foreground">
-                                    <Clock className="h-3.5 w-3.5" /> Pendente
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-2 pr-4">
-                                <Badge className={cn("text-xs", statusColor(status))}>{status}</Badge>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-
-                    </table>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-muted-foreground text-sm">
+                      {initials((empresa as any)?.executiva_nome)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{(empresa as any)?.executiva_nome ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground">Executiva Responsável</p>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })()}
-      </main>
+                </div>
+              </section>
+            )}
 
+            {secoes.chat && (
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <ChatAtendimento />
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
@@ -395,8 +453,8 @@ export default function MeuPainel() {
 function Info({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="font-medium">{value}</div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{label}</div>
+      <div className="text-sm font-medium">{value}</div>
     </div>
   );
 }
