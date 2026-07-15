@@ -196,7 +196,14 @@ export default function MeuPainel() {
               <Info label="Empresa" value={empresa?.nome ?? "-"} />
               <Info label="CNPJ" value={empresa?.cnpj ?? "-"} />
               <Info label="Valor mensal de Enfermaria" value={fmtMoney(((empresa as any)?.valor_enfermaria_centavos ?? 0) / 100)} />
-              <Info label="Valor mensal de Apartamento" value={fmtMoney(Number(contrato?.valor_mensal ?? 0))} />
+              <Info
+                label="Valor mensal de Apartamento"
+                value={fmtMoney(
+                  Number(contrato?.valor_mensal ?? 0) > 0
+                    ? Number(contrato.valor_mensal)
+                    : ((empresa as any)?.valor_apartamento_centavos ?? 0) / 100
+                )}
+              />
               <Info label="Status" value={contrato?.status ?? "-"} />
               <Info label="Início da vigência" value={(() => {
                 const emp: any = empresa;
