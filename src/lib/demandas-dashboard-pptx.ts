@@ -90,13 +90,9 @@ function slideHeader(slide: any, titulo: string, sub: string, periodo: string) {
     x: HEADER.x + 0.25, y: HEADER.y + 0.08, w: HEADER.w - 0.5, h: 0.45,
     fontSize: 22, bold: true, color: C.INK, fontFace: "Calibri",
   });
-  slide.addText(sub, {
-    x: HEADER.x + 0.25, y: HEADER.y + 0.5, w: HEADER.w - 2.6, h: 0.3,
-    fontSize: 11, color: C.MUTED, fontFace: "Calibri",
-  });
-  slide.addText(periodo, {
-    x: HEADER.x + HEADER.w - 2.4, y: HEADER.y + 0.5, w: 2.15, h: 0.3,
-    fontSize: 10, color: C.PRIMARY, bold: true, fontFace: "Calibri", align: "right",
+  slide.addText(`${sub}  ·  ${periodo}`, {
+    x: HEADER.x + 0.25, y: HEADER.y + 0.5, w: HEADER.w - 0.5, h: 0.3,
+    fontSize: 10, color: C.MUTED, fontFace: "Calibri",
   });
 }
 
