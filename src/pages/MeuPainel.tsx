@@ -23,6 +23,7 @@ function fmtDate(v: string | null | undefined) {
 
 export default function MeuPainel() {
   const { user, empresaVinculadaId, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const { data: empresa } = useQuery({
     queryKey: ["meu-painel", "empresa", empresaVinculadaId],
