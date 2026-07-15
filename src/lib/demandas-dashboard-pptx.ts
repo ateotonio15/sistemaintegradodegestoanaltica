@@ -391,16 +391,25 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
       fontSize: 12, bold: true, color: C.INK, fontFace: "Calibri",
     });
 
-    const series = snap.monthlySeries.length > 0
+    const rawSeries = snap.monthlySeries.length > 0
       ? snap.monthlySeries.slice(-2)
       : [
         { label: mesAntLabel, sla: 0, fora: 0, aberto: 0 },
         { label: mesAtualLabel, sla: pctNo, fora: pctFora, aberto: pctAberto },
       ];
+
+    // Normaliza para garantir que sla + fora + aberto = 100 (evita overflow visual)
+    const series = rawSeries.map((s) => {
+      const total = Math.max(1, s.sla + s.fora + s.aberto);
+      const sla = Math.round((s.sla / total) * 100);
+      const fora = Math.round((s.fora / total) * 100);
+      const aberto = Math.max(0, 100 - sla - fora);
+      return { label: s.label, sla, fora, aberto };
+    });
     const labels = series.map((s) => s.label);
 
-    // Oculta rótulos < 5% (evita sobreposição em fatias pequenas)
-    const hideSmall = '[<5]"";0"%"';
+    // Oculta rótulos <= 6% (evita labels cortados nas fatias pequenas)
+    const hideSmall = '[<=6]"";0"%"';
 
     sp.addChart(pptx.ChartType.bar,
       [
@@ -409,16 +418,18 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
         { name: "Em aberto", labels, values: series.map((s) => s.aberto) },
       ],
       {
-        x: SAFE.x + 0.3, y: chartY + 0.45, w: SAFE.w - 0.6, h: chartH - 0.6,
-        barDir: "bar", barGrouping: "stacked",
+        // Reserva ~0.6" à direita para acomodar rótulos de fatias pequenas
+        x: SAFE.x + 0.3, y: chartY + 0.45, w: SAFE.w - 1.0, h: chartH - 0.6,
+        barDir: "bar", barGrouping: "percentStacked",
         chartColors: ["16A34A", "DC2626", "D97706"],
         showValue: true,
         dataLabelFontSize: 10, dataLabelColor: "FFFFFF", dataLabelFontBold: true,
         dataLabelPosition: "ctr", dataLabelFormatCode: hideSmall,
         catAxisLabelFontSize: 12, catAxisLabelColor: C.INK, catAxisLabelFontBold: true,
         valAxisLabelFontSize: 9, valAxisLabelColor: C.INK_SOFT,
-        valAxisMinVal: 0, valAxisMaxVal: 100,
-        valAxisLabelFormatCode: '0"%"',
+        valAxisMinVal: 0, valAxisMaxVal: 1,
+        valAxisMajorUnit: 0.1,
+        valAxisLabelFormatCode: '0%',
         showLegend: true, legendPos: "b", legendFontSize: 10, legendColor: C.INK,
         barGapWidthPct: 40,
       },
