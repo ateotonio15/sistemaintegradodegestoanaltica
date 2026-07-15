@@ -32,7 +32,9 @@ export function detectarCompetencia(
       .toUpperCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
-    const re = new RegExp(`(${Object.keys(MESES_MAP).join("|")})\\s*[/_-]?\\s*(\\d{2}|\\d{4})`);
+    // Ano de 4 dígitos precisa vir ANTES do de 2 dígitos na alternância,
+    // caso contrário "2025" seria lido como "20" → 2020.
+    const re = new RegExp(`(${Object.keys(MESES_MAP).join("|")})\\s*[/_-]?\\s*(\\d{4}|\\d{2})(?!\\d)`);
     const r = re.exec(upper);
     if (r) {
       const mes = MESES_MAP[r[1]];
