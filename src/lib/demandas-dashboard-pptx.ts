@@ -367,7 +367,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
     const drawStatusCard = (
       cx: number, icon: string, label: string, valueTxt: string, sub: string, cor: string,
     ) => {
-      sv_card(sp, cx, cardsY, cardW, cardsH, cor);
+      card(sp, cx, cardsY, cardW, cardsH, cor);
       sp.addText(`${icon}  ${label}`, {
         x: cx + 0.25, y: cardsY + 0.15, w: cardW - 0.5, h: 0.3,
         fontSize: 11, bold: true, color: cor, charSpacing: 2, fontFace: "Calibri",
