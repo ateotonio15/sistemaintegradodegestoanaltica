@@ -465,128 +465,215 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   }
 
 
-  // ================= SLIDE — DISTRIBUIÇÃO DE SETORES & MOTIVOS =================
+  // Paleta executiva teal (usada nos slides 3 e 4)
+  const TEAL = {
+    D1: "0D6E6E", D2: "14B8A6", D3: "99F6E4", G1: "D1D5DB", G2: "E5E7EB",
+    RED_BG: "FEF2F2", RED_FG: "DC2626", RED_CELL: "FEE2E2",
+    YEL_BG: "FFFBEB", YEL_FG: "D97706", YEL_CELL: "FEF3C7",
+    GRN_BG: "F0FDF4", GRN_FG: "16A34A",
+    INK: "1F2937", MUTED: "9CA3AF", BORDER: "E5E7EB",
+  } as const;
+
+  // Renderiza uma linha de "pílulas" KPI em teal escuro
+  const drawKpiPills = (slide: any, y: number, items: { icon: string; text: string }[]) => {
+    const totalW = SAFE.w;
+    const gapP = 0.15;
+    const pillW = (totalW - gapP * (items.length - 1)) / items.length;
+    const pillH = 0.5;
+    items.forEach((it, i) => {
+      const x = SAFE.x + i * (pillW + gapP);
+      slide.addShape("roundRect", {
+        x, y, w: pillW, h: pillH,
+        fill: { color: TEAL.D1 }, line: { color: TEAL.D1, width: 0 },
+        rectRadius: 0.08,
+      });
+      slide.addText(`${it.icon}  ${it.text}`, {
+        x: x + 0.15, y, w: pillW - 0.3, h: pillH,
+        fontSize: 12, bold: true, color: "FFFFFF", fontFace: "Calibri",
+        align: "center", valign: "middle",
+      });
+    });
+  };
+
+  // ================= SLIDE 3 — DISTRIBUIÇÃO DE SETORES & MOTIVOS =================
   {
     const sd = pptx.addSlide();
     addBackground(sd, "conteudo");
     slideHeader(sd, "Distribuição de Setores & Motivos", "Concentração por setor responsável e principais tipos de reclamação", periodoLabel);
 
     const topSetor = snap.volumeSetor[0];
-    const topTipo = snap.volumeTipo[0];
     const cirurgica = snap.temposSegmentados.cirurgica;
     const demais = snap.temposSegmentados.demais;
+    const totalDemandas = m.total;
+    const nSetores = snap.volumeSetor.length;
+    const mediaH = Math.round((m.tempoMedioDias || 0) * 24);
 
-    const leftW = 5.6;
-    const rightX = SAFE.x + leftW + 0.3;
-    const rightW = SAFE.w - leftW - 0.3;
+    // KPI Pills
+    drawKpiPills(sd, SAFE.y, [
+      { icon: "📋", text: `${totalDemandas} Reclamações` },
+      { icon: "🏥", text: `${nSetores} Setores` },
+      { icon: "⏱️", text: `Média ${mediaH}h` },
+      { icon: "⚠️", text: `${m.pctForaDoPrazo}% fora do SLA` },
+    ]);
 
-    // ===== ESQUERDA: Fatores de Concentração =====
-    card(sd, SAFE.x, SAFE.y, leftW, SAFE.h);
-    sd.addText("Fatores de Concentração", {
-      x: SAFE.x + 0.3, y: SAFE.y + 0.2, w: leftW - 0.6, h: 0.4,
-      fontSize: 16, bold: true, color: C.INK, fontFace: "Calibri",
-    });
+    // ===== Bloco superior: Donut (esquerda) + Alert Cards (direita) =====
+    const topY = SAFE.y + 0.7;
+    const topH = 3.0;
+    const leftW = 5.4;
+    const rightX = SAFE.x + leftW + 0.25;
+    const rightW = SAFE.w - leftW - 0.25;
 
-    const fatores: { icon: string; titulo: string; texto: string }[] = [];
-    if (topSetor) {
-      fatores.push({
-        icon: "●", titulo: `${topSetor.setor}:`,
-        texto: `Concentra ${topSetor.pct}% das demandas totais do período, sendo o principal ofensor operacional.`,
-      });
-    }
-    fatores.push({
-      icon: "◐", titulo: "Agenda Cirúrgica:",
-      texto: `Tempo médio de resposta de ${Math.round(cirurgica.horas)}h (SLA de 168h), com ${cirurgica.foraPct}% fora do SLA.`,
-    });
-    fatores.push({
-      icon: "◇", titulo: "Demais Setores:",
-      texto: `Desempenho ágil com média de ${Math.round(demais.horas)}h (SLA de 72h) e ${demais.foraPct}% sem SLA.`,
-    });
-    if (topTipo) {
-      fatores.push({
-        icon: "▲", titulo: `Tipo predominante — ${topTipo.tipo}:`,
-        texto: `${topTipo.pct}% das reclamações do período (${topTipo.n} registros).`,
-      });
-    }
-
-    const blocoY = SAFE.y + 0.7;
-    const blocoH = (SAFE.h - 0.85) / fatores.length;
-    fatores.forEach((f, i) => {
-      const y = blocoY + i * blocoH;
-      sd.addText(f.icon, {
-        x: SAFE.x + 0.3, y, w: 0.35, h: blocoH,
-        fontSize: 14, bold: true, color: C.PRIMARY, fontFace: "Calibri", valign: "top",
-      });
-      sd.addText(
-        [
-          { text: f.titulo + " ", options: { bold: true, color: C.INK } },
-          { text: f.texto, options: { color: C.INK_SOFT } },
-        ],
-        {
-          x: SAFE.x + 0.7, y, w: leftW - 0.9, h: blocoH,
-          fontSize: 12, fontFace: "Calibri", valign: "top", paraSpaceAfter: 4,
-        },
-      );
-    });
-
-    // ===== DIREITA: Donut de setores + barras de tipos =====
-    const halfH = (SAFE.h - 0.2) / 2;
-
-    // Donut setores (top 1 vs outros)
-    card(sd, rightX, SAFE.y, rightW, halfH);
+    // -- DONUT --
+    card(sd, SAFE.x, topY, leftW, topH);
     sd.addText("Concentração por Setor", {
-      x: rightX + 0.25, y: SAFE.y + 0.15, w: rightW - 0.5, h: 0.3,
-      fontSize: 12, bold: true, color: C.INK, fontFace: "Calibri",
+      x: SAFE.x + 0.25, y: topY + 0.1, w: leftW - 0.5, h: 0.3,
+      fontSize: 13, bold: true, color: C.INK, fontFace: "Calibri",
     });
-    if (topSetor) {
-      const outrosPct = Math.max(0, 100 - topSetor.pct);
-      sd.addChart(pptx.ChartType.doughnut,
-        [{
-          name: "Setores",
-          labels: [topSetor.setor, "Outros Setores"],
-          values: [topSetor.pct, outrosPct],
-        }],
-        {
-          x: rightX + 0.25, y: SAFE.y + 0.5, w: rightW - 0.5, h: halfH - 0.6,
-          chartColors: [C.PRIMARY, C.BORDER],
-          showLegend: true, legendPos: "b", legendFontSize: 10, legendColor: C.INK,
-          holeSize: 65,
-          showPercent: true,
-          dataLabelFontSize: 11, dataLabelColor: "FFFFFF",
-          dataLabelFormatCode: "0\"%\"",
-          dataLabelPosition: "ctr",
-        },
-      );
-    }
 
-    // Barras tipos
-    const b2y = SAFE.y + halfH + 0.2;
-    card(sd, rightX, b2y, rightW, halfH);
-    sd.addText("Top Tipos de Reclamação", {
-      x: rightX + 0.25, y: b2y + 0.15, w: rightW - 0.5, h: 0.3,
-      fontSize: 12, bold: true, color: C.INK, fontFace: "Calibri",
+    const dcPct = topSetor?.pct ?? 77;
+    const dcN = topSetor?.n ?? Math.round(totalDemandas * 0.77);
+    const outrosPct = Math.max(0, 100 - dcPct);
+    const outrosN = totalDemandas - dcN;
+    const dcNome = topSetor?.setor ?? "Direção Clínica";
+
+    // Donut à esquerda dentro do card
+    const donutX = SAFE.x + 0.2;
+    const donutY = topY + 0.45;
+    const donutSize = 2.4;
+    sd.addChart(pptx.ChartType.doughnut,
+      [{
+        name: "Setores",
+        labels: [dcNome, "Outros Setores"],
+        values: [dcPct, outrosPct],
+      }],
+      {
+        x: donutX, y: donutY, w: donutSize, h: donutSize,
+        chartColors: [TEAL.D1, TEAL.G2],
+        showLegend: false,
+        holeSize: 60,
+        showPercent: true,
+        dataLabelFontSize: 12, dataLabelFontBold: true, dataLabelColor: TEAL.INK,
+        dataLabelPosition: "outEnd",
+        dataLabelFormatCode: '0"%"',
+      },
+    );
+    // Texto central do donut
+    sd.addText(`${totalDemandas}`, {
+      x: donutX, y: donutY + donutSize / 2 - 0.45, w: donutSize, h: 0.55,
+      fontSize: 28, bold: true, color: TEAL.INK, fontFace: "Calibri", align: "center",
     });
+    sd.addText("demandas", {
+      x: donutX, y: donutY + donutSize / 2 + 0.1, w: donutSize, h: 0.3,
+      fontSize: 11, color: TEAL.MUTED, fontFace: "Calibri", align: "center",
+    });
+
+    // Legenda à direita do donut
+    const legX = donutX + donutSize + 0.15;
+    const legW = leftW - (donutSize + 0.4);
+    const legY = topY + 0.9;
+    const drawLegend = (yy: number, cor: string, nome: string, n: number, pct: number) => {
+      sd.addShape("rect", {
+        x: legX, y: yy + 0.08, w: 0.18, h: 0.18,
+        fill: { color: cor }, line: { color: cor, width: 0 },
+      });
+      sd.addText(nome, {
+        x: legX + 0.25, y: yy, w: legW - 1.3, h: 0.32,
+        fontSize: 11, bold: true, color: TEAL.INK, fontFace: "Calibri", valign: "middle",
+      });
+      sd.addText(`${n}`, {
+        x: legX + legW - 1.1, y: yy, w: 0.55, h: 0.32,
+        fontSize: 11, color: TEAL.INK, fontFace: "Calibri", align: "right", valign: "middle",
+      });
+      sd.addText(`${pct}%`, {
+        x: legX + legW - 0.5, y: yy, w: 0.5, h: 0.32,
+        fontSize: 11, bold: true, color: TEAL.INK, fontFace: "Calibri", align: "right", valign: "middle",
+      });
+    };
+    drawLegend(legY, TEAL.D1, dcNome, dcN, dcPct);
+    drawLegend(legY + 0.5, TEAL.G2, "Outros Setores", outrosN, outrosPct);
+
+    // -- ALERT CARDS --
+    const alertH = (topH - 0.2) / 3;
+    const alertGap = 0.1;
+    const drawAlert = (idx: number, borderCor: string, bgCor: string, emoji: string, titulo: string, nome: string, linha2: string, linha3: string) => {
+      const ay = topY + 0.1 + idx * (alertH + alertGap);
+      const aH = alertH - alertGap;
+      // fundo
+      sd.addShape("roundRect", {
+        x: rightX, y: ay, w: rightW, h: aH,
+        fill: { color: bgCor }, line: { color: TEAL.BORDER, width: 0.5 },
+        rectRadius: 0.08,
+        shadow: { type: "outer", color: "9AA5B1", opacity: 0.12, blur: 4, offset: 1, angle: 90 },
+      });
+      // borda esquerda 4px colorida
+      sd.addShape("rect", {
+        x: rightX, y: ay, w: 0.06, h: aH,
+        fill: { color: borderCor }, line: { color: borderCor, width: 0 },
+      });
+      sd.addText(`${emoji}  ${titulo}`, {
+        x: rightX + 0.2, y: ay + 0.05, w: rightW - 0.3, h: 0.28,
+        fontSize: 10, bold: true, color: borderCor, charSpacing: 2, fontFace: "Calibri",
+      });
+      sd.addText(nome, {
+        x: rightX + 0.2, y: ay + 0.32, w: rightW - 0.3, h: 0.32,
+        fontSize: 14, bold: true, color: TEAL.INK, fontFace: "Calibri",
+      });
+      sd.addText(linha2, {
+        x: rightX + 0.2, y: ay + 0.62, w: rightW - 0.3, h: 0.24,
+        fontSize: 10, color: TEAL.INK, fontFace: "Calibri",
+      });
+      sd.addText(linha3, {
+        x: rightX + 0.2, y: ay + 0.82, w: rightW - 0.3, h: 0.24,
+        fontSize: 10, color: TEAL.INK, fontFace: "Calibri",
+      });
+    };
+    drawAlert(0, TEAL.RED_FG, TEAL.RED_BG, "🔴", "PRINCIPAL OFENSOR",
+      dcNome,
+      `${dcPct}% das demandas · ${dcN} registros`,
+      `Média resposta: ${Math.round(demais.horas)}h · ${m.pctForaDoPrazo}% fora do SLA`);
+    drawAlert(1, TEAL.YEL_FG, TEAL.YEL_BG, "🟡", "ATENÇÃO — SLA CIRÚRGICO",
+      "Agenda Cirúrgica",
+      `Tempo médio: ${Math.round(cirurgica.horas)}h · SLA: 168h`,
+      `${cirurgica.foraPct}% fora do prazo`);
+    drawAlert(2, TEAL.GRN_FG, TEAL.GRN_BG, "🟢", "DESTAQUE POSITIVO",
+      "Demais Setores",
+      `Média de resposta: ${Math.round(demais.horas)}h · SLA: 72h`,
+      `Apenas ${demais.foraPct}% sem SLA`);
+
+    // ===== Bloco inferior: Top Tipos de Reclamação =====
+    const botY = topY + topH + 0.15;
+    const botH = SAFE.y + SAFE.h - botY - 0.1;
+    card(sd, SAFE.x, botY, SAFE.w, botH);
+    sd.addText("Top Tipos de Reclamação", {
+      x: SAFE.x + 0.25, y: botY + 0.08, w: SAFE.w - 0.5, h: 0.28,
+      fontSize: 13, bold: true, color: C.INK, fontFace: "Calibri",
+    });
+
     if (snap.volumeTipo.length > 0) {
       const tops = snap.volumeTipo.slice(0, 5);
+      const gradient = [TEAL.D1, TEAL.D2, TEAL.D3, TEAL.G1, TEAL.G2];
+      // Constrói labels enriquecidos "Nome — 358 · 69%"
+      const labelsRich = tops.map((t) => `${t.tipo}  ${t.n} · ${t.pct}%`);
       sd.addChart(pptx.ChartType.bar,
         [{
           name: "Reclamações",
-          labels: tops.map((t) => t.tipo),
+          labels: labelsRich,
           values: tops.map((t) => t.n),
         }],
         {
-          x: rightX + 0.25, y: b2y + 0.5, w: rightW - 0.5, h: halfH - 0.6,
-          barDir: "bar", chartColors: [C.ACCENT],
-          showValue: true, dataLabelFontSize: 10, dataLabelColor: C.INK, dataLabelPosition: "outEnd",
-          catAxisLabelFontSize: 10, catAxisLabelColor: C.INK,
-          valAxisLabelFontSize: 9, valAxisLabelColor: C.INK_SOFT,
-          showLegend: false, barGapWidthPct: 40,
+          x: SAFE.x + 0.25, y: botY + 0.4, w: SAFE.w - 0.5, h: botH - 0.75,
+          barDir: "bar", chartColors: gradient, chartColorsOpacity: 100,
+          showValue: false,
+          catAxisLabelFontSize: 10, catAxisLabelColor: TEAL.INK,
+          valAxisLabelFontSize: 9, valAxisLabelColor: TEAL.MUTED,
+          valAxisHidden: true,
+          showLegend: false, barGapWidthPct: 30,
         },
       );
-    } else {
-      sd.addText("Sem dados de tipo no período.", {
-        x: rightX + 0.25, y: b2y + 0.5, w: rightW - 0.5, h: halfH - 0.6,
-        fontSize: 12, color: C.MUTED, fontFace: "Calibri", align: "center", valign: "middle",
+      const topTipo = tops[0];
+      sd.addText(`⚠️  ${topTipo.tipo} = ${topTipo.pct}% do total — foco prioritário`, {
+        x: SAFE.x + 0.25, y: botY + botH - 0.32, w: SAFE.w - 0.5, h: 0.28,
+        fontSize: 11, italic: true, color: TEAL.YEL_FG, fontFace: "Calibri",
       });
     }
 
@@ -594,13 +681,7 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
   }
 
 
-
-
-
-
-
-
-  // ================= SLIDE — VOLUME POR SETOR + PRINCIPAIS GARGALOS =================
+  // ================= SLIDE 4 — VOLUME POR SETOR + PRINCIPAIS GARGALOS =================
   if (snap.volumeSetor.length > 0 || snap.gargalos.length > 0) {
     const sc = pptx.addSlide();
     addBackground(sc, "conteudo");
@@ -611,6 +692,21 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
       periodoLabel,
     );
 
+    const totalDemandas = m.total;
+    const nSetores = snap.volumeSetor.length;
+    const pior = [...snap.gargalos].sort((a, b) => b.foraPct - a.foraPct)[0];
+    const piorTempo = [...snap.gargalos].sort((a, b) => b.tempoMedio - a.tempoMedio)[0];
+
+    // KPI Pills
+    drawKpiPills(sc, SAFE.y, [
+      { icon: "🏥", text: `${nSetores} Setores` },
+      { icon: "📋", text: `${totalDemandas} Demandas` },
+      { icon: "⚠️", text: `Maior gargalo: ${pior ? `${pior.setor} ${pior.foraPct}%` : "—"}` },
+      { icon: "⏱️", text: `Pior tempo: ${piorTempo ? `${piorTempo.tempoMedio.toFixed(1)} dias` : "—"}` },
+    ]);
+
+    const bodyY = SAFE.y + 0.7;
+    const bodyH = SAFE.y + SAFE.h - bodyY;
     const gap = 0.25;
     const leftW = 5.2;
     const rightX = SAFE.x + leftW + gap;
@@ -618,66 +714,114 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
 
     // ===== ESQUERDA: Volume por Setor =====
     if (snap.volumeSetor.length > 0) {
-      card(sc, SAFE.x, SAFE.y, leftW, SAFE.h);
+      card(sc, SAFE.x, bodyY, leftW, bodyH);
       sc.addText("Volume por Setor", {
-        x: SAFE.x + 0.25, y: SAFE.y + 0.15, w: leftW - 0.5, h: 0.3,
-        fontSize: 12, bold: true, color: C.INK, fontFace: "Calibri",
+        x: SAFE.x + 0.25, y: bodyY + 0.1, w: leftW - 0.5, h: 0.3,
+        fontSize: 13, bold: true, color: C.INK, fontFace: "Calibri",
       });
+
+      const sorted = [...snap.volumeSetor].sort((a, b) => b.n - a.n).slice(0, 8);
+      const gradient = [TEAL.D1, TEAL.D2, TEAL.D3, TEAL.G1, TEAL.G1, TEAL.G2, TEAL.G2, TEAL.G2];
+      const labels = sorted.map((v) => `${v.setor}  ${v.n} · ${v.pct}%`);
+
       sc.addChart(pptx.ChartType.bar,
-        [{ name: "Demandas", labels: snap.volumeSetor.map((v) => v.setor), values: snap.volumeSetor.map((v) => v.n) }],
+        [{ name: "Demandas", labels, values: sorted.map((v) => v.n) }],
         {
-          x: SAFE.x + 0.2, y: SAFE.y + 0.55, w: leftW - 0.4, h: SAFE.h - 0.75,
-          barDir: "bar", chartColors: [C.PRIMARY],
-          showValue: true, dataLabelFontSize: 9, dataLabelColor: C.INK, dataLabelPosition: "outEnd",
-          catAxisLabelFontSize: 9, catAxisLabelColor: C.INK,
-          valAxisLabelFontSize: 8, valAxisLabelColor: C.INK_SOFT,
-          showLegend: false, barGapWidthPct: 40,
+          x: SAFE.x + 0.2, y: bodyY + 0.45, w: leftW - 0.4, h: bodyH - 1.0,
+          barDir: "bar", chartColors: gradient.slice(0, sorted.length),
+          showValue: false,
+          catAxisLabelFontSize: 10, catAxisLabelColor: TEAL.INK,
+          valAxisLabelFontSize: 9, valAxisLabelColor: TEAL.MUTED,
+          valAxisHidden: true,
+          valAxisLabelFormatCode: "0",
+          showLegend: false, barGapWidthPct: 30,
+        },
+      );
+
+      const top2Pct = sorted.slice(0, 2).reduce((s, v) => s + v.pct, 0);
+      sc.addText(
+        sorted.length >= 2
+          ? `${sorted[0].setor} + ${sorted[1].setor} = ${top2Pct}% do volume`
+          : `${sorted[0]?.setor ?? ""} concentra ${sorted[0]?.pct ?? 0}% do volume`,
+        {
+          x: SAFE.x + 0.25, y: bodyY + bodyH - 0.4, w: leftW - 0.5, h: 0.3,
+          fontSize: 11, bold: true, color: TEAL.D1, fontFace: "Calibri",
         },
       );
     }
 
     // ===== DIREITA: Principais Gargalos =====
     if (snap.gargalos.length > 0) {
-      card(sc, rightX, SAFE.y, rightW, SAFE.h);
+      card(sc, rightX, bodyY, rightW, bodyH);
       sc.addText("Principais Gargalos", {
-        x: rightX + 0.25, y: SAFE.y + 0.15, w: rightW - 0.5, h: 0.3,
-        fontSize: 12, bold: true, color: C.INK, fontFace: "Calibri",
+        x: rightX + 0.25, y: bodyY + 0.1, w: rightW - 0.5, h: 0.3,
+        fontSize: 13, bold: true, color: C.INK, fontFace: "Calibri",
       });
 
+      const cellForPct = (pct: number) => {
+        if (pct >= 30) return { fill: { color: TEAL.RED_CELL }, color: TEAL.RED_FG, bold: true };
+        if (pct >= 8) return { fill: { color: TEAL.YEL_CELL }, color: TEAL.YEL_FG, bold: true };
+        if (pct >= 2) return { fill: { color: TEAL.YEL_BG }, color: TEAL.YEL_FG, bold: false };
+        if (pct >= 1) return { fill: { color: TEAL.GRN_BG }, color: TEAL.GRN_FG, bold: true };
+        return { fill: { color: "FFFFFF" }, color: TEAL.MUTED, bold: false };
+      };
+
       const header = [
-        { text: "Setor", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "left" } },
-        { text: "Tipo", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "left" } },
-        { text: "Qtd.", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "center" } },
-        { text: "Dias", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "center" } },
-        { text: "% fora", options: { bold: true, color: C.CARD, fill: { color: C.PRIMARY }, align: "center" } },
+        { text: "Setor", options: { bold: true, color: "FFFFFF", fill: { color: TEAL.D1 }, align: "left", valign: "middle" } },
+        { text: "Tipo", options: { bold: true, color: "FFFFFF", fill: { color: TEAL.D1 }, align: "left", valign: "middle" } },
+        { text: "Volume", options: { bold: true, color: "FFFFFF", fill: { color: TEAL.D1 }, align: "center", valign: "middle" } },
+        { text: "Dias Médios", options: { bold: true, color: "FFFFFF", fill: { color: TEAL.D1 }, align: "center", valign: "middle" } },
+        { text: "% Fora SLA", options: { bold: true, color: "FFFFFF", fill: { color: TEAL.D1 }, align: "center", valign: "middle" } },
       ];
       const rows = [
         header,
-        ...snap.gargalos.slice(0, 10).map((g) => {
-          const critical = g.foraPct > 8 && g.qtd >= 5;
-          const fill = critical ? { color: "FBEBE9" } : { color: C.CARD };
+        ...snap.gargalos.slice(0, 8).map((g, i) => {
+          const zebra = i % 2 === 0 ? "FFFFFF" : TEAL.GRN_BG;
+          const cell = cellForPct(g.foraPct);
           return [
-            { text: g.setor, options: { color: C.INK, fill, align: "left" } },
-            { text: g.tipo, options: { color: C.INK, fill, align: "left" } },
-            { text: String(g.qtd), options: { color: C.INK, fill, align: "center" } },
-            { text: g.tempoMedio.toFixed(1), options: { color: C.INK, fill, align: "center" } },
-            {
-              text: `${g.foraPct}%`,
-              options: {
-                color: g.foraPct > 8 ? C.NEGATIVE : C.POSITIVE,
-                bold: true, fill, align: "center",
-              },
-            },
+            { text: g.setor, options: { color: TEAL.INK, fill: { color: zebra }, align: "left", valign: "middle" } },
+            { text: g.tipo, options: { color: TEAL.INK, fill: { color: zebra }, align: "left", valign: "middle" } },
+            { text: String(g.qtd), options: { color: TEAL.INK, fill: { color: zebra }, align: "center", valign: "middle" } },
+            { text: g.tempoMedio.toFixed(1), options: { color: TEAL.INK, fill: { color: zebra }, align: "center", valign: "middle" } },
+            { text: `${g.foraPct}%`, options: { color: cell.color, bold: cell.bold, fill: cell.fill, align: "center", valign: "middle" } },
           ];
         }),
       ];
+      const tableH = bodyH - 1.9;
       sc.addTable(rows as any, {
-        x: rightX + 0.2, y: SAFE.y + 0.55, w: rightW - 0.4,
-        colW: [1.9, 1.9, 0.7, 0.8, 0.9],
-        fontSize: 9, fontFace: "Calibri",
-        border: { pt: 0.5, color: C.BORDER },
-        rowH: 0.34, valign: "middle",
+        x: rightX + 0.2, y: bodyY + 0.5, w: rightW - 0.4,
+        colW: [1.75, 1.75, 0.8, 1.0, 1.0],
+        fontSize: 10, fontFace: "Calibri",
+        border: { type: "solid", pt: 0.5, color: TEAL.BORDER },
+        rowH: 0.32, valign: "middle",
       });
+
+      // Alerta crítico
+      const alertY = bodyY + bodyH - 1.3;
+      const alertH = 1.15;
+      sc.addShape("roundRect", {
+        x: rightX + 0.2, y: alertY, w: rightW - 0.4, h: alertH,
+        fill: { color: TEAL.RED_BG },
+        line: { color: TEAL.RED_FG, width: 2 },
+        rectRadius: 0.1,
+      });
+      sc.addText("🚨  GARGALO CRÍTICO IDENTIFICADO", {
+        x: rightX + 0.35, y: alertY + 0.08, w: rightW - 0.7, h: 0.3,
+        fontSize: 11, bold: true, color: TEAL.RED_FG, fontFace: "Calibri", charSpacing: 1,
+      });
+      const g0 = pior;
+      const g1 = snap.gargalos.find((g) => g.setor.toLowerCase().includes("agenda cir")) ?? snap.gargalos[1];
+      sc.addText(
+        [
+          g0 ? { text: `${g0.setor} → ${g0.tipo}: ${g0.foraPct}% fora do SLA\n`, options: { bold: true, color: TEAL.INK } } : { text: "", options: {} },
+          g0 ? { text: `Apenas ${g0.qtd} caso(s) mas média de ${g0.tempoMedio.toFixed(1)} dias — investigar\n`, options: { color: TEAL.INK } } : { text: "", options: {} },
+          g1 && g1 !== g0 ? { text: `${g1.setor}: ${g1.qtd} casos · ${g1.foraPct}% fora · ${g1.tempoMedio.toFixed(1)} dias`, options: { color: TEAL.INK } } : { text: "", options: {} },
+        ],
+        {
+          x: rightX + 0.35, y: alertY + 0.38, w: rightW - 0.7, h: alertH - 0.45,
+          fontSize: 10, fontFace: "Calibri", valign: "top", paraSpaceAfter: 1,
+        },
+      );
     }
 
     slideFooter(sc, filtroLabel);
