@@ -29,7 +29,7 @@ export default function MeuPainel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, cnpj, status_empresa, portal_secoes, tipo_movimentacao, periodo_movimentacao, data_implantacao, data_corte, dia_movimentacao, prazo, responsavel_contrato, executiva_user_id, valor_enfermaria_centavos, valor_apartamento_centavos")
+        .select("id, nome, cnpj, status_empresa, portal_secoes, tipo_movimentacao, periodo_movimentacao, data_implantacao, data_corte, dia_movimentacao, prazo, responsavel_contrato, executiva_user_id, valor_enfermaria_centavos, valor_apartamento_centavos, vidas")
         .eq("id", empresaVinculadaId!)
         .maybeSingle();
       if (error) throw error;
@@ -146,7 +146,7 @@ export default function MeuPainel() {
                   <Users className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{vidasAtivas ?? "-"}</div>
+                  <div className="text-3xl font-bold">{(empresa as any)?.vidas ?? "-"}</div>
                   <p className="text-xs text-muted-foreground">Beneficiários com status ativo</p>
                 </CardContent>
               </Card>
