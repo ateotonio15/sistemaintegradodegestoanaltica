@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,11 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ChevronRight, ArrowLeft } from "lucide-react";
-import { MessageCircle, Send, Loader2, History } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import {
+  ArrowLeft,
+  ChevronRight,
+  Circle,
+  Clock,
+  Headphones,
+  History,
+  Loader2,
+  MessageSquare,
+  Plus,
+  Send,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
 type Msg =
   | { role: "user"; text: string }
@@ -21,6 +34,30 @@ const setorLabel: Record<string, string> = {
   cadastro: "Cadastro",
   relacionamento: "Relacionamento",
   financeiro: "Financeiro",
+};
+
+const setorClasses: Record<string, string> = {
+  cadastro: "bg-primary/10 text-primary border-primary/20",
+  relacionamento: "bg-[hsl(var(--info)/0.12)] text-[hsl(var(--info))] border-[hsl(var(--info)/0.25)]",
+  financeiro: "bg-[hsl(var(--warning)/0.14)] text-[hsl(var(--warning))] border-[hsl(var(--warning)/0.3)]",
+};
+
+const statusMeta: Record<string, { label: string; className: string }> = {
+  aberto: {
+    label: "Aberto",
+    className:
+      "bg-[hsl(var(--warning)/0.14)] text-[hsl(var(--warning))] border-[hsl(var(--warning)/0.3)]",
+  },
+  em_andamento: {
+    label: "Em andamento",
+    className:
+      "bg-[hsl(var(--info)/0.12)] text-[hsl(var(--info))] border-[hsl(var(--info)/0.25)]",
+  },
+  resolvido: {
+    label: "Resolvido",
+    className:
+      "bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success))] border-[hsl(var(--success)/0.25)]",
+  },
 };
 
 interface AtendimentoHist {
@@ -40,6 +77,16 @@ interface MsgHist {
   criado_em: string;
 }
 
+function fmtDataHora(iso: string) {
+  return new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function ChatAtendimento() {
   const { empresaVinculadaId } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -47,8 +94,8 @@ export function ChatAtendimento() {
   const [loading, setLoading] = useState(false);
   const [started, setStarted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const subscribedRef = useRef<Set<string>>(new Set());
-  const hasStarted = started;
   const [openHistId, setOpenHistId] = useState<string | null>(null);
 
   function iniciarConversa() {
@@ -56,9 +103,11 @@ export function ChatAtendimento() {
     setMessages([
       {
         role: "assistant",
-        text: "Olá! Descreva sua solicitação e eu encaminho para o setor certo (Cadastro, Relacionamento ou Financeiro).",
+        text:
+          "Olá! Descreva sua solicitação e eu encaminho para o setor certo (Cadastro, Relacionamento ou Financeiro).",
       },
     ]);
+    setTimeout(() => inputRef.current?.focus(), 60);
   }
 
   const { data: historico } = useQuery({
@@ -102,7 +151,12 @@ export function ChatAtendimento() {
       .channel(`atd-msg-${atendimentoId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "atendimentos_mensagens", filter: `atendimento_id=eq.${atendimentoId}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "atendimentos_mensagens",
+          filter: `atendimento_id=eq.${atendimentoId}`,
+        },
         (payload) => {
           const row = payload.new as any;
           if (row?.autor_tipo !== "staff") return;
@@ -110,7 +164,9 @@ export function ChatAtendimento() {
         },
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }
 
   async function enviar() {
@@ -155,20 +211,25 @@ export function ChatAtendimento() {
     }
   }
 
-  const showHistorico = !hasStarted && (historico?.length ?? 0) > 0;
-  const msgsPorAtd = (histMsgs ?? []).reduce<Record<string, MsgHist[]>>((acc, m) => {
-    (acc[m.atendimento_id] ??= []).push(m);
-    return acc;
-  }, {});
+  const msgsPorAtd = useMemo(
+    () =>
+      (histMsgs ?? []).reduce<Record<string, MsgHist[]>>((acc, m) => {
+        (acc[m.atendimento_id] ??= []).push(m);
+        return acc;
+      }, {}),
+    [histMsgs],
+  );
+
+  const abertos = (historico ?? []).filter((a) => a.status !== "resolvido").length;
 
   return (
-    <Card className="flex h-[520px] flex-col">
-      <CardHeader className="flex flex-row items-center gap-2 border-b">
-        {started && (
+    <Card className="flex h-[560px] flex-col overflow-hidden border-border/60 shadow-sm">
+      <CardHeader className="flex flex-row items-center gap-3 border-b bg-gradient-to-r from-primary/5 via-transparent to-transparent py-3">
+        {started ? (
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 -ml-2"
+            className="h-8 w-8 -ml-1 text-muted-foreground hover:text-foreground"
             onClick={() => {
               setStarted(false);
               setMessages([]);
@@ -178,77 +239,165 @@ export function ChatAtendimento() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
+        ) : (
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Headphones className="h-4 w-4" />
+          </div>
         )}
-        <MessageCircle className="h-5 w-5 text-primary" />
-        <CardTitle>Atendimento</CardTitle>
+        <div className="flex-1 min-w-0">
+          <CardTitle className="text-base leading-tight">Atendimento</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            {started
+              ? "Conversa em andamento"
+              : abertos > 0
+              ? `${abertos} conversa${abertos > 1 ? "s" : ""} em aberto`
+              : "Fale com nossa equipe"}
+          </p>
+        </div>
+        {!started && (
+          <Button size="sm" onClick={iniciarConversa} className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            Nova conversa
+          </Button>
+        )}
       </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-3 p-0">
-        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
-          {messages.map((m, i) => (
-            <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
+
+      <CardContent className="flex flex-1 flex-col gap-0 p-0">
+        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          {/* Mensagens do chat ativo */}
+          {started &&
+            messages.map((m, i) => (
               <div
-                className={
-                  m.role === "user"
-                    ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-4 py-2 text-sm text-primary-foreground"
-                    : "max-w-[85%] rounded-2xl rounded-bl-sm bg-muted px-4 py-2 text-sm"
-                }
+                key={i}
+                className={m.role === "user" ? "flex justify-end" : "flex justify-start"}
               >
-                {m.role === "assistant" && m.setor && (
-                  <div className="mb-1">
-                    <Badge variant="secondary">Encaminhado: {setorLabel[m.setor] ?? m.setor}</Badge>
+                {m.role !== "user" && (
+                  <div className="mr-2 mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    {m.role === "staff" ? (
+                      <Headphones className="h-3.5 w-3.5" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
                   </div>
                 )}
-                {m.role === "staff" && (
-                  <div className="mb-1">
-                    <Badge>Resposta da equipe</Badge>
+                <div
+                  className={cn(
+                    "max-w-[82%] rounded-2xl px-4 py-2.5 text-sm shadow-sm",
+                    m.role === "user"
+                      ? "rounded-br-sm bg-primary text-primary-foreground"
+                      : m.role === "staff"
+                      ? "rounded-bl-sm border border-border/60 bg-card text-foreground"
+                      : "rounded-bl-sm bg-muted text-foreground",
+                  )}
+                >
+                  {m.role === "assistant" && m.setor && (
+                    <div className="mb-1.5">
+                      <Badge
+                        variant="outline"
+                        className={cn("text-[10px] font-medium", setorClasses[m.setor])}
+                      >
+                        Encaminhado · {setorLabel[m.setor] ?? m.setor}
+                      </Badge>
+                    </div>
+                  )}
+                  {m.role === "staff" && (
+                    <div className="mb-1.5">
+                      <Badge className="text-[10px] font-medium">Resposta da equipe</Badge>
+                    </div>
+                  )}
+                  <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1">
+                    <ReactMarkdown>{m.text}</ReactMarkdown>
                   </div>
-                )}
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown>{m.text}</ReactMarkdown>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
 
-          {showHistorico && (
-            <div className="pt-2">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          {/* Histórico */}
+          {!started && (
+            <div>
+              <div className="mb-2 flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <History className="h-3.5 w-3.5" />
                 Conversas anteriores
               </div>
-              <div className="divide-y rounded-lg border bg-background/50">
-                {historico!.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => setOpenHistId(a.id)}
-                    className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex items-center gap-2"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <Badge variant="outline" className="text-[10px] capitalize">
-                          {setorLabel[a.setor_destino] ?? a.setor_destino}
-                        </Badge>
-                        <Badge variant="secondary" className="text-[10px] capitalize">
-                          {a.status.replace("_", " ")}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground">
-                          {new Date(a.criado_em).toLocaleString("pt-BR")}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground line-clamp-1">
-                        {a.resumo || a.mensagem_original}
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </button>
-                ))}
-              </div>
+
+              {(historico?.length ?? 0) === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/30 px-6 py-10 text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <MessageSquare className="h-5 w-5" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">
+                    Nenhuma conversa por aqui ainda
+                  </p>
+                  <p className="text-xs text-muted-foreground max-w-xs">
+                    Inicie uma nova conversa e nossa IA encaminha sua solicitação para o setor
+                    responsável.
+                  </p>
+                  <Button size="sm" className="mt-2 gap-1.5" onClick={iniciarConversa}>
+                    <Plus className="h-4 w-4" />
+                    Iniciar conversa
+                  </Button>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60 bg-card">
+                  {historico!.map((a) => {
+                    const st = statusMeta[a.status] ?? {
+                      label: a.status,
+                      className: "bg-muted text-foreground border-border",
+                    };
+                    return (
+                      <li key={a.id}>
+                        <button
+                          type="button"
+                          onClick={() => setOpenHistId(a.id)}
+                          className="group flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-muted/50"
+                        >
+                          <div
+                            className={cn(
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
+                              setorClasses[a.setor_destino] ?? "bg-muted",
+                            )}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-0.5 flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-medium capitalize text-foreground">
+                                {setorLabel[a.setor_destino] ?? a.setor_destino}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "gap-1 text-[10px] font-medium",
+                                  st.className,
+                                )}
+                              >
+                                <Circle className="h-1.5 w-1.5 fill-current" />
+                                {st.label}
+                              </Badge>
+                            </div>
+                            <p className="line-clamp-1 text-xs text-muted-foreground">
+                              {a.resumo || a.mensagem_original}
+                            </p>
+                            <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground/80">
+                              <Clock className="h-3 w-3" />
+                              {fmtDataHora(a.criado_em)}
+                            </div>
+                          </div>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           )}
 
           {loading && (
             <div className="flex justify-start">
+              <div className="mr-2 mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+              </div>
               <div className="inline-flex items-center gap-2 rounded-2xl rounded-bl-sm bg-muted px-4 py-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Analisando sua solicitação...
@@ -256,33 +405,47 @@ export function ChatAtendimento() {
             </div>
           )}
         </div>
-        {!started ? (
-          <div className="border-t p-3">
-            <Button onClick={iniciarConversa} className="w-full">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Iniciar nova conversa
-            </Button>
-          </div>
-        ) : (
-          <div className="border-t p-3">
-            <div className="flex items-end gap-2">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKey}
-                placeholder="Descreva sua solicitação..."
-                rows={2}
-                disabled={loading}
-                className="resize-none"
-              />
-              <Button onClick={enviar} disabled={loading || !input.trim()} size="icon">
-                <Send className="h-4 w-4" />
-              </Button>
+
+        {started && (
+          <>
+            <Separator />
+            <div className="bg-muted/30 p-3">
+              <div className="flex items-end gap-2 rounded-xl border border-border/70 bg-card p-2 shadow-sm focus-within:ring-2 focus-within:ring-primary/30">
+                <Textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={onKey}
+                  placeholder="Descreva sua solicitação..."
+                  rows={2}
+                  disabled={loading}
+                  className="min-h-[44px] flex-1 resize-none border-0 bg-transparent p-1.5 text-sm shadow-none focus-visible:ring-0"
+                />
+                <Button
+                  onClick={enviar}
+                  disabled={loading || !input.trim()}
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="mt-1.5 px-1 text-[11px] text-muted-foreground">
+                <kbd className="rounded border border-border bg-background px-1 py-px text-[10px]">
+                  Enter
+                </kbd>{" "}
+                enviar ·{" "}
+                <kbd className="rounded border border-border bg-background px-1 py-px text-[10px]">
+                  Shift+Enter
+                </kbd>{" "}
+                nova linha
+              </p>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Enter para enviar · Shift+Enter para nova linha
-            </p>
-          </div>
+          </>
         )}
       </CardContent>
 
@@ -292,43 +455,69 @@ export function ChatAtendimento() {
             const a = historico?.find((x) => x.id === openHistId);
             if (!a) return null;
             const ms = msgsPorAtd[a.id] ?? [];
+            const st = statusMeta[a.status] ?? {
+              label: a.status,
+              className: "bg-muted text-foreground border-border",
+            };
             return (
               <>
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 text-base">
-                    <MessageCircle className="h-4 w-4 text-primary" />
+                    <div
+                      className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-md border",
+                        setorClasses[a.setor_destino] ?? "bg-muted",
+                      )}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                    </div>
                     Conversa · {setorLabel[a.setor_destino] ?? a.setor_destino}
                   </DialogTitle>
-                  <DialogDescription>
-                    {new Date(a.criado_em).toLocaleString("pt-BR")} ·{" "}
-                    <span className="capitalize">{a.status.replace("_", " ")}</span>
+                  <DialogDescription className="flex items-center gap-2 pt-1">
+                    <Badge variant="outline" className={cn("gap-1 text-[10px]", st.className)}>
+                      <Circle className="h-1.5 w-1.5 fill-current" />
+                      {st.label}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{fmtDataHora(a.criado_em)}</span>
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                <div className="max-h-[60vh] space-y-2.5 overflow-y-auto pr-1">
                   <div className="flex justify-end">
-                    <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground">
+                    <div className="max-w-[82%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2 text-sm text-primary-foreground shadow-sm">
                       <div className="whitespace-pre-wrap">{a.mensagem_original}</div>
                     </div>
                   </div>
                   {ms.map((m) => (
-                    <div key={m.id} className={m.autor_tipo === "empresa" ? "flex justify-end" : "flex justify-start"}>
-                      <div className={
-                        m.autor_tipo === "empresa"
-                          ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
-                          : "max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm"
-                      }>
+                    <div
+                      key={m.id}
+                      className={
+                        m.autor_tipo === "empresa" ? "flex justify-end" : "flex justify-start"
+                      }
+                    >
+                      <div
+                        className={cn(
+                          "max-w-[82%] rounded-2xl px-3.5 py-2 text-sm shadow-sm",
+                          m.autor_tipo === "empresa"
+                            ? "rounded-br-sm bg-primary text-primary-foreground"
+                            : "rounded-bl-sm border border-border/60 bg-card",
+                        )}
+                      >
                         {m.autor_tipo === "staff" && (
-                          <div className="mb-1"><Badge className="text-[10px]">Equipe</Badge></div>
+                          <div className="mb-1">
+                            <Badge className="text-[10px]">Equipe</Badge>
+                          </div>
                         )}
                         <div className="whitespace-pre-wrap">{m.mensagem}</div>
-                        <div className="text-[10px] opacity-70 mt-1">
-                          {new Date(m.criado_em).toLocaleString("pt-BR")}
+                        <div className="mt-1 text-[10px] opacity-70">
+                          {fmtDataHora(m.criado_em)}
                         </div>
                       </div>
                     </div>
                   ))}
                   {ms.length === 0 && (
-                    <p className="text-xs text-muted-foreground">Sem respostas da equipe ainda.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Sem respostas da equipe ainda.
+                    </p>
                   )}
                 </div>
               </>
@@ -339,4 +528,3 @@ export function ChatAtendimento() {
     </Card>
   );
 }
-
