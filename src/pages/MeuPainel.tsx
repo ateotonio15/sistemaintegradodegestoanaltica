@@ -80,20 +80,22 @@ export default function MeuPainel() {
     },
   });
 
-  const { data: movsFinanceiras } = useQuery({
-    queryKey: ["meu-painel", "movs-fin", empresaVinculadaId],
+  const { data: movsContrato } = useQuery({
+    queryKey: ["meu-painel", "movs-contrato", empresaVinculadaId],
     enabled: !!empresaVinculadaId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("movimentacao_financeira")
-        .select("id, tipo, valor, descricao, data")
+        .from("movimentacoes")
+        .select("id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, created_at")
         .eq("empresa_id", empresaVinculadaId!)
-        .order("data", { ascending: false })
-        .limit(15);
+        .order("mes_referencia", { ascending: false })
+        .order("periodo", { ascending: false })
+        .limit(12);
       if (error) throw error;
       return data ?? [];
     },
   });
+
 
   return (
     <div className="min-h-screen bg-background">
