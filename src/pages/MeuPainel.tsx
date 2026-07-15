@@ -4,10 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Building2, FileText, Users, Wallet, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { LogOut, Building2, FileText, Users, Wallet, CalendarClock, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChatAtendimento } from "@/components/portal/ChatAtendimento";
+import { contratoDentroDoPeriodo, calcularStatus, statusColor, formatMesReferencia } from "@/lib/movimentacao-utils";
+import { cn } from "@/lib/utils";
 
 function fmtMoney(v: number | null | undefined) {
   if (v == null) return "-";
@@ -78,20 +80,22 @@ export default function MeuPainel() {
     },
   });
 
-  const { data: movsFinanceiras } = useQuery({
-    queryKey: ["meu-painel", "movs-fin", empresaVinculadaId],
+  const { data: movsContrato } = useQuery({
+    queryKey: ["meu-painel", "movs-contrato", empresaVinculadaId],
     enabled: !!empresaVinculadaId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("movimentacao_financeira")
-        .select("id, tipo, valor, descricao, data")
+        .from("movimentacoes")
+        .select("id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, created_at")
         .eq("empresa_id", empresaVinculadaId!)
-        .order("data", { ascending: false })
-        .limit(15);
+        .order("mes_referencia", { ascending: false })
+        .order("periodo", { ascending: false })
+        .limit(12);
       if (error) throw error;
       return data ?? [];
     },
   });
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -243,52 +247,97 @@ export default function MeuPainel() {
 
         {secoes.chat && <ChatAtendimento />}
 
-        {secoes.movimentacoes && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Últimas movimentações financeiras</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!movsFinanceiras || movsFinanceiras.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma movimentação financeira registrada.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="text-left text-muted-foreground">
-                      <tr className="border-b">
-                        <th className="py-2 pr-4">Data</th>
-                        <th className="py-2 pr-4">Tipo</th>
-                        <th className="py-2 pr-4">Descrição</th>
-                        <th className="py-2 pr-4 text-right">Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {movsFinanceiras.map((m: any) => {
-                        const entrada = m.tipo === "entrada";
-                        return (
-                          <tr key={m.id} className="border-b last:border-0">
-                            <td className="py-2 pr-4">{fmtDate(m.data)}</td>
-                            <td className="py-2 pr-4">
-                              <span className={entrada ? "inline-flex items-center gap-1 text-emerald-600" : "inline-flex items-center gap-1 text-rose-600"}>
-                                {entrada ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                                {entrada ? "Entrada" : "Saída"}
-                              </span>
-                            </td>
-                            <td className="py-2 pr-4 text-muted-foreground">{m.descricao ?? "-"}</td>
-                            <td className={`py-2 pr-4 text-right font-medium ${entrada ? "text-emerald-600" : "text-rose-600"}`}>
-                              {entrada ? "+" : "-"} {fmtMoney(Number(m.valor ?? 0))}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+        {secoes.movimentacoes && (() => {
+          const noPeriodo = empresa ? contratoDentroDoPeriodo(empresa as any) : false;
+          return (
+            <Card>
+              <CardHeader className="flex flex-row items-center gap-2">
+                <CalendarClock className="h-5 w-5 text-primary" />
+                <div className="flex-1">
+                  <CardTitle>Movimentações do contrato</CardTitle>
+                  <p className="text-xs text-muted-foreground">Envios do cadastro e do financeiro, por competência.</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {noPeriodo && (
+                  <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3">
+                    <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-foreground">Contrato dentro do período de movimentação</p>
+                      <p className="text-muted-foreground text-xs">
+                        Este contrato está no período{" "}
+                        <strong>
+                          {(empresa as any)?.tipo_movimentacao === "Diária"
+                            ? `corte dia ${(empresa as any)?.data_corte ?? "-"}`
+                            : (empresa as any)?.periodo_movimentacao ?? "-"}
+                        </strong>
+                        . Envie ou aguarde a movimentação da competência atual.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {!movsContrato || movsContrato.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="text-left text-muted-foreground">
+                        <tr className="border-b">
+                          <th className="py-2 pr-4">Competência</th>
+                          <th className="py-2 pr-4">Período</th>
+                          <th className="py-2 pr-4">Enviado p/ empresa</th>
+                          <th className="py-2 pr-4">Enviado ao financeiro</th>
+                          <th className="py-2 pr-4">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {movsContrato.map((m: any) => {
+                          const status = calcularStatus(m);
+                          return (
+                            <tr key={m.id} className="border-b last:border-0">
+                              <td className="py-2 pr-4 font-medium">{formatMesReferencia(m.mes_referencia)}</td>
+                              <td className="py-2 pr-4">{m.periodo}</td>
+                              <td className="py-2 pr-4">
+                                {m.data_envio_empresa ? (
+                                  <span className="inline-flex items-center gap-1 text-foreground">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-warning" />
+                                    {fmtDate(m.data_envio_empresa)}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                    <Clock className="h-3.5 w-3.5" /> Pendente
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 pr-4">
+                                {m.data_envio_financeiro ? (
+                                  <span className="inline-flex items-center gap-1 text-foreground">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                                    {fmtDate(m.data_envio_financeiro)}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                    <Clock className="h-3.5 w-3.5" /> Pendente
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 pr-4">
+                                <Badge className={cn("text-xs", statusColor(status))}>{status}</Badge>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
       </main>
+
     </div>
   );
 }
