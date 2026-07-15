@@ -382,9 +382,9 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
     drawStatusCard(SAFE.x + cardW + cardGap, "❌", "FORA DO PRAZO", `${foraCount}`, `${pctFora}% do total`, "DC2626");
     drawStatusCard(SAFE.x + (cardW + cardGap) * 2, "🔄", "EM ABERTO", `${emAbertoCount}`, `${pctAberto}% • ${mesAtualLabel}`, "D97706");
 
-    // ===== Gráfico de barras empilhadas (100%) =====
+    // ===== Gráfico de barras empilhadas horizontais (100%) =====
     const chartY = cardsY + cardsH + 0.2;
-    const chartH = 2.4;
+    const chartH = 2.6;
     card(sp, SAFE.x, chartY, SAFE.w, chartH);
     sp.addText("Evolução mensal — % de cumprimento de prazo", {
       x: SAFE.x + 0.3, y: chartY + 0.1, w: SAFE.w - 0.6, h: 0.3,
@@ -399,6 +399,9 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
       ];
     const labels = series.map((s) => s.label);
 
+    // Formato do label: oculta valores < 8% (evita sobreposição em fatias pequenas)
+    const hideSmall = '[<8]"";0"%"';
+
     sp.addChart(pptx.ChartType.bar,
       [
         { name: "No prazo", labels, values: series.map((s) => s.sla) },
@@ -407,14 +410,16 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
       ],
       {
         x: SAFE.x + 0.3, y: chartY + 0.45, w: SAFE.w - 0.6, h: chartH - 0.6,
-        barDir: "col", barGrouping: "percentStacked",
+        barDir: "bar", barGrouping: "percentStacked",
         chartColors: ["16A34A", "DC2626", "D97706"],
-        showValue: true, dataLabelFontSize: 10, dataLabelColor: "FFFFFF",
-        dataLabelPosition: "ctr", dataLabelFormatCode: "0\"%\"",
-        catAxisLabelFontSize: 11, catAxisLabelColor: C.INK,
+        showValue: true,
+        dataLabelFontSize: 11, dataLabelColor: "FFFFFF", dataLabelFontBold: true,
+        dataLabelPosition: "ctr", dataLabelFormatCode: hideSmall,
+        catAxisLabelFontSize: 12, catAxisLabelColor: C.INK, catAxisLabelFontBold: true,
         valAxisLabelFontSize: 9, valAxisLabelColor: C.INK_SOFT,
+        valAxisMinVal: 0, valAxisMaxVal: 100,
         showLegend: true, legendPos: "b", legendFontSize: 10, legendColor: C.INK,
-        barGapWidthPct: 60,
+        barGapWidthPct: 40,
       },
     );
 
