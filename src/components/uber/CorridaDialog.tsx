@@ -46,14 +46,14 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const [empresaOpen, setEmpresaOpen] = useState(false);
 
   const { data: empresas = [] } = useQuery({
-    queryKey: ["empresas-uber-select"],
+    queryKey: ["empresas-uber-select-v2"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome")
+        .select("id, nome, endereco")
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as { id: string; nome: string }[];
+      return (data ?? []) as { id: string; nome: string; endereco: string | null }[];
     },
     staleTime: 5 * 60 * 1000,
   });
