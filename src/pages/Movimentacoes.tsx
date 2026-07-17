@@ -154,16 +154,17 @@ export default function Movimentacoes() {
 
   // Resp. Contrato (aba Movimentações): durante férias, mostra o substituto que
   // está tocando a movimentação; caso contrário, o responsável cadastrado na aba Empresas.
+  // Prioriza responsavel_user_id (fonte de verdade da aba Empresas) sobre o texto legado.
   const respContratoOf = useCallback((emp: EmpresaResponsavel): string => {
     if (!emp) return "";
     const sub = emp.id ? feriasSubstitutoMap.get(emp.id) : undefined;
     if (sub) return sub;
-    if (emp.responsavel_contrato) return emp.responsavel_contrato;
     const uid = emp.responsavel_user_id;
     if (uid) {
       const nm = profilesMap.get(uid);
       if (nm) return nm;
     }
+    if (emp.responsavel_contrato) return emp.responsavel_contrato;
     return "";
   }, [feriasSubstitutoMap, profilesMap]);
 
@@ -172,12 +173,12 @@ export default function Movimentacoes() {
     if (!emp) return "";
     const original = emp.id ? feriasOriginalMap.get(emp.id) : undefined;
     if (original) return original;
-    if (emp.responsavel_contrato) return emp.responsavel_contrato;
     const uid = emp.responsavel_user_id;
     if (uid) {
       const nm = profilesMap.get(uid);
       if (nm) return nm;
     }
+    if (emp.responsavel_contrato) return emp.responsavel_contrato;
     return "";
   }, [feriasOriginalMap, profilesMap]);
 
