@@ -170,6 +170,9 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
                               if (e.endereco) {
                                 if (p.tipo === "Volta") {
                                   next.origem = e.endereco;
+                                } else if (p.tipo === "Ida e Volta") {
+                                  next.origem = e.endereco;
+                                  next.destino = e.endereco;
                                 } else {
                                   next.destino = e.endereco;
                                 }
