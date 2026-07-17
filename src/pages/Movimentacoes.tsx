@@ -184,7 +184,7 @@ export default function Movimentacoes() {
 
 
   const { data: movimentacoes = [], isLoading } = useQuery({
-    queryKey: ["movimentacoes", filterMes, activeTab],
+    queryKey: ["movimentacoes", "empresa-responsavel-atual", filterMes, activeTab],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
@@ -823,7 +823,7 @@ export default function Movimentacoes() {
                           <TableCell>
                             <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{respMovOf(m.empresas) || m.responsavel_movimentacao || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{respMovOf(m.empresas) || "—"}</TableCell>
                           {true && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
