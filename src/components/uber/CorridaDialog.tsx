@@ -165,7 +165,17 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
                           key={e.id}
                           value={e.nome}
                           onSelect={() => {
-                            set("empresa", e.nome);
+                            setForm((p) => {
+                              const next: Partial<UberCorrida> = { ...p, empresa: e.nome };
+                              if (e.endereco) {
+                                if (p.tipo === "Volta") {
+                                  next.origem = e.endereco;
+                                } else {
+                                  next.destino = e.endereco;
+                                }
+                              }
+                              return next;
+                            });
                             setEmpresaOpen(false);
                           }}
                         >
