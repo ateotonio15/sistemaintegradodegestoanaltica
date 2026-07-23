@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Pencil, Trash2, CheckCircle2, Circle } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, CheckCircle2, Circle, FileSpreadsheet } from "lucide-react";
+import ExcelJS from "exceljs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,50 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAtendimentos, usePlantaoMutations, usePlantoesRealtime, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 import { AtendimentoDialog } from "@/components/plantoes/AtendimentoDialog";
 import { InlineDemandaForm } from "@/components/plantoes/InlineDemandaForm";
+import { toast } from "sonner";
+
+async function exportarAtendimentosExcel(
+  atendimentos: PlantaoAtendimento[],
+  empresaNome: string,
+  dataPlantao: string,
+) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "SIGA";
+  wb.created = new Date();
+  const ws = wb.addWorksheet("Atendimentos");
+  ws.columns = [
+    { header: "Hora", key: "hora", width: 10 },
+    { header: "Nome do Cliente", key: "nome_cliente", width: 40 },
+    { header: "CPF", key: "cpf", width: 18 },
+    { header: "Assunto", key: "assunto", width: 40 },
+    { header: "Status", key: "status", width: 14 },
+    { header: "Observação", key: "observacao", width: 50 },
+  ];
+  ws.getRow(1).font = { bold: true };
+  ws.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
+  atendimentos.forEach((a) =>
+    ws.addRow({
+      hora: a.hora ?? "",
+      nome_cliente: a.nome_cliente ?? "",
+      cpf: a.cpf ?? "",
+      assunto: a.assunto ?? "",
+      status: a.resolvido ? "Resolvido" : "Em aberto",
+      observacao: a.observacao ?? "",
+    }),
+  );
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const nomeSafe = empresaNome.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const [y, m, d] = dataPlantao.split("-");
+  a.href = url;
+  a.download = `atendimentos_${nomeSafe}_${d}-${m}-${y}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function PlantaoAtendimentos() {
   const { plantaoId } = useParams<{ plantaoId: string }>();
