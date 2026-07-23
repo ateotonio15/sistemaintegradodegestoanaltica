@@ -209,13 +209,24 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
 
               {/* Demandas */}
               <div className="space-y-2">
-                <button
-                  onClick={() => setDemandasOpen((v) => !v)}
-                  className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground"
-                >
-                  <ChevronDown className={`h-4 w-4 transition-transform ${demandasOpen ? "" : "-rotate-90"}`} />
-                  Demandas ({stats.total})
-                </button>
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => setDemandasOpen((v) => !v)}
+                    className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground"
+                  >
+                    <ChevronDown className={`h-4 w-4 transition-transform ${demandasOpen ? "" : "-rotate-90"}`} />
+                    Demandas ({stats.total})
+                  </button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => exportarAtendimentosXlsx(atendimentos, empresaNome ?? active.plantonista ?? "plantao", active.data)}
+                    disabled={!atendimentos.length}
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-1" /> Exportar Excel
+                  </Button>
+                </div>
+
 
                 {demandasOpen && (
                   <div className="space-y-2">
