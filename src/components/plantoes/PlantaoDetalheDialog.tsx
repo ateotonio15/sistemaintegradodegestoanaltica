@@ -8,13 +8,78 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  User, Building2, MapPin, ChevronDown, Plus, Pencil, Trash2,
+  User, Building2, MapPin, ChevronDown, Plus, Pencil, Trash2, FileSpreadsheet,
 } from "lucide-react";
+import ExcelJS from "exceljs";
 import { useAtendimentos, usePlantaoMutations, usePlantoes, type Plantao, type PlantaoAtendimento } from "@/hooks/usePlantoes";
 import { AtendimentoDialog, parseAssunto } from "@/components/plantoes/AtendimentoDialog";
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { AdicionarExecutivaDialog } from "@/components/plantoes/AdicionarExecutivaDialog";
 import { InlineDemandaForm } from "@/components/plantoes/InlineDemandaForm";
+import { toast } from "sonner";
+
+async function exportarAtendimentosXlsx(
+  atendimentos: PlantaoAtendimento[],
+  empresaNome: string,
+  dataPlantao: string,
+) {
+  if (!atendimentos.length) {
+    toast.info("Nenhum atendimento para exportar");
+    return;
+  }
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "SIGA";
+  wb.created = new Date();
+  const ws = wb.addWorksheet("Atendimentos");
+  ws.columns = [
+    { header: "Hora", key: "hora", width: 10 },
+    { header: "Nome do Cliente", key: "nome_cliente", width: 40 },
+    { header: "CPF", key: "cpf", width: 18 },
+    { header: "Tipo", key: "tipo", width: 14 },
+    { header: "Canal", key: "canal", width: 14 },
+    { header: "Status", key: "status", width: 16 },
+    { header: "Observação", key: "observacao", width: 50 },
+  ];
+  const header = ws.getRow(1);
+  header.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  header.alignment = { vertical: "middle", horizontal: "center" };
+  header.eachCell((cell) => {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF16A34A" } };
+  });
+  atendimentos.forEach((a) => {
+    const meta = parseAssunto(a.assunto, a.resolvido);
+    ws.addRow({
+      hora: a.hora ?? "",
+      nome_cliente: a.nome_cliente ?? "",
+      cpf: a.cpf ?? "",
+      tipo: meta.tipo ?? "",
+      canal: meta.canal ?? "",
+      status: meta.status ?? (a.resolvido ? "Resolvido" : "Pendente"),
+      observacao: a.observacao ?? "",
+    });
+  });
+  ws.columns.forEach((col) => {
+    let max = col.header ? String(col.header).length : 10;
+    col.eachCell?.({ includeEmpty: false }, (cell) => {
+      const len = String(cell.value ?? "").length;
+      if (len > max) max = len;
+    });
+    col.width = Math.min(Math.max(max + 2, 10), 60);
+  });
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const nomeSafe = (empresaNome || "plantao").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const [y, m, d] = dataPlantao.split("-");
+  a.href = url;
+  a.download = `atendimentos_${nomeSafe}_${d}-${m}-${y}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success("Excel exportado");
+}
 
 const STATUS_COLORS: Record<string, string> = {
   "Pendente": "bg-amber-100 text-amber-700 hover:bg-amber-100 border-0",
