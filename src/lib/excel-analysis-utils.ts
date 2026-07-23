@@ -337,9 +337,10 @@ function parseFaixaEtariaLabel(raw: unknown): FaixaEtariaResumo | null {
 
 function isInclusao(tipo: string): boolean {
   const t = norm(tipo);
-  // Inclusão e Cobrança Retroativa (ex.: "C. RETROATIVA", "Cob. Retroativo")
+  // Inclusão/Inclusões e Cobrança Retroativa (ex.: "C. RETROATIVA", "Cob. Retroativo")
   // são tratadas como acréscimos e somadas em Inclusões.
-  return t.includes("inclusao") || t.includes("inclusão") || t.includes("retroativ");
+  // Aceita singular e plural: "inclusao", "inclusoes" (após norm remove acentos).
+  return t.includes("inclus") || t.includes("retroativ");
 }
 
 function isRetroativa(tipo: string): boolean {
@@ -348,16 +349,14 @@ function isRetroativa(tipo: string): boolean {
 
 function isExclusao(tipo: string): boolean {
   const t = norm(tipo);
-  return (
-    t.includes("exclusao") ||
-    t.includes("exclusão") ||
-    t.includes("excluido")
-  );
+  // Aceita singular e plural: "exclusao", "exclusoes", "excluido(s)", "excluida(s)".
+  return t.includes("exclus") || t.includes("excluid");
 }
 
 function isDevolucao(tipo: string): boolean {
   const t = norm(tipo);
-  return t.includes("devolucao") || t.includes("devolução") || t.includes("devolvido");
+  // Aceita singular e plural: "devolucao", "devolucoes", "devolvido(s)", "devolvida(s)".
+  return t.includes("devolu") || t.includes("devolvid");
 }
 
 export function isTaxaAdesao(tipo: string): boolean {
