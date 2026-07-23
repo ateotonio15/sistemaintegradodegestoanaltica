@@ -95,7 +95,23 @@ export default function PlantaoAtendimentos() {
             {plantao && `${new Date(plantao.data + "T00:00:00").toLocaleDateString("pt-BR")} · ${plantao.turno} · ${plantao.plantonista || "sem plantonista"}`}
           </p>
         </div>
-        {isAdmin && <Button onClick={() => setNovo(true)}><Plus className="h-4 w-4 mr-1" /> Atendimento</Button>}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!atendimentos.length}
+            onClick={() => {
+              if (plantao) {
+                exportarAtendimentosExcel(atendimentos, plantao.empresa?.nome ?? "plantao", plantao.data).catch(() =>
+                  toast.error("Erro ao exportar Excel"),
+                );
+              }
+            }}
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-1" /> Exportar Excel
+          </Button>
+          {isAdmin && <Button onClick={() => setNovo(true)}><Plus className="h-4 w-4 mr-1" /> Atendimento</Button>}
+        </div>
       </div>
 
       <Card><CardContent className="p-0">
