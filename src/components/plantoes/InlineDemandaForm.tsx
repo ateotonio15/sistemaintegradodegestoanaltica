@@ -101,8 +101,15 @@ export function InlineDemandaForm({
   });
 
   const reset = () => {
-    setNome(""); setCpf(""); setTipo("Consulta"); setCanal("Presencial");
+    setNome(""); setCpf(""); setMatricula(""); setTipo("Consulta"); setCanal("Presencial");
     setStatus("Pendente"); setObservacao("");
+  };
+
+  const obsComMatricula = () => {
+    const m = matricula.trim();
+    const o = observacao.trim();
+    if (!m) return o;
+    return o ? `Matrícula: ${m}\n${o}` : `Matrícula: ${m}`;
   };
 
   const salvar = async () => {
@@ -117,7 +124,7 @@ export function InlineDemandaForm({
         empresa: empresaNome || "",
         executiva: executivaNome || "",
         tipo_reclamacao: "Reclamação",
-        detalhamento: observacao.trim(),
+        detalhamento: obsComMatricula(),
       });
       setReclamacaoOpen(true);
       return;
@@ -134,7 +141,7 @@ export function InlineDemandaForm({
         cpf: cpf.trim(),
         assunto: `${tipo} · ${canal} · ${status}`,
         resolvido: status === "Resolvido",
-        observacao: observacao.trim(),
+        observacao: obsComMatricula(),
       });
       toast.success("Demanda adicionada");
       reset();
