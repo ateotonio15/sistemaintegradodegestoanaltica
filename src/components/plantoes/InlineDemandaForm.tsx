@@ -42,6 +42,7 @@ export function InlineDemandaForm({
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
+  const [matricula, setMatricula] = useState("");
   const [tipo, setTipo] = useState<Tipo>("Consulta");
   const [canal, setCanal] = useState<Canal>("Presencial");
   const [status, setStatus] = useState<Status>("Pendente");
@@ -100,8 +101,15 @@ export function InlineDemandaForm({
   });
 
   const reset = () => {
-    setNome(""); setCpf(""); setTipo("Consulta"); setCanal("Presencial");
+    setNome(""); setCpf(""); setMatricula(""); setTipo("Consulta"); setCanal("Presencial");
     setStatus("Pendente"); setObservacao("");
+  };
+
+  const obsComMatricula = () => {
+    const m = matricula.trim();
+    const o = observacao.trim();
+    if (!m) return o;
+    return o ? `Matrícula: ${m}\n${o}` : `Matrícula: ${m}`;
   };
 
   const salvar = async () => {
@@ -116,7 +124,7 @@ export function InlineDemandaForm({
         empresa: empresaNome || "",
         executiva: executivaNome || "",
         tipo_reclamacao: "Reclamação",
-        detalhamento: observacao.trim(),
+        detalhamento: obsComMatricula(),
       });
       setReclamacaoOpen(true);
       return;
@@ -133,7 +141,7 @@ export function InlineDemandaForm({
         cpf: cpf.trim(),
         assunto: `${tipo} · ${canal} · ${status}`,
         resolvido: status === "Resolvido",
-        observacao: observacao.trim(),
+        observacao: obsComMatricula(),
       });
       toast.success("Demanda adicionada");
       reset();
@@ -179,10 +187,18 @@ export function InlineDemandaForm({
             <p className="text-[11px] text-muted-foreground">Empresa: <span className="font-medium text-foreground">{empresaDetectada}</span></p>
           )}
           <div className="space-y-2">
-            <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
-              <SelectTrigger className="w-full"><SelectValue placeholder="Tipo" /></SelectTrigger>
-              <SelectContent>{TIPOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-            </Select>
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>{TIPOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              </Select>
+              <Input
+                placeholder="Matrícula"
+                value={matricula}
+                onChange={(e) => setMatricula(e.target.value)}
+                maxLength={40}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <Select value={canal} onValueChange={(v) => setCanal(v as Canal)}>
                 <SelectTrigger><SelectValue placeholder="Canal" /></SelectTrigger>
