@@ -218,11 +218,11 @@ export function calcularPrazoFinanceiro(input: CalcPrazoInput): CalcPrazoResult 
   return { categoria: "Em andamento", inicio, limite, janelaHoras };
 }
 
-/** Lista os meses dos últimos 12 + próximos 1 para o filtro */
+/** Lista os meses dos últimos 12 + próximos 3 para o filtro */
 export function getMesesOptions(): string[] {
   const now = new Date();
   const meses: string[] = [];
-  for (let i = -1; i <= 12; i++) {
+  for (let i = -3; i <= 12; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   }
