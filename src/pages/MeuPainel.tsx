@@ -229,18 +229,19 @@ export default function MeuPainel() {
 
 
         {/* Two-column layout */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
           {/* Left column: Resumo + Movimentações */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             {secoes.contrato && (
               <section className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="px-6 py-4 border-b border-border flex justify-between items-center">
-                  <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex justify-between items-center">
+                  <h2 className="text-xs md:text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
                     Resumo do contrato
                   </h2>
                 </div>
-                <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-8">
+                <div className="p-4 md:p-6 grid grid-cols-2 md:grid-cols-3 gap-y-4 md:gap-y-6 gap-x-4 md:gap-x-8">
+
                   <Info label="Empresa" value={empresaNome} />
                   <Info label="CNPJ" value={(empresa as any)?.cnpj ?? "—"} />
                   <Info label="Status" value={(empresa as any)?.status_empresa ?? "—"} />
