@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { Ticks, statusFromMsg } from "@/components/atendimentos/Ticks";
 
 type ChatMsg =
   | { key: string; role: "user"; text: string; at?: string; lida_em?: string | null }
