@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Building2, FileText, Users, Wallet, CalendarClock, AlertTriangle, CheckCircle2, Clock, Moon, Sun } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LogOut, Building2, FileText, Users, Wallet, CalendarClock, AlertTriangle, CheckCircle2, Clock, Moon, Sun, Briefcase } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,17 +23,17 @@ function fmtDate(v: string | null | undefined) {
 }
 
 export default function MeuPainel() {
-  const { user, empresaVinculadaId, signOut } = useAuth();
+  const { user, activeEmpresaId, setActiveEmpresaId, isCorretora, corretoraNome, corretoraEmpresas, corretoraPortalSecoes, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const { data: empresa } = useQuery({
-    queryKey: ["meu-painel", "empresa", empresaVinculadaId],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["meu-painel", "empresa", activeEmpresaId],
+    enabled: !!activeEmpresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
         .select("id, nome, cnpj, status_empresa, portal_secoes, tipo_movimentacao, periodo_movimentacao, data_implantacao, data_corte, dia_movimentacao, prazo, responsavel_contrato, executiva_user_id, valor_enfermaria_centavos, valor_apartamento_centavos, vidas")
-        .eq("id", empresaVinculadaId!)
+        .eq("id", activeEmpresaId!)
         .maybeSingle();
       if (error) throw error;
       let executivaNome: string | null = null;
@@ -48,18 +49,27 @@ export default function MeuPainel() {
     },
   });
 
-  const secoes = ((empresa as any)?.portal_secoes ?? {
+  const empresaSecoes = ((empresa as any)?.portal_secoes ?? {
     contrato: true, vidas: true, movimentacoes: true, chat: true,
   }) as Record<string, boolean>;
+  // Se for corretora, aplica também as seções configuradas na corretora (intersecção).
+  const secoes: Record<string, boolean> = isCorretora && corretoraPortalSecoes
+    ? Object.fromEntries(
+        ["contrato", "vidas", "movimentacoes", "chat"].map((k) => [
+          k,
+          Boolean(empresaSecoes[k]) && Boolean(corretoraPortalSecoes[k]),
+        ]),
+      )
+    : empresaSecoes;
 
   const { data: contrato } = useQuery({
-    queryKey: ["meu-painel", "contrato", empresaVinculadaId],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["meu-painel", "contrato", activeEmpresaId],
+    enabled: !!activeEmpresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contratos")
         .select("valor_mensal, data_inicio, data_fim, status")
-        .eq("empresa_id", empresaVinculadaId!)
+        .eq("empresa_id", activeEmpresaId!)
         .order("data_inicio", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -69,13 +79,13 @@ export default function MeuPainel() {
   });
 
   const { data: vidasAtivas } = useQuery({
-    queryKey: ["meu-painel", "vidas", empresaVinculadaId],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["meu-painel", "vidas", activeEmpresaId],
+    enabled: !!activeEmpresaId,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("vidas_ativas")
         .select("id", { count: "exact", head: true })
-        .eq("empresa_id", empresaVinculadaId!)
+        .eq("empresa_id", activeEmpresaId!)
         .eq("status", "ativo");
       if (error) throw error;
       return count ?? 0;
@@ -83,13 +93,13 @@ export default function MeuPainel() {
   });
 
   const { data: movsContrato } = useQuery({
-    queryKey: ["meu-painel", "movs-contrato", empresaVinculadaId, "v2-2026-05"],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["meu-painel", "movs-contrato", activeEmpresaId, "v2-2026-05"],
+    enabled: !!activeEmpresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
         .select("id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, created_at")
-        .eq("empresa_id", empresaVinculadaId!)
+        .eq("empresa_id", activeEmpresaId!)
         .gte("mes_referencia", "2026-05")
         .order("mes_referencia", { ascending: false })
         .order("periodo", { ascending: false })
@@ -100,13 +110,13 @@ export default function MeuPainel() {
   });
 
   const { data: notasFinanceiro } = useQuery({
-    queryKey: ["meu-painel", "notas-financeiro", empresaVinculadaId],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["meu-painel", "notas-financeiro", activeEmpresaId],
+    enabled: !!activeEmpresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
         .select("mes_referencia, periodo, data_envio_nota")
-        .eq("empresa_id", empresaVinculadaId!)
+        .eq("empresa_id", activeEmpresaId!)
         .not("data_envio_nota", "is", null);
       if (error) throw error;
       const map = new Map<string, string>();
@@ -137,15 +147,29 @@ export default function MeuPainel() {
         <div className="container mx-auto flex items-center justify-between gap-2 px-4 py-3 md:py-4">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="relative shrink-0">
-              <Building2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+              {isCorretora ? <Briefcase className="h-5 w-5 md:h-6 md:w-6 text-primary" /> : <Building2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />}
               <div className="absolute inset-0 -z-10 blur-xl bg-primary/30 rounded-full" />
             </div>
             <div className="min-w-0">
-              <div className="font-semibold leading-tight text-sm md:text-base truncate">{empresaNome}</div>
+              <div className="font-semibold leading-tight text-sm md:text-base truncate">
+                {isCorretora ? corretoraNome ?? "Corretora" : empresaNome}
+              </div>
               <div className="text-[11px] md:text-xs text-muted-foreground truncate">{user?.email}</div>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {isCorretora && corretoraEmpresas.length > 0 && (
+              <Select value={activeEmpresaId ?? ""} onValueChange={(v) => setActiveEmpresaId(v)}>
+                <SelectTrigger className="h-9 w-[180px] md:w-[260px] text-xs md:text-sm">
+                  <SelectValue placeholder="Selecionar empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {corretoraEmpresas.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleTheme} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>

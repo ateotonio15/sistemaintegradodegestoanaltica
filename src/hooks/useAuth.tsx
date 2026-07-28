@@ -22,6 +22,13 @@ interface AuthContextType {
   isAdministradoras: boolean;
   isAdminInterno: boolean;
   isAdminEmpresa: boolean;
+  isCorretora: boolean;
+  corretoraId: string | null;
+  corretoraNome: string | null;
+  corretoraPortalSecoes: Record<string, boolean> | null;
+  corretoraEmpresas: { id: string; nome: string }[];
+  activeEmpresaId: string | null;
+  setActiveEmpresaId: (id: string | null) => void;
   empresaVinculadaId: string | null;
   mustChangePassword: boolean;
   canEditFinanceiro: boolean;
@@ -46,6 +53,13 @@ const AuthContext = createContext<AuthContextType>({
   isAdministradoras: false,
   isAdminInterno: false,
   isAdminEmpresa: false,
+  isCorretora: false,
+  corretoraId: null,
+  corretoraNome: null,
+  corretoraPortalSecoes: null,
+  corretoraEmpresas: [],
+  activeEmpresaId: null,
+  setActiveEmpresaId: () => {},
   empresaVinculadaId: null,
   mustChangePassword: false,
   canEditFinanceiro: false,
@@ -62,6 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdminEmpresa, setIsAdminEmpresa] = useState(false);
   const [empresaVinculadaId, setEmpresaVinculadaId] = useState<string | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [corretoraId, setCorretoraId] = useState<string | null>(null);
+  const [corretoraNome, setCorretoraNome] = useState<string | null>(null);
+  const [corretoraPortalSecoes, setCorretoraPortalSecoes] = useState<Record<string, boolean> | null>(null);
+  const [corretoraEmpresas, setCorretoraEmpresas] = useState<{ id: string; nome: string }[]>([]);
+  const [activeEmpresaId, setActiveEmpresaId] = useState<string | null>(null);
   const roleRef = useRef<UserRole>(null);
   const lastUserIdRef = useRef<string | null>(null);
   const roleRequestRef = useRef(0);
@@ -72,10 +91,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadFlags = useCallback(async (userId: string) => {
     const requestId = ++roleRequestRef.current;
-    const [rolesRes, profileRes, empresaRes] = await Promise.all([
+    const [rolesRes, profileRes, empresaRes, corretoraRes] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase.from("profiles").select("must_change_password").eq("user_id", userId).maybeSingle(),
       supabase.from("empresa_usuarios").select("empresa_id, papel").eq("user_id", userId).limit(1).maybeSingle(),
+      (supabase as any).rpc("get_minha_corretora"),
     ]);
     if (requestId !== roleRequestRef.current) return;
 
@@ -84,12 +104,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const papel = ((empresaRes.data as any)?.papel ?? null) as string | null;
     setRole(primaryRole);
     setIsAdminInterno(roles.includes("admin_interno"));
-    // Usuário do portal da empresa: apenas quando o papel for admin_empresa.
-    // "colaborador" também é usado para vincular usuários internos (Cadastro/Executivo)
-    // a empresas, então não deve forçar o redirecionamento para o portal.
     setIsAdminEmpresa(papel === "admin_empresa");
-    setEmpresaVinculadaId(((empresaRes.data as any)?.empresa_id as string) ?? null);
+    const empId = ((empresaRes.data as any)?.empresa_id as string) ?? null;
+    setEmpresaVinculadaId(empId);
     setMustChangePassword(Boolean((profileRes.data as any)?.must_change_password));
+
+    const cor = ((corretoraRes as any)?.data ?? [])[0] ?? null;
+    if (cor?.corretora_id) {
+      setCorretoraId(cor.corretora_id);
+      setCorretoraNome(cor.nome);
+      setCorretoraPortalSecoes(cor.portal_secoes ?? null);
+      const { data: vincs } = await (supabase as any)
+        .from("corretora_empresas")
+        .select("empresa_id, empresas(id, nome)")
+        .eq("corretora_id", cor.corretora_id);
+      const list = ((vincs ?? []) as any[])
+        .map((v) => ({ id: v.empresas?.id, nome: v.empresas?.nome }))
+        .filter((v) => v.id)
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+      setCorretoraEmpresas(list);
+      setActiveEmpresaId((prev) => prev ?? list[0]?.id ?? null);
+    } else {
+      setCorretoraId(null);
+      setCorretoraNome(null);
+      setCorretoraPortalSecoes(null);
+      setCorretoraEmpresas([]);
+      setActiveEmpresaId(empId);
+    }
     setLoading(false);
   }, []);
 
@@ -113,6 +154,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAdminEmpresa(false);
         setEmpresaVinculadaId(null);
         setMustChangePassword(false);
+        setCorretoraId(null);
+        setCorretoraNome(null);
+        setCorretoraPortalSecoes(null);
+        setCorretoraEmpresas([]);
+        setActiveEmpresaId(null);
         setLoading(false);
         return;
       }
@@ -163,6 +209,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdministradoras: role === "administradoras",
       isAdminInterno,
       isAdminEmpresa,
+      isCorretora: !!corretoraId,
+      corretoraId,
+      corretoraNome,
+      corretoraPortalSecoes,
+      corretoraEmpresas,
+      activeEmpresaId,
+      setActiveEmpresaId,
       empresaVinculadaId,
       mustChangePassword,
       canEditFinanceiro: role === "admin" || role === "financeiro",
