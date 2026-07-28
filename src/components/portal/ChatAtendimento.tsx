@@ -311,7 +311,7 @@ function ConversaDialog({
     setTimeout(() => inputRef.current?.focus(), 60);
   }, [open, isNew, atendimento?.id]);
 
-  // Realtime: se conversa (nova recém-classificada ou existente) tiver id, ouve staff msgs
+  // Realtime: escuta novas mensagens (staff) + updates de leitura nas mensagens da empresa
   useEffect(() => {
     if (!currentAtdId) return;
     if (subRef.current === currentAtdId) return;
@@ -331,8 +331,23 @@ function ConversaDialog({
           if (row.autor_tipo !== "staff") return;
           setMessages((m) => [
             ...m,
-            { key: row.id, role: "staff", text: row.mensagem, at: row.criado_em },
+            { key: row.id, role: "staff", text: row.mensagem, at: row.criado_em, lida_em: row.lida_em },
           ]);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "atendimentos_mensagens",
+          filter: `atendimento_id=eq.${currentAtdId}`,
+        },
+        (payload) => {
+          const row = payload.new as any;
+          setMessages((prev) =>
+            prev.map((m) => (m.key === row.id ? ({ ...m, lida_em: row.lida_em } as ChatMsg) : m)),
+          );
         },
       )
       .subscribe();
@@ -342,9 +357,26 @@ function ConversaDialog({
     };
   }, [currentAtdId]);
 
+  // Marca mensagens do staff como lidas quando a conversa está aberta
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, loading]);
+    if (!open || !currentAtdId) return;
+    const unread = messages
+      .filter((m) => m.role === "staff" && !(m as any).lida_em && !m.key.startsWith("orig-"))
+      .map((m) => m.key);
+    if (unread.length === 0) return;
+    (async () => {
+      const nowIso = new Date().toISOString();
+      await (supabase as any)
+        .from("atendimentos_mensagens")
+        .update({ lida_em: nowIso })
+        .in("id", unread);
+      setMessages((prev) =>
+        prev.map((m) =>
+          unread.includes(m.key) ? ({ ...m, lida_em: nowIso } as ChatMsg) : m,
+        ),
+      );
+    })();
+  }, [open, currentAtdId, messages]);
 
   async function uploadImage(file: File) {
     if (!userId) {
