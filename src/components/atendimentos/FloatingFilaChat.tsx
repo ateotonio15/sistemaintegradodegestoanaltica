@@ -189,7 +189,7 @@ export function FloatingFilaChat() {
                           : "bg-muted",
                       )}
                     >
-                      <div className="whitespace-pre-wrap">{m.mensagem}</div>
+                      <MensagemBody text={m.mensagem} />
                       <div className={cn("text-[10px] mt-1 opacity-70")}>
                         {new Date(m.criado_em).toLocaleString("pt-BR")}
                       </div>
