@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MensagemBody } from "@/components/atendimentos/MensagemBody";
 
 type Setor = "cadastro" | "relacionamento" | "financeiro";
 type Status = "aberto" | "em_andamento" | "resolvido";
@@ -189,7 +190,7 @@ export function FloatingFilaChat() {
                           : "bg-muted",
                       )}
                     >
-                      <div className="whitespace-pre-wrap">{m.mensagem}</div>
+                      <MensagemBody text={m.mensagem} />
                       <div className={cn("text-[10px] mt-1 opacity-70")}>
                         {new Date(m.criado_em).toLocaleString("pt-BR")}
                       </div>

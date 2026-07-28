@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, ArrowRightLeft, CheckCircle2, PlayCircle, Send } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { MensagemBody } from "@/components/atendimentos/MensagemBody";
 
 type Setor = "cadastro" | "relacionamento" | "financeiro";
 type Status = "aberto" | "em_andamento" | "resolvido";
@@ -322,7 +323,7 @@ export default function FilaAtendimento() {
                             ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
                             : "max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm"
                         }>
-                          <div className="whitespace-pre-wrap">{m.mensagem}</div>
+                          <MensagemBody text={m.mensagem} />
                           <div className={"text-[10px] mt-1 opacity-70"}>
                             {new Date(m.criado_em).toLocaleString("pt-BR")}
                           </div>

@@ -13,11 +13,13 @@ import {
   Clock,
   Headphones,
   History,
+  ImagePlus,
   Loader2,
   MessageSquare,
   Plus,
   Send,
   Sparkles,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -254,6 +256,9 @@ function ConversaDialog({
   const [loading, setLoading] = useState(false);
   const [currentAtdId, setCurrentAtdId] = useState<string | null>(null);
   const [currentSetor, setCurrentSetor] = useState<string | null>(null);
+  const [pendingImages, setPendingImages] = useState<{ url: string; name: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const subRef = useRef<string | null>(null);
@@ -262,6 +267,7 @@ function ConversaDialog({
   useEffect(() => {
     if (!open) return;
     setInput("");
+    setPendingImages([]);
     if (isNew) {
       setMessages([
         {
@@ -339,18 +345,64 @@ function ConversaDialog({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
+  async function uploadImage(file: File) {
+    if (!userId) {
+      toast.error("Sessão expirada");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Imagem acima de 8MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("atendimentos-anexos")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      // Signed URL válida por 1 ano
+      const { data: signed, error: sErr } = await supabase.storage
+        .from("atendimentos-anexos")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (sErr || !signed?.signedUrl) throw sErr ?? new Error("Erro ao gerar URL");
+      setPendingImages((p) => [...p, { url: signed.signedUrl, name: file.name }]);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao enviar imagem");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  function composeBody(texto: string, imgs: { url: string; name: string }[]) {
+    const parts: string[] = [];
+    if (texto) parts.push(texto);
+    imgs.forEach((i) => parts.push(`![${i.name}](${i.url})`));
+    return parts.join("\n\n");
+  }
+
   async function enviar() {
     const texto = input.trim();
-    if (!texto || loading) return;
+    const imgs = pendingImages;
+    if ((!texto && imgs.length === 0) || loading) return;
+    const body = composeBody(texto, imgs);
     setInput("");
+    setPendingImages([]);
     const tempKey = `u-${Date.now()}`;
-    setMessages((m) => [...m, { key: tempKey, role: "user", text: texto }]);
+    setMessages((m) => [...m, { key: tempKey, role: "user", text: body }]);
     setLoading(true);
     try {
       if (!currentAtdId) {
         // Nova conversa → classificar via edge function
+        const mensagemClass = texto || (imgs.length > 0 ? "[Imagem enviada]" : "");
         const { data, error } = await supabase.functions.invoke("classificar-atendimento", {
-          body: { mensagem: texto, empresa_id: empresaId },
+          body: { mensagem: mensagemClass, empresa_id: empresaId, mensagem_completa: body },
         });
         if (error) throw error;
         if ((data as any)?.error) throw new Error((data as any).error);
@@ -368,6 +420,15 @@ function ConversaDialog({
         if (atdId) {
           setCurrentAtdId(atdId);
           setCurrentSetor(setor ?? null);
+          // Se houver imagens, adiciona como mensagem da empresa para ficar visível ao staff
+          if (imgs.length > 0 && userId) {
+            await (supabase as any).from("atendimentos_mensagens").insert({
+              atendimento_id: atdId,
+              autor_tipo: "empresa",
+              autor_id: userId,
+              mensagem: body,
+            });
+          }
         }
       } else {
         // Conversa existente → insere mensagem da empresa
@@ -376,7 +437,7 @@ function ConversaDialog({
           atendimento_id: currentAtdId,
           autor_tipo: "empresa",
           autor_id: userId,
-          mensagem: texto,
+          mensagem: body,
         });
         if (error) throw error;
       }
@@ -384,6 +445,7 @@ function ConversaDialog({
       toast.error(err?.message ?? "Erro ao enviar mensagem");
       setMessages((m) => m.filter((x) => x.key !== tempKey));
       setInput(texto);
+      setPendingImages(imgs);
     } finally {
       setLoading(false);
     }
@@ -472,8 +534,18 @@ function ConversaDialog({
                     <Badge className="text-[10px] font-medium">Resposta da equipe</Badge>
                   </div>
                 )}
-                <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1">
-                  <ReactMarkdown>{m.text}</ReactMarkdown>
+                <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-img:my-1 prose-img:rounded-lg prose-img:max-h-72">
+                  <ReactMarkdown
+                    components={{
+                      img: ({ node, ...props }) => (
+                        <a href={props.src as string} target="_blank" rel="noreferrer">
+                          <img {...props} className="rounded-lg max-h-72 border border-border/40" />
+                        </a>
+                      ),
+                    }}
+                  >
+                    {m.text}
+                  </ReactMarkdown>
                 </div>
                 {m.at && (
                   <div
@@ -504,7 +576,54 @@ function ConversaDialog({
 
         <Separator />
         <div className="bg-background p-3">
+          {pendingImages.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {pendingImages.map((img, i) => (
+                <div
+                  key={img.url}
+                  className="group relative h-16 w-16 overflow-hidden rounded-lg border border-border/60 bg-muted"
+                >
+                  <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPendingImages((p) => p.filter((_, idx) => idx !== i))
+                    }
+                    className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-label="Remover imagem"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex items-end gap-2 rounded-xl border border-border/70 bg-card p-2 shadow-sm focus-within:ring-2 focus-within:ring-primary/30">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) uploadImage(f);
+              }}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || loading}
+              title="Anexar imagem"
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ImagePlus className="h-4 w-4" />
+              )}
+            </Button>
             <Textarea
               ref={inputRef}
               value={input}
@@ -519,7 +638,7 @@ function ConversaDialog({
             />
             <Button
               onClick={enviar}
-              disabled={loading || !input.trim()}
+              disabled={loading || (!input.trim() && pendingImages.length === 0)}
               size="icon"
               className="h-9 w-9 shrink-0"
             >
@@ -538,7 +657,7 @@ function ConversaDialog({
             <kbd className="rounded border border-border bg-background px-1 py-px text-[10px]">
               Shift+Enter
             </kbd>{" "}
-            nova linha
+            nova linha · anexe imagens com o ícone 📎
           </p>
         </div>
       </DialogContent>
