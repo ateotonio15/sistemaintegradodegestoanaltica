@@ -576,7 +576,54 @@ function ConversaDialog({
 
         <Separator />
         <div className="bg-background p-3">
+          {pendingImages.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {pendingImages.map((img, i) => (
+                <div
+                  key={img.url}
+                  className="group relative h-16 w-16 overflow-hidden rounded-lg border border-border/60 bg-muted"
+                >
+                  <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPendingImages((p) => p.filter((_, idx) => idx !== i))
+                    }
+                    className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-label="Remover imagem"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex items-end gap-2 rounded-xl border border-border/70 bg-card p-2 shadow-sm focus-within:ring-2 focus-within:ring-primary/30">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) uploadImage(f);
+              }}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || loading}
+              title="Anexar imagem"
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ImagePlus className="h-4 w-4" />
+              )}
+            </Button>
             <Textarea
               ref={inputRef}
               value={input}
@@ -591,7 +638,7 @@ function ConversaDialog({
             />
             <Button
               onClick={enviar}
-              disabled={loading || !input.trim()}
+              disabled={loading || (!input.trim() && pendingImages.length === 0)}
               size="icon"
               className="h-9 w-9 shrink-0"
             >
@@ -610,7 +657,7 @@ function ConversaDialog({
             <kbd className="rounded border border-border bg-background px-1 py-px text-[10px]">
               Shift+Enter
             </kbd>{" "}
-            nova linha
+            nova linha · anexe imagens com o ícone 📎
           </p>
         </div>
       </DialogContent>
