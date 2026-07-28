@@ -22,7 +22,7 @@ function fmtDate(v: string | null | undefined) {
 }
 
 export default function MeuPainel() {
-  const { user, activeEmpresaId, signOut } = useAuth();
+  const { user, activeEmpresaId, setActiveEmpresaId, isCorretora, corretoraNome, corretoraEmpresas, corretoraPortalSecoes, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const { data: empresa } = useQuery({
