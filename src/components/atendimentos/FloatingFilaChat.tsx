@@ -7,11 +7,40 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, PlayCircle, Paperclip, X as XIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, Paperclip, X as XIcon, Search, Inbox, Clock, CheckCheck, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MensagemBody } from "@/components/atendimentos/MensagemBody";
 import { Ticks, statusFromMsg } from "@/components/atendimentos/Ticks";
+
+function timeAgo(iso: string) {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return "agora";
+  if (diff < 3600) return `${Math.floor(diff / 60)}min`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+function initials(name?: string | null) {
+  if (!name) return "?";
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+}
+
+function avatarColor(seed: string) {
+  const palette = [
+    "from-emerald-500/80 to-teal-600/80",
+    "from-sky-500/80 to-blue-600/80",
+    "from-violet-500/80 to-fuchsia-600/80",
+    "from-amber-500/80 to-orange-600/80",
+    "from-rose-500/80 to-pink-600/80",
+    "from-cyan-500/80 to-emerald-600/80",
+  ];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return palette[h % palette.length];
+}
 
 type Setor = "cadastro" | "relacionamento" | "financeiro";
 type Status = "aberto" | "em_andamento" | "resolvido";
@@ -46,6 +75,8 @@ export function FloatingFilaChat() {
   const [sending, setSending] = useState(false);
   const [pendingImages, setPendingImages] = useState<Array<{ url: string; name: string }>>([]);
   const [uploading, setUploading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"todos" | Status>("todos");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -131,6 +162,22 @@ export function FloatingFilaChat() {
   });
 
   const abertos = atendimentos.filter((a) => a.status !== "resolvido").length;
+  const contagens = {
+    todos: atendimentos.length,
+    aberto: atendimentos.filter((a) => a.status === "aberto").length,
+    em_andamento: atendimentos.filter((a) => a.status === "em_andamento").length,
+    resolvido: atendimentos.filter((a) => a.status === "resolvido").length,
+  };
+  const q = query.trim().toLowerCase();
+  const listaFiltrada = atendimentos.filter((a) => {
+    if (filter !== "todos" && a.status !== filter) return false;
+    if (!q) return true;
+    return (
+      (a.empresas?.nome ?? "").toLowerCase().includes(q) ||
+      (a.resumo ?? "").toLowerCase().includes(q) ||
+      a.mensagem_original.toLowerCase().includes(q)
+    );
+  });
   const selected = atendimentos.find((a) => a.id === selectedId) ?? null;
 
   useEffect(() => {
@@ -193,20 +240,26 @@ export function FloatingFilaChat() {
       <button
         onClick={() => setOpen(true)}
         className={cn(
-          "fixed bottom-4 right-4 z-40 flex items-center justify-center rounded-full border shadow-lg backdrop-blur-md transition-all",
-          "bg-primary text-primary-foreground border-primary/40 hover:brightness-110 h-12 w-12",
-          abertos > 0 && "ring-2 ring-destructive/60",
+          "fixed bottom-5 right-5 z-40 group flex items-center justify-center rounded-2xl h-14 w-14 shadow-xl transition-all duration-300",
+          "bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground",
+          "hover:scale-105 hover:shadow-2xl active:scale-95",
+          "ring-1 ring-primary/20",
+          abertos > 0 && "animate-[pulse_2.4s_ease-in-out_infinite]"
         )}
         title="Central de atendimentos"
         aria-label="Central de atendimentos"
       >
-        <MessageSquare className="h-5 w-5" />
+        <MessageSquare className="h-6 w-6 drop-shadow-sm transition-transform group-hover:rotate-[-6deg]" />
         {abertos > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 ring-2 ring-background">
+          <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 ring-2 ring-background shadow-md">
             {abertos > 99 ? "99+" : abertos}
           </span>
         )}
+        {abertos > 0 && (
+          <span className="absolute inset-0 rounded-2xl ring-2 ring-primary/40 animate-ping opacity-40 pointer-events-none" />
+        )}
       </button>
+
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
@@ -315,48 +368,145 @@ export function FloatingFilaChat() {
             </>
           ) : (
             <>
-              <SheetHeader className="p-4 border-b bg-muted/30">
-                <SheetTitle className="flex items-center gap-2 text-base">
-                  <MessageSquare className="h-4 w-4" /> Central de atendimentos
-                </SheetTitle>
-                <SheetDescription>
-                  Mensagens direcionadas ao{setoresVisiveis.length > 1 ? "s" : ""} setor{setoresVisiveis.length > 1 ? "es" : ""}:{" "}
-                  <span className="capitalize font-medium">{setoresVisiveis.join(", ")}</span>
-                </SheetDescription>
+              <SheetHeader className="p-4 border-b bg-gradient-to-br from-primary/10 via-background to-background space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md shrink-0">
+                      <MessageSquare className="h-5 w-5 text-primary-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <SheetTitle className="text-base leading-tight">Central de atendimentos</SheetTitle>
+                      <SheetDescription className="text-xs mt-0.5 truncate">
+                        Setor{setoresVisiveis.length > 1 ? "es" : ""}:{" "}
+                        <span className="capitalize font-medium text-foreground/80">{setoresVisiveis.join(", ")}</span>
+                      </SheetDescription>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Buscar empresa ou mensagem…"
+                    className="pl-9 h-9 bg-background/70"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 -mx-1 overflow-x-auto scrollbar-none">
+                  {([
+                    { key: "todos", label: "Todos", icon: Inbox, count: contagens.todos },
+                    { key: "aberto", label: "Abertos", icon: MessageSquare, count: contagens.aberto },
+                    { key: "em_andamento", label: "Andamento", icon: Clock, count: contagens.em_andamento },
+                    { key: "resolvido", label: "Resolvidos", icon: CheckCheck, count: contagens.resolvido },
+                  ] as const).map((t) => {
+                    const active = filter === t.key;
+                    const Icon = t.icon;
+                    return (
+                      <button
+                        key={t.key}
+                        onClick={() => setFilter(t.key as any)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all",
+                          active
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {t.label}
+                        <span className={cn(
+                          "ml-0.5 px-1.5 rounded-full text-[10px] tabular-nums",
+                          active ? "bg-primary-foreground/20" : "bg-muted",
+                        )}>
+                          {t.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </SheetHeader>
+
               <ScrollArea className="flex-1">
-                <div className="divide-y">
-                  {atendimentos.length === 0 && (
-                    <div className="p-8 text-center text-sm text-muted-foreground">
-                      Nenhum atendimento no momento.
+                <div className="p-2 space-y-1">
+                  {listaFiltrada.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                      <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-3">
+                        <Inbox className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm font-medium">
+                        {query ? "Nenhum resultado" : "Caixa vazia"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {query ? "Tente outra busca." : "Novos atendimentos aparecerão aqui."}
+                      </p>
                     </div>
                   )}
-                  {atendimentos.map((a) => {
-                    const statusColor =
-                      a.status === "aberto" ? "destructive" :
-                      a.status === "em_andamento" ? "secondary" : "outline";
+                  {listaFiltrada.map((a) => {
+                    const nome = a.empresas?.nome ?? "Empresa";
+                    const isAberto = a.status === "aberto";
+                    const isAndamento = a.status === "em_andamento";
+                    const isResolvido = a.status === "resolvido";
                     return (
                       <button
                         key={a.id}
                         onClick={() => setSelectedId(a.id)}
-                        className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors"
+                        className={cn(
+                          "w-full text-left p-3 rounded-xl transition-all group relative",
+                          "hover:bg-muted/70 hover:shadow-sm active:scale-[0.99]",
+                          "border border-transparent hover:border-border/60",
+                          isAberto && "bg-destructive/[0.04]",
+                          isResolvido && "opacity-75",
+                        )}
                       >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm truncate flex-1">
-                            {a.empresas?.nome ?? "Empresa"}
-                          </span>
-                          <Badge variant={statusColor as any} className="text-[10px]">
-                            {a.status === "em_andamento" ? "andamento" : a.status}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {a.resumo || a.mensagem_original}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-[10px] capitalize">{a.setor_destino}</Badge>
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(a.criado_em).toLocaleString("pt-BR")}
-                          </span>
+                        {isAberto && (
+                          <span className="absolute left-0 top-3 bottom-3 w-1 rounded-r bg-destructive" />
+                        )}
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={cn(
+                              "h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br flex items-center justify-center text-white text-xs font-semibold shadow-sm ring-1 ring-black/5",
+                              avatarColor(nome),
+                            )}
+                          >
+                            {initials(nome) || <Building2 className="h-4 w-4" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="font-semibold text-sm truncate flex-1">{nome}</span>
+                              <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                                {timeAgo(a.atualizado_em || a.criado_em)}
+                              </span>
+                            </div>
+                            <p className={cn(
+                              "text-xs line-clamp-2 leading-snug",
+                              isAberto ? "text-foreground/90 font-medium" : "text-muted-foreground",
+                            )}>
+                              {a.resumo || a.mensagem_original}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-2">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-medium capitalize text-muted-foreground">
+                                {a.setor_destino}
+                              </span>
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium",
+                                  isAberto && "bg-destructive/15 text-destructive",
+                                  isAndamento && "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+                                  isResolvido && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+                                )}
+                              >
+                                <span className={cn(
+                                  "h-1.5 w-1.5 rounded-full",
+                                  isAberto && "bg-destructive animate-pulse",
+                                  isAndamento && "bg-amber-500",
+                                  isResolvido && "bg-emerald-500",
+                                )} />
+                                {isAberto ? "Aberto" : isAndamento ? "Em andamento" : "Resolvido"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </button>
                     );
@@ -364,6 +514,7 @@ export function FloatingFilaChat() {
                 </div>
               </ScrollArea>
             </>
+
           )}
         </SheetContent>
       </Sheet>
