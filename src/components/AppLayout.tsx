@@ -344,6 +344,37 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
 
   const totalPendentes = pendingNotifs.length + pendingSaude.length;
 
+  // ============================================================
+  // Fila de Atendimento — atalho visível quando há chamados abertos
+  // ============================================================
+  const { data: filaAbertos = 0 } = useQuery({
+    queryKey: ["fila-atendimentos-abertos-count"],
+    enabled: !!user && isAdminInterno,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("atendimentos")
+        .select("id", { head: true, count: "exact" })
+        .eq("status", "aberto");
+      if (error) throw error;
+      return count ?? 0;
+    },
+    refetchInterval: 60_000,
+  });
+
+  useEffect(() => {
+    if (!user || !isAdminInterno) return;
+    const channel = supabase
+      .channel("fila-atendimentos-rt-" + user.id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["fila-atendimentos-abertos-count"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, isAdminInterno, queryClient]);
+
+  const showFilaShortcut = isAdminInterno && filaAbertos > 0 && !location.pathname.startsWith("/admin/fila-atendimento");
+
+
   const displayName = profile?.display_name || user?.email || "Usuário";
   const username = profile?.username || "—";
   const email = user?.email || "—";
