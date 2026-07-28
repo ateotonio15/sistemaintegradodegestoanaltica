@@ -345,18 +345,64 @@ function ConversaDialog({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
+  async function uploadImage(file: File) {
+    if (!userId) {
+      toast.error("Sessão expirada");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Imagem acima de 8MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("atendimentos-anexos")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      // Signed URL válida por 1 ano
+      const { data: signed, error: sErr } = await supabase.storage
+        .from("atendimentos-anexos")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (sErr || !signed?.signedUrl) throw sErr ?? new Error("Erro ao gerar URL");
+      setPendingImages((p) => [...p, { url: signed.signedUrl, name: file.name }]);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao enviar imagem");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  function composeBody(texto: string, imgs: { url: string; name: string }[]) {
+    const parts: string[] = [];
+    if (texto) parts.push(texto);
+    imgs.forEach((i) => parts.push(`![${i.name}](${i.url})`));
+    return parts.join("\n\n");
+  }
+
   async function enviar() {
     const texto = input.trim();
-    if (!texto || loading) return;
+    const imgs = pendingImages;
+    if ((!texto && imgs.length === 0) || loading) return;
+    const body = composeBody(texto, imgs);
     setInput("");
+    setPendingImages([]);
     const tempKey = `u-${Date.now()}`;
-    setMessages((m) => [...m, { key: tempKey, role: "user", text: texto }]);
+    setMessages((m) => [...m, { key: tempKey, role: "user", text: body }]);
     setLoading(true);
     try {
       if (!currentAtdId) {
         // Nova conversa → classificar via edge function
+        const mensagemClass = texto || (imgs.length > 0 ? "[Imagem enviada]" : "");
         const { data, error } = await supabase.functions.invoke("classificar-atendimento", {
-          body: { mensagem: texto, empresa_id: empresaId },
+          body: { mensagem: mensagemClass, empresa_id: empresaId, mensagem_completa: body },
         });
         if (error) throw error;
         if ((data as any)?.error) throw new Error((data as any).error);
@@ -374,6 +420,15 @@ function ConversaDialog({
         if (atdId) {
           setCurrentAtdId(atdId);
           setCurrentSetor(setor ?? null);
+          // Se houver imagens, adiciona como mensagem da empresa para ficar visível ao staff
+          if (imgs.length > 0 && userId) {
+            await (supabase as any).from("atendimentos_mensagens").insert({
+              atendimento_id: atdId,
+              autor_tipo: "empresa",
+              autor_id: userId,
+              mensagem: body,
+            });
+          }
         }
       } else {
         // Conversa existente → insere mensagem da empresa
@@ -382,7 +437,7 @@ function ConversaDialog({
           atendimento_id: currentAtdId,
           autor_tipo: "empresa",
           autor_id: userId,
-          mensagem: texto,
+          mensagem: body,
         });
         if (error) throw error;
       }
@@ -390,6 +445,7 @@ function ConversaDialog({
       toast.error(err?.message ?? "Erro ao enviar mensagem");
       setMessages((m) => m.filter((x) => x.key !== tempKey));
       setInput(texto);
+      setPendingImages(imgs);
     } finally {
       setLoading(false);
     }
