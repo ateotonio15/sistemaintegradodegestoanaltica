@@ -473,13 +473,26 @@ function ConversaDialog({
       } else {
         // Conversa existente → insere mensagem da empresa
         if (!userId) throw new Error("Sessão expirada");
-        const { error } = await (supabase as any).from("atendimentos_mensagens").insert({
-          atendimento_id: currentAtdId,
-          autor_tipo: "empresa",
-          autor_id: userId,
-          mensagem: body,
-        });
+        const { data: inserted, error } = await (supabase as any)
+          .from("atendimentos_mensagens")
+          .insert({
+            atendimento_id: currentAtdId,
+            autor_tipo: "empresa",
+            autor_id: userId,
+            mensagem: body,
+          })
+          .select("id, criado_em")
+          .single();
         if (error) throw error;
+        if (inserted) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.key === tempKey
+                ? ({ ...m, key: inserted.id, at: inserted.criado_em } as ChatMsg)
+                : m,
+            ),
+          );
+        }
       }
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao enviar mensagem");
