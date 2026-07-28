@@ -943,6 +943,117 @@ export type Database = {
           },
         ]
       }
+      corretora_empresas: {
+        Row: {
+          corretora_id: string
+          created_at: string
+          empresa_id: string
+          id: string
+        }
+        Insert: {
+          corretora_id: string
+          created_at?: string
+          empresa_id: string
+          id?: string
+        }
+        Update: {
+          corretora_id?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corretora_empresas_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corretora_empresas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      corretora_usuarios: {
+        Row: {
+          corretora_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          corretora_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          corretora_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corretora_usuarios_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corretora_usuarios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      corretoras: {
+        Row: {
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          portal_ativo: boolean
+          portal_secoes: Json
+          responsavel: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          portal_ativo?: boolean
+          portal_secoes?: Json
+          responsavel?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          portal_ativo?: boolean
+          portal_secoes?: Json
+          responsavel?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cs_avaliacao_formularios: {
         Row: {
           created_at: string
@@ -4505,6 +4616,15 @@ export type Database = {
         }[]
       }
       get_email_by_username: { Args: { _username: string }; Returns: string }
+      get_minha_corretora: {
+        Args: never
+        Returns: {
+          corretora_id: string
+          nome: string
+          portal_ativo: boolean
+          portal_secoes: Json
+        }[]
+      }
       get_my_username: { Args: never; Returns: string }
       get_user_display_names: {
         Args: { _ids: string[] }
