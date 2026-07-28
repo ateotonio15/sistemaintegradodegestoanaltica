@@ -45,22 +45,35 @@ Deno.serve(async (req) => {
     const userId = claimsData?.claims?.sub;
     if (claimsError || !userId) return json({ error: "Não autorizado" }, 401);
 
-    const { mensagem } = await req.json();
+    const { mensagem, empresa_id } = await req.json();
     if (!mensagem || typeof mensagem !== "string" || !mensagem.trim()) {
       return json({ error: "Mensagem obrigatória" }, 400);
     }
 
-    // Descobrir empresa vinculada ao usuário (respeitando RLS)
-    const { data: vinculo, error: vErr } = await userClient
-      .from("empresa_usuarios")
-      .select("empresa_id")
-      .eq("user_id", userId)
-      .limit(1)
-      .maybeSingle();
-    if (vErr) throw vErr;
-    if (!vinculo?.empresa_id) {
+    // Resolve empresa: usa a informada (validando acesso via RLS) ou o vínculo direto
+    let empresaId: string | null = null;
+    if (typeof empresa_id === "string" && empresa_id) {
+      const { data: emp } = await userClient
+        .from("empresas")
+        .select("id")
+        .eq("id", empresa_id)
+        .maybeSingle();
+      if (emp?.id) empresaId = emp.id;
+    }
+    if (!empresaId) {
+      const { data: vinculo, error: vErr } = await userClient
+        .from("empresa_usuarios")
+        .select("empresa_id")
+        .eq("user_id", userId)
+        .limit(1)
+        .maybeSingle();
+      if (vErr) throw vErr;
+      empresaId = (vinculo?.empresa_id as string) ?? null;
+    }
+    if (!empresaId) {
       return json({ error: "Usuário sem empresa vinculada" }, 403);
     }
+
 
     // Chamar Lovable AI Gateway com tool calling para classificação estruturada
     const aiRes = await fetch(
