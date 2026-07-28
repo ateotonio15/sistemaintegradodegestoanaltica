@@ -151,17 +151,24 @@ export default function FilaAtendimento() {
   }, [selectedId, mensagens, qc]);
 
   async function enviarResposta() {
-    if (!selected || !user || !replyText.trim()) return;
+    if (!selected || !user) return;
+    const text = replyText.trim();
+    if (!text && pendingImages.length === 0) return;
+    const parts: string[] = [];
+    if (text) parts.push(text);
+    pendingImages.forEach((i) => parts.push(`![${i.name}](${i.url})`));
+    const mensagem = parts.join("\n\n");
     setSendingReply(true);
     const { error } = await (supabase as any).from("atendimentos_mensagens").insert({
       atendimento_id: selected.id,
       autor_tipo: "staff",
       autor_id: user.id,
-      mensagem: replyText.trim(),
+      mensagem,
     });
     setSendingReply(false);
     if (error) return toast.error(error.message);
     setReplyText("");
+    setPendingImages([]);
     toast.success("Mensagem enviada");
     qc.invalidateQueries({ queryKey: ["atendimento-mensagens", selected.id] });
     if (selected.status === "aberto") {
