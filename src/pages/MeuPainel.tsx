@@ -147,15 +147,29 @@ export default function MeuPainel() {
         <div className="container mx-auto flex items-center justify-between gap-2 px-4 py-3 md:py-4">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="relative shrink-0">
-              <Building2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+              {isCorretora ? <Briefcase className="h-5 w-5 md:h-6 md:w-6 text-primary" /> : <Building2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />}
               <div className="absolute inset-0 -z-10 blur-xl bg-primary/30 rounded-full" />
             </div>
             <div className="min-w-0">
-              <div className="font-semibold leading-tight text-sm md:text-base truncate">{empresaNome}</div>
+              <div className="font-semibold leading-tight text-sm md:text-base truncate">
+                {isCorretora ? corretoraNome ?? "Corretora" : empresaNome}
+              </div>
               <div className="text-[11px] md:text-xs text-muted-foreground truncate">{user?.email}</div>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {isCorretora && corretoraEmpresas.length > 0 && (
+              <Select value={activeEmpresaId ?? ""} onValueChange={(v) => setActiveEmpresaId(v)}>
+                <SelectTrigger className="h-9 w-[180px] md:w-[260px] text-xs md:text-sm">
+                  <SelectValue placeholder="Selecionar empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {corretoraEmpresas.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleTheme} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
