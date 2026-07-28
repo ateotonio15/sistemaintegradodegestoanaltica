@@ -93,7 +93,7 @@ export function FloatingFilaChat() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("atendimentos_mensagens")
-        .select("*")
+        .select("id, autor_tipo, mensagem, criado_em, lida_em")
         .eq("atendimento_id", selectedId!)
         .order("criado_em", { ascending: true });
       if (error) throw error;
@@ -107,6 +107,20 @@ export function FloatingFilaChat() {
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [mensagens, selectedId]);
+
+  // Marca mensagens da empresa como lidas ao abrir a conversa flutuante
+  useEffect(() => {
+    if (!selectedId || !open || mensagens.length === 0) return;
+    const unread = mensagens.filter((m) => m.autor_tipo === "empresa" && !m.lida_em).map((m) => m.id);
+    if (unread.length === 0) return;
+    (async () => {
+      await (supabase as any)
+        .from("atendimentos_mensagens")
+        .update({ lida_em: new Date().toISOString() })
+        .in("id", unread);
+      qc.invalidateQueries({ queryKey: ["floating-mensagens", selectedId] });
+    })();
+  }, [selectedId, open, mensagens, qc]);
 
   async function enviar() {
     if (!selected || !user || !reply.trim()) return;
