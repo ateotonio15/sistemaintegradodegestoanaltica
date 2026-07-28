@@ -22,6 +22,13 @@ interface AuthContextType {
   isAdministradoras: boolean;
   isAdminInterno: boolean;
   isAdminEmpresa: boolean;
+  isCorretora: boolean;
+  corretoraId: string | null;
+  corretoraNome: string | null;
+  corretoraPortalSecoes: Record<string, boolean> | null;
+  corretoraEmpresas: { id: string; nome: string }[];
+  activeEmpresaId: string | null;
+  setActiveEmpresaId: (id: string | null) => void;
   empresaVinculadaId: string | null;
   mustChangePassword: boolean;
   canEditFinanceiro: boolean;
