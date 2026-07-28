@@ -267,7 +267,7 @@ function ConversaDialog({
   useEffect(() => {
     if (!open) return;
     setInput("");
-    if (isNew) {
+    setPendingImages([]);
       setMessages([
         {
           key: "greet",
