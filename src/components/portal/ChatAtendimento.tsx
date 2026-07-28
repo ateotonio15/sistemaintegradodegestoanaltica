@@ -25,11 +25,12 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { Ticks, statusFromMsg } from "@/components/atendimentos/Ticks";
 
 type ChatMsg =
-  | { key: string; role: "user"; text: string; at?: string }
+  | { key: string; role: "user"; text: string; at?: string; lida_em?: string | null }
   | { key: string; role: "assistant"; text: string; setor?: string; at?: string }
-  | { key: string; role: "staff"; text: string; at?: string };
+  | { key: string; role: "staff"; text: string; at?: string; lida_em?: string | null };
 
 const setorLabel: Record<string, string> = {
   cadastro: "Cadastro",
@@ -285,7 +286,7 @@ function ConversaDialog({
       (async () => {
         const { data } = await (supabase as any)
           .from("atendimentos_mensagens")
-          .select("id, autor_tipo, mensagem, criado_em")
+          .select("id, autor_tipo, mensagem, criado_em, lida_em")
           .eq("atendimento_id", atendimento.id)
           .order("criado_em", { ascending: true });
         const initial: ChatMsg[] = [
@@ -302,6 +303,7 @@ function ConversaDialog({
             role: m.autor_tipo === "empresa" ? "user" : "staff",
             text: m.mensagem,
             at: m.criado_em,
+            lida_em: m.lida_em,
           });
         });
         setMessages(initial);
@@ -310,7 +312,7 @@ function ConversaDialog({
     setTimeout(() => inputRef.current?.focus(), 60);
   }, [open, isNew, atendimento?.id]);
 
-  // Realtime: se conversa (nova recém-classificada ou existente) tiver id, ouve staff msgs
+  // Realtime: escuta novas mensagens (staff) + updates de leitura nas mensagens da empresa
   useEffect(() => {
     if (!currentAtdId) return;
     if (subRef.current === currentAtdId) return;
@@ -330,8 +332,23 @@ function ConversaDialog({
           if (row.autor_tipo !== "staff") return;
           setMessages((m) => [
             ...m,
-            { key: row.id, role: "staff", text: row.mensagem, at: row.criado_em },
+            { key: row.id, role: "staff", text: row.mensagem, at: row.criado_em, lida_em: row.lida_em },
           ]);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "atendimentos_mensagens",
+          filter: `atendimento_id=eq.${currentAtdId}`,
+        },
+        (payload) => {
+          const row = payload.new as any;
+          setMessages((prev) =>
+            prev.map((m) => (m.key === row.id ? ({ ...m, lida_em: row.lida_em } as ChatMsg) : m)),
+          );
         },
       )
       .subscribe();
@@ -341,9 +358,32 @@ function ConversaDialog({
     };
   }, [currentAtdId]);
 
+  // Marca mensagens do staff como lidas quando a conversa está aberta
+  useEffect(() => {
+    if (!open || !currentAtdId) return;
+    const unread = messages
+      .filter((m) => m.role === "staff" && !(m as any).lida_em && !m.key.startsWith("orig-"))
+      .map((m) => m.key);
+    if (unread.length === 0) return;
+    (async () => {
+      const nowIso = new Date().toISOString();
+      await (supabase as any)
+        .from("atendimentos_mensagens")
+        .update({ lida_em: nowIso })
+        .in("id", unread);
+      setMessages((prev) =>
+        prev.map((m) =>
+          unread.includes(m.key) ? ({ ...m, lida_em: nowIso } as ChatMsg) : m,
+        ),
+      );
+    })();
+  }, [open, currentAtdId, messages]);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
+
+
 
   async function uploadImage(file: File) {
     if (!userId) {
@@ -433,13 +473,26 @@ function ConversaDialog({
       } else {
         // Conversa existente → insere mensagem da empresa
         if (!userId) throw new Error("Sessão expirada");
-        const { error } = await (supabase as any).from("atendimentos_mensagens").insert({
-          atendimento_id: currentAtdId,
-          autor_tipo: "empresa",
-          autor_id: userId,
-          mensagem: body,
-        });
+        const { data: inserted, error } = await (supabase as any)
+          .from("atendimentos_mensagens")
+          .insert({
+            atendimento_id: currentAtdId,
+            autor_tipo: "empresa",
+            autor_id: userId,
+            mensagem: body,
+          })
+          .select("id, criado_em")
+          .single();
         if (error) throw error;
+        if (inserted) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.key === tempKey
+                ? ({ ...m, key: inserted.id, at: inserted.criado_em } as ChatMsg)
+                : m,
+            ),
+          );
+        }
       }
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao enviar mensagem");
@@ -550,11 +603,14 @@ function ConversaDialog({
                 {m.at && (
                   <div
                     className={cn(
-                      "mt-1 text-[10px]",
-                      m.role === "user" ? "opacity-80" : "text-muted-foreground",
+                      "mt-1 flex items-center gap-1 text-[10px]",
+                      m.role === "user" ? "justify-end opacity-80" : "text-muted-foreground",
                     )}
                   >
-                    {fmtDataHora(m.at)}
+                    <span>{fmtDataHora(m.at)}</span>
+                    {m.role === "user" && !m.key.startsWith("orig-") && (
+                      <Ticks status={statusFromMsg(m as any)} />
+                    )}
                   </div>
                 )}
               </div>

@@ -11,6 +11,7 @@ import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, PlayCircle } fro
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MensagemBody } from "@/components/atendimentos/MensagemBody";
+import { Ticks, statusFromMsg } from "@/components/atendimentos/Ticks";
 
 type Setor = "cadastro" | "relacionamento" | "financeiro";
 type Status = "aberto" | "em_andamento" | "resolvido";
@@ -33,6 +34,7 @@ interface Mensagem {
   autor_tipo: "staff" | "empresa";
   mensagem: string;
   criado_em: string;
+  lida_em: string | null;
 }
 
 export function FloatingFilaChat() {
@@ -92,7 +94,7 @@ export function FloatingFilaChat() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("atendimentos_mensagens")
-        .select("*")
+        .select("id, autor_tipo, mensagem, criado_em, lida_em")
         .eq("atendimento_id", selectedId!)
         .order("criado_em", { ascending: true });
       if (error) throw error;
@@ -106,6 +108,20 @@ export function FloatingFilaChat() {
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [mensagens, selectedId]);
+
+  // Marca mensagens da empresa como lidas ao abrir a conversa flutuante
+  useEffect(() => {
+    if (!selectedId || !open || mensagens.length === 0) return;
+    const unread = mensagens.filter((m) => m.autor_tipo === "empresa" && !m.lida_em).map((m) => m.id);
+    if (unread.length === 0) return;
+    (async () => {
+      await (supabase as any)
+        .from("atendimentos_mensagens")
+        .update({ lida_em: new Date().toISOString() })
+        .in("id", unread);
+      qc.invalidateQueries({ queryKey: ["floating-mensagens", selectedId] });
+    })();
+  }, [selectedId, open, mensagens, qc]);
 
   async function enviar() {
     if (!selected || !user || !reply.trim()) return;
@@ -191,8 +207,11 @@ export function FloatingFilaChat() {
                       )}
                     >
                       <MensagemBody text={m.mensagem} />
-                      <div className={cn("text-[10px] mt-1 opacity-70")}>
-                        {new Date(m.criado_em).toLocaleString("pt-BR")}
+                      <div className={cn("text-[10px] mt-1 opacity-70 flex items-center gap-1", m.autor_tipo === "staff" && "justify-end")}>
+                        <span>{new Date(m.criado_em).toLocaleString("pt-BR")}</span>
+                        {m.autor_tipo === "staff" && (
+                          <Ticks status={statusFromMsg({ key: m.id, lida_em: m.lida_em })} />
+                        )}
                       </div>
                     </div>
                   ))}

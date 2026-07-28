@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Loader2, ArrowRightLeft, CheckCircle2, PlayCircle, Send } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { MensagemBody } from "@/components/atendimentos/MensagemBody";
+import { Ticks, statusFromMsg } from "@/components/atendimentos/Ticks";
 
 type Setor = "cadastro" | "relacionamento" | "financeiro";
 type Status = "aberto" | "em_andamento" | "resolvido";
@@ -98,13 +99,27 @@ export default function FilaAtendimento() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("atendimentos_mensagens")
-        .select("*")
+        .select("id, autor_tipo, mensagem, criado_em, lida_em")
         .eq("atendimento_id", selectedId!)
         .order("criado_em", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as Array<{ id: string; autor_tipo: "staff" | "empresa"; mensagem: string; criado_em: string }>;
+      return (data ?? []) as Array<{ id: string; autor_tipo: "staff" | "empresa"; mensagem: string; criado_em: string; lida_em: string | null }>;
     },
   });
+
+  // Marca mensagens da empresa como lidas ao abrir a conversa
+  useEffect(() => {
+    if (!selectedId || !mensagens) return;
+    const unread = mensagens.filter((m) => m.autor_tipo === "empresa" && !m.lida_em).map((m) => m.id);
+    if (unread.length === 0) return;
+    (async () => {
+      await (supabase as any)
+        .from("atendimentos_mensagens")
+        .update({ lida_em: new Date().toISOString() })
+        .in("id", unread);
+      qc.invalidateQueries({ queryKey: ["atendimento-mensagens", selectedId] });
+    })();
+  }, [selectedId, mensagens, qc]);
 
   async function enviarResposta() {
     if (!selected || !user || !replyText.trim()) return;
@@ -324,8 +339,11 @@ export default function FilaAtendimento() {
                             : "max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm"
                         }>
                           <MensagemBody text={m.mensagem} />
-                          <div className={"text-[10px] mt-1 opacity-70"}>
-                            {new Date(m.criado_em).toLocaleString("pt-BR")}
+                          <div className={"text-[10px] mt-1 opacity-70 flex items-center gap-1 " + (m.autor_tipo === "staff" ? "justify-end" : "")}>
+                            <span>{new Date(m.criado_em).toLocaleString("pt-BR")}</span>
+                            {m.autor_tipo === "staff" && (
+                              <Ticks status={statusFromMsg({ key: m.id, lida_em: m.lida_em })} />
+                            )}
                           </div>
                         </div>
                       </div>

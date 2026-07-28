@@ -456,6 +456,7 @@ export type Database = {
           autor_tipo: string
           criado_em: string
           id: string
+          lida_em: string | null
           mensagem: string
         }
         Insert: {
@@ -464,6 +465,7 @@ export type Database = {
           autor_tipo: string
           criado_em?: string
           id?: string
+          lida_em?: string | null
           mensagem: string
         }
         Update: {
@@ -472,6 +474,7 @@ export type Database = {
           autor_tipo?: string
           criado_em?: string
           id?: string
+          lida_em?: string | null
           mensagem?: string
         }
         Relationships: [
