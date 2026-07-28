@@ -99,13 +99,27 @@ export default function FilaAtendimento() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("atendimentos_mensagens")
-        .select("*")
+        .select("id, autor_tipo, mensagem, criado_em, lida_em")
         .eq("atendimento_id", selectedId!)
         .order("criado_em", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as Array<{ id: string; autor_tipo: "staff" | "empresa"; mensagem: string; criado_em: string }>;
+      return (data ?? []) as Array<{ id: string; autor_tipo: "staff" | "empresa"; mensagem: string; criado_em: string; lida_em: string | null }>;
     },
   });
+
+  // Marca mensagens da empresa como lidas ao abrir a conversa
+  useEffect(() => {
+    if (!selectedId || !mensagens) return;
+    const unread = mensagens.filter((m) => m.autor_tipo === "empresa" && !m.lida_em).map((m) => m.id);
+    if (unread.length === 0) return;
+    (async () => {
+      await (supabase as any)
+        .from("atendimentos_mensagens")
+        .update({ lida_em: new Date().toISOString() })
+        .in("id", unread);
+      qc.invalidateQueries({ queryKey: ["atendimento-mensagens", selectedId] });
+    })();
+  }, [selectedId, mensagens, qc]);
 
   async function enviarResposta() {
     if (!selected || !user || !replyText.trim()) return;
