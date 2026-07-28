@@ -253,6 +253,29 @@ export function FloatingFilaChat() {
                 </div>
               </ScrollArea>
               <div className="border-t p-3 space-y-2 bg-background">
+                {pendingImages.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {pendingImages.map((img, i) => (
+                      <div key={i} className="relative">
+                        <img src={img.url} alt={img.name} className="h-14 w-14 object-cover rounded border border-border" />
+                        <button
+                          type="button"
+                          onClick={() => setPendingImages((p) => p.filter((_, idx) => idx !== i))}
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarImagem(f); }}
+                />
                 <Textarea
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
@@ -261,12 +284,24 @@ export function FloatingFilaChat() {
                   className="resize-none text-sm"
                 />
                 <div className="flex items-center justify-between gap-2">
-                  {selected.status !== "resolvido" ? (
-                    <Button size="sm" variant="outline" onClick={marcarResolvido}>
-                      <CheckCircle2 className="h-4 w-4 mr-1" /> Resolver
+                  <div className="flex items-center gap-2">
+                    {selected.status !== "resolvido" ? (
+                      <Button size="sm" variant="outline" onClick={marcarResolvido}>
+                        <CheckCircle2 className="h-4 w-4 mr-1" /> Resolver
+                      </Button>
+                    ) : <span />}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Anexar imagem"
+                    >
+                      {uploading ? <Loader2 className="h-4 w-4" /> : <Paperclip className="h-4 w-4" />}
                     </Button>
-                  ) : <span />}
-                  <Button size="sm" onClick={enviar} disabled={sending || !reply.trim()}>
+                  </div>
+                  <Button size="sm" onClick={enviar} disabled={sending || (!reply.trim() && pendingImages.length === 0)}>
                     {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />} Enviar
                   </Button>
                 </div>
