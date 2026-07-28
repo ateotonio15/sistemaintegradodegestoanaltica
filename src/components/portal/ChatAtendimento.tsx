@@ -268,6 +268,7 @@ function ConversaDialog({
     if (!open) return;
     setInput("");
     setPendingImages([]);
+    if (isNew) {
       setMessages([
         {
           key: "greet",
