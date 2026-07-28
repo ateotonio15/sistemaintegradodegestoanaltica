@@ -285,7 +285,7 @@ function ConversaDialog({
       (async () => {
         const { data } = await (supabase as any)
           .from("atendimentos_mensagens")
-          .select("id, autor_tipo, mensagem, criado_em")
+          .select("id, autor_tipo, mensagem, criado_em, lida_em")
           .eq("atendimento_id", atendimento.id)
           .order("criado_em", { ascending: true });
         const initial: ChatMsg[] = [
@@ -302,6 +302,7 @@ function ConversaDialog({
             role: m.autor_tipo === "empresa" ? "user" : "staff",
             text: m.mensagem,
             at: m.criado_em,
+            lida_em: m.lida_em,
           });
         });
         setMessages(initial);
