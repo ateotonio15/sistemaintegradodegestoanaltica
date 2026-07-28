@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MensagemBody } from "@/components/atendimentos/MensagemBody";
 
 type Setor = "cadastro" | "relacionamento" | "financeiro";
 type Status = "aberto" | "em_andamento" | "resolvido";
