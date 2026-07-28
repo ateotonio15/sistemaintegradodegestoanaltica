@@ -359,6 +359,14 @@ function CorretorasTab() {
     );
   }, [data, q]);
 
+  // Mantém `editing` sincronizado com os dados atualizados (após vincular/desvincular empresa)
+  useEffect(() => {
+    if (!editing || !data) return;
+    const fresh = data.find((c) => c.id === editing.id);
+    if (fresh && fresh !== editing) setEditing(fresh);
+  }, [data, editing]);
+
+
   async function toggleAtivo(row: Corretora, val: boolean) {
     const { error } = await supabase.functions.invoke("admin-corretora-acesso", {
       body: { action: "update_portal", corretora_id: row.id, portal_ativo: val },
