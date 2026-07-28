@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, PlayCircle } from "lucide-react";
+import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, PlayCircle, Paperclip, X as XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MensagemBody } from "@/components/atendimentos/MensagemBody";
@@ -44,7 +44,35 @@ export function FloatingFilaChat() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+  const [pendingImages, setPendingImages] = useState<Array<{ url: string; name: string }>>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  async function anexarImagem(file: File) {
+    if (!user) return;
+    if (!file.type.startsWith("image/")) { toast.error("Selecione uma imagem"); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error("Imagem acima de 8MB"); return; }
+    setUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("atendimentos-anexos")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const { data: signed, error: sErr } = await supabase.storage
+        .from("atendimentos-anexos")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (sErr || !signed?.signedUrl) throw sErr ?? new Error("Erro ao gerar URL");
+      setPendingImages((p) => [...p, { url: signed.signedUrl, name: file.name }]);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao enviar imagem");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   const setoresVisiveis = useMemo<Setor[]>(() => {
     if (role === "financeiro") return ["financeiro"];
@@ -124,17 +152,24 @@ export function FloatingFilaChat() {
   }, [selectedId, open, mensagens, qc]);
 
   async function enviar() {
-    if (!selected || !user || !reply.trim()) return;
+    if (!selected || !user) return;
+    const text = reply.trim();
+    if (!text && pendingImages.length === 0) return;
+    const parts: string[] = [];
+    if (text) parts.push(text);
+    pendingImages.forEach((i) => parts.push(`![${i.name}](${i.url})`));
+    const mensagem = parts.join("\n\n");
     setSending(true);
     const { error } = await (supabase as any).from("atendimentos_mensagens").insert({
       atendimento_id: selected.id,
       autor_tipo: "staff",
       autor_id: user.id,
-      mensagem: reply.trim(),
+      mensagem,
     });
     setSending(false);
     if (error) return toast.error(error.message);
     setReply("");
+    setPendingImages([]);
     qc.invalidateQueries({ queryKey: ["floating-mensagens", selected.id] });
     if (selected.status === "aberto") {
       await supabase.from("atendimentos").update({ status: "em_andamento" }).eq("id", selected.id);
@@ -218,6 +253,29 @@ export function FloatingFilaChat() {
                 </div>
               </ScrollArea>
               <div className="border-t p-3 space-y-2 bg-background">
+                {pendingImages.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {pendingImages.map((img, i) => (
+                      <div key={i} className="relative">
+                        <img src={img.url} alt={img.name} className="h-14 w-14 object-cover rounded border border-border" />
+                        <button
+                          type="button"
+                          onClick={() => setPendingImages((p) => p.filter((_, idx) => idx !== i))}
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarImagem(f); }}
+                />
                 <Textarea
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
@@ -226,12 +284,24 @@ export function FloatingFilaChat() {
                   className="resize-none text-sm"
                 />
                 <div className="flex items-center justify-between gap-2">
-                  {selected.status !== "resolvido" ? (
-                    <Button size="sm" variant="outline" onClick={marcarResolvido}>
-                      <CheckCircle2 className="h-4 w-4 mr-1" /> Resolver
+                  <div className="flex items-center gap-2">
+                    {selected.status !== "resolvido" ? (
+                      <Button size="sm" variant="outline" onClick={marcarResolvido}>
+                        <CheckCircle2 className="h-4 w-4 mr-1" /> Resolver
+                      </Button>
+                    ) : <span />}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Anexar imagem"
+                    >
+                      {uploading ? <Loader2 className="h-4 w-4" /> : <Paperclip className="h-4 w-4" />}
                     </Button>
-                  ) : <span />}
-                  <Button size="sm" onClick={enviar} disabled={sending || !reply.trim()}>
+                  </div>
+                  <Button size="sm" onClick={enviar} disabled={sending || (!reply.trim() && pendingImages.length === 0)}>
                     {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />} Enviar
                   </Button>
                 </div>

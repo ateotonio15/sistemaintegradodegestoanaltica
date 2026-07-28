@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, ArrowRightLeft, CheckCircle2, PlayCircle, Send } from "lucide-react";
+import { Loader2, ArrowRightLeft, CheckCircle2, PlayCircle, Send, Paperclip, X as XIcon } from "lucide-react";
+import { useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { MensagemBody } from "@/components/atendimentos/MensagemBody";
 import { Ticks, statusFromMsg } from "@/components/atendimentos/Ticks";
@@ -60,6 +61,34 @@ export default function FilaAtendimento() {
   const [saving, setSaving] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+  const [pendingImages, setPendingImages] = useState<Array<{ url: string; name: string }>>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function anexarImagem(file: File) {
+    if (!user) return;
+    if (!file.type.startsWith("image/")) { toast.error("Selecione uma imagem"); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error("Imagem acima de 8MB"); return; }
+    setUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("atendimentos-anexos")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const { data: signed, error: sErr } = await supabase.storage
+        .from("atendimentos-anexos")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (sErr || !signed?.signedUrl) throw sErr ?? new Error("Erro ao gerar URL");
+      setPendingImages((p) => [...p, { url: signed.signedUrl, name: file.name }]);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao enviar imagem");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   const { data: atendimentos, isLoading } = useQuery({
     queryKey: ["fila-atendimentos"],
@@ -122,17 +151,24 @@ export default function FilaAtendimento() {
   }, [selectedId, mensagens, qc]);
 
   async function enviarResposta() {
-    if (!selected || !user || !replyText.trim()) return;
+    if (!selected || !user) return;
+    const text = replyText.trim();
+    if (!text && pendingImages.length === 0) return;
+    const parts: string[] = [];
+    if (text) parts.push(text);
+    pendingImages.forEach((i) => parts.push(`![${i.name}](${i.url})`));
+    const mensagem = parts.join("\n\n");
     setSendingReply(true);
     const { error } = await (supabase as any).from("atendimentos_mensagens").insert({
       atendimento_id: selected.id,
       autor_tipo: "staff",
       autor_id: user.id,
-      mensagem: replyText.trim(),
+      mensagem,
     });
     setSendingReply(false);
     if (error) return toast.error(error.message);
     setReplyText("");
+    setPendingImages([]);
     toast.success("Mensagem enviada");
     qc.invalidateQueries({ queryKey: ["atendimento-mensagens", selected.id] });
     if (selected.status === "aberto") {
@@ -350,7 +386,40 @@ export default function FilaAtendimento() {
                     ))
                   )}
                 </div>
+                {pendingImages.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {pendingImages.map((img, i) => (
+                      <div key={i} className="relative">
+                        <img src={img.url} alt={img.name} className="h-16 w-16 object-cover rounded border border-border" />
+                        <button
+                          type="button"
+                          onClick={() => setPendingImages((p) => p.filter((_, idx) => idx !== i))}
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-end gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarImagem(f); }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Anexar imagem"
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                  </Button>
                   <Textarea
                     placeholder="Escreva uma resposta para a empresa..."
                     value={replyText}
@@ -364,7 +433,7 @@ export default function FilaAtendimento() {
                       }
                     }}
                   />
-                  <Button onClick={enviarResposta} disabled={sendingReply || !replyText.trim()} size="icon">
+                  <Button onClick={enviarResposta} disabled={sendingReply || (!replyText.trim() && pendingImages.length === 0)} size="icon">
                     {sendingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>
