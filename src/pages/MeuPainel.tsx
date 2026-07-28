@@ -22,17 +22,17 @@ function fmtDate(v: string | null | undefined) {
 }
 
 export default function MeuPainel() {
-  const { user, empresaVinculadaId, signOut } = useAuth();
+  const { user, activeEmpresaId, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const { data: empresa } = useQuery({
-    queryKey: ["meu-painel", "empresa", empresaVinculadaId],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["meu-painel", "empresa", activeEmpresaId],
+    enabled: !!activeEmpresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
         .select("id, nome, cnpj, status_empresa, portal_secoes, tipo_movimentacao, periodo_movimentacao, data_implantacao, data_corte, dia_movimentacao, prazo, responsavel_contrato, executiva_user_id, valor_enfermaria_centavos, valor_apartamento_centavos, vidas")
-        .eq("id", empresaVinculadaId!)
+        .eq("id", activeEmpresaId!)
         .maybeSingle();
       if (error) throw error;
       let executivaNome: string | null = null;
@@ -53,13 +53,13 @@ export default function MeuPainel() {
   }) as Record<string, boolean>;
 
   const { data: contrato } = useQuery({
-    queryKey: ["meu-painel", "contrato", empresaVinculadaId],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["meu-painel", "contrato", activeEmpresaId],
+    enabled: !!activeEmpresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contratos")
         .select("valor_mensal, data_inicio, data_fim, status")
-        .eq("empresa_id", empresaVinculadaId!)
+        .eq("empresa_id", activeEmpresaId!)
         .order("data_inicio", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -69,13 +69,13 @@ export default function MeuPainel() {
   });
 
   const { data: vidasAtivas } = useQuery({
-    queryKey: ["meu-painel", "vidas", empresaVinculadaId],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["meu-painel", "vidas", activeEmpresaId],
+    enabled: !!activeEmpresaId,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("vidas_ativas")
         .select("id", { count: "exact", head: true })
-        .eq("empresa_id", empresaVinculadaId!)
+        .eq("empresa_id", activeEmpresaId!)
         .eq("status", "ativo");
       if (error) throw error;
       return count ?? 0;
@@ -83,13 +83,13 @@ export default function MeuPainel() {
   });
 
   const { data: movsContrato } = useQuery({
-    queryKey: ["meu-painel", "movs-contrato", empresaVinculadaId, "v2-2026-05"],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["meu-painel", "movs-contrato", activeEmpresaId, "v2-2026-05"],
+    enabled: !!activeEmpresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
         .select("id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, created_at")
-        .eq("empresa_id", empresaVinculadaId!)
+        .eq("empresa_id", activeEmpresaId!)
         .gte("mes_referencia", "2026-05")
         .order("mes_referencia", { ascending: false })
         .order("periodo", { ascending: false })
@@ -100,13 +100,13 @@ export default function MeuPainel() {
   });
 
   const { data: notasFinanceiro } = useQuery({
-    queryKey: ["meu-painel", "notas-financeiro", empresaVinculadaId],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["meu-painel", "notas-financeiro", activeEmpresaId],
+    enabled: !!activeEmpresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_movimentacoes")
         .select("mes_referencia, periodo, data_envio_nota")
-        .eq("empresa_id", empresaVinculadaId!)
+        .eq("empresa_id", activeEmpresaId!)
         .not("data_envio_nota", "is", null);
       if (error) throw error;
       const map = new Map<string, string>();
