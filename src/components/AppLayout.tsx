@@ -344,6 +344,37 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
 
   const totalPendentes = pendingNotifs.length + pendingSaude.length;
 
+  // ============================================================
+  // Fila de Atendimento — atalho visível quando há chamados abertos
+  // ============================================================
+  const { data: filaAbertos = 0 } = useQuery({
+    queryKey: ["fila-atendimentos-abertos-count"],
+    enabled: !!user && isAdminInterno,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("atendimentos")
+        .select("id", { head: true, count: "exact" })
+        .eq("status", "aberto");
+      if (error) throw error;
+      return count ?? 0;
+    },
+    refetchInterval: 60_000,
+  });
+
+  useEffect(() => {
+    if (!user || !isAdminInterno) return;
+    const channel = supabase
+      .channel("fila-atendimentos-rt-" + user.id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["fila-atendimentos-abertos-count"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, isAdminInterno, queryClient]);
+
+  const showFilaShortcut = isAdminInterno && filaAbertos > 0 && !location.pathname.startsWith("/admin/fila-atendimento");
+
+
   const displayName = profile?.display_name || user?.email || "Usuário";
   const username = profile?.username || "—";
   const email = user?.email || "—";
@@ -620,6 +651,28 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
             <div className={cn("flex items-center gap-1.5 shrink-0", isAdmin && "ml-auto")}>
 
               <CadastroEmpresasPopover />
+
+              {showFilaShortcut && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/admin/fila-atendimento"
+                      className="relative flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors animate-pulse"
+                    >
+                      <MessageSquareWarning className="h-4 w-4" />
+                      <span className="hidden sm:inline">Fila de Atendimento</span>
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                        {filaAbertos > 99 ? "99+" : filaAbertos}
+                      </span>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {filaAbertos} atendimento{filaAbertos > 1 ? "s" : ""} aberto{filaAbertos > 1 ? "s" : ""} na fila
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+
 
               <button
                 onClick={toggleTheme}
