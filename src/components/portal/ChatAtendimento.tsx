@@ -233,11 +233,13 @@ function ConversaDialog({
   onClose,
   historico,
   userId,
+  empresaId,
 }: {
   mode: DialogMode;
   onClose: () => void;
   historico: AtendimentoHist[];
   userId: string | null;
+  empresaId: string | null;
 }) {
   const open = !!mode;
   const isNew = mode?.kind === "new";
