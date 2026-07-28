@@ -34,6 +34,8 @@ import { CobrancaBanner } from "@/components/financeiro/CobrancaBanner";
 import { HondaAlertasBanner } from "@/components/honda/HondaAlertasBanner";
 import { HeaderTabs } from "@/components/HeaderTabs";
 import { CadastroEmpresasPopover } from "@/components/CadastroEmpresasPopover";
+import { FloatingFilaChat } from "@/components/atendimentos/FloatingFilaChat";
+
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -399,6 +401,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     <div className="min-h-screen bg-background flex relative">
       {/* Ambient background glow */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-gradient-glow opacity-60" />
+      <FloatingFilaChat />
+
       {/* Sidebar — apenas admin */}
       {isAdmin && (
       <aside
