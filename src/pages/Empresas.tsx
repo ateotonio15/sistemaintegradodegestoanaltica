@@ -740,6 +740,62 @@ export default function Empresas() {
     toast({ title: "Relatório gerado", description: `${inativas.length} contrato(s) inativo(s) exportado(s).` });
   }
 
+  async function exportarEmpresasExcel() {
+    if (filtered.length === 0) {
+      toast({ title: "Sem dados", description: "Nenhuma empresa para exportar.", variant: "destructive" });
+      return;
+    }
+
+    const userMap = new Map(usuarios.map((u: any) => [u.user_id, u.display_name]));
+    const isDateKey = (k: string) => k.startsWith("data_") || k.endsWith("_em") || k === "created_at" || k === "updated_at" || k === "ultima_alteracao";
+    const isCentavosKey = (k: string) => k.endsWith("_centavos");
+    const isUserKey = (k: string) => k === "responsavel_user_id" || k === "executiva_user_id";
+    const skipKeys = new Set(["faixas_etarias", "portal_secoes"]);
+
+    const sample = filtered[0] as any;
+    const keys = Object.keys(sample).filter((k) => !skipKeys.has(k));
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Empresas");
+    ws.columns = keys.map((k) => ({
+      header: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      key: k,
+      width: Math.min(Math.max(k.length + 4, 14), 40),
+    }));
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } } as any;
+
+    filtered.forEach((e: any) => {
+      const row: Record<string, any> = {};
+      for (const k of keys) {
+        let v = e[k];
+        if (v === null || v === undefined) { row[k] = ""; continue; }
+        if (isUserKey(k)) { row[k] = userMap.get(v) ?? v; continue; }
+        if (isDateKey(k) && typeof v === "string") { row[k] = formatDateBR(v) || v; continue; }
+        if (isCentavosKey(k) && typeof v === "number") { row[k] = v / 100; continue; }
+        if (typeof v === "boolean") { row[k] = v ? "Sim" : "Não"; continue; }
+        if (typeof v === "object") { row[k] = JSON.stringify(v); continue; }
+        row[k] = v;
+      }
+      ws.addRow(row);
+    });
+
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columns.length } };
+    ws.views = [{ state: "frozen", ySplit: 1 }];
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const hoje = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `empresas-${hoje}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast({ title: "Exportação concluída", description: `${filtered.length} empresa(s) exportada(s).` });
+  }
+
   return (
     <>
       <ResponsavelLockDialog
