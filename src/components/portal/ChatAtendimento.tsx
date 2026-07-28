@@ -347,7 +347,7 @@ function ConversaDialog({
       if (!currentAtdId) {
         // Nova conversa → classificar via edge function
         const { data, error } = await supabase.functions.invoke("classificar-atendimento", {
-          body: { mensagem: texto },
+          body: { mensagem: texto, empresa_id: empresaId },
         });
         if (error) throw error;
         if ((data as any)?.error) throw new Error((data as any).error);
