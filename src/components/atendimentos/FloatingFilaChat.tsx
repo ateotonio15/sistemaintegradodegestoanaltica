@@ -162,6 +162,22 @@ export function FloatingFilaChat() {
   });
 
   const abertos = atendimentos.filter((a) => a.status !== "resolvido").length;
+  const contagens = {
+    todos: atendimentos.length,
+    aberto: atendimentos.filter((a) => a.status === "aberto").length,
+    em_andamento: atendimentos.filter((a) => a.status === "em_andamento").length,
+    resolvido: atendimentos.filter((a) => a.status === "resolvido").length,
+  };
+  const q = query.trim().toLowerCase();
+  const listaFiltrada = atendimentos.filter((a) => {
+    if (filter !== "todos" && a.status !== filter) return false;
+    if (!q) return true;
+    return (
+      (a.empresas?.nome ?? "").toLowerCase().includes(q) ||
+      (a.resumo ?? "").toLowerCase().includes(q) ||
+      a.mensagem_original.toLowerCase().includes(q)
+    );
+  });
   const selected = atendimentos.find((a) => a.id === selectedId) ?? null;
 
   useEffect(() => {
