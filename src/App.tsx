@@ -91,7 +91,7 @@ const Loading = () => (
 
 // Shell único e persistente: AppLayout monta UMA vez; só o <Outlet/> troca entre rotas.
 function AppShell() {
-  const { user, loading, mustChangePassword, isAdminEmpresa, isAdminInterno } = useAuth();
+  const { user, loading, mustChangePassword, isAdminEmpresa, isAdminInterno, isCorretora } = useAuth();
   const location = useLocation();
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/auth" replace />;
@@ -101,7 +101,7 @@ function AppShell() {
   // Empresas com papel admin_empresa/colaborador (e não admin_interno) só enxergam suas telas
   const empresaOnlyPaths = ["/portal", "/meu-painel", "/trocar-senha"];
   const isEmpresaPath = empresaOnlyPaths.some((p) => location.pathname.startsWith(p));
-  if (isAdminEmpresa && !isAdminInterno && !isEmpresaPath) {
+  if ((isAdminEmpresa || isCorretora) && !isAdminInterno && !isEmpresaPath) {
     return <Navigate to="/meu-painel" replace />;
   }
   // Telas do portal/meu painel rodam com layout próprio (sem sidebar)
