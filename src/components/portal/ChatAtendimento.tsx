@@ -631,6 +631,12 @@ function ConversaDialog({
         </div>
 
         <Separator />
+        {status === "resolvido" ? (
+          <div className="bg-muted/40 p-4 text-center text-sm text-muted-foreground">
+            Esta conversa foi marcada como <strong>Resolvida</strong> e está encerrada.
+            Para uma nova solicitação, inicie uma nova conversa.
+          </div>
+        ) : (
         <div className="bg-background p-3">
           {pendingImages.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
@@ -716,6 +722,7 @@ function ConversaDialog({
             nova linha · anexe imagens com o ícone 📎
           </p>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
