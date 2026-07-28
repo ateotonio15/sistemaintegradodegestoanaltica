@@ -652,6 +652,28 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
 
               <CadastroEmpresasPopover />
 
+              {showFilaShortcut && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/admin/fila-atendimento"
+                      className="relative flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors animate-pulse"
+                    >
+                      <MessageSquareWarning className="h-4 w-4" />
+                      <span className="hidden sm:inline">Fila de Atendimento</span>
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                        {filaAbertos > 99 ? "99+" : filaAbertos}
+                      </span>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {filaAbertos} atendimento{filaAbertos > 1 ? "s" : ""} aberto{filaAbertos > 1 ? "s" : ""} na fila
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+
+
               <button
                 onClick={toggleTheme}
                 className="p-2.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
