@@ -534,8 +534,18 @@ function ConversaDialog({
                     <Badge className="text-[10px] font-medium">Resposta da equipe</Badge>
                   </div>
                 )}
-                <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1">
-                  <ReactMarkdown>{m.text}</ReactMarkdown>
+                <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-img:my-1 prose-img:rounded-lg prose-img:max-h-72">
+                  <ReactMarkdown
+                    components={{
+                      img: ({ node, ...props }) => (
+                        <a href={props.src as string} target="_blank" rel="noreferrer">
+                          <img {...props} className="rounded-lg max-h-72 border border-border/40" />
+                        </a>
+                      ),
+                    }}
+                  >
+                    {m.text}
+                  </ReactMarkdown>
                 </div>
                 {m.at && (
                   <div
