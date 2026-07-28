@@ -152,17 +152,24 @@ export function FloatingFilaChat() {
   }, [selectedId, open, mensagens, qc]);
 
   async function enviar() {
-    if (!selected || !user || !reply.trim()) return;
+    if (!selected || !user) return;
+    const text = reply.trim();
+    if (!text && pendingImages.length === 0) return;
+    const parts: string[] = [];
+    if (text) parts.push(text);
+    pendingImages.forEach((i) => parts.push(`![${i.name}](${i.url})`));
+    const mensagem = parts.join("\n\n");
     setSending(true);
     const { error } = await (supabase as any).from("atendimentos_mensagens").insert({
       atendimento_id: selected.id,
       autor_tipo: "staff",
       autor_id: user.id,
-      mensagem: reply.trim(),
+      mensagem,
     });
     setSending(false);
     if (error) return toast.error(error.message);
     setReply("");
+    setPendingImages([]);
     qc.invalidateQueries({ queryKey: ["floating-mensagens", selected.id] });
     if (selected.status === "aberto") {
       await supabase.from("atendimentos").update({ status: "em_andamento" }).eq("id", selected.id);
