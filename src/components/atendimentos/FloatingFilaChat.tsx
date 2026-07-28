@@ -44,7 +44,35 @@ export function FloatingFilaChat() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+  const [pendingImages, setPendingImages] = useState<Array<{ url: string; name: string }>>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  async function anexarImagem(file: File) {
+    if (!user) return;
+    if (!file.type.startsWith("image/")) { toast.error("Selecione uma imagem"); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error("Imagem acima de 8MB"); return; }
+    setUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("atendimentos-anexos")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const { data: signed, error: sErr } = await supabase.storage
+        .from("atendimentos-anexos")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (sErr || !signed?.signedUrl) throw sErr ?? new Error("Erro ao gerar URL");
+      setPendingImages((p) => [...p, { url: signed.signedUrl, name: file.name }]);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao enviar imagem");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   const setoresVisiveis = useMemo<Setor[]>(() => {
     if (role === "financeiro") return ["financeiro"];
