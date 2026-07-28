@@ -75,6 +75,8 @@ export function FloatingFilaChat() {
   const [sending, setSending] = useState(false);
   const [pendingImages, setPendingImages] = useState<Array<{ url: string; name: string }>>([]);
   const [uploading, setUploading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"todos" | Status>("todos");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
