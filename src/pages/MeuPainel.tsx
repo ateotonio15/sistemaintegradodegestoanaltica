@@ -134,43 +134,45 @@ export default function MeuPainel() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-card/40 backdrop-blur-sm sticky top-0 z-20">
-        <div className="container mx-auto flex items-center justify-between py-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Building2 className="h-6 w-6 text-primary" />
+        <div className="container mx-auto flex items-center justify-between gap-2 px-4 py-3 md:py-4">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="relative shrink-0">
+              <Building2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />
               <div className="absolute inset-0 -z-10 blur-xl bg-primary/30 rounded-full" />
             </div>
-            <div>
-              <div className="font-semibold leading-tight">{empresaNome}</div>
-              <div className="text-xs text-muted-foreground">{user?.email}</div>
+            <div className="min-w-0">
+              <div className="font-semibold leading-tight text-sm md:text-base truncate">{empresaNome}</div>
+              <div className="text-[11px] md:text-xs text-muted-foreground truncate">{user?.email}</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleTheme} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="mr-2 h-4 w-4" /> Sair
+            <Button variant="ghost" size="sm" onClick={signOut} className="px-2 md:px-3">
+              <LogOut className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Sair</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto grid gap-8 py-10 animate-fade-in">
+      <main className="container mx-auto grid gap-5 md:gap-8 px-4 py-5 md:py-10 animate-fade-in">
         {/* Hero header */}
-        <section className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-1.5">
+        <section className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 md:gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-1.5">
               Portal do Cliente
             </p>
-            <h1 className="text-3xl font-bold tracking-tight">{empresaNome}</h1>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight break-words">{empresaNome}</h1>
           </div>
           {(empresa as any)?.cnpj && (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs md:text-sm text-muted-foreground">
               CNPJ: <span className="text-foreground font-mono">{(empresa as any).cnpj}</span>
             </div>
           )}
         </section>
+
 
         {/* KPIs */}
         {(secoes.vidas || secoes.contrato) && (
