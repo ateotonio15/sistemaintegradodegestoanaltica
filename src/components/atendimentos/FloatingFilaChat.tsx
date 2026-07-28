@@ -240,20 +240,26 @@ export function FloatingFilaChat() {
       <button
         onClick={() => setOpen(true)}
         className={cn(
-          "fixed bottom-4 right-4 z-40 flex items-center justify-center rounded-full border shadow-lg backdrop-blur-md transition-all",
-          "bg-primary text-primary-foreground border-primary/40 hover:brightness-110 h-12 w-12",
-          abertos > 0 && "ring-2 ring-destructive/60",
+          "fixed bottom-5 right-5 z-40 group flex items-center justify-center rounded-2xl h-14 w-14 shadow-xl transition-all duration-300",
+          "bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground",
+          "hover:scale-105 hover:shadow-2xl active:scale-95",
+          "ring-1 ring-primary/20",
+          abertos > 0 && "animate-[pulse_2.4s_ease-in-out_infinite]"
         )}
         title="Central de atendimentos"
         aria-label="Central de atendimentos"
       >
-        <MessageSquare className="h-5 w-5" />
+        <MessageSquare className="h-6 w-6 drop-shadow-sm transition-transform group-hover:rotate-[-6deg]" />
         {abertos > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 ring-2 ring-background">
+          <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 ring-2 ring-background shadow-md">
             {abertos > 99 ? "99+" : abertos}
           </span>
         )}
+        {abertos > 0 && (
+          <span className="absolute inset-0 rounded-2xl ring-2 ring-primary/40 animate-ping opacity-40 pointer-events-none" />
+        )}
       </button>
+
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
