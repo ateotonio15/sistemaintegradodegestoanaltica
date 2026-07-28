@@ -322,7 +322,7 @@ export default function FilaAtendimento() {
                             ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
                             : "max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm"
                         }>
-                          <div className="whitespace-pre-wrap">{m.mensagem}</div>
+                          <MensagemBody text={m.mensagem} />
                           <div className={"text-[10px] mt-1 opacity-70"}>
                             {new Date(m.criado_em).toLocaleString("pt-BR")}
                           </div>
