@@ -386,6 +386,12 @@ export default function FilaAtendimento() {
                     ))
                   )}
                 </div>
+                {selected.status === "resolvido" ? (
+                  <div className="rounded-md border border-dashed border-border bg-muted/40 p-3 text-center text-sm text-muted-foreground">
+                    Atendimento <strong>Resolvido</strong> — conversa encerrada.
+                  </div>
+                ) : (
+                <>
                 {pendingImages.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-2">
                     {pendingImages.map((img, i) => (
@@ -437,6 +443,8 @@ export default function FilaAtendimento() {
                     {sendingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>
+                </>
+                )}
               </div>
 
 
