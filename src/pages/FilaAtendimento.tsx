@@ -386,7 +386,40 @@ export default function FilaAtendimento() {
                     ))
                   )}
                 </div>
+                {pendingImages.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {pendingImages.map((img, i) => (
+                      <div key={i} className="relative">
+                        <img src={img.url} alt={img.name} className="h-16 w-16 object-cover rounded border border-border" />
+                        <button
+                          type="button"
+                          onClick={() => setPendingImages((p) => p.filter((_, idx) => idx !== i))}
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-end gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarImagem(f); }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Anexar imagem"
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                  </Button>
                   <Textarea
                     placeholder="Escreva uma resposta para a empresa..."
                     value={replyText}
@@ -400,7 +433,7 @@ export default function FilaAtendimento() {
                       }
                     }}
                   />
-                  <Button onClick={enviarResposta} disabled={sendingReply || !replyText.trim()} size="icon">
+                  <Button onClick={enviarResposta} disabled={sendingReply || (!replyText.trim() && pendingImages.length === 0)} size="icon">
                     {sendingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>
