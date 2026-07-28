@@ -33,6 +33,7 @@ interface Mensagem {
   autor_tipo: "staff" | "empresa";
   mensagem: string;
   criado_em: string;
+  lida_em: string | null;
 }
 
 export function FloatingFilaChat() {
