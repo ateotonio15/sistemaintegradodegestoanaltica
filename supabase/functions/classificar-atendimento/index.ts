@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
     const { data: novoAtd, error: insErr } = await userClient
       .from("atendimentos")
       .insert({
-        empresa_id: vinculo.empresa_id,
+        empresa_id: empresaId,
         mensagem_original: mensagem.trim(),
         resumo,
         setor_destino: setor,
