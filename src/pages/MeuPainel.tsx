@@ -48,9 +48,18 @@ export default function MeuPainel() {
     },
   });
 
-  const secoes = ((empresa as any)?.portal_secoes ?? {
+  const empresaSecoes = ((empresa as any)?.portal_secoes ?? {
     contrato: true, vidas: true, movimentacoes: true, chat: true,
   }) as Record<string, boolean>;
+  // Se for corretora, aplica também as seções configuradas na corretora (intersecção).
+  const secoes: Record<string, boolean> = isCorretora && corretoraPortalSecoes
+    ? Object.fromEntries(
+        ["contrato", "vidas", "movimentacoes", "chat"].map((k) => [
+          k,
+          Boolean(empresaSecoes[k]) && Boolean(corretoraPortalSecoes[k]),
+        ]),
+      )
+    : empresaSecoes;
 
   const { data: contrato } = useQuery({
     queryKey: ["meu-painel", "contrato", activeEmpresaId],
