@@ -154,6 +154,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAdminEmpresa(false);
         setEmpresaVinculadaId(null);
         setMustChangePassword(false);
+        setCorretoraId(null);
+        setCorretoraNome(null);
+        setCorretoraPortalSecoes(null);
+        setCorretoraEmpresas([]);
+        setActiveEmpresaId(null);
         setLoading(false);
         return;
       }
