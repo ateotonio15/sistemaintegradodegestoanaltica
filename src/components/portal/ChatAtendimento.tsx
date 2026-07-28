@@ -91,18 +91,19 @@ function fmtDataHora(iso: string) {
 type DialogMode = { kind: "new" } | { kind: "existing"; atendimentoId: string } | null;
 
 export function ChatAtendimento() {
-  const { user, empresaVinculadaId } = useAuth();
+  const { user, empresaVinculadaId, activeEmpresaId } = useAuth();
+  const empresaId = activeEmpresaId ?? empresaVinculadaId;
   const qc = useQueryClient();
   const [mode, setMode] = useState<DialogMode>(null);
 
   const { data: historico } = useQuery({
-    queryKey: ["portal-atendimentos-hist", empresaVinculadaId],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["portal-atendimentos-hist", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("atendimentos")
         .select("id, mensagem_original, resumo, setor_destino, status, criado_em")
-        .eq("empresa_id", empresaVinculadaId!)
+        .eq("empresa_id", empresaId!)
         .order("criado_em", { ascending: false })
         .limit(30);
       if (error) throw error;
@@ -213,10 +214,11 @@ export function ChatAtendimento() {
         mode={mode}
         onClose={() => {
           setMode(null);
-          qc.invalidateQueries({ queryKey: ["portal-atendimentos-hist", empresaVinculadaId] });
+          qc.invalidateQueries({ queryKey: ["portal-atendimentos-hist", empresaId] });
         }}
         historico={historico ?? []}
         userId={user?.id ?? null}
+        empresaId={empresaId}
       />
     </Card>
   );
@@ -231,11 +233,13 @@ function ConversaDialog({
   onClose,
   historico,
   userId,
+  empresaId,
 }: {
   mode: DialogMode;
   onClose: () => void;
   historico: AtendimentoHist[];
   userId: string | null;
+  empresaId: string | null;
 }) {
   const open = !!mode;
   const isNew = mode?.kind === "new";
@@ -346,7 +350,7 @@ function ConversaDialog({
       if (!currentAtdId) {
         // Nova conversa → classificar via edge function
         const { data, error } = await supabase.functions.invoke("classificar-atendimento", {
-          body: { mensagem: texto },
+          body: { mensagem: texto, empresa_id: empresaId },
         });
         if (error) throw error;
         if ((data as any)?.error) throw new Error((data as any).error);
