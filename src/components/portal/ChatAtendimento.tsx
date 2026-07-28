@@ -378,6 +378,12 @@ function ConversaDialog({
     })();
   }, [open, currentAtdId, messages]);
 
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, loading]);
+
+
+
   async function uploadImage(file: File) {
     if (!userId) {
       toast.error("Sessão expirada");
