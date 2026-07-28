@@ -7,11 +7,40 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, PlayCircle, Paperclip, X as XIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, Paperclip, X as XIcon, Search, Inbox, Clock, CheckCheck, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MensagemBody } from "@/components/atendimentos/MensagemBody";
 import { Ticks, statusFromMsg } from "@/components/atendimentos/Ticks";
+
+function timeAgo(iso: string) {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return "agora";
+  if (diff < 3600) return `${Math.floor(diff / 60)}min`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+function initials(name?: string | null) {
+  if (!name) return "?";
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+}
+
+function avatarColor(seed: string) {
+  const palette = [
+    "from-emerald-500/80 to-teal-600/80",
+    "from-sky-500/80 to-blue-600/80",
+    "from-violet-500/80 to-fuchsia-600/80",
+    "from-amber-500/80 to-orange-600/80",
+    "from-rose-500/80 to-pink-600/80",
+    "from-cyan-500/80 to-emerald-600/80",
+  ];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return palette[h % palette.length];
+}
 
 type Setor = "cadastro" | "relacionamento" | "financeiro";
 type Status = "aberto" | "em_andamento" | "resolvido";
