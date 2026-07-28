@@ -35,7 +35,7 @@ interface Mensagem {
 }
 
 export function FloatingFilaChat() {
-  const { user, role, isAdmin, isAdminInterno } = useAuth();
+  const { user, role, isAdmin } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -44,15 +44,14 @@ export function FloatingFilaChat() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const setoresVisiveis = useMemo<Setor[]>(() => {
-    if (isAdmin || role === "executivo" || role === "executivo_externo") {
-      return ["cadastro", "relacionamento", "financeiro"];
-    }
     if (role === "financeiro") return ["financeiro"];
     if (role === "comum" || role === "administradoras") return ["cadastro"];
-    return [];
-  }, [isAdmin, role]);
+    // Admin, executivo, executivo_externo, diretora, visualizacao, enfermeira, vendas, etc.
+    return ["cadastro", "relacionamento", "financeiro"];
+  }, [role]);
 
-  const canShow = isAdminInterno && setoresVisiveis.length > 0;
+  const canShow = !!user && setoresVisiveis.length > 0;
+
 
   const { data: atendimentos = [] } = useQuery({
     queryKey: ["floating-fila", setoresVisiveis.join(",")],
