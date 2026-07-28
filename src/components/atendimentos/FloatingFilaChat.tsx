@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, PlayCircle } from "lucide-react";
+import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, PlayCircle, Paperclip, X as XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MensagemBody } from "@/components/atendimentos/MensagemBody";
