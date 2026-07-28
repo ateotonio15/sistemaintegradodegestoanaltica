@@ -206,8 +206,11 @@ export function FloatingFilaChat() {
                       )}
                     >
                       <MensagemBody text={m.mensagem} />
-                      <div className={cn("text-[10px] mt-1 opacity-70")}>
-                        {new Date(m.criado_em).toLocaleString("pt-BR")}
+                      <div className={cn("text-[10px] mt-1 opacity-70 flex items-center gap-1", m.autor_tipo === "staff" && "justify-end")}>
+                        <span>{new Date(m.criado_em).toLocaleString("pt-BR")}</span>
+                        {m.autor_tipo === "staff" && (
+                          <Ticks status={statusFromMsg({ key: m.id, lida_em: m.lida_em })} />
+                        )}
                       </div>
                     </div>
                   ))}
