@@ -214,10 +214,11 @@ export function ChatAtendimento() {
         mode={mode}
         onClose={() => {
           setMode(null);
-          qc.invalidateQueries({ queryKey: ["portal-atendimentos-hist", empresaVinculadaId] });
+          qc.invalidateQueries({ queryKey: ["portal-atendimentos-hist", empresaId] });
         }}
         historico={historico ?? []}
         userId={user?.id ?? null}
+        empresaId={empresaId}
       />
     </Card>
   );
