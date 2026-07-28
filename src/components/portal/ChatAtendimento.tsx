@@ -13,11 +13,13 @@ import {
   Clock,
   Headphones,
   History,
+  ImagePlus,
   Loader2,
   MessageSquare,
   Plus,
   Send,
   Sparkles,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
