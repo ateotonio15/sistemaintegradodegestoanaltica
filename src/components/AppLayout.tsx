@@ -34,6 +34,8 @@ import { CobrancaBanner } from "@/components/financeiro/CobrancaBanner";
 import { HondaAlertasBanner } from "@/components/honda/HondaAlertasBanner";
 import { HeaderTabs } from "@/components/HeaderTabs";
 import { CadastroEmpresasPopover } from "@/components/CadastroEmpresasPopover";
+import { FloatingFilaChat } from "@/components/atendimentos/FloatingFilaChat";
+
 
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
