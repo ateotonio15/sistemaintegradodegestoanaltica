@@ -176,16 +176,16 @@ export default function MeuPainel() {
 
         {/* KPIs */}
         {(secoes.vidas || secoes.contrato) && (
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-3 md:gap-6 sm:grid-cols-2 md:grid-cols-3">
             {secoes.vidas && (
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary/40">
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 md:p-6 transition-colors hover:border-primary/40">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full -mr-16 -mt-16 pointer-events-none" />
-                <p className="text-sm font-medium text-muted-foreground mb-2">Vidas ativas</p>
-                <div className="flex items-baseline gap-2">
-                  <h3 className="text-4xl font-bold tracking-tight">
+                <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">Vidas ativas</p>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <h3 className="text-3xl md:text-4xl font-bold tracking-tight">
                     {(empresa as any)?.vidas ?? "—"}
                   </h3>
-                  <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] md:text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                     beneficiários
                   </span>
                 </div>
@@ -194,31 +194,31 @@ export default function MeuPainel() {
 
             {secoes.contrato && (
               <>
-                <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary/40">
+                <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 md:p-6 transition-colors hover:border-primary/40">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16 pointer-events-none" />
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Valor mensal de Enfermaria</p>
-                  <div className="flex items-baseline gap-2">
-                    <h3 className="text-4xl font-bold tracking-tight">
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">Valor mensal de Enfermaria</p>
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <h3 className="text-2xl md:text-4xl font-bold tracking-tight">
                       {fmtMoney(((empresa as any)?.valor_enfermaria_centavos ?? 0) / 100)}
                     </h3>
-                    <span className="text-muted-foreground text-sm font-medium">/mês</span>
+                    <span className="text-muted-foreground text-xs md:text-sm font-medium">/mês</span>
                   </div>
                 </div>
 
-                <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary/40">
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Status do contrato</p>
+                <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 md:p-6 transition-colors hover:border-primary/40 sm:col-span-2 md:col-span-1">
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">Status do contrato</p>
                   <div className="flex items-center gap-3">
                     <div className={cn(
-                      "w-3 h-3 rounded-full",
+                      "w-3 h-3 rounded-full shrink-0",
                       isAtivo
                         ? "bg-primary shadow-[0_0_12px_hsl(var(--primary))] animate-pulse"
                         : "bg-muted-foreground",
                     )} />
-                    <h3 className="text-2xl font-semibold tracking-tight uppercase">
+                    <h3 className="text-xl md:text-2xl font-semibold tracking-tight uppercase truncate">
                       {(empresa as any)?.status_empresa ?? "—"}
                     </h3>
                   </div>
-                  <p className="mt-3 text-xs text-muted-foreground">
+                  <p className="mt-2 md:mt-3 text-[11px] md:text-xs text-muted-foreground">
                     Vigência: {fmtDate(contrato?.data_inicio)} → {fmtDate(contrato?.data_fim) === "-" ? "sem prazo" : fmtDate(contrato?.data_fim)}
                   </p>
                 </div>
@@ -226,6 +226,7 @@ export default function MeuPainel() {
             )}
           </div>
         )}
+
 
         {/* Two-column layout */}
         <div className="grid gap-6 lg:grid-cols-3">
