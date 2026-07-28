@@ -253,6 +253,12 @@ export function FloatingFilaChat() {
                 </div>
               </ScrollArea>
               <div className="border-t p-3 space-y-2 bg-background">
+                {selected.status === "resolvido" ? (
+                  <div className="text-center text-xs text-muted-foreground py-3">
+                    Atendimento <strong>Resolvido</strong> — conversa encerrada.
+                  </div>
+                ) : (
+                <>
                 {pendingImages.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {pendingImages.map((img, i) => (
@@ -285,11 +291,9 @@ export function FloatingFilaChat() {
                 />
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    {selected.status !== "resolvido" ? (
-                      <Button size="sm" variant="outline" onClick={marcarResolvido}>
-                        <CheckCircle2 className="h-4 w-4 mr-1" /> Resolver
-                      </Button>
-                    ) : <span />}
+                    <Button size="sm" variant="outline" onClick={marcarResolvido}>
+                      <CheckCircle2 className="h-4 w-4 mr-1" /> Resolver
+                    </Button>
                     <Button
                       type="button"
                       size="sm"
@@ -305,6 +309,8 @@ export function FloatingFilaChat() {
                     {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />} Enviar
                   </Button>
                 </div>
+                </>
+                )}
               </div>
             </>
           ) : (
