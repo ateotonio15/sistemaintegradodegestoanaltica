@@ -309,16 +309,16 @@ export default function MeuPainel() {
               const noPeriodo = empresa ? contratoDentroDoPeriodo(empresa as any) : false;
               return (
                 <section className="rounded-xl border border-border bg-card overflow-hidden">
-                  <div className="px-6 py-4 border-b border-border">
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border">
+                    <h2 className="text-xs md:text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                       <CalendarClock className="h-4 w-4 text-primary" />
                       Movimentações do contrato
                     </h2>
-                    <p className="text-xs text-muted-foreground mt-1">Envios do cadastro e do financeiro, por competência.</p>
+                    <p className="text-[11px] md:text-xs text-muted-foreground mt-1">Envios do cadastro e do financeiro, por competência.</p>
                   </div>
 
                   {noPeriodo && (
-                    <div className="mx-6 mt-4 flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3">
+                    <div className="mx-4 md:mx-6 mt-3 md:mt-4 flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3">
                       <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                       <div className="text-sm">
                         <p className="font-semibold text-foreground">Contrato dentro do período de movimentação</p>
@@ -336,77 +336,122 @@ export default function MeuPainel() {
                   )}
 
                   {!movsContrato || movsContrato.length === 0 ? (
-                    <p className="text-sm text-muted-foreground p-6">Nenhuma movimentação registrada.</p>
+                    <p className="text-sm text-muted-foreground p-4 md:p-6">Nenhuma movimentação registrada.</p>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-muted/40">
-                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Competência</th>
-                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Período</th>
-                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Enviado p/ empresa</th>
-                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Enviado ao financeiro</th>
-                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Nota emitida</th>
-                            <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/60">
-                          {movsContrato.map((m: any) => {
-                            const status = calcularStatus(m);
-                            const dataNota = notasFinanceiro?.get(`${m.mes_referencia}__${m.periodo}`) ?? null;
-                            return (
-                              <tr key={m.id} className="hover:bg-muted/30 transition-colors">
-                                <td className="px-6 py-4 text-sm font-medium">{formatMesReferencia(m.mes_referencia)}</td>
-                                <td className="px-6 py-4 text-sm text-muted-foreground">{m.periodo}</td>
-                                <td className="px-6 py-4 text-sm">
-                                  {m.data_envio_empresa ? (
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <CheckCircle2 className="h-3.5 w-3.5 text-warning" />
-                                      {fmtDate(m.data_envio_empresa)}
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                                      <Clock className="h-3.5 w-3.5" /> Pendente
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 text-sm">
-                                  {m.data_envio_financeiro ? (
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <CheckCircle2 className="h-3.5 w-3.5 text-success" />
-                                      {fmtDate(m.data_envio_financeiro)}
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                                      <Clock className="h-3.5 w-3.5" /> Pendente
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 text-sm">
-                                  {dataNota ? (
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <CheckCircle2 className="h-3.5 w-3.5 text-success" />
-                                      {fmtDate(dataNota)}
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                                      <Clock className="h-3.5 w-3.5" /> Pendente
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 text-sm">
-                                  <Badge className={cn("text-[10px] font-medium border", statusColor(status))}>
-                                    {status}
-                                  </Badge>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                    <>
+                      {/* Mobile: cards */}
+                      <div className="md:hidden divide-y divide-border/60">
+                        {movsContrato.map((m: any) => {
+                          const status = calcularStatus(m);
+                          const dataNota = notasFinanceiro?.get(`${m.mes_referencia}__${m.periodo}`) ?? null;
+                          const Row = ({ label, value, icon: Icon, tone }: { label: string; value: string | null; icon: any; tone?: "warning" | "success" }) => (
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span>
+                              {value ? (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+                                  <Icon className={cn("h-3.5 w-3.5", tone === "success" ? "text-success" : "text-warning")} />
+                                  {value}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Clock className="h-3.5 w-3.5" /> Pendente
+                                </span>
+                              )}
+                            </div>
+                          );
+                          return (
+                            <div key={m.id} className="p-4 space-y-2.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-semibold">{formatMesReferencia(m.mes_referencia)}</div>
+                                  <div className="text-[11px] text-muted-foreground">Período {m.periodo}</div>
+                                </div>
+                                <Badge className={cn("text-[10px] font-medium border shrink-0", statusColor(status))}>
+                                  {status}
+                                </Badge>
+                              </div>
+                              <div className="space-y-1.5 pt-1">
+                                <Row label="Enviado p/ empresa" value={m.data_envio_empresa ? fmtDate(m.data_envio_empresa) : null} icon={CheckCircle2} tone="warning" />
+                                <Row label="Enviado ao financeiro" value={m.data_envio_financeiro ? fmtDate(m.data_envio_financeiro) : null} icon={CheckCircle2} tone="success" />
+                                <Row label="Nota emitida" value={dataNota ? fmtDate(dataNota) : null} icon={CheckCircle2} tone="success" />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Desktop: table */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-muted/40">
+                              <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Competência</th>
+                              <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Período</th>
+                              <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Enviado p/ empresa</th>
+                              <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Enviado ao financeiro</th>
+                              <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Nota emitida</th>
+                              <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/60">
+                            {movsContrato.map((m: any) => {
+                              const status = calcularStatus(m);
+                              const dataNota = notasFinanceiro?.get(`${m.mes_referencia}__${m.periodo}`) ?? null;
+                              return (
+                                <tr key={m.id} className="hover:bg-muted/30 transition-colors">
+                                  <td className="px-6 py-4 text-sm font-medium">{formatMesReferencia(m.mes_referencia)}</td>
+                                  <td className="px-6 py-4 text-sm text-muted-foreground">{m.periodo}</td>
+                                  <td className="px-6 py-4 text-sm">
+                                    {m.data_envio_empresa ? (
+                                      <span className="inline-flex items-center gap-1.5">
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-warning" />
+                                        {fmtDate(m.data_envio_empresa)}
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                                        <Clock className="h-3.5 w-3.5" /> Pendente
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm">
+                                    {m.data_envio_financeiro ? (
+                                      <span className="inline-flex items-center gap-1.5">
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                                        {fmtDate(m.data_envio_financeiro)}
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                                        <Clock className="h-3.5 w-3.5" /> Pendente
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm">
+                                    {dataNota ? (
+                                      <span className="inline-flex items-center gap-1.5">
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                                        {fmtDate(dataNota)}
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                                        <Clock className="h-3.5 w-3.5" /> Pendente
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm">
+                                    <Badge className={cn("text-[10px] font-medium border", statusColor(status))}>
+                                      {status}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                 </section>
+
               );
             })()}
           </div>
