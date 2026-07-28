@@ -27,9 +27,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 type ChatMsg =
-  | { key: string; role: "user"; text: string; at?: string }
+  | { key: string; role: "user"; text: string; at?: string; lida_em?: string | null }
   | { key: string; role: "assistant"; text: string; setor?: string; at?: string }
-  | { key: string; role: "staff"; text: string; at?: string };
+  | { key: string; role: "staff"; text: string; at?: string; lida_em?: string | null };
 
 const setorLabel: Record<string, string> = {
   cadastro: "Cadastro",
