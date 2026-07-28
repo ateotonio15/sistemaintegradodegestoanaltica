@@ -91,18 +91,19 @@ function fmtDataHora(iso: string) {
 type DialogMode = { kind: "new" } | { kind: "existing"; atendimentoId: string } | null;
 
 export function ChatAtendimento() {
-  const { user, empresaVinculadaId } = useAuth();
+  const { user, empresaVinculadaId, activeEmpresaId } = useAuth();
+  const empresaId = activeEmpresaId ?? empresaVinculadaId;
   const qc = useQueryClient();
   const [mode, setMode] = useState<DialogMode>(null);
 
   const { data: historico } = useQuery({
-    queryKey: ["portal-atendimentos-hist", empresaVinculadaId],
-    enabled: !!empresaVinculadaId,
+    queryKey: ["portal-atendimentos-hist", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("atendimentos")
         .select("id, mensagem_original, resumo, setor_destino, status, criado_em")
-        .eq("empresa_id", empresaVinculadaId!)
+        .eq("empresa_id", empresaId!)
         .order("criado_em", { ascending: false })
         .limit(30);
       if (error) throw error;
