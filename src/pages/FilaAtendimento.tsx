@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Loader2, ArrowRightLeft, CheckCircle2, PlayCircle, Send } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { MensagemBody } from "@/components/atendimentos/MensagemBody";
+import { Ticks, statusFromMsg } from "@/components/atendimentos/Ticks";
 
 type Setor = "cadastro" | "relacionamento" | "financeiro";
 type Status = "aberto" | "em_andamento" | "resolvido";
