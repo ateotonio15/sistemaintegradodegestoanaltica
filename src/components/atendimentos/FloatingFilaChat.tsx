@@ -141,17 +141,16 @@ export function FloatingFilaChat() {
       <button
         onClick={() => setOpen(true)}
         className={cn(
-          "fixed top-4 right-4 z-50 flex items-center gap-2 rounded-full border shadow-lg backdrop-blur-md transition-all",
-          "bg-primary text-primary-foreground border-primary/40 hover:brightness-110 px-4 py-2.5",
-          abertos > 0 && "ring-2 ring-destructive/60 animate-pulse",
+          "fixed bottom-4 right-4 z-40 flex items-center justify-center rounded-full border shadow-lg backdrop-blur-md transition-all",
+          "bg-primary text-primary-foreground border-primary/40 hover:brightness-110 h-12 w-12",
+          abertos > 0 && "ring-2 ring-destructive/60",
         )}
         title="Central de atendimentos"
         aria-label="Central de atendimentos"
       >
-        <MessageSquare className="h-4 w-4" />
-        <span className="hidden sm:inline text-xs font-semibold uppercase tracking-wider">Atendimentos</span>
+        <MessageSquare className="h-5 w-5" />
         {abertos > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5">
+          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 ring-2 ring-background">
             {abertos > 99 ? "99+" : abertos}
           </span>
         )}
