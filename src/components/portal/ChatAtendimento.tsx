@@ -590,11 +590,14 @@ function ConversaDialog({
                 {m.at && (
                   <div
                     className={cn(
-                      "mt-1 text-[10px]",
-                      m.role === "user" ? "opacity-80" : "text-muted-foreground",
+                      "mt-1 flex items-center gap-1 text-[10px]",
+                      m.role === "user" ? "justify-end opacity-80" : "text-muted-foreground",
                     )}
                   >
-                    {fmtDataHora(m.at)}
+                    <span>{fmtDataHora(m.at)}</span>
+                    {m.role === "user" && !m.key.startsWith("orig-") && (
+                      <Ticks status={statusFromMsg(m as any)} />
+                    )}
                   </div>
                 )}
               </div>
