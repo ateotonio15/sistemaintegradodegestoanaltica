@@ -819,6 +819,9 @@ export default function Empresas() {
           </div>
           {(canEdit && !isExecutivo && !isEnfermeira) && (
             <div className="flex gap-2">
+              <Button variant="outline" onClick={exportarEmpresasExcel} className="rounded-lg">
+                <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar Excel
+              </Button>
               {canFullEdit && (
                 <>
                   <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
