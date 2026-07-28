@@ -457,13 +457,14 @@ export default function MeuPainel() {
           </div>
 
           {/* Right column: Responsáveis + Atendimento */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {secoes.contrato && (
-              <section className="rounded-xl border border-border bg-card p-6">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-6 flex items-center gap-2">
+              <section className="rounded-xl border border-border bg-card p-4 md:p-6">
+                <h2 className="text-xs md:text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4 md:mb-6 flex items-center gap-2">
                   <Users className="h-4 w-4 text-primary" />
                   Responsáveis
                 </h2>
+
                 <div className="space-y-5">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center font-bold text-primary text-sm">
