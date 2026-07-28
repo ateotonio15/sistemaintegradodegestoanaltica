@@ -339,8 +339,11 @@ export default function FilaAtendimento() {
                             : "max-w-[80%] rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm"
                         }>
                           <MensagemBody text={m.mensagem} />
-                          <div className={"text-[10px] mt-1 opacity-70"}>
-                            {new Date(m.criado_em).toLocaleString("pt-BR")}
+                          <div className={"text-[10px] mt-1 opacity-70 flex items-center gap-1 " + (m.autor_tipo === "staff" ? "justify-end" : "")}>
+                            <span>{new Date(m.criado_em).toLocaleString("pt-BR")}</span>
+                            {m.autor_tipo === "staff" && (
+                              <Ticks status={statusFromMsg({ key: m.id, lida_em: m.lida_em })} />
+                            )}
                           </div>
                         </div>
                       </div>
