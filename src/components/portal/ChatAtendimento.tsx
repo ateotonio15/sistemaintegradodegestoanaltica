@@ -428,6 +428,10 @@ function ConversaDialog({
   }
 
   async function enviar() {
+    if (status === "resolvido") {
+      toast.error("Esta conversa já foi resolvida.");
+      return;
+    }
     const texto = input.trim();
     const imgs = pendingImages;
     if ((!texto && imgs.length === 0) || loading) return;
