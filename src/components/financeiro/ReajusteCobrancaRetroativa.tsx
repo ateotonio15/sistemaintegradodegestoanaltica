@@ -666,42 +666,52 @@ export function ReajusteCobrancaRetroativa() {
                     <span className="text-destructive">*</span>
                   )}
                 </Label>
-                {editCobId && editCobMovId && (
-                  <div className="flex items-center gap-1.5">
+              </div>
+
+              {editCobId && editCobMovId && anexoAtualNome && (
+                <div className="rounded-lg border bg-card px-3 py-2.5 flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <FileText className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium truncate">{anexoAtualNome}</p>
+                    <p className="text-[10px] text-muted-foreground">PDF anexado</p>
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0">
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1 text-xs"
+                      size="icon"
+                      className="h-7 w-7"
                       onClick={() => handleViewPdf(editCobMovId)}
                       disabled={loadingPreview === editCobMovId}
+                      title="Visualizar PDF"
                     >
                       {loadingPreview === editCobMovId ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Eye className="h-3 w-3 text-primary" />
+                        <Eye className="h-3.5 w-3.5 text-primary" />
                       )}
-                      Visualizar
                     </Button>
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
-                      onClick={() => handleRemoveAnexo(editCobMovId, () => setEditCobMovId(null))}
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => handleRemoveAnexo(editCobMovId, () => { setEditCobMovId(null); setAnexoAtualNome(null); })}
                       disabled={removingAnexo}
                       title="Remover anexo"
                     >
                       {removingAnexo ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       )}
-                      Remover
                     </Button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
               <FileInput files={cobFiles} onChange={setCobFiles} />
             </div>
           </div>
