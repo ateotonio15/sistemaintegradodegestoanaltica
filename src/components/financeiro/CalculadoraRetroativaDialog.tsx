@@ -143,7 +143,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-lg sm:max-w-lg max-h-[85vh] overflow-y-auto overflow-x-hidden p-0">
+      <DialogContent className="w-[95vw] max-w-xl sm:max-w-xl max-h-[95vh] overflow-y-auto overflow-x-hidden p-0">
         <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-b p-5">
           <DialogHeader className="space-y-2">
             <DialogTitle className="flex items-center gap-2 text-base">
