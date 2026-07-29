@@ -45,6 +45,10 @@ import {
   Calculator,
   Receipt,
   Pencil,
+  Building2,
+  CalendarIcon,
+  Paperclip,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -320,6 +324,7 @@ export function ReajusteCobrancaRetroativa() {
   const [cobDescricao, setCobDescricao] = useState("");
   const [cobFiles, setCobFiles] = useState<File[]>([]);
   const [cobSaving, setCobSaving] = useState(false);
+  const [anexoAtualNome, setAnexoAtualNome] = useState<string | null>(null);
 
   const resetCob = () => {
     setEditCobId(null);
@@ -330,9 +335,10 @@ export function ReajusteCobrancaRetroativa() {
     setCobFiles([]);
     setCobCompet(getCurrentMesReferencia());
     setManualValorInput("");
+    setAnexoAtualNome(null);
   };
 
-  const openEditCobranca = (c: any) => {
+  const openEditCobranca = async (c: any) => {
     setEditCobId(c.id);
     setEditCobMovId(c.financeiro_movimentacao_id ?? null);
     setCobEmpresa(c.empresa_id);
@@ -340,6 +346,17 @@ export function ReajusteCobrancaRetroativa() {
     setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
     setCobDescricao(c.descricao || "");
     setCobFiles([]);
+    setAnexoAtualNome(null);
+    if (c.financeiro_movimentacao_id) {
+      const { data } = await supabase
+        .from("anexos_financeiro")
+        .select("nome_arquivo")
+        .eq("financeiro_movimentacao_id", c.financeiro_movimentacao_id)
+        .eq("origem", "retroativo")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) setAnexoAtualNome(data[0].nome_arquivo);
+    }
     setOpenCobDialog(true);
   };
 
@@ -530,28 +547,72 @@ export function ReajusteCobrancaRetroativa() {
 
       {/* ============ DIALOG: COBRANÇA RETROATIVA ============ */}
       <Dialog open={openCobDialog} onOpenChange={(o) => { setOpenCobDialog(o); if (!o) resetCob(); }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Receipt className="h-4 w-4 text-primary" />
-              {editCobId ? "Editar Cobrança Retroativa" : "Nova Cobrança Retroativa"}
-            </DialogTitle>
-            <DialogDescription>
-              {editCobId
-                ? "Anexar um novo PDF é opcional. Se enviado, substitui o anterior."
-                : "O PDF será automaticamente anexado ao processo financeiro."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Contrato *</Label>
-              <EmpresaCombobox empresas={empresas} value={cobEmpresa} onChange={setCobEmpresa} />
+        <DialogContent className="max-w-xl p-0 overflow-hidden">
+          {/* Header destacado */}
+          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b px-6 py-5">
+            <DialogHeader className="space-y-1">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Receipt className="h-4.5 w-4.5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <DialogTitle className="text-base font-semibold tracking-tight truncate">
+                      {editCobId ? "Editar Cobrança Retroativa" : "Nova Cobrança Retroativa"}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs leading-relaxed">
+                      {editCobId
+                        ? "Anexar um novo PDF é opcional. Se enviado, substitui o anterior."
+                        : "O PDF será automaticamente anexado ao processo financeiro."}
+                    </DialogDescription>
+                  </div>
+                </div>
+                {editCobId && (
+                  <Badge variant="outline" className="shrink-0 text-[10px] border-primary/30 bg-primary/10 text-primary">
+                    Edição
+                  </Badge>
+                )}
+              </div>
+            </DialogHeader>
+          </div>
+
+          <div className="px-6 py-5 space-y-5">
+            {/* Seção Contrato */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                Contrato <span className="text-destructive">*</span>
+              </Label>
+              {editCobId && cobEmpresa ? (
+                <div className="rounded-xl border bg-muted/30 px-4 py-3 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate">{empresasMap[cobEmpresa]?.nome}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {empresasMap[cobEmpresa]?.codigo_contrato
+                        ? `Contrato ${empresasMap[cobEmpresa]?.codigo_contrato}`
+                        : empresasMap[cobEmpresa]?.cnpj || "—"}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <EmpresaCombobox empresas={empresas} value={cobEmpresa} onChange={setCobEmpresa} />
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Competência *</Label>
+
+            {/* Grid Competência + Valor */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium flex items-center gap-1.5">
+                  <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  Competência <span className="text-destructive">*</span>
+                </Label>
                 <Select value={cobCompet} onValueChange={setCobCompet}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {meses.map((m) => (
                       <SelectItem key={m} value={m}>{formatMesReferencia(m)}</SelectItem>
@@ -559,81 +620,112 @@ export function ReajusteCobrancaRetroativa() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor total *</Label>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium flex items-center gap-1.5">
+                  <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+                  Valor total <span className="text-destructive">*</span>
+                </Label>
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full justify-between font-normal"
+                  className="w-full h-10 justify-between font-normal bg-card hover:bg-accent/50"
                   onClick={() => setCalcOpen(true)}
                 >
-                  <span className={cn("truncate", !cobValor && "text-muted-foreground")}>
+                  <span className={cn("truncate text-sm", !cobValor && "text-muted-foreground")}>
                     {cobValor ? `R$ ${cobValor}` : "Calcular valor"}
                   </span>
                   <Calculator className="ml-2 h-4 w-4 shrink-0 text-primary" />
                 </Button>
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Descrição / Observação</Label>
+
+            {/* Descrição / Observação */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                Descrição / Observação
+              </Label>
               <Textarea
-                rows={2}
+                rows={3}
                 placeholder="Detalhes sobre a cobrança retroativa..."
                 value={cobDescricao}
                 onChange={(e) => setCobDescricao(e.target.value)}
+                className="resize-none bg-card"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Anexos da cobrança (PDF) {editCobId ? "(opcional)" : "*"}
-              </Label>
-              <FileInput files={cobFiles} onChange={setCobFiles} />
-              {editCobId && editCobMovId && (
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 flex-1"
-                    onClick={() => handleViewPdf(editCobMovId)}
-                    disabled={loadingPreview === editCobMovId}
-                  >
-                    {loadingPreview === editCobMovId ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Eye className="h-3.5 w-3.5 text-primary" />
-                    )}
-                    Visualizar PDF anexado
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5"
-                    onClick={() => handleRemoveAnexo(editCobMovId, () => setEditCobMovId(null))}
-                    disabled={removingAnexo}
-                    title="Remover anexo"
-                  >
-                    {removingAnexo ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    )}
-                    Remover
-                  </Button>
+
+            {/* Seção Anexos */}
+            <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-medium flex items-center gap-1.5 m-0">
+                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                  Anexos da cobrança (PDF)
+                  {editCobId ? (
+                    <span className="text-[10px] font-normal text-muted-foreground">(opcional)</span>
+                  ) : (
+                    <span className="text-destructive">*</span>
+                  )}
+                </Label>
+              </div>
+
+              {editCobId && editCobMovId && anexoAtualNome && (
+                <div className="rounded-lg border bg-card px-3 py-2.5 flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <FileText className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium truncate">{anexoAtualNome}</p>
+                    <p className="text-[10px] text-muted-foreground">PDF anexado</p>
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleViewPdf(editCobMovId)}
+                      disabled={loadingPreview === editCobMovId}
+                      title="Visualizar PDF"
+                    >
+                      {loadingPreview === editCobMovId ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Eye className="h-3.5 w-3.5 text-primary" />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => handleRemoveAnexo(editCobMovId, () => { setEditCobMovId(null); setAnexoAtualNome(null); })}
+                      disabled={removingAnexo}
+                      title="Remover anexo"
+                    >
+                      {removingAnexo ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               )}
+
+              <FileInput files={cobFiles} onChange={setCobFiles} />
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>
+
+          {/* Footer */}
+          <div className="border-t bg-muted/20 px-6 py-4 flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>
               Cancelar
             </Button>
-            <Button onClick={submitCobranca} disabled={cobSaving} className="gap-1.5">
-              {cobSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              {cobSaving ? "Salvando..." : editCobId ? "Salvar alterações" : "Cadastrar"}
+            <Button size="sm" onClick={submitCobranca} disabled={cobSaving} className="gap-1.5">
+              {cobSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {cobSaving ? "Salvando..." : editCobId ? "Salvar alterações" : "Cadastrar cobrança"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
