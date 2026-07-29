@@ -656,8 +656,54 @@ export function ReajusteCobrancaRetroativa() {
           setCobDescricao((d) => (d ? `${d} · ${resumo}` : resumo));
           setOpenCobDialog(true);
         }}
-        onPular={() => setOpenCobDialog(true)}
+        onPular={() => {
+          setCalcOpen(false);
+          setManualValorOpen(true);
+        }}
       />
+
+      {/* ============ DIALOG: VALOR MANUAL ============ */}
+      <Dialog open={manualValorOpen} onOpenChange={(o) => { setManualValorOpen(o); if (!o) setManualValorInput(""; }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-primary" />
+              Valor total da cobrança
+            </DialogTitle>
+            <DialogDescription>
+              Informe o valor total da cobrança retroativa manualmente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Valor total (R$) *</Label>
+              <Input
+                inputMode="decimal"
+                placeholder="0,00"
+                value={manualValorInput}
+                onChange={(e) => setManualValorInput(e.target.value)}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setManualValorOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                const cents = parseBRLInput(manualValorInput);
+                if (cents <= 0) return toast.error("Informe um valor válido.");
+                setCobValor((cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+                setManualValorOpen(false);
+                setManualValorInput("");
+              }}
+            >
+              Aplicar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </Card>
   );
