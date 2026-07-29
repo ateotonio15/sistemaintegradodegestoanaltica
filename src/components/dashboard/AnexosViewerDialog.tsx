@@ -280,6 +280,30 @@ export function AnexosViewerDialog({
         .eq("empresa_id", empresaId!);
       const implIds = (impls ?? []).map((i: any) => i.id);
 
+      // 3b) Anexos de implantação (Contrato) só devem aparecer na PRIMEIRA
+      // competência da empresa (primeira cobrança). Nas demais, são ocultados.
+      let primeiraCompetencia: string | null = null;
+      {
+        const { data: emp } = await supabase
+          .from("empresas")
+          .select("primeira_competencia_financeira")
+          .eq("id", empresaId!)
+          .maybeSingle();
+        primeiraCompetencia = (emp as any)?.primeira_competencia_financeira ?? null;
+        if (!primeiraCompetencia) {
+          const { data: primeiraMov } = await supabase
+            .from("financeiro_movimentacoes")
+            .select("mes_referencia")
+            .eq("empresa_id", empresaId!)
+            .order("mes_referencia", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          primeiraCompetencia = (primeiraMov as any)?.mes_referencia ?? null;
+        }
+      }
+      const mostrarAnexosContrato =
+        !primeiraCompetencia || primeiraCompetencia === mesReferencia;
+
       const [anxFinRes, anxOpRes, anxImplRes, anxFinIrmaosRes] = await Promise.all([
         movFinIds.length
           ? supabase
@@ -295,14 +319,16 @@ export function AnexosViewerDialog({
               .in("movimentacao_id", movOpIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
-        supabase
-          .from("implantacao_anexos" as any)
-          .select("id, nome_arquivo, storage_path, created_at, uploaded_by, empresa_id, implantacao_id")
-          .or(
-            `empresa_id.eq.${empresaId}` +
-              (implIds.length ? `,implantacao_id.in.(${implIds.join(",")})` : ""),
-          )
-          .order("created_at", { ascending: false }),
+        mostrarAnexosContrato
+          ? supabase
+              .from("implantacao_anexos" as any)
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, empresa_id, implantacao_id")
+              .or(
+                `empresa_id.eq.${empresaId}` +
+                  (implIds.length ? `,implantacao_id.in.(${implIds.join(",")})` : ""),
+              )
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [] as any[], error: null }),
         // Anexos financeiros das empresas irmãs (compartilhados pelo grupo)
         movFinIrmaosIds.length
           ? supabase
