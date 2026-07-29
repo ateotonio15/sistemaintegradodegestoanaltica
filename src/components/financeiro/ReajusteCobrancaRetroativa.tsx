@@ -3,12 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -26,23 +24,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Check,
   ChevronsUpDown,
   Upload,
   FileText,
-  History,
-  TrendingUp,
   Loader2,
   Trash2,
   Plus,
+  Search,
+  Eye,
+  Calculator,
+  Receipt,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getMesesOptions, formatMesReferencia, getCurrentMesReferencia, PERIODOS_FIN } from "@/lib/financeiro-utils";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
-import { Eye, Calculator } from "lucide-react";
 import { CalculadoraRetroativaDialog } from "./CalculadoraRetroativaDialog";
 
 type EmpresaOption = {
@@ -96,36 +103,30 @@ function EmpresaCombobox({
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command
-          filter={(value, search) => {
-            const s = search.toLowerCase();
-            return value.toLowerCase().includes(s) ? 1 : 0;
-          }}
+          filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}
         >
           <CommandInput placeholder="Buscar por nome, contrato ou CNPJ..." />
           <CommandList>
             <CommandEmpty>Nenhum contrato encontrado.</CommandEmpty>
             <CommandGroup>
-              {empresas.map((e) => {
-                const haystack = `${e.nome} ${e.codigo_contrato || ""} ${e.cnpj || ""}`;
-                return (
-                  <CommandItem
-                    key={e.id}
-                    value={haystack}
-                    onSelect={() => {
-                      onChange(e.id === value ? null : e.id);
-                      setOpen(false);
-                    }}
-                  >
-                    <Check className={cn("mr-2 h-4 w-4", value === e.id ? "opacity-100" : "opacity-0")} />
-                    <div className="flex flex-col min-w-0">
-                      <span className="truncate text-sm">{e.nome}</span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {e.codigo_contrato || "—"} · {e.cnpj || "sem CNPJ"}
-                      </span>
-                    </div>
-                  </CommandItem>
-                );
-              })}
+              {empresas.map((e) => (
+                <CommandItem
+                  key={e.id}
+                  value={`${e.nome} ${e.codigo_contrato || ""} ${e.cnpj || ""}`}
+                  onSelect={() => {
+                    onChange(e.id === value ? null : e.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", value === e.id ? "opacity-100" : "opacity-0")} />
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate text-sm">{e.nome}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {e.codigo_contrato || "—"} · {e.cnpj || "sem CNPJ"}
+                    </span>
+                  </div>
+                </CommandItem>
+              ))}
             </CommandGroup>
           </CommandList>
         </Command>
@@ -164,7 +165,6 @@ async function uploadPdfAnexo(
   empresaId: string,
   movimentacaoId: string,
   userId?: string | null,
-  origem: "retroativo" | "reajuste" = "retroativo",
 ) {
   const ext = file.name.split(".").pop() || "pdf";
   const path = `${empresaId}/${movimentacaoId}/${crypto.randomUUID()}.${ext}`;
@@ -180,7 +180,7 @@ async function uploadPdfAnexo(
     mime_type: file.type || "application/pdf",
     tamanho_bytes: file.size,
     uploaded_by: userId ?? null,
-    origem,
+    origem: "retroativo",
   } as any);
   if (insErr) throw insErr;
   return path;
@@ -191,11 +191,11 @@ export function ReajusteCobrancaRetroativa() {
   const canManage = isAdmin || isFinanceiro;
   const queryClient = useQueryClient();
 
-  const [tab, setTab] = useState<"cobranca" | "reajuste">("cobranca");
   const [openCobDialog, setOpenCobDialog] = useState(false);
-  const [openReaDialog, setOpenReaDialog] = useState(false);
   const [previewAnexo, setPreviewAnexo] = useState<{ path: string; nome: string; mime: string | null } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [calcOpen, setCalcOpen] = useState(false);
 
   const handleViewPdf = async (movimentacaoId: string | null) => {
     if (!movimentacaoId) {
@@ -208,7 +208,7 @@ export function ReajusteCobrancaRetroativa() {
         .from("anexos_financeiro")
         .select("nome_arquivo, storage_path, mime_type, created_at, origem")
         .eq("financeiro_movimentacao_id", movimentacaoId)
-        .in("origem", ["retroativo", "reajuste"])
+        .eq("origem", "retroativo")
         .order("created_at", { ascending: false })
         .limit(1);
       if (error) throw error;
@@ -235,20 +235,16 @@ export function ReajusteCobrancaRetroativa() {
         .from("anexos_financeiro")
         .select("id, storage_path")
         .eq("financeiro_movimentacao_id", movimentacaoId)
-        .in("origem", ["retroativo", "reajuste"]);
+        .eq("origem", "retroativo");
       if (error) throw error;
       if (data && data.length > 0) {
         const paths = data.map((a: any) => a.storage_path).filter(Boolean);
-        if (paths.length > 0) {
-          await supabase.storage.from("anexos-financeiro").remove(paths);
-        }
-        const ids = data.map((a: any) => a.id);
-        await supabase.from("anexos_financeiro").delete().in("id", ids);
+        if (paths.length > 0) await supabase.storage.from("anexos-financeiro").remove(paths);
+        await supabase.from("anexos_financeiro").delete().in("id", data.map((a: any) => a.id));
       }
       toast.success("Anexo removido.");
       queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
       queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
-      queryClient.invalidateQueries({ queryKey: ["reajustes"] });
       onDone?.();
     } catch (e: any) {
       toast.error("Erro ao remover anexo: " + (e?.message || "desconhecido"));
@@ -295,20 +291,25 @@ export function ReajusteCobrancaRetroativa() {
     },
   });
 
-  const { data: reajustes = [], isLoading: loadingRea } = useQuery({
-    queryKey: ["reajustes"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("reajustes")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data;
-    },
-  });
+  const lista = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    if (!q) return cobrancas as any[];
+    return (cobrancas as any[]).filter((c) => {
+      const emp = empresasMap[c.empresa_id];
+      return (
+        (emp?.nome || "").toLowerCase().includes(q) ||
+        (emp?.codigo_contrato || "").toLowerCase().includes(q) ||
+        (c.descricao || "").toLowerCase().includes(q)
+      );
+    });
+  }, [cobrancas, busca, empresasMap]);
 
-  // ============ Form Cobrança Retroativa ============
+  const totalCentavos = useMemo(
+    () => (lista as any[]).reduce((s, c) => s + (c.valor_centavos || 0), 0),
+    [lista],
+  );
+
+  // ============ Form ============
   const [editCobId, setEditCobId] = useState<string | null>(null);
   const [editCobMovId, setEditCobMovId] = useState<string | null>(null);
   const [cobEmpresa, setCobEmpresa] = useState<string | null>(null);
@@ -317,17 +318,6 @@ export function ReajusteCobrancaRetroativa() {
   const [cobDescricao, setCobDescricao] = useState("");
   const [cobFile, setCobFile] = useState<File | null>(null);
   const [cobSaving, setCobSaving] = useState(false);
-  const [calcOpen, setCalcOpen] = useState(false);
-  const [calcCobId, setCalcCobId] = useState<string | null>(null);
-  const [calcEmpresaPrefill, setCalcEmpresaPrefill] = useState<string | null>(null);
-  const [calcCompetPrefill, setCalcCompetPrefill] = useState<string | null>(null);
-
-  const abrirCalculadora = (cobranca?: any) => {
-    setCalcCobId(cobranca?.id ?? null);
-    setCalcEmpresaPrefill(cobranca?.empresa_id ?? cobEmpresa ?? null);
-    setCalcCompetPrefill(cobranca?.competencia ?? cobCompet ?? null);
-    setCalcOpen(true);
-  };
 
   const resetCob = () => {
     setEditCobId(null);
@@ -407,122 +397,6 @@ export function ReajusteCobrancaRetroativa() {
     }
   };
 
-
-  // ============ Form Reajuste ============
-  const [editReaId, setEditReaId] = useState<string | null>(null);
-  const [editReaMovId, setEditReaMovId] = useState<string | null>(null);
-  const [reaEmpresa, setReaEmpresa] = useState<string | null>(null);
-  const [reaCompet, setReaCompet] = useState<string>(getCurrentMesReferencia());
-  const [reaValor, setReaValor] = useState<string>("");
-  const [reaParcelas, setReaParcelas] = useState<string>("1");
-  const [possuiAporte, setPossuiAporte] = useState(false);
-  const [aporteValor, setAporteValor] = useState<string>("");
-  const [aporteParcelas, setAporteParcelas] = useState<string>("1");
-  const [reaFile, setReaFile] = useState<File | null>(null);
-  const [reaSaving, setReaSaving] = useState(false);
-
-  const resetRea = () => {
-    setEditReaId(null);
-    setEditReaMovId(null);
-    setReaEmpresa(null);
-    setReaValor("");
-    setReaParcelas("1");
-    setPossuiAporte(false);
-    setAporteValor("");
-    setAporteParcelas("1");
-    setReaFile(null);
-    setReaCompet(getCurrentMesReferencia());
-  };
-
-  const openEditReajuste = (r: any) => {
-    setEditReaId(r.id);
-    setEditReaMovId(r.financeiro_movimentacao_id ?? null);
-    setReaEmpresa(r.empresa_id);
-    setReaCompet(r.competencia);
-    setReaValor(((r.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
-    setReaParcelas(String(r.parcelas || 1));
-    setPossuiAporte(!!r.possui_aporte);
-    setAporteValor(r.valor_aporte_centavos != null
-      ? ((r.valor_aporte_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })
-      : "");
-    setAporteParcelas(String(r.parcelas_aporte || 1));
-    setReaFile(null);
-    setOpenReaDialog(true);
-  };
-
-  const reaCents = parseBRLInput(reaValor);
-  const reaParcInt = Math.max(1, parseInt(reaParcelas) || 1);
-  const reaParcCents = Math.floor(reaCents / reaParcInt);
-  const aporteCents = parseBRLInput(aporteValor);
-  const aporteParcInt = Math.max(1, parseInt(aporteParcelas) || 1);
-  const aporteParcCents = Math.floor(aporteCents / aporteParcInt);
-
-  const submitReajuste = async () => {
-    if (!reaEmpresa) return toast.error("Selecione um contrato.");
-    if (!reaCompet) return toast.error("Selecione a competência.");
-    if (reaCents <= 0) return toast.error("Informe um valor válido.");
-    if (reaParcInt < 1) return toast.error("Parcelas deve ser ≥ 1.");
-    if (possuiAporte && (aporteCents <= 0 || aporteParcInt < 1))
-      return toast.error("Informe valor e parcelas do aporte.");
-    if (!editReaId && !reaFile) return toast.error("Anexe o PDF do reajuste.");
-    if (reaFile && reaFile.type && !reaFile.type.includes("pdf"))
-      return toast.error("Apenas arquivos PDF são aceitos.");
-
-    setReaSaving(true);
-    try {
-      if (editReaId) {
-        const { error } = await supabase
-          .from("reajustes")
-          .update({
-            empresa_id: reaEmpresa,
-            competencia: reaCompet,
-            valor_centavos: reaCents,
-            parcelas: reaParcInt,
-            possui_aporte: possuiAporte,
-            valor_aporte_centavos: possuiAporte ? aporteCents : null,
-            parcelas_aporte: possuiAporte ? aporteParcInt : null,
-          })
-          .eq("id", editReaId);
-        if (error) throw error;
-        if (reaFile) {
-          const movId = await ensureFinanceiroMovimentacao(reaEmpresa, reaCompet);
-          await uploadPdfAnexo(reaFile, reaEmpresa, movId, user?.id, "reajuste");
-          await supabase
-            .from("reajustes")
-            .update({ financeiro_movimentacao_id: movId })
-            .eq("id", editReaId);
-        }
-        toast.success("Reajuste atualizado.");
-      } else {
-        const movId = await ensureFinanceiroMovimentacao(reaEmpresa, reaCompet);
-        await uploadPdfAnexo(reaFile!, reaEmpresa, movId, user?.id, "reajuste");
-        const { error } = await supabase.from("reajustes").insert({
-          empresa_id: reaEmpresa,
-          competencia: reaCompet,
-          valor_centavos: reaCents,
-          parcelas: reaParcInt,
-          possui_aporte: possuiAporte,
-          valor_aporte_centavos: possuiAporte ? aporteCents : null,
-          parcelas_aporte: possuiAporte ? aporteParcInt : null,
-          financeiro_movimentacao_id: movId,
-          created_by: user?.id ?? null,
-        });
-        if (error) throw error;
-        toast.success("Reajuste cadastrado e PDF anexado ao processo.");
-      }
-      resetRea();
-      setOpenReaDialog(false);
-      queryClient.invalidateQueries({ queryKey: ["reajustes"] });
-      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
-      queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
-    } catch (e: any) {
-      toast.error("Erro: " + (e?.message || "falha desconhecida"));
-    } finally {
-      setReaSaving(false);
-    }
-  };
-
-
   const deleteCob = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("cobrancas_retroativas").delete().eq("id", id);
@@ -535,127 +409,121 @@ export function ReajusteCobrancaRetroativa() {
     onError: (e: any) => toast.error(e?.message || "Erro ao remover."),
   });
 
-  const deleteRea = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("reajustes").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Reajuste removido.");
-      queryClient.invalidateQueries({ queryKey: ["reajustes"] });
-    },
-    onError: (e: any) => toast.error(e?.message || "Erro ao remover."),
-  });
-
   const meses = getMesesOptions();
-  const isCob = tab === "cobranca";
-  const totalCount = isCob ? cobrancas.length : reajustes.length;
 
   return (
-    <Card className="rounded-xl shadow-sm">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <TrendingUp className="h-4 w-4 text-primary" />
+    <Card className="rounded-xl shadow-sm overflow-hidden">
+      <CardHeader className="pb-3 border-b bg-muted/30">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Receipt className="h-4.5 w-4.5 text-primary" />
             </div>
-            <CardTitle className="text-sm font-semibold truncate">
-              Reajuste e Cobrança Retroativa
-              <Badge variant="outline" className="ml-2 text-[10px]">{totalCount}</Badge>
-            </CardTitle>
+            <div className="min-w-0">
+              <CardTitle className="text-sm font-semibold truncate">Cobrança Retroativa</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {lista.length} registro(s) · Total {formatBRL(totalCentavos)}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-              <TabsList className="h-8">
-                <TabsTrigger value="cobranca" className="h-6 text-xs gap-1">
-                  <History className="h-3 w-3" />
-                  Cobrança
-                </TabsTrigger>
-                <TabsTrigger value="reajuste" className="h-6 text-xs gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  Reajuste
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            {canManage && isCob && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 gap-1"
-                onClick={() => abrirCalculadora()}
-                title="Abrir Calculadora de Cobrança Retroativa"
-              >
-                <Calculator className="h-3.5 w-3.5" /> Calculadora
-              </Button>
-            )}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar contrato..."
+                className="h-8 w-44 pl-8 text-xs"
+              />
+            </div>
             {canManage && (
-              <Button
-                size="sm"
-                className="h-8 gap-1"
-                onClick={() => (isCob ? setOpenCobDialog(true) : setOpenReaDialog(true))}
-              >
-                <Plus className="h-3.5 w-3.5" /> Adicionar
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1"
+                  onClick={() => setCalcOpen(true)}
+                >
+                  <Calculator className="h-3.5 w-3.5" /> Calculadora
+                </Button>
+                <Button size="sm" className="h-8 gap-1" onClick={() => setOpenCobDialog(true)}>
+                  <Plus className="h-3.5 w-3.5" /> Adicionar
+                </Button>
+              </>
             )}
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-1">
-        {isCob ? (
-          <ListaContratos
-            loading={loadingCob}
-            items={cobrancas}
-            empresasMap={empresasMap}
-            emptyText="Nenhuma cobrança retroativa registrada."
-            renderMeta={(c: any) => (
-              <>
-                Competência {formatMesReferencia(c.competencia)}
-                {c.descricao ? ` · ${c.descricao}` : ""}
-              </>
-            )}
-            renderRight={(c: any) => (
-              <Badge variant="secondary" className="shrink-0">{formatBRL(c.valor_centavos)}</Badge>
-            )}
-            canManage={canManage}
-            onDelete={(id) => deleteCob.mutate(id)}
-            onEdit={openEditCobranca}
-            onView={handleViewPdf}
-            loadingPreviewId={loadingPreview}
-          />
-
+      <CardContent className="pt-3">
+        {loadingCob ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>
+        ) : lista.length === 0 ? (
+          <div className="py-10 text-center space-y-1">
+            <Receipt className="h-6 w-6 mx-auto text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">Nenhuma cobrança retroativa registrada.</p>
+          </div>
         ) : (
-          <ListaContratos
-            loading={loadingRea}
-            items={reajustes}
-            empresasMap={empresasMap}
-            emptyText="Nenhum reajuste registrado."
-            renderMeta={(r: any) => (
-              <>
-                Competência {formatMesReferencia(r.competencia)} · {r.parcelas}×{" "}
-                {formatBRL(Math.floor(r.valor_centavos / r.parcelas))}
-                {r.possui_aporte && r.valor_aporte_centavos != null && (
-                  <>
-                    {" · Aporte "}
-                    {r.parcelas_aporte}× {formatBRL(Math.floor((r.valor_aporte_centavos || 0) / (r.parcelas_aporte || 1)))}
-                  </>
-                )}
-              </>
-            )}
-            renderRight={(r: any) => (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Badge variant="secondary">{formatBRL(r.valor_centavos)}</Badge>
-                {r.possui_aporte && (
-                  <Badge variant="outline" className="text-[10px]">+aporte</Badge>
-                )}
-              </div>
-            )}
-            canManage={canManage}
-            onDelete={(id) => deleteRea.mutate(id)}
-            onEdit={openEditReajuste}
-            onView={handleViewPdf}
-            loadingPreviewId={loadingPreview}
-          />
-
+          <div className="max-h-[320px] overflow-y-auto space-y-2 pr-1">
+            {(lista as any[]).map((c) => {
+              const emp = empresasMap[c.empresa_id];
+              return (
+                <div
+                  key={c.id}
+                  className="group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-accent/40"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate text-foreground">{emp?.nome || "—"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {emp?.codigo_contrato ? `Contrato ${emp.codigo_contrato} · ` : ""}
+                      Competência {formatMesReferencia(c.competencia)}
+                      {c.descricao ? ` · ${c.descricao}` : ""}
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="shrink-0 tabular-nums">
+                    {formatBRL(c.valor_centavos)}
+                  </Badge>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      title="Visualizar PDF"
+                      onClick={() => handleViewPdf(c.financeiro_movimentacao_id ?? null)}
+                      disabled={loadingPreview === c.financeiro_movimentacao_id}
+                    >
+                      {loadingPreview === c.financeiro_movimentacao_id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Eye className="h-3.5 w-3.5 text-primary" />
+                      )}
+                    </Button>
+                    {canManage && (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title="Editar"
+                          onClick={() => openEditCobranca(c)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title="Remover"
+                          onClick={() => deleteCob.mutate(c.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </CardContent>
 
@@ -664,13 +532,14 @@ export function ReajusteCobrancaRetroativa() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <History className="h-4 w-4 text-primary" />
+              <Receipt className="h-4 w-4 text-primary" />
               {editCobId ? "Editar Cobrança Retroativa" : "Nova Cobrança Retroativa"}
             </DialogTitle>
             <DialogDescription>
-              {editCobId ? "Anexar um novo PDF é opcional. Se enviado, substitui o anterior." : "O PDF será automaticamente anexado ao processo financeiro."}
+              {editCobId
+                ? "Anexar um novo PDF é opcional. Se enviado, substitui o anterior."
+                : "O PDF será automaticamente anexado ao processo financeiro."}
             </DialogDescription>
-
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -749,17 +618,16 @@ export function ReajusteCobrancaRetroativa() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>
+              Cancelar
+            </Button>
             <Button
               variant="outline"
-              onClick={() => {
-                setOpenCobDialog(false);
-                abrirCalculadora(editCobId ? { id: editCobId, empresa_id: cobEmpresa, competencia: cobCompet } : undefined);
-              }}
+              onClick={() => setCalcOpen(true)}
               disabled={cobSaving}
               className="gap-1.5"
             >
-              <Calculator className="h-4 w-4" /> Calcular retroativo
+              <Calculator className="h-4 w-4" /> Calcular
             </Button>
             <Button onClick={submitCobranca} disabled={cobSaving} className="gap-1.5">
               {cobSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
@@ -767,148 +635,6 @@ export function ReajusteCobrancaRetroativa() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-
-
-      {/* ============ DIALOG: REAJUSTE ============ */}
-      <Dialog open={openReaDialog} onOpenChange={(o) => { setOpenReaDialog(o); if (!o) resetRea(); }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              {editReaId ? "Editar Reajuste" : "Novo Reajuste"}
-            </DialogTitle>
-            <DialogDescription>
-              {editReaId ? "Anexar um novo PDF é opcional. Se enviado, substitui o anterior." : "O PDF será automaticamente anexado ao processo financeiro."}
-            </DialogDescription>
-
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Contrato *</Label>
-              <EmpresaCombobox empresas={empresas} value={reaEmpresa} onChange={setReaEmpresa} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Competência *</Label>
-                <Select value={reaCompet} onValueChange={setReaCompet}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {meses.map((m) => (
-                      <SelectItem key={m} value={m}>{formatMesReferencia(m)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor (BRL) *</Label>
-                <Input
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={reaValor}
-                  onChange={(e) => setReaValor(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Parcelas *</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={reaParcelas}
-                  onChange={(e) => setReaParcelas(e.target.value)}
-                />
-              </div>
-              <div className="rounded-md bg-muted/50 px-3 py-2 flex flex-col justify-center">
-                <span className="text-[10px] text-muted-foreground">Por parcela</span>
-                <span className="text-sm font-semibold">
-                  {reaCents > 0 ? `${reaParcInt}× ${formatBRL(reaParcCents)}` : "—"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-              <div>
-                <Label htmlFor="aporte" className="text-sm cursor-pointer">Possui aporte?</Label>
-                <p className="text-[11px] text-muted-foreground">Adiciona valor e parcelamento de aporte.</p>
-              </div>
-              <Switch id="aporte" checked={possuiAporte} onCheckedChange={setPossuiAporte} />
-            </div>
-            {possuiAporte && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Valor aporte (BRL) *</Label>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    value={aporteValor}
-                    onChange={(e) => setAporteValor(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Parcelas aporte *</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={aporteParcelas}
-                    onChange={(e) => setAporteParcelas(e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2 rounded-md bg-muted/50 px-3 py-2 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Por parcela do aporte</span>
-                  <span className="text-sm font-semibold">
-                    {aporteCents > 0 ? `${aporteParcInt}× ${formatBRL(aporteParcCents)}` : "—"}
-                  </span>
-                </div>
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label className="text-xs">PDF {editReaId ? "(opcional)" : "*"}</Label>
-              <FileInput file={reaFile} onChange={setReaFile} />
-              {editReaId && editReaMovId && (
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 flex-1"
-                    onClick={() => handleViewPdf(editReaMovId)}
-                    disabled={loadingPreview === editReaMovId}
-                  >
-                    {loadingPreview === editReaMovId ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Eye className="h-3.5 w-3.5 text-primary" />
-                    )}
-                    Visualizar PDF anexado
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5"
-                    onClick={() => handleRemoveAnexo(editReaMovId, () => setEditReaMovId(null))}
-                    disabled={removingAnexo}
-                    title="Remover anexo"
-                  >
-                    {removingAnexo ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    )}
-                    Remover
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpenReaDialog(false)} disabled={reaSaving}>Cancelar</Button>
-            <Button onClick={submitReajuste} disabled={reaSaving} className="gap-1.5">
-              {reaSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              {reaSaving ? "Salvando..." : editReaId ? "Salvar alterações" : "Cadastrar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-
       </Dialog>
 
       {previewAnexo && (
@@ -925,10 +651,11 @@ export function ReajusteCobrancaRetroativa() {
       <CalculadoraRetroativaDialog
         open={calcOpen}
         onOpenChange={setCalcOpen}
-        empresas={empresas as any}
-        cobrancaId={calcCobId}
-        empresaIdPrefill={calcEmpresaPrefill}
-        competenciaPrefill={calcCompetPrefill}
+        onAplicar={(totalCentavos, resumo) => {
+          setCobValor((totalCentavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+          setCobDescricao((d) => (d ? `${d} · ${resumo}` : resumo));
+          setOpenCobDialog(true);
+        }}
       />
     </Card>
   );
@@ -954,94 +681,6 @@ function FileInput({ file, onChange }: { file: File | null; onChange: (f: File |
           Remover
         </Button>
       )}
-    </div>
-  );
-}
-
-function ListaContratos({
-  loading,
-  items,
-  empresasMap,
-  emptyText,
-  renderMeta,
-  renderRight,
-  canManage,
-  onDelete,
-  onEdit,
-  onView,
-  loadingPreviewId,
-}: {
-  loading: boolean;
-  items: any[];
-  empresasMap: Record<string, EmpresaOption>;
-  emptyText: string;
-  renderMeta: (item: any) => React.ReactNode;
-  renderRight: (item: any) => React.ReactNode;
-  canManage: boolean;
-  onDelete: (id: string) => void;
-  onEdit?: (item: any) => void;
-  onView: (movimentacaoId: string | null) => void;
-  loadingPreviewId: string | null;
-}) {
-  if (loading) {
-    return <div className="py-6 text-center text-sm text-muted-foreground">Carregando...</div>;
-  }
-  if (items.length === 0) {
-    return <div className="py-8 text-center text-sm text-muted-foreground">{emptyText}</div>;
-  }
-  return (
-    <div className="max-h-[260px] overflow-y-auto space-y-2 pr-1">
-      {items.map((it) => {
-        const emp = empresasMap[it.empresa_id];
-        const clickable = !!onEdit;
-        return (
-          <div
-            key={it.id}
-            role={clickable ? "button" : undefined}
-            tabIndex={clickable ? 0 : undefined}
-            onClick={clickable ? () => onEdit!(it) : undefined}
-            onKeyDown={
-              clickable
-                ? (e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onEdit!(it);
-                    }
-                  }
-                : undefined
-            }
-            className={cn(
-              "flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card transition-colors",
-              clickable && "cursor-pointer hover:bg-accent/40"
-            )}
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium truncate text-foreground">
-                {emp?.nome || "—"}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {emp?.codigo_contrato ? `Contrato: ${emp.codigo_contrato} · ` : ""}
-                {renderMeta(it)}
-              </p>
-            </div>
-            {renderRight(it)}
-            {canManage && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 shrink-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(it.id);
-                }}
-                title="Remover"
-              >
-                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-              </Button>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }
