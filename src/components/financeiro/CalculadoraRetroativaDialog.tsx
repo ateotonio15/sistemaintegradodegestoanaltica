@@ -26,7 +26,10 @@ interface Props {
   onOpenChange: (o: boolean) => void;
   /** Recebe o total calculado (em centavos) para preencher a cobrança. */
   onAplicar?: (totalCentavos: number, resumo: string) => void;
+  /** Segue para o cadastro da cobrança sem usar o cálculo. */
+  onPular?: () => void;
 }
+
 
 const DIVISORES = [28, 29, 30, 31];
 
