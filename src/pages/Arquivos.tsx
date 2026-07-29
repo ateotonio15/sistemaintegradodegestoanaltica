@@ -252,11 +252,13 @@ export default function Arquivos() {
         }
         return a.nome.localeCompare(b.nome);
       });
-  }, [empresas, arquivosPorEmpresa, searchEmpresa]);
+  }, [empresas, arquivosPorEmpresa, searchEmpresa, categoriaFiltro]);
 
   // Auto-seleciona a primeira empresa com arquivos
   useEffect(() => {
-    if (!selectedEmpresaId && empresasList.length > 0) {
+    if (empresasList.length === 0) return;
+    const aindaVisivel = selectedEmpresaId && empresasList.some((e) => e.id === selectedEmpresaId);
+    if (!aindaVisivel) {
       const primeira = empresasList.find((e) => e.total > 0) ?? empresasList[0];
       setSelectedEmpresaId(primeira.id);
     }
