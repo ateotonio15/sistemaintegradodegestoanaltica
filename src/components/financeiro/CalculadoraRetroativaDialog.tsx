@@ -176,10 +176,24 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={limpar}>
-            Limpar
-          </Button>
+        <DialogFooter className="gap-2 sm:justify-between">
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={limpar}>
+              Limpar
+            </Button>
+            {onPular && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  onOpenChange(false);
+                  onPular();
+                }}
+              >
+                Preencher manualmente
+              </Button>
+            )}
+          </div>
+
           <Button
             variant="outline"
             className="gap-1.5"
