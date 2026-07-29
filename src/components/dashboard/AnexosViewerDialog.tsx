@@ -319,14 +319,16 @@ export function AnexosViewerDialog({
               .in("movimentacao_id", movOpIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
-        supabase
-          .from("implantacao_anexos" as any)
-          .select("id, nome_arquivo, storage_path, created_at, uploaded_by, empresa_id, implantacao_id")
-          .or(
-            `empresa_id.eq.${empresaId}` +
-              (implIds.length ? `,implantacao_id.in.(${implIds.join(",")})` : ""),
-          )
-          .order("created_at", { ascending: false }),
+        mostrarAnexosContrato
+          ? supabase
+              .from("implantacao_anexos" as any)
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, empresa_id, implantacao_id")
+              .or(
+                `empresa_id.eq.${empresaId}` +
+                  (implIds.length ? `,implantacao_id.in.(${implIds.join(",")})` : ""),
+              )
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [] as any[], error: null }),
         // Anexos financeiros das empresas irmãs (compartilhados pelo grupo)
         movFinIrmaosIds.length
           ? supabase
