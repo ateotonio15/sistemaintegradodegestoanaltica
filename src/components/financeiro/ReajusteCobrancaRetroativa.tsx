@@ -316,7 +316,7 @@ export function ReajusteCobrancaRetroativa() {
   const [cobCompet, setCobCompet] = useState<string>(getCurrentMesReferencia());
   const [cobValor, setCobValor] = useState<string>("");
   const [cobDescricao, setCobDescricao] = useState("");
-  const [cobFile, setCobFile] = useState<File | null>(null);
+  const [cobFiles, setCobFiles] = useState<File[]>([]);
   const [cobSaving, setCobSaving] = useState(false);
 
   const resetCob = () => {
@@ -325,7 +325,7 @@ export function ReajusteCobrancaRetroativa() {
     setCobEmpresa(null);
     setCobValor("");
     setCobDescricao("");
-    setCobFile(null);
+    setCobFiles([]);
     setCobCompet(getCurrentMesReferencia());
   };
 
@@ -336,7 +336,7 @@ export function ReajusteCobrancaRetroativa() {
     setCobCompet(c.competencia);
     setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
     setCobDescricao(c.descricao || "");
-    setCobFile(null);
+    setCobFiles([]);
     setOpenCobDialog(true);
   };
 
