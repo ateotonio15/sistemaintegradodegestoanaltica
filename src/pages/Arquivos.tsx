@@ -363,29 +363,69 @@ export default function Arquivos() {
   return (
     <>
       <div className="p-4 md:p-6 space-y-4">
-        {/* Header compacto */}
+        {/* Header com pastas */}
         <header className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-primary/[0.04] to-transparent p-4 md:p-5">
           <div className="pointer-events-none absolute -top-16 -right-16 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-          <div className="relative flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="h-11 w-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center ring-1 ring-primary/20 shadow-sm">
-                <FolderArchive className="h-5 w-5" />
+          <div className="relative flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-4">
+                <div className="h-11 w-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center ring-1 ring-primary/20 shadow-sm">
+                  <FolderArchive className="h-5 w-5" />
+                </div>
+                <div>
+                  <h1 className="text-xl md:text-2xl font-bold tracking-tight">Repositório Financeiro</h1>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    <span className="font-semibold text-foreground">{empresas.length}</span> empresas
+                    <span className="mx-1.5 text-muted-foreground/50">·</span>
+                    <span className="font-semibold text-foreground">{arquivos.length}</span> arquivos
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight">Repositório Financeiro</h1>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  <span className="font-semibold text-foreground">{empresas.length}</span> empresas
-                  <span className="mx-1.5 text-muted-foreground/50">·</span>
-                  <span className="font-semibold text-foreground">{arquivos.length}</span> arquivos
-                </p>
-              </div>
+              {canEditFinanceiro && (
+                <Button onClick={() => openUpload(selectedEmpresaId ?? undefined)} className="gap-2 shadow-sm">
+                  <Plus className="h-4 w-4" />
+                  Adicionar arquivo
+                </Button>
+              )}
             </div>
-            {canEditFinanceiro && (
-              <Button onClick={() => openUpload(selectedEmpresaId ?? undefined)} className="gap-2 shadow-sm">
-                <Plus className="h-4 w-4" />
-                Adicionar arquivo
-              </Button>
-            )}
+
+            {/* Pastas por categoria — visíveis no topo para acesso rápido */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/40">
+              <span className="text-xs text-muted-foreground mr-1">Pastas:</span>
+              <button
+                type="button"
+                onClick={() => setCategoriaFiltro(null)}
+                className={cn(
+                  "text-xs px-2.5 py-1.5 rounded-lg border transition-colors inline-flex items-center gap-1.5",
+                  !categoriaFiltro
+                    ? "bg-primary/10 text-primary border-primary/30 font-medium"
+                    : "border-border/60 text-muted-foreground hover:bg-muted/60",
+                )}
+              >
+                <FolderArchive className="h-3.5 w-3.5" />
+                Todas ({arquivos.length})
+              </button>
+              {CATEGORIAS.map((cat) => {
+                const total = totaisPorCategoria.get(cat) ?? 0;
+                const active = categoriaFiltro === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCategoriaFiltro(active ? null : cat)}
+                    className={cn(
+                      "text-xs px-2.5 py-1.5 rounded-lg border transition-colors inline-flex items-center gap-1.5",
+                      active
+                        ? categoriaChipClass(cat) + " font-medium"
+                        : "border-border/60 text-muted-foreground hover:bg-muted/60",
+                    )}
+                  >
+                    <FolderArchive className="h-3.5 w-3.5" />
+                    {cat} ({total})
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </header>
 
@@ -406,41 +446,6 @@ export default function Arquivos() {
                   onChange={(e) => setSearchEmpresa(e.target.value)}
                   className="pl-9 h-9 text-sm"
                 />
-              </div>
-              {/* Pastas por categoria */}
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setCategoriaFiltro(null)}
-                  className={cn(
-                    "text-[11px] px-2 py-1 rounded-md border transition-colors",
-                    !categoriaFiltro
-                      ? "bg-primary/10 text-primary border-primary/30 font-medium"
-                      : "border-border/60 text-muted-foreground hover:bg-muted/60",
-                  )}
-                >
-                  Todas ({arquivos.length})
-                </button>
-                {CATEGORIAS.map((cat) => {
-                  const total = totaisPorCategoria.get(cat) ?? 0;
-                  const active = categoriaFiltro === cat;
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCategoriaFiltro(active ? null : cat)}
-                      className={cn(
-                        "text-[11px] px-2 py-1 rounded-md border transition-colors inline-flex items-center gap-1",
-                        active
-                          ? categoriaChipClass(cat) + " font-medium"
-                          : "border-border/60 text-muted-foreground hover:bg-muted/60",
-                      )}
-                    >
-                      <FolderArchive className="h-3 w-3" />
-                      {cat} ({total})
-                    </button>
-                  );
-                })}
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
