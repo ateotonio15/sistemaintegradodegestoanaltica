@@ -129,6 +129,7 @@ export default function Arquivos() {
   const [selectedEmpresaId, setSelectedEmpresaId] = useState<string | null>(null);
   const [selectedArquivoId, setSelectedArquivoId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ArquivoRow | null>(null);
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
 
   function openUpload(empresaId?: string) {
     setUploadDefaults({ empresaId });
@@ -207,16 +208,25 @@ export default function Arquivos() {
     return m;
   }, [empresas]);
 
-  // Contagem de arquivos por empresa
+  // Contagem de arquivos por empresa (respeitando a pasta/categoria selecionada)
   const arquivosPorEmpresa = useMemo(() => {
     const m = new Map<string, ArquivoRow[]>();
     for (const a of arquivos) {
+      if (categoriaFiltro && a.categoria !== categoriaFiltro) continue;
       const arr = m.get(a.empresa_id) ?? [];
       arr.push(a);
       m.set(a.empresa_id, arr);
     }
     return m;
+  }, [arquivos, categoriaFiltro]);
+
+  // Total de arquivos por categoria (para os chips de pasta)
+  const totaisPorCategoria = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of arquivos) m.set(a.categoria, (m.get(a.categoria) ?? 0) + 1);
+    return m;
   }, [arquivos]);
+
 
   // Lista de empresas (todas + com arquivos), filtrada pela busca
   const empresasList = useMemo(() => {
@@ -227,6 +237,7 @@ export default function Arquivos() {
         total: arquivosPorEmpresa.get(e.id)?.length ?? 0,
       }))
       .filter((e) => {
+        if (categoriaFiltro && e.total === 0) return false;
         if (!q) return true;
         return [e.nome, e.codigo_contrato, e.cnpj]
           .filter(Boolean)
@@ -241,11 +252,13 @@ export default function Arquivos() {
         }
         return a.nome.localeCompare(b.nome);
       });
-  }, [empresas, arquivosPorEmpresa, searchEmpresa]);
+  }, [empresas, arquivosPorEmpresa, searchEmpresa, categoriaFiltro]);
 
   // Auto-seleciona a primeira empresa com arquivos
   useEffect(() => {
-    if (!selectedEmpresaId && empresasList.length > 0) {
+    if (empresasList.length === 0) return;
+    const aindaVisivel = selectedEmpresaId && empresasList.some((e) => e.id === selectedEmpresaId);
+    if (!aindaVisivel) {
       const primeira = empresasList.find((e) => e.total > 0) ?? empresasList[0];
       setSelectedEmpresaId(primeira.id);
     }
@@ -393,6 +406,41 @@ export default function Arquivos() {
                   onChange={(e) => setSearchEmpresa(e.target.value)}
                   className="pl-9 h-9 text-sm"
                 />
+              </div>
+              {/* Pastas por categoria */}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCategoriaFiltro(null)}
+                  className={cn(
+                    "text-[11px] px-2 py-1 rounded-md border transition-colors",
+                    !categoriaFiltro
+                      ? "bg-primary/10 text-primary border-primary/30 font-medium"
+                      : "border-border/60 text-muted-foreground hover:bg-muted/60",
+                  )}
+                >
+                  Todas ({arquivos.length})
+                </button>
+                {CATEGORIAS.map((cat) => {
+                  const total = totaisPorCategoria.get(cat) ?? 0;
+                  const active = categoriaFiltro === cat;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setCategoriaFiltro(active ? null : cat)}
+                      className={cn(
+                        "text-[11px] px-2 py-1 rounded-md border transition-colors inline-flex items-center gap-1",
+                        active
+                          ? categoriaChipClass(cat) + " font-medium"
+                          : "border-border/60 text-muted-foreground hover:bg-muted/60",
+                      )}
+                    >
+                      <FolderArchive className="h-3 w-3" />
+                      {cat} ({total})
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
