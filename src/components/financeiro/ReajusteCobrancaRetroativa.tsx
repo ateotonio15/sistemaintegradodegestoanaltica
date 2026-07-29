@@ -324,6 +324,7 @@ export function ReajusteCobrancaRetroativa() {
   const [cobDescricao, setCobDescricao] = useState("");
   const [cobFiles, setCobFiles] = useState<File[]>([]);
   const [cobSaving, setCobSaving] = useState(false);
+  const [anexoAtualNome, setAnexoAtualNome] = useState<string | null>(null);
 
   const resetCob = () => {
     setEditCobId(null);
@@ -334,6 +335,7 @@ export function ReajusteCobrancaRetroativa() {
     setCobFiles([]);
     setCobCompet(getCurrentMesReferencia());
     setManualValorInput("");
+    setAnexoAtualNome(null);
   };
 
   const openEditCobranca = (c: any) => {
