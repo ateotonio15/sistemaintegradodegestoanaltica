@@ -668,26 +668,42 @@ export function ReajusteCobrancaRetroativa() {
   );
 }
 
-function FileInput({ file, onChange }: { file: File | null; onChange: (f: File | null) => void }) {
+function FileInput({ files, onChange }: { files: File[]; onChange: (f: File[]) => void }) {
   return (
-    <div className="flex items-center gap-2">
-      <label className="flex-1 flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 cursor-pointer hover:bg-accent/40 transition-colors">
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 cursor-pointer hover:bg-accent/40 transition-colors">
         <Upload className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm text-muted-foreground truncate">
-          {file ? file.name : "Selecionar PDF..."}
+          {files.length > 0 ? `${files.length} arquivo(s) selecionado(s)` : "Selecionar PDF(s)..."}
         </span>
         <input
           type="file"
+          multiple
           accept="application/pdf,.pdf"
           className="hidden"
-          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+          onChange={(e) => onChange([...files, ...Array.from(e.target.files ?? [])])}
         />
       </label>
-      {file && (
-        <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>
-          Remover
-        </Button>
+      {files.length > 0 && (
+        <div className="rounded-md border divide-y">
+          {files.map((f, i) => (
+            <div key={`${f.name}-${i}`} className="flex items-center gap-2 px-2.5 py-1.5">
+              <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="text-xs truncate flex-1">{f.name}</span>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 shrink-0"
+                onClick={() => onChange(files.filter((_, idx) => idx !== i))}
+              >
+                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+              </Button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
+
 }
