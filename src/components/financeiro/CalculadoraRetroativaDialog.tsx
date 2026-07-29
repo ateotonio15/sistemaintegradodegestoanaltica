@@ -143,9 +143,9 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-xl sm:max-w-xl max-h-[95vh] overflow-y-auto overflow-x-hidden p-0">
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-b p-5">
-          <DialogHeader className="space-y-2">
+      <DialogContent className="flex h-[98vh] w-[95vw] max-w-xl flex-col overflow-hidden p-0">
+        <div className="shrink-0 bg-gradient-to-br from-primary/10 to-primary/5 border-b p-4">
+          <DialogHeader className="space-y-1.5">
             <DialogTitle className="flex items-center gap-2 text-base">
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/20">
                 <Calculator className="h-4 w-4 text-primary" />
@@ -159,26 +159,26 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
           </DialogHeader>
         </div>
 
-        <div className="px-5 pb-5 space-y-4">
-          <div className="rounded-xl border bg-card p-4 space-y-4 shadow-sm">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          <div className="rounded-xl border bg-card p-3.5 space-y-3 shadow-sm">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               Dados da cobrança
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs">Início da cobrança</Label>
                 <Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs">Fim da cobrança</Label>
                 <Input type="date" value={fim} onChange={(e) => setFim(e.target.value)} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs">Nº de beneficiários</Label>
                 <Input
                   type="number"
@@ -187,7 +187,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
                   onChange={(e) => setBeneficiarios(e.target.value)}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs">Mensalidade base (R$)</Label>
                 <Input
                   inputMode="decimal"
@@ -198,7 +198,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label className="text-xs">Dividir mensalidade por</Label>
               <Select value={divisor} onValueChange={setDivisor}>
                 <SelectTrigger>
@@ -215,24 +215,24 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
             </div>
           </div>
 
-          <div className="rounded-xl border bg-muted/30 p-4 space-y-3">
+          <div className="rounded-xl border bg-muted/30 p-3.5 space-y-2.5">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               Resumo do cálculo
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-lg bg-card p-2.5 text-center border">
+              <div className="rounded-lg bg-card p-2 text-center border">
                 <div className="text-[10px] text-muted-foreground uppercase">Dias</div>
                 <div className="text-sm font-semibold tabular-nums">{atual.dias || "—"}</div>
               </div>
-              <div className="rounded-lg bg-card p-2.5 text-center border">
+              <div className="rounded-lg bg-card p-2 text-center border">
                 <div className="text-[10px] text-muted-foreground uppercase">Valor diário</div>
                 <div className="text-sm font-semibold tabular-nums">
                   {atual.mensalCent > 0 ? formatBRLFromCentavos(Math.round(atual.diarioCent)) : "—"}
                 </div>
               </div>
-              <div className="rounded-lg bg-card p-2.5 text-center border">
+              <div className="rounded-lg bg-card p-2 text-center border">
                 <div className="text-[10px] text-muted-foreground uppercase">Por benef.</div>
                 <div className="text-sm font-semibold tabular-nums">
                   {atual.valido ? formatBRLFromCentavos(atual.porBeneficiario) : "—"}
@@ -266,7 +266,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
               </div>
               <div className="divide-y">
                 {itens.map((i, idx) => (
-                  <div key={i.id} className="flex items-center gap-2 px-4 py-2.5">
+                  <div key={i.id} className="flex items-center gap-2 px-4 py-2">
                     <span className="text-xs text-muted-foreground w-5 shrink-0">{idx + 1}.</span>
                     <p className="text-xs text-muted-foreground truncate flex-1">{resumoItem(i)}</p>
                     <span className="text-sm font-semibold tabular-nums shrink-0">
@@ -295,7 +295,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
           </div>
         </div>
 
-        <div className="border-t bg-muted/20 px-5 py-4">
+        <div className="shrink-0 border-t bg-muted/20 px-5 py-3">
           <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between sm:gap-3">
             <div className="flex w-full gap-2 sm:w-auto">
               <Button
