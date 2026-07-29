@@ -538,19 +538,28 @@ export function ReajusteCobrancaRetroativa() {
           {/* Header destacado */}
           <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b px-6 py-5">
             <DialogHeader className="space-y-1">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Receipt className="h-4 w-4 text-primary" />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Receipt className="h-4.5 w-4.5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <DialogTitle className="text-base font-semibold tracking-tight truncate">
+                      {editCobId ? "Editar Cobrança Retroativa" : "Nova Cobrança Retroativa"}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs leading-relaxed">
+                      {editCobId
+                        ? "Anexar um novo PDF é opcional. Se enviado, substitui o anterior."
+                        : "O PDF será automaticamente anexado ao processo financeiro."}
+                    </DialogDescription>
+                  </div>
                 </div>
-                <DialogTitle className="text-base font-semibold tracking-tight">
-                  {editCobId ? "Editar Cobrança Retroativa" : "Nova Cobrança Retroativa"}
-                </DialogTitle>
+                {editCobId && (
+                  <Badge variant="outline" className="shrink-0 text-[10px] border-primary/30 bg-primary/10 text-primary">
+                    Edição
+                  </Badge>
+                )}
               </div>
-              <DialogDescription className="text-xs leading-relaxed pl-10">
-                {editCobId
-                  ? "Anexar um novo PDF é opcional. Se enviado, substitui o anterior."
-                  : "O PDF será automaticamente anexado ao processo financeiro."}
-              </DialogDescription>
             </DialogHeader>
           </div>
 
