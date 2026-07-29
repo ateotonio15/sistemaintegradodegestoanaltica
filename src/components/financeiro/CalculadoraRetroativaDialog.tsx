@@ -42,7 +42,7 @@ function parseBRLToCentavos(s: string): number {
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 }
 
-export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar }: Props) {
+export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onPular }: Props) {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [beneficiarios, setBeneficiarios] = useState("1");
