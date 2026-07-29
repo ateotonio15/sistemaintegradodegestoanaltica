@@ -338,7 +338,7 @@ export function ReajusteCobrancaRetroativa() {
     setAnexoAtualNome(null);
   };
 
-  const openEditCobranca = (c: any) => {
+  const openEditCobranca = async (c: any) => {
     setEditCobId(c.id);
     setEditCobMovId(c.financeiro_movimentacao_id ?? null);
     setCobEmpresa(c.empresa_id);
@@ -346,6 +346,17 @@ export function ReajusteCobrancaRetroativa() {
     setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
     setCobDescricao(c.descricao || "");
     setCobFiles([]);
+    setAnexoAtualNome(null);
+    if (c.financeiro_movimentacao_id) {
+      const { data } = await supabase
+        .from("anexos_financeiro")
+        .select("nome_arquivo")
+        .eq("financeiro_movimentacao_id", c.financeiro_movimentacao_id)
+        .eq("origem", "retroativo")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) setAnexoAtualNome(data[0].nome_arquivo);
+    }
     setOpenCobDialog(true);
   };
 
