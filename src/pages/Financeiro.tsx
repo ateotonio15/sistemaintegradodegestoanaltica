@@ -235,15 +235,27 @@ export default function Financeiro() {
   const operacionaisMap = operacionaisData?.envioMap ?? {};
   const anexosCadastroCountMap = operacionaisData?.anexosCountMap ?? {};
 
-  // Anexos de implantação (rótulo "Contrato") — contados por empresa
+  // Anexos de implantação (rótulo "Contrato") — contados por empresa.
+  // Só contam na PRIMEIRA competência da empresa (mesma regra do visualizador).
   const { data: anexosImplantacaoCountMap = {} } = useQuery({
-    queryKey: ["financeiro-anexos-implantacao", empresaIds.sort().join(",")],
+    queryKey: ["financeiro-anexos-implantacao", mes, empresaIds.sort().join(",")],
     queryFn: async () => {
       if (empresaIds.length === 0) return {} as Record<string, number>;
+      const { data: emps } = await supabase
+        .from("empresas")
+        .select("id, primeira_competencia_financeira")
+        .in("id", empresaIds);
+      const primeiraMap = new Map<string, string | null>(
+        ((emps as any[]) ?? []).map((e) => [e.id, e.primeira_competencia_financeira]),
+      );
+      const elegiveis = empresaIds.filter(
+        (id) => (primeiraMap.get(id) ?? null) === mes,
+      );
+      if (elegiveis.length === 0) return {} as Record<string, number>;
       const { data, error } = await supabase
         .from("implantacao_anexos" as any)
         .select("empresa_id")
-        .in("empresa_id", empresaIds);
+        .in("empresa_id", elegiveis);
       if (error) throw error;
       const map: Record<string, number> = {};
       (data || []).forEach((a: any) => {
