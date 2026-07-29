@@ -196,6 +196,8 @@ export function ReajusteCobrancaRetroativa() {
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [calcOpen, setCalcOpen] = useState(false);
+  const [manualValorOpen, setManualValorOpen] = useState(false);
+  const [manualValorInput, setManualValorInput] = useState("");
 
   const handleViewPdf = async (movimentacaoId: string | null) => {
     if (!movimentacaoId) {
