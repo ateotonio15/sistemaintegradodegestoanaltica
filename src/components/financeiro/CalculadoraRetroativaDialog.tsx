@@ -270,7 +270,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        <DialogFooter className="gap-2 flex-wrap sm:justify-between">
           <div className="flex gap-2">
             <Button
               variant="ghost"
