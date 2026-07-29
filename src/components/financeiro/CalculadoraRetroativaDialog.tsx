@@ -194,32 +194,35 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
             )}
           </div>
 
-          <Button
-            variant="outline"
-            className="gap-1.5"
-            disabled={!resultado.valido}
-            onClick={async () => {
-              await navigator.clipboard.writeText(
-                (resultado.total / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
-              );
-              setCopiado(true);
-              toast.success("Valor copiado.");
-            }}
-          >
-            {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} Copiar valor
-          </Button>
-          {onAplicar && (
+          <div className="flex gap-2">
             <Button
+              variant="outline"
+              className="gap-1.5"
               disabled={!resultado.valido}
-              onClick={() => {
-                onAplicar(resultado.total, resumo);
-                onOpenChange(false);
+              onClick={async () => {
+                await navigator.clipboard.writeText(
+                  (resultado.total / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+                );
+                setCopiado(true);
+                toast.success("Valor copiado.");
               }}
             >
-              Usar na cobrança
+              {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} Copiar valor
             </Button>
-          )}
+            {onAplicar && (
+              <Button
+                disabled={!resultado.valido}
+                onClick={() => {
+                  onAplicar(resultado.total, resumo);
+                  onOpenChange(false);
+                }}
+              >
+                Continuar cobrança
+              </Button>
+            )}
+          </div>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
