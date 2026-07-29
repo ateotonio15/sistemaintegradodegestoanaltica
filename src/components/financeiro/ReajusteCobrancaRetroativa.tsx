@@ -362,9 +362,9 @@ export function ReajusteCobrancaRetroativa() {
           })
           .eq("id", editCobId);
         if (error) throw error;
-        if (cobFile) {
+        if (cobFiles.length > 0) {
           const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
-          await uploadPdfAnexo(cobFile, cobEmpresa, movId, user?.id);
+          for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, user?.id);
           await supabase
             .from("cobrancas_retroativas")
             .update({ financeiro_movimentacao_id: movId })
@@ -373,7 +373,7 @@ export function ReajusteCobrancaRetroativa() {
         toast.success("Cobrança atualizada.");
       } else {
         const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
-        await uploadPdfAnexo(cobFile!, cobEmpresa, movId, user?.id);
+        for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, user?.id);
         const { error } = await supabase.from("cobrancas_retroativas").insert({
           empresa_id: cobEmpresa,
           competencia: cobCompet,
