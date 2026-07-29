@@ -237,6 +237,7 @@ export default function Arquivos() {
         total: arquivosPorEmpresa.get(e.id)?.length ?? 0,
       }))
       .filter((e) => {
+        if (categoriaFiltro && e.total === 0) return false;
         if (!q) return true;
         return [e.nome, e.codigo_contrato, e.cnpj]
           .filter(Boolean)
