@@ -571,12 +571,12 @@ export function ReajusteCobrancaRetroativa() {
                 Contrato <span className="text-destructive">*</span>
               </Label>
               {editCobId && cobEmpresa ? (
-                <div className="rounded-lg border bg-muted/30 px-3 py-2.5 flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                    <Receipt className="h-3.5 w-3.5 text-primary" />
+                <div className="rounded-xl border bg-muted/30 px-4 py-3 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Building2 className="h-5 w-5 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{empresasMap[cobEmpresa]?.nome}</p>
+                    <p className="text-sm font-semibold truncate">{empresasMap[cobEmpresa]?.nome}</p>
                     <p className="text-xs text-muted-foreground truncate">
                       {empresasMap[cobEmpresa]?.codigo_contrato
                         ? `Contrato ${empresasMap[cobEmpresa]?.codigo_contrato}`
