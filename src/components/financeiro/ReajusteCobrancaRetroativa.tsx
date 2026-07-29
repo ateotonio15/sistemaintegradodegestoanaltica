@@ -663,7 +663,7 @@ export function ReajusteCobrancaRetroativa() {
       />
 
       {/* ============ DIALOG: VALOR MANUAL ============ */}
-      <Dialog open={manualValorOpen} onOpenChange={(o) => { setManualValorOpen(o); if (!o) setManualValorInput(""; }}>
+      <Dialog open={manualValorOpen} onOpenChange={(o) => { setManualValorOpen(o); if (!o) setManualValorInput(""); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
