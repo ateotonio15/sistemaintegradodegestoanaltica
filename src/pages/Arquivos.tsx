@@ -129,6 +129,7 @@ export default function Arquivos() {
   const [selectedEmpresaId, setSelectedEmpresaId] = useState<string | null>(null);
   const [selectedArquivoId, setSelectedArquivoId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ArquivoRow | null>(null);
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
 
   function openUpload(empresaId?: string) {
     setUploadDefaults({ empresaId });
