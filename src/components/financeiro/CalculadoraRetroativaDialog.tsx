@@ -143,7 +143,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="h-4 w-4 text-primary" />
@@ -270,7 +270,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        <DialogFooter className="gap-2 flex-wrap sm:justify-between">
           <div className="flex gap-2">
             <Button
               variant="ghost"
