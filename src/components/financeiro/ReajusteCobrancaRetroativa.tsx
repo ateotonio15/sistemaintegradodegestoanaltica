@@ -557,13 +557,18 @@ export function ReajusteCobrancaRetroativa() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Valor (BRL) *</Label>
-                <Input
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={cobValor}
-                  onChange={(e) => setCobValor(e.target.value)}
-                />
+                <Label className="text-xs">Valor total *</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between font-normal"
+                  onClick={() => setCalcOpen(true)}
+                >
+                  <span className={cn("truncate", !cobValor && "text-muted-foreground")}>
+                    {cobValor ? `R$ ${cobValor}` : "Calcular valor"}
+                  </span>
+                  <Calculator className="ml-2 h-4 w-4 shrink-0 text-primary" />
+                </Button>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -576,8 +581,10 @@ export function ReajusteCobrancaRetroativa() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">PDF {editCobId ? "(opcional)" : "*"}</Label>
-              <FileInput file={cobFile} onChange={setCobFile} />
+              <Label className="text-xs">
+                Anexos da cobrança (PDF) {editCobId ? "(opcional)" : "*"}
+              </Label>
+              <FileInput files={cobFiles} onChange={setCobFiles} />
               {editCobId && editCobMovId && (
                 <div className="flex gap-2">
                   <Button
