@@ -208,16 +208,25 @@ export default function Arquivos() {
     return m;
   }, [empresas]);
 
-  // Contagem de arquivos por empresa
+  // Contagem de arquivos por empresa (respeitando a pasta/categoria selecionada)
   const arquivosPorEmpresa = useMemo(() => {
     const m = new Map<string, ArquivoRow[]>();
     for (const a of arquivos) {
+      if (categoriaFiltro && a.categoria !== categoriaFiltro) continue;
       const arr = m.get(a.empresa_id) ?? [];
       arr.push(a);
       m.set(a.empresa_id, arr);
     }
     return m;
+  }, [arquivos, categoriaFiltro]);
+
+  // Total de arquivos por categoria (para os chips de pasta)
+  const totaisPorCategoria = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of arquivos) m.set(a.categoria, (m.get(a.categoria) ?? 0) + 1);
+    return m;
   }, [arquivos]);
+
 
   // Lista de empresas (todas + com arquivos), filtrada pela busca
   const empresasList = useMemo(() => {
