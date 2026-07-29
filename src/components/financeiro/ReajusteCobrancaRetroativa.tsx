@@ -654,7 +654,9 @@ export function ReajusteCobrancaRetroativa() {
           setCobDescricao((d) => (d ? `${d} · ${resumo}` : resumo));
           setOpenCobDialog(true);
         }}
+        onPular={() => setOpenCobDialog(true)}
       />
+
     </Card>
   );
 }
