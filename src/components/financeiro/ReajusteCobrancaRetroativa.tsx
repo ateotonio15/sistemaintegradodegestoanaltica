@@ -45,6 +45,10 @@ import {
   Calculator,
   Receipt,
   Pencil,
+  Building2,
+  CalendarIcon,
+  Paperclip,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
