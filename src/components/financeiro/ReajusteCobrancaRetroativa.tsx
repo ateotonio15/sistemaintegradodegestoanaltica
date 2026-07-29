@@ -164,29 +164,70 @@ async function ensureFinanceiroMovimentacao(empresaId: string, mesReferencia: st
   return created.id;
 }
 
+async function getUserDisplayName(userId?: string | null): Promise<string | null> {
+  if (!userId) return null;
+  const { data } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data?.display_name as string | null) ?? null;
+}
+
 async function uploadPdfAnexo(
   file: File,
   empresaId: string,
   movimentacaoId: string,
+  competencia: string,
   userId?: string | null,
 ) {
   const ext = file.name.split(".").pop() || "pdf";
-  const path = `${empresaId}/${movimentacaoId}/${crypto.randomUUID()}.${ext}`;
+  const storedName = `${crypto.randomUUID()}.${ext}`;
+  const path = `${empresaId}/${movimentacaoId}/${storedName}`;
+
   const { error: upErr } = await supabase.storage.from("anexos-financeiro").upload(path, file, {
     contentType: file.type || "application/pdf",
     upsert: false,
   });
   if (upErr) throw upErr;
-  const { error: insErr } = await supabase.from("anexos_financeiro").insert({
-    financeiro_movimentacao_id: movimentacaoId,
-    nome_arquivo: file.name,
-    storage_path: path,
+
+  const { data: anexoData, error: insErr } = await supabase
+    .from("anexos_financeiro")
+    .insert({
+      financeiro_movimentacao_id: movimentacaoId,
+      nome_arquivo: file.name,
+      storage_path: path,
+      mime_type: file.type || "application/pdf",
+      tamanho_bytes: file.size,
+      uploaded_by: userId ?? null,
+      origem: "retroativo",
+    } as any)
+    .select("id")
+    .single();
+  if (insErr) throw insErr;
+
+  // Sincroniza com o Repositório Financeiro na pasta Retroativo
+  const uploadedByNome = await getUserDisplayName(userId);
+  const { error: faErr } = await supabase.from("financeiro_arquivos").insert({
+    empresa_id: empresaId,
+    competencia,
+    categoria: "Retroativo",
+    nome_original: file.name,
+    nome_armazenado: storedName,
+    extensao: ext,
     mime_type: file.type || "application/pdf",
     tamanho_bytes: file.size,
     uploaded_by: userId ?? null,
+    uploaded_by_nome: uploadedByNome,
+    storage_path: path,
+    bucket: "anexos-financeiro",
     origem: "retroativo",
+    status: "ativo",
+    anexo_financeiro_id: anexoData.id,
+    financeiro_movimentacao_id: movimentacaoId,
   } as any);
-  if (insErr) throw insErr;
+  if (faErr) throw faErr;
+
   return path;
 }
 
@@ -384,7 +425,7 @@ export function ReajusteCobrancaRetroativa() {
         if (error) throw error;
         if (cobFiles.length > 0) {
           const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
-          for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, user?.id);
+          for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, cobCompet, user?.id);
           await supabase
             .from("cobrancas_retroativas")
             .update({ financeiro_movimentacao_id: movId })
@@ -393,7 +434,7 @@ export function ReajusteCobrancaRetroativa() {
         toast.success("Cobrança atualizada.");
       } else {
         const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
-        for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, user?.id);
+        for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, cobCompet, user?.id);
         const { error } = await supabase.from("cobrancas_retroativas").insert({
           empresa_id: cobEmpresa,
           competencia: cobCompet,
