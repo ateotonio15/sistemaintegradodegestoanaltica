@@ -437,20 +437,18 @@ export function ReajusteCobrancaRetroativa() {
               />
             </div>
             {canManage && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 gap-1"
-                  onClick={() => setCalcOpen(true)}
-                >
-                  <Calculator className="h-3.5 w-3.5" /> Calculadora
-                </Button>
-                <Button size="sm" className="h-8 gap-1" onClick={() => setOpenCobDialog(true)}>
-                  <Plus className="h-3.5 w-3.5" /> Adicionar
-                </Button>
-              </>
+              <Button
+                size="sm"
+                className="h-8 gap-1"
+                onClick={() => {
+                  resetCob();
+                  setCalcOpen(true);
+                }}
+              >
+                <Plus className="h-3.5 w-3.5" /> Adicionar
+              </Button>
             )}
+
           </div>
         </div>
       </CardHeader>
@@ -656,7 +654,9 @@ export function ReajusteCobrancaRetroativa() {
           setCobDescricao((d) => (d ? `${d} · ${resumo}` : resumo));
           setOpenCobDialog(true);
         }}
+        onPular={() => setOpenCobDialog(true)}
       />
+
     </Card>
   );
 }

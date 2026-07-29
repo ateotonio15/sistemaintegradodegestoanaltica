@@ -26,7 +26,10 @@ interface Props {
   onOpenChange: (o: boolean) => void;
   /** Recebe o total calculado (em centavos) para preencher a cobrança. */
   onAplicar?: (totalCentavos: number, resumo: string) => void;
+  /** Segue para o cadastro da cobrança sem usar o cálculo. */
+  onPular?: () => void;
 }
+
 
 const DIVISORES = [28, 29, 30, 31];
 
@@ -39,7 +42,7 @@ function parseBRLToCentavos(s: string): number {
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 }
 
-export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar }: Props) {
+export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onPular }: Props) {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [beneficiarios, setBeneficiarios] = useState("1");
@@ -173,36 +176,53 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar }: P
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={limpar}>
-            Limpar
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-1.5"
-            disabled={!resultado.valido}
-            onClick={async () => {
-              await navigator.clipboard.writeText(
-                (resultado.total / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
-              );
-              setCopiado(true);
-              toast.success("Valor copiado.");
-            }}
-          >
-            {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} Copiar valor
-          </Button>
-          {onAplicar && (
+        <DialogFooter className="gap-2 sm:justify-between">
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={limpar}>
+              Limpar
+            </Button>
+            {onPular && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  onOpenChange(false);
+                  onPular();
+                }}
+              >
+                Preencher manualmente
+              </Button>
+            )}
+          </div>
+
+          <div className="flex gap-2">
             <Button
+              variant="outline"
+              className="gap-1.5"
               disabled={!resultado.valido}
-              onClick={() => {
-                onAplicar(resultado.total, resumo);
-                onOpenChange(false);
+              onClick={async () => {
+                await navigator.clipboard.writeText(
+                  (resultado.total / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+                );
+                setCopiado(true);
+                toast.success("Valor copiado.");
               }}
             >
-              Usar na cobrança
+              {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} Copiar valor
             </Button>
-          )}
+            {onAplicar && (
+              <Button
+                disabled={!resultado.valido}
+                onClick={() => {
+                  onAplicar(resultado.total, resumo);
+                  onOpenChange(false);
+                }}
+              >
+                Continuar cobrança
+              </Button>
+            )}
+          </div>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
