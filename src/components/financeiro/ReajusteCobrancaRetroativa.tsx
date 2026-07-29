@@ -316,7 +316,7 @@ export function ReajusteCobrancaRetroativa() {
   const [cobCompet, setCobCompet] = useState<string>(getCurrentMesReferencia());
   const [cobValor, setCobValor] = useState<string>("");
   const [cobDescricao, setCobDescricao] = useState("");
-  const [cobFile, setCobFile] = useState<File | null>(null);
+  const [cobFiles, setCobFiles] = useState<File[]>([]);
   const [cobSaving, setCobSaving] = useState(false);
 
   const resetCob = () => {
@@ -325,7 +325,7 @@ export function ReajusteCobrancaRetroativa() {
     setCobEmpresa(null);
     setCobValor("");
     setCobDescricao("");
-    setCobFile(null);
+    setCobFiles([]);
     setCobCompet(getCurrentMesReferencia());
   };
 
@@ -336,7 +336,7 @@ export function ReajusteCobrancaRetroativa() {
     setCobCompet(c.competencia);
     setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
     setCobDescricao(c.descricao || "");
-    setCobFile(null);
+    setCobFiles([]);
     setOpenCobDialog(true);
   };
 
@@ -345,8 +345,8 @@ export function ReajusteCobrancaRetroativa() {
     if (!cobCompet) return toast.error("Selecione a competência.");
     const cents = parseBRLInput(cobValor);
     if (cents <= 0) return toast.error("Informe um valor válido.");
-    if (!editCobId && !cobFile) return toast.error("Anexe o PDF da cobrança.");
-    if (cobFile && cobFile.type && !cobFile.type.includes("pdf"))
+    if (!editCobId && cobFiles.length === 0) return toast.error("Anexe ao menos um PDF da cobrança.");
+    if (cobFiles.some((f) => f.type && !f.type.includes("pdf")))
       return toast.error("Apenas arquivos PDF são aceitos.");
 
     setCobSaving(true);
@@ -362,9 +362,9 @@ export function ReajusteCobrancaRetroativa() {
           })
           .eq("id", editCobId);
         if (error) throw error;
-        if (cobFile) {
+        if (cobFiles.length > 0) {
           const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
-          await uploadPdfAnexo(cobFile, cobEmpresa, movId, user?.id);
+          for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, user?.id);
           await supabase
             .from("cobrancas_retroativas")
             .update({ financeiro_movimentacao_id: movId })
@@ -373,7 +373,7 @@ export function ReajusteCobrancaRetroativa() {
         toast.success("Cobrança atualizada.");
       } else {
         const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
-        await uploadPdfAnexo(cobFile!, cobEmpresa, movId, user?.id);
+        for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, user?.id);
         const { error } = await supabase.from("cobrancas_retroativas").insert({
           empresa_id: cobEmpresa,
           competencia: cobCompet,
@@ -442,7 +442,7 @@ export function ReajusteCobrancaRetroativa() {
                 className="h-8 gap-1"
                 onClick={() => {
                   resetCob();
-                  setCalcOpen(true);
+                  setOpenCobDialog(true);
                 }}
               >
                 <Plus className="h-3.5 w-3.5" /> Adicionar
@@ -557,13 +557,18 @@ export function ReajusteCobrancaRetroativa() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Valor (BRL) *</Label>
-                <Input
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={cobValor}
-                  onChange={(e) => setCobValor(e.target.value)}
-                />
+                <Label className="text-xs">Valor total *</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between font-normal"
+                  onClick={() => setCalcOpen(true)}
+                >
+                  <span className={cn("truncate", !cobValor && "text-muted-foreground")}>
+                    {cobValor ? `R$ ${cobValor}` : "Calcular valor"}
+                  </span>
+                  <Calculator className="ml-2 h-4 w-4 shrink-0 text-primary" />
+                </Button>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -576,8 +581,10 @@ export function ReajusteCobrancaRetroativa() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">PDF {editCobId ? "(opcional)" : "*"}</Label>
-              <FileInput file={cobFile} onChange={setCobFile} />
+              <Label className="text-xs">
+                Anexos da cobrança (PDF) {editCobId ? "(opcional)" : "*"}
+              </Label>
+              <FileInput files={cobFiles} onChange={setCobFiles} />
               {editCobId && editCobMovId && (
                 <div className="flex gap-2">
                   <Button
@@ -619,14 +626,6 @@ export function ReajusteCobrancaRetroativa() {
             <Button variant="ghost" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>
               Cancelar
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => setCalcOpen(true)}
-              disabled={cobSaving}
-              className="gap-1.5"
-            >
-              <Calculator className="h-4 w-4" /> Calcular
-            </Button>
             <Button onClick={submitCobranca} disabled={cobSaving} className="gap-1.5">
               {cobSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
               {cobSaving ? "Salvando..." : editCobId ? "Salvar alterações" : "Cadastrar"}
@@ -661,26 +660,42 @@ export function ReajusteCobrancaRetroativa() {
   );
 }
 
-function FileInput({ file, onChange }: { file: File | null; onChange: (f: File | null) => void }) {
+function FileInput({ files, onChange }: { files: File[]; onChange: (f: File[]) => void }) {
   return (
-    <div className="flex items-center gap-2">
-      <label className="flex-1 flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 cursor-pointer hover:bg-accent/40 transition-colors">
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 cursor-pointer hover:bg-accent/40 transition-colors">
         <Upload className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm text-muted-foreground truncate">
-          {file ? file.name : "Selecionar PDF..."}
+          {files.length > 0 ? `${files.length} arquivo(s) selecionado(s)` : "Selecionar PDF(s)..."}
         </span>
         <input
           type="file"
+          multiple
           accept="application/pdf,.pdf"
           className="hidden"
-          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+          onChange={(e) => onChange([...files, ...Array.from(e.target.files ?? [])])}
         />
       </label>
-      {file && (
-        <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>
-          Remover
-        </Button>
+      {files.length > 0 && (
+        <div className="rounded-md border divide-y">
+          {files.map((f, i) => (
+            <div key={`${f.name}-${i}`} className="flex items-center gap-2 px-2.5 py-1.5">
+              <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="text-xs truncate flex-1">{f.name}</span>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 shrink-0"
+                onClick={() => onChange(files.filter((_, idx) => idx !== i))}
+              >
+                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+              </Button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
+
 }
