@@ -598,9 +598,9 @@ export function ReajusteCobrancaRetroativa() {
 
       {/* ============ DIALOG: COBRANÇA RETROATIVA ============ */}
       <Dialog open={openCobDialog} onOpenChange={(o) => { setOpenCobDialog(o); if (!o) resetCob(); }}>
-        <DialogContent className="max-w-xl p-0 overflow-hidden">
+        <DialogContent className="max-w-xl w-[95vw] p-0 overflow-hidden flex max-h-[90vh] flex-col">
           {/* Header destacado */}
-          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b px-6 py-5">
+          <div className="shrink-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b px-6 py-5">
             <DialogHeader className="space-y-1">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -627,7 +627,7 @@ export function ReajusteCobrancaRetroativa() {
             </DialogHeader>
           </div>
 
-          <div className="px-6 py-5 space-y-5">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5">
             {/* Seção Contrato */}
             <div className="space-y-2">
               <Label className="text-xs font-medium flex items-center gap-1.5">
@@ -768,7 +768,7 @@ export function ReajusteCobrancaRetroativa() {
           </div>
 
           {/* Footer */}
-          <div className="border-t bg-muted/20 px-6 py-4 flex items-center justify-end gap-2">
+          <div className="shrink-0 border-t bg-muted/20 px-6 py-4 flex items-center justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>
               Cancelar
             </Button>
