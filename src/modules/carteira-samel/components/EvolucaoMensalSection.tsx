@@ -405,9 +405,10 @@ export function EvolucaoMensalSection() {
               {tabela.map((l, i) => {
                 const primeiroDoPeriodo = i === 0 || tabela[i - 1].periodo !== l.periodo;
                 const total = totaisPorPeriodo.get(l.periodo);
+                const isGrupoRow = l.empresaId === "__grupo__";
                 return (
                   <>
-                    {primeiroDoPeriodo && total && (
+                    {mostrarTotais && primeiroDoPeriodo && total && (
                       <tr key={`t-${l.periodo}`} className="border-t bg-primary/5 font-semibold">
                         <td className="px-3 py-2">{labelPeriodo(l.periodo)}</td>
                         <td className="px-3 py-2">Grupo (consolidado)</td>
