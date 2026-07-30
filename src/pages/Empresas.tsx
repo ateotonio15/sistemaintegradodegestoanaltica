@@ -1768,9 +1768,9 @@ export default function Empresas() {
                 </TableHeader>
                 <TableBody>
                    {isLoading ? (
-                      <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
                    ) : (
                     filtered.map((e) => {
                       const suspenso = (e as any).contrato_suspenso;
@@ -1786,7 +1786,15 @@ export default function Empresas() {
                           )}
                           onClick={() => setDetailEmpresa(e)}
                         >
+                          <TableCell className="align-top" onClick={(ev) => ev.stopPropagation()}>
+                            <Checkbox
+                              aria-label={`Selecionar ${e.nome}`}
+                              checked={orbitSel.has(e.id)}
+                              onCheckedChange={() => toggleOrbit(e.id)}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium align-top">
+
                             <div className="flex flex-col items-start gap-1">
                               <div className="flex items-start gap-2">
                                 {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
