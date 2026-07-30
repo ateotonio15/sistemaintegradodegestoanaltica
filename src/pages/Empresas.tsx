@@ -633,6 +633,74 @@ export default function Empresas() {
     return "Não definida";
   };
 
+  // Usuário do Orbit (username, com fallback para o nome do responsável)
+  const getOrbitUser = (empresa: Empresa) => {
+    const userId = (empresa as any).responsavel_user_id;
+    if (userId) {
+      const u = usuarios.find((u) => u.user_id === userId) as any;
+      if (u?.username) return u.username as string;
+      if (u?.display_name) return u.display_name as string;
+    }
+    return (empresa.responsavel_contrato || "").trim();
+  };
+
+  const toggleOrbit = (id: string) => {
+    setOrbitSel((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  async function enviarParaOrbit() {
+    const selecionadas = empresas.filter((e) => orbitSel.has(e.id));
+    if (selecionadas.length === 0) return;
+
+    const porUsuario = new Map<string, string[]>();
+    const semResponsavel: string[] = [];
+    selecionadas.forEach((e) => {
+      const u = getOrbitUser(e);
+      if (!u || u === "—") { semResponsavel.push(e.nome); return; }
+      const arr = porUsuario.get(u) ?? [];
+      if (!arr.includes(e.nome)) arr.push(e.nome);
+      porUsuario.set(u, arr);
+    });
+
+    if (porUsuario.size === 0) {
+      toast({ title: "Sem analista", description: "As empresas selecionadas não possuem responsável definido.", variant: "destructive" });
+      return;
+    }
+
+    const entries = Array.from(porUsuario.entries()).map(([u, companies]) => ({ user: u, companies }));
+
+    setOrbitEnviando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("orbit-daily-companies", { body: { entries } });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      const results = ((data as any)?.results ?? []) as Array<{ username: string; resolved: boolean; added?: number; skipped?: number }>;
+      const totalAdded = results.reduce((s, r) => s + (r.added ?? 0), 0);
+      const naoEncontrados = results.filter((r) => !r.resolved).map((r) => r.username);
+
+      toast({
+        title: `${totalAdded} ${totalAdded === 1 ? "empresa criada" : "empresas criadas"} no Orbit`,
+        description: [
+          `Enviadas ${selecionadas.length} seleção(ões) para ${entries.length} analista(s).`,
+          naoEncontrados.length ? `Usuários não encontrados: ${naoEncontrados.join(", ")}` : "",
+          semResponsavel.length ? `Sem responsável: ${semResponsavel.join(", ")}` : "",
+        ].filter(Boolean).join(" "),
+        variant: naoEncontrados.length ? "destructive" : undefined,
+      });
+      if (!naoEncontrados.length) setOrbitSel(new Set());
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar para o Orbit", description: err.message ?? String(err), variant: "destructive" });
+    } finally {
+      setOrbitEnviando(false);
+    }
+  }
+
+
   const respOptions = useMemo(() => {
     const set = new Set<string>();
     empresas.forEach((e) => { const v = (e.responsavel_contrato ?? "").trim(); if (v) set.add(v); });
