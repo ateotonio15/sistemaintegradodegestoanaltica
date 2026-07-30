@@ -768,7 +768,7 @@ export function ReajusteCobrancaRetroativa() {
           </div>
 
           {/* Footer */}
-          <div className="border-t bg-muted/20 px-6 py-4 flex items-center justify-end gap-2">
+          <div className="shrink-0 border-t bg-muted/20 px-6 py-4 flex items-center justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setOpenCobDialog(false)} disabled={cobSaving}>
               Cancelar
             </Button>
