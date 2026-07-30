@@ -33,6 +33,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [enviando, setEnviando] = useState(false);
   const [perfis, setPerfis] = useState<Array<{ display_name: string | null; username: string | null }>>([]);
   const [resultados, setResultados] = useState<Array<{ username: string; resolved: boolean; added?: number }>>([]);
+  const [validando, setValidando] = useState(false);
+  const [loginsValidos, setLoginsValidos] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
@@ -41,11 +43,13 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setStatusSel([]);
     setDiaEmissaoSel([]);
     setResultados([]);
+    setLoginsValidos(new Set());
     supabase
       .from("profiles")
       .select("display_name, username")
       .then(({ data }) => setPerfis((data ?? []) as any));
   }, [open]);
+
 
   // Empresas únicas por contrato/nome (o Financeiro repete a empresa por período/pagador)
   const unicas = useMemo(() => {
@@ -71,16 +75,6 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return Array.from(d).sort((a, b) => a - b);
   }, [unicas]);
 
-  const lista = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return unicas.filter((e) => {
-      if (statusSel.length && !statusSel.includes(e.status ?? "")) return false;
-      if (diaEmissaoSel.length && !(typeof e.dia_emissao === "number" && diaEmissaoSel.includes(e.dia_emissao))) return false;
-      if (!q) return true;
-      return `${e.nome} ${e.contrato ?? ""} ${e.responsavel ?? ""}`.toLowerCase().includes(q);
-    });
-  }, [unicas, busca, statusSel, diaEmissaoSel]);
-
   const keyOf = (e: OrbitEmpresa) => `${e.contrato ?? ""}|${e.nome.toLowerCase()}`;
 
   const orbitUser = (resp?: string | null) => {
@@ -89,6 +83,48 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     const p = perfis.find((u) => (u.display_name ?? "").trim().toLowerCase() === nome.toLowerCase());
     return (p?.username || "").trim();
   };
+
+  // Valida no Orbit quais logins existem (envio com companies vazio = apenas checagem)
+  useEffect(() => {
+    if (!open || perfis.length === 0 || unicas.length === 0) return;
+    const logins = Array.from(
+      new Set(unicas.map((e) => orbitUser(e.responsavel)).filter(Boolean))
+    );
+    if (!logins.length) return;
+    let cancelado = false;
+    setValidando(true);
+    supabase.functions
+      .invoke("orbit-daily-companies", {
+        body: { entries: logins.map((user) => ({ user, companies: [] })) },
+      })
+      .then(({ data, error }) => {
+        if (cancelado) return;
+        if (error) {
+          toast.error("Não foi possível validar os usuários no Orbit");
+          return;
+        }
+        const results = ((data as any)?.results ?? []) as Array<{ username: string; resolved: boolean }>;
+        setLoginsValidos(
+          new Set(results.filter((r) => r.resolved).map((r) => r.username.toLowerCase()))
+        );
+      })
+      .finally(() => !cancelado && setValidando(false));
+    return () => {
+      cancelado = true;
+    };
+  }, [open, perfis, unicas]);
+
+  const lista = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return unicas.filter((e) => {
+      const login = orbitUser(e.responsavel).toLowerCase();
+      if (!login || !loginsValidos.has(login)) return false;
+      if (statusSel.length && !statusSel.includes(e.status ?? "")) return false;
+      if (diaEmissaoSel.length && !(typeof e.dia_emissao === "number" && diaEmissaoSel.includes(e.dia_emissao))) return false;
+      if (!q) return true;
+      return `${e.nome} ${e.contrato ?? ""} ${e.responsavel ?? ""}`.toLowerCase().includes(q);
+    });
+  }, [unicas, busca, statusSel, diaEmissaoSel, loginsValidos, perfis]);
 
   const toggle = (k: string) =>
     setSel((prev) => {
@@ -100,16 +136,21 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const todasMarcadas = lista.length > 0 && lista.every((e) => sel.has(keyOf(e)));
 
   const usuariosValidados = useMemo(() => {
-    return resultados
-      .filter((resultado) => resultado.resolved)
-      .map((resultado) => {
-        const empresasDoUsuario = lista.filter(
-          (empresa) => orbitUser(empresa.responsavel).toLowerCase() === resultado.username.toLowerCase()
-        );
-        return { ...resultado, empresas: empresasDoUsuario };
-      })
-      .filter((resultado) => resultado.empresas.length > 0);
-  }, [resultados, lista, perfis]);
+    const map = new Map<string, { username: string; responsavel: string; empresas: OrbitEmpresa[] }>();
+    lista.forEach((empresa) => {
+      const login = orbitUser(empresa.responsavel);
+      if (!login) return;
+      const cur = map.get(login.toLowerCase()) ?? {
+        username: login,
+        responsavel: (empresa.responsavel ?? "").trim(),
+        empresas: [],
+      };
+      cur.empresas.push(empresa);
+      map.set(login.toLowerCase(), cur);
+    });
+    return Array.from(map.values()).sort((a, b) => a.username.localeCompare(b.username));
+  }, [lista, perfis]);
+
 
   const toggleUsuarioValidado = (username: string, marcar: boolean) => {
     const empresasDoUsuario = lista.filter(
@@ -265,11 +306,24 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
           <Badge variant="secondary">{sel.size} selecionada(s)</Badge>
         </div>
 
+        {validando && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Validando usuários no Orbit...
+          </div>
+        )}
+
+        {!validando && usuariosValidados.length === 0 && (
+          <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+            Nenhum usuário validado no Orbit para os filtros atuais.
+          </div>
+        )}
+
         {usuariosValidados.length > 0 && (
           <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-primary uppercase">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Usuários validados no SIGA e Orbit
+              <CheckCircle2 className="h-3.5 w-3.5" /> Usuários validados no SIGA e Orbit ({usuariosValidados.length})
             </div>
+
             <div className="grid gap-2 sm:grid-cols-2">
               {usuariosValidados.map((usuario) => {
                 const marcado = usuario.empresas.every((empresa) => sel.has(keyOf(empresa)));
