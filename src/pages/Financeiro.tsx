@@ -2504,9 +2504,12 @@ export default function Financeiro() {
                 const renderChipEmpresa = (r: FinanceiroRow, opts?: { dentroDeGrupo?: boolean }) => {
                   const ativo = filtroAcompanhamento === r.empresa_id;
                   const isDragOver = dragOverChipId === r.empresa_id;
+                  const qtdMesmoStatus = faturandoRows.filter((x) => x.status === r.status).length;
                   return (
+                    <ContextMenu key={r.empresa_id}>
+                      <ContextMenuTrigger asChild>
                     <div
-                      key={r.empresa_id}
+
                       draggable
                       onDragStart={(e) => {
                         e.dataTransfer.setData("application/x-fin-chip", r.empresa_id);
