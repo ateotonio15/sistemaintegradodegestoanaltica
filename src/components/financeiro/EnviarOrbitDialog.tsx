@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Send, Search, CheckCircle2, XCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { Loader2, Send, Search, CheckCircle2, ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -110,32 +110,21 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const todasMarcadas = lista.length > 0 && lista.every((e) => sel.has(keyOf(e)));
 
   const selecionadas = useMemo(() => unicas.filter((e) => sel.has(keyOf(e))), [unicas, sel]);
+  const empresasSelecionadasNomes = useMemo(
+    () => Array.from(new Set(selecionadas.map((e) => e.nome))),
+    [selecionadas]
+  );
 
-  // Agrupamento por login das empresas selecionadas
-  const grupos = useMemo(() => {
-    const map = new Map<string, { login: string; responsavel: string; empresas: string[] }>();
-    const semLogin: Array<{ empresa: string; responsavel: string }> = [];
-    selecionadas.forEach((e) => {
-      const login = orbitUser(e.responsavel);
-      if (!login) {
-        semLogin.push({ empresa: e.nome, responsavel: (e.responsavel ?? "").trim() || "Sem responsável" });
-        return;
-      }
-      const cur = map.get(login.toLowerCase()) ?? { login, responsavel: (e.responsavel ?? "").trim(), empresas: [] };
-      if (!cur.empresas.includes(e.nome)) cur.empresas.push(e.nome);
-      map.set(login.toLowerCase(), cur);
-    });
-    return { grupos: Array.from(map.values()).sort((a, b) => a.login.localeCompare(b.login)), semLogin };
-  }, [selecionadas, perfis]);
-
-  // ETAPA 2 — valida no Orbit apenas os logins das empresas selecionadas
+  // ETAPA 2 — descobre quais usuários do SIGA estão ativos no Orbit
   async function irParaEtapa2() {
     if (sel.size === 0) {
       toast.error("Selecione ao menos uma empresa.");
       return;
     }
     setEtapa(2);
-    const logins = grupos.grupos.map((g) => g.login);
+    const logins = Array.from(
+      new Set(perfis.map((p) => (p.username ?? "").trim()).filter(Boolean))
+    );
     if (!logins.length) {
       setLoginsValidos(new Set());
       setValidado(true);
@@ -149,9 +138,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
       });
       if (error) throw error;
       const results = ((data as any)?.results ?? []) as Array<{ username: string; resolved: boolean }>;
-      const validos = new Set(results.filter((r) => r.resolved).map((r) => r.username.toLowerCase()));
-      setLoginsValidos(validos);
-      setUsuariosSel(new Set(validos));
+      setLoginsValidos(new Set(results.filter((r) => r.resolved).map((r) => r.username.toLowerCase())));
+      setUsuariosSel(new Set());
     } catch (err: any) {
       toast.error("Não foi possível validar os usuários no Orbit", { description: err.message ?? String(err) });
       setLoginsValidos(new Set());
@@ -161,14 +149,13 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     }
   }
 
-  const gruposValidos = useMemo(
-    () => grupos.grupos.filter((g) => loginsValidos.has(g.login.toLowerCase())),
-    [grupos, loginsValidos]
-  );
-  const gruposInvalidos = useMemo(
-    () => grupos.grupos.filter((g) => !loginsValidos.has(g.login.toLowerCase())),
-    [grupos, loginsValidos]
-  );
+  // Usuários ativos no Orbit (login do SIGA que existe no Orbit)
+  const usuariosOrbit = useMemo(() => {
+    return perfis
+      .map((p) => ({ login: (p.username ?? "").trim(), nome: (p.display_name ?? "").trim() }))
+      .filter((u) => u.login && loginsValidos.has(u.login.toLowerCase()))
+      .sort((a, b) => a.login.localeCompare(b.login, "pt-BR"));
+  }, [perfis, loginsValidos]);
 
   const toggleUsuario = (login: string) =>
     setUsuariosSel((prev) => {
@@ -178,10 +165,12 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
       return next;
     });
 
+
   async function enviar() {
-    const entries = gruposValidos
-      .filter((g) => usuariosSel.has(g.login.toLowerCase()))
-      .map((g) => ({ user: g.login, companies: g.empresas }));
+    const entries = usuariosOrbit
+      .filter((u) => usuariosSel.has(u.login.toLowerCase()))
+      .map((u) => ({ user: u.login, companies: empresasSelecionadasNomes }));
+
     if (!entries.length) {
       toast.error("Selecione ao menos um usuário validado no Orbit.");
       return;
@@ -347,30 +336,43 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
             )}
 
             {!validando && (
-              <ScrollArea className="h-[400px] rounded-md border p-3">
-                <div className="space-y-4">
+              <>
+                <div className="text-xs text-muted-foreground">
+                  {empresasSelecionadasNomes.length} empresa(s) serão enviadas para cada usuário marcado.
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={usuariosOrbit.length > 0 && usuariosOrbit.every((u) => usuariosSel.has(u.login.toLowerCase()))}
+                      onCheckedChange={(v) =>
+                        setUsuariosSel(v ? new Set(usuariosOrbit.map((u) => u.login.toLowerCase())) : new Set())
+                      }
+                    />
+                    <span className="text-muted-foreground">Selecionar todos ({usuariosOrbit.length})</span>
+                  </label>
+                  <Badge variant="secondary">{usuariosSel.size} usuário(s)</Badge>
+                </div>
+
+                <ScrollArea className="h-[360px] rounded-md border p-3">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-primary uppercase">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Validados no Orbit ({gruposValidos.length})
-                    </div>
-                    {gruposValidos.length === 0 ? (
+                    {usuariosOrbit.length === 0 ? (
                       <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                        Nenhum responsável das empresas selecionadas existe no Orbit.
+                        Nenhum usuário ativo no Orbit foi encontrado.
                       </div>
                     ) : (
-                      gruposValidos.map((g) => {
-                        const marcado = usuariosSel.has(g.login.toLowerCase());
-                        const res = resultados.find((r) => r.username.toLowerCase() === g.login.toLowerCase());
+                      usuariosOrbit.map((u) => {
+                        const marcado = usuariosSel.has(u.login.toLowerCase());
+                        const res = resultados.find((r) => r.username.toLowerCase() === u.login.toLowerCase());
                         return (
                           <div
-                            key={g.login}
+                            key={u.login}
                             role="button"
                             tabIndex={0}
-                            onClick={() => toggleUsuario(g.login)}
+                            onClick={() => toggleUsuario(u.login)}
                             onKeyDown={(ev) => {
                               if (ev.key === "Enter" || ev.key === " ") {
                                 ev.preventDefault();
-                                toggleUsuario(g.login);
+                                toggleUsuario(u.login);
                               }
                             }}
                             className={cn(
@@ -378,11 +380,11 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                               marcado && "border-primary bg-primary/10"
                             )}
                           >
-                            <Checkbox checked={marcado} onCheckedChange={() => toggleUsuario(g.login)} onClick={(ev) => ev.stopPropagation()} />
+                            <Checkbox checked={marcado} onCheckedChange={() => toggleUsuario(u.login)} onClick={(ev) => ev.stopPropagation()} />
                             <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium truncate">{g.responsavel || g.login} · @{g.login}</div>
+                              <div className="text-sm font-medium truncate">@{u.login}</div>
                               <div className="text-xs text-muted-foreground truncate">
-                                {g.empresas.length} empresa(s) selecionada(s)
+                                {u.nome || "Usuário do Orbit"}
                                 {res ? ` · ${res.added ?? 0} criada(s)` : ""}
                               </div>
                             </div>
@@ -392,31 +394,10 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       })
                     )}
                   </div>
-
-                  {(gruposInvalidos.length > 0 || grupos.semLogin.length > 0) && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
-                        <XCircle className="h-3.5 w-3.5" /> Não enviáveis
-                      </div>
-                      {gruposInvalidos.map((g) => (
-                        <div key={g.login} className="flex items-start gap-2 text-xs text-destructive px-1">
-                          <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                          <div>
-                            {g.responsavel || g.login} → @{g.login} · {g.empresas.length} empresa(s) — não encontrado no Orbit
-                          </div>
-                        </div>
-                      ))}
-                      {grupos.semLogin.map((s) => (
-                        <div key={s.empresa} className="flex items-start gap-2 text-xs text-amber-500 px-1">
-                          <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                          <div>{s.empresa} — {s.responsavel} sem login no SIGA</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
+                </ScrollArea>
+              </>
             )}
+
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setEtapa(1)} className="gap-1.5">
