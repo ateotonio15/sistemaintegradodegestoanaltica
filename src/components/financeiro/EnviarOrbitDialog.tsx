@@ -158,7 +158,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
         <DialogHeader>
           <DialogTitle>Enviar empresas para o Orbit</DialogTitle>
           <DialogDescription>
-            Filtre por status, selecione empresas/contratos e envie. O vínculo com o Orbit usa o login (username) do SIGA do responsável.
+            Filtre por status e dia de emissão, selecione empresas/contratos e envie. O vínculo com o Orbit usa o login (username) do SIGA do responsável.
           </DialogDescription>
         </DialogHeader>
 
