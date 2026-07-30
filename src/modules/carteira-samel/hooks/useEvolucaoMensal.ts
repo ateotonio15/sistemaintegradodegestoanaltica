@@ -34,7 +34,10 @@ export function useUpsertLancamento() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: UpsertLancamento | UpsertLancamento[]) => {
-      const rows = Array.isArray(payload) ? payload : [payload];
+      const rows = (Array.isArray(payload) ? payload : [payload]).map((r) => {
+        const { id, ...rest } = r;
+        return id ? { id, ...rest } : rest;
+      });
       const { error } = await db
         .from("sinistralidade_mensal")
         .upsert(rows, { onConflict: "empresa_id,periodo" });
