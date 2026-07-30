@@ -67,6 +67,24 @@ function slugify(s: string) {
     .replace(/^-|-$/g, "");
 }
 
+// Paleta por empresa (consistente entre chip e linhas do gráfico)
+const CHIP_GRUPO = "hsl(152 60% 40%)";
+const PALETA_EMPRESAS = [
+  "hsl(217 91% 60%)",
+  "hsl(38 92% 50%)",
+  "hsl(280 65% 60%)",
+  "hsl(0 72% 55%)",
+  "hsl(190 80% 45%)",
+  "hsl(45 90% 40%)",
+];
+
+function corEmpresa(nome: string) {
+  const s = slugify(nome);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return PALETA_EMPRESAS[h % PALETA_EMPRESAS.length];
+}
+
 export function EvolucaoMensalSection() {
   const { ativas } = useEmpresasCarteira();
   const { data: lancamentos = [], isLoading } = useEvolucaoMensal();
