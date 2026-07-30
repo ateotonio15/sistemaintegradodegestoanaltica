@@ -247,20 +247,42 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
               {lista.map((e) => {
                 const k = keyOf(e);
                 const login = orbitUser(e.responsavel);
+                const marcada = sel.has(k);
                 return (
-                  <li key={k} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/40">
-                    <Checkbox id={`orb-${k}`} checked={sel.has(k)} onCheckedChange={() => toggle(k)} />
-                    <label htmlFor={`orb-${k}`} className="flex-1 min-w-0 cursor-pointer">
+                  <li
+                    key={k}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggle(k)}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter" || ev.key === " ") {
+                        ev.preventDefault();
+                        toggle(k);
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 cursor-pointer select-none hover:bg-muted/40",
+                      marcada && "bg-primary/10"
+                    )}
+                  >
+                    <Checkbox
+                      checked={marcada}
+                      onCheckedChange={() => toggle(k)}
+                      onClick={(ev) => ev.stopPropagation()}
+                      className="shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{e.nome}</div>
                       <div className="text-xs text-muted-foreground truncate">
                         Contrato {e.contrato || "—"} · {e.responsavel || "Sem responsável"}
                         {login ? ` · @${login}` : " · sem login"}
                       </div>
-                    </label>
+                    </div>
                     {e.status && <Badge variant="outline" className="shrink-0 text-[10px]">{e.status}</Badge>}
                   </li>
                 );
               })}
+
             </ul>
           )}
         </ScrollArea>
