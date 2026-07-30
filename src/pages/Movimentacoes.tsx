@@ -31,7 +31,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
-import { AnexosHoverCard } from "@/components/movimentacoes/AnexosHoverCard";
+import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 
@@ -90,6 +90,7 @@ export default function Movimentacoes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [somentePendentes, setSomentePendentes] = useState(false);
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
+  const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
@@ -866,6 +867,12 @@ export default function Movimentacoes() {
           </CardContent>
         </Card>
       </div>
+      <AnexosMovimentacaoDialog
+        movimentacaoId={anexosMov?.id ?? null}
+        empresaNome={anexosMov?.nome}
+        open={!!anexosMov}
+        onOpenChange={(o) => !o && setAnexosMov(null)}
+      />
     </>
   );
 }
