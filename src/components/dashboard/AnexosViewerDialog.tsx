@@ -653,6 +653,32 @@ export function AnexosViewerDialog({
         </DialogHeader>
 
         <div className="space-y-3">
+          {!!avisos?.retroativas?.length && (
+            <Alert className="border-info/50 bg-info/10">
+              <AlertTriangle className="h-4 w-4 text-info" />
+              <AlertTitle>
+                Cobrança retroativa nesta competência ({avisos.retroativas.length})
+              </AlertTitle>
+              <AlertDescription>
+                <p className="mb-1">
+                  Lembre-se de incluir o(s) valor(es) retroativo(s) neste faturamento.
+                </p>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  {avisos.retroativas.map((r, i) => (
+                    <li key={i}>
+                      <span className="font-medium">
+                        {(r.valor_centavos / 100).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </span>
+                      {r.descricao ? ` — ${r.descricao}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
           {avisos?.exigePoPc && (
             <Alert className="border-warning/50 bg-warning/10">
               <AlertTriangle className="h-4 w-4 text-warning" />
