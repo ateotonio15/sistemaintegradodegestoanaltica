@@ -282,7 +282,7 @@ export function EvolucaoMensalSection() {
                   }}
                   formatter={(value: any, name: any) =>
                     name === "Sinistralidade %"
-                      ? [`${Number(value).toFixed(1).replace(".", ",")}%`, name]
+                      ? [`${Number(value).toFixed(2).replace(".", ",")}%`, name]
                       : [fmtMoeda(Number(value)), name]
                   }
                 />
