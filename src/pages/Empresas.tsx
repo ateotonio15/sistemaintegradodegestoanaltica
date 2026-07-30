@@ -257,9 +257,6 @@ export default function Empresas() {
   const [historicoPrioridade, setHistoricoPrioridade] = useState<Empresa | null>(null);
   const [filtroPrioridade, setFiltroPrioridade] = useState<"todas" | "somente" | "ativas" | "concluidas">("todas");
 
-  const [orbitSel, setOrbitSel] = useState<Set<string>>(new Set());
-  const [orbitEnviando, setOrbitEnviando] = useState(false);
-
   const { data: usuarios = [] } = useQuery({
     queryKey: ["profiles-list"],
     queryFn: async () => {
@@ -633,74 +630,6 @@ export default function Empresas() {
     }
     return "Não definida";
   };
-
-  // Usuário do Orbit (username, com fallback para o nome do responsável)
-  const getOrbitUser = (empresa: Empresa) => {
-    const userId = (empresa as any).responsavel_user_id;
-    if (userId) {
-      const u = usuarios.find((u) => u.user_id === userId) as any;
-      if (u?.username) return u.username as string;
-      if (u?.display_name) return u.display_name as string;
-    }
-    return (empresa.responsavel_contrato || "").trim();
-  };
-
-  const toggleOrbit = (id: string) => {
-    setOrbitSel((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  async function enviarParaOrbit() {
-    const selecionadas = empresas.filter((e) => orbitSel.has(e.id));
-    if (selecionadas.length === 0) return;
-
-    const porUsuario = new Map<string, string[]>();
-    const semResponsavel: string[] = [];
-    selecionadas.forEach((e) => {
-      const u = getOrbitUser(e);
-      if (!u || u === "—") { semResponsavel.push(e.nome); return; }
-      const arr = porUsuario.get(u) ?? [];
-      if (!arr.includes(e.nome)) arr.push(e.nome);
-      porUsuario.set(u, arr);
-    });
-
-    if (porUsuario.size === 0) {
-      toast({ title: "Sem analista", description: "As empresas selecionadas não possuem responsável definido.", variant: "destructive" });
-      return;
-    }
-
-    const entries = Array.from(porUsuario.entries()).map(([u, companies]) => ({ user: u, companies }));
-
-    setOrbitEnviando(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("orbit-daily-companies", { body: { entries } });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-
-      const results = ((data as any)?.results ?? []) as Array<{ username: string; resolved: boolean; added?: number; skipped?: number }>;
-      const totalAdded = results.reduce((s, r) => s + (r.added ?? 0), 0);
-      const naoEncontrados = results.filter((r) => !r.resolved).map((r) => r.username);
-
-      toast({
-        title: `${totalAdded} ${totalAdded === 1 ? "empresa criada" : "empresas criadas"} no Orbit`,
-        description: [
-          `Enviadas ${selecionadas.length} seleção(ões) para ${entries.length} analista(s).`,
-          naoEncontrados.length ? `Usuários não encontrados: ${naoEncontrados.join(", ")}` : "",
-          semResponsavel.length ? `Sem responsável: ${semResponsavel.join(", ")}` : "",
-        ].filter(Boolean).join(" "),
-        variant: naoEncontrados.length ? "destructive" : undefined,
-      });
-      if (!naoEncontrados.length) setOrbitSel(new Set());
-    } catch (err: any) {
-      toast({ title: "Erro ao enviar para o Orbit", description: err.message ?? String(err), variant: "destructive" });
-    } finally {
-      setOrbitEnviando(false);
-    }
-  }
-
 
   const respOptions = useMemo(() => {
     const set = new Set<string>();
@@ -1705,15 +1634,6 @@ export default function Empresas() {
           <div className="ml-auto flex items-center gap-2">
             <div className="h-8 w-px bg-border/70 hidden md:block" />
             <Button
-              onClick={enviarParaOrbit}
-              disabled={orbitSel.size === 0 || orbitEnviando}
-              className="rounded-lg"
-              title="Enviar as empresas selecionadas ao Orbit"
-            >
-              {orbitEnviando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-              Enviar para o Orbit{orbitSel.size > 0 ? ` (${orbitSel.size})` : ""}
-            </Button>
-            <Button
 
               variant="outline"
               onClick={exportarInativasExcel}
@@ -1740,15 +1660,6 @@ export default function Empresas() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/70">
-                    <TableHead className="w-10">
-                      <Checkbox
-                        aria-label="Selecionar todas para o Orbit"
-                        checked={filtered.length > 0 && filtered.every((e) => orbitSel.has(e.id))}
-                        onCheckedChange={(v) =>
-                          setOrbitSel(v ? new Set(filtered.map((e) => e.id)) : new Set())
-                        }
-                      />
-                    </TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Nome</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Cód. Contrato</TableHead>
 
@@ -1768,9 +1679,9 @@ export default function Empresas() {
                 </TableHeader>
                 <TableBody>
                    {isLoading ? (
-                      <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
                    ) : (
                     filtered.map((e) => {
                       const suspenso = (e as any).contrato_suspenso;
@@ -1786,13 +1697,6 @@ export default function Empresas() {
                           )}
                           onClick={() => setDetailEmpresa(e)}
                         >
-                          <TableCell className="align-top" onClick={(ev) => ev.stopPropagation()}>
-                            <Checkbox
-                              aria-label={`Selecionar ${e.nome}`}
-                              checked={orbitSel.has(e.id)}
-                              onCheckedChange={() => toggleOrbit(e.id)}
-                            />
-                          </TableCell>
                           <TableCell className="font-medium align-top">
 
                             <div className="flex flex-col items-start gap-1">
