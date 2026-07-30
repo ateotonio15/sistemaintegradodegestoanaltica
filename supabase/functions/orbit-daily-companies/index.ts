@@ -30,7 +30,11 @@ Deno.serve(async (req) => {
 
     const res = await fetch(ORBIT_URL, {
       method: "POST",
-      headers: { "x-api-key": apiKey, "content-type": "application/json" },
+      headers: {
+        "x-api-key": apiKey,
+        "authorization": `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
       body: JSON.stringify(payload),
     });
 
