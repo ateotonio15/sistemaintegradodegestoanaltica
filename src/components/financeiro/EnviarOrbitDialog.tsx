@@ -364,76 +364,82 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
         {etapa === 2 && (
           <>
             {validando && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground px-6 py-10 justify-center">
                 <Loader2 className="h-4 w-4 animate-spin" /> Validando usuários no Orbit...
               </div>
             )}
 
             {!validando && (
               <>
-                <div className="text-xs text-muted-foreground">
-                  {empresasSelecionadasNomes.length} empresa(s) serão enviadas para cada usuário marcado.
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox
-                      checked={usuariosOrbit.length > 0 && usuariosOrbit.every((u) => usuariosSel.has(u.login.toLowerCase()))}
-                      onCheckedChange={(v) =>
-                        setUsuariosSel(v ? new Set(usuariosOrbit.map((u) => u.login.toLowerCase())) : new Set())
-                      }
-                    />
-                    <span className="text-muted-foreground">Selecionar todos ({usuariosOrbit.length})</span>
-                  </label>
-                  <Badge variant="secondary">{usuariosSel.size} usuário(s)</Badge>
+                <div className="px-6 space-y-3">
+                  <div className="rounded-lg border bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{empresasSelecionadasNomes.length} empresa(s)</span> serão enviadas para cada usuário marcado.
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={usuariosOrbit.length > 0 && usuariosOrbit.every((u) => usuariosSel.has(u.login.toLowerCase()))}
+                        onCheckedChange={(v) =>
+                          setUsuariosSel(v ? new Set(usuariosOrbit.map((u) => u.login.toLowerCase())) : new Set())
+                        }
+                      />
+                      <span className="text-muted-foreground">Selecionar todos ({usuariosOrbit.length})</span>
+                    </label>
+                    <Badge variant={usuariosSel.size ? "default" : "secondary"} className="rounded-full">{usuariosSel.size} usuário(s)</Badge>
+                  </div>
                 </div>
 
-                <ScrollArea className="h-[360px] rounded-md border p-3">
-                  <div className="space-y-2">
-                    {usuariosOrbit.length === 0 ? (
-                      <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                        Nenhum usuário ativo no Orbit foi encontrado.
-                      </div>
-                    ) : (
-                      usuariosOrbit.map((u) => {
-                        const marcado = usuariosSel.has(u.login.toLowerCase());
-                        const res = resultados.find((r) => r.username.toLowerCase() === u.login.toLowerCase());
-                        return (
-                          <div
-                            key={u.login}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => toggleUsuario(u.login)}
-                            onKeyDown={(ev) => {
-                              if (ev.key === "Enter" || ev.key === " ") {
-                                ev.preventDefault();
-                                toggleUsuario(u.login);
-                              }
-                            }}
-                            className={cn(
-                              "flex items-center gap-3 rounded-md border px-3 py-2 cursor-pointer select-none hover:bg-muted/40",
-                              marcado && "border-primary bg-primary/10"
-                            )}
-                          >
-                            <Checkbox checked={marcado} onCheckedChange={() => toggleUsuario(u.login)} onClick={(ev) => ev.stopPropagation()} />
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium truncate">@{u.login}</div>
-                              <div className="text-xs text-muted-foreground truncate">
-                                {u.nome || "Usuário do Orbit"}
-                                {res ? ` · ${res.added ?? 0} criada(s)` : ""}
+                <div className="px-6 flex-1 min-h-0">
+                  <ScrollArea className="h-[330px] rounded-lg border p-3">
+                    <div className="space-y-2">
+                      {usuariosOrbit.length === 0 ? (
+                        <div className="rounded-md border border-dashed p-6 text-center text-xs text-muted-foreground">
+                          Nenhum usuário ativo no Orbit foi encontrado.
+                        </div>
+                      ) : (
+                        usuariosOrbit.map((u) => {
+                          const marcado = usuariosSel.has(u.login.toLowerCase());
+                          const res = resultados.find((r) => r.username.toLowerCase() === u.login.toLowerCase());
+                          return (
+                            <div
+                              key={u.login}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => toggleUsuario(u.login)}
+                              onKeyDown={(ev) => {
+                                if (ev.key === "Enter" || ev.key === " ") {
+                                  ev.preventDefault();
+                                  toggleUsuario(u.login);
+                                }
+                              }}
+                              className={cn(
+                                "flex items-center gap-3 rounded-lg border px-3 py-2.5 cursor-pointer select-none transition-colors hover:bg-muted/40",
+                                marcado && "border-primary bg-primary/10"
+                              )}
+                            >
+                              <Checkbox checked={marcado} onCheckedChange={() => toggleUsuario(u.login)} onClick={(ev) => ev.stopPropagation()} />
+                              <div className="h-8 w-8 shrink-0 rounded-full bg-muted grid place-items-center text-[11px] font-semibold text-muted-foreground">
+                                {(u.nome || u.login).slice(0, 2).toUpperCase()}
                               </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium truncate">@{u.login}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {u.nome || "Usuário do Orbit"}
+                                  {res ? ` · ${res.added ?? 0} criada(s)` : ""}
+                                </div>
+                              </div>
+                              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
                             </div>
-                            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </ScrollArea>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
               </>
             )}
 
-
-            <DialogFooter>
+            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
               <Button variant="outline" onClick={() => setEtapa(1)} className="gap-1.5">
                 <ArrowLeft className="h-4 w-4" /> Voltar
               </Button>
@@ -442,6 +448,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                 Enviar {usuariosSel.size > 0 ? `(${usuariosSel.size} usuário(s))` : ""}
               </Button>
             </DialogFooter>
+
           </>
         )}
       </DialogContent>
