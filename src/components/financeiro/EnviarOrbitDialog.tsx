@@ -306,11 +306,24 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
           <Badge variant="secondary">{sel.size} selecionada(s)</Badge>
         </div>
 
+        {validando && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Validando usuários no Orbit...
+          </div>
+        )}
+
+        {!validando && usuariosValidados.length === 0 && (
+          <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+            Nenhum usuário validado no Orbit para os filtros atuais.
+          </div>
+        )}
+
         {usuariosValidados.length > 0 && (
           <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-primary uppercase">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Usuários validados no SIGA e Orbit
+              <CheckCircle2 className="h-3.5 w-3.5" /> Usuários validados no SIGA e Orbit ({usuariosValidados.length})
             </div>
+
             <div className="grid gap-2 sm:grid-cols-2">
               {usuariosValidados.map((usuario) => {
                 const marcado = usuario.empresas.every((empresa) => sel.has(keyOf(empresa)));
