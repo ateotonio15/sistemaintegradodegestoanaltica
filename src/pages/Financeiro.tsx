@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { EnviarOrbitDialog } from "@/components/financeiro/EnviarOrbitDialog";
 import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2, Send } from "lucide-react";
 import { toast } from "sonner";
