@@ -256,15 +256,19 @@ export default function Empresas() {
   const [historicoPrioridade, setHistoricoPrioridade] = useState<Empresa | null>(null);
   const [filtroPrioridade, setFiltroPrioridade] = useState<"todas" | "somente" | "ativas" | "concluidas">("todas");
 
+  const [orbitSel, setOrbitSel] = useState<Set<string>>(new Set());
+  const [orbitEnviando, setOrbitEnviando] = useState(false);
+
   const { data: usuarios = [] } = useQuery({
     queryKey: ["profiles-list"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("user_id, display_name").order("display_name");
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name, username").order("display_name");
       if (error) throw error;
       return data;
     },
     enabled: !!user,
   });
+
 
   const { data: userRolesList = [] } = useQuery({
     queryKey: ["user-roles-list"],
