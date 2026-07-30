@@ -33,6 +33,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [enviando, setEnviando] = useState(false);
   const [perfis, setPerfis] = useState<Array<{ display_name: string | null; username: string | null }>>([]);
   const [resultados, setResultados] = useState<Array<{ username: string; resolved: boolean; added?: number }>>([]);
+  const [validando, setValidando] = useState(false);
+  const [loginsValidos, setLoginsValidos] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
@@ -41,11 +43,13 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setStatusSel([]);
     setDiaEmissaoSel([]);
     setResultados([]);
+    setLoginsValidos(new Set());
     supabase
       .from("profiles")
       .select("display_name, username")
       .then(({ data }) => setPerfis((data ?? []) as any));
   }, [open]);
+
 
   // Empresas únicas por contrato/nome (o Financeiro repete a empresa por período/pagador)
   const unicas = useMemo(() => {
