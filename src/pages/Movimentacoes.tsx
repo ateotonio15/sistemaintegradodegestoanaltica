@@ -31,6 +31,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { AnexosHoverCard } from "@/components/movimentacoes/AnexosHoverCard";
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 
@@ -802,7 +803,11 @@ export default function Movimentacoes() {
                         <TableRow key={m.id} className={`transition-colors ${!m.empresas ? "bg-destructive/5" : status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : prioAtiva ? "bg-red-500/5 priority-row hover:bg-red-500/10" : "hover:bg-accent/50"}`}>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2 flex-wrap">
-                              {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
+                              <AnexosHoverCard movimentacaoId={m.id}>
+                                <span className="underline decoration-dotted underline-offset-4">
+                                  {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
+                                </span>
+                              </AnexosHoverCard>
                               {(m.empresas as any)?.contrato_via_portal && (
                                 <span
                                   className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"
