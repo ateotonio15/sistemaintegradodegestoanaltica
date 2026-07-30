@@ -427,7 +427,13 @@ export function EvolucaoMensalSection() {
                         <td />
                       </tr>
                     )}
-                    <tr key={l.empresaId + l.periodo} className="border-t hover:bg-muted/30">
+                    <tr
+                      key={l.empresaId + l.periodo}
+                      className={cn(
+                        "border-t hover:bg-muted/30",
+                        isGrupoRow && "bg-primary/5 font-semibold",
+                      )}
+                    >
                       <td className="px-3 py-2 text-muted-foreground">{labelPeriodo(l.periodo)}</td>
                       <td className="px-3 py-2 font-medium">{l.empresaNome}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.premioEmpresa)}</td>
@@ -443,33 +449,37 @@ export function EvolucaoMensalSection() {
                         {fmtMoedaSinal(l.aporte)}
                       </td>
                       <td className="px-3 py-2 text-right whitespace-nowrap">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
-                          onClick={() => {
-                            const orig = lancamentos.find(
-                              (x) => x.empresa_id === l.empresaId && x.periodo === l.periodo,
-                            );
-                            setEditando(orig);
-                            setDialogAberto(true);
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
-                          onClick={() => {
-                            const orig = lancamentos.find(
-                              (x) => x.empresa_id === l.empresaId && x.periodo === l.periodo,
-                            );
-                            if (orig) del.mutate(orig.id);
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {!isGrupoRow && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                const orig = lancamentos.find(
+                                  (x) => x.empresa_id === l.empresaId && x.periodo === l.periodo,
+                                );
+                                setEditando(orig);
+                                setDialogAberto(true);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                const orig = lancamentos.find(
+                                  (x) => x.empresa_id === l.empresaId && x.periodo === l.periodo,
+                                );
+                                if (orig) del.mutate(orig.id);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   </>
