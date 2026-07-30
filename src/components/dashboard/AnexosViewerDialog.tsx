@@ -571,6 +571,7 @@ export function AnexosViewerDialog({
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {(() => {
+                        if (a.sistema) return `Documento de ${a.origem_label}`;
                         const n = (a.nome_arquivo || "").toLowerCase();
                         if (/\.(xlsx|xlsm|xls|csv)$/.test(n)) return "Excel do faturamento";
                         if (/boleto/.test(n)) return "Boleto";
@@ -580,7 +581,7 @@ export function AnexosViewerDialog({
                       })()}
                       {` · ${formatDateTime(a.created_at)}`}
                       {a.uploader_nome ? ` · Anexado por ${a.uploader_nome}` : ""}
-                      {` · ${a.origem_label}`}
+                      {a.sistema ? " · Não altera o status" : ` · ${a.origem_label}`}
                     </p>
                   </div>
                   <Button
