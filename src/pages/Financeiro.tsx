@@ -144,6 +144,28 @@ export default function Financeiro() {
     [financeiroRaw],
   );
 
+  // Cobranças retroativas cadastradas para a competência (independente de anexo).
+  const { data: retroativasInfo = { porMov: new Set<string>(), porEmpresa: new Set<string>() } } = useQuery({
+    queryKey: ["financeiro-retroativas", mes, empresaIds.sort().join(",")],
+    queryFn: async () => {
+      const porMov = new Set<string>();
+      const porEmpresa = new Set<string>();
+      if (empresaIds.length === 0) return { porMov, porEmpresa };
+      const { data, error } = await supabase
+        .from("cobrancas_retroativas")
+        .select("empresa_id, competencia, financeiro_movimentacao_id")
+        .eq("competencia", mes)
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      (data || []).forEach((r: any) => {
+        if (r.financeiro_movimentacao_id) porMov.add(r.financeiro_movimentacao_id);
+        if (r.empresa_id) porEmpresa.add(r.empresa_id);
+      });
+      return { porMov, porEmpresa };
+    },
+    enabled: !!user && canViewFinanceiro && empresaIds.length > 0,
+  });
+
   const { data: empresasMap = {} } = useQuery({
     queryKey: ["financeiro-empresas", empresaIds.sort().join(",")],
     queryFn: async () => {
@@ -646,7 +668,10 @@ export default function Financeiro() {
         return true;
       });
 
-      const temRetroativo = anexosAll.some((a: any) => a.origem === "retroativo");
+      const temRetroativo =
+        anexosAll.some((a: any) => a.origem === "retroativo") ||
+        retroativasInfo.porMov.has(f.id) ||
+        retroativasInfo.porEmpresa.has(f.empresa_id);
       return {
         ...f,
         empresa_nome: emp?.nome || "—",
@@ -669,7 +694,7 @@ export default function Financeiro() {
       };
     });
 
-  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosImplantacaoCountMap, anexosMap, pdfUploaderByMov, uploaderMap, cnpjsPorContrato, cnpjsPorAnexoOrigem]);
+  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosImplantacaoCountMap, anexosMap, pdfUploaderByMov, uploaderMap, cnpjsPorContrato, cnpjsPorAnexoOrigem, retroativasInfo]);
 
   // Tipos únicos para o filtro
   const tiposUnicos = useMemo(() => {

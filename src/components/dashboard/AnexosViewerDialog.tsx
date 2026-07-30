@@ -87,6 +87,7 @@ export function AnexosViewerDialog({
     exigePoPc: boolean;
     envioBoletoComNota: boolean;
     observacao: string | null;
+    retroativas?: Array<{ valor_centavos: number; descricao: string | null }>;
   } | null>(null);
 
   const iniciadoEmEfetivo = localCancelado ? null : (localIniciadoEm ?? faturamentoIniciadoEm);
@@ -135,8 +136,19 @@ export function AnexosViewerDialog({
             ? String(e.observacao_padrao_financeiro)
             : null;
 
-        if (exigePoPc || envioBoletoComNota || observacao) {
-          setAvisos({ exigePoPc, envioBoletoComNota, observacao });
+        // Cobranças retroativas pendentes desta competência.
+        const { data: retros } = await supabase
+          .from("cobrancas_retroativas")
+          .select("valor_centavos, descricao")
+          .eq("empresa_id", targetEmpresaId)
+          .eq("competencia", mesReferencia);
+        const retroativas = (retros || []).map((r: any) => ({
+          valor_centavos: r.valor_centavos ?? 0,
+          descricao: r.descricao ?? null,
+        }));
+
+        if (exigePoPc || envioBoletoComNota || observacao || retroativas.length > 0) {
+          setAvisos({ exigePoPc, envioBoletoComNota, observacao, retroativas });
         }
       }
 
@@ -641,6 +653,32 @@ export function AnexosViewerDialog({
         </DialogHeader>
 
         <div className="space-y-3">
+          {!!avisos?.retroativas?.length && (
+            <Alert className="border-info/50 bg-info/10">
+              <AlertTriangle className="h-4 w-4 text-info" />
+              <AlertTitle>
+                Cobrança retroativa nesta competência ({avisos.retroativas.length})
+              </AlertTitle>
+              <AlertDescription>
+                <p className="mb-1">
+                  Lembre-se de incluir o(s) valor(es) retroativo(s) neste faturamento.
+                </p>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  {avisos.retroativas.map((r, i) => (
+                    <li key={i}>
+                      <span className="font-medium">
+                        {(r.valor_centavos / 100).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </span>
+                      {r.descricao ? ` — ${r.descricao}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
           {avisos?.exigePoPc && (
             <Alert className="border-warning/50 bg-warning/10">
               <AlertTriangle className="h-4 w-4 text-warning" />
