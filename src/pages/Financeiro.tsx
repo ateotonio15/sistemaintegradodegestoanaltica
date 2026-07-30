@@ -2289,9 +2289,10 @@ export default function Financeiro() {
     <>
       <div className="p-4 md:p-6 space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-4 md:p-5 flex items-center justify-between flex-wrap gap-3">
+          <div className="pointer-events-none absolute -left-10 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+          <div className="relative flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center">
               <Wallet className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -2302,7 +2303,8 @@ export default function Financeiro() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex items-center gap-2 flex-wrap">
+
             <Button
               variant="default"
               size="sm"
@@ -2422,7 +2424,7 @@ export default function Financeiro() {
 
 
         {/* Filtros da tabela */}
-        <Card className="rounded-xl shadow-sm">
+        <Card className="rounded-2xl border-border/60 bg-card/70 backdrop-blur-sm shadow-sm">
           {(filtroGrupo || faturandoRows.length > 0) && (
             <div className="px-4 pt-4 flex flex-wrap gap-2">
               {filtroGrupo && (
