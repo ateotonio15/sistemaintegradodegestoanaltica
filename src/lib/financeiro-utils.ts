@@ -64,14 +64,16 @@ export function calcularStatusFinanceiro(
     faturamento_iniciado_em?: string | null;
   },
   envioOperacionalFeito: boolean,
-  anexos: Array<{ mime_type?: string | null; nome_arquivo?: string | null }> = [],
+  anexos: Array<{ mime_type?: string | null; nome_arquivo?: string | null; origem?: string | null }> = [],
   exigePoPc: boolean = false,
 ): StatusFinanceiro {
   if (mov.data_envio_nota) return "Enviada";
-  const temPdf = anexos.some(isPdfAnexo);
+  const anexosStatus = anexos.filter(anexoAlteraStatus);
+  const temPdf = anexosStatus.some(isPdfAnexo);
   if (temPdf) return "Nota emitida";
-  const temXls = anexos.some(isXlsAnexo);
+  const temXls = anexosStatus.some(isXlsAnexo);
   if (temXls) return exigePoPc ? "Aguardando validação" : "Faturado";
+
   if (mov.faturamento_iniciado_em) return "Em faturamento";
   if (mov.dentro_prazo === false) return "Fora do prazo";
   if (envioOperacionalFeito) return "Aguardando nota";
