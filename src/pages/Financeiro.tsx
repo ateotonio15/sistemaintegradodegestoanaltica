@@ -2424,7 +2424,7 @@ export default function Financeiro() {
 
 
         {/* Filtros da tabela */}
-        <Card className="rounded-xl shadow-sm">
+        <Card className="rounded-2xl border-border/60 bg-card/70 backdrop-blur-sm shadow-sm">
           {(filtroGrupo || faturandoRows.length > 0) && (
             <div className="px-4 pt-4 flex flex-wrap gap-2">
               {filtroGrupo && (
