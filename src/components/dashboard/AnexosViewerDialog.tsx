@@ -136,8 +136,19 @@ export function AnexosViewerDialog({
             ? String(e.observacao_padrao_financeiro)
             : null;
 
-        if (exigePoPc || envioBoletoComNota || observacao) {
-          setAvisos({ exigePoPc, envioBoletoComNota, observacao });
+        // Cobranças retroativas pendentes desta competência.
+        const { data: retros } = await supabase
+          .from("cobrancas_retroativas")
+          .select("valor_centavos, descricao")
+          .eq("empresa_id", targetEmpresaId)
+          .eq("competencia", mesReferencia);
+        const retroativas = (retros || []).map((r: any) => ({
+          valor_centavos: r.valor_centavos ?? 0,
+          descricao: r.descricao ?? null,
+        }));
+
+        if (exigePoPc || envioBoletoComNota || observacao || retroativas.length > 0) {
+          setAvisos({ exigePoPc, envioBoletoComNota, observacao, retroativas });
         }
       }
 
