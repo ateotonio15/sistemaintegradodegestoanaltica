@@ -28,6 +28,7 @@ interface Props {
 export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [busca, setBusca] = useState("");
   const [statusSel, setStatusSel] = useState<string[]>([]);
+  const [diaEmissaoSel, setDiaEmissaoSel] = useState<number[]>([]);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [enviando, setEnviando] = useState(false);
   const [perfis, setPerfis] = useState<Array<{ display_name: string | null; username: string | null }>>([]);
