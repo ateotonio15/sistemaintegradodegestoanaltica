@@ -158,6 +158,45 @@ export function EvolucaoMensalSection() {
     sinistralidade: Number((s.sinistralidade * 100).toFixed(2)),
   }));
 
+  // Empresas presentes nos dados filtrados (para visão "Todas")
+  const empresasNoGrafico = useMemo(() => {
+    const map = new Map<string, string>();
+    linhasFiltradas.forEach((l) => map.set(l.empresaId, l.empresaNome));
+    return [...map.entries()].map(([id, nome]) => ({ id, nome }));
+  }, [linhasFiltradas]);
+
+  // Série multi-empresa: uma linha de sinistralidade por empresa
+  const chartDataTodas = useMemo(() => {
+    const periodos = [...new Set(linhasFiltradas.map((l) => l.periodo))].sort();
+    return periodos.map((p) => {
+      const row: any = { periodo: labelPeriodo(p) };
+      const cons = totaisPorPeriodo.get(p);
+      row.premioTotal = cons ? Number(cons.premioTotal.toFixed(2)) : 0;
+      empresasNoGrafico.forEach((e) => {
+        const l = linhasFiltradas.find((x) => x.periodo === p && x.empresaId === e.id);
+        row[`sin_${e.id}`] = l ? Number((l.sinistralidade * 100).toFixed(2)) : null;
+      });
+      return row;
+    });
+  }, [linhasFiltradas, empresasNoGrafico, totaisPorPeriodo]);
+
+  const nomeVisao =
+    visao === "__grupo__"
+      ? "Grupo (consolidado)"
+      : visao === "__todas__"
+      ? "Todas as empresas"
+      : ativas.find((e) => e.id === visao)?.nome || "—";
+
+  const corVisao = visao === "__grupo__" ? CHIP_GRUPO : corEmpresa(nomeVisao);
+
+  const resumoContexto = useMemo(() => {
+    if (!atual) return null;
+    return anterior
+      ? `${labelPeriodo(atual.periodo)} vs ${labelPeriodo(anterior.periodo)}`
+      : labelPeriodo(atual.periodo);
+  }, [atual, anterior]);
+
+
 
   return (
     <div className="space-y-4">
