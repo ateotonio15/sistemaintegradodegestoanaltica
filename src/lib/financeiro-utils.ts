@@ -48,6 +48,19 @@ export function isXlsAnexo(a: { mime_type?: string | null; nome_arquivo?: string
 }
 
 /**
+ * Anexos de Reajuste / Cobrança Retroativa são documentos complementares e
+ * NÃO representam envio de faturamento — portanto não alteram o status.
+ */
+export function anexoAlteraStatus(a: {
+  origem?: string | null;
+  nome_arquivo?: string | null;
+}): boolean {
+  const origem = (a.origem || "normal").toLowerCase();
+  return origem !== "retroativo" && origem !== "reajuste";
+}
+
+
+/**
  * Calcula o status financeiro de uma movimentação (NÃO persistido no banco).
  * Prioridade (do mais alto para o mais baixo):
  * 1. **Enviada** — `data_envio_nota` preenchida (estágio final do Financeiro)
@@ -64,14 +77,16 @@ export function calcularStatusFinanceiro(
     faturamento_iniciado_em?: string | null;
   },
   envioOperacionalFeito: boolean,
-  anexos: Array<{ mime_type?: string | null; nome_arquivo?: string | null }> = [],
+  anexos: Array<{ mime_type?: string | null; nome_arquivo?: string | null; origem?: string | null }> = [],
   exigePoPc: boolean = false,
 ): StatusFinanceiro {
   if (mov.data_envio_nota) return "Enviada";
-  const temPdf = anexos.some(isPdfAnexo);
+  const anexosStatus = anexos.filter(anexoAlteraStatus);
+  const temPdf = anexosStatus.some(isPdfAnexo);
   if (temPdf) return "Nota emitida";
-  const temXls = anexos.some(isXlsAnexo);
+  const temXls = anexosStatus.some(isXlsAnexo);
   if (temXls) return exigePoPc ? "Aguardando validação" : "Faturado";
+
   if (mov.faturamento_iniciado_em) return "Em faturamento";
   if (mov.dentro_prazo === false) return "Fora do prazo";
   if (envioOperacionalFeito) return "Aguardando nota";
