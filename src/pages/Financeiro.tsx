@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
-import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2 } from "lucide-react";
+import { EnviarOrbitDialog } from "@/components/financeiro/EnviarOrbitDialog";
+import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2, Send } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import {
@@ -1003,6 +1004,8 @@ export default function Financeiro() {
   }, [allRows]);
 
   // Tabela: aplica TODOS os filtros e expande 1 linha por pagador cadastrado
+  const [orbitOpen, setOrbitOpen] = useState(false);
+
   const filteredRows = useMemo(() => {
     const q = busca.trim().toLowerCase();
     const base = allRows.filter((r) => {
@@ -2323,6 +2326,16 @@ export default function Financeiro() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setOrbitOpen(true)}
+              className="gap-1.5"
+              title="Enviar empresas do período para o Orbit"
+            >
+              <Send className="h-3.5 w-3.5" />
+              Orbit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setHistoricoOpen(true)}
               className="gap-1.5"
               title="Ver histórico de análises Excel × PDF salvas"
@@ -2762,6 +2775,12 @@ export default function Financeiro() {
           mes={mes}
           empresasMap={empresasMap as any}
           canManage={!!canManageFinanceiro}
+        />
+
+        <EnviarOrbitDialog
+          open={orbitOpen}
+          onOpenChange={setOrbitOpen}
+          empresas={filteredRows.map((r: any) => ({ id: r.id, nome: r.nome, responsavel: r.responsavel }))}
         />
 
         <RegrasEmpresariaisDialog
