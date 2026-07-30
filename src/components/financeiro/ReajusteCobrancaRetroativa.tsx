@@ -598,9 +598,9 @@ export function ReajusteCobrancaRetroativa() {
 
       {/* ============ DIALOG: COBRANÇA RETROATIVA ============ */}
       <Dialog open={openCobDialog} onOpenChange={(o) => { setOpenCobDialog(o); if (!o) resetCob(); }}>
-        <DialogContent className="max-w-xl p-0 overflow-hidden">
+        <DialogContent className="max-w-xl w-[95vw] p-0 overflow-hidden flex max-h-[90vh] flex-col">
           {/* Header destacado */}
-          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b px-6 py-5">
+          <div className="shrink-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b px-6 py-5">
             <DialogHeader className="space-y-1">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
