@@ -321,15 +321,19 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
     enabled: !!enviadoPorId,
   });
 
-  // Nota emitida = existe anexo PDF OU data_envio_nota preenchida.
+  // Nota emitida = existe anexo PDF de faturamento OU data_envio_nota preenchida.
+  // Anexos de Reajuste/Cobrança Retroativa não contam.
   // Espelha a lógica de calcularStatusFinanceiro em src/lib/financeiro-utils.ts.
   const notaEmitida =
     !!dataEnvioNota ||
     anexos.some((a: any) => {
+      const origem = (a.origem || "normal").toLowerCase();
+      if (origem === "retroativo" || origem === "reajuste") return false;
       const mime = (a.mime_type || "").toLowerCase();
       const nome = (a.nome_arquivo || "").toLowerCase();
       return mime.includes("pdf") || nome.endsWith(".pdf");
     });
+
   const podeAlterarBoletoDda = isAdmin || (canEditFinanceiro && notaEmitida);
 
   const handleToggleBoletoDda = (checked: boolean) => {
