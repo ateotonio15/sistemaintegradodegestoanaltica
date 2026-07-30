@@ -31,7 +31,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
-import { AnexosHoverCard } from "@/components/movimentacoes/AnexosHoverCard";
+import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 
@@ -90,6 +90,7 @@ export default function Movimentacoes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [somentePendentes, setSomentePendentes] = useState(false);
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
+  const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
@@ -800,14 +801,21 @@ export default function Movimentacoes() {
                       const prioAtiva = temPrio && !m.data_envio_financeiro;
                       const prioIntensa = prioAtiva && isPrioridadeAlertaIntenso(m.empresas as any);
                       return (
-                        <TableRow key={m.id} className={`transition-colors ${!m.empresas ? "bg-destructive/5" : status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : prioAtiva ? "bg-red-500/5 priority-row hover:bg-red-500/10" : "hover:bg-accent/50"}`}>
+                        <TableRow
+                          key={m.id}
+                          onClick={(e) => {
+                            const target = e.target as HTMLElement;
+                            if (target.closest("button, a, input, [role='menuitem'], [role='checkbox']")) return;
+                            setAnexosMov({ id: m.id, nome: m.empresas?.nome ?? null });
+                          }}
+                          className={`cursor-pointer transition-colors ${!m.empresas ? "bg-destructive/5" : status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : prioAtiva ? "bg-red-500/5 priority-row hover:bg-red-500/10" : "hover:bg-accent/50"}`}
+                        >
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <AnexosHoverCard movimentacaoId={m.id}>
-                                <span className="underline decoration-dotted underline-offset-4">
-                                  {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
-                                </span>
-                              </AnexosHoverCard>
+                              <span className="underline decoration-dotted underline-offset-4">
+                                {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
+                              </span>
+
                               {(m.empresas as any)?.contrato_via_portal && (
                                 <span
                                   className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"
@@ -859,6 +867,12 @@ export default function Movimentacoes() {
           </CardContent>
         </Card>
       </div>
+      <AnexosMovimentacaoDialog
+        movimentacaoId={anexosMov?.id ?? null}
+        empresaNome={anexosMov?.nome}
+        open={!!anexosMov}
+        onOpenChange={(o) => !o && setAnexosMov(null)}
+      />
     </>
   );
 }
