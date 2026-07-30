@@ -140,20 +140,29 @@ function EmpresaCombobox({
 }
 
 async function ensureFinanceiroMovimentacao(empresaId: string, mesReferencia: string): Promise<string> {
+  // Sempre reaproveita a cobrança já existente da competência (não cria linha só para o retroativo)
   const { data: existing } = await supabase
     .from("financeiro_movimentacoes")
-    .select("id")
+    .select("id, created_at")
     .eq("empresa_id", empresaId)
     .eq("mes_referencia", mesReferencia)
-    .limit(1);
+    .order("created_at", { ascending: true });
   if (existing && existing.length > 0) return existing[0].id;
+
+  // Não existe cobrança na competência: cria usando o período cadastrado na empresa
+  const { data: emp } = await supabase
+    .from("empresas")
+    .select("periodo_movimentacao")
+    .eq("id", empresaId)
+    .maybeSingle();
+  const periodoEmpresa = (emp?.periodo_movimentacao as string | null) || null;
 
   const { data: created, error } = await supabase
     .from("financeiro_movimentacoes")
     .insert({
       empresa_id: empresaId,
       mes_referencia: mesReferencia,
-      periodo: PERIODOS_FIN[0],
+      periodo: periodoEmpresa || PERIODOS_FIN[0],
       tipo_cobranca: null,
       dentro_prazo: true,
       cobranca_registrada: false,
@@ -163,6 +172,7 @@ async function ensureFinanceiroMovimentacao(empresaId: string, mesReferencia: st
   if (error) throw error;
   return created.id;
 }
+
 
 async function getUserDisplayName(userId?: string | null): Promise<string | null> {
   if (!userId) return null;
