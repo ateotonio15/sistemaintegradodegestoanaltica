@@ -40,6 +40,13 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [validando, setValidando] = useState(false);
   const [loginsValidos, setLoginsValidos] = useState<Set<string>>(new Set());
   const [validado, setValidado] = useState(false);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+
+  const filtrosAtivos = statusSel.length + diaEmissaoSel.length;
+  const limparFiltros = () => {
+    setStatusSel([]);
+    setDiaEmissaoSel([]);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -49,6 +56,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setBusca("");
     setStatusSel([]);
     setDiaEmissaoSel([]);
+    setFiltrosAbertos(false);
+
     setResultados([]);
     setLoginsValidos(new Set());
     setValidado(false);
