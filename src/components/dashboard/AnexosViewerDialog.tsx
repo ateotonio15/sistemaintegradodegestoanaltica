@@ -356,11 +356,45 @@ export function AnexosViewerDialog({
       if (anxOpRes.error) throw anxOpRes.error;
       if ((anxImplRes as any).error) throw (anxImplRes as any).error;
 
+      // 4) Anexos de Reajuste / Cobrança Retroativa da mesma competência
+      // (podem estar vinculados a outra linha da empresa). São documentos do
+      // sistema: não contam como envio de usuário e não alteram status.
+      const { data: movsCompetencia } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("id")
+        .eq("empresa_id", empresaId!)
+        .eq("mes_referencia", mesReferencia);
+      const movCompIds = ((movsCompetencia as any[]) ?? []).map((m) => m.id);
+      const { data: anxEspeciaisRaw } = movCompIds.length
+        ? await supabase
+            .from("anexos_financeiro")
+            .select("id, nome_arquivo, storage_path, created_at, uploaded_by, origem")
+            .in("financeiro_movimentacao_id", movCompIds)
+            .in("origem", ["retroativo", "reajuste"])
+            .order("created_at", { ascending: false })
+        : { data: [] as any[] };
+
+      const rotuloEspecial = (origem?: string | null) =>
+        (origem || "").toLowerCase() === "reajuste" ? "Reajuste" : "Cobrança Retroativa";
+      const ehEspecial = (o?: string | null) =>
+        ["retroativo", "reajuste"].includes((o || "").toLowerCase());
+
       const fin: AnexoRow[] = (anxFinRes.data ?? []).map((a: any) => ({
         ...a,
         bucket: BUCKET_FINANCEIRO,
-        origem_label: "Financeiro" as const,
+        origem_label: ehEspecial(a.origem) ? rotuloEspecial(a.origem) : ("Financeiro" as const),
+        sistema: ehEspecial(a.origem),
       }));
+      const finPaths = new Set(fin.map((a) => a.storage_path));
+      const especiais: AnexoRow[] = ((anxEspeciaisRaw as any[]) ?? [])
+        .filter((a) => !finPaths.has(a.storage_path))
+        .map((a: any) => ({
+          ...a,
+          bucket: BUCKET_FINANCEIRO,
+          origem_label: rotuloEspecial(a.origem),
+          sistema: true,
+        }));
+      fin.push(...especiais);
       const op: AnexoRow[] = (anxOpRes.data ?? []).map((a: any) => ({
         ...a,
         bucket: BUCKET_OPERACIONAL,
