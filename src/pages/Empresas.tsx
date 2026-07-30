@@ -1739,8 +1739,18 @@ export default function Empresas() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/70">
+                    <TableHead className="w-10">
+                      <Checkbox
+                        aria-label="Selecionar todas para o Orbit"
+                        checked={filtered.length > 0 && filtered.every((e) => orbitSel.has(e.id))}
+                        onCheckedChange={(v) =>
+                          setOrbitSel(v ? new Set(filtered.map((e) => e.id)) : new Set())
+                        }
+                      />
+                    </TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Nome</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Cód. Contrato</TableHead>
+
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Resp. Contrato</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Executiva</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">CNPJ</TableHead>
