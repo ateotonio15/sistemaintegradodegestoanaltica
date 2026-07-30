@@ -1704,6 +1704,16 @@ export default function Empresas() {
           <div className="ml-auto flex items-center gap-2">
             <div className="h-8 w-px bg-border/70 hidden md:block" />
             <Button
+              onClick={enviarParaOrbit}
+              disabled={orbitSel.size === 0 || orbitEnviando}
+              className="rounded-lg"
+              title="Enviar as empresas selecionadas ao Orbit"
+            >
+              {orbitEnviando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+              Enviar para o Orbit{orbitSel.size > 0 ? ` (${orbitSel.size})` : ""}
+            </Button>
+            <Button
+
               variant="outline"
               onClick={exportarInativasExcel}
               className="rounded-lg"
