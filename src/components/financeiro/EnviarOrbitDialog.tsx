@@ -16,6 +16,7 @@ export type OrbitEmpresa = {
   contrato?: string | null;
   responsavel?: string | null;
   status?: string | null;
+  dia_emissao?: number | null;
 };
 
 interface Props {
