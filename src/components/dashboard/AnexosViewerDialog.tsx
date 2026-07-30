@@ -87,6 +87,7 @@ export function AnexosViewerDialog({
     exigePoPc: boolean;
     envioBoletoComNota: boolean;
     observacao: string | null;
+    retroativas?: Array<{ valor_centavos: number; descricao: string | null }>;
   } | null>(null);
 
   const iniciadoEmEfetivo = localCancelado ? null : (localIniciadoEm ?? faturamentoIniciadoEm);
