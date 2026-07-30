@@ -336,30 +336,43 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
             )}
 
             {!validando && (
-              <ScrollArea className="h-[400px] rounded-md border p-3">
-                <div className="space-y-4">
+              <>
+                <div className="text-xs text-muted-foreground">
+                  {empresasSelecionadasNomes.length} empresa(s) serão enviadas para cada usuário marcado.
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={usuariosOrbit.length > 0 && usuariosOrbit.every((u) => usuariosSel.has(u.login.toLowerCase()))}
+                      onCheckedChange={(v) =>
+                        setUsuariosSel(v ? new Set(usuariosOrbit.map((u) => u.login.toLowerCase())) : new Set())
+                      }
+                    />
+                    <span className="text-muted-foreground">Selecionar todos ({usuariosOrbit.length})</span>
+                  </label>
+                  <Badge variant="secondary">{usuariosSel.size} usuário(s)</Badge>
+                </div>
+
+                <ScrollArea className="h-[360px] rounded-md border p-3">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-primary uppercase">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Validados no Orbit ({gruposValidos.length})
-                    </div>
-                    {gruposValidos.length === 0 ? (
+                    {usuariosOrbit.length === 0 ? (
                       <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                        Nenhum responsável das empresas selecionadas existe no Orbit.
+                        Nenhum usuário ativo no Orbit foi encontrado.
                       </div>
                     ) : (
-                      gruposValidos.map((g) => {
-                        const marcado = usuariosSel.has(g.login.toLowerCase());
-                        const res = resultados.find((r) => r.username.toLowerCase() === g.login.toLowerCase());
+                      usuariosOrbit.map((u) => {
+                        const marcado = usuariosSel.has(u.login.toLowerCase());
+                        const res = resultados.find((r) => r.username.toLowerCase() === u.login.toLowerCase());
                         return (
                           <div
-                            key={g.login}
+                            key={u.login}
                             role="button"
                             tabIndex={0}
-                            onClick={() => toggleUsuario(g.login)}
+                            onClick={() => toggleUsuario(u.login)}
                             onKeyDown={(ev) => {
                               if (ev.key === "Enter" || ev.key === " ") {
                                 ev.preventDefault();
-                                toggleUsuario(g.login);
+                                toggleUsuario(u.login);
                               }
                             }}
                             className={cn(
@@ -367,11 +380,11 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                               marcado && "border-primary bg-primary/10"
                             )}
                           >
-                            <Checkbox checked={marcado} onCheckedChange={() => toggleUsuario(g.login)} onClick={(ev) => ev.stopPropagation()} />
+                            <Checkbox checked={marcado} onCheckedChange={() => toggleUsuario(u.login)} onClick={(ev) => ev.stopPropagation()} />
                             <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium truncate">{g.responsavel || g.login} · @{g.login}</div>
+                              <div className="text-sm font-medium truncate">@{u.login}</div>
                               <div className="text-xs text-muted-foreground truncate">
-                                {g.empresas.length} empresa(s) selecionada(s)
+                                {u.nome || "Usuário do Orbit"}
                                 {res ? ` · ${res.added ?? 0} criada(s)` : ""}
                               </div>
                             </div>
@@ -381,31 +394,10 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       })
                     )}
                   </div>
-
-                  {(gruposInvalidos.length > 0 || grupos.semLogin.length > 0) && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
-                        <XCircle className="h-3.5 w-3.5" /> Não enviáveis
-                      </div>
-                      {gruposInvalidos.map((g) => (
-                        <div key={g.login} className="flex items-start gap-2 text-xs text-destructive px-1">
-                          <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                          <div>
-                            {g.responsavel || g.login} → @{g.login} · {g.empresas.length} empresa(s) — não encontrado no Orbit
-                          </div>
-                        </div>
-                      ))}
-                      {grupos.semLogin.map((s) => (
-                        <div key={s.empresa} className="flex items-start gap-2 text-xs text-amber-500 px-1">
-                          <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                          <div>{s.empresa} — {s.responsavel} sem login no SIGA</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
+                </ScrollArea>
+              </>
             )}
+
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setEtapa(1)} className="gap-1.5">
