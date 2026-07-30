@@ -53,7 +53,8 @@ type AnexoRow = {
   uploaded_by: string | null;
   uploader_nome?: string | null;
   bucket: string;
-  origem_label: "Financeiro" | "Cadastro" | "Contrato";
+  origem_label: "Financeiro" | "Cadastro" | "Contrato" | "Cobrança Retroativa" | "Reajuste" | string;
+  sistema?: boolean;
 };
 
 
