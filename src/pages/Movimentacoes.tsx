@@ -90,7 +90,7 @@ export default function Movimentacoes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [somentePendentes, setSomentePendentes] = useState(false);
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
-  const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null } | null>(null);
+  const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null; mes: string | null; periodo: string | null } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
@@ -806,7 +806,7 @@ export default function Movimentacoes() {
                           onClick={(e) => {
                             const target = e.target as HTMLElement;
                             if (target.closest("button, a, input, [role='menuitem'], [role='checkbox']")) return;
-                            setAnexosMov({ id: m.id, nome: m.empresas?.nome ?? null });
+                            setAnexosMov({ id: m.id, nome: m.empresas?.nome ?? null, mes: m.mes_referencia ?? null, periodo: m.periodo ?? null });
                           }}
                           className={`cursor-pointer transition-colors ${!m.empresas ? "bg-destructive/5" : status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : prioAtiva ? "bg-red-500/5 priority-row hover:bg-red-500/10" : "hover:bg-accent/50"}`}
                         >
@@ -870,6 +870,8 @@ export default function Movimentacoes() {
       <AnexosMovimentacaoDialog
         movimentacaoId={anexosMov?.id ?? null}
         empresaNome={anexosMov?.nome}
+        mesReferencia={anexosMov?.mes}
+        periodo={anexosMov?.periodo}
         open={!!anexosMov}
         onOpenChange={(o) => !o && setAnexosMov(null)}
       />
