@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
 import { EnviarOrbitDialog } from "@/components/financeiro/EnviarOrbitDialog";
-import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2 } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2, Send } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import {
@@ -2775,6 +2775,12 @@ export default function Financeiro() {
           mes={mes}
           empresasMap={empresasMap as any}
           canManage={!!canManageFinanceiro}
+        />
+
+        <EnviarOrbitDialog
+          open={orbitOpen}
+          onOpenChange={setOrbitOpen}
+          empresas={filteredRows.map((r: any) => ({ id: r.id, nome: r.nome, responsavel: r.responsavel }))}
         />
 
         <RegrasEmpresariaisDialog
