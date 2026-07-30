@@ -2581,7 +2581,18 @@ export default function Financeiro() {
                         </button>
                       )}
                     </div>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent className="w-64">
+                        <ContextMenuItem
+                          onSelect={() => agruparPorStatus(r.status)}
+                          disabled={qtdMesmoStatus < 2}
+                        >
+                          Agrupar todos "{labelStatusFinanceiro(r.status)}" ({qtdMesmoStatus})
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
                   );
+
                 };
 
                 const renderChipGrupo = (g: ChipGrupo) => {
