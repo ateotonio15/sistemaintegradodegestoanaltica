@@ -2780,7 +2780,13 @@ export default function Financeiro() {
         <EnviarOrbitDialog
           open={orbitOpen}
           onOpenChange={setOrbitOpen}
-          empresas={filteredRows.map((r: any) => ({ id: r.id, nome: r.nome, responsavel: r.responsavel }))}
+          empresas={allRows.map((r: any) => ({
+            id: r.id,
+            nome: r.empresa_nome,
+            contrato: r.empresa_codigo,
+            responsavel: r.responsavel,
+            status: r.status,
+          }))}
         />
 
         <RegrasEmpresariaisDialog
