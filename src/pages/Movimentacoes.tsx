@@ -812,7 +812,7 @@ export default function Movimentacoes() {
                         >
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="underline decoration-dotted underline-offset-4">
+                              <span>
                                 {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
                               </span>
 
