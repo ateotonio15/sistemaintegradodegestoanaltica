@@ -104,7 +104,7 @@ export function fmtMoeda(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 }
 
-export function fmtPct(v: number, casas = 1): string {
+export function fmtPct(v: number, casas = 2): string {
   return `${(v * 100).toFixed(casas).replace(".", ",")}%`;
 }
 
