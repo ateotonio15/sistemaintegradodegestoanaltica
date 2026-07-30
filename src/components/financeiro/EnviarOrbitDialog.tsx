@@ -197,128 +197,161 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Enviar empresas para o Orbit</DialogTitle>
-          <DialogDescription>
-            {etapa === 1
-              ? "Etapa 1 de 2 — selecione as empresas/contratos que deseja enviar."
-              : "Etapa 2 de 2 — selecione os usuários validados no Orbit que receberão os projetos."}
-          </DialogDescription>
+      <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col gap-4 p-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-primary/10 text-primary p-2.5 shrink-0">
+              <Send className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="text-lg">Enviar empresas para o Orbit</DialogTitle>
+              <DialogDescription>
+                {etapa === 1
+                  ? "Selecione as empresas/contratos que deseja enviar."
+                  : "Selecione os usuários validados no Orbit que receberão os projetos."}
+              </DialogDescription>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-4">
+            {[1, 2].map((n) => (
+              <div key={n} className="flex items-center gap-2 flex-1">
+                <div
+                  className={cn(
+                    "h-6 w-6 rounded-full grid place-items-center text-[11px] font-semibold shrink-0 transition-colors",
+                    etapa >= n ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {n}
+                </div>
+                <span className={cn("text-xs", etapa === n ? "text-foreground font-medium" : "text-muted-foreground")}>
+                  {n === 1 ? "Empresas" : "Usuários"}
+                </span>
+                {n === 1 && <div className={cn("h-px flex-1 transition-colors", etapa > 1 ? "bg-primary" : "bg-border")} />}
+              </div>
+            ))}
+          </div>
         </DialogHeader>
 
         {etapa === 1 && (
           <>
-            <div className="relative">
-              <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-8" placeholder="Buscar empresa, contrato ou responsável..." value={busca} onChange={(e) => setBusca(e.target.value)} />
-            </div>
-
-            {statusDisponiveis.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                <Badge variant={statusSel.length === 0 ? "default" : "outline"} className="cursor-pointer" onClick={() => setStatusSel([])}>
-                  Todos ({unicas.length})
-                </Badge>
-                {statusDisponiveis.map((s) => {
-                  const n = unicas.filter((e) => e.status === s).length;
-                  const ativo = statusSel.includes(s);
-                  return (
-                    <Badge
-                      key={s}
-                      variant={ativo ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => setStatusSel((prev) => (ativo ? prev.filter((x) => x !== s) : [...prev, s]))}
-                    >
-                      {s} ({n})
-                    </Badge>
-                  );
-                })}
+            <div className="px-6 space-y-3">
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-9 h-10" placeholder="Buscar empresa, contrato ou responsável..." value={busca} onChange={(e) => setBusca(e.target.value)} />
               </div>
-            )}
 
-            {diasEmissaoDisponiveis.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 items-center">
-                <span className="text-xs text-muted-foreground mr-1">Dia de emissão:</span>
-                <Badge variant={diaEmissaoSel.length === 0 ? "default" : "outline"} className="cursor-pointer" onClick={() => setDiaEmissaoSel([])}>
-                  Todos
-                </Badge>
-                {diasEmissaoDisponiveis.map((d) => {
-                  const n = unicas.filter((e) => e.dia_emissao === d).length;
-                  const ativo = diaEmissaoSel.includes(d);
-                  return (
-                    <Badge
-                      key={d}
-                      variant={ativo ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => setDiaEmissaoSel((prev) => (ativo ? prev.filter((x) => x !== d) : [...prev, d]))}
-                    >
-                      {String(d).padStart(2, "0")} ({n})
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={todasMarcadas}
-                  onCheckedChange={(v) =>
-                    setSel((prev) => {
-                      const next = new Set(prev);
-                      lista.forEach((e) => (v ? next.add(keyOf(e)) : next.delete(keyOf(e))));
-                      return next;
-                    })
-                  }
-                />
-                <span className="text-muted-foreground">Selecionar todas ({lista.length})</span>
-              </label>
-              <Badge variant="secondary">{sel.size} selecionada(s)</Badge>
-            </div>
-
-            <ScrollArea className="h-[340px] rounded-md border">
-              {lista.length === 0 ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</div>
-              ) : (
-                <ul className="divide-y divide-border/60">
-                  {lista.map((e) => {
-                    const k = keyOf(e);
-                    const login = orbitUser(e.responsavel);
-                    const marcada = sel.has(k);
+              {statusDisponiveis.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground w-16 shrink-0">Status</span>
+                  <Badge variant={statusSel.length === 0 ? "default" : "outline"} className="cursor-pointer rounded-full font-normal" onClick={() => setStatusSel([])}>
+                    Todos ({unicas.length})
+                  </Badge>
+                  {statusDisponiveis.map((s) => {
+                    const n = unicas.filter((e) => e.status === s).length;
+                    const ativo = statusSel.includes(s);
                     return (
-                      <li
-                        key={k}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => toggle(k)}
-                        onKeyDown={(ev) => {
-                          if (ev.key === "Enter" || ev.key === " ") {
-                            ev.preventDefault();
-                            toggle(k);
-                          }
-                        }}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 cursor-pointer select-none hover:bg-muted/40",
-                          marcada && "bg-primary/10"
-                        )}
+                      <Badge
+                        key={s}
+                        variant={ativo ? "default" : "outline"}
+                        className="cursor-pointer rounded-full font-normal"
+                        onClick={() => setStatusSel((prev) => (ativo ? prev.filter((x) => x !== s) : [...prev, s]))}
                       >
-                        <Checkbox checked={marcada} onCheckedChange={() => toggle(k)} onClick={(ev) => ev.stopPropagation()} className="shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{e.nome}</div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            Contrato {e.contrato || "—"} · {e.responsavel || "Sem responsável"}
-                            {login ? ` · @${login}` : " · sem login"}
-                          </div>
-                        </div>
-                        {e.status && <Badge variant="outline" className="shrink-0 text-[10px]">{e.status}</Badge>}
-                      </li>
+                        {s} ({n})
+                      </Badge>
                     );
                   })}
-                </ul>
+                </div>
               )}
-            </ScrollArea>
 
-            <DialogFooter>
+              {diasEmissaoDisponiveis.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground w-16 shrink-0">Emissão</span>
+                  <Badge variant={diaEmissaoSel.length === 0 ? "default" : "outline"} className="cursor-pointer rounded-full font-normal" onClick={() => setDiaEmissaoSel([])}>
+                    Todos
+                  </Badge>
+                  {diasEmissaoDisponiveis.map((d) => {
+                    const n = unicas.filter((e) => e.dia_emissao === d).length;
+                    const ativo = diaEmissaoSel.includes(d);
+                    return (
+                      <Badge
+                        key={d}
+                        variant={ativo ? "default" : "outline"}
+                        className="cursor-pointer rounded-full font-normal tabular-nums"
+                        onClick={() => setDiaEmissaoSel((prev) => (ativo ? prev.filter((x) => x !== d) : [...prev, d]))}
+                      >
+                        {String(d).padStart(2, "0")} ({n})
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={todasMarcadas}
+                    onCheckedChange={(v) =>
+                      setSel((prev) => {
+                        const next = new Set(prev);
+                        lista.forEach((e) => (v ? next.add(keyOf(e)) : next.delete(keyOf(e))));
+                        return next;
+                      })
+                    }
+                  />
+                  <span className="text-muted-foreground">Selecionar todas ({lista.length})</span>
+                </label>
+                <Badge variant={sel.size ? "default" : "secondary"} className="rounded-full">{sel.size} selecionada(s)</Badge>
+              </div>
+            </div>
+
+            <div className="px-6 flex-1 min-h-0">
+              <ScrollArea className="h-[330px] rounded-lg border">
+                {lista.length === 0 ? (
+                  <div className="p-10 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</div>
+                ) : (
+                  <ul className="divide-y divide-border/60">
+                    {lista.map((e) => {
+                      const k = keyOf(e);
+                      const login = orbitUser(e.responsavel);
+                      const marcada = sel.has(k);
+                      return (
+                        <li
+                          key={k}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => toggle(k)}
+                          onKeyDown={(ev) => {
+                            if (ev.key === "Enter" || ev.key === " ") {
+                              ev.preventDefault();
+                              toggle(k);
+                            }
+                          }}
+                          className={cn(
+                            "group flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none transition-colors hover:bg-muted/50 border-l-2 border-l-transparent",
+                            marcada && "bg-primary/5 border-l-primary"
+                          )}
+                        >
+                          <Checkbox checked={marcada} onCheckedChange={() => toggle(k)} onClick={(ev) => ev.stopPropagation()} className="shrink-0" />
+                          <div className="h-8 w-8 shrink-0 rounded-md bg-muted grid place-items-center text-[11px] font-semibold text-muted-foreground">
+                            {e.nome.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{e.nome}</div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              Contrato {e.contrato || "—"} · {e.responsavel || "Sem responsável"}
+                              {login ? ` · @${login}` : " · sem login"}
+                            </div>
+                          </div>
+                          {e.status && <Badge variant="outline" className="shrink-0 text-[10px] rounded-full font-normal">{e.status}</Badge>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </ScrollArea>
+            </div>
+
+            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
               <Button onClick={irParaEtapa2} disabled={sel.size === 0} className="gap-1.5">
                 Continuar ({sel.size}) <ArrowRight className="h-4 w-4" />
@@ -326,6 +359,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
             </DialogFooter>
           </>
         )}
+
 
         {etapa === 2 && (
           <>
