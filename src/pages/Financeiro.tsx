@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
+import { EnviarOrbitDialog } from "@/components/financeiro/EnviarOrbitDialog";
 import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
@@ -1003,6 +1004,8 @@ export default function Financeiro() {
   }, [allRows]);
 
   // Tabela: aplica TODOS os filtros e expande 1 linha por pagador cadastrado
+  const [orbitOpen, setOrbitOpen] = useState(false);
+
   const filteredRows = useMemo(() => {
     const q = busca.trim().toLowerCase();
     const base = allRows.filter((r) => {
@@ -2319,6 +2322,16 @@ export default function Financeiro() {
             >
               <Building2 className="h-3.5 w-3.5" />
               Regras Empresariais
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setOrbitOpen(true)}
+              className="gap-1.5"
+              title="Enviar empresas do período para o Orbit"
+            >
+              <Send className="h-3.5 w-3.5" />
+              Orbit
             </Button>
             <Button
               variant="outline"
