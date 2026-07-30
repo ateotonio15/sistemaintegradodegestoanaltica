@@ -256,8 +256,21 @@ export function EvolucaoMensalSection() {
         />
       </div>
 
-      {/* Filtros */}
-      <Card className="p-3 flex flex-wrap items-center gap-2">
+      {/* Filtros (sticky) */}
+      <Card className="sticky top-2 z-30 p-3 flex flex-wrap items-center gap-2 shadow-md backdrop-blur supports-[backdrop-filter]:bg-card/85">
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white shrink-0"
+          style={{ backgroundColor: corVisao }}
+        >
+          <Building2 className="h-3.5 w-3.5" />
+          {nomeVisao}
+        </span>
+        {resumoContexto && (
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            Mostrando: <span className="font-medium text-foreground">{nomeVisao}</span> · {resumoContexto}
+          </span>
+        )}
+
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2">
