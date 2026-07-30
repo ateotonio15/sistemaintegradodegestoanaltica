@@ -257,6 +257,7 @@ export function EvolucaoMensalSection() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__grupo__">Grupo (consolidado)</SelectItem>
+            <SelectItem value="__todas__">Todas (visão completa)</SelectItem>
             {ativas.map((e) => (
               <SelectItem key={e.id} value={e.id}>
                 {e.nome}
