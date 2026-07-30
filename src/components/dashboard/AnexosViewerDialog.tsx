@@ -454,7 +454,11 @@ export function AnexosViewerDialog({
       }
       return merged.map((a) => ({
         ...a,
-        uploader_nome: a.uploaded_by ? nomeMap.get(a.uploaded_by) ?? null : null,
+        uploader_nome: a.sistema
+          ? null
+          : a.uploaded_by
+            ? nomeMap.get(a.uploaded_by) ?? null
+            : null,
       }));
     },
   });
