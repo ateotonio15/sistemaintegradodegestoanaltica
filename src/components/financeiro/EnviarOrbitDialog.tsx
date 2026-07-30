@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Send, Search, CheckCircle2, ArrowLeft, ArrowRight } from "lucide-react";
+import { Loader2, Send, Search, CheckCircle2, ArrowLeft, ArrowRight, SlidersHorizontal, ChevronDown, X } from "lucide-react";
+
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
