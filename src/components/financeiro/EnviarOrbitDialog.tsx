@@ -65,14 +65,21 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return Array.from(s).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [unicas]);
 
+  const diasEmissaoDisponiveis = useMemo(() => {
+    const d = new Set<number>();
+    unicas.forEach((e) => typeof e.dia_emissao === "number" && d.add(e.dia_emissao));
+    return Array.from(d).sort((a, b) => a - b);
+  }, [unicas]);
+
   const lista = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return unicas.filter((e) => {
       if (statusSel.length && !statusSel.includes(e.status ?? "")) return false;
+      if (diaEmissaoSel.length && !(typeof e.dia_emissao === "number" && diaEmissaoSel.includes(e.dia_emissao))) return false;
       if (!q) return true;
       return `${e.nome} ${e.contrato ?? ""} ${e.responsavel ?? ""}`.toLowerCase().includes(q);
     });
-  }, [unicas, busca, statusSel]);
+  }, [unicas, busca, statusSel, diaEmissaoSel]);
 
   const keyOf = (e: OrbitEmpresa) => `${e.contrato ?? ""}|${e.nome.toLowerCase()}`;
 
