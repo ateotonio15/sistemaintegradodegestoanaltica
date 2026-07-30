@@ -193,6 +193,35 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
           </div>
         )}
 
+        {diasEmissaoDisponiveis.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <span className="text-xs text-muted-foreground mr-1">Dia de emissão:</span>
+            <Badge
+              variant={diaEmissaoSel.length === 0 ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setDiaEmissaoSel([])}
+            >
+              Todos
+            </Badge>
+            {diasEmissaoDisponiveis.map((d) => {
+              const n = unicas.filter((e) => e.dia_emissao === d).length;
+              const ativo = diaEmissaoSel.includes(d);
+              return (
+                <Badge
+                  key={d}
+                  variant={ativo ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setDiaEmissaoSel((prev) => (ativo ? prev.filter((x) => x !== d) : [...prev, d]))
+                  }
+                >
+                  {String(d).padStart(2, "0")} ({n})
+                </Badge>
+              );
+            })}
+          </div>
+        )}
+
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox
