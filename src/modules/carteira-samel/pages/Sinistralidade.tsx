@@ -15,6 +15,7 @@ import { classificarSinistralidade, classificarRenovacao, scoreCompleto } from "
 import { calcularResumo, compararPeriodos, gerarTextos, LinhaPeriodo } from "../lib/analiseContrato";
 import { useHistoricoSinistralidade, useUpsertSinistralidade, useDeleteSinistralidade } from "../hooks/useRiscoData";
 import { useAuth } from "@/hooks/useAuth";
+import { EvolucaoMensalSection } from "../components/EvolucaoMensalSection";
 import { toast } from "sonner";
 
 const INDEXADORES = ["IPCA", "INPC", "IGPM", "IGP-DI", "IP-SAÚDE", "Contratual"];
