@@ -67,6 +67,24 @@ function slugify(s: string) {
     .replace(/^-|-$/g, "");
 }
 
+// Paleta por empresa (consistente entre chip e linhas do gráfico)
+const CHIP_GRUPO = "hsl(152 60% 40%)";
+const PALETA_EMPRESAS = [
+  "hsl(217 91% 60%)",
+  "hsl(38 92% 50%)",
+  "hsl(280 65% 60%)",
+  "hsl(0 72% 55%)",
+  "hsl(190 80% 45%)",
+  "hsl(45 90% 40%)",
+];
+
+function corEmpresa(nome: string) {
+  const s = slugify(nome);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return PALETA_EMPRESAS[h % PALETA_EMPRESAS.length];
+}
+
 export function EvolucaoMensalSection() {
   const { ativas } = useEmpresasCarteira();
   const { data: lancamentos = [], isLoading } = useEvolucaoMensal();
@@ -158,6 +176,45 @@ export function EvolucaoMensalSection() {
     sinistralidade: Number((s.sinistralidade * 100).toFixed(2)),
   }));
 
+  // Empresas presentes nos dados filtrados (para visão "Todas")
+  const empresasNoGrafico = useMemo(() => {
+    const map = new Map<string, string>();
+    linhasFiltradas.forEach((l) => map.set(l.empresaId, l.empresaNome));
+    return [...map.entries()].map(([id, nome]) => ({ id, nome }));
+  }, [linhasFiltradas]);
+
+  // Série multi-empresa: uma linha de sinistralidade por empresa
+  const chartDataTodas = useMemo(() => {
+    const periodos = [...new Set(linhasFiltradas.map((l) => l.periodo))].sort();
+    return periodos.map((p) => {
+      const row: any = { periodo: labelPeriodo(p) };
+      const cons = totaisPorPeriodo.get(p);
+      row.premioTotal = cons ? Number(cons.premioTotal.toFixed(2)) : 0;
+      empresasNoGrafico.forEach((e) => {
+        const l = linhasFiltradas.find((x) => x.periodo === p && x.empresaId === e.id);
+        row[`sin_${e.id}`] = l ? Number((l.sinistralidade * 100).toFixed(2)) : null;
+      });
+      return row;
+    });
+  }, [linhasFiltradas, empresasNoGrafico, totaisPorPeriodo]);
+
+  const nomeVisao =
+    visao === "__grupo__"
+      ? "Grupo (consolidado)"
+      : visao === "__todas__"
+      ? "Todas as empresas"
+      : ativas.find((e) => e.id === visao)?.nome || "—";
+
+  const corVisao = visao === "__grupo__" ? CHIP_GRUPO : corEmpresa(nomeVisao);
+
+  const resumoContexto = useMemo(() => {
+    if (!atual) return null;
+    return anterior
+      ? `${labelPeriodo(atual.periodo)} vs ${labelPeriodo(anterior.periodo)}`
+      : labelPeriodo(atual.periodo);
+  }, [atual, anterior]);
+
+
 
   return (
     <div className="space-y-4">
@@ -199,8 +256,21 @@ export function EvolucaoMensalSection() {
         />
       </div>
 
-      {/* Filtros */}
-      <Card className="p-3 flex flex-wrap items-center gap-2">
+      {/* Filtros (sticky) */}
+      <Card className="sticky top-2 z-30 p-3 flex flex-wrap items-center gap-2 shadow-md backdrop-blur supports-[backdrop-filter]:bg-card/85">
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white shrink-0"
+          style={{ backgroundColor: corVisao }}
+        >
+          <Building2 className="h-3.5 w-3.5" />
+          {nomeVisao}
+        </span>
+        {resumoContexto && (
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            Mostrando: <span className="font-medium text-foreground">{nomeVisao}</span> · {resumoContexto}
+          </span>
+        )}
+
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2">
@@ -285,20 +355,36 @@ export function EvolucaoMensalSection() {
       {/* Gráfico */}
       <Card className="p-4">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-          <h3 className="font-semibold text-sm">
-            Evolução mensal —{" "}
-            {visao === "__grupo__"
-              ? "Grupo"
-              : visao === "__todas__"
-              ? "Todas as empresas (consolidado)"
-              : ativas.find((e) => e.id === visao)?.nome}
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <span className="text-muted-foreground">Evolução mensal —</span>
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-bold"
+              style={{
+                color: corVisao,
+                backgroundColor: `color-mix(in srgb, ${corVisao} 15%, transparent)`,
+              }}
+            >
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: corVisao }} />
+              {nomeVisao}
+            </span>
           </h3>
           <span className="text-xs text-muted-foreground">Linha tracejada = Break Even 70%</span>
         </div>
         <div className="overflow-x-auto">
-          <div style={{ minWidth: Math.max(560, chartData.length * 90) }} className="h-[320px]">
+          <div
+            style={{
+              minWidth: Math.max(
+                560,
+                (mostrarTotais ? chartDataTodas.length : chartData.length) * 90,
+              ),
+            }}
+            className="h-[320px]"
+          >
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+              <ComposedChart
+                data={mostrarTotais ? chartDataTodas : chartData}
+                margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
                 <XAxis dataKey="periodo" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis
@@ -322,7 +408,7 @@ export function EvolucaoMensalSection() {
                     fontSize: 12,
                   }}
                   formatter={(value: any, name: any) =>
-                    name === "Sinistralidade %"
+                    String(name).includes("%")
                       ? [`${Number(value).toFixed(2).replace(".", ",")}%`, name]
                       : [fmtMoeda(Number(value)), name]
                   }
@@ -342,31 +428,51 @@ export function EvolucaoMensalSection() {
                   name="Prêmio Total"
                   stroke="hsl(var(--primary))"
                   strokeWidth={2}
+                  strokeDasharray={mostrarTotais ? "6 4" : undefined}
                   dot={{ r: 3 }}
                 />
-                <Line
-                  yAxisId="v"
-                  type="monotone"
-                  dataKey="sinistro"
-                  name="Sinistro"
-                  stroke="hsl(var(--warning, 38 92% 50%))"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
-                <Line
-                  yAxisId="p"
-                  type="monotone"
-                  dataKey="sinistralidade"
-                  name="Sinistralidade %"
-                  stroke="hsl(var(--destructive))"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
+                {mostrarTotais ? (
+                  empresasNoGrafico.map((e) => (
+                    <Line
+                      key={e.id}
+                      yAxisId="p"
+                      type="monotone"
+                      connectNulls
+                      dataKey={`sin_${e.id}`}
+                      name={`${e.nome} — Sinistralidade %`}
+                      stroke={corEmpresa(e.nome)}
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  ))
+                ) : (
+                  <>
+                    <Line
+                      yAxisId="v"
+                      type="monotone"
+                      dataKey="sinistro"
+                      name="Sinistro"
+                      stroke="hsl(var(--warning, 38 92% 50%))"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                    <Line
+                      yAxisId="p"
+                      type="monotone"
+                      dataKey="sinistralidade"
+                      name="Sinistralidade %"
+                      stroke="hsl(var(--destructive))"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  </>
+                )}
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
       </Card>
+
 
       {/* Tabela */}
       <Card className="overflow-hidden">
