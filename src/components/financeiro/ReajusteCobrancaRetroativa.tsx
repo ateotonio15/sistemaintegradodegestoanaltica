@@ -627,7 +627,7 @@ export function ReajusteCobrancaRetroativa() {
             </DialogHeader>
           </div>
 
-          <div className="px-6 py-5 space-y-5">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5">
             {/* Seção Contrato */}
             <div className="space-y-2">
               <Label className="text-xs font-medium flex items-center gap-1.5">
