@@ -286,7 +286,12 @@ export function EvolucaoMensalSection() {
       <Card className="p-4">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
           <h3 className="font-semibold text-sm">
-            Evolução mensal — {visao === "__grupo__" ? "Grupo" : ativas.find((e) => e.id === visao)?.nome}
+            Evolução mensal —{" "}
+            {visao === "__grupo__"
+              ? "Grupo"
+              : visao === "__todas__"
+              ? "Todas as empresas (consolidado)"
+              : ativas.find((e) => e.id === visao)?.nome}
           </h3>
           <span className="text-xs text-muted-foreground">Linha tracejada = Break Even 70%</span>
         </div>
