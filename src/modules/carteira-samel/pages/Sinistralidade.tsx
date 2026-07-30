@@ -15,11 +15,29 @@ import { classificarSinistralidade, classificarRenovacao, scoreCompleto } from "
 import { calcularResumo, compararPeriodos, gerarTextos, LinhaPeriodo } from "../lib/analiseContrato";
 import { useHistoricoSinistralidade, useUpsertSinistralidade, useDeleteSinistralidade } from "../hooks/useRiscoData";
 import { useAuth } from "@/hooks/useAuth";
+import { EvolucaoMensalSection } from "../components/EvolucaoMensalSection";
 import { toast } from "sonner";
 
 const INDEXADORES = ["IPCA", "INPC", "IGPM", "IGP-DI", "IP-SAÚDE", "Contratual"];
 
 export default function Sinistralidade() {
+  return (
+    <Tabs defaultValue="historico" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="historico">Histórico & Análise</TabsTrigger>
+        <TabsTrigger value="evolucao">Evolução Mensal</TabsTrigger>
+      </TabsList>
+      <TabsContent value="historico">
+        <SinistralidadeHistorico />
+      </TabsContent>
+      <TabsContent value="evolucao">
+        <EvolucaoMensalSection />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function SinistralidadeHistorico() {
   const { ativas } = useEmpresasCarteira();
   const { user } = useAuth();
   const [busca, setBusca] = useState("");
@@ -56,6 +74,7 @@ export default function Sinistralidade() {
   const empresaAtiva = ativas.find((e) => e.id === empresaAberta) || null;
 
   return (
+
     <div className="space-y-4">
       <Card className="p-3 flex flex-wrap gap-2 items-center">
         <Input placeholder="Buscar..." value={busca} onChange={(e) => setBusca(e.target.value)} className="max-w-xs" />

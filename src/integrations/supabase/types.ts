@@ -4068,6 +4068,63 @@ export type Database = {
         }
         Relationships: []
       }
+      sinistralidade_mensal: {
+        Row: {
+          aporte_financeiro: number | null
+          be_70: number | null
+          created_at: string
+          created_by: string | null
+          distorcao: number | null
+          empresa_id: string
+          empresa_nome: string | null
+          id: string
+          observacao: string | null
+          periodo: string
+          premio_continuidade: number
+          premio_empresa: number
+          premio_total: number | null
+          sinistralidade: number | null
+          sinistro: number
+          updated_at: string
+        }
+        Insert: {
+          aporte_financeiro?: number | null
+          be_70?: number | null
+          created_at?: string
+          created_by?: string | null
+          distorcao?: number | null
+          empresa_id: string
+          empresa_nome?: string | null
+          id?: string
+          observacao?: string | null
+          periodo: string
+          premio_continuidade?: number
+          premio_empresa?: number
+          premio_total?: number | null
+          sinistralidade?: number | null
+          sinistro?: number
+          updated_at?: string
+        }
+        Update: {
+          aporte_financeiro?: number | null
+          be_70?: number | null
+          created_at?: string
+          created_by?: string | null
+          distorcao?: number | null
+          empresa_id?: string
+          empresa_nome?: string | null
+          id?: string
+          observacao?: string | null
+          periodo?: string
+          premio_continuidade?: number
+          premio_empresa?: number
+          premio_total?: number | null
+          sinistralidade?: number | null
+          sinistro?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       triagens: {
         Row: {
           acao_id: string
