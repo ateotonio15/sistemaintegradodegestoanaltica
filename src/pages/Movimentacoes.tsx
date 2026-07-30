@@ -31,6 +31,7 @@ import {
 import { formatDateBR } from "@/lib/date-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { AnexosHoverCard } from "@/components/movimentacoes/AnexosHoverCard";
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 
