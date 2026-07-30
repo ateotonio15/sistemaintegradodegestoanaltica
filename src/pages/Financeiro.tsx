@@ -2303,8 +2303,8 @@ export default function Financeiro() {
             </div>
           </div>
 
+          <div className="relative flex items-center gap-2 flex-wrap">
 
-          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="default"
               size="sm"
