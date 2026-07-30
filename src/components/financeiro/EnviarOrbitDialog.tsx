@@ -16,6 +16,7 @@ export type OrbitEmpresa = {
   contrato?: string | null;
   responsavel?: string | null;
   status?: string | null;
+  dia_emissao?: number | null;
 };
 
 interface Props {
@@ -27,6 +28,7 @@ interface Props {
 export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [busca, setBusca] = useState("");
   const [statusSel, setStatusSel] = useState<string[]>([]);
+  const [diaEmissaoSel, setDiaEmissaoSel] = useState<number[]>([]);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [enviando, setEnviando] = useState(false);
   const [perfis, setPerfis] = useState<Array<{ display_name: string | null; username: string | null }>>([]);
@@ -37,6 +39,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setSel(new Set());
     setBusca("");
     setStatusSel([]);
+    setDiaEmissaoSel([]);
     setResultados([]);
     supabase
       .from("profiles")
@@ -62,14 +65,21 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return Array.from(s).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [unicas]);
 
+  const diasEmissaoDisponiveis = useMemo(() => {
+    const d = new Set<number>();
+    unicas.forEach((e) => typeof e.dia_emissao === "number" && d.add(e.dia_emissao));
+    return Array.from(d).sort((a, b) => a - b);
+  }, [unicas]);
+
   const lista = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return unicas.filter((e) => {
       if (statusSel.length && !statusSel.includes(e.status ?? "")) return false;
+      if (diaEmissaoSel.length && !(typeof e.dia_emissao === "number" && diaEmissaoSel.includes(e.dia_emissao))) return false;
       if (!q) return true;
       return `${e.nome} ${e.contrato ?? ""} ${e.responsavel ?? ""}`.toLowerCase().includes(q);
     });
-  }, [unicas, busca, statusSel]);
+  }, [unicas, busca, statusSel, diaEmissaoSel]);
 
   const keyOf = (e: OrbitEmpresa) => `${e.contrato ?? ""}|${e.nome.toLowerCase()}`;
 
@@ -148,7 +158,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
         <DialogHeader>
           <DialogTitle>Enviar empresas para o Orbit</DialogTitle>
           <DialogDescription>
-            Filtre por status, selecione empresas/contratos e envie. O vínculo com o Orbit usa o login (username) do SIGA do responsável.
+            Filtre por status e dia de emissão, selecione empresas/contratos e envie. O vínculo com o Orbit usa o login (username) do SIGA do responsável.
           </DialogDescription>
         </DialogHeader>
 
@@ -177,6 +187,35 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                   onClick={() => setStatusSel((prev) => (ativo ? prev.filter((x) => x !== s) : [...prev, s]))}
                 >
                   {s} ({n})
+                </Badge>
+              );
+            })}
+          </div>
+        )}
+
+        {diasEmissaoDisponiveis.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <span className="text-xs text-muted-foreground mr-1">Dia de emissão:</span>
+            <Badge
+              variant={diaEmissaoSel.length === 0 ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setDiaEmissaoSel([])}
+            >
+              Todos
+            </Badge>
+            {diasEmissaoDisponiveis.map((d) => {
+              const n = unicas.filter((e) => e.dia_emissao === d).length;
+              const ativo = diaEmissaoSel.includes(d);
+              return (
+                <Badge
+                  key={d}
+                  variant={ativo ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setDiaEmissaoSel((prev) => (ativo ? prev.filter((x) => x !== d) : [...prev, d]))
+                  }
+                >
+                  {String(d).padStart(2, "0")} ({n})
                 </Badge>
               );
             })}

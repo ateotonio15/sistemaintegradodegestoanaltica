@@ -2786,6 +2786,7 @@ export default function Financeiro() {
             contrato: r.empresa_codigo,
             responsavel: r.responsavel,
             status: r.status,
+            dia_emissao: r.dia_emissao,
           }))}
         />
 
