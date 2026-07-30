@@ -355,20 +355,36 @@ export function EvolucaoMensalSection() {
       {/* Gráfico */}
       <Card className="p-4">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-          <h3 className="font-semibold text-sm">
-            Evolução mensal —{" "}
-            {visao === "__grupo__"
-              ? "Grupo"
-              : visao === "__todas__"
-              ? "Todas as empresas (consolidado)"
-              : ativas.find((e) => e.id === visao)?.nome}
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <span className="text-muted-foreground">Evolução mensal —</span>
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-bold"
+              style={{
+                color: corVisao,
+                backgroundColor: `color-mix(in srgb, ${corVisao} 15%, transparent)`,
+              }}
+            >
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: corVisao }} />
+              {nomeVisao}
+            </span>
           </h3>
           <span className="text-xs text-muted-foreground">Linha tracejada = Break Even 70%</span>
         </div>
         <div className="overflow-x-auto">
-          <div style={{ minWidth: Math.max(560, chartData.length * 90) }} className="h-[320px]">
+          <div
+            style={{
+              minWidth: Math.max(
+                560,
+                (mostrarTotais ? chartDataTodas.length : chartData.length) * 90,
+              ),
+            }}
+            className="h-[320px]"
+          >
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+              <ComposedChart
+                data={mostrarTotais ? chartDataTodas : chartData}
+                margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
                 <XAxis dataKey="periodo" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis
@@ -392,7 +408,7 @@ export function EvolucaoMensalSection() {
                     fontSize: 12,
                   }}
                   formatter={(value: any, name: any) =>
-                    name === "Sinistralidade %"
+                    String(name).includes("%")
                       ? [`${Number(value).toFixed(2).replace(".", ",")}%`, name]
                       : [fmtMoeda(Number(value)), name]
                   }
@@ -412,31 +428,51 @@ export function EvolucaoMensalSection() {
                   name="Prêmio Total"
                   stroke="hsl(var(--primary))"
                   strokeWidth={2}
+                  strokeDasharray={mostrarTotais ? "6 4" : undefined}
                   dot={{ r: 3 }}
                 />
-                <Line
-                  yAxisId="v"
-                  type="monotone"
-                  dataKey="sinistro"
-                  name="Sinistro"
-                  stroke="hsl(var(--warning, 38 92% 50%))"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
-                <Line
-                  yAxisId="p"
-                  type="monotone"
-                  dataKey="sinistralidade"
-                  name="Sinistralidade %"
-                  stroke="hsl(var(--destructive))"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
+                {mostrarTotais ? (
+                  empresasNoGrafico.map((e) => (
+                    <Line
+                      key={e.id}
+                      yAxisId="p"
+                      type="monotone"
+                      connectNulls
+                      dataKey={`sin_${e.id}`}
+                      name={`${e.nome} — Sinistralidade %`}
+                      stroke={corEmpresa(e.nome)}
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  ))
+                ) : (
+                  <>
+                    <Line
+                      yAxisId="v"
+                      type="monotone"
+                      dataKey="sinistro"
+                      name="Sinistro"
+                      stroke="hsl(var(--warning, 38 92% 50%))"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                    <Line
+                      yAxisId="p"
+                      type="monotone"
+                      dataKey="sinistralidade"
+                      name="Sinistralidade %"
+                      stroke="hsl(var(--destructive))"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  </>
+                )}
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
       </Card>
+
 
       {/* Tabela */}
       <Card className="overflow-hidden">
