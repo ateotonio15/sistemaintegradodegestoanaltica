@@ -2466,6 +2466,41 @@ export default function Financeiro() {
                   }
                 };
 
+                const agruparPorStatus = async (status: string) => {
+                  const ids = faturandoRows
+                    .filter((x) => x.status === status)
+                    .map((x) => x.empresa_id);
+                  if (ids.length < 2) {
+                    toast.info("É necessário ao menos 2 empresas com este status.");
+                    return;
+                  }
+                  // remove os ids de grupos existentes
+                  for (const g of chipGrupos) {
+                    const restante = g.empresaIds.filter((id) => !ids.includes(id));
+                    if (restante.length === g.empresaIds.length) continue;
+                    if (restante.length < 2) {
+                      await supabase.from("financeiro_chip_grupos" as any).delete().eq("id", g.id);
+                    } else {
+                      await supabase
+                        .from("financeiro_chip_grupos" as any)
+                        .update({ empresa_ids: restante })
+                        .eq("id", g.id);
+                    }
+                  }
+                  const { data, error } = await supabase
+                    .from("financeiro_chip_grupos" as any)
+                    .insert({ competencia: mes, empresa_ids: ids, created_by: user?.id ?? null })
+                    .select("id")
+                    .single();
+                  if (error) {
+                    toast.error("Não foi possível agrupar: " + error.message);
+                    return;
+                  }
+                  if (data) setGrupoExpandidoId((data as any).id);
+                  invalidateGrupos();
+                  toast.success(`${ids.length} chips agrupados (${labelStatusFinanceiro(status as any)}).`);
+                };
+
                 const renderChipEmpresa = (r: FinanceiroRow, opts?: { dentroDeGrupo?: boolean }) => {
                   const ativo = filtroAcompanhamento === r.empresa_id;
                   const isDragOver = dragOverChipId === r.empresa_id;
