@@ -39,6 +39,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setSel(new Set());
     setBusca("");
     setStatusSel([]);
+    setDiaEmissaoSel([]);
     setResultados([]);
     supabase
       .from("profiles")
