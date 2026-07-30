@@ -668,7 +668,10 @@ export default function Financeiro() {
         return true;
       });
 
-      const temRetroativo = anexosAll.some((a: any) => a.origem === "retroativo");
+      const temRetroativo =
+        anexosAll.some((a: any) => a.origem === "retroativo") ||
+        retroativasInfo.porMov.has(f.id) ||
+        retroativasInfo.porEmpresa.has(f.empresa_id);
       return {
         ...f,
         empresa_nome: emp?.nome || "—",
