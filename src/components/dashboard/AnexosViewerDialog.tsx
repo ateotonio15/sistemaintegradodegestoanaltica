@@ -53,7 +53,8 @@ type AnexoRow = {
   uploaded_by: string | null;
   uploader_nome?: string | null;
   bucket: string;
-  origem_label: "Financeiro" | "Cadastro" | "Contrato";
+  origem_label: "Financeiro" | "Cadastro" | "Contrato" | "Cobrança Retroativa" | "Reajuste" | string;
+  sistema?: boolean;
 };
 
 
@@ -320,7 +321,7 @@ export function AnexosViewerDialog({
         movFinIds.length
           ? supabase
               .from("anexos_financeiro")
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, origem")
               .in("financeiro_movimentacao_id", movFinIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
@@ -355,11 +356,45 @@ export function AnexosViewerDialog({
       if (anxOpRes.error) throw anxOpRes.error;
       if ((anxImplRes as any).error) throw (anxImplRes as any).error;
 
+      // 4) Anexos de Reajuste / Cobrança Retroativa da mesma competência
+      // (podem estar vinculados a outra linha da empresa). São documentos do
+      // sistema: não contam como envio de usuário e não alteram status.
+      const { data: movsCompetencia } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("id")
+        .eq("empresa_id", empresaId!)
+        .eq("mes_referencia", mesReferencia);
+      const movCompIds = ((movsCompetencia as any[]) ?? []).map((m) => m.id);
+      const { data: anxEspeciaisRaw } = movCompIds.length
+        ? await supabase
+            .from("anexos_financeiro")
+            .select("id, nome_arquivo, storage_path, created_at, uploaded_by, origem")
+            .in("financeiro_movimentacao_id", movCompIds)
+            .in("origem", ["retroativo", "reajuste"])
+            .order("created_at", { ascending: false })
+        : { data: [] as any[] };
+
+      const rotuloEspecial = (origem?: string | null) =>
+        (origem || "").toLowerCase() === "reajuste" ? "Reajuste" : "Cobrança Retroativa";
+      const ehEspecial = (o?: string | null) =>
+        ["retroativo", "reajuste"].includes((o || "").toLowerCase());
+
       const fin: AnexoRow[] = (anxFinRes.data ?? []).map((a: any) => ({
         ...a,
         bucket: BUCKET_FINANCEIRO,
-        origem_label: "Financeiro" as const,
+        origem_label: ehEspecial(a.origem) ? rotuloEspecial(a.origem) : ("Financeiro" as const),
+        sistema: ehEspecial(a.origem),
       }));
+      const finPaths = new Set(fin.map((a) => a.storage_path));
+      const especiais: AnexoRow[] = ((anxEspeciaisRaw as any[]) ?? [])
+        .filter((a) => !finPaths.has(a.storage_path))
+        .map((a: any) => ({
+          ...a,
+          bucket: BUCKET_FINANCEIRO,
+          origem_label: rotuloEspecial(a.origem),
+          sistema: true,
+        }));
+      fin.push(...especiais);
       const op: AnexoRow[] = (anxOpRes.data ?? []).map((a: any) => ({
         ...a,
         bucket: BUCKET_OPERACIONAL,
@@ -419,7 +454,11 @@ export function AnexosViewerDialog({
       }
       return merged.map((a) => ({
         ...a,
-        uploader_nome: a.uploaded_by ? nomeMap.get(a.uploaded_by) ?? null : null,
+        uploader_nome: a.sistema
+          ? null
+          : a.uploaded_by
+            ? nomeMap.get(a.uploaded_by) ?? null
+            : null,
       }));
     },
   });
@@ -532,6 +571,7 @@ export function AnexosViewerDialog({
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {(() => {
+                        if (a.sistema) return `Documento de ${a.origem_label}`;
                         const n = (a.nome_arquivo || "").toLowerCase();
                         if (/\.(xlsx|xlsm|xls|csv)$/.test(n)) return "Excel do faturamento";
                         if (/boleto/.test(n)) return "Boleto";
@@ -541,7 +581,7 @@ export function AnexosViewerDialog({
                       })()}
                       {` · ${formatDateTime(a.created_at)}`}
                       {a.uploader_nome ? ` · Anexado por ${a.uploader_nome}` : ""}
-                      {` · ${a.origem_label}`}
+                      {a.sistema ? " · Não altera o status" : ` · ${a.origem_label}`}
                     </p>
                   </div>
                   <Button
