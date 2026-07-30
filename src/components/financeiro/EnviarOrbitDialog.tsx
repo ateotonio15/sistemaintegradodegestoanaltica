@@ -235,58 +235,125 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
         {etapa === 1 && (
           <>
             <div className="px-6 space-y-3">
-              <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input className="pl-9 h-10" placeholder="Buscar empresa, contrato ou responsável..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9 h-10 rounded-xl bg-muted/40 border-transparent focus-visible:bg-background focus-visible:border-input"
+                    placeholder="Buscar empresa, contrato ou responsável..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant={filtrosAtivos > 0 ? "default" : "outline"}
+                  className="h-10 rounded-xl gap-2"
+                  onClick={() => setFiltrosAbertos((v) => !v)}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filtros
+                  {filtrosAtivos > 0 && (
+                    <span className="ml-0.5 rounded-full bg-background/25 px-1.5 text-[11px] font-semibold tabular-nums">
+                      {filtrosAtivos}
+                    </span>
+                  )}
+                  <ChevronDown className={cn("h-4 w-4 transition-transform", filtrosAbertos && "rotate-180")} />
+                </Button>
               </div>
 
-              {statusDisponiveis.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground w-16 shrink-0">Status</span>
-                  <Badge variant={statusSel.length === 0 ? "default" : "outline"} className="cursor-pointer rounded-full font-normal" onClick={() => setStatusSel([])}>
-                    Todos ({unicas.length})
-                  </Badge>
-                  {statusDisponiveis.map((s) => {
-                    const n = unicas.filter((e) => e.status === s).length;
-                    const ativo = statusSel.includes(s);
-                    return (
-                      <Badge
-                        key={s}
-                        variant={ativo ? "default" : "outline"}
-                        className="cursor-pointer rounded-full font-normal"
-                        onClick={() => setStatusSel((prev) => (ativo ? prev.filter((x) => x !== s) : [...prev, s]))}
-                      >
-                        {s} ({n})
-                      </Badge>
-                    );
-                  })}
+              {filtrosAtivos > 0 && !filtrosAbertos && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {statusSel.map((s) => (
+                    <Badge key={s} variant="secondary" className="rounded-full gap-1 font-normal">
+                      {s}
+                      <X className="h-3 w-3 cursor-pointer opacity-70 hover:opacity-100" onClick={() => setStatusSel((p) => p.filter((x) => x !== s))} />
+                    </Badge>
+                  ))}
+                  {diaEmissaoSel.map((d) => (
+                    <Badge key={d} variant="secondary" className="rounded-full gap-1 font-normal tabular-nums">
+                      Dia {String(d).padStart(2, "0")}
+                      <X className="h-3 w-3 cursor-pointer opacity-70 hover:opacity-100" onClick={() => setDiaEmissaoSel((p) => p.filter((x) => x !== d))} />
+                    </Badge>
+                  ))}
+                  <button type="button" className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline" onClick={limparFiltros}>
+                    Limpar
+                  </button>
                 </div>
               )}
 
-              {diasEmissaoDisponiveis.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground w-16 shrink-0">Emissão</span>
-                  <Badge variant={diaEmissaoSel.length === 0 ? "default" : "outline"} className="cursor-pointer rounded-full font-normal" onClick={() => setDiaEmissaoSel([])}>
-                    Todos
-                  </Badge>
-                  {diasEmissaoDisponiveis.map((d) => {
-                    const n = unicas.filter((e) => e.dia_emissao === d).length;
-                    const ativo = diaEmissaoSel.includes(d);
-                    return (
-                      <Badge
-                        key={d}
-                        variant={ativo ? "default" : "outline"}
-                        className="cursor-pointer rounded-full font-normal tabular-nums"
-                        onClick={() => setDiaEmissaoSel((prev) => (ativo ? prev.filter((x) => x !== d) : [...prev, d]))}
-                      >
-                        {String(d).padStart(2, "0")} ({n})
-                      </Badge>
-                    );
-                  })}
-                </div>
-              )}
+              <Collapsible open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
+                <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
+                  <div className="rounded-xl border bg-muted/20 p-3 space-y-3">
+                    {statusDisponiveis.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</span>
+                          {statusSel.length > 0 && (
+                            <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setStatusSel([])}>
+                              limpar
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {statusDisponiveis.map((s) => {
+                            const n = unicas.filter((e) => e.status === s).length;
+                            const ativo = statusSel.includes(s);
+                            return (
+                              <Badge
+                                key={s}
+                                variant={ativo ? "default" : "outline"}
+                                className="cursor-pointer rounded-full font-normal transition-colors"
+                                onClick={() => setStatusSel((prev) => (ativo ? prev.filter((x) => x !== s) : [...prev, s]))}
+                              >
+                                {s} ({n})
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
-              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                    {diasEmissaoDisponiveis.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Dia de emissão</span>
+                          {diaEmissaoSel.length > 0 && (
+                            <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setDiaEmissaoSel([])}>
+                              limpar
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {diasEmissaoDisponiveis.map((d) => {
+                            const n = unicas.filter((e) => e.dia_emissao === d).length;
+                            const ativo = diaEmissaoSel.includes(d);
+                            return (
+                              <Badge
+                                key={d}
+                                variant={ativo ? "default" : "outline"}
+                                className="cursor-pointer rounded-full font-normal tabular-nums transition-colors"
+                                onClick={() => setDiaEmissaoSel((prev) => (ativo ? prev.filter((x) => x !== d) : [...prev, d]))}
+                              >
+                                {String(d).padStart(2, "0")} ({n})
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-1 border-t">
+                      <span className="text-xs text-muted-foreground">{lista.length} resultado(s)</span>
+                      <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={limparFiltros} disabled={filtrosAtivos === 0}>
+                        Limpar filtros
+                      </Button>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-3 py-2 text-sm">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox
                     checked={todasMarcadas}
@@ -303,6 +370,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                 <Badge variant={sel.size ? "default" : "secondary"} className="rounded-full">{sel.size} selecionada(s)</Badge>
               </div>
             </div>
+
 
             <div className="px-6 flex-1 min-h-0">
               <ScrollArea className="h-[330px] rounded-lg border">
