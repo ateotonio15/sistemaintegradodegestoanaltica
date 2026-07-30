@@ -321,7 +321,7 @@ export function AnexosViewerDialog({
         movFinIds.length
           ? supabase
               .from("anexos_financeiro")
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
+              .select("id, nome_arquivo, storage_path, created_at, uploaded_by, origem")
               .in("financeiro_movimentacao_id", movFinIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
