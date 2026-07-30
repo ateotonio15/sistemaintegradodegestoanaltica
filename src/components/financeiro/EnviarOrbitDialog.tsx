@@ -110,32 +110,21 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const todasMarcadas = lista.length > 0 && lista.every((e) => sel.has(keyOf(e)));
 
   const selecionadas = useMemo(() => unicas.filter((e) => sel.has(keyOf(e))), [unicas, sel]);
+  const empresasSelecionadasNomes = useMemo(
+    () => Array.from(new Set(selecionadas.map((e) => e.nome))),
+    [selecionadas]
+  );
 
-  // Agrupamento por login das empresas selecionadas
-  const grupos = useMemo(() => {
-    const map = new Map<string, { login: string; responsavel: string; empresas: string[] }>();
-    const semLogin: Array<{ empresa: string; responsavel: string }> = [];
-    selecionadas.forEach((e) => {
-      const login = orbitUser(e.responsavel);
-      if (!login) {
-        semLogin.push({ empresa: e.nome, responsavel: (e.responsavel ?? "").trim() || "Sem responsável" });
-        return;
-      }
-      const cur = map.get(login.toLowerCase()) ?? { login, responsavel: (e.responsavel ?? "").trim(), empresas: [] };
-      if (!cur.empresas.includes(e.nome)) cur.empresas.push(e.nome);
-      map.set(login.toLowerCase(), cur);
-    });
-    return { grupos: Array.from(map.values()).sort((a, b) => a.login.localeCompare(b.login)), semLogin };
-  }, [selecionadas, perfis]);
-
-  // ETAPA 2 — valida no Orbit apenas os logins das empresas selecionadas
+  // ETAPA 2 — descobre quais usuários do SIGA estão ativos no Orbit
   async function irParaEtapa2() {
     if (sel.size === 0) {
       toast.error("Selecione ao menos uma empresa.");
       return;
     }
     setEtapa(2);
-    const logins = grupos.grupos.map((g) => g.login);
+    const logins = Array.from(
+      new Set(perfis.map((p) => (p.username ?? "").trim()).filter(Boolean))
+    );
     if (!logins.length) {
       setLoginsValidos(new Set());
       setValidado(true);
@@ -149,9 +138,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
       });
       if (error) throw error;
       const results = ((data as any)?.results ?? []) as Array<{ username: string; resolved: boolean }>;
-      const validos = new Set(results.filter((r) => r.resolved).map((r) => r.username.toLowerCase()));
-      setLoginsValidos(validos);
-      setUsuariosSel(new Set(validos));
+      setLoginsValidos(new Set(results.filter((r) => r.resolved).map((r) => r.username.toLowerCase())));
+      setUsuariosSel(new Set());
     } catch (err: any) {
       toast.error("Não foi possível validar os usuários no Orbit", { description: err.message ?? String(err) });
       setLoginsValidos(new Set());
@@ -161,14 +149,13 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     }
   }
 
-  const gruposValidos = useMemo(
-    () => grupos.grupos.filter((g) => loginsValidos.has(g.login.toLowerCase())),
-    [grupos, loginsValidos]
-  );
-  const gruposInvalidos = useMemo(
-    () => grupos.grupos.filter((g) => !loginsValidos.has(g.login.toLowerCase())),
-    [grupos, loginsValidos]
-  );
+  // Usuários ativos no Orbit (login do SIGA que existe no Orbit)
+  const usuariosOrbit = useMemo(() => {
+    return perfis
+      .map((p) => ({ login: (p.username ?? "").trim(), nome: (p.display_name ?? "").trim() }))
+      .filter((u) => u.login && loginsValidos.has(u.login.toLowerCase()))
+      .sort((a, b) => a.login.localeCompare(b.login, "pt-BR"));
+  }, [perfis, loginsValidos]);
 
   const toggleUsuario = (login: string) =>
     setUsuariosSel((prev) => {
@@ -177,6 +164,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
       next.has(k) ? next.delete(k) : next.add(k);
       return next;
     });
+
 
   async function enviar() {
     const entries = gruposValidos
