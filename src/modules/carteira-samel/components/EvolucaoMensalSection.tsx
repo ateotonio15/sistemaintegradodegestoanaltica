@@ -57,17 +57,43 @@ const RANGES = [
   { v: "all", label: "Todo o histórico" },
 ];
 
+function slugify(s: string) {
+  return (s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export function EvolucaoMensalSection() {
   const { ativas } = useEmpresasCarteira();
   const { data: lancamentos = [], isLoading } = useEvolucaoMensal();
   const del = useDeleteLancamento();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [empresasSel, setEmpresasSel] = useState<string[]>([]);
   const [range, setRange] = useState("12");
-  const [visao, setVisao] = useState("__grupo__");
   const [dialogAberto, setDialogAberto] = useState(false);
   const [editando, setEditando] = useState<any | null>(null);
   const [loteAberto, setLoteAberto] = useState(false);
+
+  // Visão vem da URL (?empresa=grupo | todas | slug-da-empresa)
+  const paramEmpresa = searchParams.get("empresa") || "grupo";
+  const visao = useMemo(() => {
+    if (paramEmpresa === "grupo") return "__grupo__";
+    if (paramEmpresa === "todas") return "__todas__";
+    const match = ativas.find((e) => slugify(e.nome) === paramEmpresa || e.id === paramEmpresa);
+    return match ? match.id : "__grupo__";
+  }, [paramEmpresa, ativas]);
+
+  const setVisao = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === "__grupo__") next.set("empresa", "grupo");
+    else if (v === "__todas__") next.set("empresa", "todas");
+    else next.set("empresa", slugify(ativas.find((e) => e.id === v)?.nome || v));
+    setSearchParams(next, { replace: true });
+  };
 
   const linhas = useMemo(() => lancamentos.map(toLinha), [lancamentos]);
 
@@ -91,10 +117,12 @@ export function EvolucaoMensalSection() {
     [linhas, periodosFiltrados, empresasSel],
   );
 
-  // Série do gráfico: consolidado do grupo ou de uma empresa
+  // Série do gráfico: consolidado do grupo/todas ou de uma empresa
   const serie = useMemo(() => {
     const base =
-      visao === "__grupo__" ? linhasFiltradas : linhasFiltradas.filter((l) => l.empresaId === visao);
+      visao === "__grupo__" || visao === "__todas__"
+        ? linhasFiltradas
+        : linhasFiltradas.filter((l) => l.empresaId === visao);
     return agruparPorPeriodo(base);
   }, [linhasFiltradas, visao]);
 
@@ -103,13 +131,18 @@ export function EvolucaoMensalSection() {
   const anterior = consolidadoTodos[consolidadoTodos.length - 2] || null;
   const variacao = atual && anterior ? atual.sinistralidade - anterior.sinistralidade : null;
 
-  const tabela = useMemo(
-    () =>
-      [...linhasFiltradas].sort(
-        (a, b) => b.periodo.localeCompare(a.periodo) || a.empresaNome.localeCompare(b.empresaNome),
-      ),
-    [linhasFiltradas],
-  );
+  const mostrarTotais = visao === "__todas__";
+
+  const tabela = useMemo(() => {
+    if (visao === "__grupo__") {
+      return [...consolidadoTodos].sort((a, b) => b.periodo.localeCompare(a.periodo));
+    }
+    const base =
+      visao === "__todas__" ? linhasFiltradas : linhasFiltradas.filter((l) => l.empresaId === visao);
+    return [...base].sort(
+      (a, b) => b.periodo.localeCompare(a.periodo) || a.empresaNome.localeCompare(b.empresaNome),
+    );
+  }, [linhasFiltradas, consolidadoTodos, visao]);
 
   const totaisPorPeriodo = useMemo(() => {
     const map = new Map<string, LinhaEvolucao>();
@@ -123,6 +156,7 @@ export function EvolucaoMensalSection() {
     sinistro: Number(s.sinistro.toFixed(2)),
     sinistralidade: Number((s.sinistralidade * 100).toFixed(2)),
   }));
+
 
   return (
     <div className="space-y-4">
