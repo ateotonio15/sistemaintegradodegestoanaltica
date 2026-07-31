@@ -121,10 +121,19 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const todasMarcadas = lista.length > 0 && lista.every((e) => sel.has(keyOf(e)));
 
   const selecionadas = useMemo(() => unicas.filter((e) => sel.has(keyOf(e))), [unicas, sel]);
-  const empresasSelecionadasNomes = useMemo(
-    () => Array.from(new Set(selecionadas.map((e) => e.nome))),
-    [selecionadas]
-  );
+  // Envia nome + contrato da empresa
+  const empresasSelecionadasNomes = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    selecionadas.forEach((e) => {
+      const contrato = (e.contrato ?? "").trim();
+      const label = contrato ? `${e.nome} - Contrato ${contrato}` : e.nome;
+      if (seen.has(label)) return;
+      seen.add(label);
+      out.push(label);
+    });
+    return out;
+  }, [selecionadas]);
 
   // ETAPA 2 — descobre quais usuários do SIGA estão ativos no Orbit
   async function irParaEtapa2() {
