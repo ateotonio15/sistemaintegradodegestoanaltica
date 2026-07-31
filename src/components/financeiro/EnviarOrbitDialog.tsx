@@ -127,13 +127,23 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     const out: string[] = [];
     selecionadas.forEach((e) => {
       const contrato = (e.contrato ?? "").trim();
-      const label = contrato ? `${e.nome} - Contrato ${contrato}` : e.nome;
+      const label = contrato ? `${e.nome} (Contrato ${contrato})` : e.nome;
       if (seen.has(label)) return;
       seen.add(label);
       out.push(label);
     });
     return out;
   }, [selecionadas]);
+
+  // Versão estruturada (nome + contrato separados)
+  const empresasSelecionadasDetalhe = useMemo(
+    () =>
+      selecionadas.map((e) => ({
+        name: e.nome,
+        contract: (e.contrato ?? "").trim() || null,
+      })),
+    [selecionadas]
+  );
 
   // ETAPA 2 — descobre quais usuários do SIGA estão ativos no Orbit
   async function irParaEtapa2() {
@@ -189,7 +199,11 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   async function enviar() {
     const entries = usuariosOrbit
       .filter((u) => usuariosSel.has(u.login.toLowerCase()))
-      .map((u) => ({ user: u.login, companies: empresasSelecionadasNomes }));
+      .map((u) => ({
+        user: u.login,
+        companies: empresasSelecionadasNomes,
+        companies_detailed: empresasSelecionadasDetalhe,
+      }));
 
     if (!entries.length) {
       toast.error("Selecione ao menos um usuário validado no Orbit.");
