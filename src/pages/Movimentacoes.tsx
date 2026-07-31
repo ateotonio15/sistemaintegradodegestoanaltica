@@ -348,8 +348,9 @@ export default function Movimentacoes() {
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
     const now = new Date();
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    // 3 meses à frente + 12 meses anteriores
+    for (let i = 3; i >= -11; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
       options.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     }
     return options;
