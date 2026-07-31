@@ -28,7 +28,12 @@ interface Props {
   onAplicar?: (totalCentavos: number, resumo: string) => void;
   /** Segue para o cadastro da cobrança sem usar o cálculo. */
   onPular?: () => void;
+  /** Cálculos já registrados para esta cobrança específica. */
+  itensIniciais?: Item[];
+  /** Notifica o pai sobre os itens registrados desta cobrança. */
+  onItensChange?: (itens: Item[]) => void;
 }
+
 
 type Item = {
   id: string;
