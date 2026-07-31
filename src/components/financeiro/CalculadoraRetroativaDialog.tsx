@@ -63,8 +63,15 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
   const [copiado, setCopiado] = useState(false);
   const [itens, setItens] = useState<Item[]>([]);
 
+  // Reset completo ao abrir/fechar: cada cobrança começa do zero
   useEffect(() => {
-    if (!open) setCopiado(false);
+    setCopiado(false);
+    setItens([]);
+    setInicio("");
+    setFim("");
+    setBeneficiarios("1");
+    setMensalidade("");
+    setDivisor("30");
   }, [open]);
 
   const atual = useMemo(() => {
