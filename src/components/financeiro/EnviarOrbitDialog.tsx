@@ -199,7 +199,11 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   async function enviar() {
     const entries = usuariosOrbit
       .filter((u) => usuariosSel.has(u.login.toLowerCase()))
-      .map((u) => ({ user: u.login, companies: empresasSelecionadasNomes }));
+      .map((u) => ({
+        user: u.login,
+        companies: empresasSelecionadasNomes,
+        companies_detailed: empresasSelecionadasDetalhe,
+      }));
 
     if (!entries.length) {
       toast.error("Selecione ao menos um usuário validado no Orbit.");
