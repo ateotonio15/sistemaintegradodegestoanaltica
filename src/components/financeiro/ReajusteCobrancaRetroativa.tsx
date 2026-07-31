@@ -241,6 +241,30 @@ async function uploadPdfAnexo(
   return path;
 }
 
+/** Reconstrói os itens da calculadora a partir do resumo salvo na descrição. */
+function parseResumoParaItens(descricao: string | null | undefined): CalcItem[] {
+  if (!descricao) return [];
+  const re =
+    /(\d+)\s*benef\.?\s*[x×]\s*(\d+)\s*dia\(s\)\s*\((\d{2}\/\d{2}\/\d{4})\s*a\s*(\d{2}\/\d{2}\/\d{4})\)\s*·\s*R\$\s*([\d.,]+)\/(\d+)\s*=\s*R\$\s*([\d.,]+)/g;
+  const toCent = (v: string) => Math.round(Number(v.replace(/\./g, "").replace(",", ".")) * 100) || 0;
+  const toISO = (v: string) => v.split("/").reverse().join("-");
+  const itens: CalcItem[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(descricao))) {
+    itens.push({
+      id: `${itens.length}-${m[3]}-${m[4]}`,
+      inicio: toISO(m[3]),
+      fim: toISO(m[4]),
+      qtd: Number(m[1]) || 0,
+      dias: Number(m[2]) || 0,
+      mensalCent: toCent(m[5]),
+      div: Number(m[6]) || 30,
+      total: toCent(m[7]),
+    });
+  }
+  return itens;
+}
+
 export function ReajusteCobrancaRetroativa() {
   const { user, isAdmin, isFinanceiro } = useAuth();
   const canManage = isAdmin || isFinanceiro;
@@ -400,6 +424,7 @@ export function ReajusteCobrancaRetroativa() {
     setCobCompet(c.competencia);
     setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
     setCobDescricao(c.descricao || "");
+    setCalcItensPorCobranca((m) => ({ ...m, [c.id]: parseResumoParaItens(c.descricao) }));
     setCobFiles([]);
     setAnexoAtualNome(null);
     if (c.financeiro_movimentacao_id) {
