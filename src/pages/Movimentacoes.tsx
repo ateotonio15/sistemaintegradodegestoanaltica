@@ -803,7 +803,7 @@ export default function Movimentacoes() {
                       return (
                         <TableRow
                           key={m.id}
-                          onClick={(e) => {
+                          onDoubleClick={(e) => {
                             const target = e.target as HTMLElement;
                             if (target.closest("button, a, input, [role='menuitem'], [role='checkbox']")) return;
                             setAnexosMov({ id: m.id, nome: m.empresas?.nome ?? null, mes: m.mes_referencia ?? null, periodo: m.periodo ?? null });
