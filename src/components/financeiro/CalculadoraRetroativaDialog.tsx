@@ -28,9 +28,14 @@ interface Props {
   onAplicar?: (totalCentavos: number, resumo: string) => void;
   /** Segue para o cadastro da cobrança sem usar o cálculo. */
   onPular?: () => void;
+  /** Cálculos já registrados para esta cobrança específica. */
+  itensIniciais?: CalcItem[];
+  /** Notifica o pai sobre os itens registrados desta cobrança. */
+  onItensChange?: (itens: CalcItem[]) => void;
 }
 
-type Item = {
+
+export type CalcItem = {
   id: string;
   inicio: string;
   fim: string;
@@ -54,25 +59,32 @@ function parseBRLToCentavos(s: string): number {
 
 const br = (d: string) => (d ? d.split("-").reverse().join("/") : "—");
 
-export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onPular }: Props) {
+export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onPular, itensIniciais, onItensChange }: Props) {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [beneficiarios, setBeneficiarios] = useState("1");
   const [mensalidade, setMensalidade] = useState("");
   const [divisor, setDivisor] = useState("30");
   const [copiado, setCopiado] = useState(false);
-  const [itens, setItens] = useState<Item[]>([]);
+  const [itens, setItens] = useState<CalcItem[]>([]);
 
-  // Reset completo ao abrir/fechar: cada cobrança começa do zero
+  // Ao abrir, carrega apenas os cálculos já registrados desta cobrança
   useEffect(() => {
+    if (!open) return;
     setCopiado(false);
-    setItens([]);
+    setItens(itensIniciais ?? []);
     setInicio("");
     setFim("");
     setBeneficiarios("1");
     setMensalidade("");
     setDivisor("30");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  useEffect(() => {
+    if (open) onItensChange?.(itens);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itens, open]);
 
   const atual = useMemo(() => {
     const dias = inicio && fim ? diasEntreInclusivo(inicio, fim) : 0;
@@ -98,7 +110,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
     [itens, atual],
   );
 
-  const resumoItem = (i: Item) =>
+  const resumoItem = (i: CalcItem) =>
     `${i.qtd} benef. × ${i.dias} dia(s) (${br(i.inicio)} a ${br(i.fim)}) · ${formatBRLFromCentavos(
       i.mensalCent,
     )}/${i.div}`;

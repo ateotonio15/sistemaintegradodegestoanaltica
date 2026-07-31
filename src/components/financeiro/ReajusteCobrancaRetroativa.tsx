@@ -54,7 +54,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getMesesOptions, formatMesReferencia, getCurrentMesReferencia, PERIODOS_FIN } from "@/lib/financeiro-utils";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
-import { CalculadoraRetroativaDialog } from "./CalculadoraRetroativaDialog";
+import { CalculadoraRetroativaDialog, type CalcItem } from "./CalculadoraRetroativaDialog";
 
 type EmpresaOption = {
   id: string;
@@ -251,6 +251,8 @@ export function ReajusteCobrancaRetroativa() {
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [calcOpen, setCalcOpen] = useState(false);
+  // Cálculos registrados por cobrança (chave: id da cobrança em edição ou "nova")
+  const [calcItensPorCobranca, setCalcItensPorCobranca] = useState<Record<string, CalcItem[]>>({});
   const [manualValorOpen, setManualValorOpen] = useState(false);
   const [manualValorInput, setManualValorInput] = useState("");
 
@@ -387,7 +389,9 @@ export function ReajusteCobrancaRetroativa() {
     setCobCompet(getCurrentMesReferencia());
     setManualValorInput("");
     setAnexoAtualNome(null);
+    setCalcItensPorCobranca((m) => ({ ...m, nova: [] }));
   };
+
 
   const openEditCobranca = async (c: any) => {
     setEditCobId(c.id);
@@ -794,9 +798,13 @@ export function ReajusteCobrancaRetroativa() {
       <CalculadoraRetroativaDialog
         open={calcOpen}
         onOpenChange={setCalcOpen}
+        itensIniciais={calcItensPorCobranca[editCobId ?? "nova"] ?? []}
+        onItensChange={(itens) =>
+          setCalcItensPorCobranca((m) => ({ ...m, [editCobId ?? "nova"]: itens }))
+        }
         onAplicar={(totalCentavos, resumo) => {
           setCobValor((totalCentavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
-          setCobDescricao((d) => (d ? `${d} · ${resumo}` : resumo));
+          setCobDescricao(resumo);
           setOpenCobDialog(true);
         }}
         onPular={() => {
