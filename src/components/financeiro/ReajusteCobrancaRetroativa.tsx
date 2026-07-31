@@ -389,7 +389,9 @@ export function ReajusteCobrancaRetroativa() {
     setCobCompet(getCurrentMesReferencia());
     setManualValorInput("");
     setAnexoAtualNome(null);
+    setCalcItensPorCobranca((m) => ({ ...m, nova: [] }));
   };
+
 
   const openEditCobranca = async (c: any) => {
     setEditCobId(c.id);
