@@ -135,6 +135,16 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return out;
   }, [selecionadas]);
 
+  // Versão estruturada (nome + contrato separados)
+  const empresasSelecionadasDetalhe = useMemo(
+    () =>
+      selecionadas.map((e) => ({
+        name: e.nome,
+        contract: (e.contrato ?? "").trim() || null,
+      })),
+    [selecionadas]
+  );
+
   // ETAPA 2 — descobre quais usuários do SIGA estão ativos no Orbit
   async function irParaEtapa2() {
     if (sel.size === 0) {
