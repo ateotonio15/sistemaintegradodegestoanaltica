@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,18 +13,44 @@ import { format } from "date-fns";
 import { useEmpresasCarteira } from "../context/EmpresasContext";
 import { SemaforoBadge } from "../components/SemaforoBadge";
 import { TabelaPeriodo } from "../components/TabelaPeriodo";
-import { classificarSinistralidade, classificarRenovacao, scoreCompleto } from "../lib/risco";
+import { classificarSinistralidade, classificarRenovacao, scoreCompleto, Semaforo } from "../lib/risco";
 import { calcularResumo, compararPeriodos, gerarTextos, LinhaPeriodo } from "../lib/analiseContrato";
 import { useHistoricoSinistralidade, useUpsertSinistralidade, useDeleteSinistralidade } from "../hooks/useRiscoData";
+import { useEvolucaoMensal } from "../hooks/useEvolucaoMensal";
+import { labelPeriodo } from "../lib/evolucao-mensal";
 import { useAuth } from "@/hooks/useAuth";
 import { EvolucaoMensalSection } from "../components/EvolucaoMensalSection";
 import { toast } from "sonner";
 
 const INDEXADORES = ["IPCA", "INPC", "IGPM", "IGP-DI", "IP-SAÚDE", "Contratual"];
 
+function slugify(s: string) {
+  return (s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/** Verde < 70% · Amarelo 70–85% · Vermelho > 85% (mesma lógica de distorção vs BE 70%) */
+function classificarPorEvolucao(pct: number): Semaforo {
+  if (pct < 70) return "Verde";
+  if (pct <= 85) return "Amarelo";
+  return "Vermelho";
+}
+
 export default function Sinistralidade() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") === "evolucao" ? "evolucao" : "historico";
+  const setTab = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", v);
+    setSearchParams(next, { replace: true });
+  };
+
   return (
-    <Tabs defaultValue="historico" className="space-y-4">
+    <Tabs value={tab} onValueChange={setTab} className="space-y-4">
       <TabsList>
         <TabsTrigger value="historico">Histórico & Análise</TabsTrigger>
         <TabsTrigger value="evolucao">Evolução Mensal</TabsTrigger>
@@ -40,12 +68,28 @@ export default function Sinistralidade() {
 function SinistralidadeHistorico() {
   const { ativas } = useEmpresasCarteira();
   const { user } = useAuth();
+  const [, setSearchParams] = useSearchParams();
   const [busca, setBusca] = useState("");
   const [filtroClass, setFiltroClass] = useState<string>("todas");
   const [filtroGrupo, setFiltroGrupo] = useState<string>("todos");
+  const [filtroDados, setFiltroDados] = useState<string>("todos");
   const [empresaAberta, setEmpresaAberta] = useState<string | null>(null);
 
   const { data: todoHistorico = [] } = useHistoricoSinistralidade();
+  const { data: lancamentos = [] } = useEvolucaoMensal();
+
+  /** Último lançamento mensal por empresa (fonte única: sinistralidade_mensal) */
+  const evolucaoPor = useMemo(() => {
+    const map: Record<string, { pct: number; periodo: string }> = {};
+    for (const l of lancamentos) {
+      const total = (Number(l.premio_empresa) || 0) + (Number(l.premio_continuidade) || 0);
+      if (!total) continue;
+      const pct = ((Number(l.sinistro) || 0) / total) * 100;
+      const cur = map[l.empresa_id];
+      if (!cur || l.periodo > cur.periodo) map[l.empresa_id] = { pct, periodo: l.periodo };
+    }
+    return map;
+  }, [lancamentos]);
 
   const ultimaPor = useMemo(() => {
     const map: Record<string, any> = {};
@@ -58,20 +102,37 @@ function SinistralidadeHistorico() {
 
   const dados = useMemo(() => {
     let arr = ativas.map((e) => {
+      const ev = evolucaoPor[e.id];
       const u = ultimaPor[e.nome];
-      const sinPct = u?.sinistralidade != null ? Number(u.sinistralidade) : null;
-      const clf = classificarSinistralidade(sinPct ?? undefined);
+      const sinPct = ev ? ev.pct : u?.sinistralidade != null ? Number(u.sinistralidade) : null;
+      const temDados = sinPct != null;
+      const clf: Semaforo | null = ev
+        ? classificarPorEvolucao(ev.pct)
+        : sinPct != null
+          ? classificarSinistralidade(sinPct)
+          : null;
       const ren = classificarRenovacao(e.vigenciaInicio);
-      const score = scoreCompleto({ sinistralidade: clf, reclamacoes: "Verde", relacionamento: "Verde", satisfacao: "Verde", renovacao: ren });
-      return { ...e, sinPct, clf, score };
+      const score = clf
+        ? scoreCompleto({ sinistralidade: clf, reclamacoes: "Verde", relacionamento: "Verde", satisfacao: "Verde", renovacao: ren })
+        : null;
+      return { ...e, sinPct, temDados, clf, score, periodo: ev?.periodo || null };
     });
     if (busca) arr = arr.filter((e) => e.nome.toLowerCase().includes(busca.toLowerCase()) || e.contrato.includes(busca));
     if (filtroGrupo !== "todos") arr = arr.filter((e) => e.grupoTamanho === filtroGrupo);
+    if (filtroDados === "com") arr = arr.filter((e) => e.temDados);
+    if (filtroDados === "sem") arr = arr.filter((e) => !e.temDados);
     if (filtroClass !== "todas") arr = arr.filter((e) => e.clf === filtroClass);
-    return arr;
-  }, [ativas, ultimaPor, busca, filtroClass, filtroGrupo]);
+    // Empresas com acompanhamento real primeiro
+    return arr.sort((a, b) => Number(b.temDados) - Number(a.temDados));
+  }, [ativas, ultimaPor, evolucaoPor, busca, filtroClass, filtroGrupo, filtroDados]);
 
   const empresaAtiva = ativas.find((e) => e.id === empresaAberta) || null;
+
+  const abrirEvolucao = (nome: string) => {
+    setSearchParams({ tab: "evolucao", empresa: slugify(nome) }, { replace: false });
+  };
+
+  const comDados = useMemo(() => Object.keys(evolucaoPor).length, [evolucaoPor]);
 
   return (
 
@@ -96,6 +157,15 @@ function SinistralidadeHistorico() {
             <SelectItem value="Vermelho">Vermelho</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={filtroDados} onValueChange={setFiltroDados}>
+          <SelectTrigger className="w-60"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as empresas</SelectItem>
+            <SelectItem value="com">Com dados de sinistralidade lançados</SelectItem>
+            <SelectItem value="sem">Sem dados lançados</SelectItem>
+          </SelectContent>
+        </Select>
+        <Badge variant="outline" className="ml-auto">{comDados} com acompanhamento real</Badge>
       </Card>
 
       <Card className="overflow-x-auto">
@@ -115,11 +185,32 @@ function SinistralidadeHistorico() {
               <tr key={e.id} className="border-t">
                 <td className="px-3 py-2 font-medium">{e.nome}</td>
                 <td className="px-3 py-2">{e.contrato}</td>
-                <td className="px-3 py-2">{e.sinPct != null ? `${e.sinPct.toFixed(1)}%` : "—"}</td>
-                <td className="px-3 py-2"><SemaforoBadge semaforo={e.clf} /></td>
-                <td className="px-3 py-2">{e.score.total} · {e.score.classificacao}</td>
-                <td className="px-3 py-2 text-right">
-                  <Button size="sm" variant="outline" onClick={() => setEmpresaAberta(e.id)}>
+                <td className="px-3 py-2">
+                  {e.sinPct != null ? (
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium">{e.sinPct.toFixed(2).replace(".", ",")}%</span>
+                      {e.periodo && (
+                        <span className="text-[11px] text-muted-foreground">{labelPeriodo(e.periodo)}</span>
+                      )}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  {e.clf ? (
+                    <SemaforoBadge semaforo={e.clf} />
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
+                      Sem dados
+                    </Badge>
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  {e.score ? `${e.score.total} · ${e.score.classificacao}` : <span className="text-muted-foreground">—</span>}
+                </td>
+                <td className="px-3 py-2 text-right whitespace-nowrap">
+                  <Button size="sm" variant="outline" onClick={() => abrirEvolucao(e.nome)}>
                     <History className="h-3.5 w-3.5 mr-1" /> Histórico
                   </Button>
                 </td>
@@ -139,6 +230,7 @@ function SinistralidadeHistorico() {
     </div>
   );
 }
+
 
 function HistoricoDialog({ empresa, onClose, userEmail }: { empresa: any | null; onClose: () => void; userEmail: string }) {
   const { data: hist = [] } = useHistoricoSinistralidade(empresa?.nome);
