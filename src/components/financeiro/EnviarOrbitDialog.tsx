@@ -127,7 +127,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     const out: string[] = [];
     selecionadas.forEach((e) => {
       const contrato = (e.contrato ?? "").trim();
-      const label = contrato ? `${e.nome} - Contrato ${contrato}` : e.nome;
+      const label = contrato ? `${e.nome} (Contrato ${contrato})` : e.nome;
       if (seen.has(label)) return;
       seen.add(label);
       out.push(label);
