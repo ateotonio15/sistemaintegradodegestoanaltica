@@ -852,7 +852,7 @@ export default function Movimentacoes() {
                           <TableCell>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon" onClick={() => openEdit(m)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
-                              {canEdit && <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(m.id)} className="rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                              
                             </div>
                           </TableCell>
                           )}
