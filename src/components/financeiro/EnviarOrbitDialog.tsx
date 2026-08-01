@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Send, Search, CheckCircle2, ArrowLeft, ArrowRight, SlidersHorizontal, ChevronDown, X } from "lucide-react";
+import { Loader2, Send, Search, CheckCircle2, ArrowLeft, ArrowRight, SlidersHorizontal, ChevronDown, X, History } from "lucide-react";
 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -41,12 +41,24 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [loginsValidos, setLoginsValidos] = useState<Set<string>>(new Set());
   const [validado, setValidado] = useState(false);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [envios, setEnvios] = useState<Array<{ empresa_nome: string; contrato: string | null; orbit_user: string; enviado_em: string }>>([]);
+  const [ocultarEnviadas, setOcultarEnviadas] = useState(false);
+  const [evitarDuplicados, setEvitarDuplicados] = useState(true);
 
   const filtrosAtivos = statusSel.length + diaEmissaoSel.length;
   const limparFiltros = () => {
     setStatusSel([]);
     setDiaEmissaoSel([]);
   };
+
+  async function carregarEnvios() {
+    const { data } = await supabase
+      .from("orbit_envios")
+      .select("empresa_nome, contrato, orbit_user, enviado_em")
+      .order("enviado_em", { ascending: false })
+      .limit(5000);
+    setEnvios((data ?? []) as any);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -57,10 +69,13 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setStatusSel([]);
     setDiaEmissaoSel([]);
     setFiltrosAbertos(false);
+    setOcultarEnviadas(false);
+    setEvitarDuplicados(true);
 
     setResultados([]);
     setLoginsValidos(new Set());
     setValidado(false);
+    carregarEnvios();
     supabase
       .from("profiles")
       .select("display_name, username")
@@ -100,16 +115,35 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return (p?.username || "").trim();
   };
 
+  // Histórico: key da empresa -> envios já feitos
+  const enviosPorEmpresa = useMemo(() => {
+    const m = new Map<string, Array<{ orbit_user: string; enviado_em: string }>>();
+    envios.forEach((r) => {
+      const k = `${(r.contrato ?? "").trim()}|${(r.empresa_nome ?? "").trim().toLowerCase()}`;
+      const arr = m.get(k) ?? [];
+      arr.push({ orbit_user: r.orbit_user, enviado_em: r.enviado_em });
+      m.set(k, arr);
+    });
+    return m;
+  }, [envios]);
+
+  const jaEnviadaPara = (k: string, login: string) =>
+    (enviosPorEmpresa.get(k) ?? []).some((e) => e.orbit_user.toLowerCase() === login.toLowerCase());
+
+  const fmtData = (iso: string) =>
+    new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+
   // ETAPA 1 — lista completa de empresas (sem filtro por validação)
   const lista = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return unicas.filter((e) => {
       if (statusSel.length && !statusSel.includes(e.status ?? "")) return false;
       if (diaEmissaoSel.length && !(typeof e.dia_emissao === "number" && diaEmissaoSel.includes(e.dia_emissao))) return false;
+      if (ocultarEnviadas && (enviosPorEmpresa.get(keyOf(e))?.length ?? 0) > 0) return false;
       if (!q) return true;
       return `${e.nome} ${e.contrato ?? ""} ${e.responsavel ?? ""}`.toLowerCase().includes(q);
     });
-  }, [unicas, busca, statusSel, diaEmissaoSel]);
+  }, [unicas, busca, statusSel, diaEmissaoSel, ocultarEnviadas, enviosPorEmpresa]);
 
   const toggle = (k: string) =>
     setSel((prev) => {
@@ -196,28 +230,68 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     });
 
 
-  async function enviar() {
-    const entries = usuariosOrbit
-      .filter((u) => usuariosSel.has(u.login.toLowerCase()))
-      .map((u) => ({
-        user: u.login,
-        companies: empresasSelecionadasNomes,
-        companies_detailed: empresasSelecionadasDetalhe,
-      }));
+  const labelDe = (e: OrbitEmpresa) => {
+    const contrato = (e.contrato ?? "").trim();
+    return contrato ? `${e.nome} (Contrato ${contrato})` : e.nome;
+  };
 
-    if (!entries.length) {
+  // Por usuário selecionado: empresas novas x já enviadas anteriormente
+  const planoPorUsuario = useMemo(() => {
+    return usuariosOrbit
+      .filter((u) => usuariosSel.has(u.login.toLowerCase()))
+      .map((u) => {
+        const novas = selecionadas.filter((e) => !jaEnviadaPara(keyOf(e), u.login));
+        const repetidas = selecionadas.filter((e) => jaEnviadaPara(keyOf(e), u.login));
+        return { login: u.login, novas, repetidas };
+      });
+  }, [usuariosOrbit, usuariosSel, selecionadas, enviosPorEmpresa]);
+
+  async function enviar() {
+    const entries = planoPorUsuario
+      .map((p) => {
+        const alvo = evitarDuplicados ? p.novas : [...p.novas, ...p.repetidas];
+        return {
+          user: p.login,
+          alvo,
+          companies: Array.from(new Set(alvo.map(labelDe))),
+          companies_detailed: alvo.map((e) => ({ name: e.nome, contract: (e.contrato ?? "").trim() || null })),
+        };
+      })
+      .filter((e) => e.companies.length > 0);
+
+    if (!planoPorUsuario.length) {
       toast.error("Selecione ao menos um usuário validado no Orbit.");
+      return;
+    }
+    if (!entries.length) {
+      toast.error("Todas as empresas selecionadas já foram enviadas para esses usuários.");
       return;
     }
 
     setEnviando(true);
     try {
-      const { data, error } = await supabase.functions.invoke("orbit-daily-companies", { body: { entries } });
+      const { data, error } = await supabase.functions.invoke("orbit-daily-companies", {
+        body: { entries: entries.map(({ user, companies, companies_detailed }) => ({ user, companies, companies_detailed })) },
+      });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
 
       const results = ((data as any)?.results ?? []) as Array<{ username: string; resolved: boolean; added?: number }>;
       setResultados(results);
+
+      // Registra o histórico de envios para controle de duplicidade
+      const { data: auth } = await supabase.auth.getUser();
+      const rows = entries.flatMap((e) =>
+        e.alvo.map((emp) => ({
+          empresa_nome: emp.nome,
+          contrato: (emp.contrato ?? "").trim() || null,
+          orbit_user: e.user,
+          enviado_por: auth.user?.id ?? null,
+        })),
+      );
+      if (rows.length) await supabase.from("orbit_envios").insert(rows);
+      await carregarEnvios();
+
       const totalAdded = results.reduce((s, r) => s + (r.added ?? 0), 0);
       toast.success(`${totalAdded} empresa(s) criada(s) no Orbit`, {
         description: `Conectado com ${entries.length} usuário(s): ${entries.map((e) => e.user).join(", ")}.`,
@@ -228,6 +302,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
       setEnviando(false);
     }
   }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -387,7 +462,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                 </CollapsibleContent>
               </Collapsible>
 
-              <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-3 py-2 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-sm">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox
                     checked={todasMarcadas}
@@ -401,8 +476,15 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                   />
                   <span className="text-muted-foreground">Selecionar todas ({lista.length})</span>
                 </label>
-                <Badge variant={sel.size ? "default" : "secondary"} className="rounded-full">{sel.size} selecionada(s)</Badge>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground">
+                    <Checkbox checked={ocultarEnviadas} onCheckedChange={(v) => setOcultarEnviadas(!!v)} />
+                    Ocultar já enviadas
+                  </label>
+                  <Badge variant={sel.size ? "default" : "secondary"} className="rounded-full">{sel.size} selecionada(s)</Badge>
+                </div>
               </div>
+
             </div>
 
 
@@ -416,6 +498,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       const k = keyOf(e);
                       const login = orbitUser(e.responsavel);
                       const marcada = sel.has(k);
+                      const hist = enviosPorEmpresa.get(k) ?? [];
+                      const ultimo = hist[0];
                       return (
                         <li
                           key={k}
@@ -443,7 +527,19 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                               Contrato {e.contrato || "—"} · {e.responsavel || "Sem responsável"}
                               {login ? ` · @${login}` : " · sem login"}
                             </div>
+                            {ultimo && (
+                              <div className="text-[11px] text-amber-600 dark:text-amber-400 truncate">
+                                Já enviada em {fmtData(ultimo.enviado_em)} para{" "}
+                                {Array.from(new Set(hist.map((h) => `@${h.orbit_user}`))).slice(0, 3).join(", ")}
+                                {new Set(hist.map((h) => h.orbit_user)).size > 3 ? "…" : ""}
+                              </div>
+                            )}
                           </div>
+                          {ultimo && (
+                            <Badge variant="outline" className="shrink-0 gap-1 text-[10px] rounded-full font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">
+                              <History className="h-3 w-3" /> {hist.length}
+                            </Badge>
+                          )}
                           {e.status && <Badge variant="outline" className="shrink-0 text-[10px] rounded-full font-normal">{e.status}</Badge>}
                         </li>
                       );
@@ -452,6 +548,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                 )}
               </ScrollArea>
             </div>
+
 
             <DialogFooter className="px-6 py-4 border-t bg-muted/30">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
@@ -477,6 +574,12 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                   <div className="rounded-lg border bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">{empresasSelecionadasNomes.length} empresa(s)</span> serão enviadas para cada usuário marcado.
                   </div>
+                  <label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs cursor-pointer">
+                    <Checkbox checked={evitarDuplicados} onCheckedChange={(v) => setEvitarDuplicados(!!v)} />
+                    <span className="text-muted-foreground">
+                      Não reenviar empresas que já foram enviadas para o usuário
+                    </span>
+                  </label>
                   <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <Checkbox
@@ -491,6 +594,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                   </div>
                 </div>
 
+
                 <div className="px-6 flex-1 min-h-0">
                   <ScrollArea className="h-[330px] rounded-lg border p-3">
                     <div className="space-y-2">
@@ -502,6 +606,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                         usuariosOrbit.map((u) => {
                           const marcado = usuariosSel.has(u.login.toLowerCase());
                           const res = resultados.find((r) => r.username.toLowerCase() === u.login.toLowerCase());
+                          const repetidas = selecionadas.filter((e) => jaEnviadaPara(keyOf(e), u.login)).length;
+                          const novas = selecionadas.length - repetidas;
                           return (
                             <div
                               key={u.login}
@@ -530,9 +636,16 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                                   {res ? ` · ${res.added ?? 0} criada(s)` : ""}
                                 </div>
                               </div>
+                              {repetidas > 0 && (
+                                <Badge variant="outline" className="shrink-0 gap-1 text-[10px] rounded-full font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">
+                                  <History className="h-3 w-3" /> {repetidas} repetida(s)
+                                </Badge>
+                              )}
+                              <Badge variant="secondary" className="shrink-0 text-[10px] rounded-full font-normal">{novas} nova(s)</Badge>
                               <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
                             </div>
                           );
+
                         })
                       )}
                     </div>
