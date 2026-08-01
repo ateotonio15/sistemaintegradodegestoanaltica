@@ -1457,7 +1457,15 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     tailRetroTotal += total;
   }
 
-  if (tailRetroQtd !== 0 || tailRetroTotal !== 0) {
+  // O valor consolidado dentro do bloco do CNPJ é a fonte oficial. As tabelas
+  // no rodapé são detalhamentos e só devem preencher a retroativa quando o
+  // RESUMO não trouxe nenhuma linha consolidada. Caso contrário, uma parcela
+  // do detalhamento (ex.: R$ 206,01 da Yamaha) seria somada ao total já
+  // declarado (R$ 659,70), produzindo incorretamente R$ 865,71.
+  const resumoJaTemRetroativa = comCnpj.some(
+    (b) => b.retroQtd !== 0 || Math.abs(b.retroTotal) > 0.001,
+  );
+  if (!resumoJaTemRetroativa && (tailRetroQtd !== 0 || tailRetroTotal !== 0)) {
     if (comCnpj.length === 1) {
       comCnpj[0].retroQtd += tailRetroQtd;
       comCnpj[0].retroTotal += tailRetroTotal;
