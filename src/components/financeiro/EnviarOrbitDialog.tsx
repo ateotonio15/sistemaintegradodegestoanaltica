@@ -71,6 +71,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setBusca("");
     setStatusSel([]);
     setDiaEmissaoSel([]);
+    setTipoMovSel([]);
     setFiltrosAbertos(false);
     setOcultarEnviadas(false);
     setEvitarDuplicados(true);
