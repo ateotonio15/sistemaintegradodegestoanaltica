@@ -16,6 +16,8 @@ import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { AnaliseExcelRow } from "./AnaliseExcelRow";
 import type { AnaliseResultado, ComparacaoResultado, NotaOrfa } from "@/lib/excel-analysis-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
+import { useOrbitEnvios, orbitEnvioKey } from "@/hooks/useOrbitEnvios";
+import { Send } from "lucide-react";
 
 export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_nome: string;
