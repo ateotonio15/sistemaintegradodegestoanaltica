@@ -95,32 +95,49 @@ Deno.serve(async (req) => {
     const nomeUsuario = perfil?.display_name || perfil?.username || String(user || "Orbit");
 
     // ---------- movimentação alvo ----------
-    // Regra: usa a competência informada (payload.mes_referencia) ou o mês da data.
-    // Se não existir linha nessa competência, cai para a competência aberta mais
-    // recente que NÃO seja futura (nunca escolhe meses à frente, que não aparecem
-    // na tela do Financeiro).
+    // Se o payload traz mes_referencia (ou date), respeita essa competência.
+    // Caso contrário, resolve a competência ABERTA (aguardando emissão) mais
+    // recente que não seja futura — nunca assume o mês corrente às cegas.
     const mesPayload = /^\d{4}-\d{2}$/.test(String(payload?.mes_referencia || ""))
       ? String(payload.mes_referencia)
       : null;
-    const mesAlvo = mesPayload ?? mesRef;
+    const mesExplicito = mesPayload ?? (temData ? mesRef : null);
     const COLS =
       "id,empresa_id,mes_referencia,periodo,faturamento_iniciado_em,faturamento_iniciado_por_nome,data_envio_nota";
 
-    let { data: mov } = await admin
-      .from("financeiro_movimentacoes")
-      .select(COLS)
-      .eq("empresa_id", empresa.id)
-      .eq("mes_referencia", mesAlvo)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let mov: any = null;
+
+    if (mesExplicito) {
+      const { data } = await admin
+        .from("financeiro_movimentacoes")
+        .select(COLS)
+        .eq("empresa_id", empresa.id)
+        .eq("mes_referencia", mesExplicito)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      mov = data;
+    } else {
+      // 1) competência aberta (sem faturamento iniciado e sem nota) mais recente não futura
+      const { data: aberta } = await admin
+        .from("financeiro_movimentacoes")
+        .select(COLS)
+        .eq("empresa_id", empresa.id)
+        .lte("mes_referencia", mesAtual)
+        .is("faturamento_iniciado_em", null)
+        .is("data_envio_nota", null)
+        .order("mes_referencia", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      mov = aberta;
+    }
 
     if (!mov) {
       const { data: anterior } = await admin
         .from("financeiro_movimentacoes")
         .select(COLS)
         .eq("empresa_id", empresa.id)
-        .lte("mes_referencia", mesAlvo)
+        .lte("mes_referencia", mesExplicito ?? mesAtual)
         .order("mes_referencia", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -128,9 +145,33 @@ Deno.serve(async (req) => {
     }
     if (!mov) {
       return json(
-        { ok: false, error: "Nenhuma movimentação financeira encontrada para a empresa", mes: mesAlvo },
+        { ok: false, error: "Nenhuma movimentação financeira encontrada para a empresa", mes: mesExplicito ?? mesAtual },
         404,
       );
+    }
+
+    const statusAtual = mov.data_envio_nota
+      ? "Nota enviada"
+      : mov.faturamento_iniciado_em
+        ? "Em faturamento"
+        : mov.mes_referencia > mesAtual
+          ? "Competência não liberada"
+          : "Aguardando Emissão";
+
+    const somenteSeAguardando =
+      payload?.only_if_awaiting_emission === true || payload?.only_if_awaiting_emission === "true";
+
+    if (somenteSeAguardando && statusAtual !== "Aguardando Emissão") {
+      return json({
+        ok: false,
+        reason: "not_awaiting_emission",
+        status: statusAtual,
+        mes_referencia: mov.mes_referencia,
+        empresa: empresa.nome,
+        contrato: empresa.codigo_contrato,
+        periodo: mov.periodo,
+        task_id: task_id ?? null,
+      });
     }
 
     // already_started SOMENTE quando a linha alvo já está de fato em faturamento
@@ -151,6 +192,7 @@ Deno.serve(async (req) => {
         task_id: task_id ?? null,
       });
     }
+
 
 
     // Empresas do mesmo grupo financeiro (replica o comportamento do Siga)
