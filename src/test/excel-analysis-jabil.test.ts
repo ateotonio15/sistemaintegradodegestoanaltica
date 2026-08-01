@@ -41,4 +41,23 @@ describe("análise financeira Jabil", () => {
     expect(filial?.inclusoes.quantidade).toBe(1);
     expect(filial?.inclusoes.total).toBe(50);
   });
+
+  it("não duplica cobrança retroativa repetida com quantidades diferentes", async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("RESUMO");
+    ws.addRow(["Categoria", "QTD", "Mensalidade", "Valor"]);
+    ws.addRow(["OESA 12.345.678/0001-90"]);
+    ws.addRow(["M. Empresarial", 10, 5725.781, 57257.81]);
+    ws.addRow(["Inclusões", 2, "", 5097.07]);
+    ws.addRow(["TOTAL", "", "", 62785.16]);
+    ws.addRow(["Total Geral"]);
+    ws.addRow(["Cobrança Retroativa JUL/26", 1, 430.28]);
+    ws.addRow(["Cobrança Retroativa", "", 430.28]);
+
+    const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
+
+    expect(blocos).toHaveLength(1);
+    expect(blocos[0].retroativas?.total).toBeCloseTo(430.28, 2);
+    expect(blocos[0].inclusoes.total).toBeCloseTo(5097.07, 2);
+  });
 });
