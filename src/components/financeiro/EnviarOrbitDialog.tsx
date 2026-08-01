@@ -19,6 +19,7 @@ export type OrbitEmpresa = {
   responsavel?: string | null;
   status?: string | null;
   dia_emissao?: number | null;
+  tipo_movimentacao?: string | null;
 };
 
 interface Props {
@@ -32,6 +33,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [busca, setBusca] = useState("");
   const [statusSel, setStatusSel] = useState<string[]>([]);
   const [diaEmissaoSel, setDiaEmissaoSel] = useState<number[]>([]);
+  const [tipoMovSel, setTipoMovSel] = useState<string[]>([]);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [usuariosSel, setUsuariosSel] = useState<Set<string>>(new Set());
   const [enviando, setEnviando] = useState(false);
@@ -45,10 +47,11 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [ocultarEnviadas, setOcultarEnviadas] = useState(false);
   const [evitarDuplicados, setEvitarDuplicados] = useState(true);
 
-  const filtrosAtivos = statusSel.length + diaEmissaoSel.length;
+  const filtrosAtivos = statusSel.length + diaEmissaoSel.length + tipoMovSel.length;
   const limparFiltros = () => {
     setStatusSel([]);
     setDiaEmissaoSel([]);
+    setTipoMovSel([]);
   };
 
   async function carregarEnvios() {
@@ -68,6 +71,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setBusca("");
     setStatusSel([]);
     setDiaEmissaoSel([]);
+    setTipoMovSel([]);
     setFiltrosAbertos(false);
     setOcultarEnviadas(false);
     setEvitarDuplicados(true);
@@ -106,6 +110,16 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return Array.from(d).sort((a, b) => a - b);
   }, [unicas]);
 
+  const tiposMovDisponiveis = useMemo(() => {
+    const t = new Set<string>();
+    unicas.forEach((e) => {
+      const v = (e.tipo_movimentacao ?? "").trim();
+      if (v) t.add(v);
+    });
+    return Array.from(t).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [unicas]);
+
+
   const keyOf = (e: OrbitEmpresa) => `${e.contrato ?? ""}|${e.nome.toLowerCase()}`;
 
   const orbitUser = (resp?: string | null) => {
@@ -139,11 +153,12 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return unicas.filter((e) => {
       if (statusSel.length && !statusSel.includes(e.status ?? "")) return false;
       if (diaEmissaoSel.length && !(typeof e.dia_emissao === "number" && diaEmissaoSel.includes(e.dia_emissao))) return false;
+      if (tipoMovSel.length && !tipoMovSel.includes((e.tipo_movimentacao ?? "").trim())) return false;
       if (ocultarEnviadas && (enviosPorEmpresa.get(keyOf(e))?.length ?? 0) > 0) return false;
       if (!q) return true;
       return `${e.nome} ${e.contrato ?? ""} ${e.responsavel ?? ""}`.toLowerCase().includes(q);
     });
-  }, [unicas, busca, statusSel, diaEmissaoSel, ocultarEnviadas, enviosPorEmpresa]);
+  }, [unicas, busca, statusSel, diaEmissaoSel, tipoMovSel, ocultarEnviadas, enviosPorEmpresa]);
 
   const toggle = (k: string) =>
     setSel((prev) => {
@@ -385,6 +400,12 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       <X className="h-3 w-3 cursor-pointer opacity-70 hover:opacity-100" onClick={() => setDiaEmissaoSel((p) => p.filter((x) => x !== d))} />
                     </Badge>
                   ))}
+                  {tipoMovSel.map((t) => (
+                    <Badge key={t} variant="secondary" className="rounded-full gap-1 font-normal">
+                      {t}
+                      <X className="h-3 w-3 cursor-pointer opacity-70 hover:opacity-100" onClick={() => setTipoMovSel((p) => p.filter((x) => x !== t))} />
+                    </Badge>
+                  ))}
                   <button type="button" className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline" onClick={limparFiltros}>
                     Limpar
                   </button>
@@ -451,6 +472,37 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                         </div>
                       </div>
                     )}
+
+                    {tiposMovDisponiveis.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de movimentação</span>
+                          {tipoMovSel.length > 0 && (
+                            <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setTipoMovSel([])}>
+                              limpar
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {tiposMovDisponiveis.map((t) => {
+                            const n = unicas.filter((e) => (e.tipo_movimentacao ?? "").trim() === t).length;
+                            const ativo = tipoMovSel.includes(t);
+                            return (
+                              <Badge
+                                key={t}
+                                variant={ativo ? "default" : "outline"}
+                                className="cursor-pointer rounded-full font-normal transition-colors"
+                                onClick={() => setTipoMovSel((prev) => (ativo ? prev.filter((x) => x !== t) : [...prev, t]))}
+                              >
+                                {t} ({n})
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+
 
                     <div className="flex items-center justify-between pt-1 border-t">
                       <span className="text-xs text-muted-foreground">{lista.length} resultado(s)</span>

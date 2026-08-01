@@ -2837,6 +2837,10 @@ export default function Financeiro() {
             responsavel: r.responsavel,
             status: r.status,
             dia_emissao: r.dia_emissao,
+            tipo_movimentacao:
+              r.tipo_movimentacao ??
+              (empresasMap as any)?.get?.(r.empresa_id)?.tipo_movimentacao ??
+              null,
           }))}
         />
 
