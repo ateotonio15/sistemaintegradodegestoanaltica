@@ -556,7 +556,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
 
             <div className="px-6 flex-1 min-h-0">
-              <div className="h-full min-h-[340px] rounded-lg border overflow-y-auto scrollbar-prominent">
+              <div className="h-full min-h-[340px] rounded-lg border overflow-y-scroll scrollbar-prominent">
                 {lista.length === 0 ? (
                   <div className="p-10 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</div>
                 ) : (
