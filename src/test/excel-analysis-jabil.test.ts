@@ -44,19 +44,31 @@ describe("análise financeira Jabil", () => {
 
   it("não duplica cobrança retroativa repetida com quantidades diferentes", async () => {
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("RESUMO");
-    ws.addRow(["Categoria", "QTD", "Mensalidade", "Valor"]);
-    ws.addRow(["OESA 12.345.678/0001-90"]);
-    ws.addRow(["M. Empresarial", 10, 5725.781, 57257.81]);
-    ws.addRow(["Inclusões", 2, "", 5097.07]);
-    ws.addRow(["TOTAL", "", "", 62785.16]);
-    ws.addRow(["Total Geral"]);
-    ws.addRow(["Cobrança Retroativa JUL/26", 1, 430.28]);
-    ws.addRow(["Cobrança Retroativa", "", 430.28]);
+    const dados = wb.addWorksheet("RELATORIO BENEFICIARIOS");
+    dados.addRow(["CNPJ", "Subestipulante", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    dados.addRow(["12.345.678/0001-90", "OESA", "Mensalidade", "M. Empresarial", 57257.81]);
+    const resumo = wb.addWorksheet("TABELAS");
+    resumo.addRow(["Cobrança Retroativa JUL/26", 1, 430.28]);
+    resumo.addRow(["Cobrança Retroativa", "", 430.28]);
 
     const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
 
     expect(blocos).toHaveLength(1);
     expect(blocos[0].retroativas?.total).toBeCloseTo(430.28, 2);
+  });
+
+  it("não soma o detalhamento do rodapé ao total retroativo consolidado", async () => {
+    const wb = new ExcelJS.Workbook();
+    const dados = wb.addWorksheet("RELATORIO BENEFICIARIOS");
+    dados.addRow(["CNPJ", "Subestipulante", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    dados.addRow(["04.817.052/0001-06", "YAMAHA MOTOR DA AMAZONIA LTDA - MATRIZ", "Mensalidade", "M. Empresarial", 1726921.77]);
+    dados.addRow(["04.817.052/0001-06", "YAMAHA MOTOR DA AMAZONIA LTDA - MATRIZ", "Cobrança Retroativa", "M. Empresarial", 659.70]);
+    const resumo = wb.addWorksheet("TABELAS");
+    resumo.addRow(["Cobrança Retroativa JUL/26", 1, 206.01]);
+
+    const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
+
+    expect(blocos).toHaveLength(1);
+    expect(blocos[0].retroativas?.total).toBeCloseTo(659.70, 2);
   });
 });
