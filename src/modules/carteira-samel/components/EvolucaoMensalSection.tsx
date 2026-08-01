@@ -161,8 +161,9 @@ export function EvolucaoMensalSection() {
   }, [linhasFiltradas, visao]);
 
   const consolidadoTodos = useMemo(() => agruparPorPeriodo(linhasFiltradas), [linhasFiltradas]);
-  const atual = consolidadoTodos[consolidadoTodos.length - 1] || null;
-  const anterior = consolidadoTodos[consolidadoTodos.length - 2] || null;
+  // KPIs do topo seguem a visão selecionada (empresa específica ou consolidado)
+  const atual = serie[serie.length - 1] || null;
+  const anterior = serie[serie.length - 2] || null;
   const variacao = atual && anterior ? atual.sinistralidade - anterior.sinistralidade : null;
 
   const mostrarTotais = visao === "__todas__";
