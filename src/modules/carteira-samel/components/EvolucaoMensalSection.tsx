@@ -305,6 +305,58 @@ export function EvolucaoMensalSection() {
         />
       </div>
 
+      {/* KPIs acumulados do período */}
+      {acumulado && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-semibold uppercase tracking-wide text-foreground/80">
+              Acumulado do período
+            </span>
+            <span>
+              · {labelPeriodo(acumulado.inicio)} a {labelPeriodo(acumulado.fim)} ({acumulado.meses}{" "}
+              {acumulado.meses === 1 ? "mês" : "meses"}) · {nomeVisao} · {labelMeta(acumulado.meta)}
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Kpi
+              icon={TrendingUp}
+              label="Sinistralidade acumulada"
+              value={fmtPct(acumulado.sinistralidade)}
+              hint={`Sinistro ${fmtMoeda(acumulado.sinistroTotal)}`}
+              tone={acumulado.sinistralidade > acumulado.meta ? "ruim" : "bom"}
+            />
+            <Kpi
+              icon={Building2}
+              label="Prêmio total acumulado"
+              value={fmtMoeda(acumulado.premioTotal)}
+              hint={`${labelMeta(acumulado.meta)}: ${fmtMoeda(acumulado.premioTotal * acumulado.meta)}`}
+            />
+            <Kpi
+              icon={acumulado.distorcao < 0 ? ArrowDownRight : ArrowUpRight}
+              label="Distorção acumulada"
+              value={fmtPctSinal(acumulado.distorcao)}
+              hint="vs. meta do período"
+              tone={acumulado.distorcao > 0 ? "ruim" : "bom"}
+            />
+            <Kpi
+              icon={Wallet}
+              label="Aporte financeiro acumulado"
+              value={fmtMoedaSinal(acumulado.aporte)}
+              hint={
+                acumulado.aporte > 0
+                  ? "A favor da operadora"
+                  : acumulado.aporte < 0
+                  ? "Crédito para a empresa"
+                  : "Equilibrado"
+              }
+              tone={acumulado.aporte > 0 ? "ruim" : "bom"}
+            />
+          </div>
+        </div>
+      )}
+
+
+
       {/* Filtros (sticky) */}
       <Card className="sticky top-2 z-30 p-3 flex flex-wrap items-center gap-2 shadow-md backdrop-blur supports-[backdrop-filter]:bg-card/85">
         <span
