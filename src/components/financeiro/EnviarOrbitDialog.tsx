@@ -360,14 +360,16 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
   // Por usuário selecionado: empresas novas x já enviadas anteriormente
   const planoPorUsuario = useMemo(() => {
-    return usuariosOrbit
-      .filter((u) => usuariosSel.has(u.login.toLowerCase()))
-      .map((u) => {
-        const novas = selecionadas.filter((e) => !jaEnviadaPara(keyOf(e), u.login));
-        const repetidas = selecionadas.filter((e) => jaEnviadaPara(keyOf(e), u.login));
-        return { login: u.login, novas, repetidas };
+    return perfis
+      .map((p) => (p.username ?? "").trim())
+      .filter((login) => login && usuariosSel.has(login.toLowerCase()))
+      .map((login) => {
+        const novas = selecionadas.filter((e) => !jaEnviadaPara(keyOf(e), login));
+        const repetidas = selecionadas.filter((e) => jaEnviadaPara(keyOf(e), login));
+        return { login, novas, repetidas };
       });
-  }, [usuariosOrbit, usuariosSel, selecionadas, enviosPorEmpresa]);
+  }, [perfis, usuariosSel, selecionadas, enviosPorEmpresa]);
+
 
   async function enviar() {
     const entries = planoPorUsuario
