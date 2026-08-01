@@ -148,6 +148,9 @@ export function FinanceiroTable({
               const isOverdue = !row.dentro_prazo && !row.data_envio_nota;
               const rowKey = row.rowKey ?? row.id;
               const isExpanded = expandedRowId === rowKey;
+              const orbit =
+                orbitMap?.get(orbitEnvioKey(row.empresa_nome, row.empresa_codigo)) ??
+                orbitMap?.get(orbitEnvioKey(row.empresa_nome, null));
               return (
                 <Fragment key={rowKey}>
                   <TableRow
