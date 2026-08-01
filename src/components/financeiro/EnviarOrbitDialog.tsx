@@ -5,6 +5,103 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+function CustomScrollArea({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [thumbHeight, setThumbHeight] = useState(0);
+  const [thumbTop, setThumbTop] = useState(0);
+  const [visible, setVisible] = useState(false);
+
+  const updateThumb = () => {
+    const v = viewportRef.current;
+    if (!v) return;
+    const ratio = v.clientHeight / v.scrollHeight;
+    const height = Math.max(ratio * v.clientHeight, 48);
+    const top = (v.scrollTop / v.scrollHeight) * v.clientHeight;
+    setThumbHeight(height);
+    setThumbTop(top);
+    setVisible(v.scrollHeight > v.clientHeight);
+  };
+
+  useEffect(() => {
+    updateThumb();
+  }, [children]);
+
+  useEffect(() => {
+    const v = viewportRef.current;
+    if (!v) return;
+    const onScroll = () => updateThumb();
+    const onResize = () => updateThumb();
+    v.addEventListener("scroll", onScroll);
+    window.addEventListener("resize", onResize);
+    return () => {
+      v.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  const onThumbMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const v = viewportRef.current;
+    const thumb = e.currentTarget as HTMLDivElement;
+    if (!v || !thumb) return;
+    const startY = e.clientY;
+    const startTop = thumb.getBoundingClientRect().top;
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientY - startY;
+      const ratio = delta / v.clientHeight;
+      v.scrollTop += ratio * v.scrollHeight;
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const onTrackClick = (e: React.MouseEvent) => {
+    const v = viewportRef.current;
+    const track = trackRef.current;
+    if (!v || !track) return;
+    const rect = track.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const ratio = clickY / rect.height;
+    v.scrollTop = ratio * v.scrollHeight;
+  };
+
+  return (
+    <div className={cn("relative overflow-hidden", className)}>
+      <div
+        ref={viewportRef}
+        className="h-full w-full overflow-y-auto"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {children}
+      </div>
+      {visible && (
+        <div
+          ref={trackRef}
+          onClick={onTrackClick}
+          className="absolute right-1 top-1 bottom-1 w-3 rounded-full bg-muted/40 cursor-pointer"
+        >
+          <div
+            className="absolute w-full rounded-full bg-primary/70 hover:bg-primary transition-colors cursor-grab active:cursor-grabbing"
+            style={{ height: thumbHeight, top: thumbTop }}
+            onMouseDown={onThumbMouseDown}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Send, Search, CheckCircle2, ArrowLeft, ArrowRight, SlidersHorizontal, ChevronDown, X, History } from "lucide-react";
