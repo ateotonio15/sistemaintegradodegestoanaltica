@@ -104,6 +104,8 @@ export function EvolucaoMensalSection() {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [editando, setEditando] = useState<any | null>(null);
   const [loteAberto, setLoteAberto] = useState(false);
+  const [configAberto, setConfigAberto] = useState(false);
+  const { data: config = {} } = useCarteiraConfig();
 
   // Visão vem da URL (?empresa=grupo | todas | slug-da-empresa)
   const paramEmpresa = searchParams.get("empresa") || "grupo";
