@@ -445,10 +445,10 @@ export function EvolucaoMensalSection() {
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <ReferenceLine
                   yAxisId="p"
-                  y={70}
+                  y={Number((metaVisao * 100).toFixed(2))}
                   strokeDasharray="5 5"
                   stroke="hsl(var(--destructive))"
-                  label={{ value: "BE 70%", position: "right", fontSize: 10 }}
+                  label={{ value: labelMeta(metaVisao), position: "right", fontSize: 10 }}
                 />
                 <Line
                   yAxisId="v"
