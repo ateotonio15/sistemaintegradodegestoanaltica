@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Send, Search, CheckCircle2, ArrowLeft, ArrowRight, SlidersHorizontal, ChevronDown, X, History } from "lucide-react";
 
@@ -358,7 +358,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
         {etapa === 1 && (
           <>
-            <div className="px-6 space-y-3 shrink-0 max-h-[38vh] overflow-y-auto">
+            <div className="px-6 space-y-3 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -369,24 +369,140 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                     onChange={(e) => setBusca(e.target.value)}
                   />
                 </div>
-                <Button
-                  type="button"
-                  variant={filtrosAtivos > 0 ? "default" : "outline"}
-                  className="h-10 rounded-xl gap-2"
-                  onClick={() => setFiltrosAbertos((v) => !v)}
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  Filtros
-                  {filtrosAtivos > 0 && (
-                    <span className="ml-0.5 rounded-full bg-background/25 px-1.5 text-[11px] font-semibold tabular-nums">
-                      {filtrosAtivos}
-                    </span>
-                  )}
-                  <ChevronDown className={cn("h-4 w-4 transition-transform", filtrosAbertos && "rotate-180")} />
-                </Button>
+                <Popover open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={filtrosAtivos > 0 ? "default" : "outline"}
+                      className="h-10 rounded-xl gap-2"
+                    >
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filtros
+                      {filtrosAtivos > 0 && (
+                        <span className="ml-0.5 rounded-full bg-background/25 px-1.5 text-[11px] font-semibold tabular-nums">
+                          {filtrosAtivos}
+                        </span>
+                      )}
+                      <ChevronDown className={cn("h-4 w-4 transition-transform", filtrosAbertos && "rotate-180")} />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" sideOffset={8} className="w-[min(30rem,92vw)] p-0 overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+                      <span className="text-sm font-medium">Filtros</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={limparFiltros}
+                        disabled={filtrosAtivos === 0}
+                      >
+                        Limpar tudo
+                      </Button>
+                    </div>
+
+                    <ScrollArea className="max-h-[52vh]">
+                      <div className="p-4 space-y-4">
+                        {statusDisponiveis.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</span>
+                              {statusSel.length > 0 && (
+                                <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setStatusSel([])}>
+                                  limpar
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {statusDisponiveis.map((s) => {
+                                const n = unicas.filter((e) => e.status === s).length;
+                                const ativo = statusSel.includes(s);
+                                return (
+                                  <Badge
+                                    key={s}
+                                    variant={ativo ? "default" : "outline"}
+                                    className="cursor-pointer rounded-full font-normal transition-colors"
+                                    onClick={() => setStatusSel((prev) => (ativo ? prev.filter((x) => x !== s) : [...prev, s]))}
+                                  >
+                                    {s} ({n})
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {diasEmissaoDisponiveis.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Dia de emissão</span>
+                              {diaEmissaoSel.length > 0 && (
+                                <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setDiaEmissaoSel([])}>
+                                  limpar
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {diasEmissaoDisponiveis.map((d) => {
+                                const n = unicas.filter((e) => e.dia_emissao === d).length;
+                                const ativo = diaEmissaoSel.includes(d);
+                                return (
+                                  <Badge
+                                    key={d}
+                                    variant={ativo ? "default" : "outline"}
+                                    className="cursor-pointer rounded-full font-normal tabular-nums transition-colors"
+                                    onClick={() => setDiaEmissaoSel((prev) => (ativo ? prev.filter((x) => x !== d) : [...prev, d]))}
+                                  >
+                                    {String(d).padStart(2, "0")} ({n})
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {tiposMovDisponiveis.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de movimentação</span>
+                              {tipoMovSel.length > 0 && (
+                                <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setTipoMovSel([])}>
+                                  limpar
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {tiposMovDisponiveis.map((t) => {
+                                const n = unicas.filter((e) => (e.tipo_cobranca ?? "").trim() === t).length;
+                                const ativo = tipoMovSel.includes(t);
+                                return (
+                                  <Badge
+                                    key={t}
+                                    variant={ativo ? "default" : "outline"}
+                                    className="cursor-pointer rounded-full font-normal transition-colors"
+                                    onClick={() => setTipoMovSel((prev) => (ativo ? prev.filter((x) => x !== t) : [...prev, t]))}
+                                  >
+                                    {t} ({n})
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+
+                    <div className="flex items-center justify-between gap-2 px-4 py-3 border-t bg-muted/30">
+                      <span className="text-xs text-muted-foreground tabular-nums">{lista.length} resultado(s)</span>
+                      <Button type="button" size="sm" className="h-8 text-xs" onClick={() => setFiltrosAbertos(false)}>
+                        Ver resultados
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              {filtrosAtivos > 0 && !filtrosAbertos && (
+              {filtrosAtivos > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5">
                   {statusSel.map((s) => (
                     <Badge key={s} variant="secondary" className="rounded-full gap-1 font-normal">
@@ -411,108 +527,6 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                   </button>
                 </div>
               )}
-
-              <Collapsible open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
-                <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-                  <div className="rounded-xl border bg-muted/20 p-3 space-y-3">
-                    {statusDisponiveis.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</span>
-                          {statusSel.length > 0 && (
-                            <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setStatusSel([])}>
-                              limpar
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {statusDisponiveis.map((s) => {
-                            const n = unicas.filter((e) => e.status === s).length;
-                            const ativo = statusSel.includes(s);
-                            return (
-                              <Badge
-                                key={s}
-                                variant={ativo ? "default" : "outline"}
-                                className="cursor-pointer rounded-full font-normal transition-colors"
-                                onClick={() => setStatusSel((prev) => (ativo ? prev.filter((x) => x !== s) : [...prev, s]))}
-                              >
-                                {s} ({n})
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {diasEmissaoDisponiveis.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Dia de emissão</span>
-                          {diaEmissaoSel.length > 0 && (
-                            <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setDiaEmissaoSel([])}>
-                              limpar
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {diasEmissaoDisponiveis.map((d) => {
-                            const n = unicas.filter((e) => e.dia_emissao === d).length;
-                            const ativo = diaEmissaoSel.includes(d);
-                            return (
-                              <Badge
-                                key={d}
-                                variant={ativo ? "default" : "outline"}
-                                className="cursor-pointer rounded-full font-normal tabular-nums transition-colors"
-                                onClick={() => setDiaEmissaoSel((prev) => (ativo ? prev.filter((x) => x !== d) : [...prev, d]))}
-                              >
-                                {String(d).padStart(2, "0")} ({n})
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {tiposMovDisponiveis.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de movimentação</span>
-                          {tipoMovSel.length > 0 && (
-                            <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setTipoMovSel([])}>
-                              limpar
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {tiposMovDisponiveis.map((t) => {
-                            const n = unicas.filter((e) => (e.tipo_cobranca ?? "").trim() === t).length;
-                            const ativo = tipoMovSel.includes(t);
-                            return (
-                              <Badge
-                                key={t}
-                                variant={ativo ? "default" : "outline"}
-                                className="cursor-pointer rounded-full font-normal transition-colors"
-                                onClick={() => setTipoMovSel((prev) => (ativo ? prev.filter((x) => x !== t) : [...prev, t]))}
-                              >
-                                {t} ({n})
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-
-
-                    <div className="flex items-center justify-between pt-1 border-t">
-                      <span className="text-xs text-muted-foreground">{lista.length} resultado(s)</span>
-                      <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={limparFiltros} disabled={filtrosAtivos === 0}>
-                        Limpar filtros
-                      </Button>
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
 
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-sm">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -540,8 +554,9 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
             </div>
 
 
+
             <div className="px-6 flex-1 min-h-0">
-              <ScrollArea className="h-full min-h-[180px] rounded-lg border">
+              <ScrollArea className="h-full min-h-[260px] rounded-lg border">
                 {lista.length === 0 ? (
                   <div className="p-10 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</div>
                 ) : (
