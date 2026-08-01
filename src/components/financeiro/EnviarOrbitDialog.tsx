@@ -153,11 +153,12 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return unicas.filter((e) => {
       if (statusSel.length && !statusSel.includes(e.status ?? "")) return false;
       if (diaEmissaoSel.length && !(typeof e.dia_emissao === "number" && diaEmissaoSel.includes(e.dia_emissao))) return false;
+      if (tipoMovSel.length && !tipoMovSel.includes((e.tipo_movimentacao ?? "").trim())) return false;
       if (ocultarEnviadas && (enviosPorEmpresa.get(keyOf(e))?.length ?? 0) > 0) return false;
       if (!q) return true;
       return `${e.nome} ${e.contrato ?? ""} ${e.responsavel ?? ""}`.toLowerCase().includes(q);
     });
-  }, [unicas, busca, statusSel, diaEmissaoSel, ocultarEnviadas, enviosPorEmpresa]);
+  }, [unicas, busca, statusSel, diaEmissaoSel, tipoMovSel, ocultarEnviadas, enviosPorEmpresa]);
 
   const toggle = (k: string) =>
     setSel((prev) => {
