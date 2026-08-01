@@ -9,7 +9,7 @@ export interface LancamentoMensal {
   periodo: string; // YYYY-MM-DD
   premio_empresa: number;
   premio_continuidade: number;
-  sinistro: number;
+  sinistro: number | null;
   meta_sinistralidade?: number | null;
   hm_in_company?: number | null;
   fisioterapia_in_company?: number | null;
@@ -37,6 +37,7 @@ export interface LinhaEvolucao {
   be70: number;
   distorcao: number; // fração (0.1520)
   aporte: number; // R$
+  sinistroPendente?: boolean;
 }
 
 /**
@@ -84,6 +85,7 @@ export function calcular(
 }
 
 export function toLinha(l: LancamentoMensal): LinhaEvolucao {
+  const sinistroPendente = l.sinistro === null || l.sinistro === undefined;
   const premioEmpresa = Number(l.premio_empresa) || 0;
   const premioContinuidade = Number(l.premio_continuidade) || 0;
   const sinistro = Number(l.sinistro) || 0;
@@ -101,6 +103,7 @@ export function toLinha(l: LancamentoMensal): LinhaEvolucao {
     premioContinuidade,
     sinistro,
     ...c,
+    sinistroPendente,
   };
 }
 
