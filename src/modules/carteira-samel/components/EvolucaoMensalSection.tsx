@@ -19,6 +19,7 @@ import {
   Minus,
   Pencil,
   Plus,
+  Settings2,
   Trash2,
   TrendingUp,
   Wallet,
