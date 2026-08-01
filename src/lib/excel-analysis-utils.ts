@@ -1422,6 +1422,11 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   // depois de "Total Geral"/"Contrato:" e não são capturadas no loop principal.
   let tailRetroQtd = 0;
   let tailRetroTotal = 0;
+  // A mesma tabela dinâmica pode aparecer mais de uma vez no rodapé do RESUMO
+  // (uma linha com quantidade + valor e outra repetição apenas com o valor).
+  // O valor monetário é a identidade mais estável; a quantidade pode variar
+  // entre essas representações e não deve fazer a cobrança ser somada novamente.
+  const tailRetroValoresVistos = new Set<string>();
   for (let i = breakIdx; i < rows.length; i++) {
     const r = rows[i] || [];
     // Ignora cabeçalhos/totais das próprias pivots
@@ -1445,6 +1450,9 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (nums.length === 0) continue;
     const qtd = nums.length >= 2 ? Math.round(nums[0]) : 0;
     const total = nums.length >= 2 ? nums[1] : nums[0];
+    const chaveValor = total.toFixed(2);
+    if (tailRetroValoresVistos.has(chaveValor)) continue;
+    tailRetroValoresVistos.add(chaveValor);
     tailRetroQtd += qtd;
     tailRetroTotal += total;
   }
@@ -1966,10 +1974,10 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (isNaN(total)) continue;
       const qtd = nums.length > 0 && qtdCand !== null ? Math.round(qtdCand) : 0;
       const mes = extrairMes(hitLabel);
-      // Deduplica pelo par valor+quantidade (sem o mês): o mesmo pivot costuma
-      // aparecer na RESUMO e repetido em outra aba, às vezes com rótulo de mês
-      // diferente/ausente — somar os dois duplicava a cobrança retroativa.
-      const chave = `${total.toFixed(2)}|${qtd}`;
+      // Deduplica pelo valor monetário. A mesma cobrança pode aparecer uma vez
+      // com quantidade e outra sem quantidade; usar qtd na chave fazia o mesmo
+      // R$ 430,28 ser tratado como dois lançamentos diferentes.
+      const chave = total.toFixed(2);
       if (pivotsVistos.has(chave)) continue;
       pivotsVistos.add(chave);
       pivotEncontrado = true;
