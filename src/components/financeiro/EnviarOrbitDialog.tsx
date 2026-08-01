@@ -648,7 +648,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
 
                 <div className="px-6 flex-1 min-h-0">
-                  <ScrollArea className="h-[330px] rounded-lg border p-3">
+                  <ScrollArea className="h-full min-h-[180px] rounded-lg border p-3">
                     <div className="space-y-2">
                       {usuariosOrbit.length === 0 ? (
                         <div className="rounded-md border border-dashed p-6 text-center text-xs text-muted-foreground">
