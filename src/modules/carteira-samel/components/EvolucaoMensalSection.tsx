@@ -871,13 +871,43 @@ function LancamentoDialog({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Meta / Break Even (%)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={meta}
+                onChange={(e) => setMeta(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">HM in company (R$)</Label>
+              <Input type="number" step="0.01" value={hm} onChange={(e) => setHm(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Fisioterapia in company (R$)</Label>
+              <Input type="number" step="0.01" value={fisio} onChange={(e) => setFisio(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Administrativo in company (R$)</Label>
+              <Input type="number" step="0.01" value={admin} onChange={(e) => setAdmin(e.target.value)} />
+            </div>
+          </div>
+
           <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
               Calculado automaticamente
             </p>
             <Row label="Prêmio Total" value={fmtMoeda(calc.premioTotal)} />
+            {calc.inCompanyTotal > 0 && (
+              <>
+                <Row label="Total in company" value={fmtMoeda(calc.inCompanyTotal)} />
+                <Row label="Sinistro Total" value={fmtMoeda(calc.sinistroTotal)} />
+              </>
+            )}
             <Row label="Sinistralidade" value={fmtPct(calc.sinistralidade)} />
-            <Row label="BE 70%" value={fmtMoeda(calc.be70)} />
+            <Row label={labelMeta(calc.meta)} value={fmtMoeda(calc.beMeta)} />
             <Row label="Distorção" value={fmtPctSinal(calc.distorcao)} className={corValor(calc.distorcao)} />
             <Row
               label="Aporte Financeiro"
