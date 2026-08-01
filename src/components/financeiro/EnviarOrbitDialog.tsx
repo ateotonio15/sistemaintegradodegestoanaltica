@@ -164,6 +164,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setEtapa(1);
     setSel(new Set());
     setUsuariosSel(new Set());
+    setBuscaUsuario("");
+
     setBusca("");
     setStatusSel([]);
     setDiaEmissaoSel([]);
