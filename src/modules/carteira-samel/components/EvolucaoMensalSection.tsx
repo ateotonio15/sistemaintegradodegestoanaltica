@@ -539,7 +539,7 @@ export function EvolucaoMensalSection() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={temInCompany ? 13 : 11} className="px-3 py-6 text-center text-muted-foreground">
                     Carregando...
                   </td>
                 </tr>
