@@ -218,6 +218,19 @@
   }
   * { scrollbar-color: hsl(var(--primary) / 0.25) transparent; scrollbar-width: thin; }
 
+  /* Prominent scrollbar — always-visible track + thumb for long lists */
+  .scrollbar-prominent { overflow-y: scroll !important; scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / 0.7) hsl(var(--muted) / 0.55); }
+  .scrollbar-prominent::-webkit-scrollbar { width: 12px; height: 12px; display: block !important; }
+  .scrollbar-prominent::-webkit-scrollbar-track { background: hsl(var(--muted) / 0.55); border-radius: 9999px; }
+  .scrollbar-prominent::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.7);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .scrollbar-prominent::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary)); }
+  .scrollbar-prominent::-webkit-scrollbar-corner { background: transparent; }
+
   /* Premium icon micro-interaction (lucide) — discreet across the system */
   .lucide {
     transition: transform var(--motion-normal) var(--ease-premium),

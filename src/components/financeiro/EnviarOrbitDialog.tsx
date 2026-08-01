@@ -1,10 +1,105 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+function CustomScrollArea({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [thumbHeight, setThumbHeight] = useState(0);
+  const [thumbTop, setThumbTop] = useState(0);
+  const [visible, setVisible] = useState(false);
+
+  const updateThumb = () => {
+    const v = viewportRef.current;
+    if (!v) return;
+    const ratio = v.clientHeight / v.scrollHeight;
+    const height = Math.max(ratio * v.clientHeight, 48);
+    const top = (v.scrollTop / v.scrollHeight) * v.clientHeight;
+    setThumbHeight(height);
+    setThumbTop(top);
+    setVisible(v.scrollHeight > v.clientHeight);
+  };
+
+  useEffect(() => {
+    updateThumb();
+  }, [children]);
+
+  useEffect(() => {
+    const v = viewportRef.current;
+    if (!v) return;
+    const onScroll = () => updateThumb();
+    const onResize = () => updateThumb();
+    v.addEventListener("scroll", onScroll);
+    window.addEventListener("resize", onResize);
+    return () => {
+      v.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  const onThumbMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const v = viewportRef.current;
+    const thumb = e.currentTarget as HTMLDivElement;
+    if (!v || !thumb) return;
+    const startY = e.clientY;
+    const startTop = thumb.getBoundingClientRect().top;
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientY - startY;
+      const ratio = delta / v.clientHeight;
+      v.scrollTop += ratio * v.scrollHeight;
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const onTrackClick = (e: React.MouseEvent) => {
+    const v = viewportRef.current;
+    const track = trackRef.current;
+    if (!v || !track) return;
+    const rect = track.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const ratio = clickY / rect.height;
+    v.scrollTop = ratio * v.scrollHeight;
+  };
+
+  return (
+    <div className={cn("relative overflow-hidden", className)}>
+      <div
+        ref={viewportRef}
+        className={cn("h-full w-full overflow-y-auto", visible && "pr-5")}
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {children}
+      </div>
+      {visible && (
+        <div
+          ref={trackRef}
+          onClick={onTrackClick}
+          className="absolute right-1 top-1 bottom-1 w-3 rounded-full bg-muted/40 cursor-pointer"
+        >
+          <div
+            className="absolute w-full rounded-full bg-primary/70 hover:bg-primary transition-colors cursor-grab active:cursor-grabbing"
+            style={{ height: thumbHeight, top: thumbTop }}
+            onMouseDown={onThumbMouseDown}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Send, Search, CheckCircle2, ArrowLeft, ArrowRight, SlidersHorizontal, ChevronDown, X, History } from "lucide-react";
@@ -321,7 +416,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col gap-4 p-0 overflow-hidden">
+      <DialogContent className="max-w-3xl h-[92vh] max-h-[92vh] flex flex-col gap-4 p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30 shrink-0">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-primary/10 text-primary p-2.5 shrink-0">
@@ -401,7 +496,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       </Button>
                     </div>
 
-                    <ScrollArea className="max-h-[66vh]">
+                    <CustomScrollArea className="max-h-[66vh]">
                       <div className="p-4 space-y-4">
                         {statusDisponiveis.length > 0 && (
                           <div className="space-y-2">
@@ -490,7 +585,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                           </div>
                         )}
                       </div>
-                    </ScrollArea>
+                    </CustomScrollArea>
 
                     <div className="flex items-center justify-between gap-2 px-4 py-3 border-t bg-muted/30">
                       <span className="text-xs text-muted-foreground tabular-nums">{lista.length} resultado(s)</span>
@@ -556,7 +651,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
 
             <div className="px-6 flex-1 min-h-0">
-              <ScrollArea className="h-full min-h-[340px] rounded-lg border">
+              <CustomScrollArea className="h-full min-h-[340px] rounded-lg border">
                 {lista.length === 0 ? (
                   <div className="p-10 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</div>
                 ) : (
@@ -613,7 +708,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                     })}
                   </ul>
                 )}
-              </ScrollArea>
+              </CustomScrollArea>
             </div>
 
 
@@ -663,7 +758,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
 
                 <div className="px-6 flex-1 min-h-0">
-                  <ScrollArea className="h-full min-h-[180px] rounded-lg border p-3">
+                  <CustomScrollArea className="h-full min-h-[180px] rounded-lg border p-3">
                     <div className="space-y-2">
                       {usuariosOrbit.length === 0 ? (
                         <div className="rounded-md border border-dashed p-6 text-center text-xs text-muted-foreground">
@@ -716,7 +811,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                         })
                       )}
                     </div>
-                  </ScrollArea>
+                  </CustomScrollArea>
                 </div>
               </>
             )}
