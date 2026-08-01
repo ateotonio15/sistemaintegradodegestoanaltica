@@ -498,7 +498,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       </Button>
                     </div>
 
-                    <ScrollArea className="max-h-[66vh]">
+                    <CustomScrollArea className="max-h-[66vh]">
                       <div className="p-4 space-y-4">
                         {statusDisponiveis.length > 0 && (
                           <div className="space-y-2">
@@ -587,7 +587,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                           </div>
                         )}
                       </div>
-                    </ScrollArea>
+                    </CustomScrollArea>
 
                     <div className="flex items-center justify-between gap-2 px-4 py-3 border-t bg-muted/30">
                       <span className="text-xs text-muted-foreground tabular-nums">{lista.length} resultado(s)</span>
