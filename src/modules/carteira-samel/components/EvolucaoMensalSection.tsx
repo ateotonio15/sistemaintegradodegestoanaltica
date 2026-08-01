@@ -944,10 +944,85 @@ function LancamentoDialog({
               <Input type="number" step="0.01" value={pc} onChange={(e) => setPc(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Sinistro (R$)</Label>
-              <Input type="number" step="0.01" value={sin} onChange={(e) => setSin(e.target.value)} />
+              <Label className="text-xs">Sinistro (R$) — somado</Label>
+              <Input value={fmtMoeda(sinTotal)} readOnly disabled className="font-medium" />
             </div>
           </div>
+
+          <div className="rounded-lg border p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-medium">Guias/Atendimentos do período</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {guias.length} lançamento(s) · Soma {fmtMoeda(sinTotal)}
+                </p>
+              </div>
+              <div className="flex gap-1">
+                <Button type="button" size="sm" variant="outline" onClick={() => addGuia(false)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Linha
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => addGuia(true)}>
+                  Ajuste (+/-)
+                </Button>
+              </div>
+            </div>
+
+            {guias.length > 0 && (
+              <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+                {guias.map((g, i) => (
+                  <div key={g.id} className="flex items-center gap-1.5">
+                    <span className="w-6 text-[11px] text-muted-foreground tabular-nums">{i + 1}</span>
+                    <Input
+                      className="h-8 text-xs flex-1"
+                      placeholder={g.ajuste ? "Motivo do ajuste (glosa, estorno...)" : "Beneficiário / descrição (opcional)"}
+                      value={g.descricao ?? ""}
+                      onChange={(ev) => updGuia(g.id, { descricao: ev.target.value })}
+                    />
+                    <Input
+                      className="h-8 text-xs w-32 text-right tabular-nums"
+                      type="number"
+                      step="0.01"
+                      value={g.valor}
+                      onChange={(ev) => updGuia(g.id, { valor: Number(ev.target.value) })}
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => setGuias((p) => p.filter((x) => x.id !== g.id))}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div>
+              <Label className="text-[11px] text-muted-foreground">
+                Colar valores (uma coluna do Excel, um valor por linha)
+              </Label>
+              <Textarea
+                rows={3}
+                className="text-xs"
+                placeholder={"1.234,56\n789,00\n..."}
+                value={colar}
+                onChange={(ev) => setColar(ev.target.value)}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="mt-1"
+                onClick={importarColados}
+                disabled={!colar.trim()}
+              >
+                Importar valores colados
+              </Button>
+            </div>
+          </div>
+
 
           <div className="grid grid-cols-2 gap-3">
             <div>
