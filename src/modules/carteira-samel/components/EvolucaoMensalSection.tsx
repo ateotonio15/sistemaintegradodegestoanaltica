@@ -526,9 +526,11 @@ export function EvolucaoMensalSection() {
                 <th className="px-3 py-2 text-right">Prêmio Empresa</th>
                 <th className="px-3 py-2 text-right">Prêmio Continuidade</th>
                 <th className="px-3 py-2 text-right">Prêmio Total</th>
-                <th className="px-3 py-2 text-right">Sinistro</th>
+                <th className="px-3 py-2 text-right">{temInCompany ? "Sinistro (operadora)" : "Sinistro"}</th>
+                {temInCompany && <th className="px-3 py-2 text-right">In company</th>}
+                {temInCompany && <th className="px-3 py-2 text-right">Sinistro Total</th>}
                 <th className="px-3 py-2 text-right">Sinistralidade</th>
-                <th className="px-3 py-2 text-right">BE 70%</th>
+                <th className="px-3 py-2 text-right">BE Meta</th>
                 <th className="px-3 py-2 text-right">Distorção</th>
                 <th className="px-3 py-2 text-right">Aporte Financeiro</th>
                 <th className="px-3 py-2" />
