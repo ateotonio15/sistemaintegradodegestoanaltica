@@ -702,28 +702,15 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium truncate">{e.nome}</div>
-                            {ultimo ? (
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <Badge
-                                  variant="outline"
-                                  className="h-5 px-1.5 text-[10px] rounded-md font-normal gap-1 border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-500/10"
-                                >
-                                  <History className="h-3 w-3" />
-                                  Orbit: @{ultimo.orbit_user}
-                                </Badge>
-                                {hist.length > 1 && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    +{hist.length - 1} envio(s)
-                                  </span>
-                                )}
-                                <span className="text-[10px] text-muted-foreground ml-auto">
-                                  {fmtData(ultimo.enviado_em)}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="text-xs text-muted-foreground truncate">
-                                Contrato {e.contrato || "—"} · {e.responsavel || "Sem responsável"}
-                                {login ? ` · @${login}` : " · sem login"}
+                            <div className="text-xs text-muted-foreground truncate">
+                              Contrato {e.contrato || "—"} · {e.responsavel || "Sem responsável"}
+                              {login ? ` · @${login}` : " · sem login"}
+                            </div>
+                            {ultimo && (
+                              <div className="text-[11px] text-amber-600 dark:text-amber-400 truncate">
+                                Já enviada em {fmtData(ultimo.enviado_em)} para{" "}
+                                {Array.from(new Set(hist.map((h) => `@${h.orbit_user}`))).slice(0, 3).join(", ")}
+                                {new Set(hist.map((h) => h.orbit_user)).size > 3 ? "…" : ""}
                               </div>
                             )}
                           </div>
