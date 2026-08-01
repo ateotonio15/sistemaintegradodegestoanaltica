@@ -574,6 +574,12 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                   <div className="rounded-lg border bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">{empresasSelecionadasNomes.length} empresa(s)</span> serão enviadas para cada usuário marcado.
                   </div>
+                  <label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs cursor-pointer">
+                    <Checkbox checked={evitarDuplicados} onCheckedChange={(v) => setEvitarDuplicados(!!v)} />
+                    <span className="text-muted-foreground">
+                      Não reenviar empresas que já foram enviadas para o usuário
+                    </span>
+                  </label>
                   <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <Checkbox
@@ -587,6 +593,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                     <Badge variant={usuariosSel.size ? "default" : "secondary"} className="rounded-full">{usuariosSel.size} usuário(s)</Badge>
                   </div>
                 </div>
+
 
                 <div className="px-6 flex-1 min-h-0">
                   <ScrollArea className="h-[330px] rounded-lg border p-3">
