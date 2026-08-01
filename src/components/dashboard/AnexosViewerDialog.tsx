@@ -160,6 +160,24 @@ export function AnexosViewerDialog({
 
       toast.success("Faturamento iniciado");
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+
+      // Notifica o Orbit que o faturamento foi iniciado dentro do Siga.
+      try {
+        const { data: empContrato } = await supabase
+          .from("empresas")
+          .select("nome, codigo_contrato")
+          .eq("id", targetEmpresaId ?? "")
+          .maybeSingle();
+        await supabase.functions.invoke("orbit-billing-notify", {
+          body: {
+            company: empContrato?.nome ?? ctx?.empresaNome ?? empresaNome,
+            contract: empContrato?.codigo_contrato ?? null,
+            date: new Date().toISOString().slice(0, 10),
+          },
+        });
+      } catch (err) {
+        console.error("Falha ao notificar o Orbit:", err);
+      }
     } catch (e: any) {
       toast.error("Erro ao iniciar faturamento: " + e.message);
     } finally {
