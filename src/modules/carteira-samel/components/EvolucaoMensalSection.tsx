@@ -394,7 +394,10 @@ export function EvolucaoMensalSection() {
               {nomeVisao}
             </span>
           </h3>
-          <span className="text-xs text-muted-foreground">Linha tracejada = Break Even 70%</span>
+          <span className="text-xs text-muted-foreground">
+            Linha tracejada = Break Even {fmtPct(metaVisao, 0)}
+            {temInCompany && " · Sinistro total inclui custos in company"}
+          </span>
         </div>
         <div className="overflow-x-auto">
           <div
