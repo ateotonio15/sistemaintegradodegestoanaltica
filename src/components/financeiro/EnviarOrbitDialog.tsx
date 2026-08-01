@@ -79,7 +79,7 @@ function CustomScrollArea({
     <div className={cn("relative overflow-hidden", className)}>
       <div
         ref={viewportRef}
-        className="h-full w-full overflow-y-auto"
+        className={cn("h-full w-full overflow-y-auto", visible && "pr-5")}
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {children}
