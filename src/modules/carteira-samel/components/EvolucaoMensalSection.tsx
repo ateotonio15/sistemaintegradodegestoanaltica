@@ -595,8 +595,14 @@ export function EvolucaoMensalSection() {
                       <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.premioContinuidade)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.premioTotal)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.sinistro)}</td>
+                      {temInCompany && (
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.inCompanyTotal)}</td>
+                      )}
+                      {temInCompany && (
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.sinistroTotal)}</td>
+                      )}
                       <td className="px-3 py-2 text-right tabular-nums">{fmtPct(l.sinistralidade)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.be70)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.beMeta)}</td>
                       <td className={cn("px-3 py-2 text-right tabular-nums", corValor(l.distorcao))}>
                         {fmtPctSinal(l.distorcao)}
                       </td>
