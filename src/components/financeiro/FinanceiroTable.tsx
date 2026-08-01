@@ -16,6 +16,8 @@ import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { AnaliseExcelRow } from "./AnaliseExcelRow";
 import type { AnaliseResultado, ComparacaoResultado, NotaOrfa } from "@/lib/excel-analysis-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
+import { useOrbitEnvios, useOrbitEnviosRefresh, orbitEnvioKey } from "@/hooks/useOrbitEnvios";
+import { Send } from "lucide-react";
 
 export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_nome: string;
@@ -100,6 +102,11 @@ export function FinanceiroTable({
     faturamentoIniciadoPorNome: string | null;
   } | null>(null);
 
+  const { data: orbitMap } = useOrbitEnvios();
+  useOrbitEnviosRefresh();
+
+
+
 
 
   return (
@@ -142,6 +149,9 @@ export function FinanceiroTable({
               const isOverdue = !row.dentro_prazo && !row.data_envio_nota;
               const rowKey = row.rowKey ?? row.id;
               const isExpanded = expandedRowId === rowKey;
+              const orbit =
+                orbitMap?.get(orbitEnvioKey(row.empresa_nome, row.empresa_codigo)) ??
+                orbitMap?.get(orbitEnvioKey(row.empresa_nome, null));
               return (
                 <Fragment key={rowKey}>
                   <TableRow
@@ -195,8 +205,22 @@ export function FinanceiroTable({
                             </Badge>
                           )}
                         </div>
-                        {row.grupo_nome && (
-                          <GrupoTag empresaId={row.empresa_id} grupoNome={row.grupo_nome} onVisualizarGrupo={onVisualizarGrupo} />
+                        {(row.grupo_nome || orbit) && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {row.grupo_nome && (
+                              <GrupoTag empresaId={row.empresa_id} grupoNome={row.grupo_nome} onVisualizarGrupo={onVisualizarGrupo} />
+                            )}
+                            {orbit && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] text-primary/90 w-fit"
+                                title={`Enviado ao Orbit para ${orbit.orbit_user} em ${formatDateBR(orbit.enviado_em)}`}
+                              >
+                                <Send className="h-2.5 w-2.5" />
+                                <span className="font-medium">Orbit:</span>
+                                <span className="truncate max-w-[140px]">{orbit.orbit_user}</span>
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </TableCell>
