@@ -1675,7 +1675,7 @@ export default function Empresas() {
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Venc. Fatura</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Emissão Fatura</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                    <TableHead className="w-24 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ações</TableHead>
+                    <TableHead className="w-16 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
