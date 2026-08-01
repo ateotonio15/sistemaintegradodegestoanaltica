@@ -386,7 +386,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       <ChevronDown className={cn("h-4 w-4 transition-transform", filtrosAbertos && "rotate-180")} />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" sideOffset={8} className="w-[min(30rem,92vw)] p-0 overflow-hidden">
+                  <PopoverContent align="end" sideOffset={8} className="w-[min(38rem,95vw)] p-0 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
                       <span className="text-sm font-medium">Filtros</span>
                       <Button
