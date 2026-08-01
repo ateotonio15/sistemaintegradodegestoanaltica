@@ -4143,7 +4143,7 @@ export type Database = {
           premio_empresa: number
           premio_total: number | null
           sinistralidade: number | null
-          sinistro: number
+          sinistro: number | null
           sinistro_total: number | null
           updated_at: string
         }
@@ -4167,7 +4167,7 @@ export type Database = {
           premio_empresa?: number
           premio_total?: number | null
           sinistralidade?: number | null
-          sinistro?: number
+          sinistro?: number | null
           sinistro_total?: number | null
           updated_at?: string
         }
@@ -4191,7 +4191,7 @@ export type Database = {
           premio_empresa?: number
           premio_total?: number | null
           sinistralidade?: number | null
-          sinistro?: number
+          sinistro?: number | null
           sinistro_total?: number | null
           updated_at?: string
         }
