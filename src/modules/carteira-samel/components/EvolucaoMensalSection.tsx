@@ -43,13 +43,21 @@ import {
   fmtMoedaSinal,
   fmtPct,
   fmtPctSinal,
+  labelMeta,
   labelPeriodo,
   LinhaEvolucao,
+  META_PADRAO,
   calcular,
   parseColagem,
   toLinha,
 } from "../lib/evolucao-mensal";
-import { useDeleteLancamento, useEvolucaoMensal, useUpsertLancamento } from "../hooks/useEvolucaoMensal";
+import {
+  useCarteiraConfig,
+  useDeleteLancamento,
+  useEvolucaoMensal,
+  useUpsertLancamento,
+} from "../hooks/useEvolucaoMensal";
+import { ConfigCarteiraDialog } from "./ConfigCarteiraDialog";
 
 const RANGES = [
   { v: "3", label: "Últimos 3 meses" },
