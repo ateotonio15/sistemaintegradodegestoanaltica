@@ -172,14 +172,16 @@ Deno.serve(async (req) => {
     }
 
     const agora = new Date().toISOString();
+    const patch = {
+      faturamento_iniciado_por: perfil?.user_id ?? null,
+      faturamento_iniciado_por_nome: nomeUsuario,
+      faturamento_iniciado_em: agora,
+      updated_at: agora,
+    };
+
     const { data: atualizadas, error: upErr } = await admin
       .from("financeiro_movimentacoes")
-      .update({
-        faturamento_iniciado_por: perfil?.user_id ?? null,
-        faturamento_iniciado_por_nome: nomeUsuario,
-        faturamento_iniciado_em: agora,
-        updated_at: agora,
-      })
+      .update(patch)
       .in("empresa_id", empresaIds)
       .eq("mes_referencia", mov.mes_referencia)
       .eq("periodo", mov.periodo)
@@ -187,22 +189,41 @@ Deno.serve(async (req) => {
       .select("id");
     if (upErr) throw upErr;
 
+    // Garante que a linha alvo foi realmente marcada (ex.: período divergente).
+    let total = atualizadas?.length ?? 0;
+    if (!atualizadas?.some((r: any) => r.id === mov!.id)) {
+      const { data: alvo, error: alvoErr } = await admin
+        .from("financeiro_movimentacoes")
+        .update(patch)
+        .eq("id", mov.id)
+        .is("faturamento_iniciado_em", null)
+        .select("id");
+      if (alvoErr) throw alvoErr;
+      total += alvo?.length ?? 0;
+    }
+
     console.log("[billing-start]", {
       source: source ?? null,
       task_id: task_id ?? null,
       empresa: empresa.nome,
       contrato: empresa.codigo_contrato,
+      mes_referencia: mov.mes_referencia,
+      periodo: mov.periodo,
       usuario: nomeUsuario,
-      atualizadas: atualizadas?.length ?? 0,
+      atualizadas: total,
     });
 
     return json({
       ok: true,
+      already_started: false,
+      status: "Em faturamento",
       empresa: empresa.nome,
       contrato: empresa.codigo_contrato,
       mes_referencia: mov.mes_referencia,
+      periodo: mov.periodo,
       usuario: nomeUsuario,
-      movimentacoes_iniciadas: atualizadas?.length ?? 0,
+      movimentacoes_iniciadas: total,
+
       task_id: task_id ?? null,
     });
   } catch (e) {
