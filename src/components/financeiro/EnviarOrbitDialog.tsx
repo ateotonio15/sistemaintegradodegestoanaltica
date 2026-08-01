@@ -606,6 +606,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                         usuariosOrbit.map((u) => {
                           const marcado = usuariosSel.has(u.login.toLowerCase());
                           const res = resultados.find((r) => r.username.toLowerCase() === u.login.toLowerCase());
+                          const repetidas = selecionadas.filter((e) => jaEnviadaPara(keyOf(e), u.login)).length;
+                          const novas = selecionadas.length - repetidas;
                           return (
                             <div
                               key={u.login}
@@ -634,9 +636,16 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                                   {res ? ` · ${res.added ?? 0} criada(s)` : ""}
                                 </div>
                               </div>
+                              {repetidas > 0 && (
+                                <Badge variant="outline" className="shrink-0 gap-1 text-[10px] rounded-full font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">
+                                  <History className="h-3 w-3" /> {repetidas} repetida(s)
+                                </Badge>
+                              )}
+                              <Badge variant="secondary" className="shrink-0 text-[10px] rounded-full font-normal">{novas} nova(s)</Badge>
                               <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
                             </div>
                           );
+
                         })
                       )}
                     </div>
