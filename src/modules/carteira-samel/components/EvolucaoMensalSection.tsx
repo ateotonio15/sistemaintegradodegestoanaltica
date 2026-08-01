@@ -846,7 +846,8 @@ function LancamentoDialog({
   const [mes, setMes] = useState("");
   const [pe, setPe] = useState("0");
   const [pc, setPc] = useState("0");
-  const [sin, setSin] = useState("0");
+  const [guias, setGuias] = useState<GuiaLancamento[]>([]);
+  const [colar, setColar] = useState("");
   const [meta, setMeta] = useState(String(META_PADRAO * 100));
   const [hm, setHm] = useState("0");
   const [fisio, setFisio] = useState("0");
