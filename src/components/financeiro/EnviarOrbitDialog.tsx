@@ -401,7 +401,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       </Button>
                     </div>
 
-                    <ScrollArea className="max-h-[52vh]">
+                    <ScrollArea className="max-h-[66vh]">
                       <div className="p-4 space-y-4">
                         {statusDisponiveis.length > 0 && (
                           <div className="space-y-2">
