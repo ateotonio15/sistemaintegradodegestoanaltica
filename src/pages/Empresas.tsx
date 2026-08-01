@@ -1730,8 +1730,16 @@ export default function Empresas() {
                           <TableCell className="text-right font-medium tabular-nums">{((e as any).vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
                           <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="rounded-md">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
+                            <div className="flex flex-wrap items-center gap-1">
+                              <Badge variant="outline" className="rounded-md">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
+                              {(e as any).contrato_via_portal && (
+                                <Badge className="rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/20" title="Movimentação realizada pelo portal">
+                                  Portal
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
+
                           <TableCell>
                             {(e as any).tipo_contrato === "ADMINISTRADORA"
                               ? (e.data_corte ? `Dia ${String(e.data_corte).padStart(2, "0")}` : "—")
