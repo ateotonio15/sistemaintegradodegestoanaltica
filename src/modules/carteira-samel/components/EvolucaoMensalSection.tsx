@@ -15,6 +15,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Building2,
+  FileUp,
   Filter,
   Minus,
   Pencil,
@@ -60,6 +61,7 @@ import {
   type GuiaLancamento,
 } from "../hooks/useEvolucaoMensal";
 import { ConfigCarteiraDialog } from "./ConfigCarteiraDialog";
+import { ImportarCsvDialog } from "./ImportarCsvDialog";
 
 const RANGES = [
   { v: "3", label: "Últimos 3 meses" },
@@ -107,6 +109,7 @@ export function EvolucaoMensalSection() {
   const [editando, setEditando] = useState<any | null>(null);
   const [loteAberto, setLoteAberto] = useState(false);
   const [configAberto, setConfigAberto] = useState(false);
+  const [csvAberto, setCsvAberto] = useState(false);
   const { data: config = {} } = useCarteiraConfig();
 
   // Visão vem da URL (?empresa=grupo | todas | slug-da-empresa)
@@ -445,6 +448,9 @@ export function EvolucaoMensalSection() {
           <Button variant="outline" size="sm" onClick={() => setLoteAberto(true)}>
             Importar em lote
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setCsvAberto(true)}>
+            <FileUp className="h-3.5 w-3.5 mr-1" /> Importar CSV
+          </Button>
           <Button
             size="sm"
             onClick={() => {
@@ -673,20 +679,28 @@ export function EvolucaoMensalSection() {
                       <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.premioEmpresa)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.premioContinuidade)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.premioTotal)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.sinistro)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {l.sinistroPendente ? (
+                          <Badge variant="outline" className="text-[10px]">pendente</Badge>
+                        ) : (
+                          fmtMoeda(l.sinistro)
+                        )}
+                      </td>
                       {temInCompany && (
                         <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.inCompanyTotal)}</td>
                       )}
                       {temInCompany && (
                         <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.sinistroTotal)}</td>
                       )}
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtPct(l.sinistralidade)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.beMeta)}</td>
-                      <td className={cn("px-3 py-2 text-right tabular-nums", corValor(l.distorcao))}>
-                        {fmtPctSinal(l.distorcao)}
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {l.sinistroPendente ? "—" : fmtPct(l.sinistralidade)}
                       </td>
-                      <td className={cn("px-3 py-2 text-right tabular-nums", corValor(l.aporte))}>
-                        {fmtMoedaSinal(l.aporte)}
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.beMeta)}</td>
+                      <td className={cn("px-3 py-2 text-right tabular-nums", !l.sinistroPendente && corValor(l.distorcao))}>
+                        {l.sinistroPendente ? "—" : fmtPctSinal(l.distorcao)}
+                      </td>
+                      <td className={cn("px-3 py-2 text-right tabular-nums", !l.sinistroPendente && corValor(l.aporte))}>
+                        {l.sinistroPendente ? "—" : fmtMoedaSinal(l.aporte)}
                       </td>
                       <td className="px-3 py-2 text-right whitespace-nowrap">
                         {!isGrupoRow && (
@@ -738,8 +752,8 @@ export function EvolucaoMensalSection() {
                 <Badge variant="outline">{labelPeriodo(l.periodo)}</Badge>
               </div>
               <Row label="Prêmio total" value={fmtMoeda(l.premioTotal)} />
-              <Row label="Sinistro" value={fmtMoeda(l.sinistro)} />
-              <Row label="Sinistralidade" value={fmtPct(l.sinistralidade)} />
+              <Row label="Sinistro" value={l.sinistroPendente ? "pendente" : fmtMoeda(l.sinistro)} />
+              <Row label="Sinistralidade" value={l.sinistroPendente ? "—" : fmtPct(l.sinistralidade)} />
               {l.inCompanyTotal > 0 && (
                 <>
                   <Row label="In company" value={fmtMoeda(l.inCompanyTotal)} />
@@ -764,6 +778,7 @@ export function EvolucaoMensalSection() {
         empresas={ativas}
       />
       <LoteDialog open={loteAberto} onOpenChange={setLoteAberto} empresas={ativas} />
+      <ImportarCsvDialog open={csvAberto} onOpenChange={setCsvAberto} empresas={ativas} />
       <ConfigCarteiraDialog open={configAberto} onOpenChange={setConfigAberto} empresas={ativas} />
     </div>
   );
