@@ -93,44 +93,64 @@ Deno.serve(async (req) => {
     }
     const nomeUsuario = perfil?.display_name || perfil?.username || String(user || "Orbit");
 
-    // ---------- movimentação da competência ----------
+    // ---------- movimentação alvo ----------
+    // Regra: usa a competência informada (payload.mes_referencia) ou o mês da data.
+    // Se não existir linha nessa competência, cai para a competência aberta mais
+    // recente que NÃO seja futura (nunca escolhe meses à frente, que não aparecem
+    // na tela do Financeiro).
+    const mesPayload = /^\d{4}-\d{2}$/.test(String(payload?.mes_referencia || ""))
+      ? String(payload.mes_referencia)
+      : null;
+    const mesAlvo = mesPayload ?? mesRef;
+    const COLS =
+      "id,empresa_id,mes_referencia,periodo,faturamento_iniciado_em,faturamento_iniciado_por_nome,data_envio_nota";
+
     let { data: mov } = await admin
       .from("financeiro_movimentacoes")
-      .select("id,empresa_id,mes_referencia,periodo,faturamento_iniciado_em")
+      .select(COLS)
       .eq("empresa_id", empresa.id)
-      .eq("mes_referencia", mesRef)
+      .eq("mes_referencia", mesAlvo)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (!mov) {
-      const { data: ultima } = await admin
+      const { data: anterior } = await admin
         .from("financeiro_movimentacoes")
-        .select("id,empresa_id,mes_referencia,periodo,faturamento_iniciado_em")
+        .select(COLS)
         .eq("empresa_id", empresa.id)
+        .lte("mes_referencia", mesAlvo)
         .order("mes_referencia", { ascending: false })
         .limit(1)
         .maybeSingle();
-      mov = ultima;
+      mov = anterior;
     }
     if (!mov) {
       return json(
-        { ok: false, error: "Nenhuma movimentação financeira encontrada para a empresa", mes: mesRef },
+        { ok: false, error: "Nenhuma movimentação financeira encontrada para a empresa", mes: mesAlvo },
         404,
       );
     }
 
-    if (mov.faturamento_iniciado_em) {
+    // already_started SOMENTE quando a linha alvo já está de fato em faturamento
+    // (ou em estágio posterior: nota já enviada).
+    if (mov.faturamento_iniciado_em || mov.data_envio_nota) {
       return json({
         ok: true,
         already_started: true,
-        message: "Faturamento já estava iniciado",
+        status: mov.data_envio_nota ? "Enviada" : "Em faturamento",
+        message: mov.data_envio_nota
+          ? "Nota já enviada para esta competência"
+          : "Faturamento já estava iniciado",
         empresa: empresa.nome,
         contrato: empresa.codigo_contrato,
         mes_referencia: mov.mes_referencia,
+        periodo: mov.periodo,
+        iniciado_por: mov.faturamento_iniciado_por_nome ?? null,
         task_id: task_id ?? null,
       });
     }
+
 
     // Empresas do mesmo grupo financeiro (replica o comportamento do Siga)
     const { data: vinculo } = await admin
