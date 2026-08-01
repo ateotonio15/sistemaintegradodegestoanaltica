@@ -218,6 +218,18 @@
   }
   * { scrollbar-color: hsl(var(--primary) / 0.25) transparent; scrollbar-width: thin; }
 
+  /* Prominent scrollbar — visible track + thumb for long lists */
+  .scrollbar-prominent::-webkit-scrollbar { width: 10px; height: 10px; }
+  .scrollbar-prominent::-webkit-scrollbar-track { background: hsl(var(--muted) / 0.45); border-radius: 9999px; }
+  .scrollbar-prominent::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.55);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .scrollbar-prominent::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.85); }
+  .scrollbar-prominent { scrollbar-width: thin; scrollbar-color: hsl(var(--primary) / 0.55) hsl(var(--muted) / 0.45); }
+
   /* Premium icon micro-interaction (lucide) — discreet across the system */
   .lucide {
     transition: transform var(--motion-normal) var(--ease-premium),
