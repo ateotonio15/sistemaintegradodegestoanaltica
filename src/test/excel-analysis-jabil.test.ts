@@ -44,15 +44,12 @@ describe("análise financeira Jabil", () => {
 
   it("não duplica cobrança retroativa repetida com quantidades diferentes", async () => {
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("RESUMO");
-    ws.addRow(["Categoria", "QTD", "Mensalidade", "Valor"]);
-    ws.addRow(["OESA 12.345.678/0001-90"]);
-    ws.addRow(["M. Empresarial", 10, 5725.781, 57257.81]);
-    ws.addRow(["Inclusões", 2, "", 5097.07]);
-    ws.addRow(["TOTAL", "", "", 62785.16]);
-    ws.addRow(["Total Geral"]);
-    ws.addRow(["Cobrança Retroativa JUL/26", 1, 430.28]);
-    ws.addRow(["Cobrança Retroativa", "", 430.28]);
+    const dados = wb.addWorksheet("RELATORIO BENEFICIARIOS");
+    dados.addRow(["CNPJ", "Subestipulante", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    dados.addRow(["12.345.678/0001-90", "OESA", "Mensalidade", "M. Empresarial", 57257.81]);
+    const resumo = wb.addWorksheet("TABELAS");
+    resumo.addRow(["Cobrança Retroativa JUL/26", 1, 430.28]);
+    resumo.addRow(["Cobrança Retroativa", "", 430.28]);
 
     const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
 
@@ -62,17 +59,12 @@ describe("análise financeira Jabil", () => {
 
   it("não soma o detalhamento do rodapé ao total retroativo consolidado", async () => {
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("RESUMO");
-    ws.addRow(["Categoria", "QTD", "Mensalidade", "Valor"]);
-    ws.addRow(["YAMAHA MOTOR DA AMAZONIA LTDA - MATRIZ 04.817.052/0001-06"]);
-    ws.addRow(["M. Empresarial", 6671, 258.87, 1726921.77]);
-    ws.addRow(["M. Executivo", 273, 362.41, 98937.93]);
-    ws.addRow(["Inclusão", 86, "", 7936.56]);
-    ws.addRow(["Cobrança Retroativa", 1, "", 659.70]);
-    ws.addRow(["Exclusão", 4, "", -517.75]);
-    ws.addRow(["TOTAL", 7035, "", 1833938.21]);
-    ws.addRow(["Total Geral"]);
-    ws.addRow(["Cobrança Retroativa JUL/26", 1, 206.01]);
+    const dados = wb.addWorksheet("RELATORIO BENEFICIARIOS");
+    dados.addRow(["CNPJ", "Subestipulante", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    dados.addRow(["04.817.052/0001-06", "YAMAHA MOTOR DA AMAZONIA LTDA - MATRIZ", "Mensalidade", "M. Empresarial", 1726921.77]);
+    dados.addRow(["04.817.052/0001-06", "YAMAHA MOTOR DA AMAZONIA LTDA - MATRIZ", "Cobrança Retroativa", "M. Empresarial", 659.70]);
+    const resumo = wb.addWorksheet("TABELAS");
+    resumo.addRow(["Cobrança Retroativa JUL/26", 1, 206.01]);
 
     const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
 
