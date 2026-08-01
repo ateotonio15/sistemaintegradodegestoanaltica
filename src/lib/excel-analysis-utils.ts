@@ -1905,6 +1905,16 @@ export async function analisarExcelFinanceiroPorCnpj(
   };
 
   // Passo 1: procura pivots "Cobrança Retroativa <Mês>" em abas de resumo
+  // Chaves já contabilizadas (rótulo + valor) para não somar o mesmo pivot
+  // duas vezes quando ele se repete em mais de uma aba/linha.
+  const pivotsVistos = new Set<string>();
+  // Uma quantidade plausível de beneficiários: inteiro pequeno.
+  // Evita capturar CNPJ/CPF (ex.: 81611931005007) como "quantidade".
+  const ehQtdPlausivel = (raw: unknown, n: number): boolean => {
+    const digitos = String(raw ?? "").replace(/\D/g, "");
+    if (digitos.length >= 11) return false; // CPF/CNPJ
+    return Number.isFinite(n) && n >= 0 && n < 100000 && Math.abs(n - Math.round(n)) < 0.001;
+  };
   wb.worksheets.forEach((sheet) => {
     const nomeAba = norm(sheet.name || "");
     const abaEhRetro = nomeAba.includes("retroativ");
@@ -1921,21 +1931,37 @@ export async function analisarExcelFinanceiroPorCnpj(
         if (t.includes("cobranca retroativa")) { hitIdx = c; hitLabel = String(r[c] ?? ""); break; }
       }
       if (hitIdx < 0) continue;
+      // Coleta os números à direita do rótulo, ignorando identificadores
+      // (CNPJ/CPF) que aparecem em algumas planilhas entre o rótulo e o valor.
       const nums: number[] = [];
-      for (let c = hitIdx + 1; c < r.length && nums.length < 2; c++) {
-        const n = toNumber(r[c]);
-        if (!isNaN(n)) nums.push(n);
+      let qtdCand: number | null = null;
+      for (let c = hitIdx + 1; c < r.length; c++) {
+        const raw = r[c];
+        const n = toNumber(raw);
+        if (isNaN(n)) continue;
+        const digitos = String(raw ?? "").replace(/\D/g, "");
+        if (digitos.length >= 11) continue; // CNPJ/CPF — nunca é qtd nem valor
+        if (qtdCand === null && nums.length === 0 && ehQtdPlausivel(raw, n)) {
+          qtdCand = n;
+          continue;
+        }
+        nums.push(n);
+        if (nums.length >= 1) break;
       }
-      if (nums.length === 0) continue;
+      const total = nums.length > 0 ? nums[0] : qtdCand !== null ? qtdCand : NaN;
+      if (isNaN(total)) continue;
+      const qtd = nums.length > 0 && qtdCand !== null ? Math.round(qtdCand) : 0;
+      const mes = extrairMes(hitLabel);
+      const chave = `${mes ?? norm(hitLabel)}|${total.toFixed(2)}|${qtd}`;
+      if (pivotsVistos.has(chave)) continue;
+      pivotsVistos.add(chave);
       pivotEncontrado = true;
-      const qtd = nums.length >= 2 ? Math.round(nums[0]) : 0;
-      const total = nums.length >= 2 ? nums[1] : nums[0];
       extraRetroQtd += qtd;
       extraRetroTotal += total;
-      const mes = extrairMes(hitLabel);
       if (mes) { mesesRetro.add(mes); addDetalhe(mes, qtd, total); }
     }
   });
+
 
   // Passo 2: se não achou pivots, soma linha-a-linha das abas dedicadas
   if (!pivotEncontrado) {
