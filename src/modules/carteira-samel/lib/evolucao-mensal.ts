@@ -9,7 +9,7 @@ export interface LancamentoMensal {
   periodo: string; // YYYY-MM-DD
   premio_empresa: number;
   premio_continuidade: number;
-  sinistro: number;
+  sinistro: number | null;
   meta_sinistralidade?: number | null;
   hm_in_company?: number | null;
   fisioterapia_in_company?: number | null;
@@ -37,6 +37,7 @@ export interface LinhaEvolucao {
   be70: number;
   distorcao: number; // fração (0.1520)
   aporte: number; // R$
+  sinistroPendente?: boolean;
 }
 
 /**
@@ -84,6 +85,7 @@ export function calcular(
 }
 
 export function toLinha(l: LancamentoMensal): LinhaEvolucao {
+  const sinistroPendente = l.sinistro === null || l.sinistro === undefined;
   const premioEmpresa = Number(l.premio_empresa) || 0;
   const premioContinuidade = Number(l.premio_continuidade) || 0;
   const sinistro = Number(l.sinistro) || 0;
@@ -101,6 +103,7 @@ export function toLinha(l: LancamentoMensal): LinhaEvolucao {
     premioContinuidade,
     sinistro,
     ...c,
+    sinistroPendente,
   };
 }
 
@@ -240,4 +243,184 @@ export function parseColagem(texto: string): {
       };
     })
     .filter((r) => r.empresa && r.periodo);
+}
+
+/* ==================== Importação em lote via CSV ==================== */
+
+export const CSV_CABECALHO = [
+  "empresa",
+  "periodo",
+  "premio_empresa",
+  "premio_continuidade",
+  "premio_total",
+  "fisioterapia_in_company",
+  "sinistro",
+  "meta_sinistralidade",
+] as const;
+
+export const CSV_MODELO = `${CSV_CABECALHO.join(",")}
+Empresa Exemplo,2026-05,5013457.56,18431.92,5031889.48,33777.25,3669951.12,0.75
+Empresa Exemplo,2026-06,5020000.00,18431.92,,0,,0.75
+`;
+
+export interface LinhaCsv {
+  indice: number;
+  empresaTexto: string;
+  empresaId: string | null;
+  empresaNome: string;
+  periodo: string; // YYYY-MM-01
+  periodoTexto: string;
+  premioEmpresa: number;
+  premioContinuidade: number;
+  premioTotalCsv: number | null;
+  fisio: number;
+  sinistro: number | null;
+  meta: number | null;
+  erros: string[];
+  avisos: string[];
+  duplicada: boolean;
+}
+
+function normalizaNome(s: string) {
+  return (s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function numeroCsv(s: string | undefined): number | null {
+  const t = (s ?? "").trim();
+  if (!t) return null;
+  // aceita "1.234,56" (pt-BR) e "1234.56"
+  const ptBR = /,\d{1,2}$/.test(t);
+  const clean = ptBR ? t.replace(/\./g, "").replace(",", ".") : t.replace(/\s/g, "");
+  const n = Number(clean.replace(/[R$\s]/g, ""));
+  return isNaN(n) ? null : n;
+}
+
+function splitLinhaCsv(linha: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let aspas = false;
+  for (let i = 0; i < linha.length; i++) {
+    const c = linha[i];
+    if (c === '"') {
+      if (aspas && linha[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else aspas = !aspas;
+    } else if ((c === "," || c === ";") && !aspas) {
+      out.push(cur);
+      cur = "";
+    } else cur += c;
+  }
+  out.push(cur);
+  return out.map((c) => c.trim());
+}
+
+/** Faz o parse do CSV de lançamentos mensais, validando empresa/período. */
+export function parseCsvLancamentos(
+  texto: string,
+  empresas: { id: string; nome: string }[],
+  existentes: { empresa_id: string; periodo: string }[] = [],
+): LinhaCsv[] {
+  const linhas = texto
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((l) => l.trim().length > 0);
+  if (!linhas.length) return [];
+
+  const header = splitLinhaCsv(linhas[0]).map((h) => normalizaNome(h).replace(/ /g, "_"));
+  const temHeader = header.includes("empresa") && header.includes("periodo");
+  const idx = (nome: string) => {
+    const i = header.indexOf(nome);
+    return i >= 0 ? i : CSV_CABECALHO.indexOf(nome as any);
+  };
+  const col = {
+    empresa: temHeader ? idx("empresa") : 0,
+    periodo: temHeader ? idx("periodo") : 1,
+    premioEmpresa: temHeader ? idx("premio_empresa") : 2,
+    premioContinuidade: temHeader ? idx("premio_continuidade") : 3,
+    premioTotal: temHeader ? idx("premio_total") : 4,
+    fisio: temHeader ? idx("fisioterapia_in_company") : 5,
+    sinistro: temHeader ? idx("sinistro") : 6,
+    meta: temHeader ? idx("meta_sinistralidade") : 7,
+  };
+
+  const mapaEmpresas = new Map(empresas.map((e) => [normalizaNome(e.nome), e]));
+  const chavesExistentes = new Set(
+    existentes.map((e) => `${e.empresa_id}|${String(e.periodo).slice(0, 7)}`),
+  );
+
+  const corpo = temHeader ? linhas.slice(1) : linhas;
+  const vistas = new Set<string>();
+
+  return corpo.map((linha, i) => {
+    const cols = splitLinhaCsv(linha);
+    const get = (c: number) => (c >= 0 ? cols[c] : undefined);
+    const erros: string[] = [];
+    const avisos: string[] = [];
+
+    const empresaTexto = (get(col.empresa) || "").trim();
+    const emp = mapaEmpresas.get(normalizaNome(empresaTexto)) || null;
+    if (!empresaTexto) erros.push("Empresa não informada");
+    else if (!emp) erros.push("Empresa não encontrada na carteira");
+
+    const periodoTexto = (get(col.periodo) || "").trim();
+    let periodo = "";
+    const m = /^(\d{4})-(\d{1,2})/.exec(periodoTexto) || null;
+    const m2 = /^(\d{1,2})\/(\d{4})$/.exec(periodoTexto);
+    if (m && Number(m[2]) >= 1 && Number(m[2]) <= 12) {
+      periodo = `${m[1]}-${String(Number(m[2])).padStart(2, "0")}-01`;
+    } else if (m2 && Number(m2[1]) >= 1 && Number(m2[1]) <= 12) {
+      periodo = `${m2[2]}-${String(Number(m2[1])).padStart(2, "0")}-01`;
+    } else {
+      erros.push("Período inválido (use AAAA-MM)");
+    }
+
+    const premioEmpresa = numeroCsv(get(col.premioEmpresa)) ?? 0;
+    const premioContinuidade = numeroCsv(get(col.premioContinuidade)) ?? 0;
+    const premioTotalCsv = numeroCsv(get(col.premioTotal));
+    const fisio = numeroCsv(get(col.fisio)) ?? 0;
+    const sinistro = numeroCsv(get(col.sinistro));
+    const meta = numeroCsv(get(col.meta));
+
+    if (premioTotalCsv != null) {
+      const soma = premioEmpresa + premioContinuidade;
+      if (Math.abs(soma - premioTotalCsv) > 0.02) {
+        avisos.push(
+          `Prêmio total do CSV (${fmtMoeda(premioTotalCsv)}) difere da soma (${fmtMoeda(soma)})`,
+        );
+      }
+    }
+    if (sinistro == null) avisos.push("Sinistro em branco — será importado sem sinistro");
+
+    const chave = emp ? `${emp.id}|${periodo.slice(0, 7)}` : "";
+    let duplicada = false;
+    if (chave) {
+      if (chavesExistentes.has(chave)) duplicada = true;
+      if (vistas.has(chave)) avisos.push("Linha repetida dentro do próprio CSV");
+      vistas.add(chave);
+    }
+
+    return {
+      indice: i + 1,
+      empresaTexto,
+      empresaId: emp?.id ?? null,
+      empresaNome: emp?.nome ?? empresaTexto,
+      periodo,
+      periodoTexto,
+      premioEmpresa,
+      premioContinuidade,
+      premioTotalCsv,
+      fisio,
+      sinistro,
+      meta: meta != null ? (meta > 1 ? meta / 100 : meta) : null,
+      erros,
+      avisos,
+      duplicada,
+    };
+  });
 }
