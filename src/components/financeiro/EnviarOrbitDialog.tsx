@@ -418,6 +418,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
       );
       if (rows.length) await supabase.from("orbit_envios").insert(rows);
       await carregarEnvios();
+      window.dispatchEvent(new CustomEvent("orbit-envios-updated"));
 
       const totalAdded = results.reduce((s, r) => s + (r.added ?? 0), 0);
       toast.success(`${totalAdded} empresa(s) criada(s) no Orbit`, {
