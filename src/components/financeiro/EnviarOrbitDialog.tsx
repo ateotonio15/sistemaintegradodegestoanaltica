@@ -110,6 +110,16 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return Array.from(d).sort((a, b) => a - b);
   }, [unicas]);
 
+  const tiposMovDisponiveis = useMemo(() => {
+    const t = new Set<string>();
+    unicas.forEach((e) => {
+      const v = (e.tipo_movimentacao ?? "").trim();
+      if (v) t.add(v);
+    });
+    return Array.from(t).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [unicas]);
+
+
   const keyOf = (e: OrbitEmpresa) => `${e.contrato ?? ""}|${e.nome.toLowerCase()}`;
 
   const orbitUser = (resp?: string | null) => {
