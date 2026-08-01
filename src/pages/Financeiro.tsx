@@ -2839,7 +2839,7 @@ export default function Financeiro() {
             dia_emissao: r.dia_emissao,
             tipo_movimentacao:
               r.tipo_movimentacao ??
-              (empresasMap as any)?.get?.(r.empresa_id)?.tipo_movimentacao ??
+              (empresasMap as any)?.[r.empresa_id]?.tipo_movimentacao ??
               null,
           }))}
         />
