@@ -400,6 +400,12 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       <X className="h-3 w-3 cursor-pointer opacity-70 hover:opacity-100" onClick={() => setDiaEmissaoSel((p) => p.filter((x) => x !== d))} />
                     </Badge>
                   ))}
+                  {tipoMovSel.map((t) => (
+                    <Badge key={t} variant="secondary" className="rounded-full gap-1 font-normal">
+                      {t}
+                      <X className="h-3 w-3 cursor-pointer opacity-70 hover:opacity-100" onClick={() => setTipoMovSel((p) => p.filter((x) => x !== t))} />
+                    </Badge>
+                  ))}
                   <button type="button" className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline" onClick={limparFiltros}>
                     Limpar
                   </button>
