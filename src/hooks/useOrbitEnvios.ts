@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface OrbitEnvioInfo {
@@ -35,4 +36,14 @@ export function useOrbitEnvios() {
       return map;
     },
   });
+}
+
+/** Invalida o cache de envios quando o dialog do Orbit registra novos envios */
+export function useOrbitEnviosRefresh() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const handler = () => qc.invalidateQueries({ queryKey: ["orbit-envios-map"] });
+    window.addEventListener("orbit-envios-updated", handler);
+    return () => window.removeEventListener("orbit-envios-updated", handler);
+  }, [qc]);
 }
