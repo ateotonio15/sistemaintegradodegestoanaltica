@@ -1705,12 +1705,22 @@ export default function Empresas() {
                                 {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
                                 <span className="break-words">{e.nome}</span>
                               </div>
-                              {(temPrioridade || faixa) && (
+                              {(temPrioridade || faixa || (e as any).contrato_via_portal) && (
                                 <div className="flex items-center gap-1 flex-wrap">
                                   {temPrioridade && <PrioridadeBadge variant="compact" intense={isPrioridadeAlertaIntenso(e as any)} />}
+                                  {(e as any).contrato_via_portal && (
+                                    <span
+                                      className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400"
+                                      title="Movimentação realizada pelo portal"
+                                    >
+                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                      Portal
+                                    </span>
+                                  )}
                                   {faixa && <Badge variant="outline" className="rounded-md text-[10px]">Faixa Etária</Badge>}
                                 </div>
                               )}
+
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
@@ -1867,9 +1877,13 @@ export default function Empresas() {
                         <Badge variant={detailEmpresa.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md">
                           {detailEmpresa.status_empresa ?? "Ativa"}
                         </Badge>
+                        {(detailEmpresa as any).contrato_via_portal && (
+                          <Badge variant="outline" className="rounded-md border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Contrato via Portal</Badge>
+                        )}
                         {(detailEmpresa as any).contrato_faixa_etaria && (
                           <Badge variant="outline" className="rounded-md">Faixa Etária</Badge>
                         )}
+
                         {(detailEmpresa as any).contrato_suspenso && (
                           <Badge variant="destructive" className="rounded-md gap-1"><Ban className="h-3 w-3" />Suspenso</Badge>
                         )}
@@ -1906,6 +1920,8 @@ export default function Empresas() {
                       <DetailRow label="Data de Implantação" value={formatDateBR(detailEmpresa.data_implantacao)} />
                       <DetailRow label="Data de Corte" value={detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : null} />
                       <DetailRow label="Prazo (sem carência)" value={(detailEmpresa as any).prazo} />
+                      <DetailRow label="Movimentação via Portal" value={(detailEmpresa as any).contrato_via_portal ? "Sim" : "Não"} />
+
                       <DetailRow
                         label="Valor Enfermaria"
                         value={
