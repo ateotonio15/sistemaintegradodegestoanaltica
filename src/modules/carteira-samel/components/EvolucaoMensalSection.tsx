@@ -278,7 +278,7 @@ export function EvolucaoMensalSection() {
           icon={TrendingUp}
           label="Sinistralidade do mês"
           value={atual ? fmtPct(atual.sinistralidade) : "—"}
-          hint={atual ? `Grupo · ${labelPeriodo(atual.periodo)}` : "Sem lançamentos"}
+          hint={atual ? `${nomeVisao} · ${labelPeriodo(atual.periodo)}` : "Sem lançamentos"}
         />
         <Kpi
           icon={variacao == null ? Minus : variacao < 0 ? ArrowDownRight : ArrowUpRight}
