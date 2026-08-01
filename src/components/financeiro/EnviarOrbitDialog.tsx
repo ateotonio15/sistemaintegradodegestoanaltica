@@ -323,13 +323,25 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     }
   }
 
-  // Usuários ativos no Orbit (login do SIGA que existe no Orbit)
+  // Todos os usuários do SIGA — os localizados no Orbit vêm primeiro,
+  // mas os demais também podem ser selecionados (contas novas ainda sem projeto no Orbit).
   const usuariosOrbit = useMemo(() => {
-    return perfis
-      .map((p) => ({ login: (p.username ?? "").trim(), nome: (p.display_name ?? "").trim() }))
-      .filter((u) => u.login && loginsValidos.has(u.login.toLowerCase()))
-      .sort((a, b) => a.login.localeCompare(b.login, "pt-BR"));
-  }, [perfis, loginsValidos]);
+    const lista = perfis
+      .map((p) => ({
+        login: (p.username ?? "").trim(),
+        nome: (p.display_name ?? "").trim(),
+        validado: loginsValidos.has((p.username ?? "").trim().toLowerCase()),
+      }))
+      .filter((u) => u.login);
+    const q = buscaUsuario.trim().toLowerCase();
+    return lista
+      .filter((u) => !q || u.login.toLowerCase().includes(q) || u.nome.toLowerCase().includes(q))
+      .sort(
+        (a, b) =>
+          Number(b.validado) - Number(a.validado) || a.login.localeCompare(b.login, "pt-BR"),
+      );
+  }, [perfis, loginsValidos, buscaUsuario]);
+
 
   const toggleUsuario = (login: string) =>
     setUsuariosSel((prev) => {
