@@ -2017,9 +2017,16 @@ export async function analisarExcelFinanceiroPorCnpj(
     });
   }
 
+  // Salvaguarda: quantidades absurdas indicam leitura de CNPJ/identificador.
+  if (!Number.isFinite(extraRetroQtd) || extraRetroQtd >= 100000) extraRetroQtd = 0;
+  detalhePorMes.forEach((v, k) => {
+    if (!Number.isFinite(v.quantidade) || v.quantidade >= 100000) detalhePorMes.set(k, { ...v, quantidade: 0 });
+  });
+
   const mesesArr = Array.from(mesesRetro);
   const detalheArr: RetroativaMesDetalhe[] = Array.from(detalhePorMes.entries())
     .map(([mes, v]) => ({ mes, quantidade: v.quantidade, total: v.total }));
+
 
   const scaleDetalhe = (w: number): RetroativaMesDetalhe[] | undefined =>
     detalheArr.length
