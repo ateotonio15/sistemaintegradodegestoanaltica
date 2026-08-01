@@ -274,7 +274,7 @@ export function EvolucaoMensalSection() {
           icon={Building2}
           label="Prêmio total do mês"
           value={atual ? fmtMoeda(atual.premioTotal) : "—"}
-          hint={atual ? `BE 70%: ${fmtMoeda(atual.be70)}` : "—"}
+          hint={atual ? `${labelMeta(atual.meta)}: ${fmtMoeda(atual.beMeta)}` : "—"}
         />
       </div>
 
