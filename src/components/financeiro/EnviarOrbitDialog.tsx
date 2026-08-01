@@ -467,6 +467,37 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       </div>
                     )}
 
+                    {tiposMovDisponiveis.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de movimentação</span>
+                          {tipoMovSel.length > 0 && (
+                            <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setTipoMovSel([])}>
+                              limpar
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {tiposMovDisponiveis.map((t) => {
+                            const n = unicas.filter((e) => (e.tipo_movimentacao ?? "").trim() === t).length;
+                            const ativo = tipoMovSel.includes(t);
+                            return (
+                              <Badge
+                                key={t}
+                                variant={ativo ? "default" : "outline"}
+                                className="cursor-pointer rounded-full font-normal transition-colors"
+                                onClick={() => setTipoMovSel((prev) => (ativo ? prev.filter((x) => x !== t) : [...prev, t]))}
+                              >
+                                {t} ({n})
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+
+
                     <div className="flex items-center justify-between pt-1 border-t">
                       <span className="text-xs text-muted-foreground">{lista.length} resultado(s)</span>
                       <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={limparFiltros} disabled={filtrosAtivos === 0}>
