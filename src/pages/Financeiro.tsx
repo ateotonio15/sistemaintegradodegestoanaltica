@@ -2599,8 +2599,14 @@ export default function Financeiro() {
                 const renderChipGrupo = (g: ChipGrupo) => {
                   const membros = g.empresaIds.map((id) => rowsById.get(id)).filter(Boolean) as FinanceiroRow[];
                   if (membros.length < 2) return null;
+                  const statusUnicos = Array.from(new Set(membros.map((m) => m.status)));
+                  const grupoLabel =
+                    statusUnicos.length === 1
+                      ? `Grupo ${labelStatusFinanceiro(statusUnicos[0])}`
+                      : "Grupo de faturamento";
                   const expandido = grupoExpandidoId === g.id;
                   const isDragOver = dragOverChipId === g.id;
+
                   return (
                     <div key={g.id} className="inline-flex flex-col gap-1">
                       <div
@@ -2634,8 +2640,9 @@ export default function Financeiro() {
                         >
                           <Users className="h-3 w-3" />
                           <span>
-                            Grupo de faturamento
+                            {grupoLabel}
                           </span>
+
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-current">
                             {membros.length}
                           </Badge>
