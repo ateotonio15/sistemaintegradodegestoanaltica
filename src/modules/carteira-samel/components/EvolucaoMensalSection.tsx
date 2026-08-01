@@ -763,11 +763,16 @@ function LancamentoDialog({
   empresas: { id: string; nome: string }[];
 }) {
   const upsert = useUpsertLancamento();
+  const { data: config = {} } = useCarteiraConfig();
   const [empresaId, setEmpresaId] = useState("");
   const [mes, setMes] = useState("");
   const [pe, setPe] = useState("0");
   const [pc, setPc] = useState("0");
   const [sin, setSin] = useState("0");
+  const [meta, setMeta] = useState(String(META_PADRAO * 100));
+  const [hm, setHm] = useState("0");
+  const [fisio, setFisio] = useState("0");
+  const [admin, setAdmin] = useState("0");
 
   const key = registro?.id || "novo";
   const [lastKey, setLastKey] = useState<string>("");
@@ -778,9 +783,25 @@ function LancamentoDialog({
     setPe(String(registro?.premio_empresa ?? 0));
     setPc(String(registro?.premio_continuidade ?? 0));
     setSin(String(registro?.sinistro ?? 0));
+    setMeta(
+      String(
+        (Number(registro?.meta_sinistralidade) ||
+          config[registro?.empresa_id]?.meta_sinistralidade ||
+          META_PADRAO) * 100,
+      ),
+    );
+    setHm(String(registro?.hm_in_company ?? 0));
+    setFisio(String(registro?.fisioterapia_in_company ?? 0));
+    setAdmin(String(registro?.administrativo_in_company ?? 0));
   }
 
-  const calc = calcular(Number(pe) || 0, Number(pc) || 0, Number(sin) || 0);
+  const metaFracao = (Number(meta) || META_PADRAO * 100) / 100;
+
+  const calc = calcular(Number(pe) || 0, Number(pc) || 0, Number(sin) || 0, metaFracao, {
+    hm: Number(hm) || 0,
+    fisio: Number(fisio) || 0,
+    admin: Number(admin) || 0,
+  });
 
   const salvar = async () => {
     if (!empresaId || !mes) {
@@ -796,6 +817,10 @@ function LancamentoDialog({
         premio_empresa: Number(pe) || 0,
         premio_continuidade: Number(pc) || 0,
         sinistro: Number(sin) || 0,
+        meta_sinistralidade: metaFracao > 0 ? metaFracao : META_PADRAO,
+        hm_in_company: Number(hm) || 0,
+        fisioterapia_in_company: Number(fisio) || 0,
+        administrativo_in_company: Number(admin) || 0,
       });
       toast.success("Lançamento salvo");
       onOpenChange(false);
