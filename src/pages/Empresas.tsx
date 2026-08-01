@@ -1705,12 +1705,22 @@ export default function Empresas() {
                                 {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
                                 <span className="break-words">{e.nome}</span>
                               </div>
-                              {(temPrioridade || faixa) && (
+                              {(temPrioridade || faixa || (e as any).contrato_via_portal) && (
                                 <div className="flex items-center gap-1 flex-wrap">
                                   {temPrioridade && <PrioridadeBadge variant="compact" intense={isPrioridadeAlertaIntenso(e as any)} />}
+                                  {(e as any).contrato_via_portal && (
+                                    <span
+                                      className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400"
+                                      title="Movimentação realizada pelo portal"
+                                    >
+                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                      Portal
+                                    </span>
+                                  )}
                                   {faixa && <Badge variant="outline" className="rounded-md text-[10px]">Faixa Etária</Badge>}
                                 </div>
                               )}
+
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
