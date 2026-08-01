@@ -38,10 +38,11 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
-  const dataRef = /^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))
-    ? String(date)
-    : new Date().toISOString().slice(0, 10);
+  const temData = /^\d{4}-\d{2}-\d{2}$/.test(String(date || ""));
+  const dataRef = temData ? String(date) : new Date().toISOString().slice(0, 10);
   const mesRef = dataRef.slice(0, 7);
+  const mesAtual = new Date().toISOString().slice(0, 7);
+
 
   try {
     // ---------- empresa ----------
