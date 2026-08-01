@@ -230,28 +230,68 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     });
 
 
-  async function enviar() {
-    const entries = usuariosOrbit
-      .filter((u) => usuariosSel.has(u.login.toLowerCase()))
-      .map((u) => ({
-        user: u.login,
-        companies: empresasSelecionadasNomes,
-        companies_detailed: empresasSelecionadasDetalhe,
-      }));
+  const labelDe = (e: OrbitEmpresa) => {
+    const contrato = (e.contrato ?? "").trim();
+    return contrato ? `${e.nome} (Contrato ${contrato})` : e.nome;
+  };
 
-    if (!entries.length) {
+  // Por usuário selecionado: empresas novas x já enviadas anteriormente
+  const planoPorUsuario = useMemo(() => {
+    return usuariosOrbit
+      .filter((u) => usuariosSel.has(u.login.toLowerCase()))
+      .map((u) => {
+        const novas = selecionadas.filter((e) => !jaEnviadaPara(keyOf(e), u.login));
+        const repetidas = selecionadas.filter((e) => jaEnviadaPara(keyOf(e), u.login));
+        return { login: u.login, novas, repetidas };
+      });
+  }, [usuariosOrbit, usuariosSel, selecionadas, enviosPorEmpresa]);
+
+  async function enviar() {
+    const entries = planoPorUsuario
+      .map((p) => {
+        const alvo = evitarDuplicados ? p.novas : [...p.novas, ...p.repetidas];
+        return {
+          user: p.login,
+          alvo,
+          companies: Array.from(new Set(alvo.map(labelDe))),
+          companies_detailed: alvo.map((e) => ({ name: e.nome, contract: (e.contrato ?? "").trim() || null })),
+        };
+      })
+      .filter((e) => e.companies.length > 0);
+
+    if (!planoPorUsuario.length) {
       toast.error("Selecione ao menos um usuário validado no Orbit.");
+      return;
+    }
+    if (!entries.length) {
+      toast.error("Todas as empresas selecionadas já foram enviadas para esses usuários.");
       return;
     }
 
     setEnviando(true);
     try {
-      const { data, error } = await supabase.functions.invoke("orbit-daily-companies", { body: { entries } });
+      const { data, error } = await supabase.functions.invoke("orbit-daily-companies", {
+        body: { entries: entries.map(({ user, companies, companies_detailed }) => ({ user, companies, companies_detailed })) },
+      });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
 
       const results = ((data as any)?.results ?? []) as Array<{ username: string; resolved: boolean; added?: number }>;
       setResultados(results);
+
+      // Registra o histórico de envios para controle de duplicidade
+      const { data: auth } = await supabase.auth.getUser();
+      const rows = entries.flatMap((e) =>
+        e.alvo.map((emp) => ({
+          empresa_nome: emp.nome,
+          contrato: (emp.contrato ?? "").trim() || null,
+          orbit_user: e.user,
+          enviado_por: auth.user?.id ?? null,
+        })),
+      );
+      if (rows.length) await supabase.from("orbit_envios").insert(rows);
+      await carregarEnvios();
+
       const totalAdded = results.reduce((s, r) => s + (r.added ?? 0), 0);
       toast.success(`${totalAdded} empresa(s) criada(s) no Orbit`, {
         description: `Conectado com ${entries.length} usuário(s): ${entries.map((e) => e.user).join(", ")}.`,
@@ -262,6 +302,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
       setEnviando(false);
     }
   }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
