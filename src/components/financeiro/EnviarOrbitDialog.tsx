@@ -47,10 +47,11 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [ocultarEnviadas, setOcultarEnviadas] = useState(false);
   const [evitarDuplicados, setEvitarDuplicados] = useState(true);
 
-  const filtrosAtivos = statusSel.length + diaEmissaoSel.length;
+  const filtrosAtivos = statusSel.length + diaEmissaoSel.length + tipoMovSel.length;
   const limparFiltros = () => {
     setStatusSel([]);
     setDiaEmissaoSel([]);
+    setTipoMovSel([]);
   };
 
   async function carregarEnvios() {
