@@ -235,7 +235,30 @@ export function EvolucaoMensalSection() {
     return anterior
       ? `${labelPeriodo(atual.periodo)} vs ${labelPeriodo(anterior.periodo)}`
       : labelPeriodo(atual.periodo);
-  }, [atual, anterior]);
+  // Acumulado do período (soma de todos os meses em exibição)
+  const acumulado = useMemo(() => {
+    if (!serie.length) return null;
+    const premioTotal = serie.reduce((s, l) => s + l.premioTotal, 0);
+    const sinistroTotal = serie.reduce((s, l) => s + l.sinistroTotal, 0);
+    const meta = metaVisao > 0 ? metaVisao : META_PADRAO;
+    const sinistralidade = premioTotal ? sinistroTotal / premioTotal : 0;
+    const distorcao = meta ? sinistralidade / meta - 1 : 0;
+    const aporte = distorcao * premioTotal;
+    const periodos = serie.map((l) => l.periodo).sort();
+    return {
+      premioTotal,
+      sinistroTotal,
+      meta,
+      sinistralidade,
+      distorcao,
+      aporte,
+      inicio: periodos[0],
+      fim: periodos[periodos.length - 1],
+      meses: periodos.length,
+    };
+  }, [serie, metaVisao]);
+
+
 
 
 
