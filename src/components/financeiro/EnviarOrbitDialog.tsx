@@ -462,7 +462,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                 </CollapsibleContent>
               </Collapsible>
 
-              <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-3 py-2 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-sm">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox
                     checked={todasMarcadas}
@@ -476,8 +476,15 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                   />
                   <span className="text-muted-foreground">Selecionar todas ({lista.length})</span>
                 </label>
-                <Badge variant={sel.size ? "default" : "secondary"} className="rounded-full">{sel.size} selecionada(s)</Badge>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground">
+                    <Checkbox checked={ocultarEnviadas} onCheckedChange={(v) => setOcultarEnviadas(!!v)} />
+                    Ocultar já enviadas
+                  </label>
+                  <Badge variant={sel.size ? "default" : "secondary"} className="rounded-full">{sel.size} selecionada(s)</Badge>
+                </div>
               </div>
+
             </div>
 
 
