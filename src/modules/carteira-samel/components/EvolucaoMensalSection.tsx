@@ -57,6 +57,7 @@ import {
   useDeleteLancamento,
   useEvolucaoMensal,
   useUpsertLancamento,
+  type GuiaLancamento,
 } from "../hooks/useEvolucaoMensal";
 import { ConfigCarteiraDialog } from "./ConfigCarteiraDialog";
 
