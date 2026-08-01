@@ -321,7 +321,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col gap-4 p-0 overflow-hidden">
+      <DialogContent className="max-w-3xl h-[92vh] max-h-[92vh] flex flex-col gap-4 p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30 shrink-0">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-primary/10 text-primary p-2.5 shrink-0">
