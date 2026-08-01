@@ -235,7 +235,10 @@ export function EvolucaoMensalSection() {
     return anterior
       ? `${labelPeriodo(atual.periodo)} vs ${labelPeriodo(anterior.periodo)}`
       : labelPeriodo(atual.periodo);
+  }, [atual, anterior]);
+
   // Acumulado do período (soma de todos os meses em exibição)
+
   const acumulado = useMemo(() => {
     if (!serie.length) return null;
     const premioTotal = serie.reduce((s, l) => s + l.premioTotal, 0);
