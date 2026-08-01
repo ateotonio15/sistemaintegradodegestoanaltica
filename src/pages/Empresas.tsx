@@ -1813,6 +1813,27 @@ export default function Empresas() {
 
 
 
+        {/* Confirmação de exclusão */}
+        <AlertDialog open={!!deleteEmpresa} onOpenChange={(open) => { if (!open) setDeleteEmpresa(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir contrato?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir <strong>{deleteEmpresa?.nome}</strong>? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => { if (deleteEmpresa) deleteMutation.mutate(deleteEmpresa.id); setDeleteEmpresa(null); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Detail Modal */}
         <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl p-0">
