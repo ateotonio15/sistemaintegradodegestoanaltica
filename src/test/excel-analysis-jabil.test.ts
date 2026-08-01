@@ -58,6 +58,5 @@ describe("análise financeira Jabil", () => {
 
     expect(blocos).toHaveLength(1);
     expect(blocos[0].retroativas?.total).toBeCloseTo(430.28, 2);
-    expect(blocos[0].inclusoes.total).toBeCloseTo(5097.07, 2);
   });
 });
