@@ -204,8 +204,22 @@ export function FinanceiroTable({
                             </Badge>
                           )}
                         </div>
-                        {row.grupo_nome && (
-                          <GrupoTag empresaId={row.empresa_id} grupoNome={row.grupo_nome} onVisualizarGrupo={onVisualizarGrupo} />
+                        {(row.grupo_nome || orbit) && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {row.grupo_nome && (
+                              <GrupoTag empresaId={row.empresa_id} grupoNome={row.grupo_nome} onVisualizarGrupo={onVisualizarGrupo} />
+                            )}
+                            {orbit && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] text-primary/90 w-fit"
+                                title={`Enviado ao Orbit para ${orbit.orbit_user} em ${formatDateBR(orbit.enviado_em)}`}
+                              >
+                                <Send className="h-2.5 w-2.5" />
+                                <span className="font-medium">Orbit:</span>
+                                <span className="truncate max-w-[140px]">{orbit.orbit_user}</span>
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </TableCell>
