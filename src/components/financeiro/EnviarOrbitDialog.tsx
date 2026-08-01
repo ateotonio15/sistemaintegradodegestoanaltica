@@ -322,7 +322,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col gap-4 p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30 shrink-0">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-primary/10 text-primary p-2.5 shrink-0">
               <Send className="h-5 w-5" />
@@ -358,7 +358,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
         {etapa === 1 && (
           <>
-            <div className="px-6 space-y-3">
+            <div className="px-6 space-y-3 shrink-0 max-h-[38vh] overflow-y-auto">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -541,7 +541,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
 
             <div className="px-6 flex-1 min-h-0">
-              <ScrollArea className="h-[330px] rounded-lg border">
+              <ScrollArea className="h-full min-h-[180px] rounded-lg border">
                 {lista.length === 0 ? (
                   <div className="p-10 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</div>
                 ) : (
@@ -602,7 +602,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
             </div>
 
 
-            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+            <DialogFooter className="px-6 py-4 border-t bg-background shrink-0 relative z-10">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
               <Button onClick={irParaEtapa2} disabled={sel.size === 0} className="gap-1.5">
                 Continuar ({sel.size}) <ArrowRight className="h-4 w-4" />
@@ -648,7 +648,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
 
                 <div className="px-6 flex-1 min-h-0">
-                  <ScrollArea className="h-[330px] rounded-lg border p-3">
+                  <ScrollArea className="h-full min-h-[180px] rounded-lg border p-3">
                     <div className="space-y-2">
                       {usuariosOrbit.length === 0 ? (
                         <div className="rounded-md border border-dashed p-6 text-center text-xs text-muted-foreground">
@@ -706,7 +706,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
               </>
             )}
 
-            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+            <DialogFooter className="px-6 py-4 border-t bg-background shrink-0 relative z-10">
               <Button variant="outline" onClick={() => setEtapa(1)} className="gap-1.5">
                 <ArrowLeft className="h-4 w-4" /> Voltar
               </Button>
