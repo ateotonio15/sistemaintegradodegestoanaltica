@@ -131,6 +131,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [tipoMovSel, setTipoMovSel] = useState<string[]>([]);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [usuariosSel, setUsuariosSel] = useState<Set<string>>(new Set());
+  const [buscaUsuario, setBuscaUsuario] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [perfis, setPerfis] = useState<Array<{ display_name: string | null; username: string | null }>>([]);
   const [resultados, setResultados] = useState<Array<{ username: string; resolved: boolean; added?: number }>>([]);
@@ -163,6 +164,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setEtapa(1);
     setSel(new Set());
     setUsuariosSel(new Set());
+    setBuscaUsuario("");
+
     setBusca("");
     setStatusSel([]);
     setDiaEmissaoSel([]);
@@ -323,13 +326,25 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     }
   }
 
-  // Usuários ativos no Orbit (login do SIGA que existe no Orbit)
+  // Todos os usuários do SIGA — os localizados no Orbit vêm primeiro,
+  // mas os demais também podem ser selecionados (contas novas ainda sem projeto no Orbit).
   const usuariosOrbit = useMemo(() => {
-    return perfis
-      .map((p) => ({ login: (p.username ?? "").trim(), nome: (p.display_name ?? "").trim() }))
-      .filter((u) => u.login && loginsValidos.has(u.login.toLowerCase()))
-      .sort((a, b) => a.login.localeCompare(b.login, "pt-BR"));
-  }, [perfis, loginsValidos]);
+    const lista = perfis
+      .map((p) => ({
+        login: (p.username ?? "").trim(),
+        nome: (p.display_name ?? "").trim(),
+        validado: loginsValidos.has((p.username ?? "").trim().toLowerCase()),
+      }))
+      .filter((u) => u.login);
+    const q = buscaUsuario.trim().toLowerCase();
+    return lista
+      .filter((u) => !q || u.login.toLowerCase().includes(q) || u.nome.toLowerCase().includes(q))
+      .sort(
+        (a, b) =>
+          Number(b.validado) - Number(a.validado) || a.login.localeCompare(b.login, "pt-BR"),
+      );
+  }, [perfis, loginsValidos, buscaUsuario]);
+
 
   const toggleUsuario = (login: string) =>
     setUsuariosSel((prev) => {
@@ -347,14 +362,16 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
 
   // Por usuário selecionado: empresas novas x já enviadas anteriormente
   const planoPorUsuario = useMemo(() => {
-    return usuariosOrbit
-      .filter((u) => usuariosSel.has(u.login.toLowerCase()))
-      .map((u) => {
-        const novas = selecionadas.filter((e) => !jaEnviadaPara(keyOf(e), u.login));
-        const repetidas = selecionadas.filter((e) => jaEnviadaPara(keyOf(e), u.login));
-        return { login: u.login, novas, repetidas };
+    return perfis
+      .map((p) => (p.username ?? "").trim())
+      .filter((login) => login && usuariosSel.has(login.toLowerCase()))
+      .map((login) => {
+        const novas = selecionadas.filter((e) => !jaEnviadaPara(keyOf(e), login));
+        const repetidas = selecionadas.filter((e) => jaEnviadaPara(keyOf(e), login));
+        return { login, novas, repetidas };
       });
-  }, [usuariosOrbit, usuariosSel, selecionadas, enviosPorEmpresa]);
+  }, [perfis, usuariosSel, selecionadas, enviosPorEmpresa]);
+
 
   async function enviar() {
     const entries = planoPorUsuario
@@ -742,12 +759,24 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       Não reenviar empresas que já foram enviadas para o usuário
                     </span>
                   </label>
+                  <Input
+                    value={buscaUsuario}
+                    onChange={(e) => setBuscaUsuario(e.target.value)}
+                    placeholder="Buscar usuário por nome ou login..."
+                    className="h-9"
+                  />
                   <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <Checkbox
                         checked={usuariosOrbit.length > 0 && usuariosOrbit.every((u) => usuariosSel.has(u.login.toLowerCase()))}
                         onCheckedChange={(v) =>
-                          setUsuariosSel(v ? new Set(usuariosOrbit.map((u) => u.login.toLowerCase())) : new Set())
+                          setUsuariosSel((prev) => {
+                            const next = new Set(prev);
+                            usuariosOrbit.forEach((u) =>
+                              v ? next.add(u.login.toLowerCase()) : next.delete(u.login.toLowerCase()),
+                            );
+                            return next;
+                          })
                         }
                       />
                       <span className="text-muted-foreground">Selecionar todos ({usuariosOrbit.length})</span>
@@ -762,9 +791,10 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                     <div className="space-y-2">
                       {usuariosOrbit.length === 0 ? (
                         <div className="rounded-md border border-dashed p-6 text-center text-xs text-muted-foreground">
-                          Nenhum usuário ativo no Orbit foi encontrado.
+                          Nenhum usuário encontrado.
                         </div>
                       ) : (
+
                         usuariosOrbit.map((u) => {
                           const marcado = usuariosSel.has(u.login.toLowerCase());
                           const res = resultados.find((r) => r.username.toLowerCase() === u.login.toLowerCase());
@@ -804,7 +834,18 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                                 </Badge>
                               )}
                               <Badge variant="secondary" className="shrink-0 text-[10px] rounded-full font-normal">{novas} nova(s)</Badge>
-                              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                              {u.validado ? (
+                                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="shrink-0 text-[10px] rounded-full font-normal border-muted-foreground/40 text-muted-foreground"
+                                  title="Ainda não localizado no Orbit — o projeto será criado no primeiro envio"
+                                >
+                                  Novo no Orbit
+                                </Badge>
+                              )}
+
                             </div>
                           );
 
