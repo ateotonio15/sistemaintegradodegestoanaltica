@@ -263,7 +263,25 @@ export function GerarHistoricoDialog({
       const n = typeof v === "number" ? v : parseInt(String(v), 10);
       if (Number.isFinite(n) && n >= 1 && n <= 31) diaVenc = n;
     }
-    return calcularVencimentoPadrao(diaVenc, competencia.mes, competencia.ano);
+    // Quando a empresa possui período específico de cobrança, o vencimento
+    // acompanha o mês do período (ex.: 13/08 a 12/09 → vence em agosto),
+    // e não o mês da competência.
+    let mesBase = competencia.mes;
+    let anoBase = competencia.ano;
+    if (periodoCobrancaInfo?.inicio) {
+      const p = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(periodoCobrancaInfo.inicio));
+      if (p) {
+        anoBase = parseInt(p[1], 10);
+        mesBase = parseInt(p[2], 10) - 1;
+      } else {
+        const d = new Date(periodoCobrancaInfo.inicio as any);
+        if (!isNaN(d.getTime())) {
+          anoBase = d.getFullYear();
+          mesBase = d.getMonth();
+        }
+      }
+    }
+    return calcularVencimentoPadrao(diaVenc, mesBase, anoBase);
   };
 
   const irParaPreview = async (prorrogou: boolean) => {
