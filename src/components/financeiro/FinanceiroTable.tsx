@@ -103,6 +103,7 @@ export function FinanceiroTable({
   } | null>(null);
 
   const { data: orbitMap } = useOrbitEnvios();
+  useOrbitEnviosRefresh();
 
 
 
