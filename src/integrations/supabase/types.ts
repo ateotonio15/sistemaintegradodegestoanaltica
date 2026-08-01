@@ -3420,6 +3420,36 @@ export type Database = {
           },
         ]
       }
+      orbit_envios: {
+        Row: {
+          contrato: string | null
+          created_at: string
+          empresa_nome: string
+          enviado_em: string
+          enviado_por: string | null
+          id: string
+          orbit_user: string
+        }
+        Insert: {
+          contrato?: string | null
+          created_at?: string
+          empresa_nome: string
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          orbit_user: string
+        }
+        Update: {
+          contrato?: string | null
+          created_at?: string
+          empresa_nome?: string
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          orbit_user?: string
+        }
+        Relationships: []
+      }
       painel_tv_meta_diaria: {
         Row: {
           created_at: string
