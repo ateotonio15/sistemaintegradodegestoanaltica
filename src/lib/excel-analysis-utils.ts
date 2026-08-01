@@ -2071,7 +2071,12 @@ export async function analisarExcelFinanceiroPorCnpj(
     const jaRetroQtd = blocos.reduce((s, b) => s + (b.retroativas?.quantidade ?? 0), 0);
     const deltaQ = extraRetroQtd - jaRetroQtd;
     const deltaT = extraRetroTotal - jaRetroTotal;
-    if (deltaQ > 0 || Math.abs(deltaT) > 0.001) {
+    // A varredura global é apenas fallback. Quando as linhas principais já
+    // identificaram uma retroativa, os demais valores encontrados são pivots
+    // de detalhamento — não lançamentos adicionais.
+    const linhasPrincipaisTemRetroativa =
+      jaRetroQtd !== 0 || Math.abs(jaRetroTotal) > 0.001;
+    if (!linhasPrincipaisTemRetroativa && (deltaQ > 0 || Math.abs(deltaT) > 0.001)) {
       if (blocos.length === 1) {
         const b = blocos[0];
         b.retroativas = {
