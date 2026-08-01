@@ -1,0 +1,1 @@
+ALTER TABLE public.sinistralidade_mensal ADD COLUMN IF NOT EXISTS guias jsonb NOT NULL DEFAULT '[]'::jsonb;

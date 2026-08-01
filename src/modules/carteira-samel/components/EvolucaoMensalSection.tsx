@@ -57,6 +57,7 @@ import {
   useDeleteLancamento,
   useEvolucaoMensal,
   useUpsertLancamento,
+  type GuiaLancamento,
 } from "../hooks/useEvolucaoMensal";
 import { ConfigCarteiraDialog } from "./ConfigCarteiraDialog";
 
@@ -846,7 +847,8 @@ function LancamentoDialog({
   const [mes, setMes] = useState("");
   const [pe, setPe] = useState("0");
   const [pc, setPc] = useState("0");
-  const [sin, setSin] = useState("0");
+  const [guias, setGuias] = useState<GuiaLancamento[]>([]);
+  const [colar, setColar] = useState("");
   const [meta, setMeta] = useState(String(META_PADRAO * 100));
   const [hm, setHm] = useState("0");
   const [fisio, setFisio] = useState("0");
@@ -860,7 +862,15 @@ function LancamentoDialog({
     setMes(registro?.periodo ? registro.periodo.slice(0, 7) : new Date().toISOString().slice(0, 7));
     setPe(String(registro?.premio_empresa ?? 0));
     setPc(String(registro?.premio_continuidade ?? 0));
-    setSin(String(registro?.sinistro ?? 0));
+    const gs = Array.isArray((registro as any)?.guias) ? ((registro as any).guias as GuiaLancamento[]) : [];
+    setGuias(
+      gs.length
+        ? gs.map((g, i) => ({ ...g, id: g.id || `g${i}`, valor: Number(g.valor) || 0 }))
+        : Number(registro?.sinistro)
+        ? [{ id: "g0", descricao: "Total lançado anteriormente", valor: Number(registro.sinistro) }]
+        : [],
+    );
+    setColar("");
     setMeta(
       String(
         (Number(registro?.meta_sinistralidade) ||
@@ -873,9 +883,40 @@ function LancamentoDialog({
     setAdmin(String(registro?.administrativo_in_company ?? 0));
   }
 
+  const sinTotal = guias.reduce((s, g) => s + (Number(g.valor) || 0), 0);
+
+  const addGuia = (ajuste: boolean) =>
+    setGuias((p) => [...p, { id: `${Date.now()}-${p.length}`, descricao: "", valor: 0, ajuste }]);
+
+  const updGuia = (id: string, patch: Partial<GuiaLancamento>) =>
+    setGuias((p) => p.map((g) => (g.id === id ? { ...g, ...patch } : g)));
+
+  const importarColados = () => {
+    const nums = colar
+      .split(/[\n\r\t;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => {
+        const limpo = s.replace(/[R$\s]/g, "");
+        const norm = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
+        return Number(norm);
+      })
+      .filter((n) => Number.isFinite(n) && n !== 0);
+    if (!nums.length) {
+      toast.error("Nenhum valor válido encontrado");
+      return;
+    }
+    setGuias((p) => [
+      ...p,
+      ...nums.map((valor, i) => ({ id: `${Date.now()}-c${i}`, descricao: "", valor })),
+    ]);
+    setColar("");
+    toast.success(`${nums.length} valor(es) importado(s)`);
+  };
+
   const metaFracao = (Number(meta) || META_PADRAO * 100) / 100;
 
-  const calc = calcular(Number(pe) || 0, Number(pc) || 0, Number(sin) || 0, metaFracao, {
+  const calc = calcular(Number(pe) || 0, Number(pc) || 0, sinTotal, metaFracao, {
     hm: Number(hm) || 0,
     fisio: Number(fisio) || 0,
     admin: Number(admin) || 0,
@@ -894,7 +935,9 @@ function LancamentoDialog({
         periodo: `${mes}-01`,
         premio_empresa: Number(pe) || 0,
         premio_continuidade: Number(pc) || 0,
-        sinistro: Number(sin) || 0,
+        sinistro: Number(sinTotal.toFixed(2)),
+        guias: guias.map((g) => ({ ...g, valor: Number(g.valor) || 0 })),
+
         meta_sinistralidade: metaFracao > 0 ? metaFracao : META_PADRAO,
         hm_in_company: Number(hm) || 0,
         fisioterapia_in_company: Number(fisio) || 0,
@@ -944,10 +987,85 @@ function LancamentoDialog({
               <Input type="number" step="0.01" value={pc} onChange={(e) => setPc(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Sinistro (R$)</Label>
-              <Input type="number" step="0.01" value={sin} onChange={(e) => setSin(e.target.value)} />
+              <Label className="text-xs">Sinistro (R$) — somado</Label>
+              <Input value={fmtMoeda(sinTotal)} readOnly disabled className="font-medium" />
             </div>
           </div>
+
+          <div className="rounded-lg border p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-medium">Guias/Atendimentos do período</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {guias.length} lançamento(s) · Soma {fmtMoeda(sinTotal)}
+                </p>
+              </div>
+              <div className="flex gap-1">
+                <Button type="button" size="sm" variant="outline" onClick={() => addGuia(false)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Linha
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => addGuia(true)}>
+                  Ajuste (+/-)
+                </Button>
+              </div>
+            </div>
+
+            {guias.length > 0 && (
+              <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+                {guias.map((g, i) => (
+                  <div key={g.id} className="flex items-center gap-1.5">
+                    <span className="w-6 text-[11px] text-muted-foreground tabular-nums">{i + 1}</span>
+                    <Input
+                      className="h-8 text-xs flex-1"
+                      placeholder={g.ajuste ? "Motivo do ajuste (glosa, estorno...)" : "Beneficiário / descrição (opcional)"}
+                      value={g.descricao ?? ""}
+                      onChange={(ev) => updGuia(g.id, { descricao: ev.target.value })}
+                    />
+                    <Input
+                      className="h-8 text-xs w-32 text-right tabular-nums"
+                      type="number"
+                      step="0.01"
+                      value={g.valor}
+                      onChange={(ev) => updGuia(g.id, { valor: Number(ev.target.value) })}
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => setGuias((p) => p.filter((x) => x.id !== g.id))}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div>
+              <Label className="text-[11px] text-muted-foreground">
+                Colar valores (uma coluna do Excel, um valor por linha)
+              </Label>
+              <Textarea
+                rows={3}
+                className="text-xs"
+                placeholder={"1.234,56\n789,00\n..."}
+                value={colar}
+                onChange={(ev) => setColar(ev.target.value)}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="mt-1"
+                onClick={importarColados}
+                disabled={!colar.trim()}
+              >
+                Importar valores colados
+              </Button>
+            </div>
+          </div>
+
 
           <div className="grid grid-cols-2 gap-3">
             <div>

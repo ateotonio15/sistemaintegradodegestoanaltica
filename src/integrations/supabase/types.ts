@@ -4133,6 +4133,7 @@ export type Database = {
           empresa_id: string
           empresa_nome: string | null
           fisioterapia_in_company: number
+          guias: Json
           hm_in_company: number
           id: string
           meta_sinistralidade: number
@@ -4156,6 +4157,7 @@ export type Database = {
           empresa_id: string
           empresa_nome?: string | null
           fisioterapia_in_company?: number
+          guias?: Json
           hm_in_company?: number
           id?: string
           meta_sinistralidade?: number
@@ -4179,6 +4181,7 @@ export type Database = {
           empresa_id?: string
           empresa_nome?: string | null
           fisioterapia_in_company?: number
+          guias?: Json
           hm_in_company?: number
           id?: string
           meta_sinistralidade?: number

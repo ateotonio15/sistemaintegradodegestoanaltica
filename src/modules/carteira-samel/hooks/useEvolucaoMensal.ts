@@ -69,6 +69,13 @@ export function useEvolucaoMensal() {
   });
 }
 
+export interface GuiaLancamento {
+  id: string;
+  descricao?: string;
+  valor: number;
+  ajuste?: boolean;
+}
+
 export interface UpsertLancamento {
   id?: string;
   empresa_id: string;
@@ -82,7 +89,9 @@ export interface UpsertLancamento {
   fisioterapia_in_company?: number;
   administrativo_in_company?: number;
   observacao?: string | null;
+  guias?: GuiaLancamento[];
 }
+
 
 export function useUpsertLancamento() {
   const qc = useQueryClient();
