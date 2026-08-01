@@ -1225,6 +1225,30 @@ export type Database = {
         }
         Relationships: []
       }
+      cs_carteira_config: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          meta_sinistralidade: number
+          updated_at: string
+          usa_in_company: boolean
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          meta_sinistralidade?: number
+          updated_at?: string
+          usa_in_company?: boolean
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          meta_sinistralidade?: number
+          updated_at?: string
+          usa_in_company?: boolean
+        }
+        Relationships: []
+      }
       cs_score_empresas: {
         Row: {
           empresa_id: string
@@ -4100,14 +4124,18 @@ export type Database = {
       }
       sinistralidade_mensal: {
         Row: {
+          administrativo_in_company: number
           aporte_financeiro: number | null
-          be_70: number | null
+          be_meta: number | null
           created_at: string
           created_by: string | null
           distorcao: number | null
           empresa_id: string
           empresa_nome: string | null
+          fisioterapia_in_company: number
+          hm_in_company: number
           id: string
+          meta_sinistralidade: number
           observacao: string | null
           periodo: string
           premio_continuidade: number
@@ -4115,17 +4143,22 @@ export type Database = {
           premio_total: number | null
           sinistralidade: number | null
           sinistro: number
+          sinistro_total: number | null
           updated_at: string
         }
         Insert: {
+          administrativo_in_company?: number
           aporte_financeiro?: number | null
-          be_70?: number | null
+          be_meta?: number | null
           created_at?: string
           created_by?: string | null
           distorcao?: number | null
           empresa_id: string
           empresa_nome?: string | null
+          fisioterapia_in_company?: number
+          hm_in_company?: number
           id?: string
+          meta_sinistralidade?: number
           observacao?: string | null
           periodo: string
           premio_continuidade?: number
@@ -4133,17 +4166,22 @@ export type Database = {
           premio_total?: number | null
           sinistralidade?: number | null
           sinistro?: number
+          sinistro_total?: number | null
           updated_at?: string
         }
         Update: {
+          administrativo_in_company?: number
           aporte_financeiro?: number | null
-          be_70?: number | null
+          be_meta?: number | null
           created_at?: string
           created_by?: string | null
           distorcao?: number | null
           empresa_id?: string
           empresa_nome?: string | null
+          fisioterapia_in_company?: number
+          hm_in_company?: number
           id?: string
+          meta_sinistralidade?: number
           observacao?: string | null
           periodo?: string
           premio_continuidade?: number
@@ -4151,6 +4189,7 @@ export type Database = {
           premio_total?: number | null
           sinistralidade?: number | null
           sinistro?: number
+          sinistro_total?: number | null
           updated_at?: string
         }
         Relationships: []
