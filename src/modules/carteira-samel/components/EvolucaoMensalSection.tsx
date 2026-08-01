@@ -546,7 +546,7 @@ export function EvolucaoMensalSection() {
               )}
               {!isLoading && tabela.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={temInCompany ? 13 : 11} className="px-3 py-6 text-center text-muted-foreground">
                     Nenhum lançamento no período selecionado.
                   </td>
                 </tr>
