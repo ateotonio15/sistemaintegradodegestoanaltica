@@ -1966,7 +1966,10 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (isNaN(total)) continue;
       const qtd = nums.length > 0 && qtdCand !== null ? Math.round(qtdCand) : 0;
       const mes = extrairMes(hitLabel);
-      const chave = `${mes ?? norm(hitLabel)}|${total.toFixed(2)}|${qtd}`;
+      // Deduplica pelo par valor+quantidade (sem o mês): o mesmo pivot costuma
+      // aparecer na RESUMO e repetido em outra aba, às vezes com rótulo de mês
+      // diferente/ausente — somar os dois duplicava a cobrança retroativa.
+      const chave = `${total.toFixed(2)}|${qtd}`;
       if (pivotsVistos.has(chave)) continue;
       pivotsVistos.add(chave);
       pivotEncontrado = true;
@@ -2095,6 +2098,41 @@ export async function analisarExcelFinanceiroPorCnpj(
     });
   }
 
+
+  // Reconciliação com o total declarado pela planilha: se a soma das linhas
+  // ficou acima do "TOTAL" do bloco no Excel, a diferença veio de cobrança
+  // retroativa contada duas vezes (pivot repetido em outra aba) — corrige.
+  blocos.forEach((b) => {
+    const decl = b.totalDeclaradoExcel;
+    if (typeof decl !== "number" || decl === 0 || !b.retroativas) return;
+    const soma =
+      (b.enfermaria?.total ?? 0) +
+      (b.apartamento?.total ?? 0) +
+      (b.inclusoes?.total ?? 0) +
+      (b.exclusoes?.total ?? 0) +
+      (b.devolucoes?.total ?? 0) +
+      (b.taxaAdesao?.total ?? 0);
+    const excesso = soma - decl;
+    if (excesso <= 0.05) return;
+    const corte = Math.min(excesso, b.retroativas.total);
+    if (corte <= 0.05) return;
+    const fator = (b.retroativas.total - corte) / b.retroativas.total;
+    const novaQtd = Math.max(0, Math.round(b.retroativas.quantidade * fator));
+    b.inclusoes = {
+      quantidade: Math.max(0, b.inclusoes.quantidade - (b.retroativas.quantidade - novaQtd)),
+      total: b.inclusoes.total - corte,
+    };
+    b.retroativas = {
+      ...b.retroativas,
+      quantidade: novaQtd,
+      total: b.retroativas.total - corte,
+      mesesDetalhe: b.retroativas.mesesDetalhe?.map((d) => ({
+        mes: d.mes,
+        quantidade: Math.round(d.quantidade * fator),
+        total: d.total * fator,
+      })),
+    };
+  });
 
   // Coparticipação — Empresarial: lê pivot da aba RESUMO e distribui nos blocos.
   const rowsResumo = lerRowsAbaResumo(wb);
