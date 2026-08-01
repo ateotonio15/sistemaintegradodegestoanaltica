@@ -757,12 +757,24 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       Não reenviar empresas que já foram enviadas para o usuário
                     </span>
                   </label>
+                  <Input
+                    value={buscaUsuario}
+                    onChange={(e) => setBuscaUsuario(e.target.value)}
+                    placeholder="Buscar usuário por nome ou login..."
+                    className="h-9"
+                  />
                   <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <Checkbox
                         checked={usuariosOrbit.length > 0 && usuariosOrbit.every((u) => usuariosSel.has(u.login.toLowerCase()))}
                         onCheckedChange={(v) =>
-                          setUsuariosSel(v ? new Set(usuariosOrbit.map((u) => u.login.toLowerCase())) : new Set())
+                          setUsuariosSel((prev) => {
+                            const next = new Set(prev);
+                            usuariosOrbit.forEach((u) =>
+                              v ? next.add(u.login.toLowerCase()) : next.delete(u.login.toLowerCase()),
+                            );
+                            return next;
+                          })
                         }
                       />
                       <span className="text-muted-foreground">Selecionar todos ({usuariosOrbit.length})</span>
@@ -777,9 +789,10 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                     <div className="space-y-2">
                       {usuariosOrbit.length === 0 ? (
                         <div className="rounded-md border border-dashed p-6 text-center text-xs text-muted-foreground">
-                          Nenhum usuário ativo no Orbit foi encontrado.
+                          Nenhum usuário encontrado.
                         </div>
                       ) : (
+
                         usuariosOrbit.map((u) => {
                           const marcado = usuariosSel.has(u.login.toLowerCase());
                           const res = resultados.find((r) => r.username.toLowerCase() === u.login.toLowerCase());
