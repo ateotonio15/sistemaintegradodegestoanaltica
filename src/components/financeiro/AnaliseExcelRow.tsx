@@ -482,6 +482,28 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                                 {formatBRL(totalGeral)}
                               </td>
                             </tr>
+                            {(() => {
+                              const decl = r.totalDeclaradoExcel;
+                              if (typeof decl !== "number" || decl === 0) return null;
+                              const dif = totalGeral - decl;
+                              if (Math.abs(dif) <= 0.05) return null;
+                              return (
+                                <tr className="border-t border-destructive/40 bg-destructive/10">
+                                  <td className="px-3 py-2 text-destructive font-medium" colSpan={3}>
+                                    <span className="inline-flex items-center gap-2">
+                                      <AlertTriangle className="h-4 w-4" />
+                                      Divergência com o Excel — a planilha declara {formatBRL(decl)} no
+                                      total desta empresa
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-bold text-destructive whitespace-nowrap">
+                                    {dif > 0 ? "+" : "−"}
+                                    {formatBRL(Math.abs(dif))}
+                                  </td>
+                                </tr>
+                              );
+                            })()}
+
                           </tbody>
                         </table>
                       </div>
