@@ -34,6 +34,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [statusSel, setStatusSel] = useState<string[]>([]);
   const [diaEmissaoSel, setDiaEmissaoSel] = useState<number[]>([]);
   const [tipoMovSel, setTipoMovSel] = useState<string[]>([]);
+  const [sel, setSel] = useState<Set<string>>(new Set());
   const [usuariosSel, setUsuariosSel] = useState<Set<string>>(new Set());
   const [enviando, setEnviando] = useState(false);
   const [perfis, setPerfis] = useState<Array<{ display_name: string | null; username: string | null }>>([]);
