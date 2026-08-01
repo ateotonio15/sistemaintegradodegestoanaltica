@@ -480,11 +480,23 @@ export function EvolucaoMensalSection() {
                       yAxisId="v"
                       type="monotone"
                       dataKey="sinistro"
-                      name="Sinistro"
+                      name={temInCompany ? "Sinistro (operadora)" : "Sinistro"}
                       stroke="hsl(var(--warning, 38 92% 50%))"
                       strokeWidth={2}
                       dot={{ r: 3 }}
                     />
+                    {temInCompany && (
+                      <Line
+                        yAxisId="v"
+                        type="monotone"
+                        dataKey="sinistroTotal"
+                        name="Sinistro Total (com in company)"
+                        stroke="hsl(25 90% 45%)"
+                        strokeWidth={2}
+                        strokeDasharray="4 3"
+                        dot={{ r: 3 }}
+                      />
+                    )}
                     <Line
                       yAxisId="p"
                       type="monotone"
