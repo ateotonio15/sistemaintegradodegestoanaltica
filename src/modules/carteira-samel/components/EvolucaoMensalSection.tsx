@@ -685,6 +685,7 @@ export function EvolucaoMensalSection() {
         empresas={ativas}
       />
       <LoteDialog open={loteAberto} onOpenChange={setLoteAberto} empresas={ativas} />
+      <ConfigCarteiraDialog open={configAberto} onOpenChange={setConfigAberto} empresas={ativas} />
     </div>
   );
 }
