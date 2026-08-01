@@ -60,6 +60,8 @@ export interface AnaliseResultado {
   faixasEtarias?: FaixaEtariaResumo[];
   /** Coparticipação — Empresarial (pivot da aba RESUMO). */
   coparticipacao?: CoparticipacaoResultado;
+  /** Valor total declarado pela própria planilha (linha TOTAL do bloco). */
+  totalDeclaradoExcel?: number;
   avisos: string[];
 }
 
@@ -79,6 +81,8 @@ export interface AnalisePorCnpj {
   faixasEtarias?: FaixaEtariaResumo[];
   /** Coparticipação — Empresarial (pivot da aba RESUMO). */
   coparticipacao?: CoparticipacaoResultado;
+  /** Valor total declarado pela própria planilha (linha TOTAL do bloco). */
+  totalDeclaradoExcel?: number;
   avisos: string[];
 }
 
@@ -1238,6 +1242,8 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     excQtd: number; excTotal: number;
     devQtd: number; devTotal: number;
     adesaoQtd: number; adesaoTotal: number;
+    /** Valor da linha "TOTAL" declarada na planilha para este bloco. */
+    totalDecl: number | null;
     faixas: Map<string, { label: string; idadeInicial: number; idadeFinal: number | null; quantidade: number; total: number }>;
   };
 
@@ -1326,6 +1332,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         excQtd: 0, excTotal: 0,
         devQtd: 0, devTotal: 0,
         adesaoQtd: 0, adesaoTotal: 0,
+        totalDecl: null,
         faixas: new Map(),
       };
 
@@ -1516,6 +1523,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       inclusoes: { quantidade: g.incQtd, total: g.incTotal },
       avisos: ["Dados consolidados extraídos da aba RESUMO."],
     };
+    if (g.totalDecl !== null) bloco.totalDeclaradoExcel = g.totalDecl;
     if (g.retroQtd > 0 || g.retroTotal !== 0) {
       bloco.retroativas = { quantidade: g.retroQtd, total: g.retroTotal };
     }
@@ -2234,6 +2242,8 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
     if (faixasMap.size > 0) {
       novoBloco.faixasEtarias = Array.from(faixasMap.values()).sort((a, b) => a.idadeInicial - b.idadeInicial);
     }
+    const declarados = arr.map((x) => x.totalDeclaradoExcel).filter((v): v is number => typeof v === "number");
+    if (declarados.length > 0) novoBloco.totalDeclaradoExcel = declarados.reduce((s2, v) => s2 + v, 0);
     merged.push(novoBloco);
   }
   return [...ordem, ...merged];
@@ -2291,6 +2301,7 @@ export function cruzarExcelComPdfs(
       taxaAdesao: bloco.taxaAdesao,
       faixasEtarias: bloco.faixasEtarias,
       coparticipacao: bloco.coparticipacao,
+      totalDeclaradoExcel: bloco.totalDeclaradoExcel,
       avisos: bloco.avisos,
 
 
