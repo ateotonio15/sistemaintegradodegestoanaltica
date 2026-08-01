@@ -1877,9 +1877,13 @@ export default function Empresas() {
                         <Badge variant={detailEmpresa.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md">
                           {detailEmpresa.status_empresa ?? "Ativa"}
                         </Badge>
+                        {(detailEmpresa as any).contrato_via_portal && (
+                          <Badge variant="outline" className="rounded-md border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Contrato via Portal</Badge>
+                        )}
                         {(detailEmpresa as any).contrato_faixa_etaria && (
                           <Badge variant="outline" className="rounded-md">Faixa Etária</Badge>
                         )}
+
                         {(detailEmpresa as any).contrato_suspenso && (
                           <Badge variant="destructive" className="rounded-md gap-1"><Ban className="h-3 w-3" />Suspenso</Badge>
                         )}
