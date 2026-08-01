@@ -41,12 +41,24 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [loginsValidos, setLoginsValidos] = useState<Set<string>>(new Set());
   const [validado, setValidado] = useState(false);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [envios, setEnvios] = useState<Array<{ empresa_nome: string; contrato: string | null; orbit_user: string; enviado_em: string }>>([]);
+  const [ocultarEnviadas, setOcultarEnviadas] = useState(false);
+  const [evitarDuplicados, setEvitarDuplicados] = useState(true);
 
   const filtrosAtivos = statusSel.length + diaEmissaoSel.length;
   const limparFiltros = () => {
     setStatusSel([]);
     setDiaEmissaoSel([]);
   };
+
+  async function carregarEnvios() {
+    const { data } = await supabase
+      .from("orbit_envios")
+      .select("empresa_nome, contrato, orbit_user, enviado_em")
+      .order("enviado_em", { ascending: false })
+      .limit(5000);
+    setEnvios((data ?? []) as any);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -57,10 +69,13 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     setStatusSel([]);
     setDiaEmissaoSel([]);
     setFiltrosAbertos(false);
+    setOcultarEnviadas(false);
+    setEvitarDuplicados(true);
 
     setResultados([]);
     setLoginsValidos(new Set());
     setValidado(false);
+    carregarEnvios();
     supabase
       .from("profiles")
       .select("display_name, username")
