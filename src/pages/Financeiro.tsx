@@ -2640,8 +2640,9 @@ export default function Financeiro() {
                         >
                           <Users className="h-3 w-3" />
                           <span>
-                            Grupo de faturamento
+                            {grupoLabel}
                           </span>
+
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-current">
                             {membros.length}
                           </Badge>
