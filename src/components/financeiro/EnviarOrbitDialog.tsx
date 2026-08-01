@@ -19,7 +19,7 @@ export type OrbitEmpresa = {
   responsavel?: string | null;
   status?: string | null;
   dia_emissao?: number | null;
-  tipo_movimentacao?: string | null;
+  tipo_cobranca?: string | null;
 };
 
 interface Props {
@@ -113,7 +113,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const tiposMovDisponiveis = useMemo(() => {
     const t = new Set<string>();
     unicas.forEach((e) => {
-      const v = (e.tipo_movimentacao ?? "").trim();
+      const v = (e.tipo_cobranca ?? "").trim();
       if (v) t.add(v);
     });
     return Array.from(t).sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -153,7 +153,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return unicas.filter((e) => {
       if (statusSel.length && !statusSel.includes(e.status ?? "")) return false;
       if (diaEmissaoSel.length && !(typeof e.dia_emissao === "number" && diaEmissaoSel.includes(e.dia_emissao))) return false;
-      if (tipoMovSel.length && !tipoMovSel.includes((e.tipo_movimentacao ?? "").trim())) return false;
+      if (tipoMovSel.length && !tipoMovSel.includes((e.tipo_cobranca ?? "").trim())) return false;
       if (ocultarEnviadas && (enviosPorEmpresa.get(keyOf(e))?.length ?? 0) > 0) return false;
       if (!q) return true;
       return `${e.nome} ${e.contrato ?? ""} ${e.responsavel ?? ""}`.toLowerCase().includes(q);
@@ -485,7 +485,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {tiposMovDisponiveis.map((t) => {
-                            const n = unicas.filter((e) => (e.tipo_movimentacao ?? "").trim() === t).length;
+                            const n = unicas.filter((e) => (e.tipo_cobranca ?? "").trim() === t).length;
                             const ativo = tipoMovSel.includes(t);
                             return (
                               <Badge
