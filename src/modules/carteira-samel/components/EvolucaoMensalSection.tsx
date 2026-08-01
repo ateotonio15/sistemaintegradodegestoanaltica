@@ -237,6 +237,32 @@ export function EvolucaoMensalSection() {
       : labelPeriodo(atual.periodo);
   }, [atual, anterior]);
 
+  // Acumulado do período (soma de todos os meses em exibição)
+
+  const acumulado = useMemo(() => {
+    if (!serie.length) return null;
+    const premioTotal = serie.reduce((s, l) => s + l.premioTotal, 0);
+    const sinistroTotal = serie.reduce((s, l) => s + l.sinistroTotal, 0);
+    const meta = metaVisao > 0 ? metaVisao : META_PADRAO;
+    const sinistralidade = premioTotal ? sinistroTotal / premioTotal : 0;
+    const distorcao = meta ? sinistralidade / meta - 1 : 0;
+    const aporte = distorcao * premioTotal;
+    const periodos = serie.map((l) => l.periodo).sort();
+    return {
+      premioTotal,
+      sinistroTotal,
+      meta,
+      sinistralidade,
+      distorcao,
+      aporte,
+      inicio: periodos[0],
+      fim: periodos[periodos.length - 1],
+      meses: periodos.length,
+    };
+  }, [serie, metaVisao]);
+
+
+
 
 
   return (
@@ -278,6 +304,58 @@ export function EvolucaoMensalSection() {
           hint={atual ? `${labelMeta(atual.meta)}: ${fmtMoeda(atual.beMeta)}` : "—"}
         />
       </div>
+
+      {/* KPIs acumulados do período */}
+      {acumulado && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-semibold uppercase tracking-wide text-foreground/80">
+              Acumulado do período
+            </span>
+            <span>
+              · {labelPeriodo(acumulado.inicio)} a {labelPeriodo(acumulado.fim)} ({acumulado.meses}{" "}
+              {acumulado.meses === 1 ? "mês" : "meses"}) · {nomeVisao} · {labelMeta(acumulado.meta)}
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Kpi
+              icon={TrendingUp}
+              label="Sinistralidade acumulada"
+              value={fmtPct(acumulado.sinistralidade)}
+              hint={`Sinistro ${fmtMoeda(acumulado.sinistroTotal)}`}
+              tone={acumulado.sinistralidade > acumulado.meta ? "ruim" : "bom"}
+            />
+            <Kpi
+              icon={Building2}
+              label="Prêmio total acumulado"
+              value={fmtMoeda(acumulado.premioTotal)}
+              hint={`${labelMeta(acumulado.meta)}: ${fmtMoeda(acumulado.premioTotal * acumulado.meta)}`}
+            />
+            <Kpi
+              icon={acumulado.distorcao < 0 ? ArrowDownRight : ArrowUpRight}
+              label="Distorção acumulada"
+              value={fmtPctSinal(acumulado.distorcao)}
+              hint="vs. meta do período"
+              tone={acumulado.distorcao > 0 ? "ruim" : "bom"}
+            />
+            <Kpi
+              icon={Wallet}
+              label="Aporte financeiro acumulado"
+              value={fmtMoedaSinal(acumulado.aporte)}
+              hint={
+                acumulado.aporte > 0
+                  ? "A favor da operadora"
+                  : acumulado.aporte < 0
+                  ? "Crédito para a empresa"
+                  : "Equilibrado"
+              }
+              tone={acumulado.aporte > 0 ? "ruim" : "bom"}
+            />
+          </div>
+        </div>
+      )}
+
+
 
       {/* Filtros (sticky) */}
       <Card className="sticky top-2 z-30 p-3 flex flex-wrap items-center gap-2 shadow-md backdrop-blur supports-[backdrop-filter]:bg-card/85">
