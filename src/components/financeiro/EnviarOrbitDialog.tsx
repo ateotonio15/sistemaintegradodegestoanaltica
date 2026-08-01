@@ -706,7 +706,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
               </>
             )}
 
-            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+            <DialogFooter className="px-6 py-4 border-t bg-background shrink-0 relative z-10">
               <Button variant="outline" onClick={() => setEtapa(1)} className="gap-1.5">
                 <ArrowLeft className="h-4 w-4" /> Voltar
               </Button>
