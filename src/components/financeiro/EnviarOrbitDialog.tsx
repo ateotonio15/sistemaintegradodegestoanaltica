@@ -115,16 +115,35 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
     return (p?.username || "").trim();
   };
 
+  // Histórico: key da empresa -> envios já feitos
+  const enviosPorEmpresa = useMemo(() => {
+    const m = new Map<string, Array<{ orbit_user: string; enviado_em: string }>>();
+    envios.forEach((r) => {
+      const k = `${(r.contrato ?? "").trim()}|${(r.empresa_nome ?? "").trim().toLowerCase()}`;
+      const arr = m.get(k) ?? [];
+      arr.push({ orbit_user: r.orbit_user, enviado_em: r.enviado_em });
+      m.set(k, arr);
+    });
+    return m;
+  }, [envios]);
+
+  const jaEnviadaPara = (k: string, login: string) =>
+    (enviosPorEmpresa.get(k) ?? []).some((e) => e.orbit_user.toLowerCase() === login.toLowerCase());
+
+  const fmtData = (iso: string) =>
+    new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+
   // ETAPA 1 — lista completa de empresas (sem filtro por validação)
   const lista = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return unicas.filter((e) => {
       if (statusSel.length && !statusSel.includes(e.status ?? "")) return false;
       if (diaEmissaoSel.length && !(typeof e.dia_emissao === "number" && diaEmissaoSel.includes(e.dia_emissao))) return false;
+      if (ocultarEnviadas && (enviosPorEmpresa.get(keyOf(e))?.length ?? 0) > 0) return false;
       if (!q) return true;
       return `${e.nome} ${e.contrato ?? ""} ${e.responsavel ?? ""}`.toLowerCase().includes(q);
     });
-  }, [unicas, busca, statusSel, diaEmissaoSel]);
+  }, [unicas, busca, statusSel, diaEmissaoSel, ocultarEnviadas, enviosPorEmpresa]);
 
   const toggle = (k: string) =>
     setSel((prev) => {
