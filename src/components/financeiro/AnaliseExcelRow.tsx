@@ -446,7 +446,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
 
                                   <td className="px-3 py-2 text-right">
                                     <ValorComCheck
-                                      text={String(l.beneficiarios)}
+                                      text={l.beneficiarios > 0 ? String(l.beneficiarios) : "—"}
                                       validacao={l.validacao?.beneficiarios}
                                     />
                                   </td>
