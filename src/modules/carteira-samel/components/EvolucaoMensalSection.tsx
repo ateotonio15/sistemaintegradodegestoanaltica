@@ -179,10 +179,22 @@ export function EvolucaoMensalSection() {
     return map;
   }, [consolidadoTodos]);
 
+  // Meta (break even) vigente na visão atual
+  const metaVisao = useMemo(() => {
+    if (visao !== "__grupo__" && visao !== "__todas__") {
+      return config[visao]?.meta_sinistralidade ?? serie[serie.length - 1]?.meta ?? META_PADRAO;
+    }
+    return serie[serie.length - 1]?.meta ?? META_PADRAO;
+  }, [config, visao, serie]);
+
+  const temInCompany = useMemo(() => tabela.some((l) => l.inCompanyTotal > 0), [tabela]);
+
   const chartData = serie.map((s) => ({
     periodo: labelPeriodo(s.periodo),
     premioTotal: Number(s.premioTotal.toFixed(2)),
     sinistro: Number(s.sinistro.toFixed(2)),
+    sinistroTotal: Number(s.sinistroTotal.toFixed(2)),
+    inCompany: Number(s.inCompanyTotal.toFixed(2)),
     sinistralidade: Number((s.sinistralidade * 100).toFixed(2)),
   }));
 
