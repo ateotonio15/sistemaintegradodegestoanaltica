@@ -1920,6 +1920,8 @@ export default function Empresas() {
                       <DetailRow label="Data de Implantação" value={formatDateBR(detailEmpresa.data_implantacao)} />
                       <DetailRow label="Data de Corte" value={detailEmpresa.data_corte ? `Dia ${detailEmpresa.data_corte}` : null} />
                       <DetailRow label="Prazo (sem carência)" value={(detailEmpresa as any).prazo} />
+                      <DetailRow label="Movimentação via Portal" value={(detailEmpresa as any).contrato_via_portal ? "Sim" : "Não"} />
+
                       <DetailRow
                         label="Valor Enfermaria"
                         value={
