@@ -832,7 +832,18 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                                 </Badge>
                               )}
                               <Badge variant="secondary" className="shrink-0 text-[10px] rounded-full font-normal">{novas} nova(s)</Badge>
-                              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                              {u.validado ? (
+                                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="shrink-0 text-[10px] rounded-full font-normal border-muted-foreground/40 text-muted-foreground"
+                                  title="Ainda não localizado no Orbit — o projeto será criado no primeiro envio"
+                                >
+                                  Novo no Orbit
+                                </Badge>
+                              )}
+
                             </div>
                           );
 
