@@ -10,7 +10,7 @@ RPCs (SECURITY DEFINER, search_path=public):
 - `simular_redistribuicao_ferias(p_user_id)` algoritmo guloso: cada empresa vai ao destino com menor carga ponderada (empresas + 0.5*implantacoes).
 - `criar_ferias_cadastro(user, nome, inicio, fim, atribuicoes)` cria registro; se inicio<=hoje aplica imediato trocando `empresas.responsavel_user_id`.
 - `aplicar_ferias_programadas()` cron diário.
-- `processar_retorno_ferias()` cron diário: devolve apenas se `tem_movimentacao_pendente()` é false; caso contrário mantém `aguardando_fechamento`.
+- `processar_retorno_ferias()` cron diário: a partir do dia seguinte ao `data_fim` devolve TODAS as empresas ao responsável original (pendência não segura mais o contrato). `tem_movimentacao_pendente()` só considera competências com prazo já vencido (ignora mês corrente/futuro) — antes o provisionamento de meses futuros travava o retorno para sempre.
 - Trigger `trg_ferias_check_retorno` em movimentacoes: quando `data_envio_financeiro` é preenchido, devolve automaticamente.
 
 Cron: job `ferias-daily-process` diário 06:00 UTC chama as duas funções.
