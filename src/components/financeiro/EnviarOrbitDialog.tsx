@@ -602,7 +602,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
             </div>
 
 
-            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+            <DialogFooter className="px-6 py-4 border-t bg-background shrink-0 relative z-10">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
               <Button onClick={irParaEtapa2} disabled={sel.size === 0} className="gap-1.5">
                 Continuar ({sel.size}) <ArrowRight className="h-4 w-4" />
