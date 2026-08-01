@@ -1,0 +1,192 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
+
+  const apiKey = Deno.env.get("ORBIT_BILLING_API_KEY");
+  if (!apiKey) return json({ ok: false, error: "Endpoint não configurado" }, 500);
+
+  const sent = req.headers.get("x-api-key") || "";
+  if (sent !== apiKey) return json({ ok: false, error: "Unauthorized" }, 401);
+
+  let payload: any;
+  try {
+    payload = await req.json();
+  } catch {
+    return json({ ok: false, error: "JSON inválido" }, 400);
+  }
+
+  const { source, action, date, user, task_id, company, contract } = payload || {};
+  if (action !== "start_billing") {
+    return json({ ok: false, error: `Ação não suportada: ${action ?? "(vazio)"}` }, 400);
+  }
+  if (!company && !contract) {
+    return json({ ok: false, error: "Informe company e/ou contract" }, 400);
+  }
+
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } },
+  );
+
+  const dataRef = /^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))
+    ? String(date)
+    : new Date().toISOString().slice(0, 10);
+  const mesRef = dataRef.slice(0, 7);
+
+  try {
+    // ---------- empresa ----------
+    let empresa: any = null;
+    if (contract) {
+      const { data } = await admin
+        .from("empresas")
+        .select("id,nome,codigo_contrato")
+        .eq("codigo_contrato", String(contract).trim())
+        .limit(1)
+        .maybeSingle();
+      empresa = data;
+    }
+    if (!empresa && company) {
+      const { data } = await admin
+        .from("empresas")
+        .select("id,nome,codigo_contrato")
+        .ilike("nome", String(company).trim())
+        .limit(1)
+        .maybeSingle();
+      empresa = data;
+    }
+    if (!empresa && company) {
+      const { data } = await admin
+        .from("empresas")
+        .select("id,nome,codigo_contrato")
+        .ilike("nome", `%${String(company).trim()}%`)
+        .limit(2);
+      if (data && data.length === 1) empresa = data[0];
+    }
+    if (!empresa) {
+      return json(
+        { ok: false, error: "Empresa/contrato não encontrado no Siga", company, contract },
+        404,
+      );
+    }
+
+    // ---------- usuário ----------
+    let perfil: any = null;
+    if (user) {
+      const u = String(user).trim();
+      const { data } = await admin
+        .from("profiles")
+        .select("user_id,username,display_name")
+        .or(`username.ilike.${u},display_name.ilike.${u}`)
+        .limit(1)
+        .maybeSingle();
+      perfil = data;
+    }
+    const nomeUsuario = perfil?.display_name || perfil?.username || String(user || "Orbit");
+
+    // ---------- movimentação da competência ----------
+    let { data: mov } = await admin
+      .from("financeiro_movimentacoes")
+      .select("id,empresa_id,mes_referencia,periodo,faturamento_iniciado_em")
+      .eq("empresa_id", empresa.id)
+      .eq("mes_referencia", mesRef)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!mov) {
+      const { data: ultima } = await admin
+        .from("financeiro_movimentacoes")
+        .select("id,empresa_id,mes_referencia,periodo,faturamento_iniciado_em")
+        .eq("empresa_id", empresa.id)
+        .order("mes_referencia", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      mov = ultima;
+    }
+    if (!mov) {
+      return json(
+        { ok: false, error: "Nenhuma movimentação financeira encontrada para a empresa", mes: mesRef },
+        404,
+      );
+    }
+
+    if (mov.faturamento_iniciado_em) {
+      return json({
+        ok: true,
+        already_started: true,
+        message: "Faturamento já estava iniciado",
+        empresa: empresa.nome,
+        contrato: empresa.codigo_contrato,
+        mes_referencia: mov.mes_referencia,
+        task_id: task_id ?? null,
+      });
+    }
+
+    // Empresas do mesmo grupo financeiro (replica o comportamento do Siga)
+    const { data: vinculo } = await admin
+      .from("grupos_financeiros_contratos")
+      .select("grupo_id")
+      .eq("empresa_id", empresa.id)
+      .eq("ativo", true)
+      .limit(1)
+      .maybeSingle();
+
+    let empresaIds = [empresa.id];
+    if (vinculo?.grupo_id) {
+      const { data: membros } = await admin
+        .from("grupos_financeiros_contratos")
+        .select("empresa_id")
+        .eq("grupo_id", vinculo.grupo_id)
+        .eq("ativo", true);
+      empresaIds = [...new Set([empresa.id, ...(membros || []).map((m: any) => m.empresa_id)])];
+    }
+
+    const agora = new Date().toISOString();
+    const { data: atualizadas, error: upErr } = await admin
+      .from("financeiro_movimentacoes")
+      .update({
+        faturamento_iniciado_por: perfil?.user_id ?? null,
+        faturamento_iniciado_por_nome: nomeUsuario,
+        faturamento_iniciado_em: agora,
+        updated_at: agora,
+      })
+      .in("empresa_id", empresaIds)
+      .eq("mes_referencia", mov.mes_referencia)
+      .eq("periodo", mov.periodo)
+      .is("faturamento_iniciado_em", null)
+      .select("id");
+    if (upErr) throw upErr;
+
+    console.log("[billing-start]", {
+      source: source ?? null,
+      task_id: task_id ?? null,
+      empresa: empresa.nome,
+      contrato: empresa.codigo_contrato,
+      usuario: nomeUsuario,
+      atualizadas: atualizadas?.length ?? 0,
+    });
+
+    return json({
+      ok: true,
+      empresa: empresa.nome,
+      contrato: empresa.codigo_contrato,
+      mes_referencia: mov.mes_referencia,
+      usuario: nomeUsuario,
+      movimentacoes_iniciadas: atualizadas?.length ?? 0,
+      task_id: task_id ?? null,
+    });
+  } catch (e) {
+    console.error("[billing-start] erro", e);
+    return json({ ok: false, error: (e as Error).message }, 500);
+  }
+});
