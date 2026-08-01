@@ -498,6 +498,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                       const k = keyOf(e);
                       const login = orbitUser(e.responsavel);
                       const marcada = sel.has(k);
+                      const hist = enviosPorEmpresa.get(k) ?? [];
+                      const ultimo = hist[0];
                       return (
                         <li
                           key={k}
@@ -525,7 +527,19 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                               Contrato {e.contrato || "—"} · {e.responsavel || "Sem responsável"}
                               {login ? ` · @${login}` : " · sem login"}
                             </div>
+                            {ultimo && (
+                              <div className="text-[11px] text-amber-600 dark:text-amber-400 truncate">
+                                Já enviada em {fmtData(ultimo.enviado_em)} para{" "}
+                                {Array.from(new Set(hist.map((h) => `@${h.orbit_user}`))).slice(0, 3).join(", ")}
+                                {new Set(hist.map((h) => h.orbit_user)).size > 3 ? "…" : ""}
+                              </div>
+                            )}
                           </div>
+                          {ultimo && (
+                            <Badge variant="outline" className="shrink-0 gap-1 text-[10px] rounded-full font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">
+                              <History className="h-3 w-3" /> {hist.length}
+                            </Badge>
+                          )}
                           {e.status && <Badge variant="outline" className="shrink-0 text-[10px] rounded-full font-normal">{e.status}</Badge>}
                         </li>
                       );
@@ -534,6 +548,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
                 )}
               </ScrollArea>
             </div>
+
 
             <DialogFooter className="px-6 py-4 border-t bg-muted/30">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
