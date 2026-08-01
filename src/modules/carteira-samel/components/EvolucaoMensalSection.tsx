@@ -661,7 +661,13 @@ export function EvolucaoMensalSection() {
               <Row label="Prêmio total" value={fmtMoeda(l.premioTotal)} />
               <Row label="Sinistro" value={fmtMoeda(l.sinistro)} />
               <Row label="Sinistralidade" value={fmtPct(l.sinistralidade)} />
-              <Row label="BE 70%" value={fmtMoeda(l.be70)} />
+              {l.inCompanyTotal > 0 && (
+                <>
+                  <Row label="In company" value={fmtMoeda(l.inCompanyTotal)} />
+                  <Row label="Sinistro total" value={fmtMoeda(l.sinistroTotal)} />
+                </>
+              )}
+              <Row label={labelMeta(l.meta)} value={fmtMoeda(l.beMeta)} />
               <Row label="Distorção" value={fmtPctSinal(l.distorcao)} className={corValor(l.distorcao)} />
               <Row label="Aporte" value={fmtMoedaSinal(l.aporte)} className={corValor(l.aporte)} />
             </div>
