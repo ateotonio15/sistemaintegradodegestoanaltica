@@ -19,6 +19,7 @@ import {
   Minus,
   Pencil,
   Plus,
+  Settings2,
   Trash2,
   TrendingUp,
   Wallet,
@@ -43,13 +44,21 @@ import {
   fmtMoedaSinal,
   fmtPct,
   fmtPctSinal,
+  labelMeta,
   labelPeriodo,
   LinhaEvolucao,
+  META_PADRAO,
   calcular,
   parseColagem,
   toLinha,
 } from "../lib/evolucao-mensal";
-import { useDeleteLancamento, useEvolucaoMensal, useUpsertLancamento } from "../hooks/useEvolucaoMensal";
+import {
+  useCarteiraConfig,
+  useDeleteLancamento,
+  useEvolucaoMensal,
+  useUpsertLancamento,
+} from "../hooks/useEvolucaoMensal";
+import { ConfigCarteiraDialog } from "./ConfigCarteiraDialog";
 
 const RANGES = [
   { v: "3", label: "Últimos 3 meses" },
@@ -96,6 +105,8 @@ export function EvolucaoMensalSection() {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [editando, setEditando] = useState<any | null>(null);
   const [loteAberto, setLoteAberto] = useState(false);
+  const [configAberto, setConfigAberto] = useState(false);
+  const { data: config = {} } = useCarteiraConfig();
 
   // Visão vem da URL (?empresa=grupo | todas | slug-da-empresa)
   const paramEmpresa = searchParams.get("empresa") || "grupo";
@@ -169,10 +180,22 @@ export function EvolucaoMensalSection() {
     return map;
   }, [consolidadoTodos]);
 
+  // Meta (break even) vigente na visão atual
+  const metaVisao = useMemo(() => {
+    if (visao !== "__grupo__" && visao !== "__todas__") {
+      return config[visao]?.meta_sinistralidade ?? serie[serie.length - 1]?.meta ?? META_PADRAO;
+    }
+    return serie[serie.length - 1]?.meta ?? META_PADRAO;
+  }, [config, visao, serie]);
+
+  const temInCompany = useMemo(() => tabela.some((l) => l.inCompanyTotal > 0), [tabela]);
+
   const chartData = serie.map((s) => ({
     periodo: labelPeriodo(s.periodo),
     premioTotal: Number(s.premioTotal.toFixed(2)),
     sinistro: Number(s.sinistro.toFixed(2)),
+    sinistroTotal: Number(s.sinistroTotal.toFixed(2)),
+    inCompany: Number(s.inCompanyTotal.toFixed(2)),
     sinistralidade: Number((s.sinistralidade * 100).toFixed(2)),
   }));
 
@@ -252,7 +275,7 @@ export function EvolucaoMensalSection() {
           icon={Building2}
           label="Prêmio total do mês"
           value={atual ? fmtMoeda(atual.premioTotal) : "—"}
-          hint={atual ? `BE 70%: ${fmtMoeda(atual.be70)}` : "—"}
+          hint={atual ? `${labelMeta(atual.meta)}: ${fmtMoeda(atual.beMeta)}` : "—"}
         />
       </div>
 
@@ -337,6 +360,9 @@ export function EvolucaoMensalSection() {
         </Select>
 
         <div className="ml-auto flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setConfigAberto(true)}>
+            <Settings2 className="h-3.5 w-3.5 mr-1" /> Configurar meta
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setLoteAberto(true)}>
             Importar em lote
           </Button>
@@ -368,7 +394,10 @@ export function EvolucaoMensalSection() {
               {nomeVisao}
             </span>
           </h3>
-          <span className="text-xs text-muted-foreground">Linha tracejada = Break Even 70%</span>
+          <span className="text-xs text-muted-foreground">
+            Linha tracejada = Break Even {fmtPct(metaVisao, 0)}
+            {temInCompany && " · Sinistro total inclui custos in company"}
+          </span>
         </div>
         <div className="overflow-x-auto">
           <div
@@ -416,10 +445,10 @@ export function EvolucaoMensalSection() {
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <ReferenceLine
                   yAxisId="p"
-                  y={70}
+                  y={Number((metaVisao * 100).toFixed(2))}
                   strokeDasharray="5 5"
                   stroke="hsl(var(--destructive))"
-                  label={{ value: "BE 70%", position: "right", fontSize: 10 }}
+                  label={{ value: labelMeta(metaVisao), position: "right", fontSize: 10 }}
                 />
                 <Line
                   yAxisId="v"
@@ -451,11 +480,23 @@ export function EvolucaoMensalSection() {
                       yAxisId="v"
                       type="monotone"
                       dataKey="sinistro"
-                      name="Sinistro"
+                      name={temInCompany ? "Sinistro (operadora)" : "Sinistro"}
                       stroke="hsl(var(--warning, 38 92% 50%))"
                       strokeWidth={2}
                       dot={{ r: 3 }}
                     />
+                    {temInCompany && (
+                      <Line
+                        yAxisId="v"
+                        type="monotone"
+                        dataKey="sinistroTotal"
+                        name="Sinistro Total (com in company)"
+                        stroke="hsl(25 90% 45%)"
+                        strokeWidth={2}
+                        strokeDasharray="4 3"
+                        dot={{ r: 3 }}
+                      />
+                    )}
                     <Line
                       yAxisId="p"
                       type="monotone"
@@ -485,9 +526,11 @@ export function EvolucaoMensalSection() {
                 <th className="px-3 py-2 text-right">Prêmio Empresa</th>
                 <th className="px-3 py-2 text-right">Prêmio Continuidade</th>
                 <th className="px-3 py-2 text-right">Prêmio Total</th>
-                <th className="px-3 py-2 text-right">Sinistro</th>
+                <th className="px-3 py-2 text-right">{temInCompany ? "Sinistro (operadora)" : "Sinistro"}</th>
+                {temInCompany && <th className="px-3 py-2 text-right">In company</th>}
+                {temInCompany && <th className="px-3 py-2 text-right">Sinistro Total</th>}
                 <th className="px-3 py-2 text-right">Sinistralidade</th>
-                <th className="px-3 py-2 text-right">BE 70%</th>
+                <th className="px-3 py-2 text-right">BE Meta</th>
                 <th className="px-3 py-2 text-right">Distorção</th>
                 <th className="px-3 py-2 text-right">Aporte Financeiro</th>
                 <th className="px-3 py-2" />
@@ -496,14 +539,14 @@ export function EvolucaoMensalSection() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={temInCompany ? 13 : 11} className="px-3 py-6 text-center text-muted-foreground">
                     Carregando...
                   </td>
                 </tr>
               )}
               {!isLoading && tabela.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={temInCompany ? 13 : 11} className="px-3 py-6 text-center text-muted-foreground">
                     Nenhum lançamento no período selecionado.
                   </td>
                 </tr>
@@ -522,8 +565,14 @@ export function EvolucaoMensalSection() {
                         <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(total.premioContinuidade)}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(total.premioTotal)}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(total.sinistro)}</td>
+                        {temInCompany && (
+                          <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(total.inCompanyTotal)}</td>
+                        )}
+                        {temInCompany && (
+                          <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(total.sinistroTotal)}</td>
+                        )}
                         <td className="px-3 py-2 text-right tabular-nums">{fmtPct(total.sinistralidade)}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(total.be70)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(total.beMeta)}</td>
                         <td className={cn("px-3 py-2 text-right tabular-nums", corValor(total.distorcao))}>
                           {fmtPctSinal(total.distorcao)}
                         </td>
@@ -546,8 +595,14 @@ export function EvolucaoMensalSection() {
                       <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.premioContinuidade)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.premioTotal)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.sinistro)}</td>
+                      {temInCompany && (
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.inCompanyTotal)}</td>
+                      )}
+                      {temInCompany && (
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.sinistroTotal)}</td>
+                      )}
                       <td className="px-3 py-2 text-right tabular-nums">{fmtPct(l.sinistralidade)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.be70)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(l.beMeta)}</td>
                       <td className={cn("px-3 py-2 text-right tabular-nums", corValor(l.distorcao))}>
                         {fmtPctSinal(l.distorcao)}
                       </td>
@@ -606,7 +661,13 @@ export function EvolucaoMensalSection() {
               <Row label="Prêmio total" value={fmtMoeda(l.premioTotal)} />
               <Row label="Sinistro" value={fmtMoeda(l.sinistro)} />
               <Row label="Sinistralidade" value={fmtPct(l.sinistralidade)} />
-              <Row label="BE 70%" value={fmtMoeda(l.be70)} />
+              {l.inCompanyTotal > 0 && (
+                <>
+                  <Row label="In company" value={fmtMoeda(l.inCompanyTotal)} />
+                  <Row label="Sinistro total" value={fmtMoeda(l.sinistroTotal)} />
+                </>
+              )}
+              <Row label={labelMeta(l.meta)} value={fmtMoeda(l.beMeta)} />
               <Row label="Distorção" value={fmtPctSinal(l.distorcao)} className={corValor(l.distorcao)} />
               <Row label="Aporte" value={fmtMoedaSinal(l.aporte)} className={corValor(l.aporte)} />
             </div>
@@ -624,6 +685,7 @@ export function EvolucaoMensalSection() {
         empresas={ativas}
       />
       <LoteDialog open={loteAberto} onOpenChange={setLoteAberto} empresas={ativas} />
+      <ConfigCarteiraDialog open={configAberto} onOpenChange={setConfigAberto} empresas={ativas} />
     </div>
   );
 }
@@ -701,11 +763,16 @@ function LancamentoDialog({
   empresas: { id: string; nome: string }[];
 }) {
   const upsert = useUpsertLancamento();
+  const { data: config = {} } = useCarteiraConfig();
   const [empresaId, setEmpresaId] = useState("");
   const [mes, setMes] = useState("");
   const [pe, setPe] = useState("0");
   const [pc, setPc] = useState("0");
   const [sin, setSin] = useState("0");
+  const [meta, setMeta] = useState(String(META_PADRAO * 100));
+  const [hm, setHm] = useState("0");
+  const [fisio, setFisio] = useState("0");
+  const [admin, setAdmin] = useState("0");
 
   const key = registro?.id || "novo";
   const [lastKey, setLastKey] = useState<string>("");
@@ -716,9 +783,25 @@ function LancamentoDialog({
     setPe(String(registro?.premio_empresa ?? 0));
     setPc(String(registro?.premio_continuidade ?? 0));
     setSin(String(registro?.sinistro ?? 0));
+    setMeta(
+      String(
+        (Number(registro?.meta_sinistralidade) ||
+          config[registro?.empresa_id]?.meta_sinistralidade ||
+          META_PADRAO) * 100,
+      ),
+    );
+    setHm(String(registro?.hm_in_company ?? 0));
+    setFisio(String(registro?.fisioterapia_in_company ?? 0));
+    setAdmin(String(registro?.administrativo_in_company ?? 0));
   }
 
-  const calc = calcular(Number(pe) || 0, Number(pc) || 0, Number(sin) || 0);
+  const metaFracao = (Number(meta) || META_PADRAO * 100) / 100;
+
+  const calc = calcular(Number(pe) || 0, Number(pc) || 0, Number(sin) || 0, metaFracao, {
+    hm: Number(hm) || 0,
+    fisio: Number(fisio) || 0,
+    admin: Number(admin) || 0,
+  });
 
   const salvar = async () => {
     if (!empresaId || !mes) {
@@ -734,6 +817,10 @@ function LancamentoDialog({
         premio_empresa: Number(pe) || 0,
         premio_continuidade: Number(pc) || 0,
         sinistro: Number(sin) || 0,
+        meta_sinistralidade: metaFracao > 0 ? metaFracao : META_PADRAO,
+        hm_in_company: Number(hm) || 0,
+        fisioterapia_in_company: Number(fisio) || 0,
+        administrativo_in_company: Number(admin) || 0,
       });
       toast.success("Lançamento salvo");
       onOpenChange(false);
@@ -784,13 +871,43 @@ function LancamentoDialog({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Meta / Break Even (%)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={meta}
+                onChange={(e) => setMeta(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">HM in company (R$)</Label>
+              <Input type="number" step="0.01" value={hm} onChange={(e) => setHm(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Fisioterapia in company (R$)</Label>
+              <Input type="number" step="0.01" value={fisio} onChange={(e) => setFisio(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Administrativo in company (R$)</Label>
+              <Input type="number" step="0.01" value={admin} onChange={(e) => setAdmin(e.target.value)} />
+            </div>
+          </div>
+
           <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
               Calculado automaticamente
             </p>
             <Row label="Prêmio Total" value={fmtMoeda(calc.premioTotal)} />
+            {calc.inCompanyTotal > 0 && (
+              <>
+                <Row label="Total in company" value={fmtMoeda(calc.inCompanyTotal)} />
+                <Row label="Sinistro Total" value={fmtMoeda(calc.sinistroTotal)} />
+              </>
+            )}
             <Row label="Sinistralidade" value={fmtPct(calc.sinistralidade)} />
-            <Row label="BE 70%" value={fmtMoeda(calc.be70)} />
+            <Row label={labelMeta(calc.meta)} value={fmtMoeda(calc.beMeta)} />
             <Row label="Distorção" value={fmtPctSinal(calc.distorcao)} className={corValor(calc.distorcao)} />
             <Row
               label="Aporte Financeiro"
