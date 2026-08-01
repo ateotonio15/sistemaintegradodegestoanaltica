@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PERIODOS, isPrioridadeAlertaIntenso, periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
@@ -254,6 +255,7 @@ export default function Empresas() {
   const { canManage: canManagePrioridade } = usePrioridadeMaxima();
   const [prioridadeDialog, setPrioridadeDialog] = useState<{ open: boolean; empresa: Empresa | null; mode: "marcar" | "remover" }>({ open: false, empresa: null, mode: "marcar" });
   const [historicoPrioridade, setHistoricoPrioridade] = useState<Empresa | null>(null);
+  const [deleteEmpresa, setDeleteEmpresa] = useState<Empresa | null>(null);
   const [filtroPrioridade, setFiltroPrioridade] = useState<"todas" | "somente" | "ativas" | "concluidas">("todas");
 
   const { data: usuarios = [] } = useQuery({
@@ -1673,7 +1675,7 @@ export default function Empresas() {
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Venc. Fatura</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Emissão Fatura</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                    <TableHead className="w-24 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ações</TableHead>
+                    <TableHead className="w-16 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1743,67 +1745,61 @@ export default function Empresas() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex gap-1" onClick={(ev) => ev.stopPropagation()}>
-                              {canManagePrioridade && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setPrioridadeDialog({ open: true, empresa: e, mode: temPrioridade ? "remover" : "marcar" })}
-                                  className={cn("rounded-lg", temPrioridade ? "hover:bg-red-500/20 text-red-600" : "hover:bg-red-500/10 text-muted-foreground hover:text-red-600")}
-                                  title={temPrioridade ? "Remover Prioridade Máxima" : "Definir como Prioridade Máxima"}
-                                >
-                                  <Star className={cn("h-4 w-4", temPrioridade && "fill-current")} />
-                                </Button>
-                              )}
+                            <div className="flex items-center justify-end gap-0.5" onClick={(ev) => ev.stopPropagation()}>
                               {temPrioridade && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setHistoricoPrioridade(e)}
-                                  className="rounded-lg hover:bg-primary/10"
-                                  title="Histórico de Prioridade"
-                                >
-                                  <HistoryIcon className="h-4 w-4 text-primary" />
-                                </Button>
+                                <span title="Prioridade Máxima" className="text-red-600">
+                                  <Star className="h-4 w-4 fill-current" />
+                                </span>
                               )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setValoresEmpresa(e)}
-                                className="rounded-lg hover:bg-primary/10"
-                                title="Valores e Faixa Etária"
-                              >
-                                <Wallet className="h-4 w-4 text-primary" />
-                              </Button>
-                              {canEdit && (
-                                <Button variant="ghost" size="icon" onClick={() => openEdit(e)} className="rounded-lg hover:bg-primary/10" title="Editar"><Pencil className="h-4 w-4 text-primary" /></Button>
-                              )}
-                              {canFullEdit && (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="rounded-lg hover:bg-destructive/10" title="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Excluir contrato?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Tem certeza que deseja excluir <strong>{e.nome}</strong>? Esta ação não pode ser desfeita.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => deleteMutation.mutate(e.id)}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="Ações">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                  {canManagePrioridade && (
+                                    <DropdownMenuItem
+                                      onClick={() => setPrioridadeDialog({ open: true, empresa: e, mode: temPrioridade ? "remover" : "marcar" })}
+                                      className={cn(temPrioridade && "text-red-600 focus:text-red-600")}
+                                    >
+                                      <Star className={cn("h-4 w-4", temPrioridade && "fill-current")} />
+                                      {temPrioridade ? "Remover prioridade" : "Prioridade máxima"}
+                                    </DropdownMenuItem>
+                                  )}
+                                  {temPrioridade && (
+                                    <DropdownMenuItem onClick={() => setHistoricoPrioridade(e)}>
+                                      <HistoryIcon className="h-4 w-4" />
+                                      Histórico de prioridade
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem onClick={() => setValoresEmpresa(e)}>
+                                    <Wallet className="h-4 w-4" />
+                                    Valores e faixa etária
+                                  </DropdownMenuItem>
+                                  {canEdit && (
+                                    <DropdownMenuItem onClick={() => openEdit(e)}>
+                                      <Pencil className="h-4 w-4" />
+                                      Editar
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canFullEdit && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={() => setDeleteEmpresa(e)}
+                                        className="text-destructive focus:text-destructive"
                                       >
+                                        <Trash2 className="h-4 w-4" />
                                         Excluir
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              )}
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </TableCell>
+
                         </TableRow>
                       );
                     })
@@ -1816,6 +1812,27 @@ export default function Empresas() {
 
 
 
+
+        {/* Confirmação de exclusão */}
+        <AlertDialog open={!!deleteEmpresa} onOpenChange={(open) => { if (!open) setDeleteEmpresa(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir contrato?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir <strong>{deleteEmpresa?.nome}</strong>? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => { if (deleteEmpresa) deleteMutation.mutate(deleteEmpresa.id); setDeleteEmpresa(null); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Detail Modal */}
         <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
