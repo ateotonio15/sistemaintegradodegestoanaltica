@@ -1284,13 +1284,19 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
 
     // Pula linhas de subtotal/total de bloco (ex.: "TOTAL ENFERMARIA", "SUBTOTAL APARTAMENTO",
     // "TOTAL EMPRESA", "TOTAL CONTRATO"), que repetiriam valores já contabilizados nos módulos.
+    // Guardamos o valor do "TOTAL" do bloco para conferir contra a soma calculada.
     if (
       /^sub[\s-]*total\b/.test(labelNorm) ||
       (/^total\b/.test(labelNorm) && !labelNorm.startsWith("total geral"))
     ) {
+      if (cur && /^total\b/.test(labelNorm) && !/^sub/.test(labelNorm)) {
+        const vTot = idxValor >= 0 ? toNumber(r[idxValor]) : NaN;
+        if (!isNaN(vTot) && vTot !== 0) cur.totalDecl = vTot;
+      }
       inCoparticBlock = false;
       continue;
     }
+
 
     // CNPJ header sempre finaliza o bloco de coparticipação anterior.
     const m = labelRaw.match(reCnpj);
