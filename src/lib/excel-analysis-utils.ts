@@ -152,6 +152,29 @@ function toNumber(v: unknown): number {
   return isNaN(n) ? NaN : n;
 }
 
+/** Converte datas do Excel (Date, número serial ou texto pt-BR/ISO). */
+function toExcelDate(v: unknown): Date | null {
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
+  if (typeof v === "number" && Number.isFinite(v) && v > 1) {
+    const d = new Date(1899, 11, 30);
+    d.setDate(d.getDate() + Math.floor(v));
+    return d;
+  }
+  const s = cellToText(v).trim();
+  const br = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
+  if (br) {
+    const ano = Number(br[3]) + (br[3].length === 2 ? 2000 : 0);
+    const d = new Date(ano, Number(br[2]) - 1, Number(br[1]));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) {
+    const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
 /** Variações aceitas para cada coluna. */
 const COL_PLANO = ["plano", "planos", "tipo plano", "tipo de plano", "nome do plano"];
 const COL_TIPO_COBRANCA = [
@@ -1672,13 +1695,17 @@ function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unkno
   const idxPagador = findPagadorColumnIndex(header);
   if (idxAdesao < 0 || idxTipo < 0 || idxValor < 0 || idxPagador < 0) return blocos;
 
-  const datas = dataRows.map((row) => row[idxAdesao]).filter((v): v is Date => v instanceof Date && !Number.isNaN(v.getTime()));
+  const datas = dataRows.map((row) => toExcelDate(row[idxAdesao])).filter((v): v is Date => v !== null);
   if (datas.length === 0) return blocos;
   const referencia = datas.reduce((maisRecente, data) => data > maisRecente ? data : maisRecente, datas[0]);
+  const inicioJanela = new Date(referencia.getFullYear(), referencia.getMonth() - 1, 21);
+  const fimJanela = new Date(referencia.getFullYear(), referencia.getMonth() + 1, 0);
   const encontrados = new Map<string, InclusaoResultado>();
   for (const row of dataRows) {
-    const data = row[idxAdesao];
-    if (!(data instanceof Date) || data.getFullYear() !== referencia.getFullYear() || data.getMonth() !== referencia.getMonth()) continue;
+    const data = toExcelDate(row[idxAdesao]);
+    // A competência Jabil fecha no ciclo 21 do mês anterior até o fim do mês
+    // corrente; limitar ao mês-calendário descartava as primeiras admissões.
+    if (!data || data < inicioJanela || data > fimJanela) continue;
     const tipo = norm(row[idxTipo]);
     // No arquivo real da Jabil esta coluna vem vazia tanto nas mensalidades
     // quanto nas quatro admissões proporcionais do fim da competência.
