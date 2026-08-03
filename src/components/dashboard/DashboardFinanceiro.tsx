@@ -102,7 +102,20 @@ export function DashboardFinanceiro() {
     },
   });
 
+  const { data: opcoesMov = [] } = useQuery<{ mes_referencia: string | null; periodo: string | null }[]>({
+    queryKey: ["fin-dash-mov-opcoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("mes_referencia, periodo")
+        .limit(20000);
+      if (error) throw error;
+      return (data ?? []) as any;
+    },
+  });
+
   const minhasEmpresasIds = useMemo(() => {
+
     if (!user) return new Set<string>();
     return new Set(empresas.filter((e: any) => e.responsavel_user_id === user.id).map((e: any) => e.id));
   }, [empresas, user]);
