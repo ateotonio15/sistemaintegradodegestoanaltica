@@ -1571,6 +1571,85 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
 }
 
 /**
+ * Algumas planilhas trazem a aba RESUMO sem as inclusões que estão no fim da
+ * relação de beneficiários. Completa somente blocos cujo RESUMO não informou
+ * inclusões, evitando somar novamente valores já consolidados.
+ */
+function completarInclusoesDoDetalhe(
+  wb: ExcelJS.Workbook,
+  blocos: AnalisePorCnpj[],
+): AnalisePorCnpj[] {
+  if (blocos.length === 0 || blocos.every((b) => b.inclusoes.quantidade > 0 || b.inclusoes.total !== 0)) {
+    return blocos;
+  }
+
+  const encontrados = new Map<string, InclusaoResultado>();
+  const adicionar = (chave: string, valor: number) => {
+    if (!chave) return;
+    const atual = encontrados.get(chave) || { quantidade: 0, total: 0 };
+    atual.quantidade += 1;
+    atual.total += valor;
+    encontrados.set(chave, atual);
+  };
+
+  wb.worksheets.forEach((ws) => {
+    if (norm(ws.name).includes("resumo")) return;
+
+    const rows: unknown[][] = [];
+    ws.eachRow({ includeEmpty: false }, (row) => {
+      rows.push((row.values as unknown[]).slice(1));
+    });
+
+    let headerIdx = -1;
+    let idxTipo = -1;
+    let idxValor = -1;
+    let idxCnpj = -1;
+    let idxPagador = -1;
+    for (let i = 0; i < Math.min(15, rows.length); i++) {
+      const tipo = findColumnIndex(rows[i], COL_TIPO_COBRANCA);
+      const valor = findColumnIndex(rows[i], COL_VALOR);
+      if (tipo >= 0 && valor >= 0) {
+        headerIdx = i;
+        idxTipo = tipo;
+        idxValor = valor;
+        idxCnpj = findColumnIndex(rows[i], COL_CNPJ);
+        idxPagador = findPagadorColumnIndex(rows[i]);
+        break;
+      }
+    }
+    if (headerIdx < 0) return;
+
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!isInclusao(String(row[idxTipo] ?? "")) || isRetroativa(String(row[idxTipo] ?? ""))) continue;
+      const valor = toNumber(row[idxValor]);
+      if (!Number.isFinite(valor) || valor < 0) continue;
+      const cnpj = idxCnpj >= 0 ? normalizarCnpj(row[idxCnpj]) : "";
+      const nome = idxPagador >= 0 ? normMatch(String(row[idxPagador] ?? "")) : "";
+      adicionar(cnpj.length === 14 ? `cnpj:${cnpj}` : `nome:${nome}`, valor);
+    }
+  });
+
+  return blocos.map((bloco) => {
+    if (bloco.inclusoes.quantidade > 0 || bloco.inclusoes.total !== 0) return bloco;
+    const porCnpj = bloco.cnpj ? encontrados.get(`cnpj:${bloco.cnpj}`) : undefined;
+    const nomeBloco = normMatch(bloco.nome);
+    const porNome = encontrados.get(`nome:${nomeBloco}`) || Array.from(encontrados.entries()).find(
+      ([chave]) => chave.startsWith("nome:") && nomeBloco && (
+        chave.slice(5).includes(nomeBloco) || nomeBloco.includes(chave.slice(5))
+      ),
+    )?.[1];
+    const inclusoes = porCnpj || porNome;
+    if (!inclusoes) return bloco;
+    return {
+      ...bloco,
+      inclusoes: { ...inclusoes },
+      avisos: [...bloco.avisos, "Inclusões complementadas pela relação detalhada de beneficiários."],
+    };
+  });
+}
+
+/**
  * Lê a planilha e devolve um array de blocos, um por CNPJ encontrado.
  * Preferência:
  *   1) Aba RESUMO consolidada (Empresa/Módulo | Qtd | Mensalidade | Valor)
@@ -1583,7 +1662,9 @@ export async function analisarExcelFinanceiroPorCnpj(
   await wb.xlsx.load(buffer);
 
   const viaResumo = analisarResumoSheet(wb);
-  if (viaResumo && viaResumo.length > 0) return mesclarBlocosPorNomeForcado(viaResumo);
+  if (viaResumo && viaResumo.length > 0) {
+    return mesclarBlocosPorNomeForcado(completarInclusoesDoDetalhe(wb, viaResumo));
+  }
 
   const ws = wb.worksheets[0];
   if (!ws) return [];
