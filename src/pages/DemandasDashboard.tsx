@@ -26,7 +26,9 @@ import {
   Line,
   XAxis,
   YAxis,
+  CartesianGrid,
   Tooltip as RTooltip,
+
   ResponsiveContainer,
   Area,
   AreaChart,
@@ -374,10 +376,12 @@ export default function DemandasDashboard() {
 
   // ===== Resolução por origem (executiva vs. setor) =====
   const resolucaoOrigem = useMemo(() => {
-    const serie = monthlySeries.map((m) => ({
+    const serie = monthlySeries.slice(-6).map((m) => ({
       label: m.label,
-      executiva: m.execQtd,
-      setor: m.setorQtd,
+      executiva: m.execPct,
+      setor: m.execQtd + m.setorQtd ? 100 - m.execPct : 0,
+      execQtd: m.execQtd,
+      setorQtd: m.setorQtd,
       execPct: m.execPct,
     }));
     const atual = serie[serie.length - 1];
@@ -396,10 +400,11 @@ export default function DemandasDashboard() {
       serie,
       pctAtual,
       delta,
-      totalExec: atual?.executiva ?? 0,
-      totalMes: (atual?.executiva ?? 0) + (atual?.setor ?? 0),
+      totalExec: atual?.execQtd ?? 0,
+      totalMes: (atual?.execQtd ?? 0) + (atual?.setorQtd ?? 0),
     };
   }, [monthlySeries]);
+
 
 
   // ===== Matriz de risco (setor) =====
@@ -1263,8 +1268,9 @@ function ResolucaoOrigemCard({
   const showTrend = typeof delta === "number";
   const isUp = (delta ?? 0) > 0;
   const TrendIcon = isUp ? ArrowUp : ArrowDown;
-  const execColor = "hsl(var(--info))";
-  const setorColor = "hsl(var(--success))";
+  const execColor = "#2a78d6";
+  const setorColor = "#8a8a8a";
+
   return (
     <Card
       className="p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 fill-mode-both"
@@ -1294,20 +1300,35 @@ function ResolucaoOrigemCard({
         </div>
       </div>
 
-      <div className="h-24">
-        <ResponsiveContainer>
-          <LineChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
-            <XAxis dataKey="label" hide />
-            <YAxis hide />
+      <div style={{ width: "100%", height: 160 }}>
+        <ResponsiveContainer width="100%" height={160}>
+          <LineChart data={data} margin={{ top: 5, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
+              tickFormatter={(v) => `${v}%`}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={false}
+              tickLine={false}
+              width={36}
+            />
             <RTooltip
               contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-              formatter={(v: any, k: any) => [String(v), k === "executiva" ? "Executiva" : "Setor"]}
+              formatter={(v: any, k: any) => [`${v}%`, k === "executiva" ? "Executiva" : "Setor"]}
             />
-            <Line type="monotone" dataKey="executiva" stroke={execColor} strokeWidth={2.5} dot={false} />
-            <Line type="monotone" dataKey="setor" stroke={setorColor} strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="executiva" stroke={execColor} strokeWidth={2} dot={false} name="Executiva" />
+            <Line type="monotone" dataKey="setor" stroke={setorColor} strokeWidth={2} dot={false} name="Setor" />
           </LineChart>
         </ResponsiveContainer>
       </div>
+
 
       <div className="mt-2 flex items-center gap-4">
         <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
