@@ -24,6 +24,7 @@ import {
   Pergunta, PerguntaTipo, TIPO_LABEL,
   useContagemRespostas, useCriarPesquisa, usePerguntasPesquisa,
   usePesquisasPorPalestras, useSalvarComoPadrao, useSalvarPerguntas, useToggleAberta,
+  usePesquisaGeral, useCriarPesquisaGeral,
 } from "../hooks/usePesquisas";
 import { ResultadosPesquisa } from "../components/pesquisa/ResultadosPesquisa";
 
