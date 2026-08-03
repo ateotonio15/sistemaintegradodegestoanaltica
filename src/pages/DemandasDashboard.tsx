@@ -1268,8 +1268,9 @@ function ResolucaoOrigemCard({
   const showTrend = typeof delta === "number";
   const isUp = (delta ?? 0) > 0;
   const TrendIcon = isUp ? ArrowUp : ArrowDown;
-  const execColor = "hsl(var(--info))";
-  const setorColor = "hsl(var(--success))";
+  const execColor = "#2a78d6";
+  const setorColor = "#8a8a8a";
+
   return (
     <Card
       className="p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 fill-mode-both"
