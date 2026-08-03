@@ -3504,6 +3504,187 @@ export type Database = {
         }
         Relationships: []
       }
+      palestra_pesquisa_perguntas: {
+        Row: {
+          created_at: string
+          id: string
+          obrigatoria: boolean
+          opcoes: Json
+          ordem: number
+          pesquisa_id: string | null
+          template_id: string | null
+          texto: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          obrigatoria?: boolean
+          opcoes?: Json
+          ordem?: number
+          pesquisa_id?: string | null
+          template_id?: string | null
+          texto: string
+          tipo?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          obrigatoria?: boolean
+          opcoes?: Json
+          ordem?: number
+          pesquisa_id?: string | null
+          template_id?: string | null
+          texto?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "palestra_pesquisa_perguntas_pesquisa_id_fkey"
+            columns: ["pesquisa_id"]
+            isOneToOne: false
+            referencedRelation: "palestra_pesquisas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "palestra_pesquisa_perguntas_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "palestra_pesquisa_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      palestra_pesquisa_respostas: {
+        Row: {
+          id: string
+          pesquisa_id: string
+          respondido_em: string
+        }
+        Insert: {
+          id?: string
+          pesquisa_id: string
+          respondido_em?: string
+        }
+        Update: {
+          id?: string
+          pesquisa_id?: string
+          respondido_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "palestra_pesquisa_respostas_pesquisa_id_fkey"
+            columns: ["pesquisa_id"]
+            isOneToOne: false
+            referencedRelation: "palestra_pesquisas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      palestra_pesquisa_respostas_itens: {
+        Row: {
+          created_at: string
+          id: string
+          pergunta_id: string
+          resposta_id: string
+          valor_nota: number | null
+          valor_texto: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pergunta_id: string
+          resposta_id: string
+          valor_nota?: number | null
+          valor_texto?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pergunta_id?: string
+          resposta_id?: string
+          valor_nota?: number | null
+          valor_texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "palestra_pesquisa_respostas_itens_pergunta_id_fkey"
+            columns: ["pergunta_id"]
+            isOneToOne: false
+            referencedRelation: "palestra_pesquisa_perguntas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "palestra_pesquisa_respostas_itens_resposta_id_fkey"
+            columns: ["resposta_id"]
+            isOneToOne: false
+            referencedRelation: "palestra_pesquisa_respostas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      palestra_pesquisa_templates: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      palestra_pesquisas: {
+        Row: {
+          aberta: boolean
+          created_at: string
+          criado_por: string | null
+          id: string
+          palestra_id: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          aberta?: boolean
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          palestra_id: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          aberta?: boolean
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          palestra_id?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "palestra_pesquisas_palestra_id_fkey"
+            columns: ["palestra_id"]
+            isOneToOne: true
+            referencedRelation: "palestras_saude"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       palestras_saude: {
         Row: {
           created_at: string
@@ -4758,6 +4939,7 @@ export type Database = {
         }[]
       }
       get_my_username: { Args: never; Returns: string }
+      get_pesquisa_por_token: { Args: { p_token: string }; Returns: Json }
       get_user_display_names: {
         Args: { _ids: string[] }
         Returns: {
@@ -4823,6 +5005,10 @@ export type Database = {
           p_nota_media: number
           p_respostas: Json
         }
+        Returns: string
+      }
+      responder_pesquisa_por_token: {
+        Args: { p_respostas: Json; p_token: string }
         Returns: string
       }
       set_lock_password: {
