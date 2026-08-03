@@ -364,9 +364,43 @@ export default function DemandasDashboard() {
         ? Math.round((arr.filter(isForaPrazo).length / arr.length) * 100)
         : 0;
       const aberto = arr.filter((d) => !isResolved(d)).length;
-      return { label: m.label, sla, fora, aberto };
+      const execQtd = arr.filter((d) => d.resolvido_executiva).length;
+      const setorQtd = arr.filter((d) => d.resolvido_setor && !d.resolvido_executiva).length;
+      const resolvidas = execQtd + setorQtd;
+      const execPct = resolvidas ? Math.round((execQtd / resolvidas) * 100) : 0;
+      return { label: m.label, sla, fora, aberto, execQtd, setorQtd, execPct };
     });
   }, [filtered, ini, fim]);
+
+  // ===== Resolução por origem (executiva vs. setor) =====
+  const resolucaoOrigem = useMemo(() => {
+    const serie = monthlySeries.map((m) => ({
+      label: m.label,
+      executiva: m.execQtd,
+      setor: m.setorQtd,
+      execPct: m.execPct,
+    }));
+    const atual = serie[serie.length - 1];
+    const anterior = serie[serie.length - 2];
+    const pctAtual = atual?.execPct ?? 0;
+    const pctAnterior = anterior?.execPct ?? 0;
+    const delta =
+      anterior === undefined
+        ? null
+        : pctAnterior === 0
+        ? pctAtual > 0
+          ? 100
+          : 0
+        : Math.round(((pctAtual - pctAnterior) / pctAnterior) * 100);
+    return {
+      serie,
+      pctAtual,
+      delta,
+      totalExec: atual?.executiva ?? 0,
+      totalMes: (atual?.executiva ?? 0) + (atual?.setor ?? 0),
+    };
+  }, [monthlySeries]);
+
 
   // ===== Matriz de risco (setor) =====
   const matrizSetores = useMemo(() => {
@@ -772,7 +806,9 @@ export default function DemandasDashboard() {
                 meta={META_FORA_PRAZO}
                 footer="Meta: ≤ 8%"
               />
+              <ResolucaoOrigemCard delay={240} {...resolucaoOrigem} />
             </div>
+
 
             {/* Matriz de risco */}
             <MatrizRiscoSetores data={matrizSetores} />
@@ -1209,6 +1245,92 @@ function GargalosPanel({ data }: { data: { setor: string; tipo: string; qtd: num
           ))}
         </div>
       )}
+    </Card>
+  );
+}
+
+function ResolucaoOrigemCard({
+  serie, pctAtual, delta, totalExec, totalMes, delay = 0,
+}: {
+  serie: { label: string; executiva: number; setor: number; execPct: number }[];
+  pctAtual: number;
+  delta: number | null;
+  totalExec: number;
+  totalMes: number;
+  delay?: number;
+}) {
+  const data = serie.length === 1 ? [serie[0], { ...serie[0] }] : serie;
+  const showTrend = typeof delta === "number";
+  const isUp = (delta ?? 0) > 0;
+  const TrendIcon = isUp ? ArrowUp : ArrowDown;
+  const execColor = "hsl(var(--info))";
+  const setorColor = "hsl(var(--success))";
+  return (
+    <Card
+      className="p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 fill-mode-both"
+      style={{ animationDelay: `${delay}ms`, animationDuration: "500ms" }}
+    >
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-start gap-2">
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-info/10 text-info">
+            <Users className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold leading-tight">Resolução por Origem</p>
+            <p className="text-[11px] text-muted-foreground">Executiva vs. setor / mês</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-semibold tabular-nums text-info">{pctAtual}%</p>
+          {showTrend && (
+            <span className={cn(
+              "inline-flex items-center text-[11px] font-semibold gap-0.5",
+              isUp ? "text-success" : "text-destructive",
+            )}>
+              <TrendIcon className="h-3 w-3" />
+              {Math.abs(delta!)}%
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="h-24">
+        <ResponsiveContainer>
+          <LineChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+            <XAxis dataKey="label" hide />
+            <YAxis hide />
+            <RTooltip
+              contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+              formatter={(v: any, k: any) => [String(v), k === "executiva" ? "Executiva" : "Setor"]}
+            />
+            <Line type="monotone" dataKey="executiva" stroke={execColor} strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="setor" stroke={setorColor} strokeWidth={2.5} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mt-2 flex items-center gap-4">
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span className="h-1.5 w-4 rounded-full" style={{ background: execColor }} /> Executiva
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span className="h-1.5 w-4 rounded-full" style={{ background: setorColor }} /> Setor
+        </span>
+      </div>
+
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <p className="text-[11px] text-muted-foreground">
+          {totalMes > 0
+            ? `${pctAtual}% das demandas dependeram de decisão direta da executiva neste mês (${totalExec} de ${totalMes}).`
+            : "Sem demandas resolvidas no mês atual."}
+        </p>
+        <Link
+          to="/demandas"
+          className="text-[11px] font-semibold text-primary hover:underline whitespace-nowrap"
+        >
+          Ver detalhes →
+        </Link>
+      </div>
     </Card>
   );
 }
