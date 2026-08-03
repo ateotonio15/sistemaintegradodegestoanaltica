@@ -26,7 +26,9 @@ import {
   Line,
   XAxis,
   YAxis,
+  CartesianGrid,
   Tooltip as RTooltip,
+
   ResponsiveContainer,
   Area,
   AreaChart,
