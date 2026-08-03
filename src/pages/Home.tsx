@@ -38,6 +38,7 @@ import {
   BarChart3,
   Sparkles,
   type LucideIcon,
+  Star,
 } from "lucide-react";
 
 type InteligenciaItem = {
