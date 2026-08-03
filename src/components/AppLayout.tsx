@@ -60,6 +60,7 @@ const allNavItems = [
   { to: "/saude-empresas/visao-geral", label: "Visão Geral · Saúde", icon: Activity },
   { to: "/saude-empresas/preventivas", label: "Calendário de Ações", icon: CalendarClock },
   { to: "/saude-empresas/palestras", label: "Calendário Palestras", icon: Mic },
+  { to: "/saude-empresas/pesquisas", label: "Pesquisa de Satisfação", icon: Star },
 ];
 
 interface Notificacao {
@@ -165,7 +166,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         return allowed.includes(item.to);
       }
       if (isEnfermeira) {
-        const allowed = ["/uber", "/uber/dashboard", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras"];
+        const allowed = ["/uber", "/uber/dashboard", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras", "/saude-empresas/pesquisas"];
         return allowed.includes(item.to);
       }
       if (role === "vendas") {

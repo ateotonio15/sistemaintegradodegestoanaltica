@@ -51,6 +51,8 @@ import SaudeAcaoTriagens from "./modules/saude-empresas/pages/SaudeAcaoTriagens"
 import SaudeVisaoGeral from "./modules/saude-empresas/pages/SaudeVisaoGeral";
 import CalendarioPreventivas from "./modules/saude-empresas/pages/CalendarioPreventivas";
 import CalendarioPalestras from "./modules/saude-empresas/pages/CalendarioPalestras";
+import PesquisaSatisfacao from "./modules/saude-empresas/pages/PesquisaSatisfacao";
+import ResponderPesquisa from "./modules/saude-empresas/pages/ResponderPesquisa";
 import DashboardExecutivo from "./modules/saude-empresas/pages/DashboardExecutivo";
 import MailingBrindes from "./pages/MailingBrindes";
 import ApresentacaoIndicadores from "./pages/ApresentacaoIndicadores";
@@ -163,6 +165,7 @@ const AppRoutes = () => (
     
     <Route path="/carteira-samel/avaliacoes/rh/responder/:formId" element={<CSResponderRH />} />
     <Route path="/avaliar/:token" element={<CSResponderToken />} />
+    <Route path="/pesquisa/:token" element={<ResponderPesquisa />} />
     <Route element={<AppShell />}>
       <Route path="/portal" element={<Portal />} />
       <Route path="/meu-painel" element={<MeuPainel />} />
@@ -250,6 +253,7 @@ const AppRoutes = () => (
         <Route path="/saude-empresas/dashboard-executivo" element={<DashboardExecutivo />} />
         <Route path="/saude-empresas/preventivas" element={<CalendarioPreventivas />} />
         <Route path="/saude-empresas/palestras" element={<CalendarioPalestras />} />
+        <Route path="/saude-empresas/pesquisas" element={<PesquisaSatisfacao />} />
         <Route path="/saude-empresas/empresa/:empresaId" element={<SaudeEmpresaAcoes />} />
         <Route path="/saude-empresas/acao/:acaoId" element={<SaudeAcaoTriagens />} />
       </Route>
