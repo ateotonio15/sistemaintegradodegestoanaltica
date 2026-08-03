@@ -115,19 +115,26 @@ export function DashboardFinanceiro() {
 
   const competenciasDisponiveis = useMemo(
     () =>
-      Array.from(new Set(cobrancasAbertas.map((c) => c.mes_referencia).filter((v): v is string => !!v))).sort(
-        (a, b) => b.localeCompare(a),
-      ),
-    [cobrancasAbertas],
+      Array.from(
+        new Set([
+          ...cobrancas.map((c) => c.mes_referencia),
+          ...opcoesMov.map((m) => m.mes_referencia),
+        ].filter((v): v is string => !!v)),
+      ).sort((a, b) => b.localeCompare(a)),
+    [cobrancas, opcoesMov],
   );
 
   const periodosDisponiveis = useMemo(
     () =>
-      Array.from(new Set(cobrancasAbertas.map((c) => c.periodo).filter((v): v is string => !!v))).sort((a, b) =>
-        a.localeCompare(b),
-      ),
-    [cobrancasAbertas],
+      Array.from(
+        new Set([
+          ...cobrancas.map((c) => c.periodo),
+          ...opcoesMov.map((m) => m.periodo),
+        ].filter((v): v is string => !!v)),
+      ).sort((a, b) => a.localeCompare(b)),
+    [cobrancas, opcoesMov],
   );
+
 
   const cobrancasFiltradas = useMemo(
     () =>
