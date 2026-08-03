@@ -153,6 +153,14 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         icon: ShieldPlus,
         to: "/saude-empresas/preventivas",
       },
+      {
+        slug: "saude-empresas-pesquisas",
+        label: "Pesquisa de Satisfação",
+        description: "Avaliação pós-palestra por QR Code e resultados",
+        icon: Star,
+        to: "/saude-empresas/pesquisas",
+      },
+
     ],
   },
   {
