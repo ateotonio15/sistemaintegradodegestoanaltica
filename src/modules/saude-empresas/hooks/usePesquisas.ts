@@ -282,12 +282,6 @@ export function useResultadosPesquisas() {
       if (!respostas?.length) return [] as RespostaItemFlat[];
 
       const respostaMap = new Map<string, any>((respostas ?? []).map((r: any) => [r.id, r]));
-      const { data: itens } = await db
-        .from("palestra_pesquisa_respostas_itens")
-        .select("id, resposta_id, pergunta_id, valor_nota, valor_texto")
-        .in("id", []) // placeholder substituído abaixo
-        .limit(0);
-
       const { data: itensReais } = await db
         .from("palestra_pesquisa_respostas_itens")
         .select("resposta_id, pergunta_id, valor_nota, valor_texto")
@@ -302,8 +296,6 @@ export function useResultadosPesquisas() {
         : { data: [] };
       const perguntaMap = new Map<string, any>((perguntas ?? []).map((p: any) => [p.id, p]));
       const pesquisaMap = new Map<string, any>(pesquisas.map((p: any) => [p.id, p]));
-
-      void itens;
 
       return (itensReais ?? []).map((i: any) => {
         const resp = respostaMap.get(i.resposta_id);
