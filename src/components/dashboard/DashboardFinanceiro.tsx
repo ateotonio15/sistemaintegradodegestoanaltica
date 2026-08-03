@@ -36,6 +36,13 @@ interface CobrancaRow {
   periodo: string | null;
 }
 
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+function formatCompetencia(c?: string | null) {
+  if (!c) return "—";
+  const m = c.match(/^(\d{4})-(\d{2})$/);
+  return m ? `${MESES[Number(m[2]) - 1]}/${m[1]}` : c;
+}
+
 export function DashboardFinanceiro() {
   const { user } = useAuth();
   const navigate = useNavigate();
