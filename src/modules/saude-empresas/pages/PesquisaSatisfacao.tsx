@@ -63,7 +63,7 @@ export default function PesquisaSatisfacao() {
   });
 
   const empresas = useMemo(
-    () => Array.from(new Set(palestras.map((p: any) => p.empresa))).sort(),
+    () => (Array.from(new Set(palestras.map((p: any) => String(p.empresa)))) as string[]).sort(),
     [palestras],
   );
   const lista = useMemo(
