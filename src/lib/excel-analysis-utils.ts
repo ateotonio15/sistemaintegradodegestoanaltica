@@ -166,6 +166,7 @@ const COL_VALOR = ["valor", "mensalidade", "valor mensalidade", "vlr", "preco", 
 const COL_CNPJ = ["cnpj", "cnpj pagador", "cnpj do pagador", "cnpj empresa"];
 const COL_PAGADOR = ["subestipulante", "sub estipulante", "sub-estipulante", "pagador", "nome pagador", "nome do pagador", "razao social", "razão social", "empresa", "contratante", "nome empresa", "nome da empresa"];
 const COL_FAIXA_ETARIA = ["fx etaria", "fx etária", "faixa etaria", "faixa etária", "grupo faixa etaria", "grupo faixa etária"];
+const COL_DATA_ADESAO = ["dt adesao", "data adesao", "data de adesao", "adesao", "inclusao em", "data inclusao"];
 
 /** Normalização "agressiva" para casamento de nomes: remove pontuação e colapsa espaços. */
 function normMatch(s: unknown): string {
@@ -1650,6 +1651,66 @@ function completarInclusoesDoDetalhe(
 }
 
 /**
+ * Relatórios sem aba RESUMO podem trazer todas as linhas como mensalidade,
+ * inclusive admissões feitas durante a competência. Nessa situação, as vidas
+ * admitidas no mês de faturamento são inclusões: elas saem da mensalidade e
+ * passam para o bloco proporcional.
+ */
+function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unknown[][]): AnalisePorCnpj[] {
+  if (rows.length < 2) return blocos;
+  const header = rows[0];
+  const idxAdesao = findColumnIndex(header, COL_DATA_ADESAO);
+  const idxTipo = findColumnIndex(header, COL_TIPO_COBRANCA);
+  const idxValor = findColumnIndex(header, COL_VALOR);
+  const idxCnpj = findColumnIndex(header, COL_CNPJ);
+  const idxPagador = findPagadorColumnIndex(header);
+  if (idxAdesao < 0 || idxTipo < 0 || idxValor < 0 || idxPagador < 0) return blocos;
+
+  const datas = rows.slice(1).map((row) => row[idxAdesao]).filter((v): v is Date => v instanceof Date && !Number.isNaN(v.getTime()));
+  if (datas.length === 0) return blocos;
+  const referencia = datas.reduce((maisRecente, data) => data > maisRecente ? data : maisRecente, datas[0]);
+  const encontrados = new Map<string, InclusaoResultado>();
+  for (const row of rows.slice(1)) {
+    const data = row[idxAdesao];
+    if (!(data instanceof Date) || data.getFullYear() !== referencia.getFullYear() || data.getMonth() !== referencia.getMonth()) continue;
+    if (norm(row[idxTipo]) !== "mensalidade") continue;
+    const valor = toNumber(row[idxValor]);
+    if (!Number.isFinite(valor) || valor < 0) continue;
+    const cnpj = idxCnpj >= 0 ? normalizarCnpj(row[idxCnpj]) : "";
+    const nome = normMatch(row[idxPagador]);
+    const chave = cnpj.length === 14 ? `cnpj:${cnpj}` : `nome:${nome}`;
+    const atual = encontrados.get(chave) || { quantidade: 0, total: 0 };
+    atual.quantidade += 1;
+    atual.total += valor;
+    encontrados.set(chave, atual);
+  }
+  if (encontrados.size === 0) return blocos;
+
+  return blocos.map((bloco) => {
+    if (bloco.inclusoes.quantidade > 0 || bloco.inclusoes.total !== 0) return bloco;
+    const nomeBloco = normMatch(bloco.nome);
+    const inclusoes = (bloco.cnpj ? encontrados.get(`cnpj:${bloco.cnpj}`) : undefined)
+      || encontrados.get(`nome:${nomeBloco}`)
+      || Array.from(encontrados.entries()).find(([chave]) => chave.startsWith("nome:") && nomeBloco && (
+        chave.slice(5).includes(nomeBloco) || nomeBloco.includes(chave.slice(5))
+      ))?.[1];
+    if (!inclusoes) return bloco;
+    const moverEnfermaria = bloco.enfermaria.beneficiarios >= inclusoes.quantidade
+      && bloco.enfermaria.total + 0.01 >= inclusoes.total;
+    return {
+      ...bloco,
+      enfermaria: moverEnfermaria ? {
+        ...bloco.enfermaria,
+        beneficiarios: bloco.enfermaria.beneficiarios - inclusoes.quantidade,
+        total: bloco.enfermaria.total - inclusoes.total,
+      } : bloco.enfermaria,
+      inclusoes: { ...inclusoes },
+      avisos: [...bloco.avisos, "Inclusões identificadas pela data de adesão na competência."],
+    };
+  });
+}
+
+/**
  * Lê a planilha e devolve um array de blocos, um por CNPJ encontrado.
  * Preferência:
  *   1) Aba RESUMO consolidada (Empresa/Módulo | Qtd | Mensalidade | Valor)
@@ -2280,7 +2341,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     }
   }
 
-  return mesclarBlocosPorNomeForcado(blocos);
+  return mesclarBlocosPorNomeForcado(classificarAdmissoesDaCompetencia(blocos, allRows));
 }
 
 

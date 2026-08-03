@@ -98,4 +98,27 @@ describe("análise financeira Jabil", () => {
     expect(blocos[0].inclusoes.quantidade).toBe(4);
     expect(blocos[0].inclusoes.total).toBeCloseTo(516.72, 2);
   });
+
+  it("classifica admissões do mês como inclusões quando o relatório marca tudo como mensalidade", async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("RELATORIO BENEFICIARIOS");
+    ws.addRow(["Subestipulante", "Dt adesao", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    for (let i = 0; i < 216; i++) {
+      ws.addRow([
+        "PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL",
+        i >= 212 ? new Date(2026, 6, 20) : new Date(2025, 0, 30),
+        "Mensalidade",
+        "Coletivo Empresarial Master",
+        258.36,
+      ]);
+    }
+
+    const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
+
+    expect(blocos).toHaveLength(1);
+    expect(blocos[0].enfermaria.beneficiarios).toBe(212);
+    expect(blocos[0].enfermaria.total).toBeCloseTo(54760.32, 2);
+    expect(blocos[0].inclusoes.quantidade).toBe(4);
+    expect(blocos[0].inclusoes.total).toBeCloseTo(1033.44, 2);
+  });
 });
