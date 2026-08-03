@@ -1693,10 +1693,7 @@ function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unkno
     if (bloco.inclusoes.quantidade > 0 || bloco.inclusoes.total !== 0) return bloco;
     const nomeBloco = normMatch(bloco.nome);
     const inclusoes = (bloco.cnpj ? encontrados.get(`cnpj:${bloco.cnpj}`) : undefined)
-      || encontrados.get(`nome:${nomeBloco}`)
-      || Array.from(encontrados.entries()).find(([chave]) => chave.startsWith("nome:") && nomeBloco && (
-        chave.slice(5).includes(nomeBloco) || nomeBloco.includes(chave.slice(5))
-      ))?.[1];
+      || encontrados.get(`nome:${nomeBloco}`);
     if (!inclusoes) return bloco;
     return {
       ...bloco,
