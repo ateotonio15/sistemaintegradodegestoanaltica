@@ -1248,3 +1248,89 @@ function GargalosPanel({ data }: { data: { setor: string; tipo: string; qtd: num
     </Card>
   );
 }
+
+function ResolucaoOrigemCard({
+  serie, pctAtual, delta, totalExec, totalMes, delay = 0,
+}: {
+  serie: { label: string; executiva: number; setor: number; execPct: number }[];
+  pctAtual: number;
+  delta: number | null;
+  totalExec: number;
+  totalMes: number;
+  delay?: number;
+}) {
+  const data = serie.length === 1 ? [serie[0], { ...serie[0] }] : serie;
+  const showTrend = typeof delta === "number";
+  const isUp = (delta ?? 0) > 0;
+  const TrendIcon = isUp ? ArrowUp : ArrowDown;
+  const execColor = "hsl(var(--info))";
+  const setorColor = "hsl(var(--success))";
+  return (
+    <Card
+      className="p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 fill-mode-both"
+      style={{ animationDelay: `${delay}ms`, animationDuration: "500ms" }}
+    >
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-start gap-2">
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-info/10 text-info">
+            <Users className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold leading-tight">Resolução por Origem</p>
+            <p className="text-[11px] text-muted-foreground">Executiva vs. setor / mês</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-semibold tabular-nums text-info">{pctAtual}%</p>
+          {showTrend && (
+            <span className={cn(
+              "inline-flex items-center text-[11px] font-semibold gap-0.5",
+              isUp ? "text-success" : "text-destructive",
+            )}>
+              <TrendIcon className="h-3 w-3" />
+              {Math.abs(delta!)}%
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="h-24">
+        <ResponsiveContainer>
+          <LineChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+            <XAxis dataKey="label" hide />
+            <YAxis hide />
+            <RTooltip
+              contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+              formatter={(v: any, k: any) => [String(v), k === "executiva" ? "Executiva" : "Setor"]}
+            />
+            <Line type="monotone" dataKey="executiva" stroke={execColor} strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="setor" stroke={setorColor} strokeWidth={2.5} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mt-2 flex items-center gap-4">
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span className="h-1.5 w-4 rounded-full" style={{ background: execColor }} /> Executiva
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span className="h-1.5 w-4 rounded-full" style={{ background: setorColor }} /> Setor
+        </span>
+      </div>
+
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <p className="text-[11px] text-muted-foreground">
+          {totalMes > 0
+            ? `${pctAtual}% das demandas dependeram de decisão direta da executiva neste mês (${totalExec} de ${totalMes}).`
+            : "Sem demandas resolvidas no mês atual."}
+        </p>
+        <Link
+          to="/demandas"
+          className="text-[11px] font-semibold text-primary hover:underline whitespace-nowrap"
+        >
+          Ver detalhes →
+        </Link>
+      </div>
+    </Card>
+  );
+}
