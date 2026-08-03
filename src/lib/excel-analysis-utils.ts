@@ -1672,7 +1672,10 @@ function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unkno
   for (const row of rows.slice(1)) {
     const data = row[idxAdesao];
     if (!(data instanceof Date) || data.getFullYear() !== referencia.getFullYear() || data.getMonth() !== referencia.getMonth()) continue;
-    if (norm(row[idxTipo]) !== "mensalidade") continue;
+    const tipo = norm(row[idxTipo]);
+    // No arquivo real da Jabil esta coluna vem vazia tanto nas mensalidades
+    // quanto nas quatro admissões proporcionais do fim da competência.
+    if (tipo && tipo !== "mensalidade") continue;
     const valor = toNumber(row[idxValor]);
     if (!Number.isFinite(valor) || valor < 0) continue;
     const cnpj = idxCnpj >= 0 ? normalizarCnpj(row[idxCnpj]) : "";
@@ -1690,10 +1693,7 @@ function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unkno
     if (bloco.inclusoes.quantidade > 0 || bloco.inclusoes.total !== 0) return bloco;
     const nomeBloco = normMatch(bloco.nome);
     const inclusoes = (bloco.cnpj ? encontrados.get(`cnpj:${bloco.cnpj}`) : undefined)
-      || encontrados.get(`nome:${nomeBloco}`)
-      || Array.from(encontrados.entries()).find(([chave]) => chave.startsWith("nome:") && nomeBloco && (
-        chave.slice(5).includes(nomeBloco) || nomeBloco.includes(chave.slice(5))
-      ))?.[1];
+      || encontrados.get(`nome:${nomeBloco}`);
     if (!inclusoes) return bloco;
     return {
       ...bloco,
