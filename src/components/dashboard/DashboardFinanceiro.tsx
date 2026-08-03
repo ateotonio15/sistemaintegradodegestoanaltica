@@ -55,7 +55,7 @@ export function DashboardFinanceiro() {
       const { data, error } = await supabase
         .from("empresas")
         .select(
-          "id, nome, status_empresa, contrato_suspenso, responsavel_user_id, executiva_user_id, data_vencimento_fatura, periodo_movimentacao",
+          "id, nome, codigo_contrato, status_empresa, contrato_suspenso, responsavel_user_id, executiva_user_id, data_vencimento_fatura, periodo_movimentacao",
         );
       if (error) throw error;
       return data ?? [];
@@ -207,6 +207,11 @@ export function DashboardFinanceiro() {
     [empresas],
   );
 
+  const empresaContratoMap = useMemo(
+    () => new Map(empresas.map((e: any) => [e.id, (e.codigo_contrato ?? "") as string])),
+    [empresas],
+  );
+
   const { data: pagadores = [] } = useQuery<
     { empresa_id: string; nome_pagador: string; cnpj: string | null }[]
   >({
@@ -242,10 +247,11 @@ export function DashboardFinanceiro() {
         .map((p) => ({
           ...p,
           empresa_nome: empresaNomeMap.get(p.empresa_id) ?? "—",
+          codigo_contrato: empresaContratoMap.get(p.empresa_id) ?? "",
           pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
         }))
         .sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome)),
-    [pendentes, competencia, periodo, empresaNomeMap, pagadoresPorEmpresa],
+    [pendentes, competencia, periodo, empresaNomeMap, empresaContratoMap, pagadoresPorEmpresa],
   );
 
   async function exportarPendentes() {
@@ -255,21 +261,28 @@ export function DashboardFinanceiro() {
     const ws = wb.addWorksheet("Pendentes");
     ws.columns = [
       { header: "Empresa", key: "empresa", width: 40 },
+      { header: "Contrato", key: "contrato", width: 18 },
       { header: "Competência", key: "competencia", width: 16 },
       { header: "Período", key: "periodo", width: 14 },
-      { header: "Pagadores", key: "pagadores", width: 50 },
-      { header: "CNPJ dos pagadores", key: "cnpjs", width: 40 },
+      { header: "Pagador", key: "pagador", width: 40 },
+      { header: "CNPJ do pagador", key: "cnpj", width: 24 },
     ];
     ws.getRow(1).font = { bold: true };
     ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } } as any;
     pendentesFiltrados.forEach((p) => {
-      ws.addRow({
+      const base = {
         empresa: p.empresa_nome,
+        contrato: p.codigo_contrato || "",
         competencia: formatCompetencia(p.mes_referencia),
         periodo: p.periodo ?? "",
-        pagadores: p.pagadores.map((x) => x.nome_pagador).join(" | "),
-        cnpjs: p.pagadores.map((x) => x.cnpj).filter(Boolean).join(" | "),
-      });
+      };
+      if (p.pagadores.length === 0) {
+        ws.addRow({ ...base, pagador: "", cnpj: "" });
+      } else {
+        p.pagadores.forEach((pg) => {
+          ws.addRow({ ...base, pagador: pg.nome_pagador, cnpj: pg.cnpj ?? "" });
+        });
+      }
     });
     ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columns.length } };
     ws.views = [{ state: "frozen", ySplit: 1 }];
@@ -390,6 +403,7 @@ export function DashboardFinanceiro() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{p.empresa_nome}</p>
                   <p className="text-xs text-muted-foreground truncate">
+                    {p.codigo_contrato ? `Contrato ${p.codigo_contrato} · ` : ""}
                     {formatCompetencia(p.mes_referencia)}
                     {p.periodo ? ` · ${p.periodo}` : ""}
                   </p>
