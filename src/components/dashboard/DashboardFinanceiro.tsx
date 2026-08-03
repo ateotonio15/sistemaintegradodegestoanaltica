@@ -178,23 +178,51 @@ export function DashboardFinanceiro() {
 
       {/* Cobranças pendentes */}
       <Card className="rounded-xl shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            Cobranças pendentes
-            <Badge variant="outline" className="ml-1">{cobrancasAbertas.length}</Badge>
-          </CardTitle>
+        <CardHeader className="pb-3 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              Cobranças pendentes
+              <Badge variant="outline" className="ml-1">{cobrancasFiltradas.length}</Badge>
+            </CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={competencia} onValueChange={setCompetencia}>
+                <SelectTrigger className="h-8 w-[170px] text-xs">
+                  <SelectValue placeholder="Competência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as competências</SelectItem>
+                  {competenciasDisponiveis.map((c) => (
+                    <SelectItem key={c} value={c}>{formatCompetencia(c)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={periodo} onValueChange={setPeriodo}>
+                <SelectTrigger className="h-8 w-[150px] text-xs">
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os períodos</SelectItem>
+                  {periodosDisponiveis.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {cobrancasAbertas.length === 0 ? (
+        <CardContent className="space-y-2 max-h-[420px] overflow-y-auto">
+          {cobrancasFiltradas.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Nenhuma cobrança pendente 🎉</p>
           ) : (
-            cobrancasAbertas.slice(0, 8).map((c) => (
+            cobrancasFiltradas.map((c) => (
               <div key={c.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{c.empresa_nome}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {c.motivo} · {formatDateBR(c.data)}
+                    {c.mes_referencia ? ` · ${formatCompetencia(c.mes_referencia)}` : ""}
+                    {c.periodo ? ` · ${c.periodo}` : ""}
                   </p>
                 </div>
                 <Badge variant="destructive" className="shrink-0">Aberta</Badge>
@@ -202,6 +230,7 @@ export function DashboardFinanceiro() {
             ))
           )}
         </CardContent>
+
       </Card>
 
       {/* Análises de envios — substitui "Empresas fora do prazo" */}
