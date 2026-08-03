@@ -12,6 +12,8 @@ import {
   Building2,
   CalendarClock,
   AlertTriangle,
+  Download,
+
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/date-utils";
@@ -205,6 +207,30 @@ export function DashboardFinanceiro() {
     [empresas],
   );
 
+  const { data: pagadores = [] } = useQuery<
+    { empresa_id: string; nome_pagador: string; cnpj: string | null }[]
+  >({
+    queryKey: ["fin-dash-pagadores"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_pagadores")
+        .select("empresa_id, nome_pagador, cnpj")
+        .eq("ativo", true);
+      if (error) throw error;
+      return (data ?? []) as any;
+    },
+  });
+
+  const pagadoresPorEmpresa = useMemo(() => {
+    const m = new Map<string, { nome_pagador: string; cnpj: string | null }[]>();
+    pagadores.forEach((p) => {
+      const list = m.get(p.empresa_id) ?? [];
+      list.push({ nome_pagador: p.nome_pagador, cnpj: p.cnpj });
+      m.set(p.empresa_id, list);
+    });
+    return m;
+  }, [pagadores]);
+
   const pendentesFiltrados = useMemo(
     () =>
       pendentes
@@ -213,10 +239,53 @@ export function DashboardFinanceiro() {
             (competencia === "todas" || p.mes_referencia === competencia) &&
             (periodo === "todos" || p.periodo === periodo),
         )
-        .map((p) => ({ ...p, empresa_nome: empresaNomeMap.get(p.empresa_id) ?? "—" }))
+        .map((p) => ({
+          ...p,
+          empresa_nome: empresaNomeMap.get(p.empresa_id) ?? "—",
+          pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
+        }))
         .sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome)),
-    [pendentes, competencia, periodo, empresaNomeMap],
+    [pendentes, competencia, periodo, empresaNomeMap, pagadoresPorEmpresa],
   );
+
+  async function exportarPendentes() {
+    if (pendentesFiltrados.length === 0) return;
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Pendentes");
+    ws.columns = [
+      { header: "Empresa", key: "empresa", width: 40 },
+      { header: "Competência", key: "competencia", width: 16 },
+      { header: "Período", key: "periodo", width: 14 },
+      { header: "Pagadores", key: "pagadores", width: 50 },
+      { header: "CNPJ dos pagadores", key: "cnpjs", width: 40 },
+    ];
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } } as any;
+    pendentesFiltrados.forEach((p) => {
+      ws.addRow({
+        empresa: p.empresa_nome,
+        competencia: formatCompetencia(p.mes_referencia),
+        periodo: p.periodo ?? "",
+        pagadores: p.pagadores.map((x) => x.nome_pagador).join(" | "),
+        cnpjs: p.pagadores.map((x) => x.cnpj).filter(Boolean).join(" | "),
+      });
+    });
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columns.length } };
+    ws.views = [{ state: "frozen", ySplit: 1 }];
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `contratos-pendentes-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
 
 
 
@@ -295,6 +364,16 @@ export function DashboardFinanceiro() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                onClick={exportarPendentes}
+                disabled={pendentesFiltrados.length === 0}
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                Exportar Excel
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -305,7 +384,7 @@ export function DashboardFinanceiro() {
             pendentesFiltrados.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                className="flex items-start justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
                 onClick={() => navigate("/financeiro")}
               >
                 <div className="min-w-0 flex-1">
@@ -314,11 +393,22 @@ export function DashboardFinanceiro() {
                     {formatCompetencia(p.mes_referencia)}
                     {p.periodo ? ` · ${p.periodo}` : ""}
                   </p>
+                  {p.pagadores.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {p.pagadores.map((pg, i) => (
+                        <Badge key={i} variant="secondary" className="text-[10px] font-normal">
+                          {pg.nome_pagador}
+                          {pg.cnpj ? ` · ${pg.cnpj}` : ""}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <Badge variant="outline" className="shrink-0">Pendente</Badge>
               </div>
             ))
           )}
+
         </CardContent>
 
 
