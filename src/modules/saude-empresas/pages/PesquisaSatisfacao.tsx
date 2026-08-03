@@ -314,20 +314,23 @@ function PalestraCard({
 }
 
 function QrDialog({ data, onClose }: { data: any; onClose: () => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [png, setPng] = useState<string>("");
   const token = data?.pesquisa?.token;
   const url = token ? `${window.location.origin}/pesquisa/${token}` : "";
 
   useEffect(() => {
-    if (!url || !canvasRef.current) return;
-    QRCode.toCanvas(canvasRef.current, url, { width: 280, margin: 1 }, () => {});
+    let cancel = false;
+    if (!url) { setPng(""); return; }
+    QRCode.toDataURL(url, { width: 280, margin: 1, errorCorrectionLevel: "M" })
+      .then((d) => { if (!cancel) setPng(d); })
+      .catch(() => { if (!cancel) setPng(""); });
+    return () => { cancel = true; };
   }, [url]);
 
   const baixar = () => {
-    const c = canvasRef.current;
-    if (!c) return;
+    if (!png) return;
     const a = document.createElement("a");
-    a.href = c.toDataURL("image/png");
+    a.href = png;
     a.download = `qrcode-pesquisa-${(data?.empresa ?? "palestra").replace(/\s+/g, "-").toLowerCase()}.png`;
     a.click();
   };
@@ -343,9 +346,12 @@ function QrDialog({ data, onClose }: { data: any; onClose: () => void }) {
             <p className="font-semibold">{data?.empresa}</p>
             <p className="text-sm text-muted-foreground">{data?.tema ?? "Tema não definido"}</p>
           </div>
-          <div className="flex justify-center rounded-lg bg-white p-4">
-            <canvas ref={canvasRef} />
+          <div className="flex justify-center rounded-lg bg-white p-4 min-h-[288px] items-center">
+            {png
+              ? <img src={png} alt="QR Code da pesquisa de satisfação" width={280} height={280} />
+              : <span className="text-sm text-muted-foreground">Gerando QR Code…</span>}
           </div>
+
           <div className="flex gap-2">
             <Input readOnly value={url} className="text-xs" />
             <Button
