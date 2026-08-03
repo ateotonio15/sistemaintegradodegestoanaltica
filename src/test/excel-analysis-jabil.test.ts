@@ -116,9 +116,9 @@ describe("análise financeira Jabil", () => {
     const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
 
     expect(blocos).toHaveLength(1);
-    expect(blocos[0].enfermaria.beneficiarios).toBe(212);
-    expect(blocos[0].enfermaria.total).toBeCloseTo(54760.32, 2);
+    expect(blocos[0].enfermaria.beneficiarios).toBe(216);
+    expect(blocos[0].enfermaria.total).toBeCloseTo(55805.76, 2);
     expect(blocos[0].inclusoes.quantidade).toBe(4);
-    expect(blocos[0].inclusoes.total).toBeCloseTo(1033.44, 2);
+    expect(blocos[0].inclusoes.total).toBeCloseTo(516.72, 2);
   });
 });

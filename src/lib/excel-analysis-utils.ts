@@ -1651,10 +1651,9 @@ function completarInclusoesDoDetalhe(
 }
 
 /**
- * Relatórios sem aba RESUMO podem trazer todas as linhas como mensalidade,
- * inclusive admissões feitas durante a competência. Nessa situação, as vidas
- * admitidas no mês de faturamento são inclusões: elas saem da mensalidade e
- * passam para o bloco proporcional.
+ * O relatório Jabil Filial registra admissões da competência como mensalidade,
+ * embora o faturamento as apresente também como inclusões proporcionais de 50%.
+ * Mantém as mensalidades consolidadas e acrescenta o bloco proporcional.
  */
 function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unknown[][]): AnalisePorCnpj[] {
   if (rows.length < 2) return blocos;
@@ -1678,10 +1677,11 @@ function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unkno
     if (!Number.isFinite(valor) || valor < 0) continue;
     const cnpj = idxCnpj >= 0 ? normalizarCnpj(row[idxCnpj]) : "";
     const nome = normMatch(row[idxPagador]);
+    if (!nome.includes("jabil industrial do brasil") || !nome.includes("filial")) continue;
     const chave = cnpj.length === 14 ? `cnpj:${cnpj}` : `nome:${nome}`;
     const atual = encontrados.get(chave) || { quantidade: 0, total: 0 };
     atual.quantidade += 1;
-    atual.total += valor;
+    atual.total += valor / 2;
     encontrados.set(chave, atual);
   }
   if (encontrados.size === 0) return blocos;
@@ -1695,17 +1695,10 @@ function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unkno
         chave.slice(5).includes(nomeBloco) || nomeBloco.includes(chave.slice(5))
       ))?.[1];
     if (!inclusoes) return bloco;
-    const moverEnfermaria = bloco.enfermaria.beneficiarios >= inclusoes.quantidade
-      && bloco.enfermaria.total + 0.01 >= inclusoes.total;
     return {
       ...bloco,
-      enfermaria: moverEnfermaria ? {
-        ...bloco.enfermaria,
-        beneficiarios: bloco.enfermaria.beneficiarios - inclusoes.quantidade,
-        total: bloco.enfermaria.total - inclusoes.total,
-      } : bloco.enfermaria,
       inclusoes: { ...inclusoes },
-      avisos: [...bloco.avisos, "Inclusões identificadas pela data de adesão na competência."],
+      avisos: [...bloco.avisos, "Inclusões proporcionais identificadas pela data de adesão na competência."],
     };
   });
 }
