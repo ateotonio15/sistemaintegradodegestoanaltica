@@ -362,6 +362,16 @@ export function DashboardFinanceiro() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                onClick={exportarPendentes}
+                disabled={pendentesFiltrados.length === 0}
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                Exportar Excel
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -372,7 +382,7 @@ export function DashboardFinanceiro() {
             pendentesFiltrados.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                className="flex items-start justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
                 onClick={() => navigate("/financeiro")}
               >
                 <div className="min-w-0 flex-1">
@@ -381,11 +391,22 @@ export function DashboardFinanceiro() {
                     {formatCompetencia(p.mes_referencia)}
                     {p.periodo ? ` · ${p.periodo}` : ""}
                   </p>
+                  {p.pagadores.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {p.pagadores.map((pg, i) => (
+                        <Badge key={i} variant="secondary" className="text-[10px] font-normal">
+                          {pg.nome_pagador}
+                          {pg.cnpj ? ` · ${pg.cnpj}` : ""}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <Badge variant="outline" className="shrink-0">Pendente</Badge>
               </div>
             ))
           )}
+
         </CardContent>
 
 
