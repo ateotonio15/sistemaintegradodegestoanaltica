@@ -114,6 +114,58 @@ export function DashboardFinanceiro() {
     },
   });
 
+  // Todas as movimentações financeiras com status calculado "Pendente"
+  const { data: pendentes = [] } = useQuery<
+    { id: string; empresa_id: string; mes_referencia: string | null; periodo: string | null }[]
+  >({
+    queryKey: ["fin-dash-pendentes"],
+    queryFn: async () => {
+      const { data: fins, error } = await supabase
+        .from("financeiro_movimentacoes")
+        .select(
+          "id, empresa_id, mes_referencia, periodo, data_envio_nota, dentro_prazo, faturamento_iniciado_em",
+        )
+        .is("data_envio_nota", null)
+        .is("faturamento_iniciado_em", null)
+        .limit(20000);
+      if (error) throw error;
+      const rows = fins ?? [];
+      if (rows.length === 0) return [];
+
+      // Anexos financeiros existentes → deixam de ser "Pendente"
+      const comAnexo = new Set<string>();
+      const ids = rows.map((r: any) => r.id);
+      for (let i = 0; i < ids.length; i += 500) {
+        const { data: anx } = await supabase
+          .from("anexos_financeiro")
+          .select("financeiro_movimentacao_id, origem")
+          .in("financeiro_movimentacao_id", ids.slice(i, i + 500));
+        (anx ?? []).forEach((a: any) => {
+          const origem = (a.origem || "normal").toLowerCase();
+          if (origem !== "retroativo" && origem !== "reajuste")
+            comAnexo.add(a.financeiro_movimentacao_id);
+        });
+      }
+
+      // Envio operacional (Cadastro → Financeiro) → status "Aguardando nota"
+      const { data: ops } = await supabase
+        .from("movimentacoes")
+        .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
+        .not("data_envio_financeiro", "is", null)
+        .limit(20000);
+      const envioSet = new Set(
+        (ops ?? []).map((m: any) => `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`),
+      );
+
+      return rows.filter(
+        (r: any) =>
+          !comAnexo.has(r.id) &&
+          r.dentro_prazo !== false &&
+          !envioSet.has(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`),
+      );
+    },
+  });
+
   const minhasEmpresasIds = useMemo(() => {
 
     if (!user) return new Set<string>();
@@ -148,16 +200,24 @@ export function DashboardFinanceiro() {
     [cobrancas, opcoesMov],
   );
 
-
-  const cobrancasFiltradas = useMemo(
-    () =>
-      cobrancasAbertas.filter(
-        (c) =>
-          (competencia === "todas" || c.mes_referencia === competencia) &&
-          (periodo === "todos" || c.periodo === periodo),
-      ),
-    [cobrancasAbertas, competencia, periodo],
+  const empresaNomeMap = useMemo(
+    () => new Map(empresas.map((e: any) => [e.id, e.nome as string])),
+    [empresas],
   );
+
+  const pendentesFiltrados = useMemo(
+    () =>
+      pendentes
+        .filter(
+          (p) =>
+            (competencia === "todas" || p.mes_referencia === competencia) &&
+            (periodo === "todos" || p.periodo === periodo),
+        )
+        .map((p) => ({ ...p, empresa_nome: empresaNomeMap.get(p.empresa_id) ?? "—" }))
+        .sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome)),
+    [pendentes, competencia, periodo, empresaNomeMap],
+  );
+
 
 
 
