@@ -152,29 +152,6 @@ function toNumber(v: unknown): number {
   return isNaN(n) ? NaN : n;
 }
 
-/** Converte datas do Excel (Date, número serial ou texto pt-BR/ISO). */
-function toExcelDate(v: unknown): Date | null {
-  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
-  if (typeof v === "number" && Number.isFinite(v) && v > 1) {
-    const d = new Date(1899, 11, 30);
-    d.setDate(d.getDate() + Math.floor(v));
-    return d;
-  }
-  const s = cellToText(v).trim();
-  const br = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
-  if (br) {
-    const ano = Number(br[3]) + (br[3].length === 2 ? 2000 : 0);
-    const d = new Date(ano, Number(br[2]) - 1, Number(br[1]));
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-  const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (iso) {
-    const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-  return null;
-}
-
 /** Variações aceitas para cada coluna. */
 const COL_PLANO = ["plano", "planos", "tipo plano", "tipo de plano", "nome do plano"];
 const COL_TIPO_COBRANCA = [
@@ -1674,70 +1651,6 @@ function completarInclusoesDoDetalhe(
 }
 
 /**
- * Os relatórios Jabil (matriz e filial) registram admissões da competência como
- * mensalidade, embora o faturamento as apresente também como inclusões
- * proporcionais de 50%. Mantém as mensalidades e acrescenta o bloco proporcional.
- */
-function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unknown[][]): AnalisePorCnpj[] {
-  if (rows.length < 2) return blocos;
-  const headerIdx = rows.slice(0, 15).findIndex((row) =>
-    findColumnIndex(row, COL_DATA_ADESAO) >= 0
-    && findColumnIndex(row, COL_VALOR) >= 0
-    && findPagadorColumnIndex(row) >= 0
-  );
-  if (headerIdx < 0) return blocos;
-  const header = rows[headerIdx];
-  const dataRows = rows.slice(headerIdx + 1);
-  const idxAdesao = findColumnIndex(header, COL_DATA_ADESAO);
-  const idxTipo = findColumnIndex(header, COL_TIPO_COBRANCA);
-  const idxValor = findColumnIndex(header, COL_VALOR);
-  const idxCnpj = findColumnIndex(header, COL_CNPJ);
-  const idxPagador = findPagadorColumnIndex(header);
-  if (idxAdesao < 0 || idxTipo < 0 || idxValor < 0 || idxPagador < 0) return blocos;
-
-  const datas = dataRows.map((row) => toExcelDate(row[idxAdesao])).filter((v): v is Date => v !== null);
-  if (datas.length === 0) return blocos;
-  const referencia = datas.reduce((maisRecente, data) => data > maisRecente ? data : maisRecente, datas[0]);
-  const inicioJanela = new Date(referencia.getFullYear(), referencia.getMonth() - 1, 21);
-  const fimJanela = new Date(referencia.getFullYear(), referencia.getMonth() + 1, 0);
-  const encontrados = new Map<string, InclusaoResultado>();
-  for (const row of dataRows) {
-    const data = toExcelDate(row[idxAdesao]);
-    // A competência Jabil fecha no ciclo 21 do mês anterior até o fim do mês
-    // corrente; limitar ao mês-calendário descartava as primeiras admissões.
-    if (!data || data < inicioJanela || data > fimJanela) continue;
-    const tipo = norm(row[idxTipo]);
-    // No arquivo real da Jabil esta coluna vem vazia tanto nas mensalidades
-    // quanto nas quatro admissões proporcionais do fim da competência.
-    if (tipo && tipo !== "mensalidade") continue;
-    const valor = toNumber(row[idxValor]);
-    if (!Number.isFinite(valor) || valor < 0) continue;
-    const cnpj = idxCnpj >= 0 ? normalizarCnpj(row[idxCnpj]) : "";
-    const nome = normMatch(row[idxPagador]);
-    if (!nome.includes("jabil industrial do brasil")) continue;
-    const chave = cnpj.length === 14 ? `cnpj:${cnpj}` : `nome:${nome}`;
-    const atual = encontrados.get(chave) || { quantidade: 0, total: 0 };
-    atual.quantidade += 1;
-    atual.total += valor / 2;
-    encontrados.set(chave, atual);
-  }
-  if (encontrados.size === 0) return blocos;
-
-  return blocos.map((bloco) => {
-    if (bloco.inclusoes.quantidade > 0 || bloco.inclusoes.total !== 0) return bloco;
-    const nomeBloco = normMatch(bloco.nome);
-    const inclusoes = (bloco.cnpj ? encontrados.get(`cnpj:${bloco.cnpj}`) : undefined)
-      || encontrados.get(`nome:${nomeBloco}`);
-    if (!inclusoes) return bloco;
-    return {
-      ...bloco,
-      inclusoes: { ...inclusoes },
-      avisos: [...bloco.avisos, "Inclusões proporcionais identificadas pela data de adesão na competência."],
-    };
-  });
-}
-
-/**
  * Lê a planilha e devolve um array de blocos, um por CNPJ encontrado.
  * Preferência:
  *   1) Aba RESUMO consolidada (Empresa/Módulo | Qtd | Mensalidade | Valor)
@@ -1751,14 +1664,7 @@ export async function analisarExcelFinanceiroPorCnpj(
 
   const viaResumo = analisarResumoSheet(wb);
   if (viaResumo && viaResumo.length > 0) {
-    let blocosComInclusoes = completarInclusoesDoDetalhe(wb, viaResumo);
-    wb.worksheets.forEach((ws) => {
-      if (norm(ws.name).includes("resumo")) return;
-      const rows: unknown[][] = [];
-      ws.eachRow({ includeEmpty: false }, (row) => rows.push((row.values as unknown[]).slice(1)));
-      blocosComInclusoes = classificarAdmissoesDaCompetencia(blocosComInclusoes, rows);
-    });
-    return mesclarBlocosPorNomeForcado(blocosComInclusoes);
+    return mesclarBlocosPorNomeForcado(completarInclusoesDoDetalhe(wb, viaResumo));
   }
 
   const ws = wb.worksheets[0];
@@ -2375,7 +2281,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     }
   }
 
-  return mesclarBlocosPorNomeForcado(classificarAdmissoesDaCompetencia(blocos, allRows));
+  return mesclarBlocosPorNomeForcado(blocos);
 }
 
 
