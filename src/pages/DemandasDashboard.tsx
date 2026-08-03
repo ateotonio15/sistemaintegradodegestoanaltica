@@ -806,7 +806,9 @@ export default function DemandasDashboard() {
                 meta={META_FORA_PRAZO}
                 footer="Meta: ≤ 8%"
               />
+              <ResolucaoOrigemCard delay={240} {...resolucaoOrigem} />
             </div>
+
 
             {/* Matriz de risco */}
             <MatrizRiscoSetores data={matrizSetores} />
