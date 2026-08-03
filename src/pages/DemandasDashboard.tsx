@@ -374,10 +374,12 @@ export default function DemandasDashboard() {
 
   // ===== Resolução por origem (executiva vs. setor) =====
   const resolucaoOrigem = useMemo(() => {
-    const serie = monthlySeries.map((m) => ({
+    const serie = monthlySeries.slice(-6).map((m) => ({
       label: m.label,
-      executiva: m.execQtd,
-      setor: m.setorQtd,
+      executiva: m.execPct,
+      setor: m.execQtd + m.setorQtd ? 100 - m.execPct : 0,
+      execQtd: m.execQtd,
+      setorQtd: m.setorQtd,
       execPct: m.execPct,
     }));
     const atual = serie[serie.length - 1];
@@ -396,10 +398,11 @@ export default function DemandasDashboard() {
       serie,
       pctAtual,
       delta,
-      totalExec: atual?.executiva ?? 0,
-      totalMes: (atual?.executiva ?? 0) + (atual?.setor ?? 0),
+      totalExec: atual?.execQtd ?? 0,
+      totalMes: (atual?.execQtd ?? 0) + (atual?.setorQtd ?? 0),
     };
   }, [monthlySeries]);
+
 
 
   // ===== Matriz de risco (setor) =====
