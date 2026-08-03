@@ -71,4 +71,31 @@ describe("análise financeira Jabil", () => {
     expect(blocos).toHaveLength(1);
     expect(blocos[0].retroativas?.total).toBeCloseTo(659.70, 2);
   });
+
+  it("inclui lançamentos no fim da planilha quando o RESUMO não os consolidou", async () => {
+    const wb = new ExcelJS.Workbook();
+    const dados = wb.addWorksheet("RELATORIO BENEFICIARIOS");
+    dados.addRow(["Subestipulante", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    dados.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL", "Mensalidade", "M. Empresarial", 258.36]);
+    [155.02, 155.02, 103.34, 103.34].forEach((valor, index) => {
+      dados.getRow(1596 + index).values = [
+        "PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL",
+        "Inclusão",
+        "Coletivo Empresarial Master",
+        valor,
+      ];
+    });
+
+    const resumo = wb.addWorksheet("RESUMO");
+    resumo.addRow(["Empresa/Módulo", "Qtd", "Mensalidade", "Valor"]);
+    resumo.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL 12.345.678/0001-90"]);
+    resumo.addRow(["M. Empresarial", 216, 258.36, 55805.76]);
+
+    const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
+
+    expect(blocos).toHaveLength(1);
+    expect(blocos[0].enfermaria.beneficiarios).toBe(216);
+    expect(blocos[0].inclusoes.quantidade).toBe(4);
+    expect(blocos[0].inclusoes.total).toBeCloseTo(516.72, 2);
+  });
 });
