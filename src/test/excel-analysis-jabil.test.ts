@@ -107,7 +107,7 @@ describe("análise financeira Jabil", () => {
       ws.addRow([
         "PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL",
         i >= 212 ? new Date(2026, 6, 20) : new Date(2025, 0, 30),
-        "Mensalidade",
+        "",
         "Coletivo Empresarial Master",
         258.36,
       ]);

@@ -1672,7 +1672,10 @@ function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unkno
   for (const row of rows.slice(1)) {
     const data = row[idxAdesao];
     if (!(data instanceof Date) || data.getFullYear() !== referencia.getFullYear() || data.getMonth() !== referencia.getMonth()) continue;
-    if (norm(row[idxTipo]) !== "mensalidade") continue;
+    const tipo = norm(row[idxTipo]);
+    // No arquivo real da Jabil esta coluna vem vazia tanto nas mensalidades
+    // quanto nas quatro admissões proporcionais do fim da competência.
+    if (tipo && tipo !== "mensalidade") continue;
     const valor = toNumber(row[idxValor]);
     if (!Number.isFinite(valor) || valor < 0) continue;
     const cnpj = idxCnpj >= 0 ? normalizarCnpj(row[idxCnpj]) : "";
