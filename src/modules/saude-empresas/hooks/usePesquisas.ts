@@ -280,7 +280,7 @@ export function useResultadosPesquisas() {
       const pesquisaIds = pesquisas.map((p: any) => p.id);
       const { data: respostas } = await db
         .from("palestra_pesquisa_respostas")
-        .select("id, pesquisa_id, respondido_em")
+        .select("id, pesquisa_id, respondido_em, empresa_nome")
         .in("pesquisa_id", pesquisaIds);
       if (!respostas?.length) return [] as RespostaItemFlat[];
 
@@ -310,7 +310,7 @@ export function useResultadosPesquisas() {
           respondido_em: resp?.respondido_em,
           pesquisa_id: resp?.pesquisa_id,
           palestra_id: pes?.palestra_id,
-          empresa: pal?.empresa ?? "—",
+          empresa: pal?.empresa ?? resp?.empresa_nome ?? "—",
           tema: pal?.tema ?? null,
           data: pal?.data,
           pergunta_id: i.pergunta_id,
