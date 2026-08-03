@@ -21,6 +21,7 @@ import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroativosParaCobrar";
 import { ImplantacoesAguardandoFechamentoCard } from "./ImplantacoesAguardandoFechamentoCard";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface CobrancaRow {
   id: string;
@@ -31,6 +32,8 @@ interface CobrancaRow {
   financeiro_movimentacao_id: string;
   empresa_id: string;
   empresa_nome: string;
+  mes_referencia: string | null;
+  periodo: string | null;
 }
 
 export function DashboardFinanceiro() {
