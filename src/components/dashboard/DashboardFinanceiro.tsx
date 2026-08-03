@@ -55,7 +55,7 @@ export function DashboardFinanceiro() {
       const { data, error } = await supabase
         .from("empresas")
         .select(
-          "id, nome, codigo_contrato, status_empresa, contrato_suspenso, responsavel_user_id, executiva_user_id, data_vencimento_fatura, periodo_movimentacao",
+          "id, nome, codigo_contrato, responsavel_contrato, status_empresa, contrato_suspenso, responsavel_user_id, executiva_user_id, data_vencimento_fatura, periodo_movimentacao",
         );
       if (error) throw error;
       return data ?? [];
@@ -212,6 +212,11 @@ export function DashboardFinanceiro() {
     [empresas],
   );
 
+  const empresaResponsavelMap = useMemo(
+    () => new Map(empresas.map((e: any) => [e.id, (e.responsavel_contrato ?? "") as string])),
+    [empresas],
+  );
+
   const { data: pagadores = [] } = useQuery<
     { empresa_id: string; nome_pagador: string; cnpj: string | null }[]
   >({
@@ -248,10 +253,11 @@ export function DashboardFinanceiro() {
           ...p,
           empresa_nome: empresaNomeMap.get(p.empresa_id) ?? "—",
           codigo_contrato: empresaContratoMap.get(p.empresa_id) ?? "",
+          responsavel: empresaResponsavelMap.get(p.empresa_id) ?? "",
           pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
         }))
         .sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome)),
-    [pendentes, competencia, periodo, empresaNomeMap, empresaContratoMap, pagadoresPorEmpresa],
+    [pendentes, competencia, periodo, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
   );
 
   async function exportarPendentes() {
@@ -262,6 +268,7 @@ export function DashboardFinanceiro() {
     ws.columns = [
       { header: "Empresa", key: "empresa", width: 40 },
       { header: "Contrato", key: "contrato", width: 18 },
+      { header: "Responsável", key: "responsavel", width: 26 },
       { header: "Competência", key: "competencia", width: 16 },
       { header: "Período", key: "periodo", width: 14 },
       { header: "Pagador", key: "pagador", width: 40 },
@@ -273,6 +280,7 @@ export function DashboardFinanceiro() {
       const base = {
         empresa: p.empresa_nome,
         contrato: p.codigo_contrato || "",
+        responsavel: p.responsavel || "",
         competencia: formatCompetencia(p.mes_referencia),
         periodo: p.periodo ?? "",
       };
