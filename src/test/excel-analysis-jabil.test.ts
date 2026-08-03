@@ -99,61 +99,19 @@ describe("análise financeira Jabil", () => {
     expect(blocos[0].inclusoes.total).toBeCloseTo(516.72, 2);
   });
 
-  it("classifica admissões do mês como inclusões quando o relatório marca tudo como mensalidade", async () => {
+  it("conta somente Tipo de cobrança Inclusão e separa pelo pagador", async () => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("RELATORIO BENEFICIARIOS");
-    ws.addRow(["Subestipulante", "Dt adesao", "Tipo de cobrança", "Plano", "Mensalidade"]);
-    for (let i = 0; i < 216; i++) {
-      ws.addRow([
-        "PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL",
-        i >= 212 ? new Date(2026, 6, 20) : new Date(2025, 0, 30),
-        "",
-        "Coletivo Empresarial Master",
-        258.36,
-      ]);
-    }
-
-    const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
-
-    expect(blocos).toHaveLength(1);
-    expect(blocos[0].enfermaria.beneficiarios).toBe(216);
-    expect(blocos[0].enfermaria.total).toBeCloseTo(55805.76, 2);
-    expect(blocos[0].inclusoes.quantidade).toBe(4);
-    expect(blocos[0].inclusoes.total).toBeCloseTo(516.72, 2);
-  });
-
-  it("classifica inclusões da matriz e da filial sem misturar os contratos", async () => {
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("RELATORIO BENEFICIARIOS");
-    ws.addRow(["Subestipulante", "Dt adesao", "Tipo de cobrança", "Plano", "Mensalidade"]);
-    ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", new Date(2025, 0, 10), "", "M. Empresarial", 300]);
-    ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", new Date(2026, 6, 20), "", "M. Empresarial", 300]);
-    ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL", new Date(2025, 0, 10), "", "M. Empresarial", 200]);
-    ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL", new Date(2026, 6, 21), "", "M. Empresarial", 200]);
+    ws.addRow(["Subestipulante", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    for (let i = 0; i < 75; i++) ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", "Inclusão", "M. Empresarial", 50]);
+    for (let i = 0; i < 11; i++) ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL", "Inclusão", "M. Empresarial", 40]);
+    for (let i = 0; i < 20; i++) ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", "Mensalidade", "M. Empresarial", 100]);
 
     const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
     const matriz = blocos.find((b) => !b.nome.includes("FILIAL"));
     const filial = blocos.find((b) => b.nome.includes("FILIAL"));
 
-    expect(matriz?.inclusoes).toEqual({ quantidade: 1, total: 150 });
-    expect(filial?.inclusoes).toEqual({ quantidade: 1, total: 100 });
-  });
-
-  it("considera as 75 inclusões da matriz no ciclo entre meses", async () => {
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("RELATORIO BENEFICIARIOS");
-    ws.addRow(["Subestipulante", "Dt adesao", "Tipo de cobrança", "Plano", "Mensalidade"]);
-    for (let i = 0; i < 20; i++) {
-      ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", "25/06/2026", "", "M. Empresarial", 100]);
-    }
-    for (let i = 0; i < 55; i++) {
-      ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", new Date(2026, 6, 15), "", "M. Empresarial", 100]);
-    }
-    ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", "20/06/2026", "", "M. Empresarial", 100]);
-
-    const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
-
-    expect(blocos[0].inclusoes.quantidade).toBe(75);
-    expect(blocos[0].inclusoes.total).toBe(3750);
+    expect(matriz?.inclusoes).toEqual({ quantidade: 75, total: 3750 });
+    expect(filial?.inclusoes).toEqual({ quantidade: 11, total: 440 });
   });
 });
