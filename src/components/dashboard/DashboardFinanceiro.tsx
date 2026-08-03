@@ -76,17 +76,22 @@ export function DashboardFinanceiro() {
       const movIds = cobs.map((c: any) => c.financeiro_movimentacao_id);
       const { data: ms } = await supabase
         .from("financeiro_movimentacoes")
-        .select("id, empresa_id")
+        .select("id, empresa_id, mes_referencia, periodo")
         .in("id", movIds);
-      const movMap = new Map((ms ?? []).map((m: any) => [m.id, m.empresa_id]));
+      const movMap = new Map((ms ?? []).map((m: any) => [m.id, m]));
       const empIds = Array.from(new Set((ms ?? []).map((m: any) => m.empresa_id)));
       const { data: emps } = await supabase.from("empresas").select("id, nome").in("id", empIds);
       const empMap = new Map((emps ?? []).map((e: any) => [e.id, e.nome]));
-      return cobs.map((c: any) => ({
-        ...c,
-        empresa_id: movMap.get(c.financeiro_movimentacao_id) ?? "",
-        empresa_nome: empMap.get(movMap.get(c.financeiro_movimentacao_id) ?? "") ?? "—",
-      }));
+      return cobs.map((c: any) => {
+        const m: any = movMap.get(c.financeiro_movimentacao_id);
+        return {
+          ...c,
+          empresa_id: m?.empresa_id ?? "",
+          empresa_nome: empMap.get(m?.empresa_id ?? "") ?? "—",
+          mes_referencia: m?.mes_referencia ?? null,
+          periodo: m?.periodo ?? null,
+        };
+      });
     },
   });
 
@@ -97,6 +102,37 @@ export function DashboardFinanceiro() {
 
   const cobrancasAbertas = cobrancas.filter((c) => c.status === "aberta");
   const cobrancasMinhas = cobrancasAbertas.filter((c) => minhasEmpresasIds.has(c.empresa_id));
+
+  const [competencia, setCompetencia] = useState("todas");
+  const [periodo, setPeriodo] = useState("todos");
+
+  const competenciasDisponiveis = useMemo(
+    () =>
+      Array.from(new Set(cobrancasAbertas.map((c) => c.mes_referencia).filter((v): v is string => !!v))).sort(
+        (a, b) => b.localeCompare(a),
+      ),
+    [cobrancasAbertas],
+  );
+
+  const periodosDisponiveis = useMemo(
+    () =>
+      Array.from(new Set(cobrancasAbertas.map((c) => c.periodo).filter((v): v is string => !!v))).sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [cobrancasAbertas],
+  );
+
+  const cobrancasFiltradas = useMemo(
+    () =>
+      cobrancasAbertas.filter(
+        (c) =>
+          (competencia === "todas" || c.mes_referencia === competencia) &&
+          (periodo === "todos" || c.periodo === periodo),
+      ),
+    [cobrancasAbertas, competencia, periodo],
+  );
+
+
 
   const ativas = empresas.filter((e: any) => e.status_empresa === "Ativa");
   const ativasNaoSuspensas = ativas.filter((e: any) => !e.contrato_suspenso);
