@@ -201,7 +201,10 @@ export function useToggleAberta() {
       const { error } = await db.from("palestra_pesquisas").update({ aberta }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["pp_pesquisas"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pp_pesquisas"] });
+      qc.invalidateQueries({ queryKey: ["pp_pesquisa_geral"] });
+    },
     onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar pesquisa"),
   });
 }
@@ -277,7 +280,7 @@ export function useResultadosPesquisas() {
       const pesquisaIds = pesquisas.map((p: any) => p.id);
       const { data: respostas } = await db
         .from("palestra_pesquisa_respostas")
-        .select("id, pesquisa_id, respondido_em")
+        .select("id, pesquisa_id, respondido_em, empresa_nome")
         .in("pesquisa_id", pesquisaIds);
       if (!respostas?.length) return [] as RespostaItemFlat[];
 
@@ -307,7 +310,7 @@ export function useResultadosPesquisas() {
           respondido_em: resp?.respondido_em,
           pesquisa_id: resp?.pesquisa_id,
           palestra_id: pes?.palestra_id,
-          empresa: pal?.empresa ?? "—",
+          empresa: pal?.empresa ?? resp?.empresa_nome ?? "—",
           tema: pal?.tema ?? null,
           data: pal?.data,
           pergunta_id: i.pergunta_id,
@@ -339,5 +342,84 @@ export function useContagemRespostas(pesquisaIds: string[]) {
       });
       return map;
     },
+  });
+}
+
+/** Pesquisa geral única (QR Code e link únicos para todas as palestras) */
+export function usePesquisaGeral() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["pp_pesquisa_geral"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("palestra_pesquisas")
+        .select("*")
+        .eq("geral", true)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as (Pesquisa & { geral: boolean; titulo: string | null }) | null;
+    },
+  });
+}
+
+/** Cria (uma única vez) a pesquisa geral copiando as perguntas do template padrão */
+export function useCriarPesquisaGeral() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async () => {
+      const { data: existente } = await db
+        .from("palestra_pesquisas")
+        .select("*")
+        .eq("geral", true)
+        .maybeSingle();
+      if (existente) return existente;
+
+      const { data: nova, error } = await db
+        .from("palestra_pesquisas")
+        .insert({
+          geral: true,
+          palestra_id: null,
+          titulo: "Pesquisa de Satisfação — Palestras de Saúde",
+          criado_por: user?.id ?? null,
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+
+      const { data: tpl } = await db
+        .from("palestra_pesquisa_templates")
+        .select("id")
+        .eq("ativo", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (tpl) {
+        const { data: perguntas } = await db
+          .from("palestra_pesquisa_perguntas")
+          .select("*")
+          .eq("template_id", tpl.id)
+          .order("ordem", { ascending: true });
+        if (perguntas?.length) {
+          await db.from("palestra_pesquisa_perguntas").insert(
+            perguntas.map((p: Pergunta) => ({
+              pesquisa_id: nova.id,
+              texto: p.texto,
+              tipo: p.tipo,
+              opcoes: p.opcoes,
+              obrigatoria: p.obrigatoria,
+              ordem: p.ordem,
+            })),
+          );
+        }
+      }
+      return nova;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pp_pesquisa_geral"] });
+      qc.invalidateQueries({ queryKey: ["pp_perguntas"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao criar pesquisa geral"),
   });
 }

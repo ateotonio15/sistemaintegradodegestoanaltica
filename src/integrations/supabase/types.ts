@@ -3557,16 +3557,19 @@ export type Database = {
       }
       palestra_pesquisa_respostas: {
         Row: {
+          empresa_nome: string | null
           id: string
           pesquisa_id: string
           respondido_em: string
         }
         Insert: {
+          empresa_nome?: string | null
           id?: string
           pesquisa_id: string
           respondido_em?: string
         }
         Update: {
+          empresa_nome?: string | null
           id?: string
           pesquisa_id?: string
           respondido_em?: string
@@ -3652,8 +3655,10 @@ export type Database = {
           aberta: boolean
           created_at: string
           criado_por: string | null
+          geral: boolean
           id: string
-          palestra_id: string
+          palestra_id: string | null
+          titulo: string | null
           token: string
           updated_at: string
         }
@@ -3661,8 +3666,10 @@ export type Database = {
           aberta?: boolean
           created_at?: string
           criado_por?: string | null
+          geral?: boolean
           id?: string
-          palestra_id: string
+          palestra_id?: string | null
+          titulo?: string | null
           token?: string
           updated_at?: string
         }
@@ -3670,8 +3677,10 @@ export type Database = {
           aberta?: boolean
           created_at?: string
           criado_por?: string | null
+          geral?: boolean
           id?: string
-          palestra_id?: string
+          palestra_id?: string | null
+          titulo?: string | null
           token?: string
           updated_at?: string
         }
@@ -5007,10 +5016,12 @@ export type Database = {
         }
         Returns: string
       }
-      responder_pesquisa_por_token: {
-        Args: { p_respostas: Json; p_token: string }
-        Returns: string
-      }
+      responder_pesquisa_por_token:
+        | { Args: { p_respostas: Json; p_token: string }; Returns: string }
+        | {
+            Args: { p_empresa?: string; p_respostas: Json; p_token: string }
+            Returns: string
+          }
       set_lock_password: {
         Args: { _lock_key: string; _new_password: string }
         Returns: undefined

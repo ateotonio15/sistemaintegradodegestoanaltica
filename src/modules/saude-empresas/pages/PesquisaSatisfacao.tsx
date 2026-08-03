@@ -24,6 +24,7 @@ import {
   Pergunta, PerguntaTipo, TIPO_LABEL,
   useContagemRespostas, useCriarPesquisa, usePerguntasPesquisa,
   usePesquisasPorPalestras, useSalvarComoPadrao, useSalvarPerguntas, useToggleAberta,
+  usePesquisaGeral, useCriarPesquisaGeral,
 } from "../hooks/usePesquisas";
 import { ResultadosPesquisa } from "../components/pesquisa/ResultadosPesquisa";
 
@@ -82,6 +83,10 @@ export default function PesquisaSatisfacao() {
   const toggle = useToggleAberta();
   const qc = useQueryClient();
 
+  const { data: geral } = usePesquisaGeral();
+  const criarGeral = useCriarPesquisaGeral();
+  const { data: contagemGeral = {} } = useContagemRespostas(geral ? [geral.id] : []);
+
   const salvarTema = async (palestraId: string, tema: string) => {
     const { error } = await db.from("palestras_saude").update({ tema }).eq("id", palestraId);
     if (error) return toast.error("Erro ao salvar tema");
@@ -102,6 +107,62 @@ export default function PesquisaSatisfacao() {
           </p>
         </div>
       </div>
+
+      <Card className="p-4 space-y-3 border-primary/30">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-semibold">QR Code e Link únicos</p>
+            <p className="text-xs text-muted-foreground">
+              Um único QR Code para todas as palestras — o participante informa o nome da empresa ao responder.
+            </p>
+          </div>
+          {geral && (
+            <div className="flex items-center gap-2">
+              <Badge variant={geral.aberta ? "default" : "secondary"}>
+                {geral.aberta ? "Aberta" : "Encerrada"}
+              </Badge>
+              <Badge variant="outline">
+                {contagemGeral[geral.id] ?? 0} resposta{(contagemGeral[geral.id] ?? 0) === 1 ? "" : "s"}
+              </Badge>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {!geral ? (
+            <Button size="sm" onClick={() => criarGeral.mutate()} disabled={!canEdit}>
+              <QrCode className="h-4 w-4 mr-1" /> Gerar QR Code único
+            </Button>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                onClick={() => setQrPalestra({ empresa: "Pesquisa de Satisfação", tema: "Palestras de Saúde", pesquisa: geral })}
+              >
+                <QrCode className="h-4 w-4 mr-1" /> QR Code e Link
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!canEdit}
+                onClick={() => setEditando({ pesquisaId: geral.id, titulo: "Pesquisa geral" })}
+              >
+                <ClipboardList className="h-4 w-4 mr-1" /> Perguntas
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!canEdit}
+                onClick={() => toggle.mutate({ id: geral.id, aberta: !geral.aberta })}
+              >
+                {geral.aberta
+                  ? <><Lock className="h-4 w-4 mr-1" /> Encerrar</>
+                  : <><Unlock className="h-4 w-4 mr-1" /> Reabrir</>}
+              </Button>
+            </>
+          )}
+        </div>
+      </Card>
+
 
       <Tabs defaultValue="palestras">
         <TabsList>

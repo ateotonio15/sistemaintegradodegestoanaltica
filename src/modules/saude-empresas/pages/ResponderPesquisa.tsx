@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { CheckCircle2, Loader2, AlertTriangle, Star, HeartPulse } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ export default function ResponderPesquisa() {
   const [respostas, setRespostas] = useState<Record<string, string | number>>({});
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [empresaNome, setEmpresaNome] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -54,7 +56,13 @@ export default function ResponderPesquisa() {
 
   const perguntas: PerguntaPublica[] = info?.perguntas ?? [];
 
+  const exigeEmpresa = !!info?.exige_empresa;
+
   const enviar = async () => {
+    if (exigeEmpresa && !empresaNome.trim()) {
+      toast.error("Informe o nome da empresa");
+      return;
+    }
     for (const p of perguntas) {
       const v = respostas[p.id];
       if (p.obrigatoria && (v === undefined || v === "")) {
@@ -73,6 +81,7 @@ export default function ResponderPesquisa() {
     const { error } = await db.rpc("responder_pesquisa_por_token", {
       p_token: token,
       p_respostas: payload,
+      p_empresa: empresaNome.trim() || null,
     });
     setEnviando(false);
     if (error) {
@@ -132,6 +141,19 @@ export default function ResponderPesquisa() {
       </div>
 
       <div className="space-y-3">
+        {exigeEmpresa && (
+          <Card className="p-4 space-y-2">
+            <p className="text-sm font-medium">
+              Nome da empresa <span className="text-destructive">*</span>
+            </p>
+            <Input
+              value={empresaNome}
+              maxLength={150}
+              onChange={(e) => setEmpresaNome(e.target.value)}
+              placeholder="Digite o nome da sua empresa"
+            />
+          </Card>
+        )}
         {perguntas.map((p) => (
           <Card key={p.id} className="p-4 space-y-3">
             <p className="text-sm font-medium">
