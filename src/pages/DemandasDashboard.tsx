@@ -364,9 +364,43 @@ export default function DemandasDashboard() {
         ? Math.round((arr.filter(isForaPrazo).length / arr.length) * 100)
         : 0;
       const aberto = arr.filter((d) => !isResolved(d)).length;
-      return { label: m.label, sla, fora, aberto };
+      const execQtd = arr.filter((d) => d.resolvido_executiva).length;
+      const setorQtd = arr.filter((d) => d.resolvido_setor && !d.resolvido_executiva).length;
+      const resolvidas = execQtd + setorQtd;
+      const execPct = resolvidas ? Math.round((execQtd / resolvidas) * 100) : 0;
+      return { label: m.label, sla, fora, aberto, execQtd, setorQtd, execPct };
     });
   }, [filtered, ini, fim]);
+
+  // ===== Resolução por origem (executiva vs. setor) =====
+  const resolucaoOrigem = useMemo(() => {
+    const serie = monthlySeries.map((m) => ({
+      label: m.label,
+      executiva: m.execQtd,
+      setor: m.setorQtd,
+      execPct: m.execPct,
+    }));
+    const atual = serie[serie.length - 1];
+    const anterior = serie[serie.length - 2];
+    const pctAtual = atual?.execPct ?? 0;
+    const pctAnterior = anterior?.execPct ?? 0;
+    const delta =
+      anterior === undefined
+        ? null
+        : pctAnterior === 0
+        ? pctAtual > 0
+          ? 100
+          : 0
+        : Math.round(((pctAtual - pctAnterior) / pctAnterior) * 100);
+    return {
+      serie,
+      pctAtual,
+      delta,
+      totalExec: atual?.executiva ?? 0,
+      totalMes: (atual?.executiva ?? 0) + (atual?.setor ?? 0),
+    };
+  }, [monthlySeries]);
+
 
   // ===== Matriz de risco (setor) =====
   const matrizSetores = useMemo(() => {
