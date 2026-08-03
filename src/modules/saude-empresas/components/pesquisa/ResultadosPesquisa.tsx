@@ -23,13 +23,20 @@ export function ResultadosPesquisa() {
   const [periodo, setPeriodo] = useState("all");
 
   const empresas = useMemo(
-    () => (Array.from(new Set(itens.map((i) => i.empresa))) as string[]).sort(),
+    () =>
+      (Array.from(new Set(itens.map((i) => (i.empresa ?? "").trim()))) as string[])
+        .filter(Boolean)
+        .sort(),
     [itens],
   );
   const periodos = useMemo(
-    () => (Array.from(new Set(itens.map((i) => mesKey(i.data)))) as string[]).sort(),
+    () =>
+      (Array.from(new Set(itens.map((i) => mesKey(i.data)))) as string[])
+        .filter((p) => !!p)
+        .sort(),
     [itens],
   );
+
 
   const filtrado = useMemo(
     () =>
