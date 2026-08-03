@@ -1651,13 +1651,20 @@ function completarInclusoesDoDetalhe(
 }
 
 /**
- * O relatório Jabil Filial registra admissões da competência como mensalidade,
- * embora o faturamento as apresente também como inclusões proporcionais de 50%.
- * Mantém as mensalidades consolidadas e acrescenta o bloco proporcional.
+ * Os relatórios Jabil (matriz e filial) registram admissões da competência como
+ * mensalidade, embora o faturamento as apresente também como inclusões
+ * proporcionais de 50%. Mantém as mensalidades e acrescenta o bloco proporcional.
  */
 function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unknown[][]): AnalisePorCnpj[] {
   if (rows.length < 2) return blocos;
-  const header = rows[0];
+  const headerIdx = rows.slice(0, 15).findIndex((row) =>
+    findColumnIndex(row, COL_DATA_ADESAO) >= 0
+    && findColumnIndex(row, COL_VALOR) >= 0
+    && findPagadorColumnIndex(row) >= 0
+  );
+  if (headerIdx < 0) return blocos;
+  const header = rows[headerIdx];
+  const dataRows = rows.slice(headerIdx + 1);
   const idxAdesao = findColumnIndex(header, COL_DATA_ADESAO);
   const idxTipo = findColumnIndex(header, COL_TIPO_COBRANCA);
   const idxValor = findColumnIndex(header, COL_VALOR);
@@ -1665,11 +1672,11 @@ function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unkno
   const idxPagador = findPagadorColumnIndex(header);
   if (idxAdesao < 0 || idxTipo < 0 || idxValor < 0 || idxPagador < 0) return blocos;
 
-  const datas = rows.slice(1).map((row) => row[idxAdesao]).filter((v): v is Date => v instanceof Date && !Number.isNaN(v.getTime()));
+  const datas = dataRows.map((row) => row[idxAdesao]).filter((v): v is Date => v instanceof Date && !Number.isNaN(v.getTime()));
   if (datas.length === 0) return blocos;
   const referencia = datas.reduce((maisRecente, data) => data > maisRecente ? data : maisRecente, datas[0]);
   const encontrados = new Map<string, InclusaoResultado>();
-  for (const row of rows.slice(1)) {
+  for (const row of dataRows) {
     const data = row[idxAdesao];
     if (!(data instanceof Date) || data.getFullYear() !== referencia.getFullYear() || data.getMonth() !== referencia.getMonth()) continue;
     const tipo = norm(row[idxTipo]);
@@ -1680,7 +1687,7 @@ function classificarAdmissoesDaCompetencia(blocos: AnalisePorCnpj[], rows: unkno
     if (!Number.isFinite(valor) || valor < 0) continue;
     const cnpj = idxCnpj >= 0 ? normalizarCnpj(row[idxCnpj]) : "";
     const nome = normMatch(row[idxPagador]);
-    if (!nome.includes("jabil industrial do brasil") || !nome.includes("filial")) continue;
+    if (!nome.includes("jabil industrial do brasil")) continue;
     const chave = cnpj.length === 14 ? `cnpj:${cnpj}` : `nome:${nome}`;
     const atual = encontrados.get(chave) || { quantidade: 0, total: 0 };
     atual.quantidade += 1;
@@ -1717,7 +1724,14 @@ export async function analisarExcelFinanceiroPorCnpj(
 
   const viaResumo = analisarResumoSheet(wb);
   if (viaResumo && viaResumo.length > 0) {
-    return mesclarBlocosPorNomeForcado(completarInclusoesDoDetalhe(wb, viaResumo));
+    let blocosComInclusoes = completarInclusoesDoDetalhe(wb, viaResumo);
+    wb.worksheets.forEach((ws) => {
+      if (norm(ws.name).includes("resumo")) return;
+      const rows: unknown[][] = [];
+      ws.eachRow({ includeEmpty: false }, (row) => rows.push((row.values as unknown[]).slice(1)));
+      blocosComInclusoes = classificarAdmissoesDaCompetencia(blocosComInclusoes, rows);
+    });
+    return mesclarBlocosPorNomeForcado(blocosComInclusoes);
   }
 
   const ws = wb.worksheets[0];

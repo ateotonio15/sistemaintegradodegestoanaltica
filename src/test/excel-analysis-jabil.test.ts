@@ -121,4 +121,21 @@ describe("análise financeira Jabil", () => {
     expect(blocos[0].inclusoes.quantidade).toBe(4);
     expect(blocos[0].inclusoes.total).toBeCloseTo(516.72, 2);
   });
+
+  it("classifica inclusões da matriz e da filial sem misturar os contratos", async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("RELATORIO BENEFICIARIOS");
+    ws.addRow(["Subestipulante", "Dt adesao", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", new Date(2025, 0, 10), "", "M. Empresarial", 300]);
+    ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", new Date(2026, 6, 20), "", "M. Empresarial", 300]);
+    ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL", new Date(2025, 0, 10), "", "M. Empresarial", 200]);
+    ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA - FILIAL", new Date(2026, 6, 21), "", "M. Empresarial", 200]);
+
+    const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
+    const matriz = blocos.find((b) => !b.nome.includes("FILIAL"));
+    const filial = blocos.find((b) => b.nome.includes("FILIAL"));
+
+    expect(matriz?.inclusoes).toEqual({ quantidade: 1, total: 150 });
+    expect(filial?.inclusoes).toEqual({ quantidade: 1, total: 100 });
+  });
 });
