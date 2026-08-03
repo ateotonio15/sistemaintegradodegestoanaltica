@@ -201,7 +201,10 @@ export function useToggleAberta() {
       const { error } = await db.from("palestra_pesquisas").update({ aberta }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["pp_pesquisas"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pp_pesquisas"] });
+      qc.invalidateQueries({ queryKey: ["pp_pesquisa_geral"] });
+    },
     onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar pesquisa"),
   });
 }
