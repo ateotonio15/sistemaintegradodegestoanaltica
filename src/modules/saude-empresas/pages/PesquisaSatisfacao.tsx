@@ -83,6 +83,10 @@ export default function PesquisaSatisfacao() {
   const toggle = useToggleAberta();
   const qc = useQueryClient();
 
+  const { data: geral } = usePesquisaGeral();
+  const criarGeral = useCriarPesquisaGeral();
+  const { data: contagemGeral = {} } = useContagemRespostas(geral ? [geral.id] : []);
+
   const salvarTema = async (palestraId: string, tema: string) => {
     const { error } = await db.from("palestras_saude").update({ tema }).eq("id", palestraId);
     if (error) return toast.error("Erro ao salvar tema");
