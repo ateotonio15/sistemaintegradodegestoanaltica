@@ -1,63 +1,66 @@
-# Plano: Cadastro de Empresa (admin_interno) + Portal da Empresa
+# Pesquisa de Satisfação pós-palestra (Saúde nas Empresas)
 
-## 1. Backend (migração)
+## Decisão de base de dados
 
-**profiles**
-- Adicionar coluna `must_change_password boolean not null default false`.
+O backend (Lovable Cloud) já está ativo e o projeto já tem:
+- `empresas` — cadastro de empresas clientes (não será criada uma tabela `companies` nova).
+- `palestras_saude` — palestras por empresa, com data, tema, status e executiva (não será criada uma tabela `lectures` nova).
+- Um padrão já funcionando de formulário público sem login por token (`/avaliar/:token` + funções seguras no banco), que será reaproveitado.
 
-**Nenhuma nova tabela** — já temos `empresas`, `empresa_usuarios` (com `papel`), `contratos`, `movimentacao_financeira`. O "período de movimentação" já vive nas tabelas `movimentacoes` / `financeiro_*` do sistema atual, então o portal vai ler de lá.
+Portanto criamos apenas o que falta: perguntas, respostas e o link público da palestra.
 
-**RLS complementares para portal admin_empresa**
-Adicionar policies de SELECT em `empresas`, `contratos`, `movimentacoes`, `financeiro_movimentacoes` usando o helper `user_pode_ver_empresa(empresa_id)` já criado — assim admin_empresa enxerga só a própria empresa. (Policies existentes de admin/comum/financeiro permanecem.)
+## Novas tabelas
 
-## 2. Edge Function `criar-empresa-com-acesso`
+- `palestra_pesquisa_templates` — conjunto de perguntas padrão reutilizável (nome do template, ativo).
+- `palestra_pesquisa_perguntas` — pergunta pertencente a um template OU a uma palestra específica: texto, tipo (`nota`, `multipla_escolha`, `texto_livre`), opções (para múltipla escolha), obrigatória, ordem.
+- `palestra_pesquisas` — a pesquisa daquela palestra: vínculo com `palestras_saude`, token público único, aberta/fechada, criada em.
+- `palestra_pesquisa_respostas` — um envio (submissão) por participante, com data/hora.
+- `palestra_pesquisa_respostas_itens` — valor respondido por pergunta (nota, opção escolhida ou texto).
 
-Recebe `{ nome, cnpj, valor_mensal, data_inicio, email }`. Fluxo com service role:
+Regras de acesso:
+- Usuários internos com perfil de saúde (admin, enfermeira, coordenadora, diretoria) administram templates, perguntas e pesquisas e leem os resultados.
+- O público não lê nem escreve diretamente nas tabelas: duas funções seguras no banco atendem o link público —
+  uma retorna empresa, tema e perguntas a partir do token; outra grava as respostas a partir do token, só se a pesquisa estiver aberta.
 
-1. Valida chamador via `user_roles` = `admin_interno`.
-2. `insert into empresas (nome, cnpj, ...)` → pega `empresa_id`.
-3. `insert into contratos (empresa_id, valor_mensal, data_inicio, status='ativo')`.
-4. Gera senha provisória aleatória (16 chars).
-5. `auth.admin.createUser({ email, password, email_confirm: true })`.
-6. `profiles.update({ must_change_password: true, display_name: nome })` para o novo user.
-7. `insert into empresa_usuarios (user_id, empresa_id, papel='admin_empresa')`.
-8. `insert into user_roles (user_id, role='comum')` (papel base) — visibilidade real vem de `empresa_usuarios.papel`.
-9. Retorna `{ email, senha_provisoria }` para o admin copiar/entregar.
+## Painel administrativo
 
-## 3. Frontend
+Nova sub-aba "Pesquisa de Satisfação" em `/saude-empresas/pesquisas`, no mesmo menu das abas Palestras/Preventivas.
 
-**Nova rota `/admin/cadastrar-empresa`** (gate `admin_interno` via `user_roles`)
-- Form: nome, CNPJ (mask), valor mensal, data início, e-mail.
-- Ao salvar: chama a edge function, mostra dialog com e-mail + senha provisória e botão "Copiar".
+- Seleção de empresa e mês/ano → lista as palestras daquele recorte (com tema já cadastrado na palestra).
+- Edição do tema de saúde do mês direto no card (grava em `palestras_saude.tema`).
+- Editor de perguntas com adicionar, editar, remover e reordenar (setas para cima/baixo), suportando nota 1–5, múltipla escolha (com opções) e texto livre.
+- Template padrão: botão "Usar perguntas padrão" copia o template para a palestra, e a cópia é editável sem afetar o template. Também é possível salvar as perguntas da palestra como novo padrão.
+- Botão "Gerar QR Code e Link": cria a pesquisa com token, mostra o QR Code na tela, botão para baixar a imagem PNG e o link em texto com botão de copiar.
+- Botão para abrir/fechar a pesquisa (impedir novas respostas).
 
-**Gate de troca de senha**
-- Em `AppShell`, após carregar sessão, buscar `profiles.must_change_password`. Se true, forçar redirect para `/trocar-senha` (rota nova, permite só logout + form nova senha). Ao salvar: `supabase.auth.updateUser({ password })` + `profiles.update({ must_change_password: false })`.
+## Página pública
 
-**Rota `/portal`** (para papel admin_empresa)
-- Após login, se `empresa_usuarios` tem vínculo `admin_empresa`, redireciona `/` → `/portal`.
-- Página única mostrando:
-  - Card do contrato: valor, data início, status.
-  - Card do período de movimentação atual (lê `movimentacoes` da empresa):
-    - Se período aberto para empresa → "Movimentação liberada até DD/MM".
-    - Se em análise financeira → "Aguardando emissão da nota pelo Financeiro. Movimentação bloqueada até liberação."
-    - Se fechado → "Movimentação encerrada. Próxima janela a partir de DD/MM."
-  - Lista das últimas movimentações da empresa (read-only).
-- Menu lateral escondido para esse papel (layout limpo).
+Rota `/pesquisa/:token`, sem login, mobile-first:
+- Topo com nome da empresa, tema do mês e data da palestra.
+- Perguntas na ordem cadastrada: estrelas/escala 1–5, opções de múltipla escolha, campo de texto.
+- Validação das perguntas obrigatórias e tela de agradecimento após o envio.
+- Reenvio bloqueado na mesma sessão via `localStorage` por token.
 
-**Login `/auth`** — reutilizado, sem alteração.
+## Dashboard de resultados
 
-## 4. Detalhes técnicos
+Na mesma sub-aba, uma aba "Resultados" com filtros por empresa e período (mês/ano):
+- Média de satisfação por mês (gráfico de linha, Recharts, mesmo padrão dos demais gráficos do projeto).
+- Comparativo de satisfação por empresa (barras).
+- Total de respostas por palestra.
+- Distribuição das perguntas de múltipla escolha (barras/pizza).
+- Lista das respostas de texto livre, filtrável por empresa e mês.
 
-- Helper `useIsAdminInterno()` lendo `user_roles.role='admin_interno'`.
-- Helper `useEmpresaVinculada()` → primeiro registro de `empresa_usuarios` do user.
-- Regra de redirect no `AppShell`:
-  1. `must_change_password` → `/trocar-senha`
-  2. papel `admin_empresa` (não admin_interno) em rota `/` → `/portal`
-- Edge function isolada (não mexer em `create-user` existente).
-- Senha provisória: `crypto.randomUUID().slice(0,16)` + garantia de 1 maiúscula/1 número.
+## Detalhes técnicos
 
-## 5. Fora do escopo desta entrega
+- Tabelas novas com RLS habilitada e GRANTs; leitura/escrita interna restrita aos perfis de saúde via as funções `is_saude_editor` / `is_saude_reader` já existentes.
+- Acesso público exclusivamente pelas duas funções `SECURITY DEFINER` por token — sem GRANT para acesso anônimo direto às tabelas.
+- QR Code: adicionar a dependência `qrcode` (geração em canvas/PNG para exibir e baixar); nenhuma biblioteca de QR existe hoje no projeto.
+- Página pública fica fora do layout autenticado, seguindo o padrão de `ResponderPorToken`.
+- Gráficos com Recharts e componentes shadcn já usados no módulo, mantendo cores e tipografia atuais.
 
-- Envio de e-mail com senha provisória (admin entrega manualmente por ora).
-- Edição/remoção de empresa pelo portal.
-- Detalhamento de vidas ativas no portal (pode entrar depois).
+## Ordem de implementação
+
+1. Migração das tabelas, políticas e funções por token.
+2. Painel admin (seleção, editor de perguntas, template padrão, QR Code/link).
+3. Página pública de resposta.
+4. Dashboard de resultados.
