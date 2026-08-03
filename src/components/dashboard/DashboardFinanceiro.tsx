@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +21,7 @@ import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroativosParaCobrar";
 import { ImplantacoesAguardandoFechamentoCard } from "./ImplantacoesAguardandoFechamentoCard";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface CobrancaRow {
   id: string;
@@ -31,6 +32,15 @@ interface CobrancaRow {
   financeiro_movimentacao_id: string;
   empresa_id: string;
   empresa_nome: string;
+  mes_referencia: string | null;
+  periodo: string | null;
+}
+
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+function formatCompetencia(c?: string | null) {
+  if (!c) return "—";
+  const m = c.match(/^(\d{4})-(\d{2})$/);
+  return m ? `${MESES[Number(m[2]) - 1]}/${m[1]}` : c;
 }
 
 export function DashboardFinanceiro() {
@@ -73,17 +83,22 @@ export function DashboardFinanceiro() {
       const movIds = cobs.map((c: any) => c.financeiro_movimentacao_id);
       const { data: ms } = await supabase
         .from("financeiro_movimentacoes")
-        .select("id, empresa_id")
+        .select("id, empresa_id, mes_referencia, periodo")
         .in("id", movIds);
-      const movMap = new Map((ms ?? []).map((m: any) => [m.id, m.empresa_id]));
+      const movMap = new Map((ms ?? []).map((m: any) => [m.id, m]));
       const empIds = Array.from(new Set((ms ?? []).map((m: any) => m.empresa_id)));
       const { data: emps } = await supabase.from("empresas").select("id, nome").in("id", empIds);
       const empMap = new Map((emps ?? []).map((e: any) => [e.id, e.nome]));
-      return cobs.map((c: any) => ({
-        ...c,
-        empresa_id: movMap.get(c.financeiro_movimentacao_id) ?? "",
-        empresa_nome: empMap.get(movMap.get(c.financeiro_movimentacao_id) ?? "") ?? "—",
-      }));
+      return cobs.map((c: any) => {
+        const m: any = movMap.get(c.financeiro_movimentacao_id);
+        return {
+          ...c,
+          empresa_id: m?.empresa_id ?? "",
+          empresa_nome: empMap.get(m?.empresa_id ?? "") ?? "—",
+          mes_referencia: m?.mes_referencia ?? null,
+          periodo: m?.periodo ?? null,
+        };
+      });
     },
   });
 
@@ -94,6 +109,37 @@ export function DashboardFinanceiro() {
 
   const cobrancasAbertas = cobrancas.filter((c) => c.status === "aberta");
   const cobrancasMinhas = cobrancasAbertas.filter((c) => minhasEmpresasIds.has(c.empresa_id));
+
+  const [competencia, setCompetencia] = useState("todas");
+  const [periodo, setPeriodo] = useState("todos");
+
+  const competenciasDisponiveis = useMemo(
+    () =>
+      Array.from(new Set(cobrancasAbertas.map((c) => c.mes_referencia).filter((v): v is string => !!v))).sort(
+        (a, b) => b.localeCompare(a),
+      ),
+    [cobrancasAbertas],
+  );
+
+  const periodosDisponiveis = useMemo(
+    () =>
+      Array.from(new Set(cobrancasAbertas.map((c) => c.periodo).filter((v): v is string => !!v))).sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [cobrancasAbertas],
+  );
+
+  const cobrancasFiltradas = useMemo(
+    () =>
+      cobrancasAbertas.filter(
+        (c) =>
+          (competencia === "todas" || c.mes_referencia === competencia) &&
+          (periodo === "todos" || c.periodo === periodo),
+      ),
+    [cobrancasAbertas, competencia, periodo],
+  );
+
+
 
   const ativas = empresas.filter((e: any) => e.status_empresa === "Ativa");
   const ativasNaoSuspensas = ativas.filter((e: any) => !e.contrato_suspenso);
@@ -139,23 +185,51 @@ export function DashboardFinanceiro() {
 
       {/* Cobranças pendentes */}
       <Card className="rounded-xl shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            Cobranças pendentes
-            <Badge variant="outline" className="ml-1">{cobrancasAbertas.length}</Badge>
-          </CardTitle>
+        <CardHeader className="pb-3 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              Cobranças pendentes
+              <Badge variant="outline" className="ml-1">{cobrancasFiltradas.length}</Badge>
+            </CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={competencia} onValueChange={setCompetencia}>
+                <SelectTrigger className="h-8 w-[170px] text-xs">
+                  <SelectValue placeholder="Competência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as competências</SelectItem>
+                  {competenciasDisponiveis.map((c) => (
+                    <SelectItem key={c} value={c}>{formatCompetencia(c)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={periodo} onValueChange={setPeriodo}>
+                <SelectTrigger className="h-8 w-[150px] text-xs">
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os períodos</SelectItem>
+                  {periodosDisponiveis.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {cobrancasAbertas.length === 0 ? (
+        <CardContent className="space-y-2 max-h-[420px] overflow-y-auto">
+          {cobrancasFiltradas.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Nenhuma cobrança pendente 🎉</p>
           ) : (
-            cobrancasAbertas.slice(0, 8).map((c) => (
+            cobrancasFiltradas.map((c) => (
               <div key={c.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{c.empresa_nome}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {c.motivo} · {formatDateBR(c.data)}
+                    {c.mes_referencia ? ` · ${formatCompetencia(c.mes_referencia)}` : ""}
+                    {c.periodo ? ` · ${c.periodo}` : ""}
                   </p>
                 </div>
                 <Badge variant="destructive" className="shrink-0">Aberta</Badge>
@@ -163,6 +237,7 @@ export function DashboardFinanceiro() {
             ))
           )}
         </CardContent>
+
       </Card>
 
       {/* Análises de envios — substitui "Empresas fora do prazo" */}
