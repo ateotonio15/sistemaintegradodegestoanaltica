@@ -138,4 +138,22 @@ describe("análise financeira Jabil", () => {
     expect(matriz?.inclusoes).toEqual({ quantidade: 1, total: 150 });
     expect(filial?.inclusoes).toEqual({ quantidade: 1, total: 100 });
   });
+
+  it("considera as 75 inclusões da matriz no ciclo entre meses", async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("RELATORIO BENEFICIARIOS");
+    ws.addRow(["Subestipulante", "Dt adesao", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    for (let i = 0; i < 20; i++) {
+      ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", "25/06/2026", "", "M. Empresarial", 100]);
+    }
+    for (let i = 0; i < 55; i++) {
+      ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", new Date(2026, 6, 15), "", "M. Empresarial", 100]);
+    }
+    ws.addRow(["PJ - JABIL INDUSTRIAL DO BRASIL LTDA", "20/06/2026", "", "M. Empresarial", 100]);
+
+    const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
+
+    expect(blocos[0].inclusoes.quantidade).toBe(75);
+    expect(blocos[0].inclusoes.total).toBe(3750);
+  });
 });
