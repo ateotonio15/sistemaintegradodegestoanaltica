@@ -341,3 +341,82 @@ export function useContagemRespostas(pesquisaIds: string[]) {
     },
   });
 }
+
+/** Pesquisa geral única (QR Code e link únicos para todas as palestras) */
+export function usePesquisaGeral() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["pp_pesquisa_geral"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("palestra_pesquisas")
+        .select("*")
+        .eq("geral", true)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as (Pesquisa & { geral: boolean; titulo: string | null }) | null;
+    },
+  });
+}
+
+/** Cria (uma única vez) a pesquisa geral copiando as perguntas do template padrão */
+export function useCriarPesquisaGeral() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async () => {
+      const { data: existente } = await db
+        .from("palestra_pesquisas")
+        .select("*")
+        .eq("geral", true)
+        .maybeSingle();
+      if (existente) return existente;
+
+      const { data: nova, error } = await db
+        .from("palestra_pesquisas")
+        .insert({
+          geral: true,
+          palestra_id: null,
+          titulo: "Pesquisa de Satisfação — Palestras de Saúde",
+          criado_por: user?.id ?? null,
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+
+      const { data: tpl } = await db
+        .from("palestra_pesquisa_templates")
+        .select("id")
+        .eq("ativo", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (tpl) {
+        const { data: perguntas } = await db
+          .from("palestra_pesquisa_perguntas")
+          .select("*")
+          .eq("template_id", tpl.id)
+          .order("ordem", { ascending: true });
+        if (perguntas?.length) {
+          await db.from("palestra_pesquisa_perguntas").insert(
+            perguntas.map((p: Pergunta) => ({
+              pesquisa_id: nova.id,
+              texto: p.texto,
+              tipo: p.tipo,
+              opcoes: p.opcoes,
+              obrigatoria: p.obrigatoria,
+              ordem: p.ordem,
+            })),
+          );
+        }
+      }
+      return nova;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pp_pesquisa_geral"] });
+      qc.invalidateQueries({ queryKey: ["pp_perguntas"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao criar pesquisa geral"),
+  });
+}
