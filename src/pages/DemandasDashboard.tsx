@@ -1299,20 +1299,35 @@ function ResolucaoOrigemCard({
         </div>
       </div>
 
-      <div className="h-24">
-        <ResponsiveContainer>
-          <LineChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
-            <XAxis dataKey="label" hide />
-            <YAxis hide />
+      <div style={{ width: "100%", height: 160 }}>
+        <ResponsiveContainer width="100%" height={160}>
+          <LineChart data={data} margin={{ top: 5, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
+              tickFormatter={(v) => `${v}%`}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={false}
+              tickLine={false}
+              width={36}
+            />
             <RTooltip
               contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-              formatter={(v: any, k: any) => [String(v), k === "executiva" ? "Executiva" : "Setor"]}
+              formatter={(v: any, k: any) => [`${v}%`, k === "executiva" ? "Executiva" : "Setor"]}
             />
-            <Line type="monotone" dataKey="executiva" stroke={execColor} strokeWidth={2.5} dot={false} />
-            <Line type="monotone" dataKey="setor" stroke={setorColor} strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="executiva" stroke={execColor} strokeWidth={2} dot={false} name="Executiva" />
+            <Line type="monotone" dataKey="setor" stroke={setorColor} strokeWidth={2} dot={false} name="Setor" />
           </LineChart>
         </ResponsiveContainer>
       </div>
+
 
       <div className="mt-2 flex items-center gap-4">
         <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
