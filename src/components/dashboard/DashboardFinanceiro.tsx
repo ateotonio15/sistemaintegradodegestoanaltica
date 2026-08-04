@@ -444,6 +444,17 @@ export function DashboardFinanceiro() {
                 <Download className="h-3.5 w-3.5 mr-1.5" />
                 Exportar Excel
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                onClick={exportarPendentesPDF}
+                disabled={pendentesFiltrados.length === 0}
+              >
+                <FileText className="h-3.5 w-3.5 mr-1.5" />
+                Exportar PDF
+              </Button>
+
             </div>
           </div>
         </CardHeader>
