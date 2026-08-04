@@ -24,6 +24,8 @@ import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroa
 import { ImplantacoesAguardandoFechamentoCard } from "./ImplantacoesAguardandoFechamentoCard";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MultiSelectFiltro } from "./MultiSelectFiltro";
+
 
 interface CobrancaRow {
   id: string;
