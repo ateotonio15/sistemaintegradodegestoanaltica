@@ -376,6 +376,97 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   );
 
   // ============================================================
+  // Slide 3B — EVOLUÇÃO DO PROGRAMA (somente com 2+ ações)
+  // ============================================================
+  const historico = await carregarHistorico(acao, triagens);
+  if (historico.length >= 2) {
+    const sEv = pptx.addSlide();
+    sEv.background = conteudoBg;
+    slideTitle(sEv, "Evolução do Programa", `Comparativo das últimas ${historico.length} ações realizadas`);
+
+    const labels = historico.map((p) => p.label);
+    const serieVar = (arr: number[]) => arr;
+
+    const paPct = historico.map((p) => pct(p.m.paAlt, p.m.totalPa));
+    const gliPct = historico.map((p) => pct(p.m.gliAlt, p.m.totalGli));
+    const encam = historico.map((p) => p.m.encaminhamentos);
+    const naoRealiz = historico.map((p) => p.m.paNR + p.m.gliNR);
+    const variouNR = new Set(naoRealiz).size > 1;
+
+    const series: any[] = [
+      { name: "% PA alterada", labels, values: serieVar(paPct) },
+      { name: "% Glicemia alterada", labels, values: serieVar(gliPct) },
+      { name: "Encaminhamentos", labels, values: serieVar(encam) },
+    ];
+    if (variouNR) series.push({ name: "Aferições não realizadas", labels, values: serieVar(naoRealiz) });
+
+    const chW = SAFE.w * 0.62;
+    sEv.addChart(pptx.ChartType.line, series, {
+      x: SAFE.x, y: SAFE.y, w: chW, h: SAFE.h - 0.55,
+      chartColors: [COLORS.RED, COLORS.AMBER, COLORS.NAVY, COLORS.GREY],
+      lineSize: 3,
+      lineDataSymbolSize: 8,
+      showLegend: true,
+      legendPos: "b",
+      legendFontSize: 10,
+      catAxisLabelFontSize: 11,
+      valAxisLabelFontSize: 10,
+      showValue: true,
+      dataLabelFontSize: 10,
+    });
+
+    // Indicadores de tendência
+    const atual = historico[historico.length - 1];
+    const anterior = historico[historico.length - 2];
+    const trend = (
+      label: string, vAtual: number, vAnterior: number, unidade: "pp" | "n",
+    ) => {
+      const delta = vAtual - vAnterior;
+      const melhor = delta < 0;
+      const seta = delta === 0 ? "→" : melhor ? "↓" : "↑";
+      const cor = delta === 0 ? COLORS.GREY : melhor ? COLORS.GREEN : COLORS.RED;
+      const val = unidade === "pp"
+        ? `${vAtual}%  (${delta > 0 ? "+" : ""}${delta} p.p.)`
+        : `${vAtual}  (${delta > 0 ? "+" : ""}${delta})`;
+      return { label, texto: `${seta} ${val}`, cor };
+    };
+
+    const trends = [
+      trend("PA alterada", paPct[paPct.length - 1], paPct[paPct.length - 2], "pp"),
+      trend("Glicemia alterada", gliPct[gliPct.length - 1], gliPct[gliPct.length - 2], "pp"),
+      trend("Encaminhamentos", encam[encam.length - 1], encam[encam.length - 2], "n"),
+    ];
+    if (variouNR) trends.push(trend("Não realizadas", naoRealiz[naoRealiz.length - 1], naoRealiz[naoRealiz.length - 2], "n"));
+
+    const pX = SAFE.x + chW + 0.25;
+    const pW = SAFE.w - chW - 0.25;
+    painel(sEv, pX, SAFE.y, pW, SAFE.h - 0.55, "Tendência vs. ação anterior");
+    trends.forEach((t, i) => {
+      const y = SAFE.y + 0.75 + i * 0.72;
+      sEv.addText(t.label, {
+        x: pX + 0.25, y, w: pW - 0.5, h: 0.26,
+        fontSize: 11, color: COLORS.GREY, bold: true, fontFace: "Calibri",
+      });
+      sEv.addText(t.texto, {
+        x: pX + 0.25, y: y + 0.26, w: pW - 0.5, h: 0.32,
+        fontSize: 16, bold: true, color: t.cor, fontFace: "Calibri",
+      });
+    });
+
+    const deltaPa = paPct[paPct.length - 1] - paPct[paPct.length - 2];
+    const situacao = deltaPa < 0 ? "melhora" : deltaPa > 0 ? "piora" : "estabilidade";
+    sEv.addText(
+      `A empresa apresenta ${situacao} nos indicadores de pressão arterial desde a última ação, realizada em ${formatDateBR(anterior.data)}.`,
+      {
+        x: SAFE.x, y: SAFE.y + SAFE.h - 0.45, w: SAFE.w, h: 0.4,
+        fontSize: 13, italic: true, color: COLORS.NAVY, fontFace: "Calibri",
+      },
+    );
+    void atual;
+  }
+
+
+  // ============================================================
   // Slide 4 — Classificação PA (barra horizontal)
   // ============================================================
   const s4 = pptx.addSlide();
