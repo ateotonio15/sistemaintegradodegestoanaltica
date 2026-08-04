@@ -24,6 +24,8 @@ import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroa
 import { ImplantacoesAguardandoFechamentoCard } from "./ImplantacoesAguardandoFechamentoCard";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MultiSelectFiltro } from "./MultiSelectFiltro";
+
 
 interface CobrancaRow {
   id: string;
@@ -177,8 +179,9 @@ export function DashboardFinanceiro() {
   const cobrancasAbertas = cobrancas.filter((c) => c.status === "aberta");
   const cobrancasMinhas = cobrancasAbertas.filter((c) => minhasEmpresasIds.has(c.empresa_id));
 
-  const [competencia, setCompetencia] = useState("todas");
-  const [periodo, setPeriodo] = useState("todos");
+  const [competenciasSel, setCompetenciasSel] = useState<string[]>([]);
+  const [periodosSel, setPeriodosSel] = useState<string[]>([]);
+
 
   const competenciasDisponiveis = useMemo(
     () =>
@@ -246,8 +249,8 @@ export function DashboardFinanceiro() {
       pendentes
         .filter(
           (p) =>
-            (competencia === "todas" || p.mes_referencia === competencia) &&
-            (periodo === "todos" || p.periodo === periodo),
+            (competenciasSel.length === 0 || (p.mes_referencia && competenciasSel.includes(p.mes_referencia))) &&
+            (periodosSel.length === 0 || (p.periodo && periodosSel.includes(p.periodo))),
         )
         .map((p) => ({
           ...p,
@@ -257,7 +260,8 @@ export function DashboardFinanceiro() {
           pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
         }))
         .sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome)),
-    [pendentes, competencia, periodo, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
+    [pendentes, competenciasSel, periodosSel, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
+
   );
 
   async function exportarPendentes() {
@@ -363,28 +367,21 @@ export function DashboardFinanceiro() {
               <Badge variant="outline" className="ml-1">{pendentesFiltrados.length}</Badge>
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={competencia} onValueChange={setCompetencia}>
-                <SelectTrigger className="h-8 w-[170px] text-xs">
-                  <SelectValue placeholder="Competência" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas as competências</SelectItem>
-                  {competenciasDisponiveis.map((c) => (
-                    <SelectItem key={c} value={c}>{formatCompetencia(c)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={periodo} onValueChange={setPeriodo}>
-                <SelectTrigger className="h-8 w-[150px] text-xs">
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os períodos</SelectItem>
-                  {periodosDisponiveis.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFiltro
+                label="Competências"
+                width="w-[190px]"
+                options={competenciasDisponiveis.map((c) => ({ value: c, label: formatCompetencia(c) }))}
+                selected={competenciasSel}
+                onChange={setCompetenciasSel}
+              />
+              <MultiSelectFiltro
+                label="Períodos"
+                width="w-[170px]"
+                options={periodosDisponiveis.map((p) => ({ value: p, label: p }))}
+                selected={periodosSel}
+                onChange={setPeriodosSel}
+              />
+
               <Button
                 size="sm"
                 variant="outline"
