@@ -591,38 +591,63 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // ============================================================
   const s6 = pptx.addSlide();
   s6.background = conteudoBg;
-  slideTitle(s6, "Observações e Recomendações", "Síntese qualitativa da ação");
+  slideTitle(s6, "Observações e Recomendações", "Análise consultiva e direcionamentos para a gestão");
 
   const colW = (SAFE.w - 0.3) / 2;
 
-  // Coluna 1: Observações
-  painel(s6, SAFE.x, SAFE.y, colW, SAFE.h, "Observações");
+  // Coluna 1: Principais Achados (síntese qualitativa)
+  const sintese: string[] = [];
+  sintese.push(
+    `O perfil de saúde dos colaboradores avaliados aponta as alterações ${predominante} como o principal fator de atenção da campanha, ` +
+    `com relevância clínica suficiente para orientar as prioridades do próximo ciclo preventivo.`,
+  );
+  if (hasGrave > 0 || diabetes > 0) {
+    sintese.push("Parte dos participantes apresenta condições que demandam avaliação clínica prioritária e acompanhamento formal pela Medicina do Trabalho.");
+  }
+  if (preDiabetes > 0) {
+    sintese.push("Há um grupo em estágio intermediário de risco metabólico, cujo desfecho ainda pode ser revertido por meio de intervenções de estilo de vida.");
+  }
+  if (naoRealizadas > 0) {
+    sintese.push("A adesão parcial às aferições limita a leitura completa do quadro e indica espaço para maior mobilização interna nas próximas ações.");
+  }
+  sintese.push("Insight executivo: agir agora sobre esse grupo tende a reduzir absenteísmo, afastamentos e custos assistenciais futuros.");
+
+  painel(s6, SAFE.x, SAFE.y, colW, SAFE.h, "Principais Achados");
   s6.addText(
-    "Dos 66 colaboradores atendidos, 61 fizeram PA e 61 fizeram glicemia. O destaque é o perfil glicêmico: 34 colaboradores com alteração, sendo 6 já compatíveis com diabetes. Na pressão arterial, 22 tiveram alteração, com 9 em estágio hipertensivo. Dez colaboradores não completaram as aferições. No total, 42 (64%) foram encaminhados para acompanhamento.",
+    sintese.map((t) => ({ text: t, options: { color: COLORS.NAVY } })) as any,
     {
       x: SAFE.x + 0.3, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
-      fontSize: 15, fontFace: "Calibri", color: COLORS.NAVY, valign: "top",
-      paraSpaceAfter: 10,
+      fontSize: 12.5, fontFace: "Calibri", color: COLORS.NAVY, valign: "top",
+      paraSpaceAfter: 8,
     },
   );
 
-  // Coluna 2: Recomendações
-  painel(s6, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Recomendações");
-  const recomendacoes = [
-    "Priorizar avaliação cardiológica para estágio hipertensivo 2/3.",
-    "Programa de orientação alimentar e atividade física para o grupo pré-diabético.",
-    "Encaminhamento médico específico para os casos de diabetes.",
-    "Campanha de adesão à aferição, já que 10 colaboradores não completaram os exames.",
-    "Acompanhamento trimestral dos casos com alteração leve.",
-    "Integrar os achados ao PCMSO/PGR da empresa.",
-  ];
+  // Coluna 2: Recomendações Estratégicas
+  painel(s6, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Recomendações Estratégicas");
+  const recomendacoes: string[] = [];
+  if (gliPctAlt >= paPctAlt) {
+    recomendacoes.push("Intensificar ações de educação em saúde voltadas ao controle glicêmico.");
+  } else {
+    recomendacoes.push("Intensificar ações de prevenção cardiovascular e controle da pressão arterial.");
+  }
+  if (hasGrave > 0 || diabetes > 0) {
+    recomendacoes.push("Assegurar acompanhamento clínico formal dos casos de maior risco identificados.");
+  }
+  recomendacoes.push("Estimular hábitos saudáveis: alimentação equilibrada, atividade física e sono adequado.");
+  recomendacoes.push("Manter o monitoramento dos colaboradores encaminhados até a conclusão do cuidado.");
+  if (naoRealizadas > 0) {
+    recomendacoes.push("Ampliar a mobilização interna para elevar a adesão às aferições na próxima ação.");
+  }
+  recomendacoes.push("Planejar nova ação preventiva para comparação de indicadores ao longo do tempo.");
+  recomendacoes.push("Integrar os resultados às diretrizes do PCMSO e do PGR da empresa.");
   s6.addText(
-    recomendacoes.map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
+    recomendacoes.slice(0, 7).map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
     {
       x: SAFE.x + colW + 0.6, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
-      fontSize: 15, fontFace: "Calibri", paraSpaceAfter: 8,
+      fontSize: 12.5, fontFace: "Calibri", paraSpaceAfter: 6,
     },
   );
+
 
   // ============================================================
   // Slide 7B — PLANO DE AÇÃO (tabela)
