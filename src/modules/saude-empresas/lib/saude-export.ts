@@ -51,6 +51,81 @@ function pct(n: number, d: number): number {
   return d > 0 ? Math.round((n / d) * 100) : 0;
 }
 
+type MetricasTriagem = ReturnType<typeof calcularMetricas>;
+
+/** Consolida os indicadores clínicos de um conjunto de triagens. */
+function calcularMetricas(triagens: Pick<Triagem, "pas_mmhg" | "pad_mmhg" | "glicemia_mg_dl" | "jejum">[]) {
+  const total = triagens.length;
+  const paCounts = { "Ótima": 0, Normal: 0, "PA Elevada": 0, "Hipertensão Estágio 1": 0, "Hipertensão Estágio 2": 0, "Hipertensão Estágio 3": 0, "Não realizado": 0 };
+  const gliCounts = { Normal: 0, "Pré-Diabetes": 0, "Alterada pós-prandial": 0, Diabetes: 0, "Não realizado": 0 };
+
+  triagens.forEach((t) => {
+    const pa = classificarPa(t.pas_mmhg, t.pad_mmhg);
+    (paCounts as any)[pa]++;
+    const gli = classificarGlicemia(t.glicemia_mg_dl, t.jejum);
+    if (gli) (gliCounts as any)[gli]++;
+    else gliCounts["Não realizado"]++;
+  });
+
+  const paAlt = paCounts["PA Elevada"] + paCounts["Hipertensão Estágio 1"] + paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
+  const paNormal = paCounts["Ótima"] + paCounts["Normal"];
+  const paNR = paCounts["Não realizado"];
+  const gliAlt = gliCounts["Pré-Diabetes"] + gliCounts["Alterada pós-prandial"] + gliCounts["Diabetes"];
+  const gliNormal = gliCounts["Normal"];
+  const gliNR = gliCounts["Não realizado"];
+  const encaminhamentos = triagens.filter((t) => {
+    const pa = classificarPa(t.pas_mmhg, t.pad_mmhg);
+    const gli = classificarGlicemia(t.glicemia_mg_dl, t.jejum);
+    return PA_ALTERADAS.includes(pa) || (gli && gli !== "Normal");
+  }).length;
+
+  return {
+    total, paCounts, gliCounts, paAlt, paNormal, paNR, gliAlt, gliNormal, gliNR,
+    totalPa: total - paNR,
+    totalGli: total - gliNR,
+    encaminhamentos,
+  };
+}
+
+interface PontoHistorico {
+  data: string;
+  label: string;
+  m: MetricasTriagem;
+}
+
+/** Busca as últimas ações da mesma empresa (incluindo a atual) para o comparativo. */
+async function carregarHistorico(acao: AcaoSaude, triagensAtuais: Triagem[]): Promise<PontoHistorico[]> {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: acoes } = await supabase
+      .from("acoes_saude")
+      .select("id, data_acao")
+      .eq("empresa_id", acao.empresa_id)
+      .lt("data_acao", acao.data_acao)
+      .order("data_acao", { ascending: false })
+      .limit(3);
+
+    const anteriores = (acoes ?? []).slice().reverse();
+    if (!anteriores.length) return [];
+
+    const { data: tri } = await supabase
+      .from("triagens")
+      .select("acao_id, pas_mmhg, pad_mmhg, glicemia_mg_dl, jejum")
+      .in("acao_id", anteriores.map((a) => a.id));
+
+    const pontos: PontoHistorico[] = anteriores.map((a) => {
+      const t = (tri ?? []).filter((x: any) => x.acao_id === a.id) as any[];
+      return { data: a.data_acao, label: formatDateBR(a.data_acao).slice(0, 5), m: calcularMetricas(t) };
+    }).filter((p) => p.m.total > 0);
+
+    pontos.push({ data: acao.data_acao, label: formatDateBR(acao.data_acao).slice(0, 5), m: calcularMetricas(triagensAtuais) });
+    return pontos;
+  } catch {
+    return [];
+  }
+}
+
+
 // ============================================================
 // EXCEL (mantido)
 // ============================================================
@@ -301,6 +376,97 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   );
 
   // ============================================================
+  // Slide 3B — EVOLUÇÃO DO PROGRAMA (somente com 2+ ações)
+  // ============================================================
+  const historico = await carregarHistorico(acao, triagens);
+  if (historico.length >= 2) {
+    const sEv = pptx.addSlide();
+    sEv.background = conteudoBg;
+    slideTitle(sEv, "Evolução do Programa", `Comparativo das últimas ${historico.length} ações realizadas`);
+
+    const labels = historico.map((p) => p.label);
+    const serieVar = (arr: number[]) => arr;
+
+    const paPct = historico.map((p) => pct(p.m.paAlt, p.m.totalPa));
+    const gliPct = historico.map((p) => pct(p.m.gliAlt, p.m.totalGli));
+    const encam = historico.map((p) => p.m.encaminhamentos);
+    const naoRealiz = historico.map((p) => p.m.paNR + p.m.gliNR);
+    const variouNR = new Set(naoRealiz).size > 1;
+
+    const series: any[] = [
+      { name: "% PA alterada", labels, values: serieVar(paPct) },
+      { name: "% Glicemia alterada", labels, values: serieVar(gliPct) },
+      { name: "Encaminhamentos", labels, values: serieVar(encam) },
+    ];
+    if (variouNR) series.push({ name: "Aferições não realizadas", labels, values: serieVar(naoRealiz) });
+
+    const chW = SAFE.w * 0.62;
+    sEv.addChart(pptx.ChartType.line, series, {
+      x: SAFE.x, y: SAFE.y, w: chW, h: SAFE.h - 0.55,
+      chartColors: [COLORS.RED, COLORS.AMBER, COLORS.NAVY, COLORS.GREY],
+      lineSize: 3,
+      lineDataSymbolSize: 8,
+      showLegend: true,
+      legendPos: "b",
+      legendFontSize: 10,
+      catAxisLabelFontSize: 11,
+      valAxisLabelFontSize: 10,
+      showValue: true,
+      dataLabelFontSize: 10,
+    });
+
+    // Indicadores de tendência
+    const atual = historico[historico.length - 1];
+    const anterior = historico[historico.length - 2];
+    const trend = (
+      label: string, vAtual: number, vAnterior: number, unidade: "pp" | "n",
+    ) => {
+      const delta = vAtual - vAnterior;
+      const melhor = delta < 0;
+      const seta = delta === 0 ? "→" : melhor ? "↓" : "↑";
+      const cor = delta === 0 ? COLORS.GREY : melhor ? COLORS.GREEN : COLORS.RED;
+      const val = unidade === "pp"
+        ? `${vAtual}%  (${delta > 0 ? "+" : ""}${delta} p.p.)`
+        : `${vAtual}  (${delta > 0 ? "+" : ""}${delta})`;
+      return { label, texto: `${seta} ${val}`, cor };
+    };
+
+    const trends = [
+      trend("PA alterada", paPct[paPct.length - 1], paPct[paPct.length - 2], "pp"),
+      trend("Glicemia alterada", gliPct[gliPct.length - 1], gliPct[gliPct.length - 2], "pp"),
+      trend("Encaminhamentos", encam[encam.length - 1], encam[encam.length - 2], "n"),
+    ];
+    if (variouNR) trends.push(trend("Não realizadas", naoRealiz[naoRealiz.length - 1], naoRealiz[naoRealiz.length - 2], "n"));
+
+    const pX = SAFE.x + chW + 0.25;
+    const pW = SAFE.w - chW - 0.25;
+    painel(sEv, pX, SAFE.y, pW, SAFE.h - 0.55, "Tendência vs. ação anterior");
+    trends.forEach((t, i) => {
+      const y = SAFE.y + 0.75 + i * 0.72;
+      sEv.addText(t.label, {
+        x: pX + 0.25, y, w: pW - 0.5, h: 0.26,
+        fontSize: 11, color: COLORS.GREY, bold: true, fontFace: "Calibri",
+      });
+      sEv.addText(t.texto, {
+        x: pX + 0.25, y: y + 0.26, w: pW - 0.5, h: 0.32,
+        fontSize: 16, bold: true, color: t.cor, fontFace: "Calibri",
+      });
+    });
+
+    const deltaPa = paPct[paPct.length - 1] - paPct[paPct.length - 2];
+    const situacao = deltaPa < 0 ? "melhora" : deltaPa > 0 ? "piora" : "estabilidade";
+    sEv.addText(
+      `A empresa apresenta ${situacao} nos indicadores de pressão arterial desde a última ação, realizada em ${formatDateBR(anterior.data)}.`,
+      {
+        x: SAFE.x, y: SAFE.y + SAFE.h - 0.45, w: SAFE.w, h: 0.4,
+        fontSize: 13, italic: true, color: COLORS.NAVY, fontFace: "Calibri",
+      },
+    );
+    void atual;
+  }
+
+
+  // ============================================================
   // Slide 4 — Classificação PA (barra horizontal)
   // ============================================================
   const s4 = pptx.addSlide();
@@ -402,22 +568,70 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
     },
   );
 
-  // Coluna 2: Recomendações
-  painel(s7, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Recomendações de Promoção à Saúde");
-  const recs = [
-    "Encaminhar colaboradores com PA em estágio 2/3 para avaliação cardiológica.",
-    "Programa de orientação alimentar e prática de atividade física para o grupo pré-diabético.",
-    "Campanha interna de adesão à aferição (PA e glicemia).",
-    "Acompanhamento trimestral dos colaboradores com alteração leve.",
-    "Integração dos achados ao PCMSO/PGR da empresa.",
+  // Coluna 2: síntese das prioridades
+  painel(s7, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Prioridades Imediatas");
+  const est23 = paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
+  const prioridades = [
+    `${est23} colaborador(es) com PA em estágio 2/3 — avaliação médica imediata.`,
+    `${gliCounts["Diabetes"]} com glicemia compatível com diabetes — confirmação laboratorial em até 7 dias.`,
+    `${gliCounts["Pré-Diabetes"]} em pré-diabetes — programa de orientação alimentar (30 dias).`,
+    `${paNR + gliNR} aferições não realizadas — campanha de adesão (30 dias).`,
+    "Plano de ação detalhado no slide seguinte, com responsável e prazo sugeridos.",
   ];
   s7.addText(
-    recs.map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
+    prioridades.map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
     {
       x: SAFE.x + colW + 0.6, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
       fontSize: 13, fontFace: "Calibri", paraSpaceAfter: 6,
     },
   );
+
+  // ============================================================
+  // Slide 7B — PLANO DE AÇÃO (tabela)
+  // ============================================================
+  const sPlano = pptx.addSlide();
+  sPlano.background = conteudoBg;
+  slideTitle(sPlano, "Plano de Ação", "Responsáveis e prazos sugeridos para a empresa · Status a ser preenchido pelo cliente");
+
+  const planoRows: [string, string, string][] = [
+    ["Encaminhar colaboradores com PA em estágio 2/3 para avaliação cardiológica.", "Medicina do Trabalho / SESMT", "Imediato"],
+    ["Confirmar em laboratório os casos com glicemia compatível com diabetes.", "RH / Medicina do Trabalho", "7 dias"],
+    ["Acompanhar colaboradores com alteração leve de PA ou glicemia.", "Medicina do Trabalho", "30 dias"],
+    ["Programa de orientação alimentar e atividade física (grupo pré-diabético).", "RH / SESMT", "30-60 dias"],
+    ["Campanha interna de adesão à aferição de PA e glicemia.", "RH / Comunicação Interna", "30 dias"],
+    ["Integrar os achados desta ação ao PCMSO/PGR da empresa.", "SESMT / Medicina do Trabalho", "Próximo trimestre"],
+    ["Reavaliação dos indicadores em nova ação de saúde.", "Gestor da área / RH", "90 dias"],
+  ];
+
+  const headerCell = (t: string) => ({
+    text: t,
+    options: { bold: true, color: COLORS.WHITE, fill: { color: COLORS.NAVY }, fontSize: 12, align: "left" as const, valign: "middle" as const },
+  });
+
+  const tableRows: any[] = [
+    [headerCell("Ação recomendada"), headerCell("Responsável sugerido"), headerCell("Prazo sugerido"), headerCell("Status")],
+    ...planoRows.map(([acaoTxt, resp, prazo], i) => {
+      const urgente = prazo === "Imediato" || prazo === "7 dias";
+      const fill = { color: i % 2 === 0 ? COLORS.WHITE : COLORS.LIGHT };
+      const base = { fontSize: 11, color: COLORS.NAVY, fill, valign: "middle" as const };
+      return [
+        { text: acaoTxt, options: base },
+        { text: resp, options: base },
+        { text: prazo, options: { ...base, bold: urgente, color: urgente ? COLORS.RED : COLORS.NAVY } },
+        { text: "Pendente", options: { ...base, color: COLORS.GREY, align: "center" as const } },
+      ];
+    }),
+  ];
+
+  sPlano.addTable(tableRows, {
+    x: SAFE.x, y: SAFE.y, w: SAFE.w,
+    colW: [6.0, 3.0, 1.83, 1.4],
+    border: { type: "solid", color: COLORS.BORDER, pt: 0.5 },
+    fontFace: "Calibri",
+    rowH: 0.42,
+    autoPage: false,
+  });
+
 
   // ============================================================
   // Slide 8 — OBSERVAÇÕES (condicional)
