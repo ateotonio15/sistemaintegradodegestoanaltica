@@ -188,11 +188,15 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   const gliAlt = gliCounts["Pré-Diabetes"] + gliCounts["Alterada pós-prandial"] + gliCounts["Diabetes"];
   const gliNormal = gliCounts["Normal"];
   const gliNR = gliCounts["Não realizado"];
+  // Totais por exame efetivamente realizado (base correta dos percentuais)
+  const totalPa = total - paNR;
+  const totalGli = total - gliNR;
   const encaminhamentos = triagens.filter((t) => {
     const pa = classificarPa(t.pas_mmhg, t.pad_mmhg);
     const gli = classificarGlicemia(t.glicemia_mg_dl, t.jejum);
     return PA_ALTERADAS.includes(pa) || (gli && gli !== "Normal");
   }).length;
+
 
   // ============================================================
   // Slide 1 — CAPA (fundo Samel)
@@ -229,22 +233,25 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // ============================================================
   const s2 = pptx.addSlide();
   s2.background = conteudoBg;
-  slideTitle(s2, "Resumo Executivo", `${empresaNome} · ${dataBR}`);
+  slideTitle(s2, "Resumo Executivo", `${empresaNome} · ${dataBR} · PA: ${totalPa} colaboradores · Glicemia: ${totalGli} colaboradores`);
 
 
   const gap = 0.22;
-  const cols = 3;
+  const cols = 4;
   const kW = (SAFE.w - gap * (cols - 1)) / cols;
   const kH = (SAFE.h - gap) / 2;
 
   const kpis = [
-    { label: "Total triado", valor: total, cor: COLORS.NAVY, sub: "Colaboradores triados" },
-    { label: "PA alterada", valor: `${pct(paAlt, total)}%`, cor: COLORS.RED, sub: `${paAlt} do total` },
-    { label: "PA normal", valor: `${pct(paNormal, total)}%`, cor: COLORS.GREEN, sub: `${paNormal} do total` },
-    { label: "Glicemia alterada", valor: `${pct(gliAlt, total)}%`, cor: COLORS.RED, sub: `${gliAlt} do total` },
-    { label: "Glicemia normal", valor: `${pct(gliNormal, total)}%`, cor: COLORS.GREEN, sub: `${gliNormal} do total` },
-    { label: "Encaminhamentos", valor: encaminhamentos, cor: COLORS.AMBER, sub: `${pct(encaminhamentos, total)}% do total` },
+    { label: "Total triado", valor: total, cor: COLORS.NAVY, sub: "Colaboradores atendidos" },
+    { label: "Aferições de PA", valor: totalPa, cor: COLORS.NAVY, sub: `de ${total} triados` },
+    { label: "Aferições de Glicemia", valor: totalGli, cor: COLORS.NAVY, sub: `de ${total} triados` },
+    { label: "Encaminhamentos", valor: encaminhamentos, cor: COLORS.AMBER, sub: `${pct(encaminhamentos, total)}% dos ${total} triados` },
+    { label: "PA alterada", valor: `${pct(paAlt, totalPa)}%`, cor: COLORS.RED, sub: `${paAlt} de ${totalPa} avaliados em PA` },
+    { label: "PA normal", valor: `${pct(paNormal, totalPa)}%`, cor: COLORS.GREEN, sub: `${paNormal} de ${totalPa} avaliados em PA` },
+    { label: "Glicemia alterada", valor: `${pct(gliAlt, totalGli)}%`, cor: COLORS.RED, sub: `${gliAlt} de ${totalGli} avaliados em Glicemia` },
+    { label: "Glicemia normal", valor: `${pct(gliNormal, totalGli)}%`, cor: COLORS.GREEN, sub: `${gliNormal} de ${totalGli} avaliados em Glicemia` },
   ];
+
   kpis.forEach((k, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
@@ -346,10 +353,10 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
 
   const est = paCounts["Hipertensão Estágio 1"] + paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
   const findings = [
-    `${total} colaboradores avaliados na ação de ${dataBR}.`,
-    `${paAlt} (${pct(paAlt, total)}%) apresentaram alteração pressórica — ${est} em estágio hipertensivo (HA 1/2/3).`,
-    `${gliAlt} (${pct(gliAlt, total)}%) com alteração glicêmica — ${gliCounts["Pré-Diabetes"]} em pré-diabetes e ${gliCounts["Diabetes"]} compatível com diabetes.`,
-    `${encaminhamentos} colaboradores (${pct(encaminhamentos, total)}%) requerem acompanhamento médico/ocupacional.`,
+    `${total} colaboradores atendidos na ação de ${dataBR} — ${totalPa} com aferição de PA e ${totalGli} com aferição de glicemia.`,
+    `${paAlt} (${pct(paAlt, totalPa)}% dos ${totalPa} avaliados em PA) apresentaram alteração pressórica — ${est} em estágio hipertensivo (HA 1/2/3).`,
+    `${gliAlt} (${pct(gliAlt, totalGli)}% dos ${totalGli} avaliados em glicemia) com alteração glicêmica — ${gliCounts["Pré-Diabetes"]} em pré-diabetes e ${gliCounts["Diabetes"]} compatível com diabetes.`,
+    `${encaminhamentos} colaboradores (${pct(encaminhamentos, total)}% do total triado) requerem acompanhamento médico/ocupacional.`,
     `${paNR + gliNR} aferições não realizadas — necessário reforço na adesão à triagem.`,
   ];
   s6.addText(
@@ -373,11 +380,12 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   painel(s7, SAFE.x, SAFE.y, colW, SAFE.h, "Indicadores-Chave");
   const indicadores = [
     `Total triado: ${total}`,
-    `PA normal: ${paNormal} (${pct(paNormal, total)}%)`,
-    `PA alterada: ${paAlt} (${pct(paAlt, total)}%)`,
-    `Glicemia normal: ${gliNormal} (${pct(gliNormal, total)}%)`,
-    `Glicemia alterada: ${gliAlt} (${pct(gliAlt, total)}%)`,
-    `Encaminhamentos: ${encaminhamentos} (${pct(encaminhamentos, total)}%)`,
+    `Avaliados em PA: ${totalPa} · Avaliados em Glicemia: ${totalGli}`,
+    `PA normal: ${paNormal} (${pct(paNormal, totalPa)}% dos avaliados em PA)`,
+    `PA alterada: ${paAlt} (${pct(paAlt, totalPa)}% dos avaliados em PA)`,
+    `Glicemia normal: ${gliNormal} (${pct(gliNormal, totalGli)}% dos avaliados em glicemia)`,
+    `Glicemia alterada: ${gliAlt} (${pct(gliAlt, totalGli)}% dos avaliados em glicemia)`,
+    `Encaminhamentos: ${encaminhamentos} (${pct(encaminhamentos, total)}% do total triado)`,
     `Não realizados (PA+Gli): ${paNR + gliNR}`,
   ];
   s7.addText(
