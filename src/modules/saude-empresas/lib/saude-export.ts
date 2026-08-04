@@ -342,7 +342,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   slideTitle(s3, "Diagnóstico Executivo", "Distribuição dos colaboradores avaliados na ação");
 
   const panelW = (SAFE.w - 0.4) / 2;
-  const panelH = SAFE.h - 1.15;
+  const panelH = 2.75;
 
   const barraGrupo = (
     slide: any,
