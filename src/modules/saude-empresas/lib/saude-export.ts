@@ -335,38 +335,84 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   });
 
   // ============================================================
-  // Slide 3 — PAINEL DE INDICADORES (2 doughnuts)
+  // Slide 3 — DIAGNÓSTICO EXECUTIVO (barras horizontais)
   // ============================================================
   const s3 = pptx.addSlide();
   s3.background = conteudoBg;
-  slideTitle(s3, "Painel de Indicadores", "Distribuição por categoria clínica");
+  slideTitle(s3, "Diagnóstico Executivo", "Distribuição dos colaboradores avaliados na ação");
 
-  const chartW = (SAFE.w - 0.4) / 2;
-  const doughnutOpts = (title: string) => ({
-    x: 0, y: 0, w: 0, h: 0,
-    chartColors: [COLORS.GREEN, COLORS.RED, COLORS.GREY],
-    holeSize: 55,
-    showLegend: true,
-    legendPos: "b" as const,
-    legendFontSize: 10,
-    showTitle: true,
-    title,
-    titleFontSize: 14,
-    titleColor: COLORS.NAVY,
-    showPercent: true,
-    dataLabelColor: COLORS.WHITE,
-    dataLabelFontSize: 11,
-    dataLabelFontBold: true,
-  });
+  const panelW = (SAFE.w - 0.4) / 2;
+  const panelH = SAFE.h - 1.15;
 
-  s3.addChart(pptx.ChartType.doughnut,
-    [{ name: "PA", labels: ["Normal", "Alterada", "Não realizado"], values: [paNormal, paAlt, paNR] }],
-    { ...doughnutOpts("Pressão Arterial"), x: SAFE.x, y: SAFE.y, w: chartW, h: SAFE.h },
+  const barraGrupo = (
+    slide: any,
+    px: number, py: number, pw: number, ph: number,
+    titulo: string, subtitulo: string,
+    itens: { label: string; valor: number; base: number; cor: string }[],
+  ) => {
+    painel(slide, px, py, pw, ph, titulo);
+    slide.addText(subtitulo, {
+      x: px + 0.25, y: py + 0.55, w: pw - 0.5, h: 0.28,
+      fontSize: 10, color: COLORS.GREY, fontFace: "Calibri",
+    });
+    const trackX = px + 0.25;
+    const trackW = pw - 1.55;
+    let by = py + 1.0;
+    itens.forEach((it) => {
+      const p = it.base > 0 ? it.valor / it.base : 0;
+      slide.addText(`${it.label}`, {
+        x: trackX, y: by, w: trackW, h: 0.25,
+        fontSize: 11, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
+      });
+      slide.addShape("roundRect", {
+        x: trackX, y: by + 0.28, w: trackW, h: 0.34,
+        fill: { color: "EEF2F6" }, line: { color: COLORS.BORDER, width: 0.5 }, rectRadius: 0.05,
+      });
+      if (p > 0) {
+        slide.addShape("roundRect", {
+          x: trackX, y: by + 0.28, w: Math.max(trackW * p, 0.12), h: 0.34,
+          fill: { color: it.cor }, line: { color: it.cor }, rectRadius: 0.05,
+        });
+      }
+      slide.addText(`${pct(it.valor, it.base)}%  ·  ${it.valor}`, {
+        x: trackX + trackW + 0.12, y: by + 0.26, w: 1.15, h: 0.38,
+        fontSize: 11, bold: true, color: it.cor, fontFace: "Calibri", valign: "middle",
+      });
+      by += 0.85;
+    });
+  };
+
+  barraGrupo(
+    s3, SAFE.x, SAFE.y, panelW, panelH,
+    "Pressão Arterial", `Base: ${totalPa} colaboradores aferidos`,
+    [
+      { label: "Normal", valor: paNormal, base: totalPa, cor: COLORS.GREEN },
+      { label: "Alterada", valor: paAlt, base: totalPa, cor: COLORS.RED },
+    ],
   );
-  s3.addChart(pptx.ChartType.doughnut,
-    [{ name: "Glicemia", labels: ["Normal", "Alterada", "Não realizado"], values: [gliNormal, gliAlt, gliNR] }],
-    { ...doughnutOpts("Glicemia"), x: SAFE.x + chartW + 0.4, y: SAFE.y, w: chartW, h: SAFE.h },
+
+  barraGrupo(
+    s3, SAFE.x + panelW + 0.4, SAFE.y, panelW, panelH,
+    "Glicemia", `Base: ${totalGli} colaboradores avaliados`,
+    [
+      { label: "Normal", valor: gliNormal, base: totalGli, cor: COLORS.GREEN },
+      { label: "Alterada", valor: gliAlt, base: totalGli, cor: COLORS.RED },
+    ],
   );
+
+  const paPctAlt = pct(paAlt, totalPa);
+  const gliPctAlt = pct(gliAlt, totalGli);
+  const maiorRisco = paPctAlt >= gliPctAlt ? "pressão arterial" : "glicemia";
+  s3.addText(
+    `Leitura executiva: entre os avaliados, ${paPctAlt}% apresentaram pressão arterial alterada e ${gliPctAlt}% glicemia alterada. ` +
+    `O maior ponto de atenção é ${maiorRisco}, com ${encaminhamentos} encaminhamento(s) gerado(s). ` +
+    `Resultados válidos apenas para os colaboradores atendidos nesta ação.`,
+    {
+      x: SAFE.x, y: SAFE.y + panelH + 0.22, w: SAFE.w, h: 0.75,
+      fontSize: 11, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
+    },
+  );
+
 
   // ============================================================
   // Slide 3B — EVOLUÇÃO DO PROGRAMA (somente com 2+ ações)
