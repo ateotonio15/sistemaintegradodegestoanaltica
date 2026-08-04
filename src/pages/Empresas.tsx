@@ -1696,7 +1696,8 @@ export default function Empresas() {
                             suspenso ? "bg-muted/50 hover:bg-muted/70" : "hover:bg-accent/50",
                             temPrioridade && "priority-row bg-red-500/5"
                           )}
-                          onClick={() => setDetailEmpresa(e)}
+                          onDoubleClick={() => setDetailEmpresa(e)}
+                          title="Clique duas vezes para abrir os detalhes"
                         >
                           <TableCell className="font-medium align-top">
 
