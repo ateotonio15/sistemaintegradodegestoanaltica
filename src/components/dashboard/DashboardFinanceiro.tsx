@@ -365,28 +365,21 @@ export function DashboardFinanceiro() {
               <Badge variant="outline" className="ml-1">{pendentesFiltrados.length}</Badge>
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={competencia} onValueChange={setCompetencia}>
-                <SelectTrigger className="h-8 w-[170px] text-xs">
-                  <SelectValue placeholder="Competência" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas as competências</SelectItem>
-                  {competenciasDisponiveis.map((c) => (
-                    <SelectItem key={c} value={c}>{formatCompetencia(c)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={periodo} onValueChange={setPeriodo}>
-                <SelectTrigger className="h-8 w-[150px] text-xs">
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os períodos</SelectItem>
-                  {periodosDisponiveis.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFiltro
+                label="Competências"
+                width="w-[190px]"
+                options={competenciasDisponiveis.map((c) => ({ value: c, label: formatCompetencia(c) }))}
+                selected={competenciasSel}
+                onChange={setCompetenciasSel}
+              />
+              <MultiSelectFiltro
+                label="Períodos"
+                width="w-[170px]"
+                options={periodosDisponiveis.map((p) => ({ value: p, label: p }))}
+                selected={periodosSel}
+                onChange={setPeriodosSel}
+              />
+
               <Button
                 size="sm"
                 variant="outline"
