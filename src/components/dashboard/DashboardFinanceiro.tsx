@@ -499,8 +499,12 @@ export function DashboardFinanceiro() {
 
       </Card>
 
+      {/* Relatório diário por status (Excel / PDF) */}
+      <RelatorioStatusFinanceiro />
+
       {/* Análises de envios — substitui "Empresas fora do prazo" */}
       <AnalisesEnviosPanel />
+
 
       {/* Contratos recém implantados aguardando primeiro fechamento */}
       <ImplantacoesAguardandoFechamentoCard />
