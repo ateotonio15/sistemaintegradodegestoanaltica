@@ -51,6 +51,81 @@ function pct(n: number, d: number): number {
   return d > 0 ? Math.round((n / d) * 100) : 0;
 }
 
+type MetricasTriagem = ReturnType<typeof calcularMetricas>;
+
+/** Consolida os indicadores clínicos de um conjunto de triagens. */
+function calcularMetricas(triagens: Pick<Triagem, "pas_mmhg" | "pad_mmhg" | "glicemia_mg_dl" | "jejum">[]) {
+  const total = triagens.length;
+  const paCounts = { "Ótima": 0, Normal: 0, "PA Elevada": 0, "Hipertensão Estágio 1": 0, "Hipertensão Estágio 2": 0, "Hipertensão Estágio 3": 0, "Não realizado": 0 };
+  const gliCounts = { Normal: 0, "Pré-Diabetes": 0, "Alterada pós-prandial": 0, Diabetes: 0, "Não realizado": 0 };
+
+  triagens.forEach((t) => {
+    const pa = classificarPa(t.pas_mmhg, t.pad_mmhg);
+    (paCounts as any)[pa]++;
+    const gli = classificarGlicemia(t.glicemia_mg_dl, t.jejum);
+    if (gli) (gliCounts as any)[gli]++;
+    else gliCounts["Não realizado"]++;
+  });
+
+  const paAlt = paCounts["PA Elevada"] + paCounts["Hipertensão Estágio 1"] + paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
+  const paNormal = paCounts["Ótima"] + paCounts["Normal"];
+  const paNR = paCounts["Não realizado"];
+  const gliAlt = gliCounts["Pré-Diabetes"] + gliCounts["Alterada pós-prandial"] + gliCounts["Diabetes"];
+  const gliNormal = gliCounts["Normal"];
+  const gliNR = gliCounts["Não realizado"];
+  const encaminhamentos = triagens.filter((t) => {
+    const pa = classificarPa(t.pas_mmhg, t.pad_mmhg);
+    const gli = classificarGlicemia(t.glicemia_mg_dl, t.jejum);
+    return PA_ALTERADAS.includes(pa) || (gli && gli !== "Normal");
+  }).length;
+
+  return {
+    total, paCounts, gliCounts, paAlt, paNormal, paNR, gliAlt, gliNormal, gliNR,
+    totalPa: total - paNR,
+    totalGli: total - gliNR,
+    encaminhamentos,
+  };
+}
+
+interface PontoHistorico {
+  data: string;
+  label: string;
+  m: MetricasTriagem;
+}
+
+/** Busca as últimas ações da mesma empresa (incluindo a atual) para o comparativo. */
+async function carregarHistorico(acao: AcaoSaude, triagensAtuais: Triagem[]): Promise<PontoHistorico[]> {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: acoes } = await supabase
+      .from("acoes_saude")
+      .select("id, data_acao")
+      .eq("empresa_id", acao.empresa_id)
+      .lt("data_acao", acao.data_acao)
+      .order("data_acao", { ascending: false })
+      .limit(3);
+
+    const anteriores = (acoes ?? []).slice().reverse();
+    if (!anteriores.length) return [];
+
+    const { data: tri } = await supabase
+      .from("triagens")
+      .select("acao_id, pas_mmhg, pad_mmhg, glicemia_mg_dl, jejum")
+      .in("acao_id", anteriores.map((a) => a.id));
+
+    const pontos: PontoHistorico[] = anteriores.map((a) => {
+      const t = (tri ?? []).filter((x: any) => x.acao_id === a.id) as any[];
+      return { data: a.data_acao, label: formatDateBR(a.data_acao).slice(0, 5), m: calcularMetricas(t) };
+    }).filter((p) => p.m.total > 0);
+
+    pontos.push({ data: acao.data_acao, label: formatDateBR(acao.data_acao).slice(0, 5), m: calcularMetricas(triagensAtuais) });
+    return pontos;
+  } catch {
+    return [];
+  }
+}
+
+
 // ============================================================
 // EXCEL (mantido)
 // ============================================================
