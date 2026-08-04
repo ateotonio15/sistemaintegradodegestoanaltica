@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, FileText, ClipboardList } from "lucide-react";
+import { Download, FileText, ClipboardList, Activity, Send, Receipt, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import {
@@ -414,15 +414,24 @@ export function RelatorioStatusFinanceiro() {
     doc.save(`relatorio-financeiro-${dataIni}_a_${dataFim}.pdf`);
   }
 
+  const totalFaturamentos = filtradas.filter((l) => !!l.faturamento_iniciado_em).length;
+  const totalAnexos = filtradas.reduce((s, l) => s + l.qtd_anexos, 0);
+
   return (
     <Card className="rounded-xl shadow-sm">
       <CardHeader className="pb-3 space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-primary" />
-            Relatório diário por status
-            <Badge variant="outline" className="ml-1">{filtradas.length}</Badge>
-          </CardTitle>
+          <div className="space-y-1">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              Relatório diário por status
+              <Badge variant="outline" className="ml-1">{filtradas.length}</Badge>
+            </CardTitle>
+            <p className="text-xs text-muted-foreground max-w-2xl">
+              Acompanhe, dia a dia, o que o Financeiro movimentou: quantos contratos tiveram alguma
+              atualização e quantas notas fiscais foram efetivamente enviadas — por período e por usuário.
+            </p>
+          </div>
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
               <Label className="text-[11px] text-muted-foreground">De</Label>
@@ -471,6 +480,45 @@ export function RelatorioStatusFinanceiro() {
             </Button>
           </div>
         </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              icon: Activity,
+              label: "Movimentações",
+              value: filtradas.length,
+              hint: "Contratos com alguma atualização do Financeiro no período (envio, anexo, início de faturamento ou mudança de status).",
+            },
+            {
+              icon: Send,
+              label: "Notas enviadas",
+              value: totalEnviadas,
+              hint: "Notas fiscais efetivamente enviadas ao cliente — contratos com data da nota preenchida.",
+            },
+            {
+              icon: Receipt,
+              label: "Faturamentos iniciados",
+              value: totalFaturamentos,
+              hint: "Contratos em que o Financeiro deu início ao faturamento (antes da emissão da nota).",
+            },
+            {
+              icon: Paperclip,
+              label: "Anexos enviados",
+              value: totalAnexos,
+              hint: "Arquivos anexados às movimentações no período (relatórios, notas, comprovantes).",
+            },
+          ].map((k) => (
+            <div key={k.label} className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <k.icon className="h-3.5 w-3.5" />
+                {k.label}
+              </div>
+              <div className="text-xl font-semibold mt-0.5">{k.value}</div>
+              <p className="text-[10px] leading-snug text-muted-foreground mt-1">{k.hint}</p>
+            </div>
+          ))}
+        </div>
+
         <div className="flex flex-wrap gap-1.5">
           {resumoStatus.map((r) => (
             <Badge key={r.status} className={cn("text-[11px] font-medium", statusFinanceiroColor(r.status))}>
@@ -489,22 +537,32 @@ export function RelatorioStatusFinanceiro() {
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-lg border overflow-hidden">
-              <div className="px-3 py-2 text-xs font-semibold bg-muted/50">Notas por dia</div>
+              <div className="px-3 py-2 bg-muted/50 border-b">
+                <p className="text-xs font-semibold">Notas por dia</p>
+                <p className="text-[10px] text-muted-foreground leading-snug">
+                  <strong>Movimentações</strong> = contratos tocados pelo Financeiro naquele dia.{" "}
+                  <strong>Notas enviadas</strong> = quantas dessas viraram nota fiscal emitida no mesmo dia.
+                </p>
+              </div>
               <div className="max-h-[240px] overflow-y-auto">
                 <table className="w-full text-xs">
-                  <thead className="text-muted-foreground">
+                  <thead className="text-muted-foreground sticky top-0 bg-card">
                     <tr className="border-b">
-                      <th className="text-left px-3 py-1.5">Dia</th>
-                      <th className="text-right px-3 py-1.5">Movimentações</th>
-                      <th className="text-right px-3 py-1.5">Notas enviadas</th>
+                      <th className="text-left px-3 py-1.5 font-medium">Dia</th>
+                      <th className="text-right px-3 py-1.5 font-medium">Movimentações</th>
+                      <th className="text-right px-3 py-1.5 font-medium">Notas enviadas</th>
+                      <th className="text-right px-3 py-1.5 font-medium">Conversão</th>
                     </tr>
                   </thead>
                   <tbody>
                     {porDia.map((d) => (
-                      <tr key={d.dia} className="border-b last:border-0">
+                      <tr key={d.dia} className="border-b last:border-0 hover:bg-muted/40">
                         <td className="px-3 py-1.5">{fmtDia(d.dia)}</td>
                         <td className="px-3 py-1.5 text-right">{d.total}</td>
                         <td className="px-3 py-1.5 text-right font-medium">{d.enviadas}</td>
+                        <td className="px-3 py-1.5 text-right text-muted-foreground">
+                          {d.total > 0 ? `${Math.round((d.enviadas / d.total) * 100)}%` : "—"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -513,20 +571,26 @@ export function RelatorioStatusFinanceiro() {
             </div>
 
             <div className="rounded-lg border overflow-hidden">
-              <div className="px-3 py-2 text-xs font-semibold bg-muted/50">Produção por usuário</div>
+              <div className="px-3 py-2 bg-muted/50 border-b">
+                <p className="text-xs font-semibold">Produção por usuário</p>
+                <p className="text-[10px] text-muted-foreground leading-snug">
+                  <strong>Notas</strong> = notas enviadas pelo usuário · <strong>Faturamentos</strong> = faturamentos
+                  que ele iniciou · <strong>Anexos</strong> = arquivos que ele subiu.
+                </p>
+              </div>
               <div className="max-h-[240px] overflow-y-auto">
                 <table className="w-full text-xs">
-                  <thead className="text-muted-foreground">
+                  <thead className="text-muted-foreground sticky top-0 bg-card">
                     <tr className="border-b">
-                      <th className="text-left px-3 py-1.5">Usuário</th>
-                      <th className="text-right px-3 py-1.5">Notas</th>
-                      <th className="text-right px-3 py-1.5">Faturamentos</th>
-                      <th className="text-right px-3 py-1.5">Anexos</th>
+                      <th className="text-left px-3 py-1.5 font-medium">Usuário</th>
+                      <th className="text-right px-3 py-1.5 font-medium">Notas</th>
+                      <th className="text-right px-3 py-1.5 font-medium">Faturamentos</th>
+                      <th className="text-right px-3 py-1.5 font-medium">Anexos</th>
                     </tr>
                   </thead>
                   <tbody>
                     {porUsuario.map((u) => (
-                      <tr key={u.usuario} className="border-b last:border-0">
+                      <tr key={u.usuario} className="border-b last:border-0 hover:bg-muted/40">
                         <td className="px-3 py-1.5 truncate max-w-[180px]">{u.usuario}</td>
                         <td className="px-3 py-1.5 text-right font-medium">{u.enviadas}</td>
                         <td className="px-3 py-1.5 text-right">{u.faturamentos}</td>
@@ -543,3 +607,4 @@ export function RelatorioStatusFinanceiro() {
     </Card>
   );
 }
+
