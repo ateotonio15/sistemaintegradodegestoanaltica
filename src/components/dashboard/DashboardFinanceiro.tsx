@@ -247,8 +247,8 @@ export function DashboardFinanceiro() {
       pendentes
         .filter(
           (p) =>
-            (competencia === "todas" || p.mes_referencia === competencia) &&
-            (periodo === "todos" || p.periodo === periodo),
+            (competenciasSel.length === 0 || (p.mes_referencia && competenciasSel.includes(p.mes_referencia))) &&
+            (periodosSel.length === 0 || (p.periodo && periodosSel.includes(p.periodo))),
         )
         .map((p) => ({
           ...p,
@@ -258,7 +258,8 @@ export function DashboardFinanceiro() {
           pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
         }))
         .sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome)),
-    [pendentes, competencia, periodo, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
+    [pendentes, competenciasSel, periodosSel, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
+
   );
 
   async function exportarPendentes() {
