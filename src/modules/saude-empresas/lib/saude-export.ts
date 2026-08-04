@@ -566,7 +566,6 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
     ["Programa de orientação alimentar e atividade física (grupo pré-diabético).", "RH / SESMT", "30-60 dias"],
     ["Campanha interna de adesão à aferição de PA e glicemia.", "RH / Comunicação Interna", "30 dias"],
     ["Integrar os achados desta ação ao PCMSO/PGR da empresa.", "SESMT / Medicina do Trabalho", "Próximo trimestre"],
-    ["Reavaliação dos indicadores em nova ação de saúde.", "Gestor da área / RH", "90 dias"],
   ];
 
   const headerCell = (t: string) => ({
