@@ -380,11 +380,12 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   painel(s7, SAFE.x, SAFE.y, colW, SAFE.h, "Indicadores-Chave");
   const indicadores = [
     `Total triado: ${total}`,
-    `PA normal: ${paNormal} (${pct(paNormal, total)}%)`,
-    `PA alterada: ${paAlt} (${pct(paAlt, total)}%)`,
-    `Glicemia normal: ${gliNormal} (${pct(gliNormal, total)}%)`,
-    `Glicemia alterada: ${gliAlt} (${pct(gliAlt, total)}%)`,
-    `Encaminhamentos: ${encaminhamentos} (${pct(encaminhamentos, total)}%)`,
+    `Avaliados em PA: ${totalPa} · Avaliados em Glicemia: ${totalGli}`,
+    `PA normal: ${paNormal} (${pct(paNormal, totalPa)}% dos avaliados em PA)`,
+    `PA alterada: ${paAlt} (${pct(paAlt, totalPa)}% dos avaliados em PA)`,
+    `Glicemia normal: ${gliNormal} (${pct(gliNormal, totalGli)}% dos avaliados em glicemia)`,
+    `Glicemia alterada: ${gliAlt} (${pct(gliAlt, totalGli)}% dos avaliados em glicemia)`,
+    `Encaminhamentos: ${encaminhamentos} (${pct(encaminhamentos, total)}% do total triado)`,
     `Não realizados (PA+Gli): ${paNR + gliNR}`,
   ];
   s7.addText(
