@@ -177,8 +177,9 @@ export function DashboardFinanceiro() {
   const cobrancasAbertas = cobrancas.filter((c) => c.status === "aberta");
   const cobrancasMinhas = cobrancasAbertas.filter((c) => minhasEmpresasIds.has(c.empresa_id));
 
-  const [competencia, setCompetencia] = useState("todas");
-  const [periodo, setPeriodo] = useState("todos");
+  const [competenciasSel, setCompetenciasSel] = useState<string[]>([]);
+  const [periodosSel, setPeriodosSel] = useState<string[]>([]);
+
 
   const competenciasDisponiveis = useMemo(
     () =>
