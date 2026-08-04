@@ -308,28 +308,21 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // ============================================================
   const s2 = pptx.addSlide();
   s2.background = conteudoBg;
-  slideTitle(s2, "Resumo Executivo", `${empresaNome} · ${dataBR} · PA: ${totalPa} colaboradores · Glicemia: ${totalGli} colaboradores`);
+  slideTitle(s2, "Resumo Executivo", `${empresaNome} · ${dataBR}`);
 
 
-  const gap = 0.18;
-  const cols = 5;
+  const gap = 0.22;
+  const cols = 3;
   const kW = (SAFE.w - gap * (cols - 1)) / cols;
   const kH = (SAFE.h - gap) / 2;
 
-  const subTri = (n: number, base: number) =>
-    `${n} de ${base} avaliados (${pct(n, total)}% do total triado)`;
-
   const kpis = [
     { label: "Total triado", valor: total, cor: COLORS.NAVY, sub: "Colaboradores atendidos" },
-    { label: "Aferições de PA", valor: totalPa, cor: COLORS.NAVY, sub: `de ${total} triados` },
-    { label: "PA alterada", valor: `${pct(paAlt, total)}%`, cor: COLORS.RED, sub: subTri(paAlt, totalPa) },
-    { label: "PA normal", valor: `${pct(paNormal, total)}%`, cor: COLORS.GREEN, sub: subTri(paNormal, totalPa) },
-    { label: "PA não realizada", valor: paNR, cor: COLORS.GREY, sub: `${pct(paNR, total)}% do total triado` },
-    { label: "Encaminhamentos", valor: encaminhamentos, cor: COLORS.AMBER, sub: `${pct(encaminhamentos, total)}% dos ${total} triados` },
-    { label: "Aferições de Glicemia", valor: totalGli, cor: COLORS.NAVY, sub: `de ${total} triados` },
-    { label: "Glicemia alterada", valor: `${pct(gliAlt, total)}%`, cor: COLORS.RED, sub: subTri(gliAlt, totalGli) },
-    { label: "Glicemia normal", valor: `${pct(gliNormal, total)}%`, cor: COLORS.GREEN, sub: subTri(gliNormal, totalGli) },
-    { label: "Glicemia não realizada", valor: gliNR, cor: COLORS.GREY, sub: `${pct(gliNR, total)}% do total triado` },
+    { label: "PA alterada", valor: `${pct(paAlt, totalPa)}%`, cor: COLORS.RED, sub: `${paAlt} de ${totalPa} avaliados em PA` },
+    { label: "PA normal", valor: `${pct(paNormal, totalPa)}%`, cor: COLORS.GREEN, sub: `${paNormal} de ${totalPa} avaliados em PA` },
+    { label: "Glicemia alterada", valor: `${pct(gliAlt, totalGli)}%`, cor: COLORS.RED, sub: `${gliAlt} de ${totalGli} avaliados em glicemia` },
+    { label: "Glicemia normal", valor: `${pct(gliNormal, totalGli)}%`, cor: COLORS.GREEN, sub: `${gliNormal} de ${totalGli} avaliados em glicemia` },
+    { label: "Encaminhamentos", valor: encaminhamentos, cor: COLORS.AMBER, sub: `${pct(encaminhamentos, total)}% do total triado` },
   ];
 
 
