@@ -353,10 +353,10 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
 
   const est = paCounts["Hipertensão Estágio 1"] + paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
   const findings = [
-    `${total} colaboradores avaliados na ação de ${dataBR}.`,
-    `${paAlt} (${pct(paAlt, total)}%) apresentaram alteração pressórica — ${est} em estágio hipertensivo (HA 1/2/3).`,
-    `${gliAlt} (${pct(gliAlt, total)}%) com alteração glicêmica — ${gliCounts["Pré-Diabetes"]} em pré-diabetes e ${gliCounts["Diabetes"]} compatível com diabetes.`,
-    `${encaminhamentos} colaboradores (${pct(encaminhamentos, total)}%) requerem acompanhamento médico/ocupacional.`,
+    `${total} colaboradores atendidos na ação de ${dataBR} — ${totalPa} com aferição de PA e ${totalGli} com aferição de glicemia.`,
+    `${paAlt} (${pct(paAlt, totalPa)}% dos ${totalPa} avaliados em PA) apresentaram alteração pressórica — ${est} em estágio hipertensivo (HA 1/2/3).`,
+    `${gliAlt} (${pct(gliAlt, totalGli)}% dos ${totalGli} avaliados em glicemia) com alteração glicêmica — ${gliCounts["Pré-Diabetes"]} em pré-diabetes e ${gliCounts["Diabetes"]} compatível com diabetes.`,
+    `${encaminhamentos} colaboradores (${pct(encaminhamentos, total)}% do total triado) requerem acompanhamento médico/ocupacional.`,
     `${paNR + gliNR} aferições não realizadas — necessário reforço na adesão à triagem.`,
   ];
   s6.addText(
