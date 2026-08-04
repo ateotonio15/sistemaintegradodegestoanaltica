@@ -27,6 +27,7 @@ import { ImplantacoesAguardandoFechamentoCard } from "./ImplantacoesAguardandoFe
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
+import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
 
 
 interface CobrancaRow {
