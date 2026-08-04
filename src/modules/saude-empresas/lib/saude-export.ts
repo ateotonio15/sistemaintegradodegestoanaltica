@@ -650,49 +650,61 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
 
 
   // ============================================================
-  // Slide 7B — PLANO DE AÇÃO (tabela)
+  // Slide 7B — CONSIDERAÇÕES FINAIS
   // ============================================================
-  const sPlano = pptx.addSlide();
-  sPlano.background = conteudoBg;
-  slideTitle(sPlano, "Plano de Ação", "Responsáveis e prazos sugeridos para a empresa · Status a ser preenchido pelo cliente");
+  const sFim = pptx.addSlide();
+  sFim.background = conteudoBg;
+  slideTitle(sFim, "Considerações Finais", "Encerramento executivo · Saúde corporativa como estratégia de gestão");
 
-  const planoRows: [string, string, string][] = [
-    ["Encaminhar colaboradores com PA em estágio 2/3 para avaliação cardiológica.", "Medicina do Trabalho / SESMT", "Imediato"],
-    ["Confirmar em laboratório os casos com glicemia compatível com diabetes.", "RH / Medicina do Trabalho", "7 dias"],
-    ["Acompanhar colaboradores com alteração leve de PA ou glicemia.", "Medicina do Trabalho", "30 dias"],
-    ["Programa de orientação alimentar e atividade física (grupo pré-diabético).", "RH / SESMT", "30-60 dias"],
-    ["Campanha interna de adesão à aferição de PA e glicemia.", "RH / Comunicação Interna", "30 dias"],
-    ["Integrar os achados desta ação ao PCMSO/PGR da empresa.", "SESMT / Medicina do Trabalho", "Próximo trimestre"],
-  ];
+  const focoTxt =
+    diabetes > 0 || hasGrave > 0
+      ? "com destaque para situações que demandam acompanhamento clínico mais próximo"
+      : "predominando alterações de caráter leve, passíveis de reversão com acompanhamento e mudança de hábitos";
+  const adesaoTxt =
+    naoRealizadas > 0
+      ? " A adesão observada indica ainda espaço para ampliar o alcance das próximas ações, fortalecendo a cultura de prevenção interna."
+      : " O engajamento observado demonstra maturidade da empresa na condução de iniciativas de saúde preventiva.";
 
-  const headerCell = (t: string) => ({
-    text: t,
-    options: { bold: true, color: COLORS.WHITE, fill: { color: COLORS.NAVY }, fontSize: 12, align: "left" as const, valign: "middle" as const },
+  const resumoTxt =
+    `A ação realizada permitiu identificar, entre os colaboradores participantes, sinais precoces relacionados a risco cardiovascular e metabólico, ${focoTxt}. ` +
+    `Achados dessa natureza costumam evoluir de forma silenciosa e, quando reconhecidos em fase inicial, permitem intervenções simples, de baixo custo e alto impacto — evitando afastamentos, perda de produtividade e agravos assistenciais futuros.` +
+    adesaoTxt;
+
+  painel(sFim, SAFE.x, SAFE.y, SAFE.w, 1.85, "Resumo Executivo");
+  sFim.addText(resumoTxt, {
+    x: SAFE.x + 0.3, y: SAFE.y + 0.62, w: SAFE.w - 0.6, h: 1.1,
+    fontSize: 12.5, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
   });
 
-  const tableRows: any[] = [
-    [headerCell("Ação recomendada"), headerCell("Responsável sugerido"), headerCell("Prazo sugerido"), headerCell("Status")],
-    ...planoRows.map(([acaoTxt, resp, prazo], i) => {
-      const urgente = prazo === "Imediato" || prazo === "7 dias";
-      const fill = { color: i % 2 === 0 ? COLORS.WHITE : COLORS.LIGHT };
-      const base = { fontSize: 11, color: COLORS.NAVY, fill, valign: "middle" as const };
-      return [
-        { text: acaoTxt, options: base },
-        { text: resp, options: base },
-        { text: prazo, options: { ...base, bold: urgente, color: urgente ? COLORS.RED : COLORS.NAVY } },
-        { text: "Pendente", options: { ...base, color: COLORS.GREY, align: "center" as const } },
-      ];
-    }),
-  ];
+  const colFimW = (SAFE.w - 0.4) / 2;
+  const yBloco = SAFE.y + 2.05;
 
-  sPlano.addTable(tableRows, {
-    x: SAFE.x, y: SAFE.y, w: SAFE.w,
-    colW: [6.0, 3.0, 1.83, 1.4],
-    border: { type: "solid", color: COLORS.BORDER, pt: 0.5 },
-    fontFace: "Calibri",
-    rowH: 0.42,
-    autoPage: false,
-  });
+  painel(sFim, SAFE.x, yBloco, colFimW, 1.85, "Promoção da Saúde no Ambiente Corporativo");
+  sFim.addText(
+    "A promoção da saúde no ambiente corporativo vai além da identificação de alterações clínicas. Ela representa uma estratégia para incentivar hábitos saudáveis, contribuir para a qualidade de vida dos colaboradores e apoiar a construção de ambientes de trabalho mais seguros e produtivos.",
+    {
+      x: SAFE.x + 0.3, y: yBloco + 0.62, w: colFimW - 0.6, h: 1.1,
+      fontSize: 12, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
+    },
+  );
+
+  painel(sFim, SAFE.x + colFimW + 0.4, yBloco, colFimW, 1.85, "Compromisso Samel");
+  sFim.addText(
+    "A Samel agradece a confiança depositada em nossa equipe e reafirma seu compromisso em apoiar empresas na promoção da saúde ocupacional, por meio de ações preventivas, acompanhamento contínuo e soluções que contribuam para o bem-estar dos colaboradores.",
+    {
+      x: SAFE.x + colFimW + 0.7, y: yBloco + 0.62, w: colFimW - 0.6, h: 1.1,
+      fontSize: 12, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
+    },
+  );
+
+  sFim.addText(
+    "Cuidar da saúde é investir no futuro das pessoas e no desenvolvimento sustentável das organizações.",
+    {
+      x: SAFE.x, y: SAFE.y + SAFE.h - 0.45, w: SAFE.w, h: 0.35,
+      fontSize: 11.5, italic: true, color: COLORS.GREEN, fontFace: "Calibri", align: "center",
+    },
+  );
+
 
 
   // ============================================================
