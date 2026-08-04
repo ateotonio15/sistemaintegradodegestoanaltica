@@ -280,16 +280,16 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   s1.background = capaBg;
   // Textos posicionados na área livre (esquerda-inferior), evitando os logos
   // no topo-esquerdo e a foto da profissional à direita.
-  s1.addText("PROGRAMA SAÚDE NAS EMPRESAS", {
-    x: 0.7, y: 3.05, w: 8.2, h: 0.4,
-    fontSize: 12, bold: true, color: COLORS.GREEN, charSpacing: 6, fontFace: "Calibri",
+  s1.addText("Programa Saúde nas Empresas", {
+    x: 0.7, y: 3.05, w: 8.2, h: 0.75,
+    fontSize: 38, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
   });
   s1.addText("Relatório de Ação de Saúde", {
-    x: 0.7, y: 3.45, w: 8.2, h: 0.7,
-    fontSize: 30, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
+    x: 0.7, y: 3.85, w: 8.2, h: 0.4,
+    fontSize: 17, bold: false, color: COLORS.GREEN, fontFace: "Calibri",
   });
   s1.addText(empresaNome, {
-    x: 0.7, y: 4.2, w: 8.2, h: 0.6,
+    x: 0.7, y: 4.35, w: 8.2, h: 0.55,
     fontSize: 20, bold: true, color: COLORS.GREEN, fontFace: "Calibri",
   });
   const capaMeta = [
