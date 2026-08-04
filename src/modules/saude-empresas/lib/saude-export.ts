@@ -568,22 +568,70 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
     },
   );
 
-  // Coluna 2: Recomendações
-  painel(s7, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Recomendações de Promoção à Saúde");
-  const recs = [
-    "Encaminhar colaboradores com PA em estágio 2/3 para avaliação cardiológica.",
-    "Programa de orientação alimentar e prática de atividade física para o grupo pré-diabético.",
-    "Campanha interna de adesão à aferição (PA e glicemia).",
-    "Acompanhamento trimestral dos colaboradores com alteração leve.",
-    "Integração dos achados ao PCMSO/PGR da empresa.",
+  // Coluna 2: síntese das prioridades
+  painel(s7, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Prioridades Imediatas");
+  const est23 = paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
+  const prioridades = [
+    `${est23} colaborador(es) com PA em estágio 2/3 — avaliação médica imediata.`,
+    `${gliCounts["Diabetes"]} com glicemia compatível com diabetes — confirmação laboratorial em até 7 dias.`,
+    `${gliCounts["Pré-Diabetes"]} em pré-diabetes — programa de orientação alimentar (30 dias).`,
+    `${paNR + gliNR} aferições não realizadas — campanha de adesão (30 dias).`,
+    "Plano de ação detalhado no slide seguinte, com responsável e prazo sugeridos.",
   ];
   s7.addText(
-    recs.map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
+    prioridades.map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
     {
       x: SAFE.x + colW + 0.6, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
       fontSize: 13, fontFace: "Calibri", paraSpaceAfter: 6,
     },
   );
+
+  // ============================================================
+  // Slide 7B — PLANO DE AÇÃO (tabela)
+  // ============================================================
+  const sPlano = pptx.addSlide();
+  sPlano.background = conteudoBg;
+  slideTitle(sPlano, "Plano de Ação", "Responsáveis e prazos sugeridos para a empresa · Status a ser preenchido pelo cliente");
+
+  const planoRows: [string, string, string][] = [
+    ["Encaminhar colaboradores com PA em estágio 2/3 para avaliação cardiológica.", "Medicina do Trabalho / SESMT", "Imediato"],
+    ["Confirmar em laboratório os casos com glicemia compatível com diabetes.", "RH / Medicina do Trabalho", "7 dias"],
+    ["Acompanhar colaboradores com alteração leve de PA ou glicemia.", "Medicina do Trabalho", "30 dias"],
+    ["Programa de orientação alimentar e atividade física (grupo pré-diabético).", "RH / SESMT", "30-60 dias"],
+    ["Campanha interna de adesão à aferição de PA e glicemia.", "RH / Comunicação Interna", "30 dias"],
+    ["Integrar os achados desta ação ao PCMSO/PGR da empresa.", "SESMT / Medicina do Trabalho", "Próximo trimestre"],
+    ["Reavaliação dos indicadores em nova ação de saúde.", "Gestor da área / RH", "90 dias"],
+  ];
+
+  const headerCell = (t: string) => ({
+    text: t,
+    options: { bold: true, color: COLORS.WHITE, fill: { color: COLORS.NAVY }, fontSize: 12, align: "left" as const, valign: "middle" as const },
+  });
+
+  const tableRows: any[] = [
+    [headerCell("Ação recomendada"), headerCell("Responsável sugerido"), headerCell("Prazo sugerido"), headerCell("Status")],
+    ...planoRows.map(([acaoTxt, resp, prazo], i) => {
+      const urgente = prazo === "Imediato" || prazo === "7 dias";
+      const fill = { color: i % 2 === 0 ? COLORS.WHITE : COLORS.LIGHT };
+      const base = { fontSize: 11, color: COLORS.NAVY, fill, valign: "middle" as const };
+      return [
+        { text: acaoTxt, options: base },
+        { text: resp, options: base },
+        { text: prazo, options: { ...base, bold: urgente, color: urgente ? COLORS.RED : COLORS.NAVY } },
+        { text: "Pendente", options: { ...base, color: COLORS.GREY, align: "center" as const } },
+      ];
+    }),
+  ];
+
+  sPlano.addTable(tableRows, {
+    x: SAFE.x, y: SAFE.y, w: SAFE.w,
+    colW: [6.0, 3.0, 1.83, 1.4],
+    border: { type: "solid", color: COLORS.BORDER, pt: 0.5 },
+    fontFace: "Calibri",
+    rowH: 0.42,
+    autoPage: false,
+  });
+
 
   // ============================================================
   // Slide 8 — OBSERVAÇÕES (condicional)
