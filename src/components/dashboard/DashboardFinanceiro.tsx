@@ -13,6 +13,8 @@ import {
   CalendarClock,
   AlertTriangle,
   Download,
+  FileText,
+
 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -311,6 +313,58 @@ export function DashboardFinanceiro() {
     URL.revokeObjectURL(url);
   }
 
+  async function exportarPendentesPDF() {
+    if (pendentesFiltrados.length === 0) return;
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const hoje = new Date().toLocaleDateString("pt-BR");
+
+    doc.setFontSize(14);
+    doc.text("Contratos pendentes", 40, 40);
+    doc.setFontSize(9);
+    const filtros = [
+      competenciasSel.length
+        ? `Competências: ${competenciasSel.map(formatCompetencia).join(", ")}`
+        : "Competências: todas",
+      periodosSel.length ? `Períodos: ${periodosSel.join(", ")}` : "Períodos: todos",
+      `Total: ${pendentesFiltrados.length}`,
+      `Emitido em ${hoje}`,
+    ].join("  |  ");
+    doc.text(filtros, 40, 58);
+
+    const body: string[][] = [];
+    pendentesFiltrados.forEach((p) => {
+      const base = [
+        p.empresa_nome,
+        p.codigo_contrato || "—",
+        p.responsavel || "—",
+        formatCompetencia(p.mes_referencia),
+        p.periodo ?? "—",
+      ];
+      if (p.pagadores.length === 0) {
+        body.push([...base, "—", "—"]);
+      } else {
+        p.pagadores.forEach((pg) => body.push([...base, pg.nome_pagador, pg.cnpj ?? "—"]));
+      }
+    });
+
+    autoTable(doc, {
+      startY: 72,
+      head: [["Empresa", "Contrato", "Responsável", "Competência", "Período", "Pagador", "CNPJ do pagador"]],
+      body,
+      styles: { fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 246, 248] },
+      columnStyles: { 0: { cellWidth: 180 }, 5: { cellWidth: 160 } },
+      margin: { left: 40, right: 40 },
+    });
+
+    doc.save(`contratos-pendentes-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
+
 
 
 
@@ -392,6 +446,17 @@ export function DashboardFinanceiro() {
                 <Download className="h-3.5 w-3.5 mr-1.5" />
                 Exportar Excel
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                onClick={exportarPendentesPDF}
+                disabled={pendentesFiltrados.length === 0}
+              >
+                <FileText className="h-3.5 w-3.5 mr-1.5" />
+                Exportar PDF
+              </Button>
+
             </div>
           </div>
         </CardHeader>
