@@ -188,11 +188,15 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   const gliAlt = gliCounts["Pré-Diabetes"] + gliCounts["Alterada pós-prandial"] + gliCounts["Diabetes"];
   const gliNormal = gliCounts["Normal"];
   const gliNR = gliCounts["Não realizado"];
+  // Totais por exame efetivamente realizado (base correta dos percentuais)
+  const totalPa = total - paNR;
+  const totalGli = total - gliNR;
   const encaminhamentos = triagens.filter((t) => {
     const pa = classificarPa(t.pas_mmhg, t.pad_mmhg);
     const gli = classificarGlicemia(t.glicemia_mg_dl, t.jejum);
     return PA_ALTERADAS.includes(pa) || (gli && gli !== "Normal");
   }).length;
+
 
   // ============================================================
   // Slide 1 — CAPA (fundo Samel)
