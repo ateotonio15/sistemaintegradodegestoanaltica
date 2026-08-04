@@ -342,7 +342,7 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   slideTitle(s3, "Diagnóstico Executivo", "Distribuição dos colaboradores avaliados na ação");
 
   const panelW = (SAFE.w - 0.4) / 2;
-  const panelH = SAFE.h - 1.15;
+  const panelH = 2.75;
 
   const barraGrupo = (
     slide: any,
@@ -402,16 +402,49 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
 
   const paPctAlt = pct(paAlt, totalPa);
   const gliPctAlt = pct(gliAlt, totalGli);
-  const maiorRisco = paPctAlt >= gliPctAlt ? "pressão arterial" : "glicemia";
+  const encPct = pct(encaminhamentos, total);
+  const hasGrave = ((paCounts as any)["Hipertensão Estágio 2"] ?? 0) + ((paCounts as any)["Hipertensão Estágio 3"] ?? 0);
+  const diabetes = (gliCounts as any)["Diabetes"] ?? 0;
+  const preDiabetes = (gliCounts as any)["Pré-Diabetes"] ?? 0;
+  const naoRealizadas = ((paCounts as any)["Não realizado"] ?? 0) + ((gliCounts as any)["Não realizado"] ?? 0);
+  const predominante = gliPctAlt > paPctAlt ? "glicêmicas" : paPctAlt > gliPctAlt ? "de pressão arterial" : "metabólicas e cardiovasculares";
+  const secundario = gliPctAlt > paPctAlt ? "de pressão arterial" : "glicêmicas";
+
+  const leituraTxt =
+    `A ação evidenciou maior prevalência de alterações ${predominante} entre os colaboradores avaliados, ` +
+    `configurando o principal fator de atenção identificado durante a campanha. Também foram observadas alterações ${secundario} ` +
+    `que justificam acompanhamento preventivo. ` +
+    (encPct >= 40
+      ? "O volume de encaminhamentos reforça a importância da continuidade das ações de promoção da saúde e do monitoramento periódico dos participantes. "
+      : "Os encaminhamentos realizados indicam a necessidade de acompanhamento dirigido dos casos identificados. ") +
+    `Insight executivo: a atuação preventiva sobre esse perfil tende a reduzir afastamentos e custos assistenciais no médio prazo. ` +
+    `Os resultados referem-se exclusivamente aos colaboradores avaliados nesta ação.`;
+
+  painel(s3, SAFE.x, SAFE.y + panelH + 0.1, panelW, 1.55, "Leitura Executiva");
+  s3.addText(leituraTxt, {
+    x: SAFE.x + 0.22, y: SAFE.y + panelH + 0.6, w: panelW - 0.44, h: 1.0,
+    fontSize: 9.5, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
+  });
+
+  const achados: string[] = [];
+  achados.push(`Predomínio de alterações ${predominante} entre os colaboradores avaliados.`);
+  if (hasGrave > 0) achados.push("Casos com necessidade de avaliação clínica prioritária identificados.");
+  if (diabetes > 0 || preDiabetes > 0) achados.push("Perfil metabólico exige reforço das ações de controle glicêmico.");
+  if (encPct >= 40) achados.push("Elevado número de encaminhamentos preventivos gerados na ação.");
+  else achados.push("Encaminhamentos preventivos direcionados aos casos prioritários.");
+  if (naoRealizadas > 0) achados.push("Adesão parcial às aferições sinaliza espaço para maior engajamento.");
+  if (achados.length < 3) achados.push("Oportunidade de fortalecimento das ações de educação em saúde.");
+
+  const achX = SAFE.x + panelW + 0.4;
+  painel(s3, achX, SAFE.y + panelH + 0.1, panelW, 1.55, "Principais Achados");
   s3.addText(
-    `Leitura executiva: entre os avaliados, ${paPctAlt}% apresentaram pressão arterial alterada e ${gliPctAlt}% glicemia alterada. ` +
-    `O maior ponto de atenção é ${maiorRisco}, com ${encaminhamentos} encaminhamento(s) gerado(s). ` +
-    `Resultados válidos apenas para os colaboradores atendidos nesta ação.`,
+    achados.slice(0, 5).map((a) => ({ text: a, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
     {
-      x: SAFE.x, y: SAFE.y + panelH + 0.22, w: SAFE.w, h: 0.75,
-      fontSize: 11, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
+      x: achX + 0.22, y: SAFE.y + panelH + 0.6, w: panelW - 0.44, h: 1.0,
+      fontSize: 9.5, fontFace: "Calibri", valign: "top", paraSpaceAfter: 2,
     },
   );
+
 
 
   // ============================================================
@@ -558,38 +591,63 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // ============================================================
   const s6 = pptx.addSlide();
   s6.background = conteudoBg;
-  slideTitle(s6, "Observações e Recomendações", "Síntese qualitativa da ação");
+  slideTitle(s6, "Observações e Recomendações", "Análise consultiva e direcionamentos para a gestão");
 
   const colW = (SAFE.w - 0.3) / 2;
 
-  // Coluna 1: Observações
-  painel(s6, SAFE.x, SAFE.y, colW, SAFE.h, "Observações");
+  // Coluna 1: Principais Achados (síntese qualitativa)
+  const sintese: string[] = [];
+  sintese.push(
+    `O perfil de saúde dos colaboradores avaliados aponta as alterações ${predominante} como o principal fator de atenção da campanha, ` +
+    `com relevância clínica suficiente para orientar as prioridades do próximo ciclo preventivo.`,
+  );
+  if (hasGrave > 0 || diabetes > 0) {
+    sintese.push("Parte dos participantes apresenta condições que demandam avaliação clínica prioritária e acompanhamento formal pela Medicina do Trabalho.");
+  }
+  if (preDiabetes > 0) {
+    sintese.push("Há um grupo em estágio intermediário de risco metabólico, cujo desfecho ainda pode ser revertido por meio de intervenções de estilo de vida.");
+  }
+  if (naoRealizadas > 0) {
+    sintese.push("A adesão parcial às aferições limita a leitura completa do quadro e indica espaço para maior mobilização interna nas próximas ações.");
+  }
+  sintese.push("Insight executivo: agir agora sobre esse grupo tende a reduzir absenteísmo, afastamentos e custos assistenciais futuros.");
+
+  painel(s6, SAFE.x, SAFE.y, colW, SAFE.h, "Principais Achados");
   s6.addText(
-    "Dos 66 colaboradores atendidos, 61 fizeram PA e 61 fizeram glicemia. O destaque é o perfil glicêmico: 34 colaboradores com alteração, sendo 6 já compatíveis com diabetes. Na pressão arterial, 22 tiveram alteração, com 9 em estágio hipertensivo. Dez colaboradores não completaram as aferições. No total, 42 (64%) foram encaminhados para acompanhamento.",
+    sintese.map((t) => ({ text: t, options: { color: COLORS.NAVY } })) as any,
     {
       x: SAFE.x + 0.3, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
-      fontSize: 15, fontFace: "Calibri", color: COLORS.NAVY, valign: "top",
-      paraSpaceAfter: 10,
+      fontSize: 12.5, fontFace: "Calibri", color: COLORS.NAVY, valign: "top",
+      paraSpaceAfter: 8,
     },
   );
 
-  // Coluna 2: Recomendações
-  painel(s6, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Recomendações");
-  const recomendacoes = [
-    "Priorizar avaliação cardiológica para estágio hipertensivo 2/3.",
-    "Programa de orientação alimentar e atividade física para o grupo pré-diabético.",
-    "Encaminhamento médico específico para os casos de diabetes.",
-    "Campanha de adesão à aferição, já que 10 colaboradores não completaram os exames.",
-    "Acompanhamento trimestral dos casos com alteração leve.",
-    "Integrar os achados ao PCMSO/PGR da empresa.",
-  ];
+  // Coluna 2: Recomendações Estratégicas
+  painel(s6, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Recomendações Estratégicas");
+  const recomendacoes: string[] = [];
+  if (gliPctAlt >= paPctAlt) {
+    recomendacoes.push("Intensificar ações de educação em saúde voltadas ao controle glicêmico.");
+  } else {
+    recomendacoes.push("Intensificar ações de prevenção cardiovascular e controle da pressão arterial.");
+  }
+  if (hasGrave > 0 || diabetes > 0) {
+    recomendacoes.push("Assegurar acompanhamento clínico formal dos casos de maior risco identificados.");
+  }
+  recomendacoes.push("Estimular hábitos saudáveis: alimentação equilibrada, atividade física e sono adequado.");
+  recomendacoes.push("Manter o monitoramento dos colaboradores encaminhados até a conclusão do cuidado.");
+  if (naoRealizadas > 0) {
+    recomendacoes.push("Ampliar a mobilização interna para elevar a adesão às aferições na próxima ação.");
+  }
+  recomendacoes.push("Planejar nova ação preventiva para comparação de indicadores ao longo do tempo.");
+  recomendacoes.push("Integrar os resultados às diretrizes do PCMSO e do PGR da empresa.");
   s6.addText(
-    recomendacoes.map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
+    recomendacoes.slice(0, 7).map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
     {
       x: SAFE.x + colW + 0.6, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
-      fontSize: 15, fontFace: "Calibri", paraSpaceAfter: 8,
+      fontSize: 12.5, fontFace: "Calibri", paraSpaceAfter: 6,
     },
   );
+
 
   // ============================================================
   // Slide 7B — PLANO DE AÇÃO (tabela)
