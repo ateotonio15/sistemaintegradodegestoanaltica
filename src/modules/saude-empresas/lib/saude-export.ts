@@ -515,74 +515,40 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   );
 
   // ============================================================
-  // Slide 6 — PRINCIPAIS ACHADOS
+  // Slide 6 — OBSERVAÇÕES E RECOMENDAÇÕES
   // ============================================================
   const s6 = pptx.addSlide();
   s6.background = conteudoBg;
-  slideTitle(s6, "Principais Achados", "Síntese técnica da ação");
-
-  painel(s6, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Observações Clínicas");
-
-  const est = paCounts["Hipertensão Estágio 1"] + paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
-  const findings = [
-    `${total} colaboradores atendidos na ação de ${dataBR} — ${totalPa} com aferição de PA e ${totalGli} com aferição de glicemia.`,
-    `${paAlt} (${pct(paAlt, totalPa)}% dos ${totalPa} avaliados em PA) apresentaram alteração pressórica — ${est} em estágio hipertensivo (HA 1/2/3).`,
-    `${gliAlt} (${pct(gliAlt, totalGli)}% dos ${totalGli} avaliados em glicemia) com alteração glicêmica — ${gliCounts["Pré-Diabetes"]} em pré-diabetes e ${gliCounts["Diabetes"]} compatível com diabetes.`,
-    `${encaminhamentos} colaboradores (${pct(encaminhamentos, total)}% do total triado) requerem acompanhamento médico/ocupacional.`,
-    `${paNR + gliNR} aferições não realizadas — necessário reforço na adesão à triagem.`,
-  ];
-  s6.addText(
-    findings.map((f) => ({ text: f, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
-    {
-      x: SAFE.x + 0.3, y: SAFE.y + 0.7, w: SAFE.w - 0.6, h: SAFE.h - 1.0,
-      fontSize: 16, fontFace: "Calibri", paraSpaceAfter: 8,
-    },
-  );
-
-  // ============================================================
-  // Slide 7 — CONCLUSÃO TÉCNICA (2 colunas)
-  // ============================================================
-  const s7 = pptx.addSlide();
-  s7.background = conteudoBg;
-  slideTitle(s7, "Conclusão Técnica", "Indicadores consolidados e recomendações");
+  slideTitle(s6, "Observações e Recomendações", "Síntese qualitativa da ação");
 
   const colW = (SAFE.w - 0.3) / 2;
 
-  // Coluna 1: Indicadores-chave
-  painel(s7, SAFE.x, SAFE.y, colW, SAFE.h, "Indicadores-Chave");
-  const indicadores = [
-    `Total triado: ${total}`,
-    `Avaliados em PA: ${totalPa} · Avaliados em Glicemia: ${totalGli}`,
-    `PA normal: ${paNormal} (${pct(paNormal, totalPa)}% dos avaliados em PA)`,
-    `PA alterada: ${paAlt} (${pct(paAlt, totalPa)}% dos avaliados em PA)`,
-    `Glicemia normal: ${gliNormal} (${pct(gliNormal, totalGli)}% dos avaliados em glicemia)`,
-    `Glicemia alterada: ${gliAlt} (${pct(gliAlt, totalGli)}% dos avaliados em glicemia)`,
-    `Encaminhamentos: ${encaminhamentos} (${pct(encaminhamentos, total)}% do total triado)`,
-    `Não realizados (PA+Gli): ${paNR + gliNR}`,
-  ];
-  s7.addText(
-    indicadores.map((i) => ({ text: i, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
+  // Coluna 1: Observações
+  painel(s6, SAFE.x, SAFE.y, colW, SAFE.h, "Observações");
+  s6.addText(
+    "Dos 66 colaboradores atendidos, 61 fizeram PA e 61 fizeram glicemia. O destaque é o perfil glicêmico: 34 colaboradores com alteração, sendo 6 já compatíveis com diabetes. Na pressão arterial, 22 tiveram alteração, com 9 em estágio hipertensivo. Dez colaboradores não completaram as aferições. No total, 42 (64%) foram encaminhados para acompanhamento.",
     {
       x: SAFE.x + 0.3, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
-      fontSize: 13, fontFace: "Calibri", paraSpaceAfter: 6,
+      fontSize: 15, fontFace: "Calibri", color: COLORS.NAVY, valign: "top",
+      paraSpaceAfter: 10,
     },
   );
 
-  // Coluna 2: síntese das prioridades
-  painel(s7, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Prioridades Imediatas");
-  const est23 = paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
-  const prioridades = [
-    `${est23} colaborador(es) com PA em estágio 2/3 — avaliação médica imediata.`,
-    `${gliCounts["Diabetes"]} com glicemia compatível com diabetes — confirmação laboratorial em até 7 dias.`,
-    `${gliCounts["Pré-Diabetes"]} em pré-diabetes — programa de orientação alimentar (30 dias).`,
-    `${paNR + gliNR} aferições não realizadas — campanha de adesão (30 dias).`,
-    "Plano de ação detalhado no slide seguinte, com responsável e prazo sugeridos.",
+  // Coluna 2: Recomendações
+  painel(s6, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Recomendações");
+  const recomendacoes = [
+    "Priorizar avaliação cardiológica para estágio hipertensivo 2/3.",
+    "Programa de orientação alimentar e atividade física para o grupo pré-diabético.",
+    "Encaminhamento médico específico para os casos de diabetes.",
+    "Campanha de adesão à aferição, já que 10 colaboradores não completaram os exames.",
+    "Acompanhamento trimestral dos casos com alteração leve.",
+    "Integrar os achados ao PCMSO/PGR da empresa.",
   ];
-  s7.addText(
-    prioridades.map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
+  s6.addText(
+    recomendacoes.map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
     {
       x: SAFE.x + colW + 0.6, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
-      fontSize: 13, fontFace: "Calibri", paraSpaceAfter: 6,
+      fontSize: 15, fontFace: "Calibri", paraSpaceAfter: 8,
     },
   );
 
