@@ -233,22 +233,25 @@ export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) 
   // ============================================================
   const s2 = pptx.addSlide();
   s2.background = conteudoBg;
-  slideTitle(s2, "Resumo Executivo", `${empresaNome} · ${dataBR}`);
+  slideTitle(s2, "Resumo Executivo", `${empresaNome} · ${dataBR} · PA: ${totalPa} colaboradores · Glicemia: ${totalGli} colaboradores`);
 
 
   const gap = 0.22;
-  const cols = 3;
+  const cols = 4;
   const kW = (SAFE.w - gap * (cols - 1)) / cols;
   const kH = (SAFE.h - gap) / 2;
 
   const kpis = [
-    { label: "Total triado", valor: total, cor: COLORS.NAVY, sub: "Colaboradores triados" },
-    { label: "PA alterada", valor: `${pct(paAlt, total)}%`, cor: COLORS.RED, sub: `${paAlt} do total` },
-    { label: "PA normal", valor: `${pct(paNormal, total)}%`, cor: COLORS.GREEN, sub: `${paNormal} do total` },
-    { label: "Glicemia alterada", valor: `${pct(gliAlt, total)}%`, cor: COLORS.RED, sub: `${gliAlt} do total` },
-    { label: "Glicemia normal", valor: `${pct(gliNormal, total)}%`, cor: COLORS.GREEN, sub: `${gliNormal} do total` },
-    { label: "Encaminhamentos", valor: encaminhamentos, cor: COLORS.AMBER, sub: `${pct(encaminhamentos, total)}% do total` },
+    { label: "Total triado", valor: total, cor: COLORS.NAVY, sub: "Colaboradores atendidos" },
+    { label: "Aferições de PA", valor: totalPa, cor: COLORS.NAVY, sub: `de ${total} triados` },
+    { label: "Aferições de Glicemia", valor: totalGli, cor: COLORS.NAVY, sub: `de ${total} triados` },
+    { label: "Encaminhamentos", valor: encaminhamentos, cor: COLORS.AMBER, sub: `${pct(encaminhamentos, total)}% dos ${total} triados` },
+    { label: "PA alterada", valor: `${pct(paAlt, totalPa)}%`, cor: COLORS.RED, sub: `${paAlt} de ${totalPa} avaliados em PA` },
+    { label: "PA normal", valor: `${pct(paNormal, totalPa)}%`, cor: COLORS.GREEN, sub: `${paNormal} de ${totalPa} avaliados em PA` },
+    { label: "Glicemia alterada", valor: `${pct(gliAlt, totalGli)}%`, cor: COLORS.RED, sub: `${gliAlt} de ${totalGli} avaliados em Glicemia` },
+    { label: "Glicemia normal", valor: `${pct(gliNormal, totalGli)}%`, cor: COLORS.GREEN, sub: `${gliNormal} de ${totalGli} avaliados em Glicemia` },
   ];
+
   kpis.forEach((k, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
