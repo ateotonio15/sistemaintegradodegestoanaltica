@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Download, FileText, ClipboardList, Activity, Send, Receipt, Paperclip } from "lucide-react";
+import { Download, FileText, ClipboardList, Activity, Send, Receipt, Paperclip, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import samelIcon from "@/assets/samel-icon.png.asset.json";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
@@ -89,7 +89,11 @@ export function RelatorioStatusFinanceiro() {
   const [usuarioDialog, setUsuarioDialog] = useState<string | null>(null);
   const [kpiDialog, setKpiDialog] = useState<"movimentacoes" | "notas" | "faturamentos" | "anexos" | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
     queryKey: ["fin-relatorio-status", dataIni, dataFim],
     queryFn: async (): Promise<LinhaRelatorio[]> => {
       const { data: fins, error } = await supabase
@@ -752,6 +756,16 @@ export function RelatorioStatusFinanceiro() {
               selected={statusSel}
               onChange={setStatusSel}
             />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 text-sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw className={cn("h-4 w-4 mr-1.5", isFetching && "animate-spin")} />
+              Atualizar
+            </Button>
             <Button
               size="sm"
               variant="outline"
