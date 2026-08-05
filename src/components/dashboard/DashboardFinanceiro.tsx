@@ -383,18 +383,6 @@ export function DashboardFinanceiro() {
       badge: pendentes.length > 0 ? { label: `${pendentes.length}`, variant: "destructive" } : undefined,
     },
     {
-      id: "alertas",
-      titulo: "Alertas e cobranças",
-      descricao: "Retroativos a cobrar, alertas de vencimento e cobranças abertas nas suas empresas.",
-      icon: BellRing,
-      accent: "text-warning",
-      bg: "bg-warning/10",
-      badge:
-        cobrancasAbertas.length > 0
-          ? { label: `${cobrancasAbertas.length} aberta${cobrancasAbertas.length > 1 ? "s" : ""}`, variant: "outline" }
-          : undefined,
-    },
-    {
       id: "relatorio",
       titulo: "Relatório diário por status",
       descricao: "Produção diária e por usuário: movimentações, notas enviadas, faturamentos e anexos.",
