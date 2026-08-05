@@ -849,7 +849,7 @@ export function RelatorioStatusFinanceiro() {
             <div className="rounded-lg border overflow-hidden">
               <div className="px-4 py-3 bg-muted/50 border-b">
                 <p className="text-sm font-semibold">Notas por dia</p>
-                <p className="text-xs text-muted-foreground leading-snug">
+                <p className="text-sm text-muted-foreground leading-snug">
                   <strong>Movimentações</strong> = contratos tocados pelo Financeiro naquele dia.{" "}
                   <strong>Notas enviadas</strong> = quantas dessas viraram nota fiscal emitida no mesmo dia.
                 </p>
