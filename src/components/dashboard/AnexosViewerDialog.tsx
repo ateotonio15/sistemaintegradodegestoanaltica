@@ -245,9 +245,14 @@ export function AnexosViewerDialog({
   };
 
 
-  const { data: anexos = [], isLoading } = useQuery<AnexoRow[]>({
+  const { data: anexos = [], isLoading, isError, error } = useQuery<AnexoRow[]>({
     queryKey: ["anexos-viewer-merged", empresaId, mesReferencia, periodo],
     enabled: open && !!empresaId,
+    // Sempre busca dados frescos ao abrir: o badge da tabela pode ter sido
+    // atualizado depois do último cache deste diálogo (anexo novo do Cadastro).
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       // 0) Verifica se a empresa pertence a um grupo financeiro ativo
       const { data: vinc } = await supabase
@@ -571,6 +576,10 @@ export function AnexosViewerDialog({
         <div className="max-h-[420px] overflow-y-auto">
           {isLoading ? (
             <p className="text-sm text-muted-foreground py-8 text-center">Carregando...</p>
+          ) : isError ? (
+            <p className="text-sm text-destructive py-8 text-center">
+              Erro ao carregar anexos: {(error as any)?.message ?? "tente novamente"}
+            </p>
           ) : anexos.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
               Nenhum anexo encontrado para este processo.
