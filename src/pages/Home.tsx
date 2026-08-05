@@ -450,7 +450,7 @@ export default function Home() {
   const renderCard = (s: LeafShortcut | (GroupShortcut & { group?: string }), opts?: { asGroup?: boolean }) => {
     const Icon = s.icon;
     const inner = (
-      <Card className="p-4 flex items-start gap-4 rounded-2xl border border-border/70 bg-card hover:border-primary/40 hover:shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.25)] transition-all duration-200 h-full min-h-[104px]">
+      <Card className="p-4 flex items-center gap-4 rounded-2xl border border-border/70 bg-card hover:border-primary/40 hover:shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.25)] transition-all duration-200 h-[88px]">
         <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
           <Icon className="h-5 w-5" />
         </div>
@@ -542,7 +542,7 @@ export default function Home() {
         )}
 
         {/* Grid */}
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.length === 0 ? (
             <div className="col-span-full text-center text-sm text-muted-foreground py-12">
               Nenhum módulo encontrado.
@@ -590,7 +590,7 @@ export default function Home() {
                     <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-muted-foreground">
                       {activeSection.title}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-fr">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {activeSection.items.filter((item) => {
                         if (!isExecutivoExterno) return true;
                         return ["/demandas", "/plantoes", "/mailing-brindes"].includes(item.to || "");
@@ -602,7 +602,7 @@ export default function Home() {
                             to={item.to || `/inteligencia/${item.slug}`}
                             className="group h-full block"
                           >
-                            <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full min-h-[104px]">
+                            <Card className="p-4 flex items-center gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-[88px]">
                               <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
                                 <Icon className="h-5 w-5" />
                               </div>
@@ -624,7 +624,7 @@ export default function Home() {
               }
 
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-fr">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {INTELIGENCIA_SECTIONS.filter((section) => {
                     if (!isExecutivoExterno) return true;
                     return ["Demandas", "Plantões", "Mailing de Brindes"].includes(section.title);
@@ -638,7 +638,7 @@ export default function Home() {
                     if (!onlyItem) return null;
 
                     const cardInner = (
-                      <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full min-h-[104px]">
+                      <Card className="p-4 flex items-center gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-[88px]">
                         <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
                           <Icon className="h-5 w-5" />
                         </div>
