@@ -15,7 +15,6 @@ import {
 import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroativosParaCobrar";
-import { ImplantacoesAguardandoFechamentoCard } from "./ImplantacoesAguardandoFechamentoCard";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
@@ -480,10 +479,6 @@ export function DashboardFinanceiro() {
 
       {/* Análises de envios — substitui "Empresas fora do prazo" */}
       <AnalisesEnviosPanel />
-
-
-      {/* Contratos recém implantados aguardando primeiro fechamento */}
-      <ImplantacoesAguardandoFechamentoCard />
 
       {/* Previsão financeira */}
       <PrevisaoFinanceira />
