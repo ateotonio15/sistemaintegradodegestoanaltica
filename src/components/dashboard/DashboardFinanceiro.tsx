@@ -166,8 +166,10 @@ export function DashboardFinanceiro() {
         (r: any) =>
           !comAnexo.has(r.id) &&
           r.dentro_prazo !== false &&
+          periodoVencido(r.mes_referencia, r.periodo) &&
           !envioSet.has(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`),
       );
+
     },
   });
 
