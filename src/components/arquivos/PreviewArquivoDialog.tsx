@@ -237,6 +237,23 @@ export function PreviewArquivoDialog({
     };
   }, [pdfDoc, pageNumber, scale]);
 
+  function applyPageInput() {
+    if (!pdfDoc) return;
+    const value = pageInput.replace(/\D/g, "");
+    let target = value ? parseInt(value, 10) : 1;
+    target = Math.max(1, Math.min(pdfDoc.numPages, target));
+    setPageNumber(target);
+    setPageInput(String(target));
+  }
+
+  function handlePageKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      applyPageInput();
+      (e.target as HTMLInputElement).blur();
+    }
+  }
+
   async function handleDownload() {
     try {
       const { data, error: e } = await supabase.storage
