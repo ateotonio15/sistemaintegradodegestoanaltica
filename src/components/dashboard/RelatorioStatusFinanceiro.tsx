@@ -245,6 +245,20 @@ export function RelatorioStatusFinanceiro() {
       .sort((a, b) => b.enviadas - a.enviadas || a.usuario.localeCompare(b.usuario));
   }, [filtradas]);
 
+  const empresasPorUsuario = useMemo(() => {
+    const m = new Map<string, { faturamentos: LinhaRelatorio[]; anexos: LinhaRelatorio[] }>();
+    const get = (k: string) => {
+      const v = m.get(k) ?? { faturamentos: [], anexos: [] };
+      m.set(k, v);
+      return v;
+    };
+    filtradas.forEach((l) => {
+      if (l.faturamento_iniciado_em) get(l.usuario_faturamento || "Não identificado").faturamentos.push(l);
+      if (l.ultimo_anexo_por) get(l.ultimo_anexo_por).anexos.push(l);
+    });
+    return m;
+  }, [filtradas]);
+
   const totalEnviadas = filtradas.filter((l) => !!l.data_envio_nota).length;
 
   const cabecalho = [
