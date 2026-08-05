@@ -63,6 +63,7 @@ export function PreviewArquivoDialog({
   const [url, setUrl] = useState<string | null>(null);
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
+  const [pageInput, setPageInput] = useState("1");
   const [scale, setScale] = useState(1.8);
   const [renderingPage, setRenderingPage] = useState(false);
   const [loading, setLoading] = useState(false);
