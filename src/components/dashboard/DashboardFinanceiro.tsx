@@ -645,7 +645,7 @@ export function DashboardFinanceiro() {
   // Visão de módulo selecionado
   if (moduloAtivo) {
     return (
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4 h-[calc(100vh-9rem)] min-h-0 overflow-hidden">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" className="h-8" onClick={() => setModulo(null)}>
             <ArrowLeft className="h-4 w-4 mr-1.5" />
