@@ -216,27 +216,19 @@ async function uploadPdfAnexo(
     .single();
   if (insErr) throw insErr;
 
-  // Sincroniza com o Repositório Financeiro na pasta Retroativo
+  // O trigger de anexos_financeiro já cria o registro no Repositório Financeiro.
+  // Aqui apenas reclassificamos esse registro como "Retroativo" (evita duplicidade).
   const uploadedByNome = await getUserDisplayName(userId);
-  const { error: faErr } = await supabase.from("financeiro_arquivos").insert({
-    empresa_id: empresaId,
-    competencia,
-    categoria: "Retroativo",
-    nome_original: file.name,
-    nome_armazenado: storedName,
-    extensao: ext,
-    mime_type: file.type || "application/pdf",
-    tamanho_bytes: file.size,
-    uploaded_by: userId ?? null,
-    uploaded_by_nome: uploadedByNome,
-    storage_path: path,
-    bucket: "anexos-financeiro",
-    origem: "retroativo",
-    status: "ativo",
-    anexo_financeiro_id: anexoData.id,
-    financeiro_movimentacao_id: movimentacaoId,
-  } as any);
+  const { error: faErr } = await supabase
+    .from("financeiro_arquivos")
+    .update({
+      categoria: "Retroativo",
+      uploaded_by_nome: uploadedByNome,
+      anexo_financeiro_id: anexoData.id,
+    } as any)
+    .eq("storage_path", path);
   if (faErr) throw faErr;
+
 
   return path;
 }
@@ -324,6 +316,13 @@ export function ReajusteCobrancaRetroativa() {
         const paths = data.map((a: any) => a.storage_path).filter(Boolean);
         if (paths.length > 0) await supabase.storage.from("anexos-financeiro").remove(paths);
         await supabase.from("anexos_financeiro").delete().in("id", data.map((a: any) => a.id));
+        // Garante que nenhuma cópia fique ativa no Repositório Financeiro
+        if (paths.length > 0) {
+          await supabase
+            .from("financeiro_arquivos")
+            .update({ status: "removido" } as any)
+            .in("storage_path", paths);
+        }
       }
       toast.success("Anexo removido.");
       queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
