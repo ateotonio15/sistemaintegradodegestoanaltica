@@ -450,7 +450,7 @@ export default function Home() {
   const renderCard = (s: LeafShortcut | (GroupShortcut & { group?: string }), opts?: { asGroup?: boolean }) => {
     const Icon = s.icon;
     const inner = (
-      <Card className="p-4 flex items-start gap-4 rounded-2xl border border-border/70 bg-card hover:border-primary/40 hover:shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.25)] transition-all duration-200 h-full">
+      <Card className="p-4 flex items-start gap-4 rounded-2xl border border-border/70 bg-card hover:border-primary/40 hover:shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.25)] transition-all duration-200 h-full min-h-[104px]">
         <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
           <Icon className="h-5 w-5" />
         </div>
@@ -466,7 +466,7 @@ export default function Home() {
         <button
           key={g.groupKey}
           onClick={() => setOpenGroup(g.groupKey)}
-          className="group text-left"
+          className="group text-left h-full w-full"
         >
           {inner}
         </button>
@@ -474,10 +474,11 @@ export default function Home() {
     }
     const leaf = s as LeafShortcut;
     return (
-      <Link key={leaf.to} to={leaf.to} className="group">
+      <Link key={leaf.to} to={leaf.to} className="group h-full block">
         {inner}
       </Link>
     );
+
   };
 
   return (
