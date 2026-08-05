@@ -617,6 +617,55 @@ export function RelatorioStatusFinanceiro() {
           </div>
         )}
       </CardContent>
+
+      <Dialog open={!!statusDialog} onOpenChange={(open) => !open && setStatusDialog(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {statusDialog && (
+                <>
+                  <Badge className={cn("text-[11px] font-medium", statusFinanceiroColor(statusDialog))}>
+                    {labelStatusFinanceiro(statusDialog)}
+                  </Badge>
+                  <span>Empresas</span>
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {statusDialog && `${filtradas.filter((l) => l.status === statusDialog).length} contrato(s) com status "${labelStatusFinanceiro(statusDialog)}".`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto -mx-6 px-6">
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground sticky top-0 bg-card z-10">
+                <tr className="border-b">
+                  <th className="text-left px-3 py-2 font-medium">Empresa</th>
+                  <th className="text-left px-3 py-2 font-medium">Contrato</th>
+                  <th className="text-left px-3 py-2 font-medium">Competência</th>
+                  <th className="text-left px-3 py-2 font-medium">Período</th>
+                  <th className="text-left px-3 py-2 font-medium">Data da nota</th>
+                  <th className="text-left px-3 py-2 font-medium">Vencimento</th>
+                </tr>
+              </thead>
+              <tbody>
+                {statusDialog &&
+                  filtradas
+                    .filter((l) => l.status === statusDialog)
+                    .map((l) => (
+                      <tr key={l.id} className="border-b last:border-0 hover:bg-muted/40">
+                        <td className="px-3 py-2 font-medium">{l.empresa_nome}</td>
+                        <td className="px-3 py-2">{l.codigo_contrato || "—"}</td>
+                        <td className="px-3 py-2">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
+                        <td className="px-3 py-2">{l.periodo ?? "—"}</td>
+                        <td className="px-3 py-2">{fmtDia(l.data_envio_nota)}</td>
+                        <td className="px-3 py-2">{fmtDia(l.data_vencimento)}</td>
+                      </tr>
+                    ))}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
