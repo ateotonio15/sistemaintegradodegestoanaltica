@@ -409,6 +409,78 @@ export function AvaliacoesRHDashboard({ form }: Props) {
       })()}
       </>
       )}
+
+      <Dialog open={!!execSelecionada} onOpenChange={(o) => !o && setExecSelecionada(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          {(() => {
+            if (!execSelecionada) return null;
+            const item = rankingExecutivas.find(r => r.key === execSelecionada);
+            const lista = respostas.filter(r => normalizeKey((r.nome_executiva || "").trim()) === execSelecionada);
+            const perguntas = (form?.perguntas || []) as any[];
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Award className="h-4 w-4 text-yellow-500" />
+                    Avaliações de {item?.nome || "—"}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span>{lista.length} avaliação(ões)</span>
+                  {item && (
+                    <span className="flex items-center gap-1 font-semibold text-foreground">
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />{item.media.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-4 mt-2">
+                  {lista.map(r => (
+                    <Card key={r.id} className="p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-2 flex-wrap text-sm">
+                        <span className="font-medium">{r.nome_empresa || "Empresa não informada"}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {perguntas.map((p: any, idx: number) => {
+                          const v = r.respostas?.[p.id];
+                          return (
+                            <div key={p.id} className="flex items-start justify-between gap-3 text-sm border-b border-border/50 py-1 last:border-0">
+                              <span className="flex-1 text-muted-foreground">{idx + 1}. {p.titulo}</span>
+                              {p.tipo === "rating" ? (
+                                <span className="font-semibold flex items-center gap-1 shrink-0">
+                                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                  {typeof v === "number" ? v : "—"}
+                                </span>
+                              ) : (
+                                <span className="flex-1 text-right">{v || "—"}</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Nota média</span>
+                        <span className="font-bold">{Number(r.nota_media || 0).toFixed(2)}</span>
+                      </div>
+                      {r.comentario?.trim() && (
+                        <div className="rounded-md bg-muted/40 p-3">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Comentário</p>
+                          <p className="text-sm">{r.comentario}</p>
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                  {lista.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Nenhuma avaliação no período filtrado.</p>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
