@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Star, Users, MessageSquare, TrendingUp, Building2, Award, Calendar } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2, Star, Users, MessageSquare, TrendingUp, Building2, Award, Calendar, Eye } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
@@ -43,6 +45,29 @@ export function AvaliacoesRHDashboard({ form }: Props) {
   const [loading, setLoading] = useState(true);
   const [todasRespostas, setTodasRespostas] = useState<Resposta[]>([]);
   const [mesFiltro, setMesFiltro] = useState<string>("todos");
+  const [execSelecionada, setExecSelecionada] = useState<string | null>(null);
+  const [meuNome, setMeuNome] = useState<string>("");
+  const { user, isAdmin } = useAuth();
+
+  useEffect(() => {
+    if (!user?.id) { setMeuNome(""); return; }
+    (async () => {
+      const { data } = await db.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
+      setMeuNome((data?.display_name || "").toString());
+    })();
+  }, [user?.id]);
+
+  // Somente admin e as executivas autorizadas podem ver as avaliações individuais
+  const NOMES_AUTORIZADOS = ["tania", "glaucia", "jaina", "marcia", "mayara"];
+  const podeVerDetalhes = useMemo(() => {
+    if (isAdmin) return true;
+    const n = meuNome
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return NOMES_AUTORIZADOS.some(a => n.includes(a));
+  }, [isAdmin, meuNome]);
+
 
   useEffect(() => {
     if (!form?.id) return;
@@ -162,8 +187,8 @@ export function AvaliacoesRHDashboard({ form }: Props) {
       ex.soma += n; ex.qtd += 1;
       map.set(key, ex);
     });
-    return Array.from(map.values())
-      .map(v => ({ nome: prettyLabel(v.variantes), media: Number((v.soma / v.qtd).toFixed(2)), qtd: v.qtd }))
+    return Array.from(map.entries())
+      .map(([key, v]) => ({ key, nome: prettyLabel(v.variantes), media: Number((v.soma / v.qtd).toFixed(2)), qtd: v.qtd }))
       .sort((a, b) => b.media - a.media || b.qtd - a.qtd);
   }, [respostas]);
 
@@ -293,9 +318,21 @@ export function AvaliacoesRHDashboard({ form }: Props) {
           ) : (
             <div className="space-y-2">
               {rankingExecutivas.slice(0, 10).map((r, i) => (
-                <div key={r.nome} className="flex items-center gap-3 text-sm">
+                <div key={r.key} className="flex items-center gap-3 text-sm">
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? "bg-yellow-500/20 text-yellow-600" : "bg-muted text-muted-foreground"}`}>{i + 1}</span>
-                  <span className="flex-1 truncate">{r.nome}</span>
+                  {podeVerDetalhes ? (
+                    <button
+                      type="button"
+                      onClick={() => setExecSelecionada(r.key)}
+                      className="flex-1 truncate text-left hover:text-primary hover:underline inline-flex items-center gap-1"
+                      title="Ver avaliações desta executiva"
+                    >
+                      <Eye className="h-3 w-3 opacity-60 shrink-0" />
+                      <span className="truncate">{r.nome}</span>
+                    </button>
+                  ) : (
+                    <span className="flex-1 truncate">{r.nome}</span>
+                  )}
                   <span className="text-xs text-muted-foreground">{r.qtd} aval.</span>
                   <span className="font-semibold flex items-center gap-1"><Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />{r.media.toFixed(2)}</span>
                 </div>
@@ -372,6 +409,78 @@ export function AvaliacoesRHDashboard({ form }: Props) {
       })()}
       </>
       )}
+
+      <Dialog open={!!execSelecionada} onOpenChange={(o) => !o && setExecSelecionada(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          {(() => {
+            if (!execSelecionada) return null;
+            const item = rankingExecutivas.find(r => r.key === execSelecionada);
+            const lista = respostas.filter(r => normalizeKey((r.nome_executiva || "").trim()) === execSelecionada);
+            const perguntas = (form?.perguntas || []) as any[];
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Award className="h-4 w-4 text-yellow-500" />
+                    Avaliações de {item?.nome || "—"}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span>{lista.length} avaliação(ões)</span>
+                  {item && (
+                    <span className="flex items-center gap-1 font-semibold text-foreground">
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />{item.media.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-4 mt-2">
+                  {lista.map(r => (
+                    <Card key={r.id} className="p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-2 flex-wrap text-sm">
+                        <span className="font-medium">{r.nome_empresa || "Empresa não informada"}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {perguntas.map((p: any, idx: number) => {
+                          const v = r.respostas?.[p.id];
+                          return (
+                            <div key={p.id} className="flex items-start justify-between gap-3 text-sm border-b border-border/50 py-1 last:border-0">
+                              <span className="flex-1 text-muted-foreground">{idx + 1}. {p.titulo}</span>
+                              {p.tipo === "rating" ? (
+                                <span className="font-semibold flex items-center gap-1 shrink-0">
+                                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                  {typeof v === "number" ? v : "—"}
+                                </span>
+                              ) : (
+                                <span className="flex-1 text-right">{v || "—"}</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Nota média</span>
+                        <span className="font-bold">{Number(r.nota_media || 0).toFixed(2)}</span>
+                      </div>
+                      {r.comentario?.trim() && (
+                        <div className="rounded-md bg-muted/40 p-3">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Comentário</p>
+                          <p className="text-sm">{r.comentario}</p>
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                  {lista.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Nenhuma avaliação no período filtrado.</p>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
