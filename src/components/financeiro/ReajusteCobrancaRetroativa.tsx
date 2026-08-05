@@ -316,9 +316,13 @@ export function ReajusteCobrancaRetroativa() {
         const paths = data.map((a: any) => a.storage_path).filter(Boolean);
         if (paths.length > 0) await supabase.storage.from("anexos-financeiro").remove(paths);
         await supabase.from("anexos_financeiro").delete().in("id", data.map((a: any) => a.id));
-      }
-      toast.success("Anexo removido.");
-      queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
+        // Garante que nenhuma cópia fique ativa no Repositório Financeiro
+        if (paths.length > 0) {
+          await supabase
+            .from("financeiro_arquivos")
+            .update({ status: "removido" } as any)
+            .in("storage_path", paths);
+        }
       queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
       onDone?.();
     } catch (e: any) {
