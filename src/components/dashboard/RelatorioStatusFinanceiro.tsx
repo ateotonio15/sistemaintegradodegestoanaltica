@@ -77,6 +77,7 @@ export function RelatorioStatusFinanceiro() {
   const [dataIni, setDataIni] = useState(isoInicioMes());
   const [dataFim, setDataFim] = useState(isoHoje());
   const [statusSel, setStatusSel] = useState<string[]>([]);
+  const [statusDialog, setStatusDialog] = useState<StatusFinanceiro | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["fin-relatorio-status", dataIni, dataFim],
