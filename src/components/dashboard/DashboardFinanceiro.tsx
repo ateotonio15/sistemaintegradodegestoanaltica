@@ -8,24 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
-  CheckCircle2,
-  Building2,
-  CalendarClock,
   AlertTriangle,
   Download,
   FileText,
-
-
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatDateBR } from "@/lib/date-utils";
-import { FaturamentosEnviadoFinanceiro } from "./FaturamentosEnviadoFinanceiro";
 import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroativosParaCobrar";
 import { ImplantacoesAguardandoFechamentoCard } from "./ImplantacoesAguardandoFechamentoCard";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
 
@@ -370,17 +361,10 @@ export function DashboardFinanceiro() {
 
 
 
-  const ativas = empresas.filter((e: any) => e.status_empresa === "Ativa");
-  const ativasNaoSuspensas = ativas.filter((e: any) => !e.contrato_suspenso);
-
-  const notasEnviadas = movs.filter((m: any) => !!m.data_envio_nota).length;
-  const aguardandoNota = movs.filter((m: any) => !m.data_envio_nota).length;
-
   return (
     <div className="space-y-6">
       <AlertaRetroativosParaCobrar />
       <AlertasVencimentoFinanceiro />
-      <FaturamentosEnviadoFinanceiro />
 
       {cobrancasMinhas.length > 0 && (
         <Card className="rounded-xl border-warning/40 bg-warning/10 shadow-sm">
@@ -403,14 +387,6 @@ export function DashboardFinanceiro() {
           </CardContent>
         </Card>
       )}
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label="Contratos ativos" value={ativasNaoSuspensas.length} icon={Building2} accent="text-primary" bg="bg-primary/10" />
-        <KpiCard label="Notas enviadas" value={notasEnviadas} icon={CheckCircle2} accent="text-success" bg="bg-success/10" />
-        <KpiCard label="Aguardando Emissão" value={aguardandoNota} icon={CalendarClock} accent="text-warning" bg="bg-warning/10" />
-        <KpiCard label="Cobranças abertas" value={cobrancasAbertas.length} icon={AlertCircle} accent="text-destructive" bg="bg-destructive/10" />
-      </div>
 
       {/* Contratos com status Pendente */}
       <Card className="rounded-xl shadow-sm">
@@ -512,21 +488,5 @@ export function DashboardFinanceiro() {
       {/* Previsão financeira */}
       <PrevisaoFinanceira />
     </div>
-  );
-}
-
-function KpiCard({ label, value, icon: Icon, accent, bg }: { label: string; value: number; icon: any; accent: string; bg: string }) {
-  return (
-    <Card className="rounded-xl shadow-sm">
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", bg)}>
-          <Icon className={cn("h-5 w-5", accent)} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground truncate">{label}</p>
-          <p className="text-xl font-bold tracking-tight text-foreground">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
