@@ -12,8 +12,6 @@ import {
   Download,
   FileText,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatDateBR } from "@/lib/date-utils";
 import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroativosParaCobrar";
@@ -490,21 +488,5 @@ export function DashboardFinanceiro() {
       {/* Previsão financeira */}
       <PrevisaoFinanceira />
     </div>
-  );
-}
-
-function KpiCard({ label, value, icon: Icon, accent, bg }: { label: string; value: number; icon: any; accent: string; bg: string }) {
-  return (
-    <Card className="rounded-xl shadow-sm">
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", bg)}>
-          <Icon className={cn("h-5 w-5", accent)} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground truncate">{label}</p>
-          <p className="text-xl font-bold tracking-tight text-foreground">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
