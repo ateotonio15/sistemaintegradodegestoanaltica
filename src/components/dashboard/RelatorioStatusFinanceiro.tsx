@@ -643,6 +643,7 @@ export function RelatorioStatusFinanceiro() {
                   <th className="text-left px-3 py-2 font-medium">Contrato</th>
                   <th className="text-left px-3 py-2 font-medium">Competência</th>
                   <th className="text-left px-3 py-2 font-medium">Período</th>
+                  <th className="text-left px-3 py-2 font-medium">Responsável</th>
                   <th className="text-left px-3 py-2 font-medium">Data da nota</th>
                   <th className="text-left px-3 py-2 font-medium">Vencimento</th>
                 </tr>
@@ -651,16 +652,25 @@ export function RelatorioStatusFinanceiro() {
                 {statusDialog &&
                   filtradas
                     .filter((l) => l.status === statusDialog)
-                    .map((l) => (
-                      <tr key={l.id} className="border-b last:border-0 hover:bg-muted/40">
-                        <td className="px-3 py-2 font-medium">{l.empresa_nome}</td>
-                        <td className="px-3 py-2">{l.codigo_contrato || "—"}</td>
-                        <td className="px-3 py-2">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
-                        <td className="px-3 py-2">{l.periodo ?? "—"}</td>
-                        <td className="px-3 py-2">{fmtDia(l.data_envio_nota)}</td>
-                        <td className="px-3 py-2">{fmtDia(l.data_vencimento)}</td>
-                      </tr>
-                    ))}
+                    .map((l) => {
+                      const responsavel =
+                        ["Enviada", "Nota emitida"].includes(statusDialog)
+                          ? l.usuario_envio
+                          : ["Faturado", "Em faturamento"].includes(statusDialog)
+                            ? l.usuario_faturamento
+                            : l.usuario_faturamento || l.usuario_envio || l.ultimo_anexo_por || "—";
+                      return (
+                        <tr key={l.id} className="border-b last:border-0 hover:bg-muted/40">
+                          <td className="px-3 py-2 font-medium">{l.empresa_nome}</td>
+                          <td className="px-3 py-2">{l.codigo_contrato || "—"}</td>
+                          <td className="px-3 py-2">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
+                          <td className="px-3 py-2">{l.periodo ?? "—"}</td>
+                          <td className="px-3 py-2">{responsavel || "—"}</td>
+                          <td className="px-3 py-2">{fmtDia(l.data_envio_nota)}</td>
+                          <td className="px-3 py-2">{fmtDia(l.data_vencimento)}</td>
+                        </tr>
+                      );
+                    })}
               </tbody>
             </table>
           </div>
