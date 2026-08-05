@@ -389,6 +389,23 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
 
   const currentSheet = sheets?.[activeSheet];
 
+  function applyPageInput() {
+    if (!pdfDoc) return;
+    const value = pageInput.replace(/\D/g, "");
+    let target = value ? parseInt(value, 10) : 1;
+    target = Math.max(1, Math.min(pdfDoc.numPages, target));
+    setPageNumber(target);
+    setPageInput(String(target));
+  }
+
+  function handlePageKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      applyPageInput();
+      (e.target as HTMLInputElement).blur();
+    }
+  }
+
   return (
     <div className={cn(
       "flex flex-col min-h-0",
