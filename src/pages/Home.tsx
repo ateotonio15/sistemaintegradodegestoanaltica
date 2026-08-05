@@ -298,7 +298,7 @@ const SHORTCUTS: Shortcut[] = [
   },
   {
     to: "/financeiro",
-    label: "Financeiro",
+    label: "Faturamento",
     description: "Faturamento, análises e DDA",
     icon: Wallet,
     group: "funcoes",
