@@ -721,7 +721,7 @@ export function RelatorioStatusFinanceiro() {
               Relatório diário por status
               <Badge variant="outline" className="ml-1">{filtradas.length}</Badge>
             </CardTitle>
-            <p className="text-xs text-muted-foreground max-w-2xl">
+            <p className="text-sm text-muted-foreground max-w-2xl">
               Acompanhe, dia a dia, o que o Financeiro movimentou: quantos contratos tiveram alguma
               atualização e quantas notas fiscais foram efetivamente enviadas — por período e por usuário.
             </p>
