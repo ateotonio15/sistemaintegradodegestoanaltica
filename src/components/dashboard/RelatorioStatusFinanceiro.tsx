@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Download, FileText, ClipboardList, Activity, Send, Receipt, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import samelIcon from "@/assets/samel-icon.png.asset.json";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import {
   calcularStatusFinanceiro,
@@ -23,6 +24,13 @@ import {
   formatMesReferencia,
   type StatusFinanceiro,
 } from "@/lib/financeiro-utils";
+
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+function formatCompetencia(c?: string | null) {
+  if (!c) return "—";
+  const m = c.match(/^(\d{4})-(\d{2})$/);
+  return m ? `${MESES[Number(m[2]) - 1]}/${m[1]}` : c;
+}
 
 const TODOS_STATUS: StatusFinanceiro[] = [
   "Enviada",
@@ -310,34 +318,183 @@ export function RelatorioStatusFinanceiro() {
   async function exportarExcel() {
     if (filtradas.length === 0) return;
     const ExcelJS = (await import("exceljs")).default;
+    const VERDE = "FF32A976";
+    const VERDE_CLARO = "FFEAF6F0";
+    const CINZA = "FF6B7280";
+
     const wb = new ExcelJS.Workbook();
+    wb.creator = "SIGA";
 
-    const ws = wb.addWorksheet("Detalhado");
-    ws.addRow(cabecalho);
-    ws.getRow(1).font = { bold: true };
-    ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } } as any;
-    filtradas.forEach((l) => ws.addRow(linhaValores(l)));
-    ws.columns.forEach((c, i) => (c.width = i === 0 ? 40 : 20));
-    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cabecalho.length } };
-    ws.views = [{ state: "frozen", ySplit: 1 }];
+    // Worksheet 1: Relatório diário em blocos por dia (mesmo estilo dos pendentes)
+    const ws = wb.addWorksheet("Relatório diário", {
+      views: [{ state: "frozen", ySplit: 4, showGridLines: false }],
+      pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+    ws.columns = [
+      { width: 42 },
+      { width: 16 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 },
+      { width: 28 },
+    ];
 
-    const wsStatus = wb.addWorksheet("Resumo por status");
-    wsStatus.addRow(["Status", "Quantidade"]);
-    wsStatus.getRow(1).font = { bold: true };
-    resumoStatus.forEach((r) => wsStatus.addRow([labelStatusFinanceiro(r.status), r.total]));
-    wsStatus.columns.forEach((c) => (c.width = 28));
+    ws.mergeCells(1, 1, 1, 6);
+    const t = ws.getCell("A1");
+    t.value = "Relatório diário por status";
+    t.font = { bold: true, size: 18, color: { argb: "FFFFFFFF" } };
+    t.alignment = { vertical: "middle", indent: 1 };
+    t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    ws.getRow(1).height = 34;
+    for (let c = 2; c <= 6; c++) {
+      ws.getCell(1, c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    }
 
-    const wsDia = wb.addWorksheet("Por dia");
-    wsDia.addRow(["Dia", "Movimentações", "Notas enviadas"]);
-    wsDia.getRow(1).font = { bold: true };
-    porDia.forEach((d) => wsDia.addRow([fmtDia(d.dia), d.total, d.enviadas]));
-    wsDia.columns.forEach((c) => (c.width = 22));
+    ws.mergeCells(2, 1, 2, 6);
+    const s = ws.getCell("A2");
+    s.value = `Período: ${fmtDia(dataIni)} a ${fmtDia(dataFim)}   ·   Movimentações: ${filtradas.length}   ·   Notas enviadas: ${totalEnviadas}   ·   Faturamentos: ${totalFaturamentos}   ·   Anexos: ${totalAnexos}   ·   Emitido em ${new Date().toLocaleString("pt-BR")}`;
+    s.font = { size: 10, color: { argb: CINZA } };
+    s.alignment = { vertical: "middle", indent: 1 };
+    ws.getRow(2).height = 20;
+    ws.getRow(3).height = 8;
 
-    const wsUser = wb.addWorksheet("Por usuário");
-    wsUser.addRow(["Usuário", "Faturamentos iniciados", "Anexos enviados"]);
-    wsUser.getRow(1).font = { bold: true };
-    porUsuario.forEach((u) => wsUser.addRow([u.usuario, u.faturamentos, u.anexos]));
-    wsUser.columns.forEach((c, i) => (c.width = i === 0 ? 34 : 22));
+    // Blocos por dia
+    porDia.forEach((d) => {
+      const itens = filtradas.filter((l) => dataRef(l) === d.dia);
+      const secao = ws.addRow([`${fmtDia(d.dia)}  ·  ${d.total} movimentação(ões)  ·  ${d.enviadas} nota(s) enviada(s)`]);
+      ws.mergeCells(secao.number, 1, secao.number, 6);
+      secao.height = 24;
+      const cel = ws.getCell(secao.number, 1);
+      cel.font = { bold: true, size: 12, color: { argb: VERDE } };
+      cel.alignment = { vertical: "middle", indent: 1 };
+      for (let c = 1; c <= 6; c++) {
+        ws.getCell(secao.number, c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE_CLARO } };
+      }
+
+      const rotulos = ws.addRow(["Empresa", "Contrato", "Competência", "Período", "Status", "Responsável"]);
+      rotulos.height = 16;
+      rotulos.eachCell((cell) => {
+        cell.font = { size: 9, bold: true, color: { argb: CINZA } };
+        cell.alignment = { vertical: "middle", indent: 1 };
+      });
+
+      itens.forEach((l) => {
+        const responsavel =
+          l.data_envio_nota
+            ? l.usuario_envio
+            : l.faturamento_iniciado_em
+              ? l.usuario_faturamento
+              : l.ultimo_anexo_por || "—";
+        const row = ws.addRow([
+          l.empresa_nome,
+          l.codigo_contrato || "—",
+          l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—",
+          l.periodo ?? "—",
+          l.statusLabel,
+          responsavel || "—",
+        ]);
+        row.height = 20;
+        row.eachCell((cell, col) => {
+          cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
+          cell.alignment = {
+            vertical: "middle",
+            indent: 1,
+            horizontal: col === 4 ? "center" : "left",
+            wrapText: col === 1 || col === 6,
+          };
+          cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
+        });
+      });
+
+      ws.addRow([]).height = 10;
+    });
+
+    // Worksheet 2: Resumo por status
+    const wsStatus = wb.addWorksheet("Resumo por status", {
+      views: [{ showGridLines: false }],
+      pageSetup: { orientation: "landscape" },
+    });
+    wsStatus.columns = [{ width: 38 }, { width: 16 }];
+    wsStatus.mergeCells(1, 1, 1, 2);
+    const st = wsStatus.getCell("A1");
+    st.value = "Resumo por status";
+    st.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
+    st.alignment = { vertical: "middle", indent: 1 };
+    st.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    wsStatus.getRow(1).height = 30;
+    wsStatus.getCell("B1").fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    wsStatus.addRow([]).height = 8;
+
+    const hdrStatus = wsStatus.addRow(["Status", "Quantidade"]);
+    hdrStatus.height = 18;
+    hdrStatus.eachCell((cell) => {
+      cell.font = { size: 10, bold: true, color: { argb: CINZA } };
+      cell.alignment = { vertical: "middle", indent: 1 };
+    });
+    resumoStatus.forEach((r) => {
+      const row = wsStatus.addRow([labelStatusFinanceiro(r.status), r.total]);
+      row.height = 20;
+      row.eachCell((cell, col) => {
+        cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
+        cell.alignment = { vertical: "middle", indent: 1, horizontal: col === 2 ? "center" : "left" };
+        cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
+      });
+    });
+
+    // Worksheet 3: Produção por usuário
+    const wsUser = wb.addWorksheet("Produção por usuário", {
+      views: [{ showGridLines: false }],
+      pageSetup: { orientation: "landscape" },
+    });
+    wsUser.columns = [{ width: 38 }, { width: 20 }, { width: 16 }];
+    wsUser.mergeCells(1, 1, 1, 3);
+    const ut = wsUser.getCell("A1");
+    ut.value = "Produção por usuário";
+    ut.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
+    ut.alignment = { vertical: "middle", indent: 1 };
+    ut.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    wsUser.getRow(1).height = 30;
+    wsUser.getCell("B1").fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    wsUser.getCell("C1").fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    wsUser.addRow([]).height = 8;
+
+    const hdrUser = wsUser.addRow(["Usuário", "Faturamentos", "Anexos"]);
+    hdrUser.height = 18;
+    hdrUser.eachCell((cell) => {
+      cell.font = { size: 10, bold: true, color: { argb: CINZA } };
+      cell.alignment = { vertical: "middle", indent: 1 };
+    });
+    porUsuario.forEach((u) => {
+      const row = wsUser.addRow([u.usuario, u.faturamentos, u.anexos]);
+      row.height = 20;
+      row.eachCell((cell, col) => {
+        cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
+        cell.alignment = { vertical: "middle", indent: 1, horizontal: col === 1 ? "left" : "center" };
+        cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
+      });
+    });
+
+    // Worksheet 4: Detalhado (estilo limpo)
+    const wsDet = wb.addWorksheet("Detalhado", {
+      views: [{ state: "frozen", ySplit: 1, showGridLines: false }],
+      pageSetup: { orientation: "landscape" },
+    });
+    const hdrDet = wsDet.addRow(cabecalho);
+    hdrDet.height = 18;
+    hdrDet.eachCell((cell) => {
+      cell.font = { size: 9, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+      cell.alignment = { vertical: "middle", indent: 1, wrapText: true };
+    });
+    filtradas.forEach((l) => {
+      const row = wsDet.addRow(linhaValores(l));
+      row.height = 18;
+      row.eachCell((cell) => {
+        cell.font = { size: 9, color: { argb: "FF111827" } };
+        cell.alignment = { vertical: "middle" };
+      });
+    });
+    wsDet.columns.forEach((c, i) => (c.width = i === 0 ? 42 : 18));
 
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], {
@@ -357,50 +514,130 @@ export function RelatorioStatusFinanceiro() {
     const { default: autoTable } = await import("jspdf-autotable");
 
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-    doc.setFontSize(14);
-    doc.text("Relatório de status do Financeiro", 40, 40);
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const hoje = new Date().toLocaleString("pt-BR");
+
+    // Logo Samel (somente o símbolo, monocromático)
+    let logoData: string | null = null;
+    try {
+      const resp = await fetch(samelIcon.url);
+      const blob = await resp.blob();
+      logoData = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result));
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    } catch {
+      logoData = null;
+    }
+
+    function drawHeader() {
+      doc.setFillColor(50, 169, 118);
+      doc.rect(0, 0, pageW, 64, "F");
+
+      const textX = logoData ? 108 : 40;
+      if (logoData) {
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(32, 12, 56, 40, 6, 6, "F");
+        doc.addImage(logoData, "PNG", 44, 17, 32, 30, undefined, "FAST");
+      }
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Relatório diário por status", textX, 30);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(226, 244, 236);
+      doc.text(`Faturamento · SIGA · Emitido em ${hoje}`, textX, 48);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text(String(filtradas.length), pageW - 40, 32, { align: "right" });
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text("movimentações", pageW - 40, 46, { align: "right" });
+    }
+
+    drawHeader();
+
+    // Filtros aplicados
+    doc.setTextColor(75, 85, 99);
     doc.setFontSize(9);
-    doc.text(
-      `Período: ${fmtDia(dataIni)} a ${fmtDia(dataFim)}  |  Registros: ${filtradas.length}  |  Notas enviadas: ${totalEnviadas}  |  Emitido em ${new Date().toLocaleDateString("pt-BR")}`,
-      40,
-      58,
-    );
+    doc.text(`Período: ${fmtDia(dataIni)} a ${fmtDia(dataFim)}`, 40, 84);
+    doc.text(`Notas enviadas: ${totalEnviadas} · Faturamentos: ${totalFaturamentos} · Anexos: ${totalAnexos}`, 40, 97);
 
-    autoTable(doc, {
-      startY: 74,
-      head: [["Status", "Quantidade"]],
-      body: resumoStatus.map((r) => [labelStatusFinanceiro(r.status), String(r.total)]),
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
-      margin: { left: 40, right: 40 },
-      tableWidth: 240,
-    });
+    let y = 112;
 
-    let y = (doc as any).lastAutoTable.finalY + 16;
+    // Resumo por status
     autoTable(doc, {
       startY: y,
-      head: [["Dia", "Movimentações", "Notas enviadas"]],
-      body: porDia.map((d) => [fmtDia(d.dia), String(d.total), String(d.enviadas)]),
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
-      margin: { left: 40, right: 40 },
-      tableWidth: 300,
+      head: [["Status", "Quantidade"]],
+      body: resumoStatus.map((r) => [labelStatusFinanceiro(r.status), String(r.total)]),
+      theme: "plain",
+      styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
+      headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [234, 246, 240] },
+      columnStyles: { 0: { cellWidth: 180, fontStyle: "bold" }, 1: { cellWidth: 80, halign: "center" } },
+      margin: { left: 40, right: 40, top: 40, bottom: 40 },
+      tableWidth: 260,
     });
 
     y = (doc as any).lastAutoTable.finalY + 16;
+
+    // Por dia
     autoTable(doc, {
       startY: y,
-      head: [["Usuário", "Faturamentos iniciados", "Anexos"]],
-      body: porUsuario.map((u) => [u.usuario, String(u.faturamentos), String(u.anexos)]),
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
-      margin: { left: 40, right: 40 },
-      tableWidth: 420,
+      head: [["Dia", "Movimentações", "Notas enviadas", "Conversão"]],
+      body: porDia.map((d) => [
+        fmtDia(d.dia),
+        String(d.total),
+        String(d.enviadas),
+        d.total > 0 ? `${Math.round((d.enviadas / d.total) * 100)}%` : "—",
+      ]),
+      theme: "plain",
+      styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
+      headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [234, 246, 240] },
+      columnStyles: {
+        0: { cellWidth: 90 },
+        1: { cellWidth: 90, halign: "center" },
+        2: { cellWidth: 90, halign: "center" },
+        3: { cellWidth: 70, halign: "center" },
+      },
+      margin: { left: 40, right: 40, top: 40, bottom: 40 },
+      tableWidth: 340,
     });
 
-    doc.addPage("a4", "landscape");
+    y = (doc as any).lastAutoTable.finalY + 16;
+
+    // Por usuário
     autoTable(doc, {
-      startY: 40,
+      startY: y,
+      head: [["Usuário", "Faturamentos", "Anexos"]],
+      body: porUsuario.map((u) => [u.usuario, String(u.faturamentos), String(u.anexos)]),
+      theme: "plain",
+      styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
+      headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [234, 246, 240] },
+      columnStyles: {
+        0: { cellWidth: 180, fontStyle: "bold" },
+        1: { cellWidth: 90, halign: "center" },
+        2: { cellWidth: 70, halign: "center" },
+      },
+      margin: { left: 40, right: 40, top: 40, bottom: 40 },
+      tableWidth: 340,
+    });
+
+    // Página detalhada
+    doc.addPage("a4", "landscape");
+    drawHeader();
+
+    autoTable(doc, {
+      startY: 80,
       head: [
         [
           "Empresa",
@@ -410,28 +647,52 @@ export function RelatorioStatusFinanceiro() {
           "Status",
           "Data da nota",
           "Vencimento",
-          "Usuário do envio",
-          "Usuário do faturamento",
+          "Responsável",
           "Data de referência",
         ],
       ],
-      body: filtradas.map((l) => [
-        l.empresa_nome,
-        l.codigo_contrato || "—",
-        l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—",
-        l.periodo ?? "—",
-        l.statusLabel,
-        fmtDia(l.data_envio_nota),
-        fmtDia(l.data_vencimento),
-        l.usuario_envio || "—",
-        l.usuario_faturamento || "—",
-        fmtDia(dataRef(l)),
-      ]),
-      styles: { fontSize: 7, cellPadding: 3 },
-      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
-      alternateRowStyles: { fillColor: [245, 246, 248] },
-      columnStyles: { 0: { cellWidth: 150 } },
-      margin: { left: 40, right: 40 },
+      body: filtradas.map((l) => {
+        const responsavel =
+          l.data_envio_nota
+            ? l.usuario_envio
+            : l.faturamento_iniciado_em
+              ? l.usuario_faturamento
+              : l.ultimo_anexo_por || "—";
+        return [
+          l.empresa_nome,
+          l.codigo_contrato || "—",
+          l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—",
+          l.periodo ?? "—",
+          l.statusLabel,
+          fmtDia(l.data_envio_nota),
+          fmtDia(l.data_vencimento),
+          responsavel || "—",
+          fmtDia(dataRef(l)),
+        ];
+      }),
+      theme: "plain",
+      styles: { fontSize: 7.5, cellPadding: 5, valign: "middle", textColor: [17, 24, 39] },
+      headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 8.5 },
+      alternateRowStyles: { fillColor: [234, 246, 240] },
+      columnStyles: {
+        0: { cellWidth: 180, fontStyle: "bold" },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 70 },
+        3: { cellWidth: 60, halign: "center" },
+        4: { cellWidth: 80 },
+        5: { cellWidth: 70 },
+        6: { cellWidth: 70 },
+        7: { cellWidth: 90 },
+        8: { cellWidth: 70 },
+      },
+      margin: { left: 40, right: 40, top: 40, bottom: 40 },
+      didDrawPage: () => {
+        const page = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Emitido em ${hoje}`, 40, pageH - 20);
+        doc.text(`Página ${page}`, pageW - 40, pageH - 20, { align: "right" });
+      },
     });
 
     doc.save(`relatorio-financeiro-${dataIni}_a_${dataFim}.pdf`);
