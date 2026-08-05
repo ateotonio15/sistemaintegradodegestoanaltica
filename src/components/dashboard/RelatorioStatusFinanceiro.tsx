@@ -6,6 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Download, FileText, ClipboardList, Activity, Send, Receipt, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
@@ -70,6 +77,7 @@ export function RelatorioStatusFinanceiro() {
   const [dataIni, setDataIni] = useState(isoInicioMes());
   const [dataFim, setDataFim] = useState(isoHoje());
   const [statusSel, setStatusSel] = useState<string[]>([]);
+  const [statusDialog, setStatusDialog] = useState<StatusFinanceiro | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["fin-relatorio-status", dataIni, dataFim],
@@ -521,9 +529,16 @@ export function RelatorioStatusFinanceiro() {
 
         <div className="flex flex-wrap gap-1.5">
           {resumoStatus.map((r) => (
-            <Badge key={r.status} className={cn("text-[11px] font-medium", statusFinanceiroColor(r.status))}>
-              {labelStatusFinanceiro(r.status)}: {r.total}
-            </Badge>
+            <button
+              key={r.status}
+              type="button"
+              onClick={() => setStatusDialog(r.status)}
+              className="focus:outline-none focus:ring-2 focus:ring-ring rounded-full"
+            >
+              <Badge className={cn("text-[11px] font-medium cursor-pointer", statusFinanceiroColor(r.status))}>
+                {labelStatusFinanceiro(r.status)}: {r.total}
+              </Badge>
+            </button>
           ))}
         </div>
       </CardHeader>
@@ -602,6 +617,55 @@ export function RelatorioStatusFinanceiro() {
           </div>
         )}
       </CardContent>
+
+      <Dialog open={!!statusDialog} onOpenChange={(open) => !open && setStatusDialog(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {statusDialog && (
+                <>
+                  <Badge className={cn("text-[11px] font-medium", statusFinanceiroColor(statusDialog))}>
+                    {labelStatusFinanceiro(statusDialog)}
+                  </Badge>
+                  <span>Empresas</span>
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {statusDialog && `${filtradas.filter((l) => l.status === statusDialog).length} contrato(s) com status "${labelStatusFinanceiro(statusDialog)}".`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto -mx-6 px-6">
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground sticky top-0 bg-card z-10">
+                <tr className="border-b">
+                  <th className="text-left px-3 py-2 font-medium">Empresa</th>
+                  <th className="text-left px-3 py-2 font-medium">Contrato</th>
+                  <th className="text-left px-3 py-2 font-medium">Competência</th>
+                  <th className="text-left px-3 py-2 font-medium">Período</th>
+                  <th className="text-left px-3 py-2 font-medium">Data da nota</th>
+                  <th className="text-left px-3 py-2 font-medium">Vencimento</th>
+                </tr>
+              </thead>
+              <tbody>
+                {statusDialog &&
+                  filtradas
+                    .filter((l) => l.status === statusDialog)
+                    .map((l) => (
+                      <tr key={l.id} className="border-b last:border-0 hover:bg-muted/40">
+                        <td className="px-3 py-2 font-medium">{l.empresa_nome}</td>
+                        <td className="px-3 py-2">{l.codigo_contrato || "—"}</td>
+                        <td className="px-3 py-2">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
+                        <td className="px-3 py-2">{l.periodo ?? "—"}</td>
+                        <td className="px-3 py-2">{fmtDia(l.data_envio_nota)}</td>
+                        <td className="px-3 py-2">{fmtDia(l.data_vencimento)}</td>
+                      </tr>
+                    ))}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
