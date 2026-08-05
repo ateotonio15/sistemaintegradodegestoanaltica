@@ -156,7 +156,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         ]
       : isFinanceiro
         ? [
-            { to: "/dashboard/financeiro", label: "Painel Financeiro", icon: Wallet },
+            { to: "/dashboard/financeiro", label: "Financeiro", icon: Wallet },
             ...allNavItems,
           ]
       : allNavItems;
