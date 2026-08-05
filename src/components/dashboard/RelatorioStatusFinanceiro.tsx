@@ -977,10 +977,10 @@ export function RelatorioStatusFinanceiro() {
       </Dialog>
 
       <Dialog open={!!usuarioDialog} onOpenChange={(open) => !open && setUsuarioDialog(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Empresas de {usuarioDialog}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg">Empresas de {usuarioDialog}</DialogTitle>
+            <DialogDescription className="text-sm">
               {usuarioDialog && (
                 <>
                   {empresasPorUsuario.get(usuarioDialog)?.faturamentos.length ?? 0} faturamento(s) e{" "}
@@ -989,32 +989,32 @@ export function RelatorioStatusFinanceiro() {
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-auto -mx-6 px-6 space-y-4">
+          <div className="flex-1 overflow-auto -mx-6 px-6 space-y-5">
             {usuarioDialog && (
               <>
                 <div>
-                  <p className="text-xs font-semibold mb-2">Faturamentos</p>
+                  <p className="text-sm font-semibold mb-2">Faturamentos</p>
                   {(empresasPorUsuario.get(usuarioDialog)?.faturamentos.length ?? 0) === 0 ? (
-                    <p className="text-xs text-muted-foreground">Nenhum faturamento no período.</p>
+                    <p className="text-sm text-muted-foreground">Nenhum faturamento no período.</p>
                   ) : (
-                    <table className="w-full text-xs">
+                    <table className="w-full text-sm">
                       <thead className="text-muted-foreground sticky top-0 bg-card z-10">
                         <tr className="border-b">
-                          <th className="text-left px-3 py-2 font-medium">Empresa</th>
-                          <th className="text-left px-3 py-2 font-medium">Contrato</th>
-                          <th className="text-left px-3 py-2 font-medium">Competência</th>
-                          <th className="text-left px-3 py-2 font-medium">Período</th>
-                          <th className="text-left px-3 py-2 font-medium">Iniciado em</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Empresa</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Contrato</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Competência</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Período</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Iniciado em</th>
                         </tr>
                       </thead>
                       <tbody>
                         {empresasPorUsuario.get(usuarioDialog)?.faturamentos.map((l) => (
                           <tr key={`fat-${l.id}`} className="border-b last:border-0 hover:bg-muted/40">
-                            <td className="px-3 py-2 font-medium">{l.empresa_nome}</td>
-                            <td className="px-3 py-2">{l.codigo_contrato || "—"}</td>
-                            <td className="px-3 py-2">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
-                            <td className="px-3 py-2">{l.periodo ?? "—"}</td>
-                            <td className="px-3 py-2">{fmtDia(l.faturamento_iniciado_em)}</td>
+                            <td className="px-4 py-2.5 font-medium">{l.empresa_nome}</td>
+                            <td className="px-4 py-2.5">{l.codigo_contrato || "—"}</td>
+                            <td className="px-4 py-2.5">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
+                            <td className="px-4 py-2.5">{l.periodo ?? "—"}</td>
+                            <td className="px-4 py-2.5">{fmtDia(l.faturamento_iniciado_em)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1022,28 +1022,28 @@ export function RelatorioStatusFinanceiro() {
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-semibold mb-2">Anexos</p>
+                  <p className="text-sm font-semibold mb-2">Anexos</p>
                   {(empresasPorUsuario.get(usuarioDialog)?.anexos.length ?? 0) === 0 ? (
-                    <p className="text-xs text-muted-foreground">Nenhum anexo no período.</p>
+                    <p className="text-sm text-muted-foreground">Nenhum anexo no período.</p>
                   ) : (
-                    <table className="w-full text-xs">
+                    <table className="w-full text-sm">
                       <thead className="text-muted-foreground sticky top-0 bg-card z-10">
                         <tr className="border-b">
-                          <th className="text-left px-3 py-2 font-medium">Empresa</th>
-                          <th className="text-left px-3 py-2 font-medium">Contrato</th>
-                          <th className="text-left px-3 py-2 font-medium">Competência</th>
-                          <th className="text-left px-3 py-2 font-medium">Período</th>
-                          <th className="text-left px-3 py-2 font-medium">Anexado em</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Empresa</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Contrato</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Competência</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Período</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Anexado em</th>
                         </tr>
                       </thead>
                       <tbody>
                         {empresasPorUsuario.get(usuarioDialog)?.anexos.map((l) => (
                           <tr key={`anx-${l.id}`} className="border-b last:border-0 hover:bg-muted/40">
-                            <td className="px-3 py-2 font-medium">{l.empresa_nome}</td>
-                            <td className="px-3 py-2">{l.codigo_contrato || "—"}</td>
-                            <td className="px-3 py-2">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
-                            <td className="px-3 py-2">{l.periodo ?? "—"}</td>
-                            <td className="px-3 py-2">{fmtDia(l.ultimo_anexo_em)}</td>
+                            <td className="px-4 py-2.5 font-medium">{l.empresa_nome}</td>
+                            <td className="px-4 py-2.5">{l.codigo_contrato || "—"}</td>
+                            <td className="px-4 py-2.5">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
+                            <td className="px-4 py-2.5">{l.periodo ?? "—"}</td>
+                            <td className="px-4 py-2.5">{fmtDia(l.ultimo_anexo_em)}</td>
                           </tr>
                         ))}
                       </tbody>
