@@ -26,6 +26,8 @@ import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
 
 
+type ModuloId = "pendentes" | "alertas" | "relatorio" | "analises" | "previsao";
+
 interface CobrancaRow {
   id: string;
   motivo: string;
