@@ -413,17 +413,40 @@ export function DashboardFinanceiro() {
     const pageH = doc.internal.pageSize.getHeight();
     const hoje = new Date().toLocaleString("pt-BR");
 
+    // Logo Samel (data URL)
+    let logoData: string | null = null;
+    try {
+      const resp = await fetch(samelLogo.url);
+      const blob = await resp.blob();
+      logoData = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result));
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    } catch {
+      logoData = null;
+    }
+
     // Faixa de cabeçalho (verde SIGA)
     doc.setFillColor(22, 163, 74);
     doc.rect(0, 0, pageW, 64, "F");
+
+    const textX = logoData ? 168 : 40;
+    if (logoData) {
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(32, 12, 120, 40, 6, 6, "F");
+      doc.addImage(logoData, "PNG", 40, 18, 104, 28, undefined, "FAST");
+    }
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("Contratos pendentes", 40, 30);
+    doc.text("Contratos pendentes", textX, 30);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(226, 246, 234);
-    doc.text(`Faturamento · SIGA · Emitido em ${hoje}`, 40, 48);
+    doc.text(`Faturamento · SIGA · Emitido em ${hoje}`, textX, 48);
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
