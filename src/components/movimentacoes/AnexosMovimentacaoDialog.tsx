@@ -51,7 +51,9 @@ export function AnexosMovimentacaoDialog({
   const { data, isLoading } = useQuery({
     queryKey: ["anexos-mov-dialog", movimentacaoId],
     enabled: open && !!movimentacaoId,
-    staleTime: 30_000,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data: anexos, error } = await supabase
         .from("anexos_movimentacao")

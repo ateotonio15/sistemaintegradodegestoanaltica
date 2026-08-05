@@ -248,6 +248,11 @@ export function AnexosViewerDialog({
   const { data: anexos = [], isLoading } = useQuery<AnexoRow[]>({
     queryKey: ["anexos-viewer-merged", empresaId, mesReferencia, periodo],
     enabled: open && !!empresaId,
+    // Sempre busca dados frescos ao abrir: o badge da tabela pode ter sido
+    // atualizado depois do último cache deste diálogo (anexo novo do Cadastro).
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       // 0) Verifica se a empresa pertence a um grupo financeiro ativo
       const { data: vinc } = await supabase
