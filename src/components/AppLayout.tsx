@@ -42,7 +42,7 @@ const allNavItems = [
   { to: "/empresas", label: "Empresas", icon: Building2 },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
   
-  { to: "/financeiro", label: "Financeiro", icon: Wallet },
+  { to: "/financeiro", label: "Faturamento", icon: Wallet },
   { to: "/implantacao", label: "Implantação", icon: FileSignature },
   { to: "/contratos-recem-implantados", label: "Primeira Vigencia", icon: ClockAlert },
   { to: "/arquivos", label: "Arquivos", icon: FolderArchive },
