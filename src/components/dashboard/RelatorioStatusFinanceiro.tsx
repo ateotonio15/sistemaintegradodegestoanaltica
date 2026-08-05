@@ -87,6 +87,7 @@ export function RelatorioStatusFinanceiro() {
   const [statusSel, setStatusSel] = useState<string[]>([]);
   const [statusDialog, setStatusDialog] = useState<StatusFinanceiro | null>(null);
   const [usuarioDialog, setUsuarioDialog] = useState<string | null>(null);
+  const [kpiDialog, setKpiDialog] = useState<"movimentacoes" | "notas" | "faturamentos" | "anexos" | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["fin-relatorio-status", dataIni, dataFim],
@@ -267,7 +268,16 @@ export function RelatorioStatusFinanceiro() {
     return m;
   }, [filtradas]);
 
-  const totalEnviadas = filtradas.filter((l) => !!l.data_envio_nota).length;
+  const kpiLinhas = useMemo(() => {
+    return {
+      movimentacoes: filtradas,
+      notas: filtradas.filter((l) => !!l.data_envio_nota),
+      faturamentos: filtradas.filter((l) => !!l.faturamento_iniciado_em),
+      anexos: filtradas.filter((l) => l.qtd_anexos > 0),
+    };
+  }, [filtradas]);
+
+  const totalEnviadas = kpiLinhas.notas.length;
 
   const cabecalho = [
     "Empresa",
@@ -698,7 +708,7 @@ export function RelatorioStatusFinanceiro() {
     doc.save(`relatorio-financeiro-${dataIni}_a_${dataFim}.pdf`);
   }
 
-  const totalFaturamentos = filtradas.filter((l) => !!l.faturamento_iniciado_em).length;
+  const totalFaturamentos = kpiLinhas.faturamentos.length;
   const totalAnexos = filtradas.reduce((s, l) => s + l.qtd_anexos, 0);
 
   return (
@@ -768,38 +778,47 @@ export function RelatorioStatusFinanceiro() {
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
+              key: "movimentacoes" as const,
               icon: Activity,
               label: "Movimentações",
               value: filtradas.length,
               hint: "Contratos com alguma atualização do Financeiro no período (envio, anexo, início de faturamento ou mudança de status).",
             },
             {
+              key: "notas" as const,
               icon: Send,
               label: "Notas enviadas",
               value: totalEnviadas,
               hint: "Notas fiscais efetivamente enviadas ao cliente — contratos com data da nota preenchida.",
             },
             {
+              key: "faturamentos" as const,
               icon: Receipt,
               label: "Faturamentos iniciados",
               value: totalFaturamentos,
               hint: "Contratos em que o Financeiro deu início ao faturamento (antes da emissão da nota).",
             },
             {
+              key: "anexos" as const,
               icon: Paperclip,
               label: "Anexos enviados",
               value: totalAnexos,
               hint: "Arquivos anexados às movimentações no período (relatórios, notas, comprovantes).",
             },
           ].map((k) => (
-            <div key={k.label} className="rounded-lg border bg-muted/30 p-3">
+            <button
+              key={k.label}
+              type="button"
+              onClick={() => setKpiDialog(k.key)}
+              className="text-left rounded-lg border bg-muted/30 p-3 hover:bg-accent/50 hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+            >
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <k.icon className="h-3.5 w-3.5" />
                 {k.label}
               </div>
               <div className="text-xl font-semibold mt-0.5">{k.value}</div>
               <p className="text-[10px] leading-snug text-muted-foreground mt-1">{k.hint}</p>
-            </div>
+            </button>
           ))}
         </div>
 
@@ -1033,6 +1052,73 @@ export function RelatorioStatusFinanceiro() {
                 </div>
               </>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!kpiDialog} onOpenChange={(open) => !open && setKpiDialog(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {kpiDialog === "movimentacoes" && "Movimentações"}
+              {kpiDialog === "notas" && "Notas enviadas"}
+              {kpiDialog === "faturamentos" && "Faturamentos iniciados"}
+              {kpiDialog === "anexos" && "Anexos enviados"}
+            </DialogTitle>
+            <DialogDescription>
+              {kpiDialog && `${kpiLinhas[kpiDialog].length} contrato(s) no período selecionado.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto -mx-6 px-6">
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground sticky top-0 bg-card z-10">
+                <tr className="border-b">
+                  <th className="text-left px-3 py-2 font-medium">Empresa</th>
+                  <th className="text-left px-3 py-2 font-medium">Contrato</th>
+                  <th className="text-left px-3 py-2 font-medium">Competência</th>
+                  <th className="text-left px-3 py-2 font-medium">Período</th>
+                  <th className="text-left px-3 py-2 font-medium">Status</th>
+                  {kpiDialog === "notas" && <th className="text-left px-3 py-2 font-medium">Data da nota</th>}
+                  {kpiDialog === "faturamentos" && <th className="text-left px-3 py-2 font-medium">Iniciado em</th>}
+                  {kpiDialog === "anexos" && (
+                    <>
+                      <th className="text-left px-3 py-2 font-medium">Anexos</th>
+                      <th className="text-left px-3 py-2 font-medium">Último anexo em</th>
+                    </>
+                  )}
+                  <th className="text-left px-3 py-2 font-medium">Responsável</th>
+                </tr>
+              </thead>
+              <tbody>
+                {kpiDialog &&
+                  kpiLinhas[kpiDialog].map((l) => {
+                    const responsavel =
+                      kpiDialog === "notas"
+                        ? l.usuario_envio
+                        : kpiDialog === "faturamentos"
+                          ? l.usuario_faturamento
+                          : l.ultimo_anexo_por || l.usuario_faturamento || l.usuario_envio || "—";
+                    return (
+                      <tr key={l.id} className="border-b last:border-0 hover:bg-muted/40">
+                        <td className="px-3 py-2 font-medium">{l.empresa_nome}</td>
+                        <td className="px-3 py-2">{l.codigo_contrato || "—"}</td>
+                        <td className="px-3 py-2">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
+                        <td className="px-3 py-2">{l.periodo ?? "—"}</td>
+                        <td className="px-3 py-2">{l.statusLabel}</td>
+                        {kpiDialog === "notas" && <td className="px-3 py-2">{fmtDia(l.data_envio_nota)}</td>}
+                        {kpiDialog === "faturamentos" && <td className="px-3 py-2">{fmtDia(l.faturamento_iniciado_em)}</td>}
+                        {kpiDialog === "anexos" && (
+                          <>
+                            <td className="px-3 py-2">{l.qtd_anexos}</td>
+                            <td className="px-3 py-2">{fmtDia(l.ultimo_anexo_em)}</td>
+                          </>
+                        )}
+                        <td className="px-3 py-2">{responsavel || "—"}</td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
           </div>
         </DialogContent>
       </Dialog>
