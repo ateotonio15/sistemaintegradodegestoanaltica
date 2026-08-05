@@ -883,7 +883,7 @@ export function RelatorioStatusFinanceiro() {
             <div className="rounded-lg border overflow-hidden">
               <div className="px-4 py-3 bg-muted/50 border-b">
                 <p className="text-sm font-semibold">Produção por usuário</p>
-                <p className="text-xs text-muted-foreground leading-snug">
+                <p className="text-sm text-muted-foreground leading-snug">
                   <strong>Faturamentos</strong> = faturamentos que ele iniciou · <strong>Anexos</strong> = arquivos
                   que ele subiu.
                 </p>
