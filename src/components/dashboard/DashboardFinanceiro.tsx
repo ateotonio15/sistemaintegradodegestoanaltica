@@ -11,6 +11,12 @@ import {
   AlertTriangle,
   Download,
   FileText,
+  ArrowLeft,
+  ChevronRight,
+  BarChart3,
+  TrendingUp,
+  ClipboardList,
+  BellRing,
 } from "lucide-react";
 import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
@@ -19,6 +25,8 @@ import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
 
+
+type ModuloId = "pendentes" | "alertas" | "relatorio" | "analises" | "previsao";
 
 interface CobrancaRow {
   id: string;
@@ -43,6 +51,8 @@ function formatCompetencia(c?: string | null) {
 export function DashboardFinanceiro() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const [modulo, setModulo] = useState<ModuloId | null>(null);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["fin-dash-empresas"],
@@ -360,12 +370,152 @@ export function DashboardFinanceiro() {
 
 
 
-  return (
-    <div className="space-y-6">
+  const modulos: {
+    id: ModuloId;
+    titulo: string;
+    descricao: string;
+    icon: any;
+    accent: string;
+    bg: string;
+    badge?: { label: string; variant: "default" | "secondary" | "outline" | "destructive" };
+  }[] = [
+    {
+      id: "pendentes",
+      titulo: "Contratos pendentes",
+      descricao: "Contratos sem nota emitida, com filtros por competência e período e exportação em Excel/PDF.",
+      icon: AlertCircle,
+      accent: "text-destructive",
+      bg: "bg-destructive/10",
+      badge: pendentes.length > 0 ? { label: `${pendentes.length}`, variant: "destructive" } : undefined,
+    },
+    {
+      id: "alertas",
+      titulo: "Alertas e cobranças",
+      descricao: "Retroativos a cobrar, alertas de vencimento e cobranças abertas nas suas empresas.",
+      icon: BellRing,
+      accent: "text-warning",
+      bg: "bg-warning/10",
+      badge:
+        cobrancasAbertas.length > 0
+          ? { label: `${cobrancasAbertas.length} aberta${cobrancasAbertas.length > 1 ? "s" : ""}`, variant: "outline" }
+          : undefined,
+    },
+    {
+      id: "relatorio",
+      titulo: "Relatório diário por status",
+      descricao: "Produção diária e por usuário: movimentações, notas enviadas, faturamentos e anexos.",
+      icon: ClipboardList,
+      accent: "text-primary",
+      bg: "bg-primary/10",
+    },
+    {
+      id: "analises",
+      titulo: "Análises de envios",
+      descricao: "Acompanhamento dos envios do Cadastro para o Financeiro e prazos de emissão.",
+      icon: BarChart3,
+      accent: "text-success",
+      bg: "bg-success/10",
+    },
+    {
+      id: "previsao",
+      titulo: "Previsão financeira",
+      descricao: "Projeção de faturamento e vencimentos das próximas competências.",
+      icon: TrendingUp,
+      accent: "text-primary",
+      bg: "bg-primary/10",
+    },
+  ];
+
+  const moduloAtivo = modulos.find((m) => m.id === modulo);
+
+  const conteudoPendentes = (
+    <Card className="rounded-xl shadow-sm">
+      <CardHeader className="pb-3 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            Contratos pendentes
+            <Badge variant="outline" className="ml-1">{pendentesFiltrados.length}</Badge>
+          </CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <MultiSelectFiltro
+              label="Competências"
+              width="w-[190px]"
+              options={competenciasDisponiveis.map((c) => ({ value: c, label: formatCompetencia(c) }))}
+              selected={competenciasSel}
+              onChange={setCompetenciasSel}
+            />
+            <MultiSelectFiltro
+              label="Períodos"
+              width="w-[170px]"
+              options={periodosDisponiveis.map((p) => ({ value: p, label: p }))}
+              selected={periodosSel}
+              onChange={setPeriodosSel}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs"
+              onClick={exportarPendentes}
+              disabled={pendentesFiltrados.length === 0}
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Exportar Excel
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs"
+              onClick={exportarPendentesPDF}
+              disabled={pendentesFiltrados.length === 0}
+            >
+              <FileText className="h-3.5 w-3.5 mr-1.5" />
+              Exportar PDF
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2 max-h-[520px] overflow-y-auto">
+        {pendentesFiltrados.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">Nenhum contrato pendente 🎉</p>
+        ) : (
+          pendentesFiltrados.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-start justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+              onClick={() => navigate("/financeiro")}
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate">{p.empresa_nome}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {p.codigo_contrato ? `Contrato ${p.codigo_contrato} · ` : ""}
+                  {formatCompetencia(p.mes_referencia)}
+                  {p.periodo ? ` · ${p.periodo}` : ""}
+                </p>
+                {p.pagadores.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {p.pagadores.map((pg, i) => (
+                      <Badge key={i} variant="secondary" className="text-[10px] font-normal">
+                        {pg.nome_pagador}
+                        {pg.cnpj ? ` · ${pg.cnpj}` : ""}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Badge variant="outline" className="shrink-0">Pendente</Badge>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const conteudoAlertas = (
+    <div className="space-y-4">
       <AlertaRetroativosParaCobrar />
       <AlertasVencimentoFinanceiro />
-
-      {cobrancasMinhas.length > 0 && (
+      {cobrancasMinhas.length > 0 ? (
         <Card className="rounded-xl border-warning/40 bg-warning/10 shadow-sm">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-warning/20 flex items-center justify-center shrink-0">
@@ -385,103 +535,80 @@ export function DashboardFinanceiro() {
             </Button>
           </CardContent>
         </Card>
+      ) : (
+        <Card className="rounded-xl shadow-sm">
+          <CardContent className="p-6 text-center text-sm text-muted-foreground">
+            Nenhuma cobrança aberta nas suas empresas.
+          </CardContent>
+        </Card>
       )}
+    </div>
+  );
 
-      {/* Contratos com status Pendente */}
-      <Card className="rounded-xl shadow-sm">
-        <CardHeader className="pb-3 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              Contratos pendentes
-              <Badge variant="outline" className="ml-1">{pendentesFiltrados.length}</Badge>
-            </CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <MultiSelectFiltro
-                label="Competências"
-                width="w-[190px]"
-                options={competenciasDisponiveis.map((c) => ({ value: c, label: formatCompetencia(c) }))}
-                selected={competenciasSel}
-                onChange={setCompetenciasSel}
-              />
-              <MultiSelectFiltro
-                label="Períodos"
-                width="w-[170px]"
-                options={periodosDisponiveis.map((p) => ({ value: p, label: p }))}
-                selected={periodosSel}
-                onChange={setPeriodosSel}
-              />
-
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-xs"
-                onClick={exportarPendentes}
-                disabled={pendentesFiltrados.length === 0}
-              >
-                <Download className="h-3.5 w-3.5 mr-1.5" />
-                Exportar Excel
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-xs"
-                onClick={exportarPendentesPDF}
-                disabled={pendentesFiltrados.length === 0}
-              >
-                <FileText className="h-3.5 w-3.5 mr-1.5" />
-                Exportar PDF
-              </Button>
-
+  // Visão de módulo selecionado
+  if (moduloAtivo) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setModulo(null)}>
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            Voltar ao painel
+          </Button>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${moduloAtivo.bg}`}>
+              <moduloAtivo.icon className={`h-4 w-4 ${moduloAtivo.accent}`} />
             </div>
+            <h2 className="text-base font-semibold truncate">{moduloAtivo.titulo}</h2>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-2 max-h-[420px] overflow-y-auto">
-          {pendentesFiltrados.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">Nenhum contrato pendente 🎉</p>
-          ) : (
-            pendentesFiltrados.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-start justify-between gap-3 p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
-                onClick={() => navigate("/financeiro")}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{p.empresa_nome}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {p.codigo_contrato ? `Contrato ${p.codigo_contrato} · ` : ""}
-                    {formatCompetencia(p.mes_referencia)}
-                    {p.periodo ? ` · ${p.periodo}` : ""}
-                  </p>
-                  {p.pagadores.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {p.pagadores.map((pg, i) => (
-                        <Badge key={i} variant="secondary" className="text-[10px] font-normal">
-                          {pg.nome_pagador}
-                          {pg.cnpj ? ` · ${pg.cnpj}` : ""}
-                        </Badge>
-                      ))}
-                    </div>
+        </div>
+
+        {modulo === "pendentes" && conteudoPendentes}
+        {modulo === "alertas" && conteudoAlertas}
+        {modulo === "relatorio" && <RelatorioStatusFinanceiro />}
+        {modulo === "analises" && <AnalisesEnviosPanel />}
+        {modulo === "previsao" && <PrevisaoFinanceira />}
+      </div>
+    );
+  }
+
+  // Seletor de módulos
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-base font-semibold text-foreground">Escolha uma função</h2>
+        <p className="text-sm text-muted-foreground">
+          Selecione o módulo que você quer trabalhar agora.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        {modulos.map((m) => (
+          <button key={m.id} type="button" onClick={() => setModulo(m.id)} className="text-left">
+            <Card className="h-full rounded-xl shadow-sm transition-all hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5">
+              <CardContent className="p-5 flex flex-col gap-3 h-full">
+                <div className="flex items-start justify-between gap-3">
+                  <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ${m.bg}`}>
+                    <m.icon className={`h-5 w-5 ${m.accent}`} />
+                  </div>
+                  {m.badge && (
+                    <Badge variant={m.badge.variant} className="shrink-0">
+                      {m.badge.label}
+                    </Badge>
                   )}
                 </div>
-                <Badge variant="outline" className="shrink-0">Pendente</Badge>
-              </div>
-            ))
-          )}
-
-        </CardContent>
-
-
-      </Card>
-
-      {/* Relatório diário por status (Excel / PDF) */}
-      <RelatorioStatusFinanceiro />
-
-      {/* Análises de envios — substitui "Empresas fora do prazo" */}
-      <AnalisesEnviosPanel />
-
-      {/* Previsão financeira */}
-      <PrevisaoFinanceira />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">{m.titulo}</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{m.descricao}</p>
+                </div>
+                <div className="flex items-center gap-1 text-xs font-medium text-primary">
+                  Abrir
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </div>
+              </CardContent>
+            </Card>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
