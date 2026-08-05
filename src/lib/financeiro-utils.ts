@@ -259,3 +259,54 @@ export function calcularDiaEmissaoPadrao(periodo: string | null | undefined): nu
   };
   return map[periodo] ?? null;
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * Contratos pendentes — vencimento do período
+ * ────────────────────────────────────────────────────────── */
+
+/** Último dia de cada janela de movimentação. */
+const FIM_PERIODO: Record<string, number> = {
+  "01-05": 5,
+  "05-10": 10,
+  "10-15": 15,
+  "15-20": 20,
+  "20-25": 25,
+  "25-30": 30,
+};
+
+/**
+ * Um contrato só é "pendente" quando o período de movimentação já venceu
+ * há mais de 1 dia (ex.: período 01-05 → pendente a partir do dia 07).
+ * Competências anteriores ao mês vigente já estão totalmente vencidas.
+ */
+export function periodoVencido(
+  mesReferencia: string | null | undefined,
+  periodo: string | null | undefined,
+  hoje: Date = new Date(),
+): boolean {
+  if (!mesReferencia) return false;
+  const m = mesReferencia.match(/^(\d{4})-(\d{2})$/);
+  if (!m) return false;
+  const ano = Number(m[1]);
+  const mes = Number(m[2]);
+
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = hoje.getMonth() + 1;
+
+  // Competência futura → nada vencido
+  if (ano > anoAtual || (ano === anoAtual && mes > mesAtual)) return false;
+  // Competência passada → tudo vencido
+  if (ano < anoAtual || mes < mesAtual) return true;
+
+  const fim = FIM_PERIODO[periodo ?? ""] ?? null;
+  if (fim === null) return false;
+  // "Ultrapassou 1 dia" do fim do período → dia >= fim + 2
+  return hoje.getDate() >= fim + 2;
+}
+
+/** Competências consideradas por padrão: mês vigente + mês anterior. */
+export function competenciasJanelaPadrao(hoje: Date = new Date()): string[] {
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return [fmt(hoje), fmt(new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1))];
+}
+
