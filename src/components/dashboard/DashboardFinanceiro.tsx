@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
-  AlertTriangle,
   Download,
   FileText,
   ArrowLeft,
@@ -16,11 +15,8 @@ import {
   BarChart3,
   TrendingUp,
   ClipboardList,
-  BellRing,
 } from "lucide-react";
-import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
-import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroativosParaCobrar";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
