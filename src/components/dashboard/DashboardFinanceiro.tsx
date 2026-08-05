@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/date-utils";
-import { FaturamentosEnviadoFinanceiro } from "./FaturamentosEnviadoFinanceiro";
 import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroativosParaCobrar";
@@ -364,17 +363,10 @@ export function DashboardFinanceiro() {
 
 
 
-  const ativas = empresas.filter((e: any) => e.status_empresa === "Ativa");
-  const ativasNaoSuspensas = ativas.filter((e: any) => !e.contrato_suspenso);
-
-  const notasEnviadas = movs.filter((m: any) => !!m.data_envio_nota).length;
-  const aguardandoNota = movs.filter((m: any) => !m.data_envio_nota).length;
-
   return (
     <div className="space-y-6">
       <AlertaRetroativosParaCobrar />
       <AlertasVencimentoFinanceiro />
-      <FaturamentosEnviadoFinanceiro />
 
       {cobrancasMinhas.length > 0 && (
         <Card className="rounded-xl border-warning/40 bg-warning/10 shadow-sm">
@@ -397,14 +389,6 @@ export function DashboardFinanceiro() {
           </CardContent>
         </Card>
       )}
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label="Contratos ativos" value={ativasNaoSuspensas.length} icon={Building2} accent="text-primary" bg="bg-primary/10" />
-        <KpiCard label="Notas enviadas" value={notasEnviadas} icon={CheckCircle2} accent="text-success" bg="bg-success/10" />
-        <KpiCard label="Aguardando Emissão" value={aguardandoNota} icon={CalendarClock} accent="text-warning" bg="bg-warning/10" />
-        <KpiCard label="Cobranças abertas" value={cobrancasAbertas.length} icon={AlertCircle} accent="text-destructive" bg="bg-destructive/10" />
-      </div>
 
       {/* Contratos com status Pendente */}
       <Card className="rounded-xl shadow-sm">
