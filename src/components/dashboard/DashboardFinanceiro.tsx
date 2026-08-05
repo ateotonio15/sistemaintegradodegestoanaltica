@@ -581,7 +581,7 @@ export function DashboardFinanceiro() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2 max-h-[520px] overflow-y-auto">
+      <CardContent className="space-y-2 h-[calc(100vh-260px)] min-h-[420px] overflow-y-auto">
         {pendentesFiltrados.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">Nenhum contrato pendente 🎉</p>
         ) : (
