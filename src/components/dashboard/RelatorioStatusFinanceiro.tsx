@@ -708,7 +708,7 @@ export function RelatorioStatusFinanceiro() {
     doc.save(`relatorio-financeiro-${dataIni}_a_${dataFim}.pdf`);
   }
 
-  const totalFaturamentos = filtradas.filter((l) => !!l.faturamento_iniciado_em).length;
+  const totalFaturamentos = kpiLinhas.faturamentos.length;
   const totalAnexos = filtradas.reduce((s, l) => s + l.qtd_anexos, 0);
 
   return (
