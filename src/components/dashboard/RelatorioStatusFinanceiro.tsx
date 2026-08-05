@@ -760,6 +760,16 @@ export function RelatorioStatusFinanceiro() {
               size="sm"
               variant="outline"
               className="h-9 text-sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw className={cn("h-4 w-4 mr-1.5", isFetching && "animate-spin")} />
+              Atualizar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 text-sm"
               onClick={exportarExcel}
               disabled={filtradas.length === 0}
             >
