@@ -292,116 +292,103 @@ export function DashboardFinanceiro() {
   async function exportarPendentes() {
     if (pendentesFiltrados.length === 0) return;
     const ExcelJS = (await import("exceljs")).default;
+    const VERDE = "FF16A34A";
+    const VERDE_CLARO = "FFEAF7F0";
+    const CINZA = "FF6B7280";
+
     const wb = new ExcelJS.Workbook();
     wb.creator = "SIGA";
-    const ws = wb.addWorksheet("Pendentes", {
-      views: [{ state: "frozen", ySplit: 4 }],
+    const ws = wb.addWorksheet("Contratos pendentes", {
+      views: [{ state: "frozen", ySplit: 4, showGridLines: false }],
       pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
     });
-
-    const COLS = [
-      { header: "Empresa", key: "empresa", width: 44 },
-      { header: "Contrato", key: "contrato", width: 18 },
-      { header: "Responsável", key: "responsavel", width: 28 },
-      { header: "Competência", key: "competencia", width: 16 },
-      { header: "Período", key: "periodo", width: 14 },
-      { header: "Pagador", key: "pagador", width: 44 },
+    ws.columns = [
+      { width: 52 },
+      { width: 16 },
+      { width: 30 },
+      { width: 12 },
+      { width: 46 },
     ];
-    ws.columns = COLS.map((c) => ({ key: c.key, width: c.width }));
 
-    // Cabeçalho institucional
-    ws.mergeCells(1, 1, 1, COLS.length);
+    // Cabeçalho institucional (verde e branco)
+    ws.mergeCells(1, 1, 1, 5);
     const t = ws.getCell("A1");
     t.value = "Contratos pendentes";
-    t.font = { bold: true, size: 16, color: { argb: "FF111827" } };
-    t.alignment = { vertical: "middle" };
-    ws.getRow(1).height = 26;
+    t.font = { bold: true, size: 18, color: { argb: "FFFFFFFF" } };
+    t.alignment = { vertical: "middle", indent: 1 };
+    t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    ws.getRow(1).height = 34;
+    for (let c = 2; c <= 5; c++) {
+      ws.getCell(1, c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    }
 
-    ws.mergeCells(2, 1, 2, COLS.length);
+    ws.mergeCells(2, 1, 2, 5);
     const s = ws.getCell("A2");
     s.value = `${resumoFiltros().join("   ·   ")}   ·   Total: ${pendentesFiltrados.length}   ·   Emitido em ${new Date().toLocaleString("pt-BR")}`;
-    s.font = { size: 10, color: { argb: "FF6B7280" } };
-    ws.getRow(3).height = 6;
+    s.font = { size: 10, color: { argb: CINZA } };
+    s.alignment = { vertical: "middle", indent: 1 };
+    ws.getRow(2).height = 20;
+    ws.getRow(3).height = 8;
 
-    // Cabeçalho da tabela
-    const headerRow = ws.getRow(4);
-    headerRow.values = COLS.map((c) => c.header);
-    headerRow.height = 22;
-    headerRow.eachCell((cell) => {
-      cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F2937" } };
-      cell.alignment = { vertical: "middle", horizontal: "left" };
-      cell.border = { bottom: { style: "thin", color: { argb: "FF111827" } } };
+    // Agrupado por competência — visual de blocos, sem grade de tabela
+    const grupos = new Map<string, typeof pendentesFiltrados>();
+    pendentesFiltrados.forEach((p) => {
+      const k = formatCompetencia(p.mes_referencia);
+      const arr = grupos.get(k) ?? [];
+      arr.push(p);
+      grupos.set(k, arr);
     });
 
-    let zebra = false;
-    const addLinha = (v: Record<string, string>) => {
-      const row = ws.addRow(v);
-      row.height = 18;
-      row.eachCell((cell, col) => {
-        cell.font = { size: 10 };
-        cell.alignment = {
-          vertical: "middle",
-          horizontal: col === 4 || col === 5 ? "center" : "left",
-          wrapText: col === 1 || col === 6,
-        };
-        cell.border = { bottom: { style: "hair", color: { argb: "FFE5E7EB" } } };
-        if (zebra) {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF7F8FA" } };
+    Array.from(grupos.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([competencia, itens]) => {
+        const secao = ws.addRow([`${competencia}  ·  ${itens.length} contrato(s)`]);
+        ws.mergeCells(secao.number, 1, secao.number, 5);
+        secao.height = 24;
+        const cel = ws.getCell(secao.number, 1);
+        cel.font = { bold: true, size: 12, color: { argb: VERDE } };
+        cel.alignment = { vertical: "middle", indent: 1 };
+        for (let c = 1; c <= 5; c++) {
+          ws.getCell(secao.number, c).fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: VERDE_CLARO },
+          };
         }
+
+        const rotulos = ws.addRow(["Empresa", "Contrato", "Responsável", "Período", "Pagador"]);
+        rotulos.height = 16;
+        rotulos.eachCell((cell) => {
+          cell.font = { size: 9, bold: true, color: { argb: CINZA } };
+          cell.alignment = { vertical: "middle", indent: 1 };
+        });
+
+        itens.forEach((p) => {
+          const pagadores = p.pagadores.length
+            ? p.pagadores.map((pg) => pg.nome_pagador).join(" · ")
+            : "—";
+          const row = ws.addRow([
+            p.empresa_nome,
+            p.codigo_contrato || "—",
+            p.responsavel || "—",
+            p.periodo ?? "—",
+            pagadores,
+          ]);
+          row.height = 20;
+          row.eachCell((cell, col) => {
+            cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
+            cell.alignment = {
+              vertical: "middle",
+              indent: 1,
+              horizontal: col === 4 ? "center" : "left",
+              wrapText: col === 1 || col === 5,
+            };
+            cell.border = { bottom: { style: "hair", color: { argb: "FFDDEFE4" } } };
+          });
+        });
+
+        ws.addRow([]).height = 10;
       });
-      zebra = !zebra;
-    };
-
-    pendentesFiltrados.forEach((p) => {
-      const base = {
-        empresa: p.empresa_nome,
-        contrato: p.codigo_contrato || "—",
-        responsavel: p.responsavel || "—",
-        competencia: formatCompetencia(p.mes_referencia),
-        periodo: p.periodo ?? "—",
-      };
-      if (p.pagadores.length === 0) {
-        addLinha({ ...base, pagador: "—" });
-      } else {
-        p.pagadores.forEach((pg) => addLinha({ ...base, pagador: pg.nome_pagador }));
-      }
-    });
-
-    ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: COLS.length } };
-
-    // Aba de resumo
-    const rs = wb.addWorksheet("Resumo");
-    rs.columns = [
-      { header: "Agrupamento", key: "grupo", width: 22 },
-      { header: "Valor", key: "valor", width: 22 },
-      { header: "Contratos pendentes", key: "qtd", width: 22 },
-    ];
-    const estiloHead = (row: any) => {
-      row.height = 20;
-      row.eachCell((cell: any) => {
-        cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F2937" } };
-      });
-    };
-    estiloHead(rs.getRow(1));
-
-    const porComp = new Map<string, number>();
-    const porPer = new Map<string, number>();
-    pendentesFiltrados.forEach((p) => {
-      const c = formatCompetencia(p.mes_referencia);
-      porComp.set(c, (porComp.get(c) ?? 0) + 1);
-      const per = p.periodo ?? "—";
-      porPer.set(per, (porPer.get(per) ?? 0) + 1);
-    });
-    Array.from(porComp.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .forEach(([valor, qtd]) => rs.addRow({ grupo: "Competência", valor, qtd }));
-    Array.from(porPer.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .forEach(([valor, qtd]) => rs.addRow({ grupo: "Período", valor, qtd }));
-    const totalRow = rs.addRow({ grupo: "Total", valor: "", qtd: pendentesFiltrados.length });
-    totalRow.eachCell((cell) => (cell.font = { bold: true }));
 
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], {
