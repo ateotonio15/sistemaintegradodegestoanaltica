@@ -311,9 +311,9 @@ export function RelatorioStatusFinanceiro() {
     wsDia.columns.forEach((c) => (c.width = 22));
 
     const wsUser = wb.addWorksheet("Por usuário");
-    wsUser.addRow(["Usuário", "Notas enviadas", "Faturamentos iniciados", "Anexos enviados"]);
+    wsUser.addRow(["Usuário", "Faturamentos iniciados", "Anexos enviados"]);
     wsUser.getRow(1).font = { bold: true };
-    porUsuario.forEach((u) => wsUser.addRow([u.usuario, u.enviadas, u.faturamentos, u.anexos]));
+    porUsuario.forEach((u) => wsUser.addRow([u.usuario, u.faturamentos, u.anexos]));
     wsUser.columns.forEach((c, i) => (c.width = i === 0 ? 34 : 22));
 
     const buf = await wb.xlsx.writeBuffer();
