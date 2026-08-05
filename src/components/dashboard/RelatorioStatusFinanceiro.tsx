@@ -619,7 +619,11 @@ export function RelatorioStatusFinanceiro() {
                   </thead>
                   <tbody>
                     {porUsuario.map((u) => (
-                      <tr key={u.usuario} className="border-b last:border-0 hover:bg-muted/40">
+                      <tr
+                        key={u.usuario}
+                        className="border-b last:border-0 hover:bg-muted/40 cursor-pointer"
+                        onClick={() => setUsuarioDialog(u.usuario)}
+                      >
                         <td className="px-3 py-1.5 truncate max-w-[180px]">{u.usuario}</td>
                         <td className="px-3 py-1.5 text-right">{u.faturamentos}</td>
                         <td className="px-3 py-1.5 text-right">{u.anexos}</td>
