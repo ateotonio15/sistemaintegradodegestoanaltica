@@ -2296,7 +2296,7 @@ export default function Financeiro() {
               <Wallet className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Financeiro</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Faturamento</h1>
               <p className="text-sm text-muted-foreground">
                 Controle de notas, anexos e cobranças — {formatMesReferencia(mes)}
               </p>
