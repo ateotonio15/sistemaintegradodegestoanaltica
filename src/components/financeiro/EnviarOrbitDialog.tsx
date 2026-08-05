@@ -20,12 +20,16 @@ function CustomScrollArea({
   const updateThumb = () => {
     const v = viewportRef.current;
     if (!v) return;
+    const track = trackRef.current;
+    const trackH = track ? track.clientHeight : v.clientHeight;
+    const maxScroll = v.scrollHeight - v.clientHeight;
     const ratio = v.clientHeight / v.scrollHeight;
-    const height = Math.max(ratio * v.clientHeight, 48);
-    const top = (v.scrollTop / v.scrollHeight) * v.clientHeight;
+    const height = Math.min(trackH, Math.max(ratio * trackH, 48));
+    const travel = Math.max(trackH - height, 0);
+    const top = maxScroll > 0 ? (v.scrollTop / maxScroll) * travel : 0;
     setThumbHeight(height);
-    setThumbTop(top);
-    setVisible(v.scrollHeight > v.clientHeight);
+    setThumbTop(Math.min(Math.max(top, 0), travel));
+    setVisible(maxScroll > 1);
   };
 
   useEffect(() => {
@@ -47,20 +51,27 @@ function CustomScrollArea({
 
   const onThumbMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     const v = viewportRef.current;
-    const thumb = e.currentTarget as HTMLDivElement;
-    if (!v || !thumb) return;
+    const track = trackRef.current;
+    if (!v || !track) return;
     const startY = e.clientY;
-    const startTop = thumb.getBoundingClientRect().top;
+    const startScrollTop = v.scrollTop;
+    const thumbH = (e.currentTarget as HTMLDivElement).offsetHeight;
+    const travel = Math.max(track.clientHeight - thumbH, 1);
+    const maxScroll = Math.max(v.scrollHeight - v.clientHeight, 0);
+
     const onMove = (ev: MouseEvent) => {
       const delta = ev.clientY - startY;
-      const ratio = delta / v.clientHeight;
-      v.scrollTop += ratio * v.scrollHeight;
+      const next = startScrollTop + (delta / travel) * maxScroll;
+      v.scrollTop = Math.min(Math.max(next, 0), maxScroll);
     };
     const onUp = () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      document.body.style.userSelect = "";
     };
+    document.body.style.userSelect = "none";
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
@@ -69,11 +80,15 @@ function CustomScrollArea({
     const v = viewportRef.current;
     const track = trackRef.current;
     if (!v || !track) return;
+    if (e.target !== track) return; // clique no thumb é tratado pelo drag
     const rect = track.getBoundingClientRect();
-    const clickY = e.clientY - rect.top;
-    const ratio = clickY / rect.height;
-    v.scrollTop = ratio * v.scrollHeight;
+    const travel = Math.max(rect.height - thumbHeight, 1);
+    const clickY = e.clientY - rect.top - thumbHeight / 2;
+    const maxScroll = Math.max(v.scrollHeight - v.clientHeight, 0);
+    const next = (clickY / travel) * maxScroll;
+    v.scrollTop = Math.min(Math.max(next, 0), maxScroll);
   };
+
 
   return (
     <div className={cn("relative overflow-hidden", className)}>
