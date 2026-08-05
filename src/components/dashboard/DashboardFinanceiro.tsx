@@ -16,7 +16,7 @@ import {
   TrendingUp,
   ClipboardList,
 } from "lucide-react";
-import samelLogo from "@/assets/samel-logo.png.asset.json";
+import samelIcon from "@/assets/samel-icon.png.asset.json";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
@@ -293,9 +293,10 @@ export function DashboardFinanceiro() {
   async function exportarPendentes() {
     if (pendentesFiltrados.length === 0) return;
     const ExcelJS = (await import("exceljs")).default;
-    const VERDE = "FF16A34A";
-    const VERDE_CLARO = "FFEAF7F0";
+    const VERDE = "FF32A976";
+    const VERDE_CLARO = "FFEAF6F0";
     const CINZA = "FF6B7280";
+
 
     const wb = new ExcelJS.Workbook();
     wb.creator = "SIGA";
@@ -384,7 +385,7 @@ export function DashboardFinanceiro() {
               horizontal: col === 4 ? "center" : "left",
               wrapText: col === 1 || col === 5,
             };
-            cell.border = { bottom: { style: "hair", color: { argb: "FFDDEFE4" } } };
+            cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
           });
         });
 
@@ -413,10 +414,10 @@ export function DashboardFinanceiro() {
     const pageH = doc.internal.pageSize.getHeight();
     const hoje = new Date().toLocaleString("pt-BR");
 
-    // Logo Samel (data URL)
+    // Logo Samel (somente o símbolo, monocromático)
     let logoData: string | null = null;
     try {
-      const resp = await fetch(samelLogo.url);
+      const resp = await fetch(samelIcon.url);
       const blob = await resp.blob();
       logoData = await new Promise<string>((resolve, reject) => {
         const fr = new FileReader();
@@ -428,15 +429,15 @@ export function DashboardFinanceiro() {
       logoData = null;
     }
 
-    // Faixa de cabeçalho (verde SIGA)
-    doc.setFillColor(22, 163, 74);
+    // Faixa de cabeçalho (verde Samel)
+    doc.setFillColor(50, 169, 118);
     doc.rect(0, 0, pageW, 64, "F");
 
-    const textX = logoData ? 168 : 40;
+    const textX = logoData ? 108 : 40;
     if (logoData) {
       doc.setFillColor(255, 255, 255);
-      doc.roundedRect(32, 12, 120, 40, 6, 6, "F");
-      doc.addImage(logoData, "PNG", 40, 18, 104, 28, undefined, "FAST");
+      doc.roundedRect(32, 12, 56, 40, 6, 6, "F");
+      doc.addImage(logoData, "PNG", 44, 17, 32, 30, undefined, "FAST");
     }
 
     doc.setTextColor(255, 255, 255);
@@ -445,8 +446,9 @@ export function DashboardFinanceiro() {
     doc.text("Contratos pendentes", textX, 30);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(226, 246, 234);
+    doc.setTextColor(226, 244, 236);
     doc.text(`Faturamento · SIGA · Emitido em ${hoje}`, textX, 48);
+
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
@@ -482,8 +484,9 @@ export function DashboardFinanceiro() {
       body,
       theme: "plain",
       styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
-      headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: "bold", fontSize: 9 },
-      alternateRowStyles: { fillColor: [240, 250, 244] },
+      headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [234, 246, 240] },
+
       columnStyles: {
         0: { cellWidth: 210, fontStyle: "bold" },
         1: { cellWidth: 80 },
