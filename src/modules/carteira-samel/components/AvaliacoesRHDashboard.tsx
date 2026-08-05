@@ -187,8 +187,8 @@ export function AvaliacoesRHDashboard({ form }: Props) {
       ex.soma += n; ex.qtd += 1;
       map.set(key, ex);
     });
-    return Array.from(map.values())
-      .map(v => ({ nome: prettyLabel(v.variantes), media: Number((v.soma / v.qtd).toFixed(2)), qtd: v.qtd }))
+    return Array.from(map.entries())
+      .map(([key, v]) => ({ key, nome: prettyLabel(v.variantes), media: Number((v.soma / v.qtd).toFixed(2)), qtd: v.qtd }))
       .sort((a, b) => b.media - a.media || b.qtd - a.qtd);
   }, [respostas]);
 
