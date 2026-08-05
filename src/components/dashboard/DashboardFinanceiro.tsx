@@ -11,6 +11,12 @@ import {
   AlertTriangle,
   Download,
   FileText,
+  ArrowLeft,
+  ChevronRight,
+  BarChart3,
+  TrendingUp,
+  ClipboardList,
+  BellRing,
 } from "lucide-react";
 import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
