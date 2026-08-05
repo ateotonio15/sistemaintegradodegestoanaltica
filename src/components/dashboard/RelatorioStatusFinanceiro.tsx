@@ -822,7 +822,7 @@ export function RelatorioStatusFinanceiro() {
           ))}
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {resumoStatus.map((r) => (
             <button
               key={r.status}
@@ -830,7 +830,7 @@ export function RelatorioStatusFinanceiro() {
               onClick={() => setStatusDialog(r.status)}
               className="focus:outline-none focus:ring-2 focus:ring-ring rounded-full"
             >
-              <Badge className={cn("text-[11px] font-medium cursor-pointer", statusFinanceiroColor(r.status))}>
+              <Badge className={cn("text-xs font-medium cursor-pointer px-2.5 py-0.5", statusFinanceiroColor(r.status))}>
                 {labelStatusFinanceiro(r.status)}: {r.total}
               </Badge>
             </button>
