@@ -1152,8 +1152,6 @@ export function RelatorioStatusFinanceiro() {
             </div>
           </div>
         </DialogContent>
-
-        </DialogContent>
       </Dialog>
     </Card>
   );
