@@ -590,7 +590,7 @@ export default function Home() {
                     <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-muted-foreground">
                       {activeSection.title}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-fr">
                       {activeSection.items.filter((item) => {
                         if (!isExecutivoExterno) return true;
                         return ["/demandas", "/plantoes", "/mailing-brindes"].includes(item.to || "");
@@ -600,9 +600,9 @@ export default function Home() {
                           <Link
                             key={item.slug}
                             to={item.to || `/inteligencia/${item.slug}`}
-                            className="group"
+                            className="group h-full block"
                           >
-                            <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
+                            <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full min-h-[104px]">
                               <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
                                 <Icon className="h-5 w-5" />
                               </div>
@@ -624,7 +624,7 @@ export default function Home() {
               }
 
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-fr">
                   {INTELIGENCIA_SECTIONS.filter((section) => {
                     if (!isExecutivoExterno) return true;
                     return ["Demandas", "Plantões", "Mailing de Brindes"].includes(section.title);
@@ -638,7 +638,7 @@ export default function Home() {
                     if (!onlyItem) return null;
 
                     const cardInner = (
-                      <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full">
+                      <Card className="p-4 flex items-start gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full min-h-[104px]">
                         <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
                           <Icon className="h-5 w-5" />
                         </div>
@@ -665,7 +665,7 @@ export default function Home() {
                         <button
                           key={section.title}
                           onClick={() => setOpenInteligencia(section.title)}
-                          className="group text-left"
+                          className="group text-left h-full w-full"
                         >
                           {cardInner}
                         </button>
@@ -675,7 +675,7 @@ export default function Home() {
                       <Link
                         key={section.title}
                         to={onlyItem.to || `/inteligencia/${onlyItem.slug}`}
-                        className="group"
+                        className="group h-full block"
                       >
                         {cardInner}
                       </Link>
