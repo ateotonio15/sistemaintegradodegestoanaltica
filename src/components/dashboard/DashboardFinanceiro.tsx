@@ -508,7 +508,7 @@ export function DashboardFinanceiro() {
       icon: AlertCircle,
       accent: "text-destructive",
       bg: "bg-destructive/10",
-      badge: pendentes.length > 0 ? { label: `${pendentes.length}`, variant: "destructive" } : undefined,
+      badge: pendentesJanela.length > 0 ? { label: `${pendentesJanela.length}`, variant: "destructive" } : undefined,
     },
     {
       id: "relatorio",
