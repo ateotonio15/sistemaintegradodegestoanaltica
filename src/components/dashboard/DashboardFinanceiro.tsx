@@ -559,8 +559,8 @@ export function DashboardFinanceiro() {
   const moduloAtivo = modulos.find((m) => m.id === modulo);
 
   const conteudoPendentes = (
-    <Card className="rounded-xl shadow-sm">
-      <CardHeader className="pb-3 space-y-3">
+    <Card className="rounded-xl shadow-sm flex flex-col flex-1 min-h-0">
+      <CardHeader className="pb-3 space-y-3 shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-destructive" />
@@ -605,7 +605,7 @@ export function DashboardFinanceiro() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2 h-[calc(100vh-260px)] min-h-[420px] overflow-y-auto">
+      <CardContent className="space-y-2 flex-1 min-h-0 overflow-y-auto">
         {pendentesFiltrados.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">Nenhum contrato pendente 🎉</p>
         ) : (
@@ -659,10 +659,15 @@ export function DashboardFinanceiro() {
           </div>
         </div>
 
-        {modulo === "pendentes" && conteudoPendentes}
-        {modulo === "relatorio" && <RelatorioStatusFinanceiro />}
-        {modulo === "analises" && <AnalisesEnviosPanel />}
-        {modulo === "previsao" && <PrevisaoFinanceira />}
+        {modulo === "pendentes" ? (
+          conteudoPendentes
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+            {modulo === "relatorio" && <RelatorioStatusFinanceiro />}
+            {modulo === "analises" && <AnalisesEnviosPanel />}
+            {modulo === "previsao" && <PrevisaoFinanceira />}
+          </div>
+        )}
       </div>
     );
   }
