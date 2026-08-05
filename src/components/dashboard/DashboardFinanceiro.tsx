@@ -245,9 +245,17 @@ export function DashboardFinanceiro() {
     return m;
   }, [pagadores]);
 
+  // Janela padrão: mês vigente + mês anterior (quando nenhuma competência é escolhida)
+  const janelaPadrao = useMemo(() => competenciasJanelaPadrao(), []);
+
+  const pendentesJanela = useMemo(
+    () => pendentes.filter((p) => p.mes_referencia && janelaPadrao.includes(p.mes_referencia)),
+    [pendentes, janelaPadrao],
+  );
+
   const pendentesFiltrados = useMemo(
     () =>
-      pendentes
+      (competenciasSel.length === 0 ? pendentesJanela : pendentes)
         .filter(
           (p) =>
             (competenciasSel.length === 0 || (p.mes_referencia && competenciasSel.includes(p.mes_referencia))) &&
@@ -261,9 +269,10 @@ export function DashboardFinanceiro() {
           pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
         }))
         .sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome)),
-    [pendentes, competenciasSel, periodosSel, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
+    [pendentes, pendentesJanela, competenciasSel, periodosSel, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
 
   );
+
 
   async function exportarPendentes() {
     if (pendentesFiltrados.length === 0) return;
