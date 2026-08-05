@@ -318,9 +318,21 @@ export function AvaliacoesRHDashboard({ form }: Props) {
           ) : (
             <div className="space-y-2">
               {rankingExecutivas.slice(0, 10).map((r, i) => (
-                <div key={r.nome} className="flex items-center gap-3 text-sm">
+                <div key={r.key} className="flex items-center gap-3 text-sm">
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? "bg-yellow-500/20 text-yellow-600" : "bg-muted text-muted-foreground"}`}>{i + 1}</span>
-                  <span className="flex-1 truncate">{r.nome}</span>
+                  {podeVerDetalhes ? (
+                    <button
+                      type="button"
+                      onClick={() => setExecSelecionada(r.key)}
+                      className="flex-1 truncate text-left hover:text-primary hover:underline inline-flex items-center gap-1"
+                      title="Ver avaliações desta executiva"
+                    >
+                      <Eye className="h-3 w-3 opacity-60 shrink-0" />
+                      <span className="truncate">{r.nome}</span>
+                    </button>
+                  ) : (
+                    <span className="flex-1 truncate">{r.nome}</span>
+                  )}
                   <span className="text-xs text-muted-foreground">{r.qtd} aval.</span>
                   <span className="font-semibold flex items-center gap-1"><Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />{r.media.toFixed(2)}</span>
                 </div>
