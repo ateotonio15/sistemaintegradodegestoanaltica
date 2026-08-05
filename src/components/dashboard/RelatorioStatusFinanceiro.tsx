@@ -881,20 +881,20 @@ export function RelatorioStatusFinanceiro() {
             </div>
 
             <div className="rounded-lg border overflow-hidden">
-              <div className="px-3 py-2 bg-muted/50 border-b">
-                <p className="text-xs font-semibold">Produção por usuário</p>
-                <p className="text-[10px] text-muted-foreground leading-snug">
+              <div className="px-4 py-3 bg-muted/50 border-b">
+                <p className="text-sm font-semibold">Produção por usuário</p>
+                <p className="text-xs text-muted-foreground leading-snug">
                   <strong>Faturamentos</strong> = faturamentos que ele iniciou · <strong>Anexos</strong> = arquivos
                   que ele subiu.
                 </p>
               </div>
-              <div className="max-h-[240px] overflow-y-auto">
-                <table className="w-full text-xs">
+              <div className="max-h-[260px] overflow-y-auto">
+                <table className="w-full text-sm">
                   <thead className="text-muted-foreground sticky top-0 bg-card">
                     <tr className="border-b">
-                      <th className="text-left px-3 py-1.5 font-medium">Usuário</th>
-                      <th className="text-right px-3 py-1.5 font-medium">Faturamentos</th>
-                      <th className="text-right px-3 py-1.5 font-medium">Anexos</th>
+                      <th className="text-left px-4 py-2 font-medium">Usuário</th>
+                      <th className="text-right px-4 py-2 font-medium">Faturamentos</th>
+                      <th className="text-right px-4 py-2 font-medium">Anexos</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -904,9 +904,9 @@ export function RelatorioStatusFinanceiro() {
                         className="border-b last:border-0 hover:bg-muted/40 cursor-pointer"
                         onClick={() => setUsuarioDialog(u.usuario)}
                       >
-                        <td className="px-3 py-1.5 truncate max-w-[180px]">{u.usuario}</td>
-                        <td className="px-3 py-1.5 text-right">{u.faturamentos}</td>
-                        <td className="px-3 py-1.5 text-right">{u.anexos}</td>
+                        <td className="px-4 py-2 truncate max-w-[200px]">{u.usuario}</td>
+                        <td className="px-4 py-2 text-right">{u.faturamentos}</td>
+                        <td className="px-4 py-2 text-right">{u.anexos}</td>
                       </tr>
                     ))}
                   </tbody>
