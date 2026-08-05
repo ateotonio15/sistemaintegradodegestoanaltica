@@ -16,6 +16,7 @@ import {
   TrendingUp,
   ClipboardList,
 } from "lucide-react";
+import samelLogo from "@/assets/samel-logo.png.asset.json";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
