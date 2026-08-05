@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertCircle,
   ChevronLeft,
@@ -62,6 +63,7 @@ export function PreviewArquivoDialog({
   const [url, setUrl] = useState<string | null>(null);
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
+  const [pageInput, setPageInput] = useState("1");
   const [scale, setScale] = useState(1.8);
   const [renderingPage, setRenderingPage] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -71,6 +73,10 @@ export function PreviewArquivoDialog({
   const [manualZoom, setManualZoom] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setPageInput(String(pageNumber));
+  }, [pageNumber]);
 
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase();
   const isPdf = ext === "pdf" || (mimeType ?? "").includes("pdf");
@@ -231,6 +237,23 @@ export function PreviewArquivoDialog({
     };
   }, [pdfDoc, pageNumber, scale]);
 
+  function applyPageInput() {
+    if (!pdfDoc) return;
+    const value = pageInput.replace(/\D/g, "");
+    let target = value ? parseInt(value, 10) : 1;
+    target = Math.max(1, Math.min(pdfDoc.numPages, target));
+    setPageNumber(target);
+    setPageInput(String(target));
+  }
+
+  function handlePageKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      applyPageInput();
+      (e.target as HTMLInputElement).blur();
+    }
+  }
+
   async function handleDownload() {
     try {
       const { data, error: e } = await supabase.storage
@@ -270,9 +293,22 @@ export function PreviewArquivoDialog({
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="min-w-16 text-center text-xs text-muted-foreground">
-                  {pageNumber}/{pdfDoc.numPages}
-                </span>
+                <div className="flex items-center gap-1 px-1">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={pageInput}
+                    onChange={(e) => setPageInput(e.target.value)}
+                    onBlur={applyPageInput}
+                    onKeyDown={handlePageKeyDown}
+                    className="h-6 w-12 px-1 py-0 text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    aria-label="Número da página"
+                    disabled={!pdfDoc}
+                  />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    / {pdfDoc.numPages}
+                  </span>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
