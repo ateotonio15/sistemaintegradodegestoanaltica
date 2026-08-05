@@ -266,8 +266,8 @@ const SHORTCUTS: Shortcut[] = [
   },
   {
     to: "/dashboard/financeiro",
-    label: "Faturamento",
-    description: "Notas, prazos e cobranças",
+    label: "Financeiro",
+    description: "Painel de notas, prazos e cobranças",
     icon: Wallet,
     group: "funcoes",
     show: (c) => c.isAdmin || c.isFinanceiro,
