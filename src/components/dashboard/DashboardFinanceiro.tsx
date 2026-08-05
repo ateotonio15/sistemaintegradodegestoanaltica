@@ -175,8 +175,6 @@ export function DashboardFinanceiro() {
     return new Set(empresas.filter((e: any) => e.responsavel_user_id === user.id).map((e: any) => e.id));
   }, [empresas, user]);
 
-  const cobrancasAbertas = cobrancas.filter((c) => c.status === "aberta");
-  const cobrancasMinhas = cobrancasAbertas.filter((c) => minhasEmpresasIds.has(c.empresa_id));
 
   const [competenciasSel, setCompetenciasSel] = useState<string[]>([]);
   const [periodosSel, setPeriodosSel] = useState<string[]>([]);
