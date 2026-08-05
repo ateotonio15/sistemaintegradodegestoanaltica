@@ -918,12 +918,12 @@ export function RelatorioStatusFinanceiro() {
       </CardContent>
 
       <Dialog open={!!statusDialog} onOpenChange={(open) => !open && setStatusDialog(null)}>
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden rounded-xl">
+          <DialogHeader className="px-6 py-5 border-b bg-muted/40 space-y-1.5">
+            <DialogTitle className="flex items-center gap-2.5 text-lg">
               {statusDialog && (
                 <>
-                  <Badge className={cn("text-xs font-medium", statusFinanceiroColor(statusDialog))}>
+                  <Badge className={cn("text-xs font-medium px-2.5 py-0.5", statusFinanceiroColor(statusDialog))}>
                     {labelStatusFinanceiro(statusDialog)}
                   </Badge>
                   <span>Empresas</span>
@@ -934,17 +934,18 @@ export function RelatorioStatusFinanceiro() {
               {statusDialog && `${filtradas.filter((l) => l.status === statusDialog).length} contrato(s) com status "${labelStatusFinanceiro(statusDialog)}".`}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-auto -mx-6 px-6">
+          <div className="flex-1 overflow-auto px-6 py-5">
+            <div className="rounded-lg border overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="text-muted-foreground sticky top-0 bg-card z-10">
+              <thead className="text-muted-foreground sticky top-0 bg-muted/60 backdrop-blur z-10">
                 <tr className="border-b">
-                  <th className="text-left px-4 py-2.5 font-medium">Empresa</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Contrato</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Competência</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Período</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Responsável</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Data da nota</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Vencimento</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Empresa</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Contrato</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Competência</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Período</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Responsável</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Data da nota</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Vencimento</th>
                 </tr>
               </thead>
               <tbody>
@@ -959,22 +960,24 @@ export function RelatorioStatusFinanceiro() {
                             ? l.usuario_faturamento
                             : l.usuario_faturamento || l.usuario_envio || l.ultimo_anexo_por || "—";
                       return (
-                        <tr key={l.id} className="border-b last:border-0 hover:bg-muted/40">
+                        <tr key={l.id} className="border-b last:border-0 even:bg-muted/20 hover:bg-primary/5 transition-colors">
                           <td className="px-4 py-2.5 font-medium">{l.empresa_nome}</td>
-                          <td className="px-4 py-2.5">{l.codigo_contrato || "—"}</td>
+                          <td className="px-4 py-2.5 tabular-nums text-muted-foreground">{l.codigo_contrato || "—"}</td>
                           <td className="px-4 py-2.5">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
-                          <td className="px-4 py-2.5">{l.periodo ?? "—"}</td>
+                          <td className="px-4 py-2.5 tabular-nums">{l.periodo ?? "—"}</td>
                           <td className="px-4 py-2.5">{responsavel || "—"}</td>
-                          <td className="px-4 py-2.5">{fmtDia(l.data_envio_nota)}</td>
-                          <td className="px-4 py-2.5">{fmtDia(l.data_vencimento)}</td>
+                          <td className="px-4 py-2.5 tabular-nums">{fmtDia(l.data_envio_nota)}</td>
+                          <td className="px-4 py-2.5 tabular-nums">{fmtDia(l.data_vencimento)}</td>
                         </tr>
                       );
                     })}
               </tbody>
             </table>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
+
 
       <Dialog open={!!usuarioDialog} onOpenChange={(open) => !open && setUsuarioDialog(null)}>
         <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
