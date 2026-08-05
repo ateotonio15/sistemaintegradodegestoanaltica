@@ -412,8 +412,8 @@ export function DashboardFinanceiro() {
     const pageH = doc.internal.pageSize.getHeight();
     const hoje = new Date().toLocaleString("pt-BR");
 
-    // Faixa de cabeçalho
-    doc.setFillColor(31, 41, 55);
+    // Faixa de cabeçalho (verde SIGA)
+    doc.setFillColor(22, 163, 74);
     doc.rect(0, 0, pageW, 64, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(16);
@@ -421,7 +421,7 @@ export function DashboardFinanceiro() {
     doc.text("Contratos pendentes", 40, 30);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(209, 213, 219);
+    doc.setTextColor(226, 246, 234);
     doc.text(`Faturamento · SIGA · Emitido em ${hoje}`, 40, 48);
 
     doc.setTextColor(255, 255, 255);
@@ -446,22 +446,22 @@ export function DashboardFinanceiro() {
         formatCompetencia(p.mes_referencia),
         p.periodo ?? "—",
       ];
-      if (p.pagadores.length === 0) {
-        body.push([...base, "—"]);
-      } else {
-        p.pagadores.forEach((pg) => body.push([...base, pg.nome_pagador]));
-      }
+      const pagadores = p.pagadores.length
+        ? p.pagadores.map((pg) => pg.nome_pagador).join(" · ")
+        : "—";
+      body.push([...base, pagadores]);
     });
 
     autoTable(doc, {
       startY: 84 + resumoFiltros().length * 13 + 10,
       head: [["Empresa", "Contrato", "Responsável", "Competência", "Período", "Pagador"]],
       body,
-      styles: { fontSize: 8.5, cellPadding: 5, valign: "middle", lineColor: [229, 231, 235], lineWidth: 0.4 },
-      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold", fontSize: 9 },
-      alternateRowStyles: { fillColor: [247, 248, 250] },
+      theme: "plain",
+      styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
+      headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [240, 250, 244] },
       columnStyles: {
-        0: { cellWidth: 210 },
+        0: { cellWidth: 210, fontStyle: "bold" },
         1: { cellWidth: 80 },
         2: { cellWidth: 130 },
         3: { cellWidth: 75, halign: "center" },
@@ -477,6 +477,7 @@ export function DashboardFinanceiro() {
         doc.text(`Página ${page}`, pageW - 40, pageH - 20, { align: "right" });
       },
     });
+
 
     doc.save(`contratos-pendentes-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
