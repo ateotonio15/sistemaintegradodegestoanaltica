@@ -311,9 +311,9 @@ export function RelatorioStatusFinanceiro() {
     wsDia.columns.forEach((c) => (c.width = 22));
 
     const wsUser = wb.addWorksheet("Por usuário");
-    wsUser.addRow(["Usuário", "Notas enviadas", "Faturamentos iniciados", "Anexos enviados"]);
+    wsUser.addRow(["Usuário", "Faturamentos iniciados", "Anexos enviados"]);
     wsUser.getRow(1).font = { bold: true };
-    porUsuario.forEach((u) => wsUser.addRow([u.usuario, u.enviadas, u.faturamentos, u.anexos]));
+    porUsuario.forEach((u) => wsUser.addRow([u.usuario, u.faturamentos, u.anexos]));
     wsUser.columns.forEach((c, i) => (c.width = i === 0 ? 34 : 22));
 
     const buf = await wb.xlsx.writeBuffer();
@@ -367,8 +367,8 @@ export function RelatorioStatusFinanceiro() {
     y = (doc as any).lastAutoTable.finalY + 16;
     autoTable(doc, {
       startY: y,
-      head: [["Usuário", "Notas enviadas", "Faturamentos iniciados", "Anexos"]],
-      body: porUsuario.map((u) => [u.usuario, String(u.enviadas), String(u.faturamentos), String(u.anexos)]),
+      head: [["Usuário", "Faturamentos iniciados", "Anexos"]],
+      body: porUsuario.map((u) => [u.usuario, String(u.faturamentos), String(u.anexos)]),
       styles: { fontSize: 8, cellPadding: 3 },
       headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
       margin: { left: 40, right: 40 },
@@ -574,8 +574,8 @@ export function RelatorioStatusFinanceiro() {
               <div className="px-3 py-2 bg-muted/50 border-b">
                 <p className="text-xs font-semibold">Produção por usuário</p>
                 <p className="text-[10px] text-muted-foreground leading-snug">
-                  <strong>Notas</strong> = notas enviadas pelo usuário · <strong>Faturamentos</strong> = faturamentos
-                  que ele iniciou · <strong>Anexos</strong> = arquivos que ele subiu.
+                  <strong>Faturamentos</strong> = faturamentos que ele iniciou · <strong>Anexos</strong> = arquivos
+                  que ele subiu.
                 </p>
               </div>
               <div className="max-h-[240px] overflow-y-auto">
@@ -583,7 +583,6 @@ export function RelatorioStatusFinanceiro() {
                   <thead className="text-muted-foreground sticky top-0 bg-card">
                     <tr className="border-b">
                       <th className="text-left px-3 py-1.5 font-medium">Usuário</th>
-                      <th className="text-right px-3 py-1.5 font-medium">Notas</th>
                       <th className="text-right px-3 py-1.5 font-medium">Faturamentos</th>
                       <th className="text-right px-3 py-1.5 font-medium">Anexos</th>
                     </tr>
@@ -592,7 +591,6 @@ export function RelatorioStatusFinanceiro() {
                     {porUsuario.map((u) => (
                       <tr key={u.usuario} className="border-b last:border-0 hover:bg-muted/40">
                         <td className="px-3 py-1.5 truncate max-w-[180px]">{u.usuario}</td>
-                        <td className="px-3 py-1.5 text-right font-medium">{u.enviadas}</td>
                         <td className="px-3 py-1.5 text-right">{u.faturamentos}</td>
                         <td className="px-3 py-1.5 text-right">{u.anexos}</td>
                       </tr>
