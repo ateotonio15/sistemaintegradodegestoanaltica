@@ -438,9 +438,22 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
             disabled={pageNumber <= 1 || renderingPage}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="min-w-16 text-center text-xs text-muted-foreground">
-            {pageNumber} / {pdfDoc.numPages}
-          </span>
+          <div className="flex items-center gap-1 px-1">
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={pageInput}
+              onChange={(e) => setPageInput(e.target.value)}
+              onBlur={applyPageInput}
+              onKeyDown={handlePageKeyDown}
+              className="h-6 w-12 px-1 py-0 text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              aria-label="Número da página"
+              disabled={!pdfDoc}
+            />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              / {pdfDoc.numPages}
+            </span>
+          </div>
           <Button variant="ghost" size="icon" className="h-7 w-7"
             onClick={() => setPageNumber((p) => Math.min(pdfDoc.numPages, p + 1))}
             disabled={pageNumber >= pdfDoc.numPages || renderingPage}>
