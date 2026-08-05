@@ -89,7 +89,11 @@ export function RelatorioStatusFinanceiro() {
   const [usuarioDialog, setUsuarioDialog] = useState<string | null>(null);
   const [kpiDialog, setKpiDialog] = useState<"movimentacoes" | "notas" | "faturamentos" | "anexos" | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
     queryKey: ["fin-relatorio-status", dataIni, dataFim],
     queryFn: async (): Promise<LinhaRelatorio[]> => {
       const { data: fins, error } = await supabase
