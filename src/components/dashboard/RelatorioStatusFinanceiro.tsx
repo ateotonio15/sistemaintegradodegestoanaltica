@@ -367,8 +367,8 @@ export function RelatorioStatusFinanceiro() {
     y = (doc as any).lastAutoTable.finalY + 16;
     autoTable(doc, {
       startY: y,
-      head: [["Usuário", "Notas enviadas", "Faturamentos iniciados", "Anexos"]],
-      body: porUsuario.map((u) => [u.usuario, String(u.enviadas), String(u.faturamentos), String(u.anexos)]),
+      head: [["Usuário", "Faturamentos iniciados", "Anexos"]],
+      body: porUsuario.map((u) => [u.usuario, String(u.faturamentos), String(u.anexos)]),
       styles: { fontSize: 8, cellPadding: 3 },
       headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
       margin: { left: 40, right: 40 },
