@@ -318,34 +318,183 @@ export function RelatorioStatusFinanceiro() {
   async function exportarExcel() {
     if (filtradas.length === 0) return;
     const ExcelJS = (await import("exceljs")).default;
+    const VERDE = "FF32A976";
+    const VERDE_CLARO = "FFEAF6F0";
+    const CINZA = "FF6B7280";
+
     const wb = new ExcelJS.Workbook();
+    wb.creator = "SIGA";
 
-    const ws = wb.addWorksheet("Detalhado");
-    ws.addRow(cabecalho);
-    ws.getRow(1).font = { bold: true };
-    ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } } as any;
-    filtradas.forEach((l) => ws.addRow(linhaValores(l)));
-    ws.columns.forEach((c, i) => (c.width = i === 0 ? 40 : 20));
-    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cabecalho.length } };
-    ws.views = [{ state: "frozen", ySplit: 1 }];
+    // Worksheet 1: Relatório diário em blocos por dia (mesmo estilo dos pendentes)
+    const ws = wb.addWorksheet("Relatório diário", {
+      views: [{ state: "frozen", ySplit: 4, showGridLines: false }],
+      pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+    ws.columns = [
+      { width: 42 },
+      { width: 16 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 },
+      { width: 28 },
+    ];
 
-    const wsStatus = wb.addWorksheet("Resumo por status");
-    wsStatus.addRow(["Status", "Quantidade"]);
-    wsStatus.getRow(1).font = { bold: true };
-    resumoStatus.forEach((r) => wsStatus.addRow([labelStatusFinanceiro(r.status), r.total]));
-    wsStatus.columns.forEach((c) => (c.width = 28));
+    ws.mergeCells(1, 1, 1, 6);
+    const t = ws.getCell("A1");
+    t.value = "Relatório diário por status";
+    t.font = { bold: true, size: 18, color: { argb: "FFFFFFFF" } };
+    t.alignment = { vertical: "middle", indent: 1 };
+    t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    ws.getRow(1).height = 34;
+    for (let c = 2; c <= 6; c++) {
+      ws.getCell(1, c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    }
 
-    const wsDia = wb.addWorksheet("Por dia");
-    wsDia.addRow(["Dia", "Movimentações", "Notas enviadas"]);
-    wsDia.getRow(1).font = { bold: true };
-    porDia.forEach((d) => wsDia.addRow([fmtDia(d.dia), d.total, d.enviadas]));
-    wsDia.columns.forEach((c) => (c.width = 22));
+    ws.mergeCells(2, 1, 2, 6);
+    const s = ws.getCell("A2");
+    s.value = `Período: ${fmtDia(dataIni)} a ${fmtDia(dataFim)}   ·   Movimentações: ${filtradas.length}   ·   Notas enviadas: ${totalEnviadas}   ·   Faturamentos: ${totalFaturamentos}   ·   Anexos: ${totalAnexos}   ·   Emitido em ${new Date().toLocaleString("pt-BR")}`;
+    s.font = { size: 10, color: { argb: CINZA } };
+    s.alignment = { vertical: "middle", indent: 1 };
+    ws.getRow(2).height = 20;
+    ws.getRow(3).height = 8;
 
-    const wsUser = wb.addWorksheet("Por usuário");
-    wsUser.addRow(["Usuário", "Faturamentos iniciados", "Anexos enviados"]);
-    wsUser.getRow(1).font = { bold: true };
-    porUsuario.forEach((u) => wsUser.addRow([u.usuario, u.faturamentos, u.anexos]));
-    wsUser.columns.forEach((c, i) => (c.width = i === 0 ? 34 : 22));
+    // Blocos por dia
+    porDia.forEach((d) => {
+      const itens = filtradas.filter((l) => dataRef(l) === d.dia);
+      const secao = ws.addRow([`${fmtDia(d.dia)}  ·  ${d.total} movimentação(ões)  ·  ${d.enviadas} nota(s) enviada(s)`]);
+      ws.mergeCells(secao.number, 1, secao.number, 6);
+      secao.height = 24;
+      const cel = ws.getCell(secao.number, 1);
+      cel.font = { bold: true, size: 12, color: { argb: VERDE } };
+      cel.alignment = { vertical: "middle", indent: 1 };
+      for (let c = 1; c <= 6; c++) {
+        ws.getCell(secao.number, c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE_CLARO } };
+      }
+
+      const rotulos = ws.addRow(["Empresa", "Contrato", "Competência", "Período", "Status", "Responsável"]);
+      rotulos.height = 16;
+      rotulos.eachCell((cell) => {
+        cell.font = { size: 9, bold: true, color: { argb: CINZA } };
+        cell.alignment = { vertical: "middle", indent: 1 };
+      });
+
+      itens.forEach((l) => {
+        const responsavel =
+          l.data_envio_nota
+            ? l.usuario_envio
+            : l.faturamento_iniciado_em
+              ? l.usuario_faturamento
+              : l.ultimo_anexo_por || "—";
+        const row = ws.addRow([
+          l.empresa_nome,
+          l.codigo_contrato || "—",
+          l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—",
+          l.periodo ?? "—",
+          l.statusLabel,
+          responsavel || "—",
+        ]);
+        row.height = 20;
+        row.eachCell((cell, col) => {
+          cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
+          cell.alignment = {
+            vertical: "middle",
+            indent: 1,
+            horizontal: col === 4 ? "center" : "left",
+            wrapText: col === 1 || col === 6,
+          };
+          cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
+        });
+      });
+
+      ws.addRow([]).height = 10;
+    });
+
+    // Worksheet 2: Resumo por status
+    const wsStatus = wb.addWorksheet("Resumo por status", {
+      views: [{ showGridLines: false }],
+      pageSetup: { orientation: "landscape" },
+    });
+    wsStatus.columns = [{ width: 38 }, { width: 16 }];
+    wsStatus.mergeCells(1, 1, 1, 2);
+    const st = wsStatus.getCell("A1");
+    st.value = "Resumo por status";
+    st.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
+    st.alignment = { vertical: "middle", indent: 1 };
+    st.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    wsStatus.getRow(1).height = 30;
+    wsStatus.getCell("B1").fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    wsStatus.addRow([]).height = 8;
+
+    const hdrStatus = wsStatus.addRow(["Status", "Quantidade"]);
+    hdrStatus.height = 18;
+    hdrStatus.eachCell((cell) => {
+      cell.font = { size: 10, bold: true, color: { argb: CINZA } };
+      cell.alignment = { vertical: "middle", indent: 1 };
+    });
+    resumoStatus.forEach((r) => {
+      const row = wsStatus.addRow([labelStatusFinanceiro(r.status), r.total]);
+      row.height = 20;
+      row.eachCell((cell, col) => {
+        cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
+        cell.alignment = { vertical: "middle", indent: 1, horizontal: col === 2 ? "center" : "left" };
+        cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
+      });
+    });
+
+    // Worksheet 3: Produção por usuário
+    const wsUser = wb.addWorksheet("Produção por usuário", {
+      views: [{ showGridLines: false }],
+      pageSetup: { orientation: "landscape" },
+    });
+    wsUser.columns = [{ width: 38 }, { width: 20 }, { width: 16 }];
+    wsUser.mergeCells(1, 1, 1, 3);
+    const ut = wsUser.getCell("A1");
+    ut.value = "Produção por usuário";
+    ut.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
+    ut.alignment = { vertical: "middle", indent: 1 };
+    ut.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    wsUser.getRow(1).height = 30;
+    wsUser.getCell("B1").fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    wsUser.getCell("C1").fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    wsUser.addRow([]).height = 8;
+
+    const hdrUser = wsUser.addRow(["Usuário", "Faturamentos", "Anexos"]);
+    hdrUser.height = 18;
+    hdrUser.eachCell((cell) => {
+      cell.font = { size: 10, bold: true, color: { argb: CINZA } };
+      cell.alignment = { vertical: "middle", indent: 1 };
+    });
+    porUsuario.forEach((u) => {
+      const row = wsUser.addRow([u.usuario, u.faturamentos, u.anexos]);
+      row.height = 20;
+      row.eachCell((cell, col) => {
+        cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
+        cell.alignment = { vertical: "middle", indent: 1, horizontal: col === 1 ? "left" : "center" };
+        cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
+      });
+    });
+
+    // Worksheet 4: Detalhado (estilo limpo)
+    const wsDet = wb.addWorksheet("Detalhado", {
+      views: [{ state: "frozen", ySplit: 1, showGridLines: false }],
+      pageSetup: { orientation: "landscape" },
+    });
+    const hdrDet = wsDet.addRow(cabecalho);
+    hdrDet.height = 18;
+    hdrDet.eachCell((cell) => {
+      cell.font = { size: 9, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+      cell.alignment = { vertical: "middle", indent: 1, wrapText: true };
+    });
+    filtradas.forEach((l) => {
+      const row = wsDet.addRow(linhaValores(l));
+      row.height = 18;
+      row.eachCell((cell) => {
+        cell.font = { size: 9, color: { argb: "FF111827" } };
+        cell.alignment = { vertical: "middle" };
+      });
+    });
+    wsDet.columns.forEach((c, i) => (c.width = i === 0 ? 42 : 18));
 
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], {
