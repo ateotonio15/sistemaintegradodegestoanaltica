@@ -323,6 +323,9 @@ export function ReajusteCobrancaRetroativa() {
             .update({ status: "removido" } as any)
             .in("storage_path", paths);
         }
+      }
+      toast.success("Anexo removido.");
+      queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
       queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
       onDone?.();
     } catch (e: any) {
