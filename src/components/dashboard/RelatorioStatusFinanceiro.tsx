@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Download, FileText, ClipboardList, Activity, Send, Receipt, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import samelIcon from "@/assets/samel-icon.png.asset.json";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import {
   calcularStatusFinanceiro,
@@ -23,6 +24,13 @@ import {
   formatMesReferencia,
   type StatusFinanceiro,
 } from "@/lib/financeiro-utils";
+
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+function formatCompetencia(c?: string | null) {
+  if (!c) return "—";
+  const m = c.match(/^(\d{4})-(\d{2})$/);
+  return m ? `${MESES[Number(m[2]) - 1]}/${m[1]}` : c;
+}
 
 const TODOS_STATUS: StatusFinanceiro[] = [
   "Enviada",
