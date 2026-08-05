@@ -847,30 +847,30 @@ export function RelatorioStatusFinanceiro() {
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-lg border overflow-hidden">
-              <div className="px-3 py-2 bg-muted/50 border-b">
-                <p className="text-xs font-semibold">Notas por dia</p>
-                <p className="text-[10px] text-muted-foreground leading-snug">
+              <div className="px-4 py-3 bg-muted/50 border-b">
+                <p className="text-sm font-semibold">Notas por dia</p>
+                <p className="text-xs text-muted-foreground leading-snug">
                   <strong>Movimentações</strong> = contratos tocados pelo Financeiro naquele dia.{" "}
                   <strong>Notas enviadas</strong> = quantas dessas viraram nota fiscal emitida no mesmo dia.
                 </p>
               </div>
-              <div className="max-h-[240px] overflow-y-auto">
-                <table className="w-full text-xs">
+              <div className="max-h-[260px] overflow-y-auto">
+                <table className="w-full text-sm">
                   <thead className="text-muted-foreground sticky top-0 bg-card">
                     <tr className="border-b">
-                      <th className="text-left px-3 py-1.5 font-medium">Dia</th>
-                      <th className="text-right px-3 py-1.5 font-medium">Movimentações</th>
-                      <th className="text-right px-3 py-1.5 font-medium">Notas enviadas</th>
-                      <th className="text-right px-3 py-1.5 font-medium">Conversão</th>
+                      <th className="text-left px-4 py-2 font-medium">Dia</th>
+                      <th className="text-right px-4 py-2 font-medium">Movimentações</th>
+                      <th className="text-right px-4 py-2 font-medium">Notas enviadas</th>
+                      <th className="text-right px-4 py-2 font-medium">Conversão</th>
                     </tr>
                   </thead>
                   <tbody>
                     {porDia.map((d) => (
                       <tr key={d.dia} className="border-b last:border-0 hover:bg-muted/40">
-                        <td className="px-3 py-1.5">{fmtDia(d.dia)}</td>
-                        <td className="px-3 py-1.5 text-right">{d.total}</td>
-                        <td className="px-3 py-1.5 text-right font-medium">{d.enviadas}</td>
-                        <td className="px-3 py-1.5 text-right text-muted-foreground">
+                        <td className="px-4 py-2">{fmtDia(d.dia)}</td>
+                        <td className="px-4 py-2 text-right">{d.total}</td>
+                        <td className="px-4 py-2 text-right font-medium">{d.enviadas}</td>
+                        <td className="px-4 py-2 text-right text-muted-foreground">
                           {d.total > 0 ? `${Math.round((d.enviadas / d.total) * 100)}%` : "—"}
                         </td>
                       </tr>
