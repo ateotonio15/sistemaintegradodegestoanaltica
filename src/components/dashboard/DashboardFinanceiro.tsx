@@ -493,39 +493,6 @@ export function DashboardFinanceiro() {
     </Card>
   );
 
-  const conteudoAlertas = (
-    <div className="space-y-4">
-      <AlertaRetroativosParaCobrar />
-      <AlertasVencimentoFinanceiro />
-      {cobrancasMinhas.length > 0 ? (
-        <Card className="rounded-xl border-warning/40 bg-warning/10 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-warning/20 flex items-center justify-center shrink-0">
-              <AlertTriangle className="h-5 w-5 text-warning" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground">
-                Você possui {cobrancasMinhas.length} cobrança{cobrancasMinhas.length > 1 ? "s" : ""} pendente
-                {cobrancasMinhas.length > 1 ? "s" : ""} nas suas empresas
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {cobrancasMinhas[0].empresa_nome} — {cobrancasMinhas[0].motivo}
-              </p>
-            </div>
-            <Button size="sm" onClick={() => navigate("/financeiro")} className="shrink-0">
-              Registrar cobrança
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="rounded-xl shadow-sm">
-          <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            Nenhuma cobrança aberta nas suas empresas.
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
 
   // Visão de módulo selecionado
   if (moduloAtivo) {
