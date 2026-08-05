@@ -512,7 +512,6 @@ export function DashboardFinanceiro() {
         </div>
 
         {modulo === "pendentes" && conteudoPendentes}
-        {modulo === "alertas" && conteudoAlertas}
         {modulo === "relatorio" && <RelatorioStatusFinanceiro />}
         {modulo === "analises" && <AnalisesEnviosPanel />}
         {modulo === "previsao" && <PrevisaoFinanceira />}
