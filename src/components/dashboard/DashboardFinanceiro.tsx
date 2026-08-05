@@ -249,7 +249,13 @@ export function DashboardFinanceiro() {
   const janelaPadrao = useMemo(() => competenciasJanelaPadrao(), []);
 
   const pendentesJanela = useMemo(
-    () => pendentes.filter((p) => p.mes_referencia && janelaPadrao.includes(p.mes_referencia)),
+    () =>
+      pendentes.filter(
+        (p) =>
+          p.mes_referencia &&
+          janelaPadrao.includes(p.mes_referencia) &&
+          periodoVencido(p.mes_referencia, p.periodo),
+      ),
     [pendentes, janelaPadrao],
   );
 
