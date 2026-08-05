@@ -1057,36 +1057,36 @@ export function RelatorioStatusFinanceiro() {
       </Dialog>
 
       <Dialog open={!!kpiDialog} onOpenChange={(open) => !open && setKpiDialog(null)}>
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+        <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg">
               {kpiDialog === "movimentacoes" && "Movimentações"}
               {kpiDialog === "notas" && "Notas enviadas"}
               {kpiDialog === "faturamentos" && "Faturamentos iniciados"}
               {kpiDialog === "anexos" && "Anexos enviados"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               {kpiDialog && `${kpiLinhas[kpiDialog].length} contrato(s) no período selecionado.`}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto -mx-6 px-6">
-            <table className="w-full text-xs">
+            <table className="w-full text-sm">
               <thead className="text-muted-foreground sticky top-0 bg-card z-10">
                 <tr className="border-b">
-                  <th className="text-left px-3 py-2 font-medium">Empresa</th>
-                  <th className="text-left px-3 py-2 font-medium">Contrato</th>
-                  <th className="text-left px-3 py-2 font-medium">Competência</th>
-                  <th className="text-left px-3 py-2 font-medium">Período</th>
-                  <th className="text-left px-3 py-2 font-medium">Status</th>
-                  {kpiDialog === "notas" && <th className="text-left px-3 py-2 font-medium">Data da nota</th>}
-                  {kpiDialog === "faturamentos" && <th className="text-left px-3 py-2 font-medium">Iniciado em</th>}
+                  <th className="text-left px-4 py-2.5 font-medium">Empresa</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Contrato</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Competência</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Período</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Status</th>
+                  {kpiDialog === "notas" && <th className="text-left px-4 py-2.5 font-medium">Data da nota</th>}
+                  {kpiDialog === "faturamentos" && <th className="text-left px-4 py-2.5 font-medium">Iniciado em</th>}
                   {kpiDialog === "anexos" && (
                     <>
-                      <th className="text-left px-3 py-2 font-medium">Anexos</th>
-                      <th className="text-left px-3 py-2 font-medium">Último anexo em</th>
+                      <th className="text-left px-4 py-2.5 font-medium">Anexos</th>
+                      <th className="text-left px-4 py-2.5 font-medium">Último anexo em</th>
                     </>
                   )}
-                  <th className="text-left px-3 py-2 font-medium">Responsável</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Responsável</th>
                 </tr>
               </thead>
               <tbody>
@@ -1100,20 +1100,20 @@ export function RelatorioStatusFinanceiro() {
                           : l.ultimo_anexo_por || l.usuario_faturamento || l.usuario_envio || "—";
                     return (
                       <tr key={l.id} className="border-b last:border-0 hover:bg-muted/40">
-                        <td className="px-3 py-2 font-medium">{l.empresa_nome}</td>
-                        <td className="px-3 py-2">{l.codigo_contrato || "—"}</td>
-                        <td className="px-3 py-2">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
-                        <td className="px-3 py-2">{l.periodo ?? "—"}</td>
-                        <td className="px-3 py-2">{l.statusLabel}</td>
-                        {kpiDialog === "notas" && <td className="px-3 py-2">{fmtDia(l.data_envio_nota)}</td>}
-                        {kpiDialog === "faturamentos" && <td className="px-3 py-2">{fmtDia(l.faturamento_iniciado_em)}</td>}
+                        <td className="px-4 py-2.5 font-medium">{l.empresa_nome}</td>
+                        <td className="px-4 py-2.5">{l.codigo_contrato || "—"}</td>
+                        <td className="px-4 py-2.5">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
+                        <td className="px-4 py-2.5">{l.periodo ?? "—"}</td>
+                        <td className="px-4 py-2.5">{l.statusLabel}</td>
+                        {kpiDialog === "notas" && <td className="px-4 py-2.5">{fmtDia(l.data_envio_nota)}</td>}
+                        {kpiDialog === "faturamentos" && <td className="px-4 py-2.5">{fmtDia(l.faturamento_iniciado_em)}</td>}
                         {kpiDialog === "anexos" && (
                           <>
-                            <td className="px-3 py-2">{l.qtd_anexos}</td>
-                            <td className="px-3 py-2">{fmtDia(l.ultimo_anexo_em)}</td>
+                            <td className="px-4 py-2.5">{l.qtd_anexos}</td>
+                            <td className="px-4 py-2.5">{fmtDia(l.ultimo_anexo_em)}</td>
                           </>
                         )}
-                        <td className="px-3 py-2">{responsavel || "—"}</td>
+                        <td className="px-4 py-2.5">{responsavel || "—"}</td>
                       </tr>
                     );
                   })}
