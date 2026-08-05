@@ -249,7 +249,13 @@ export function DashboardFinanceiro() {
   const janelaPadrao = useMemo(() => competenciasJanelaPadrao(), []);
 
   const pendentesJanela = useMemo(
-    () => pendentes.filter((p) => p.mes_referencia && janelaPadrao.includes(p.mes_referencia)),
+    () =>
+      pendentes.filter(
+        (p) =>
+          p.mes_referencia &&
+          janelaPadrao.includes(p.mes_referencia) &&
+          periodoVencido(p.mes_referencia, p.periodo),
+      ),
     [pendentes, janelaPadrao],
   );
 
@@ -258,6 +264,8 @@ export function DashboardFinanceiro() {
       (competenciasSel.length === 0 ? pendentesJanela : pendentes)
         .filter(
           (p) =>
+            // Reforço: mesmo com filtro manual, só entra período já vencido (> 1 dia após o fim)
+            periodoVencido(p.mes_referencia, p.periodo) &&
             (competenciasSel.length === 0 || (p.mes_referencia && competenciasSel.includes(p.mes_referencia))) &&
             (periodosSel.length === 0 || (p.periodo && periodosSel.includes(p.periodo))),
         )
