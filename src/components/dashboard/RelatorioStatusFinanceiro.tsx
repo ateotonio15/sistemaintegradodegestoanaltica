@@ -769,38 +769,47 @@ export function RelatorioStatusFinanceiro() {
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
+              key: "movimentacoes" as const,
               icon: Activity,
               label: "Movimentações",
               value: filtradas.length,
               hint: "Contratos com alguma atualização do Financeiro no período (envio, anexo, início de faturamento ou mudança de status).",
             },
             {
+              key: "notas" as const,
               icon: Send,
               label: "Notas enviadas",
               value: totalEnviadas,
               hint: "Notas fiscais efetivamente enviadas ao cliente — contratos com data da nota preenchida.",
             },
             {
+              key: "faturamentos" as const,
               icon: Receipt,
               label: "Faturamentos iniciados",
               value: totalFaturamentos,
               hint: "Contratos em que o Financeiro deu início ao faturamento (antes da emissão da nota).",
             },
             {
+              key: "anexos" as const,
               icon: Paperclip,
               label: "Anexos enviados",
               value: totalAnexos,
               hint: "Arquivos anexados às movimentações no período (relatórios, notas, comprovantes).",
             },
           ].map((k) => (
-            <div key={k.label} className="rounded-lg border bg-muted/30 p-3">
+            <button
+              key={k.label}
+              type="button"
+              onClick={() => setKpiDialog(k.key)}
+              className="text-left rounded-lg border bg-muted/30 p-3 hover:bg-accent/50 hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+            >
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <k.icon className="h-3.5 w-3.5" />
                 {k.label}
               </div>
               <div className="text-xl font-semibold mt-0.5">{k.value}</div>
               <p className="text-[10px] leading-snug text-muted-foreground mt-1">{k.hint}</p>
-            </div>
+            </button>
           ))}
         </div>
 
