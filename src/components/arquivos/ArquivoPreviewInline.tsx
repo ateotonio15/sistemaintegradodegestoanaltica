@@ -143,6 +143,7 @@ interface Props {
 export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeType }: Props) {
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
+  const [pageInput, setPageInput] = useState("1");
   const [scale, setScale] = useState(1.4);
   const [renderingPage, setRenderingPage] = useState(false);
   const [loading, setLoading] = useState(false);
