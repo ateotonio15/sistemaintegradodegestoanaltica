@@ -20,6 +20,8 @@ import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
+import { periodoVencido, competenciasJanelaPadrao } from "@/lib/financeiro-utils";
+
 
 
 type ModuloId = "pendentes" | "alertas" | "relatorio" | "analises" | "previsao";
