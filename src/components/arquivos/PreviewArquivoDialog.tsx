@@ -74,6 +74,10 @@ export function PreviewArquivoDialog({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    setPageInput(String(pageNumber));
+  }, [pageNumber]);
+
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase();
   const isPdf = ext === "pdf" || (mimeType ?? "").includes("pdf");
   const isImage =
