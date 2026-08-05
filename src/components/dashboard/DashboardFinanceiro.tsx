@@ -20,6 +20,8 @@ import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
+import { periodoVencido, competenciasJanelaPadrao } from "@/lib/financeiro-utils";
+
 
 
 type ModuloId = "pendentes" | "alertas" | "relatorio" | "analises" | "previsao";
@@ -164,8 +166,10 @@ export function DashboardFinanceiro() {
         (r: any) =>
           !comAnexo.has(r.id) &&
           r.dentro_prazo !== false &&
+          periodoVencido(r.mes_referencia, r.periodo) &&
           !envioSet.has(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`),
       );
+
     },
   });
 
@@ -241,9 +245,17 @@ export function DashboardFinanceiro() {
     return m;
   }, [pagadores]);
 
+  // Janela padrão: mês vigente + mês anterior (quando nenhuma competência é escolhida)
+  const janelaPadrao = useMemo(() => competenciasJanelaPadrao(), []);
+
+  const pendentesJanela = useMemo(
+    () => pendentes.filter((p) => p.mes_referencia && janelaPadrao.includes(p.mes_referencia)),
+    [pendentes, janelaPadrao],
+  );
+
   const pendentesFiltrados = useMemo(
     () =>
-      pendentes
+      (competenciasSel.length === 0 ? pendentesJanela : pendentes)
         .filter(
           (p) =>
             (competenciasSel.length === 0 || (p.mes_referencia && competenciasSel.includes(p.mes_referencia))) &&
@@ -257,44 +269,131 @@ export function DashboardFinanceiro() {
           pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
         }))
         .sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome)),
-    [pendentes, competenciasSel, periodosSel, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
+    [pendentes, pendentesJanela, competenciasSel, periodosSel, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
 
   );
+
+
+  const resumoFiltros = () => [
+    competenciasSel.length
+      ? `Competências: ${competenciasSel.map(formatCompetencia).join(", ")}`
+      : `Competências: ${janelaPadrao.map(formatCompetencia).join(" e ")} (mês vigente e anterior)`,
+    periodosSel.length ? `Períodos: ${periodosSel.join(", ")}` : "Períodos: todos",
+  ];
 
   async function exportarPendentes() {
     if (pendentesFiltrados.length === 0) return;
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Pendentes");
-    ws.columns = [
-      { header: "Empresa", key: "empresa", width: 40 },
+    wb.creator = "SIGA";
+    const ws = wb.addWorksheet("Pendentes", {
+      views: [{ state: "frozen", ySplit: 4 }],
+      pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+
+    const COLS = [
+      { header: "Empresa", key: "empresa", width: 44 },
       { header: "Contrato", key: "contrato", width: 18 },
-      { header: "Responsável", key: "responsavel", width: 26 },
+      { header: "Responsável", key: "responsavel", width: 28 },
       { header: "Competência", key: "competencia", width: 16 },
       { header: "Período", key: "periodo", width: 14 },
-      { header: "Pagador", key: "pagador", width: 40 },
-      { header: "CNPJ do pagador", key: "cnpj", width: 24 },
+      { header: "Pagador", key: "pagador", width: 44 },
     ];
-    ws.getRow(1).font = { bold: true };
-    ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } } as any;
+    ws.columns = COLS.map((c) => ({ key: c.key, width: c.width }));
+
+    // Cabeçalho institucional
+    ws.mergeCells(1, 1, 1, COLS.length);
+    const t = ws.getCell("A1");
+    t.value = "Contratos pendentes";
+    t.font = { bold: true, size: 16, color: { argb: "FF111827" } };
+    t.alignment = { vertical: "middle" };
+    ws.getRow(1).height = 26;
+
+    ws.mergeCells(2, 1, 2, COLS.length);
+    const s = ws.getCell("A2");
+    s.value = `${resumoFiltros().join("   ·   ")}   ·   Total: ${pendentesFiltrados.length}   ·   Emitido em ${new Date().toLocaleString("pt-BR")}`;
+    s.font = { size: 10, color: { argb: "FF6B7280" } };
+    ws.getRow(3).height = 6;
+
+    // Cabeçalho da tabela
+    const headerRow = ws.getRow(4);
+    headerRow.values = COLS.map((c) => c.header);
+    headerRow.height = 22;
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F2937" } };
+      cell.alignment = { vertical: "middle", horizontal: "left" };
+      cell.border = { bottom: { style: "thin", color: { argb: "FF111827" } } };
+    });
+
+    let zebra = false;
+    const addLinha = (v: Record<string, string>) => {
+      const row = ws.addRow(v);
+      row.height = 18;
+      row.eachCell((cell, col) => {
+        cell.font = { size: 10 };
+        cell.alignment = {
+          vertical: "middle",
+          horizontal: col === 4 || col === 5 ? "center" : "left",
+          wrapText: col === 1 || col === 6,
+        };
+        cell.border = { bottom: { style: "hair", color: { argb: "FFE5E7EB" } } };
+        if (zebra) {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF7F8FA" } };
+        }
+      });
+      zebra = !zebra;
+    };
+
     pendentesFiltrados.forEach((p) => {
       const base = {
         empresa: p.empresa_nome,
-        contrato: p.codigo_contrato || "",
-        responsavel: p.responsavel || "",
+        contrato: p.codigo_contrato || "—",
+        responsavel: p.responsavel || "—",
         competencia: formatCompetencia(p.mes_referencia),
-        periodo: p.periodo ?? "",
+        periodo: p.periodo ?? "—",
       };
       if (p.pagadores.length === 0) {
-        ws.addRow({ ...base, pagador: "", cnpj: "" });
+        addLinha({ ...base, pagador: "—" });
       } else {
-        p.pagadores.forEach((pg) => {
-          ws.addRow({ ...base, pagador: pg.nome_pagador, cnpj: pg.cnpj ?? "" });
-        });
+        p.pagadores.forEach((pg) => addLinha({ ...base, pagador: pg.nome_pagador }));
       }
     });
-    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columns.length } };
-    ws.views = [{ state: "frozen", ySplit: 1 }];
+
+    ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: COLS.length } };
+
+    // Aba de resumo
+    const rs = wb.addWorksheet("Resumo");
+    rs.columns = [
+      { header: "Agrupamento", key: "grupo", width: 22 },
+      { header: "Valor", key: "valor", width: 22 },
+      { header: "Contratos pendentes", key: "qtd", width: 22 },
+    ];
+    const estiloHead = (row: any) => {
+      row.height = 20;
+      row.eachCell((cell: any) => {
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F2937" } };
+      });
+    };
+    estiloHead(rs.getRow(1));
+
+    const porComp = new Map<string, number>();
+    const porPer = new Map<string, number>();
+    pendentesFiltrados.forEach((p) => {
+      const c = formatCompetencia(p.mes_referencia);
+      porComp.set(c, (porComp.get(c) ?? 0) + 1);
+      const per = p.periodo ?? "—";
+      porPer.set(per, (porPer.get(per) ?? 0) + 1);
+    });
+    Array.from(porComp.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([valor, qtd]) => rs.addRow({ grupo: "Competência", valor, qtd }));
+    Array.from(porPer.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([valor, qtd]) => rs.addRow({ grupo: "Período", valor, qtd }));
+    const totalRow = rs.addRow({ grupo: "Total", valor: "", qtd: pendentesFiltrados.length });
+    totalRow.eachCell((cell) => (cell.font = { bold: true }));
 
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], {
@@ -314,20 +413,34 @@ export function DashboardFinanceiro() {
     const { default: autoTable } = await import("jspdf-autotable");
 
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-    const hoje = new Date().toLocaleDateString("pt-BR");
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const hoje = new Date().toLocaleString("pt-BR");
 
-    doc.setFontSize(14);
-    doc.text("Contratos pendentes", 40, 40);
+    // Faixa de cabeçalho
+    doc.setFillColor(31, 41, 55);
+    doc.rect(0, 0, pageW, 64, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Contratos pendentes", 40, 30);
     doc.setFontSize(9);
-    const filtros = [
-      competenciasSel.length
-        ? `Competências: ${competenciasSel.map(formatCompetencia).join(", ")}`
-        : "Competências: todas",
-      periodosSel.length ? `Períodos: ${periodosSel.join(", ")}` : "Períodos: todos",
-      `Total: ${pendentesFiltrados.length}`,
-      `Emitido em ${hoje}`,
-    ].join("  |  ");
-    doc.text(filtros, 40, 58);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(209, 213, 219);
+    doc.text(`Faturamento · SIGA · Emitido em ${hoje}`, 40, 48);
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(String(pendentesFiltrados.length), pageW - 40, 32, { align: "right" });
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("contratos pendentes", pageW - 40, 46, { align: "right" });
+
+    // Filtros aplicados
+    doc.setTextColor(75, 85, 99);
+    doc.setFontSize(9);
+    resumoFiltros().forEach((linha, i) => doc.text(linha, 40, 84 + i * 13));
 
     const body: string[][] = [];
     pendentesFiltrados.forEach((p) => {
@@ -339,25 +452,40 @@ export function DashboardFinanceiro() {
         p.periodo ?? "—",
       ];
       if (p.pagadores.length === 0) {
-        body.push([...base, "—", "—"]);
+        body.push([...base, "—"]);
       } else {
-        p.pagadores.forEach((pg) => body.push([...base, pg.nome_pagador, pg.cnpj ?? "—"]));
+        p.pagadores.forEach((pg) => body.push([...base, pg.nome_pagador]));
       }
     });
 
     autoTable(doc, {
-      startY: 72,
-      head: [["Empresa", "Contrato", "Responsável", "Competência", "Período", "Pagador", "CNPJ do pagador"]],
+      startY: 84 + resumoFiltros().length * 13 + 10,
+      head: [["Empresa", "Contrato", "Responsável", "Competência", "Período", "Pagador"]],
       body,
-      styles: { fontSize: 8, cellPadding: 4 },
-      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
-      alternateRowStyles: { fillColor: [245, 246, 248] },
-      columnStyles: { 0: { cellWidth: 180 }, 5: { cellWidth: 160 } },
-      margin: { left: 40, right: 40 },
+      styles: { fontSize: 8.5, cellPadding: 5, valign: "middle", lineColor: [229, 231, 235], lineWidth: 0.4 },
+      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [247, 248, 250] },
+      columnStyles: {
+        0: { cellWidth: 210 },
+        1: { cellWidth: 80 },
+        2: { cellWidth: 130 },
+        3: { cellWidth: 75, halign: "center" },
+        4: { cellWidth: 60, halign: "center" },
+        5: { cellWidth: "auto" },
+      },
+      margin: { left: 40, right: 40, top: 40, bottom: 40 },
+      didDrawPage: () => {
+        const page = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Emitido em ${hoje}`, 40, pageH - 20);
+        doc.text(`Página ${page}`, pageW - 40, pageH - 20, { align: "right" });
+      },
     });
 
     doc.save(`contratos-pendentes-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
+
 
 
 
@@ -380,7 +508,7 @@ export function DashboardFinanceiro() {
       icon: AlertCircle,
       accent: "text-destructive",
       bg: "bg-destructive/10",
-      badge: pendentes.length > 0 ? { label: `${pendentes.length}`, variant: "destructive" } : undefined,
+      badge: pendentesJanela.length > 0 ? { label: `${pendentesJanela.length}`, variant: "destructive" } : undefined,
     },
     {
       id: "relatorio",
