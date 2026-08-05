@@ -157,6 +157,10 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
   const textLayerRef = useRef<HTMLDivElement | null>(null);
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    setPageInput(String(pageNumber));
+  }, [pageNumber]);
+
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase();
   const isPdf = ext === "pdf" || (mimeType ?? "").includes("pdf");
   const isImage =
