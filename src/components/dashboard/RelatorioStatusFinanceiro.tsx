@@ -728,26 +728,26 @@ export function RelatorioStatusFinanceiro() {
           </div>
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">De</Label>
+              <Label className="text-xs text-muted-foreground">De</Label>
               <Input
                 type="date"
                 value={dataIni}
                 onChange={(e) => setDataIni(e.target.value)}
-                className="h-8 w-[150px] text-xs"
+                className="h-9 w-[160px] text-sm"
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Até</Label>
+              <Label className="text-xs text-muted-foreground">Até</Label>
               <Input
                 type="date"
                 value={dataFim}
                 onChange={(e) => setDataFim(e.target.value)}
-                className="h-8 w-[150px] text-xs"
+                className="h-9 w-[160px] text-sm"
               />
             </div>
             <MultiSelectFiltro
               label="Status"
-              width="w-[190px]"
+              width="w-[200px]"
               options={TODOS_STATUS.map((s) => ({ value: s, label: labelStatusFinanceiro(s) }))}
               selected={statusSel}
               onChange={setStatusSel}
@@ -755,21 +755,21 @@ export function RelatorioStatusFinanceiro() {
             <Button
               size="sm"
               variant="outline"
-              className="h-8 text-xs"
+              className="h-9 text-sm"
               onClick={exportarExcel}
               disabled={filtradas.length === 0}
             >
-              <Download className="h-3.5 w-3.5 mr-1.5" />
+              <Download className="h-4 w-4 mr-1.5" />
               Exportar Excel
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="h-8 text-xs"
+              className="h-9 text-sm"
               onClick={exportarPDF}
               disabled={filtradas.length === 0}
             >
-              <FileText className="h-3.5 w-3.5 mr-1.5" />
+              <FileText className="h-4 w-4 mr-1.5" />
               Exportar PDF
             </Button>
           </div>
