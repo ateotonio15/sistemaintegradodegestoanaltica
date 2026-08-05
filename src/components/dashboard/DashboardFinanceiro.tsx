@@ -52,6 +52,8 @@ export function DashboardFinanceiro() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [modulo, setModulo] = useState<ModuloId | null>(null);
+
   const { data: empresas = [] } = useQuery({
     queryKey: ["fin-dash-empresas"],
     queryFn: async () => {
