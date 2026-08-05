@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
-  AlertTriangle,
   Download,
   FileText,
   ArrowLeft,
@@ -16,11 +15,8 @@ import {
   BarChart3,
   TrendingUp,
   ClipboardList,
-  BellRing,
 } from "lucide-react";
-import { AlertasVencimentoFinanceiro } from "./AlertasVencimentoFinanceiro";
 import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
-import { AlertaRetroativosParaCobrar } from "@/components/reajustes/AlertaRetroativosParaCobrar";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
@@ -179,8 +175,6 @@ export function DashboardFinanceiro() {
     return new Set(empresas.filter((e: any) => e.responsavel_user_id === user.id).map((e: any) => e.id));
   }, [empresas, user]);
 
-  const cobrancasAbertas = cobrancas.filter((c) => c.status === "aberta");
-  const cobrancasMinhas = cobrancasAbertas.filter((c) => minhasEmpresasIds.has(c.empresa_id));
 
   const [competenciasSel, setCompetenciasSel] = useState<string[]>([]);
   const [periodosSel, setPeriodosSel] = useState<string[]>([]);
@@ -389,18 +383,6 @@ export function DashboardFinanceiro() {
       badge: pendentes.length > 0 ? { label: `${pendentes.length}`, variant: "destructive" } : undefined,
     },
     {
-      id: "alertas",
-      titulo: "Alertas e cobranças",
-      descricao: "Retroativos a cobrar, alertas de vencimento e cobranças abertas nas suas empresas.",
-      icon: BellRing,
-      accent: "text-warning",
-      bg: "bg-warning/10",
-      badge:
-        cobrancasAbertas.length > 0
-          ? { label: `${cobrancasAbertas.length} aberta${cobrancasAbertas.length > 1 ? "s" : ""}`, variant: "outline" }
-          : undefined,
-    },
-    {
       id: "relatorio",
       titulo: "Relatório diário por status",
       descricao: "Produção diária e por usuário: movimentações, notas enviadas, faturamentos e anexos.",
@@ -511,39 +493,6 @@ export function DashboardFinanceiro() {
     </Card>
   );
 
-  const conteudoAlertas = (
-    <div className="space-y-4">
-      <AlertaRetroativosParaCobrar />
-      <AlertasVencimentoFinanceiro />
-      {cobrancasMinhas.length > 0 ? (
-        <Card className="rounded-xl border-warning/40 bg-warning/10 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-warning/20 flex items-center justify-center shrink-0">
-              <AlertTriangle className="h-5 w-5 text-warning" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground">
-                Você possui {cobrancasMinhas.length} cobrança{cobrancasMinhas.length > 1 ? "s" : ""} pendente
-                {cobrancasMinhas.length > 1 ? "s" : ""} nas suas empresas
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {cobrancasMinhas[0].empresa_nome} — {cobrancasMinhas[0].motivo}
-              </p>
-            </div>
-            <Button size="sm" onClick={() => navigate("/financeiro")} className="shrink-0">
-              Registrar cobrança
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="rounded-xl shadow-sm">
-          <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            Nenhuma cobrança aberta nas suas empresas.
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
 
   // Visão de módulo selecionado
   if (moduloAtivo) {
@@ -563,7 +512,6 @@ export function DashboardFinanceiro() {
         </div>
 
         {modulo === "pendentes" && conteudoPendentes}
-        {modulo === "alertas" && conteudoAlertas}
         {modulo === "relatorio" && <RelatorioStatusFinanceiro />}
         {modulo === "analises" && <AnalisesEnviosPanel />}
         {modulo === "previsao" && <PrevisaoFinanceira />}
