@@ -268,7 +268,16 @@ export function RelatorioStatusFinanceiro() {
     return m;
   }, [filtradas]);
 
-  const totalEnviadas = filtradas.filter((l) => !!l.data_envio_nota).length;
+  const kpiLinhas = useMemo(() => {
+    return {
+      movimentacoes: filtradas,
+      notas: filtradas.filter((l) => !!l.data_envio_nota),
+      faturamentos: filtradas.filter((l) => !!l.faturamento_iniciado_em),
+      anexos: filtradas.filter((l) => l.qtd_anexos > 0),
+    };
+  }, [filtradas]);
+
+  const totalEnviadas = kpiLinhas.notas.length;
 
   const cabecalho = [
     "Empresa",
