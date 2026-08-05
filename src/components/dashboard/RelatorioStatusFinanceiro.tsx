@@ -529,9 +529,16 @@ export function RelatorioStatusFinanceiro() {
 
         <div className="flex flex-wrap gap-1.5">
           {resumoStatus.map((r) => (
-            <Badge key={r.status} className={cn("text-[11px] font-medium", statusFinanceiroColor(r.status))}>
-              {labelStatusFinanceiro(r.status)}: {r.total}
-            </Badge>
+            <button
+              key={r.status}
+              type="button"
+              onClick={() => setStatusDialog(r.status)}
+              className="focus:outline-none focus:ring-2 focus:ring-ring rounded-full"
+            >
+              <Badge className={cn("text-[11px] font-medium cursor-pointer", statusFinanceiroColor(r.status))}>
+                {labelStatusFinanceiro(r.status)}: {r.total}
+              </Badge>
+            </button>
           ))}
         </div>
       </CardHeader>
