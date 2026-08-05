@@ -810,14 +810,14 @@ export function RelatorioStatusFinanceiro() {
               key={k.label}
               type="button"
               onClick={() => setKpiDialog(k.key)}
-              className="text-left rounded-lg border bg-muted/30 p-3 hover:bg-accent/50 hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+              className="text-left rounded-lg border bg-muted/30 p-4 hover:bg-accent/50 hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <k.icon className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <k.icon className="h-4 w-4" />
                 {k.label}
               </div>
-              <div className="text-xl font-semibold mt-0.5">{k.value}</div>
-              <p className="text-[10px] leading-snug text-muted-foreground mt-1">{k.hint}</p>
+              <div className="text-2xl font-semibold mt-1">{k.value}</div>
+              <p className="text-xs leading-snug text-muted-foreground mt-1.5">{k.hint}</p>
             </button>
           ))}
         </div>
