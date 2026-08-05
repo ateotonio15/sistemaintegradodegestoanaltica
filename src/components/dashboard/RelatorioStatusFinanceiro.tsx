@@ -514,50 +514,130 @@ export function RelatorioStatusFinanceiro() {
     const { default: autoTable } = await import("jspdf-autotable");
 
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-    doc.setFontSize(14);
-    doc.text("Relatório de status do Financeiro", 40, 40);
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const hoje = new Date().toLocaleString("pt-BR");
+
+    // Logo Samel (somente o símbolo, monocromático)
+    let logoData: string | null = null;
+    try {
+      const resp = await fetch(samelIcon.url);
+      const blob = await resp.blob();
+      logoData = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result));
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    } catch {
+      logoData = null;
+    }
+
+    function drawHeader() {
+      doc.setFillColor(50, 169, 118);
+      doc.rect(0, 0, pageW, 64, "F");
+
+      const textX = logoData ? 108 : 40;
+      if (logoData) {
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(32, 12, 56, 40, 6, 6, "F");
+        doc.addImage(logoData, "PNG", 44, 17, 32, 30, undefined, "FAST");
+      }
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Relatório diário por status", textX, 30);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(226, 244, 236);
+      doc.text(`Faturamento · SIGA · Emitido em ${hoje}`, textX, 48);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text(String(filtradas.length), pageW - 40, 32, { align: "right" });
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text("movimentações", pageW - 40, 46, { align: "right" });
+    }
+
+    drawHeader();
+
+    // Filtros aplicados
+    doc.setTextColor(75, 85, 99);
     doc.setFontSize(9);
-    doc.text(
-      `Período: ${fmtDia(dataIni)} a ${fmtDia(dataFim)}  |  Registros: ${filtradas.length}  |  Notas enviadas: ${totalEnviadas}  |  Emitido em ${new Date().toLocaleDateString("pt-BR")}`,
-      40,
-      58,
-    );
+    doc.text(`Período: ${fmtDia(dataIni)} a ${fmtDia(dataFim)}`, 40, 84);
+    doc.text(`Notas enviadas: ${totalEnviadas} · Faturamentos: ${totalFaturamentos} · Anexos: ${totalAnexos}`, 40, 97);
 
-    autoTable(doc, {
-      startY: 74,
-      head: [["Status", "Quantidade"]],
-      body: resumoStatus.map((r) => [labelStatusFinanceiro(r.status), String(r.total)]),
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
-      margin: { left: 40, right: 40 },
-      tableWidth: 240,
-    });
+    let y = 112;
 
-    let y = (doc as any).lastAutoTable.finalY + 16;
+    // Resumo por status
     autoTable(doc, {
       startY: y,
-      head: [["Dia", "Movimentações", "Notas enviadas"]],
-      body: porDia.map((d) => [fmtDia(d.dia), String(d.total), String(d.enviadas)]),
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
-      margin: { left: 40, right: 40 },
-      tableWidth: 300,
+      head: [["Status", "Quantidade"]],
+      body: resumoStatus.map((r) => [labelStatusFinanceiro(r.status), String(r.total)]),
+      theme: "plain",
+      styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
+      headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [234, 246, 240] },
+      columnStyles: { 0: { cellWidth: 180, fontStyle: "bold" }, 1: { cellWidth: 80, halign: "center" } },
+      margin: { left: 40, right: 40, top: 40, bottom: 40 },
+      tableWidth: 260,
     });
 
     y = (doc as any).lastAutoTable.finalY + 16;
+
+    // Por dia
     autoTable(doc, {
       startY: y,
-      head: [["Usuário", "Faturamentos iniciados", "Anexos"]],
-      body: porUsuario.map((u) => [u.usuario, String(u.faturamentos), String(u.anexos)]),
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
-      margin: { left: 40, right: 40 },
-      tableWidth: 420,
+      head: [["Dia", "Movimentações", "Notas enviadas", "Conversão"]],
+      body: porDia.map((d) => [
+        fmtDia(d.dia),
+        String(d.total),
+        String(d.enviadas),
+        d.total > 0 ? `${Math.round((d.enviadas / d.total) * 100)}%` : "—",
+      ]),
+      theme: "plain",
+      styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
+      headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [234, 246, 240] },
+      columnStyles: {
+        0: { cellWidth: 90 },
+        1: { cellWidth: 90, halign: "center" },
+        2: { cellWidth: 90, halign: "center" },
+        3: { cellWidth: 70, halign: "center" },
+      },
+      margin: { left: 40, right: 40, top: 40, bottom: 40 },
+      tableWidth: 340,
     });
 
-    doc.addPage("a4", "landscape");
+    y = (doc as any).lastAutoTable.finalY + 16;
+
+    // Por usuário
     autoTable(doc, {
-      startY: 40,
+      startY: y,
+      head: [["Usuário", "Faturamentos", "Anexos"]],
+      body: porUsuario.map((u) => [u.usuario, String(u.faturamentos), String(u.anexos)]),
+      theme: "plain",
+      styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
+      headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [234, 246, 240] },
+      columnStyles: {
+        0: { cellWidth: 180, fontStyle: "bold" },
+        1: { cellWidth: 90, halign: "center" },
+        2: { cellWidth: 70, halign: "center" },
+      },
+      margin: { left: 40, right: 40, top: 40, bottom: 40 },
+      tableWidth: 340,
+    });
+
+    // Página detalhada
+    doc.addPage("a4", "landscape");
+    drawHeader();
+
+    autoTable(doc, {
+      startY: 80,
       head: [
         [
           "Empresa",
@@ -567,28 +647,52 @@ export function RelatorioStatusFinanceiro() {
           "Status",
           "Data da nota",
           "Vencimento",
-          "Usuário do envio",
-          "Usuário do faturamento",
+          "Responsável",
           "Data de referência",
         ],
       ],
-      body: filtradas.map((l) => [
-        l.empresa_nome,
-        l.codigo_contrato || "—",
-        l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—",
-        l.periodo ?? "—",
-        l.statusLabel,
-        fmtDia(l.data_envio_nota),
-        fmtDia(l.data_vencimento),
-        l.usuario_envio || "—",
-        l.usuario_faturamento || "—",
-        fmtDia(dataRef(l)),
-      ]),
-      styles: { fontSize: 7, cellPadding: 3 },
-      headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
-      alternateRowStyles: { fillColor: [245, 246, 248] },
-      columnStyles: { 0: { cellWidth: 150 } },
-      margin: { left: 40, right: 40 },
+      body: filtradas.map((l) => {
+        const responsavel =
+          l.data_envio_nota
+            ? l.usuario_envio
+            : l.faturamento_iniciado_em
+              ? l.usuario_faturamento
+              : l.ultimo_anexo_por || "—";
+        return [
+          l.empresa_nome,
+          l.codigo_contrato || "—",
+          l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—",
+          l.periodo ?? "—",
+          l.statusLabel,
+          fmtDia(l.data_envio_nota),
+          fmtDia(l.data_vencimento),
+          responsavel || "—",
+          fmtDia(dataRef(l)),
+        ];
+      }),
+      theme: "plain",
+      styles: { fontSize: 7.5, cellPadding: 5, valign: "middle", textColor: [17, 24, 39] },
+      headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 8.5 },
+      alternateRowStyles: { fillColor: [234, 246, 240] },
+      columnStyles: {
+        0: { cellWidth: 180, fontStyle: "bold" },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 70 },
+        3: { cellWidth: 60, halign: "center" },
+        4: { cellWidth: 80 },
+        5: { cellWidth: 70 },
+        6: { cellWidth: 70 },
+        7: { cellWidth: 90 },
+        8: { cellWidth: 70 },
+      },
+      margin: { left: 40, right: 40, top: 40, bottom: 40 },
+      didDrawPage: () => {
+        const page = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Emitido em ${hoje}`, 40, pageH - 20);
+        doc.text(`Página ${page}`, pageW - 40, pageH - 20, { align: "right" });
+      },
     });
 
     doc.save(`relatorio-financeiro-${dataIni}_a_${dataFim}.pdf`);
