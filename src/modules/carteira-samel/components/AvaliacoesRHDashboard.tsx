@@ -45,6 +45,29 @@ export function AvaliacoesRHDashboard({ form }: Props) {
   const [loading, setLoading] = useState(true);
   const [todasRespostas, setTodasRespostas] = useState<Resposta[]>([]);
   const [mesFiltro, setMesFiltro] = useState<string>("todos");
+  const [execSelecionada, setExecSelecionada] = useState<string | null>(null);
+  const [meuNome, setMeuNome] = useState<string>("");
+  const { user, isAdmin } = useAuth();
+
+  useEffect(() => {
+    if (!user?.id) { setMeuNome(""); return; }
+    (async () => {
+      const { data } = await db.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
+      setMeuNome((data?.display_name || "").toString());
+    })();
+  }, [user?.id]);
+
+  // Somente admin e as executivas autorizadas podem ver as avaliações individuais
+  const NOMES_AUTORIZADOS = ["tania", "glaucia", "jaina", "marcia", "mayara"];
+  const podeVerDetalhes = useMemo(() => {
+    if (isAdmin) return true;
+    const n = meuNome
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return NOMES_AUTORIZADOS.some(a => n.includes(a));
+  }, [isAdmin, meuNome]);
+
 
   useEffect(() => {
     if (!form?.id) return;
