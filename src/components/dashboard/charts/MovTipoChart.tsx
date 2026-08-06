@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from "recharts";
 
 const TOOLTIP_STYLE = {
   background: "hsl(var(--popover))",
@@ -22,10 +22,12 @@ interface Props {
 }
 
 export function MovTipoChart({ data }: Props) {
+  const total = data.reduce((s, d) => s + d.total, 0);
   return (
     <Card className="rounded-xl shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold">Empresas por tipo de movimentação</CardTitle>
+        <p className="text-xs text-muted-foreground">Total de empresas ativas: {total}</p>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
@@ -33,12 +35,13 @@ export function MovTipoChart({ data }: Props) {
         ) : (
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
+              <BarChart data={data} margin={{ top: 24, right: 8, left: -16, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="tipo" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} interval={0} angle={-15} textAnchor="end" height={60} />
                 <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted) / 0.3)" }} />
-                <Bar dataKey="total" name="Empresas" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="total" name="Empresas" radius={[6, 6, 0, 0]} maxBarSize={80}>
+                  <LabelList dataKey="total" position="top" style={{ fill: "hsl(var(--foreground))", fontSize: 11, fontWeight: 600 }} />
                   {data.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
