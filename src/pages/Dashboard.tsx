@@ -38,9 +38,9 @@ export default function Dashboard() {
 
   const meses12 = useMemo(() => ultimosMeses(12), []);
   const mesesOpcoes = useMemo(() => {
-    const set = new Set([...meses12, statusMes, periodoMes, getCurrentMesReferencia()]);
+    const set = new Set([...meses12, statusMes, periodoMes, tipoMes, getCurrentMesReferencia()]);
     return Array.from(set).sort().reverse();
-  }, [meses12, statusMes, periodoMes]);
+  }, [meses12, statusMes, periodoMes, tipoMes]);
 
 
   // Empresas (vidas em tempo real)
