@@ -65,7 +65,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, vidas, tipo_contrato, status_empresa, tipo_movimentacao, contrato_via_portal")
+        .select("id, nome, vidas, tipo_contrato, status_empresa, tipo_movimentacao, contrato_via_portal, responsavel_user_id")
         .eq("tipo_contrato", "EMPRESARIAL");
       if (error) throw error;
       return data;
