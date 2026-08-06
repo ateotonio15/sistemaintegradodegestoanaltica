@@ -242,7 +242,8 @@ export default function Dashboard() {
           }
         />
         <StatusMovChart
-          pendentes={status.pendentes}
+          aguardando={status.aguardando}
+          foraDoPrazo={status.foraDoPrazo}
           empresa={status.empresa}
           financeiro={status.financeiro}
           filtros={
