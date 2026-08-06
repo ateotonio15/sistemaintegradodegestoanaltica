@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   PERIODOS,
   calcularStatus,
+  formatMesReferencia,
   getCurrentMesReferencia,
   getCurrentPeriodo,
 } from "@/lib/movimentacao-utils";
@@ -38,6 +40,17 @@ export default function Dashboard() {
   const [tipoMes, setTipoMes] = useState(getCurrentMesReferencia());
   const [tipoPeriodo, setTipoPeriodo] = useState<string>("all");
   const [statusUsuarioOpen, setStatusUsuarioOpen] = useState(false);
+  // Filtro geral (aplica a todos os gráficos)
+  const [geralUsuario, setGeralUsuario] = useState<string>("all");
+  const [geralMes, setGeralMes] = useState(getCurrentMesReferencia());
+  const [geralPeriodo, setGeralPeriodo] = useState<string>("all");
+  const aplicarGeral = (mes: string, periodo: string) => {
+    setStatusMes(mes);
+    setPeriodoMes(mes);
+    setTipoMes(mes);
+    setStatusPeriodo(periodo === "all" ? "all" : periodo);
+    setTipoPeriodo(periodo);
+  };
 
   const meses12 = useMemo(() => ultimosMeses(12), []);
   const mesesOpcoes = useMemo(() => {
@@ -112,10 +125,12 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("empresa_id, periodo")
+        .select(
+          "empresa_id, periodo, empresas:empresas!movimentacoes_empresa_id_fkey(responsavel_user_id)",
+        )
         .eq("mes_referencia", periodoMes);
       if (error) throw error;
-      return (data ?? []) as { empresa_id: string; periodo: string }[];
+      return (data ?? []) as any[];
     },
     enabled: !!user,
   });
@@ -124,11 +139,14 @@ export default function Dashboard() {
   const { data: movsTipo = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-tipo", tipoMes, tipoPeriodo],
     queryFn: async () => {
-      let q = supabase.from("movimentacoes").select("empresa_id").eq("mes_referencia", tipoMes);
+      let q = supabase
+        .from("movimentacoes")
+        .select("empresa_id, empresas:empresas!movimentacoes_empresa_id_fkey(responsavel_user_id)")
+        .eq("mes_referencia", tipoMes);
       if (tipoPeriodo !== "all") q = q.eq("periodo", tipoPeriodo);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as { empresa_id: string }[];
+      return (data ?? []) as any[];
     },
     enabled: !!user,
   });
@@ -180,9 +198,16 @@ export default function Dashboard() {
     };
   }, [queryClient]);
 
+  // Filtro global por usuário do Cadastro
+  const matchUsuario = useMemo(
+    () => (m: any) =>
+      geralUsuario === "all" || (m.empresas?.responsavel_user_id ?? null) === geralUsuario,
+    [geralUsuario],
+  );
+
   // Empresas por tipo de movimentação (empresas com movimentação no mês/período filtrado)
   const porTipo = useMemo(() => {
-    const idsComMovimentacao = new Set(movsTipo.map((m) => m.empresa_id));
+    const idsComMovimentacao = new Set(movsTipo.filter(matchUsuario).map((m: any) => m.empresa_id));
     const map = new Map<string, number>();
     empresas
       .filter((e: any) => idsComMovimentacao.has(e.id))
@@ -193,7 +218,7 @@ export default function Dashboard() {
     return Array.from(map.entries())
       .map(([tipo, total]) => ({ tipo, total }))
       .sort((a, b) => b.total - a.total);
-  }, [empresas, movsTipo]);
+  }, [empresas, movsTipo, matchUsuario]);
 
   // Empresas ativas EMPRESARIAL por canal de movimentação (Portal vs Não portal)
   const porPortal = useMemo(() => {
@@ -209,8 +234,8 @@ export default function Dashboard() {
 
   // Movimentações restritas a empresas EMPRESARIAL
   const movsPeriodoEmp = useMemo(
-    () => movsPeriodo.filter((m: any) => empresarialIds.has(m.empresa_id)),
-    [movsPeriodo, empresarialIds],
+    () => movsPeriodo.filter((m: any) => empresarialIds.has(m.empresa_id) && matchUsuario(m)),
+    [movsPeriodo, empresarialIds, matchUsuario],
   );
 
   // Status
@@ -267,20 +292,81 @@ export default function Dashboard() {
   const seriePeriodos = useMemo(() => {
     return PERIODOS.map((p) => {
       const ids = new Set(
-        movsMes.filter((m) => m.periodo === p && empresarialIds.has(m.empresa_id)).map((m) => m.empresa_id),
+        movsMes
+          .filter((m: any) => m.periodo === p && empresarialIds.has(m.empresa_id) && matchUsuario(m))
+          .map((m: any) => m.empresa_id),
       );
       return { periodo: p, empresas: ids.size };
     });
-  }, [movsMes, empresarialIds]);
+  }, [movsMes, empresarialIds, matchUsuario]);
 
 
 
   return (
     <div className="space-y-4 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
-        <p className="text-sm text-muted-foreground">Visão analítica em tempo real</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
+          <p className="text-sm text-muted-foreground">Visão analítica em tempo real</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={geralMes}
+            onValueChange={(v) => {
+              setGeralMes(v);
+              aplicarGeral(v, geralPeriodo);
+            }}
+          >
+            <SelectTrigger className="h-8 w-[140px] text-xs">
+              <SelectValue placeholder="Competência" />
+            </SelectTrigger>
+            <SelectContent>
+              {mesesOpcoes.map((m) => (
+                <SelectItem key={m} value={m} className="text-xs">
+                  {formatMesReferencia(m)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={geralPeriodo}
+            onValueChange={(v) => {
+              setGeralPeriodo(v);
+              aplicarGeral(geralMes, v);
+            }}
+          >
+            <SelectTrigger className="h-8 w-[130px] text-xs">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">
+                Todos os períodos
+              </SelectItem>
+              {PERIODOS.map((p) => (
+                <SelectItem key={p} value={p} className="text-xs">
+                  {p}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={geralUsuario} onValueChange={setGeralUsuario}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="Usuário" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">
+                Todos os usuários
+              </SelectItem>
+              {Array.from(profilesMap.entries()).map(([id, nome]) => (
+                <SelectItem key={id} value={id} className="text-xs">
+                  {nome || "Sem nome"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
 
 
       <div className="grid gap-4 lg:grid-cols-2">
