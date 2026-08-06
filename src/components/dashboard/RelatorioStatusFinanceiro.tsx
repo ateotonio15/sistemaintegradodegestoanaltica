@@ -294,6 +294,55 @@ export function RelatorioStatusFinanceiro() {
     return m;
   }, [filtradas]);
 
+  /** Movimentações únicas (faturamento + anexo) do usuário selecionado */
+  const movsDoUsuario = useMemo(() => {
+    if (!usuarioDialog) return [] as LinhaRelatorio[];
+    const v = empresasPorUsuario.get(usuarioDialog);
+    if (!v) return [] as LinhaRelatorio[];
+    const m = new Map<string, LinhaRelatorio>();
+    [...v.faturamentos, ...v.anexos].forEach((l) => m.set(l.id, l));
+    return Array.from(m.values()).sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome));
+  }, [usuarioDialog, empresasPorUsuario]);
+
+  const empresaIdsUsuario = useMemo(
+    () => Array.from(new Set(movsDoUsuario.map((l) => l.empresa_id))).filter(Boolean),
+    [movsDoUsuario],
+  );
+
+  /** Retroativos e reajustes das empresas exibidas no modal do usuário */
+  const { data: processoEmpresa } = useQuery({
+    enabled: empresaIdsUsuario.length > 0,
+    staleTime: 30_000,
+    queryKey: ["fin-processo-empresas", empresaIdsUsuario],
+    queryFn: async () => {
+      const [{ data: retro }, { data: reaj }] = await Promise.all([
+        supabase
+          .from("cobrancas_retroativas")
+          .select(
+            "id, empresa_id, competencia, valor_centavos, valor_total_calculado_centavos, valor_total_manual_centavos, tipo_ajuste, motivo, descricao, created_at, financeiro_movimentacao_id",
+          )
+          .in("empresa_id", empresaIdsUsuario),
+        supabase
+          .from("reajustes_anuais")
+          .select(
+            "id, empresa_id, ano, percentual, mes_reajuste, meses_retroativos, valor_retroativo_centavos, competencia, status_reajuste, data_aplicacao",
+          )
+          .in("empresa_id", empresaIdsUsuario),
+      ]);
+      const mapRetro = new Map<string, any[]>();
+      (retro ?? []).forEach((r: any) => {
+        mapRetro.set(r.empresa_id, [...(mapRetro.get(r.empresa_id) ?? []), r]);
+      });
+      const mapReaj = new Map<string, any[]>();
+      (reaj ?? []).forEach((r: any) => {
+        mapReaj.set(r.empresa_id, [...(mapReaj.get(r.empresa_id) ?? []), r]);
+      });
+      return { retro: mapRetro, reaj: mapReaj };
+    },
+  });
+
+
+
   const kpiLinhas = useMemo(() => {
     return {
       movimentacoes: filtradas,
