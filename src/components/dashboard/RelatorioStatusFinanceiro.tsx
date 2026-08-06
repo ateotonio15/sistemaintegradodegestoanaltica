@@ -90,6 +90,7 @@ export function RelatorioStatusFinanceiro() {
   const [statusDialog, setStatusDialog] = useState<StatusFinanceiro | null>(null);
   const [usuarioDialog, setUsuarioDialog] = useState<string | null>(null);
   const [kpiDialog, setKpiDialog] = useState<"movimentacoes" | "notas" | "faturamentos" | "anexos" | null>(null);
+  const [diaDialog, setDiaDialog] = useState<string | null>(null);
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     staleTime: 0,
