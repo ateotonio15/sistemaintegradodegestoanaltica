@@ -312,6 +312,7 @@ export default function Dashboard() {
           }
           onVerPorUsuario={() => setStatusUsuarioOpen(true)}
         />
+        <EmpresasPortalChart data={porPortal} />
         <VidasTempoRealCard
           totalGeral={vidas.totalGeral}
           totalEmpresarial={vidas.totalEmpresarial}
