@@ -132,19 +132,20 @@ export default function Dashboard() {
     };
   }, [queryClient]);
 
-  // Empresas por tipo de movimentação (empresas distintas com movimentação no período)
+  // Empresas por tipo de movimentação (todas as empresas ativas — soma = total de ativas)
   const porTipo = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    movsPeriodo.forEach((m: any) => {
-      const tipo = (m.empresas?.tipo_movimentacao || "Não informado").toString();
-      const set = map.get(tipo) ?? new Set<string>();
-      set.add(m.empresa_id);
-      map.set(tipo, set);
-    });
+    const map = new Map<string, number>();
+    empresas
+      .filter((e: any) => e.status_empresa === "Ativa")
+      .forEach((e: any) => {
+        const tipo = (e.tipo_movimentacao || "Não informado").toString();
+        map.set(tipo, (map.get(tipo) ?? 0) + 1);
+      });
     return Array.from(map.entries())
-      .map(([tipo, set]) => ({ tipo, total: set.size }))
+      .map(([tipo, total]) => ({ tipo, total }))
       .sort((a, b) => b.total - a.total);
-  }, [movsPeriodo]);
+  }, [empresas]);
+
 
   // Status
   const status = useMemo(() => {
