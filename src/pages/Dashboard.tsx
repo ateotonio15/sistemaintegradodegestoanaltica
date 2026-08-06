@@ -196,9 +196,16 @@ export default function Dashboard() {
     };
   }, [queryClient]);
 
+  // Filtro global por usuário do Cadastro
+  const matchUsuario = useMemo(
+    () => (m: any) =>
+      geralUsuario === "all" || (m.empresas?.responsavel_user_id ?? null) === geralUsuario,
+    [geralUsuario],
+  );
+
   // Empresas por tipo de movimentação (empresas com movimentação no mês/período filtrado)
   const porTipo = useMemo(() => {
-    const idsComMovimentacao = new Set(movsTipo.map((m) => m.empresa_id));
+    const idsComMovimentacao = new Set(movsTipo.filter(matchUsuario).map((m: any) => m.empresa_id));
     const map = new Map<string, number>();
     empresas
       .filter((e: any) => idsComMovimentacao.has(e.id))
@@ -209,7 +216,7 @@ export default function Dashboard() {
     return Array.from(map.entries())
       .map(([tipo, total]) => ({ tipo, total }))
       .sort((a, b) => b.total - a.total);
-  }, [empresas, movsTipo]);
+  }, [empresas, movsTipo, matchUsuario]);
 
   // Empresas ativas EMPRESARIAL por canal de movimentação (Portal vs Não portal)
   const porPortal = useMemo(() => {
