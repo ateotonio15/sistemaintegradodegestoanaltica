@@ -244,6 +244,24 @@ export function RelatorioStatusFinanceiro() {
       .sort((a, b) => b.dia.localeCompare(a.dia));
   }, [filtradas, dataIni, dataFim]);
 
+  /** Empresas adicionadas (movimentadas) e concluídas (nota enviada) em cada dia */
+  const empresasPorDia = useMemo(() => {
+    const m = new Map<string, { adicionadas: LinhaRelatorio[]; concluidas: LinhaRelatorio[] }>();
+    filtradas.forEach((l) => {
+      const d = dataRef(l)!;
+      const cur = m.get(d) ?? { adicionadas: [], concluidas: [] };
+      if (l.data_envio_nota && l.data_envio_nota >= dataIni && l.data_envio_nota <= dataFim) {
+        cur.concluidas.push(l);
+      } else {
+        cur.adicionadas.push(l);
+      }
+      m.set(d, cur);
+    });
+    return m;
+  }, [filtradas, dataIni, dataFim]);
+
+
+
   const porUsuario = useMemo(() => {
     const m = new Map<string, { enviadas: number; faturamentos: number; anexos: number }>();
     const get = (k: string) => {
