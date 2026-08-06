@@ -232,8 +232,8 @@ export default function Dashboard() {
 
   // Movimentações restritas a empresas EMPRESARIAL
   const movsPeriodoEmp = useMemo(
-    () => movsPeriodo.filter((m: any) => empresarialIds.has(m.empresa_id)),
-    [movsPeriodo, empresarialIds],
+    () => movsPeriodo.filter((m: any) => empresarialIds.has(m.empresa_id) && matchUsuario(m)),
+    [movsPeriodo, empresarialIds, matchUsuario],
   );
 
   // Status
