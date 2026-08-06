@@ -23,6 +23,8 @@ import {
   statusFinanceiroColor,
   formatMesReferencia,
   type StatusFinanceiro,
+  expandirAnexosPorGrupo,
+  fetchEmpresaGrupoMap,
 } from "@/lib/financeiro-utils";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
