@@ -1196,10 +1196,9 @@ export function RelatorioStatusFinanceiro() {
 
           <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
             {movsDoUsuario.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {(() => {
                   const total = movsDoUsuario.length;
-                  const naoProrata = movsDoUsuario.filter((l) => ehProRata(l.tipo_cobranca) === false).length;
                   const enviadas = movsDoUsuario.filter((l) => l.status === "Enviada").length;
                   const emFaturamento = movsDoUsuario.filter(
                     (l) =>
@@ -1209,7 +1208,6 @@ export function RelatorioStatusFinanceiro() {
                   ).length;
                   const cards = [
                     { label: "Total de empresas", valor: total, cls: "text-foreground" },
-                    { label: "Não pró-rata", valor: naoProrata, cls: "text-warning" },
                     { label: "Notas enviadas", valor: enviadas, cls: "text-success" },
                     { label: "Faturadas / em faturamento", valor: emFaturamento, cls: "text-info" },
                   ];
