@@ -26,6 +26,7 @@ import {
   expandirAnexosPorGrupo,
   fetchEmpresaGrupoMap,
 } from "@/lib/financeiro-utils";
+import { formatCentavosBRL, nomeMes, labelStatusReajusteFluxo } from "@/lib/reajuste-utils";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 function formatCompetencia(c?: string | null) {
