@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import {
   PERIODOS,
   calcularStatus,
   getCurrentMesReferencia,
   getCurrentPeriodo,
-  formatMesReferencia,
 } from "@/lib/movimentacao-utils";
 import { MovTipoChart } from "@/components/dashboard/charts/MovTipoChart";
 import { StatusMovChart } from "@/components/dashboard/charts/StatusMovChart";
@@ -18,6 +14,7 @@ import { VidasTempoRealCard } from "@/components/dashboard/charts/VidasTempoReal
 import { VidasMensalChart } from "@/components/dashboard/charts/VidasMensalChart";
 import { EmpresasMovMensalChart } from "@/components/dashboard/charts/EmpresasMovMensalChart";
 import { EmpresasPorPeriodoChart } from "@/components/dashboard/charts/EmpresasPorPeriodoChart";
+import { ChartFiltros } from "@/components/dashboard/charts/ChartFiltros";
 
 function ultimosMeses(n: number): string[] {
   const now = new Date();
