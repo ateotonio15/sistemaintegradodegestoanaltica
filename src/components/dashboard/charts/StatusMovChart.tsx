@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users } from "lucide-react";
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Users, PieChart as PieIcon } from "lucide-react";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { ChartCard } from "./ChartCard";
 
 interface Props {
   aguardando: number;
@@ -13,61 +13,86 @@ interface Props {
   onVerPorUsuario?: () => void;
 }
 
-export function StatusMovChart({ aguardando, foraDoPrazo, empresa, financeiro, filtros, onVerPorUsuario }: Props) {
-  const data = [
+export function StatusMovChart({
+  aguardando,
+  foraDoPrazo,
+  empresa,
+  financeiro,
+  filtros,
+  onVerPorUsuario,
+}: Props) {
+  const itens = [
     { name: "Aguardando envio", value: aguardando, color: "hsl(var(--muted-foreground))" },
     { name: "Fora do prazo", value: foraDoPrazo, color: "hsl(var(--destructive))" },
     { name: "Enviadas p/ Empresa", value: empresa, color: "hsl(var(--warning))" },
     { name: "Enviadas ao Financeiro", value: financeiro, color: "hsl(var(--success))" },
-  ].filter((d) => d.value > 0);
-
+  ];
+  const data = itens.filter((d) => d.value > 0);
   const total = aguardando + foraDoPrazo + empresa + financeiro;
 
   return (
-    <Card className="rounded-xl shadow-sm">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
-        <CardTitle className="text-base font-semibold">Movimentações por status</CardTitle>
-        <div className="flex flex-wrap items-center gap-2">
+    <ChartCard
+      title="Movimentações por status"
+      subtitle={`${total.toLocaleString("pt-BR")} movimentações no recorte`}
+      icon={<PieIcon className="h-4 w-4" />}
+      actions={
+        <>
           {filtros}
           {onVerPorUsuario && (
-            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={onVerPorUsuario}>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onVerPorUsuario}>
               <Users className="h-3.5 w-3.5" />
               Por usuário
             </Button>
           )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {total === 0 ? (
-          <div className="py-16 text-center text-sm text-muted-foreground">Sem dados no período</div>
-        ) : (
-          <div className="relative h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={data} dataKey="value" nameKey="name" innerRadius={70} outerRadius={105} paddingAngle={2}>
-                  {data.map((d, i) => (
-                    <Cell key={i} fill={d.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--popover))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                    color: "hsl(var(--popover-foreground))",
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: "12px" }} iconType="circle" />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-8">
-              <span className="text-3xl font-bold">{total}</span>
-              <span className="text-xs text-muted-foreground">movimentações</span>
-            </div>
+        </>
+      }
+      empty={total === 0}
+    >
+      <div className="grid h-full grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="relative h-full min-h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={data} dataKey="value" nameKey="name" innerRadius="66%" outerRadius="94%" paddingAngle={2} stroke="none">
+                {data.map((d, i) => (
+                  <Cell key={i} fill={d.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  background: "hsl(var(--popover))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "10px",
+                  fontSize: "12px",
+                  color: "hsl(var(--popover-foreground))",
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-3xl font-bold leading-none">{total}</span>
+            <span className="text-[11px] text-muted-foreground">movimentações</span>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+        <ul className="space-y-1.5">
+          {itens.map((d) => {
+            const pct = total > 0 ? Math.round((d.value / total) * 100) : 0;
+            return (
+              <li
+                key={d.name}
+                className="flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-muted/20 px-2.5 py-1.5"
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: d.color }} />
+                  <span className="truncate text-xs text-muted-foreground">{d.name}</span>
+                </span>
+                <span className="shrink-0 text-xs font-semibold tabular-nums">
+                  {d.value} <span className="text-[10px] font-normal text-muted-foreground">({pct}%)</span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </ChartCard>
   );
 }
