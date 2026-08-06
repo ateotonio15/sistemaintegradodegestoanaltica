@@ -1195,11 +1195,44 @@ export function RelatorioStatusFinanceiro() {
           </DialogHeader>
 
           <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
+            {movsDoUsuario.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {(() => {
+                  const total = movsDoUsuario.length;
+                  const naoProrata = movsDoUsuario.filter((l) => ehProRata(l.tipo_cobranca) === false).length;
+                  const enviadas = movsDoUsuario.filter((l) => l.status === "Enviada").length;
+                  const emFaturamento = movsDoUsuario.filter(
+                    (l) =>
+                      l.status === "Faturado" ||
+                      l.status === "Em faturamento" ||
+                      l.status === "Aguardando validação",
+                  ).length;
+                  const cards = [
+                    { label: "Total de empresas", valor: total, cls: "text-foreground" },
+                    { label: "Não pró-rata", valor: naoProrata, cls: "text-warning" },
+                    { label: "Notas enviadas", valor: enviadas, cls: "text-success" },
+                    { label: "Faturadas / em faturamento", valor: emFaturamento, cls: "text-info" },
+                  ];
+                  return cards.map((c) => (
+                    <div
+                      key={c.label}
+                      className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3"
+                    >
+                      <p className="text-[11px] uppercase tracking-tight font-semibold text-muted-foreground mb-1">
+                        {c.label}
+                      </p>
+                      <p className={cn("text-2xl font-bold tabular-nums", c.cls)}>{c.valor}</p>
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
             {movsDoUsuario.length === 0 ? (
               <p className="text-sm text-muted-foreground rounded-xl border border-dashed border-border/60 px-4 py-8 text-center">
                 Nenhuma empresa no período.
               </p>
             ) : (
+
               movsDoUsuario.map((l) => {
                 const dts = periodoDatas(l.mes_referencia, l.periodo);
                 const prorata = ehProRata(l.tipo_cobranca);
