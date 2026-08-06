@@ -320,7 +320,7 @@ export default function Dashboard() {
       <StatusPorUsuarioDialog
         open={statusUsuarioOpen}
         onOpenChange={setStatusUsuarioOpen}
-        movs={movsPeriodo as any}
+        movs={movsPeriodoEmp as any}
         profilesMap={profilesMap}
         mes={statusMes}
         periodo={statusPeriodo}
