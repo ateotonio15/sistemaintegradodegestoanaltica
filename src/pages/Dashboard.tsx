@@ -32,14 +32,17 @@ function ultimosMeses(n: number): string[] {
 export default function Dashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
-  const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
+  // Filtros independentes por gráfico
+  const [statusMes, setStatusMes] = useState(getCurrentMesReferencia());
+  const [statusPeriodo, setStatusPeriodo] = useState<string>(getCurrentPeriodo());
+  const [periodoMes, setPeriodoMes] = useState(getCurrentMesReferencia());
 
   const meses12 = useMemo(() => ultimosMeses(12), []);
   const mesesOpcoes = useMemo(() => {
-    const set = new Set([...meses12, filterMes, getCurrentMesReferencia()]);
+    const set = new Set([...meses12, statusMes, periodoMes, getCurrentMesReferencia()]);
     return Array.from(set).sort().reverse();
-  }, [meses12, filterMes]);
+  }, [meses12, statusMes, periodoMes]);
+
 
   // Empresas (vidas em tempo real)
   const { data: empresas = [] } = useQuery({
