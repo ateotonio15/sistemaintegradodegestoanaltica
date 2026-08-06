@@ -46,8 +46,10 @@ export function StatusPorUsuarioDialog({ open, onOpenChange, movs, profilesMap, 
     movs.forEach((m) => {
       const emp = m.empresas ?? null;
       const uid = emp?.responsavel_user_id ?? null;
-      const nome =
-        (uid ? profilesMap.get(uid) : "") || emp?.responsavel_contrato || "Sem responsável";
+      // Somente usuários do Cadastro (empresarial) presentes no mapa de perfis
+      if (!uid || !profilesMap.has(uid)) return;
+      const nome = profilesMap.get(uid) || emp?.responsavel_contrato || "Sem responsável";
+
       let l = map.get(nome);
       if (!l) {
         l = {
