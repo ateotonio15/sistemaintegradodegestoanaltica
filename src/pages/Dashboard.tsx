@@ -213,7 +213,20 @@ export default function Dashboard() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <MovTipoChart data={porTipo} />
-        <StatusMovChart pendentes={status.pendentes} empresa={status.empresa} financeiro={status.financeiro} />
+        <StatusMovChart
+          pendentes={status.pendentes}
+          empresa={status.empresa}
+          financeiro={status.financeiro}
+          filtros={
+            <ChartFiltros
+              meses={mesesOpcoes}
+              mes={statusMes}
+              onMesChange={setStatusMes}
+              periodo={statusPeriodo}
+              onPeriodoChange={setStatusPeriodo}
+            />
+          }
+        />
         <VidasTempoRealCard
           totalGeral={vidas.totalGeral}
           totalEmpresarial={vidas.totalEmpresarial}
@@ -221,7 +234,10 @@ export default function Dashboard() {
         />
         <EmpresasMovMensalChart data={serieEmpresas} />
         <div className="lg:col-span-2">
-          <EmpresasPorPeriodoChart data={seriePeriodos} />
+          <EmpresasPorPeriodoChart
+            data={seriePeriodos}
+            filtros={<ChartFiltros meses={mesesOpcoes} mes={periodoMes} onMesChange={setPeriodoMes} />}
+          />
         </div>
         <div className="lg:col-span-2">
           <VidasMensalChart data={serieVidas} />
