@@ -166,16 +166,18 @@ export default function Dashboard() {
 
   // Status
   const status = useMemo(() => {
-    let pendentes = 0,
+    let aguardando = 0,
+      foraDoPrazo = 0,
       empresa = 0,
       financeiro = 0;
     movsPeriodo.forEach((m: any) => {
       const s = calcularStatus(m);
       if (s === "Enviado ao financeiro") financeiro += 1;
       else if (s === "Enviado para empresa") empresa += 1;
-      else pendentes += 1;
+      else if (s === "Fora do prazo") foraDoPrazo += 1;
+      else aguardando += 1;
     });
-    return { pendentes, empresa, financeiro };
+    return { aguardando, foraDoPrazo, empresa, financeiro };
   }, [movsPeriodo]);
 
   // Vidas
@@ -240,7 +242,8 @@ export default function Dashboard() {
           }
         />
         <StatusMovChart
-          pendentes={status.pendentes}
+          aguardando={status.aguardando}
+          foraDoPrazo={status.foraDoPrazo}
           empresa={status.empresa}
           financeiro={status.financeiro}
           filtros={
