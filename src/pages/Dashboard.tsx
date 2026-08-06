@@ -17,6 +17,7 @@ import { StatusMovChart } from "@/components/dashboard/charts/StatusMovChart";
 import { VidasTempoRealCard } from "@/components/dashboard/charts/VidasTempoRealCard";
 import { VidasMensalChart } from "@/components/dashboard/charts/VidasMensalChart";
 import { EmpresasMovMensalChart } from "@/components/dashboard/charts/EmpresasMovMensalChart";
+import { EmpresasPorPeriodoChart } from "@/components/dashboard/charts/EmpresasPorPeriodoChart";
 
 function ultimosMeses(n: number): string[] {
   const now = new Date();
