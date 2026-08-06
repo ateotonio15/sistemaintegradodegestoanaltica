@@ -212,12 +212,18 @@ export default function Dashboard() {
     [geralUsuario],
   );
 
+  // Empresa corresponde ao filtro de usuário
+  const matchEmpresaUsuario = useMemo(
+    () => (e: any) => geralUsuario === "all" || e.responsavel_user_id === geralUsuario,
+    [geralUsuario],
+  );
+
   // Empresas por tipo de movimentação (empresas com movimentação no mês/período filtrado)
   const porTipo = useMemo(() => {
     const idsComMovimentacao = new Set(movsTipo.filter(matchUsuario).map((m: any) => m.empresa_id));
     const map = new Map<string, number>();
     empresas
-      .filter((e: any) => idsComMovimentacao.has(e.id))
+      .filter((e: any) => idsComMovimentacao.has(e.id) && matchEmpresaUsuario(e))
       .forEach((e: any) => {
         const tipo = (e.tipo_movimentacao || "Não informado").toString();
         map.set(tipo, (map.get(tipo) ?? 0) + 1);
@@ -225,18 +231,25 @@ export default function Dashboard() {
     return Array.from(map.entries())
       .map(([tipo, total]) => ({ tipo, total }))
       .sort((a, b) => b.total - a.total);
-  }, [empresas, movsTipo, matchUsuario]);
+  }, [empresas, movsTipo, matchUsuario, matchEmpresaUsuario]);
 
-  // Empresas ativas EMPRESARIAL por canal de movimentação (Portal vs Não portal)
+  // Empresas por canal de movimentação (Portal vs Não portal) — segue os filtros gerais
   const porPortal = useMemo(() => {
-    const ativas = empresas.filter((e: any) => e.status_empresa === "Ativa");
-    const viaPortal = ativas.filter((e: any) => e.contrato_via_portal === true).length;
-    const naoPortal = ativas.length - viaPortal;
+    const idsComMovimentacao = new Set(
+      movsPeriodo.filter(matchUsuario).map((m: any) => m.empresa_id),
+    );
+    const base = empresas.filter(
+      (e: any) =>
+        e.status_empresa === "Ativa" && matchEmpresaUsuario(e) && idsComMovimentacao.has(e.id),
+    );
+    const viaPortal = base.filter((e: any) => e.contrato_via_portal === true).length;
+    const naoPortal = base.length - viaPortal;
     return [
       { categoria: "Via portal", total: viaPortal },
       { categoria: "Não via portal", total: naoPortal },
     ];
-  }, [empresas]);
+  }, [empresas, movsPeriodo, matchUsuario, matchEmpresaUsuario]);
+
 
 
   // Movimentações restritas a empresas EMPRESARIAL
