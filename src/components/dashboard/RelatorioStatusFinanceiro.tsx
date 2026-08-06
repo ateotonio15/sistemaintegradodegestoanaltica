@@ -1227,6 +1227,50 @@ export function RelatorioStatusFinanceiro() {
                 })()}
               </div>
             )}
+            {movsDoUsuario.length > 0 && (() => {
+              const porTipo = new Map<string, { total: number; enviadas: number }>();
+              movsDoUsuario.forEach((l) => {
+                const k = (l.tipo_cobranca || "Sem tipo").toUpperCase();
+                const cur = porTipo.get(k) ?? { total: 0, enviadas: 0 };
+                cur.total += 1;
+                if (l.status === "Enviada") cur.enviadas += 1;
+                porTipo.set(k, cur);
+              });
+              const linhas = [...porTipo.entries()].sort((a, b) => b[1].total - a[1].total);
+              return (
+                <div className="rounded-xl border border-border/60 overflow-hidden">
+                  <div className="px-4 py-2.5 bg-muted/40 border-b border-border/60">
+                    <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Cobranças por tipo
+                    </p>
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <th className="text-left font-semibold px-4 py-2">Tipo de cobrança</th>
+                        <th className="text-right font-semibold px-4 py-2">Qtd.</th>
+                        <th className="text-right font-semibold px-4 py-2">Notas enviadas</th>
+                        <th className="text-right font-semibold px-4 py-2">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {linhas.map(([tipo, v]) => (
+                        <tr key={tipo} className="border-t border-border/40 hover:bg-muted/20">
+                          <td className="px-4 py-2 font-medium">{tipo}</td>
+                          <td className="px-4 py-2 text-right tabular-nums font-semibold">{v.total}</td>
+                          <td className="px-4 py-2 text-right tabular-nums text-success font-semibold">
+                            {v.enviadas}
+                          </td>
+                          <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
+                            {Math.round((v.total / movsDoUsuario.length) * 100)}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
             {movsDoUsuario.length === 0 ? (
               <p className="text-sm text-muted-foreground rounded-xl border border-dashed border-border/60 px-4 py-8 text-center">
                 Nenhuma empresa no período.
