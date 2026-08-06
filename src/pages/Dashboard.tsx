@@ -195,13 +195,19 @@ export default function Dashboard() {
   }, [empresas, movsTipo]);
 
 
+  // Movimentações restritas a empresas EMPRESARIAL
+  const movsPeriodoEmp = useMemo(
+    () => movsPeriodo.filter((m: any) => empresarialIds.has(m.empresa_id)),
+    [movsPeriodo, empresarialIds],
+  );
+
   // Status
   const status = useMemo(() => {
     let aguardando = 0,
       foraDoPrazo = 0,
       empresa = 0,
       financeiro = 0;
-    movsPeriodo.forEach((m: any) => {
+    movsPeriodoEmp.forEach((m: any) => {
       const s = calcularStatus(m);
       if (s === "Enviado ao financeiro") financeiro += 1;
       else if (s === "Enviado para empresa") empresa += 1;
@@ -209,22 +215,21 @@ export default function Dashboard() {
       else aguardando += 1;
     });
     return { aguardando, foraDoPrazo, empresa, financeiro };
-  }, [movsPeriodo]);
+  }, [movsPeriodoEmp]);
 
-  // Vidas
+  // Vidas (somente empresarial)
   const vidas = useMemo(() => {
     const ativas = empresas.filter((e: any) => e.status_empresa === "Ativa");
-    const totalGeral = ativas.reduce((s: number, e: any) => s + (e.vidas ?? 0), 0);
-    const totalEmpresarial = ativas
-      .filter((e: any) => (e.tipo_contrato ?? "").toUpperCase() === "EMPRESARIAL")
-      .reduce((s: number, e: any) => s + (e.vidas ?? 0), 0);
-    return { totalGeral, totalEmpresarial, empresasAtivas: ativas.length };
+    const total = ativas.reduce((s: number, e: any) => s + (e.vidas ?? 0), 0);
+    return { totalGeral: total, totalEmpresarial: total, empresasAtivas: ativas.length };
   }, [empresas]);
 
   // Série de vidas por mês
   const serieVidas = useMemo(() => {
     return meses12.map((mes) => {
-      const linhas = historicoVidas.filter((h) => h.mes_referencia === mes);
+      const linhas = historicoVidas.filter(
+        (h) => h.mes_referencia === mes && empresarialIds.has(h.empresa_id),
+      );
       return {
         mes,
         entradas: linhas.reduce((s, h) => s + (h.entradas ?? 0), 0),
@@ -232,23 +237,30 @@ export default function Dashboard() {
         vidas_ativas: linhas.reduce((s, h) => s + (h.total_atual ?? 0), 0),
       };
     });
-  }, [meses12, historicoVidas]);
+  }, [meses12, historicoVidas, empresarialIds]);
 
   // Empresas com movimentação por mês
   const serieEmpresas = useMemo(() => {
     return meses12.map((mes) => {
-      const ids = new Set(movs12.filter((m) => m.mes_referencia === mes).map((m) => m.empresa_id));
+      const ids = new Set(
+        movs12
+          .filter((m) => m.mes_referencia === mes && empresarialIds.has(m.empresa_id))
+          .map((m) => m.empresa_id),
+      );
       return { mes, empresas: ids.size };
     });
-  }, [meses12, movs12]);
+  }, [meses12, movs12, empresarialIds]);
 
   // Empresas por período (mês selecionado)
   const seriePeriodos = useMemo(() => {
     return PERIODOS.map((p) => {
-      const ids = new Set(movsMes.filter((m) => m.periodo === p).map((m) => m.empresa_id));
+      const ids = new Set(
+        movsMes.filter((m) => m.periodo === p && empresarialIds.has(m.empresa_id)).map((m) => m.empresa_id),
+      );
       return { periodo: p, empresas: ids.size };
     });
-  }, [movsMes]);
+  }, [movsMes, empresarialIds]);
+
 
 
   return (
