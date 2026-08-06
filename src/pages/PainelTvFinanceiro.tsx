@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useFinanceiroRealtime } from "@/hooks/useFinanceiroRealtime";
 import {
   calcularStatusFinanceiro,
+  expandirAnexosPorGrupo,
+  fetchEmpresaGrupoMap,
   formatMesReferencia,
   getCurrentMesReferencia,
   getMesesOptions,
