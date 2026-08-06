@@ -195,6 +195,17 @@ export default function Dashboard() {
       .sort((a, b) => b.total - a.total);
   }, [empresas, movsTipo]);
 
+  // Empresas ativas EMPRESARIAL por canal de movimentação (Portal vs Não portal)
+  const porPortal = useMemo(() => {
+    const ativas = empresas.filter((e: any) => e.status_empresa === "Ativa");
+    const viaPortal = ativas.filter((e: any) => e.contrato_via_portal === true).length;
+    const naoPortal = ativas.length - viaPortal;
+    return [
+      { categoria: "Via portal", total: viaPortal },
+      { categoria: "Não via portal", total: naoPortal },
+    ];
+  }, [empresas]);
+
 
   // Movimentações restritas a empresas EMPRESARIAL
   const movsPeriodoEmp = useMemo(
