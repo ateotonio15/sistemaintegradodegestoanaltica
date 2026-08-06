@@ -34,6 +34,7 @@ import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentaca
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
+import Dashboard from "@/pages/Dashboard";
 
 import ExcelJS from "exceljs";
 
