@@ -75,15 +75,14 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Movimentações dos últimos 12 meses (série mensal de empresas)
   // Movimentações do mês inteiro (por período)
   const { data: movsMes = [] } = useQuery({
-    queryKey: ["dashboard-geral-movs-mes", statusMes],
+    queryKey: ["dashboard-geral-movs-mes", periodoMes],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
         .select("empresa_id, periodo")
-        .eq("mes_referencia", statusMes);
+        .eq("mes_referencia", periodoMes);
       if (error) throw error;
       return (data ?? []) as { empresa_id: string; periodo: string }[];
     },
