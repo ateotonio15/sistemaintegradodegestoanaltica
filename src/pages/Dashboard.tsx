@@ -254,6 +254,9 @@ export default function Dashboard() {
         />
         <EmpresasMovMensalChart data={serieEmpresas} />
         <div className="lg:col-span-2">
+          <EmpresasPorPeriodoChart data={seriePeriodos} />
+        </div>
+        <div className="lg:col-span-2">
           <VidasMensalChart data={serieVidas} />
         </div>
       </div>
