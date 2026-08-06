@@ -14,6 +14,7 @@ import { VidasTempoRealCard } from "@/components/dashboard/charts/VidasTempoReal
 import { VidasMensalChart } from "@/components/dashboard/charts/VidasMensalChart";
 import { EmpresasMovMensalChart } from "@/components/dashboard/charts/EmpresasMovMensalChart";
 import { EmpresasPorPeriodoChart } from "@/components/dashboard/charts/EmpresasPorPeriodoChart";
+import { EmpresasPortalChart } from "@/components/dashboard/charts/EmpresasPortalChart";
 import { ChartFiltros } from "@/components/dashboard/charts/ChartFiltros";
 import { StatusPorUsuarioDialog } from "@/components/dashboard/charts/StatusPorUsuarioDialog";
 
