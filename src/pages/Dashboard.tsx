@@ -205,47 +205,11 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 p-4 md:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
-          <p className="text-sm text-muted-foreground">Visão analítica em tempo real</p>
-        </div>
-        <Card className="rounded-xl">
-          <CardContent className="flex flex-wrap items-end gap-3 p-3">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Competência</Label>
-              <Select value={statusMes} onValueChange={setFilterMes}>
-                <SelectTrigger className="h-9 w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {mesesOpcoes.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {formatMesReferencia(m)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Período</Label>
-              <Select value={statusPeriodo} onValueChange={setFilterPeriodo}>
-                <SelectTrigger className="h-9 w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {PERIODOS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
+        <p className="text-sm text-muted-foreground">Visão analítica em tempo real</p>
       </div>
+
 
       <div className="grid gap-4 lg:grid-cols-2">
         <MovTipoChart data={porTipo} />
