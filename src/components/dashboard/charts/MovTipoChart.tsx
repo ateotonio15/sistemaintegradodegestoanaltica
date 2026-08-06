@@ -40,7 +40,8 @@ export function MovTipoChart({ data }: Props) {
                 <XAxis dataKey="tipo" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} interval={0} angle={-15} textAnchor="end" height={60} />
                 <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted) / 0.3)" }} />
-                <Bar dataKey="total" name="Empresas" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="total" name="Empresas" radius={[6, 6, 0, 0]} maxBarSize={80}>
+                  <LabelList dataKey="total" position="top" style={{ fill: "hsl(var(--foreground))", fontSize: 11, fontWeight: 600 }} />
                   {data.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
