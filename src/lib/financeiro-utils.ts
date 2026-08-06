@@ -59,6 +59,74 @@ export function anexoAlteraStatus(a: {
   return origem !== "retroativo" && origem !== "reajuste";
 }
 
+/* ─────────────────────────────────────────────────────────────
+ * Grupo Financeiro — anexos compartilhados
+ * ────────────────────────────────────────────────────────── */
+
+export interface MovGrupoKey {
+  id: string;
+  empresa_id: string;
+  mes_referencia: string | null;
+  periodo: string | null;
+}
+
+/**
+ * Replica os anexos entre contratos do mesmo Grupo Financeiro (mesma
+ * competência + período), igual à aba Faturamento. Sem isso, contratos
+ * do grupo cujo anexo foi enviado por outro contrato aparecem como
+ * "Aguardando nota" indevidamente.
+ */
+export function expandirAnexosPorGrupo<A extends { financeiro_movimentacao_id: string }>(
+  movs: MovGrupoKey[],
+  anexos: A[],
+  empresaGrupo: Map<string, string>,
+): Map<string, A[]> {
+  const map = new Map<string, A[]>();
+  const push = (movId: string, a: A) => {
+    const list = map.get(movId) ?? [];
+    if (!list.includes(a)) list.push(a);
+    map.set(movId, list);
+  };
+  anexos.forEach((a) => push(a.financeiro_movimentacao_id, a));
+
+  if (empresaGrupo.size === 0) return map;
+
+  const movMeta = new Map(movs.map((m) => [m.id, m]));
+  const porGrupoPeriodo = new Map<string, A[]>();
+  anexos.forEach((a) => {
+    const meta = movMeta.get(a.financeiro_movimentacao_id);
+    const grupoId = meta ? empresaGrupo.get(meta.empresa_id) : undefined;
+    if (!meta || !grupoId) return;
+    const key = `${grupoId}|${meta.mes_referencia}|${meta.periodo}`;
+    const list = porGrupoPeriodo.get(key) ?? [];
+    list.push(a);
+    porGrupoPeriodo.set(key, list);
+  });
+
+  movs.forEach((m) => {
+    const grupoId = empresaGrupo.get(m.empresa_id);
+    if (!grupoId) return;
+    (porGrupoPeriodo.get(`${grupoId}|${m.mes_referencia}|${m.periodo}`) ?? []).forEach((a) => {
+      if (a.financeiro_movimentacao_id === m.id) return;
+      push(m.id, a);
+    });
+  });
+
+  return map;
+}
+
+/** Busca o mapa empresa_id → grupo_id dos Grupos Financeiros ativos. */
+export async function fetchEmpresaGrupoMap(
+  client: { from: (t: string) => any },
+): Promise<Map<string, string>> {
+  const { data } = await client
+    .from("grupos_financeiros_contratos")
+    .select("empresa_id, grupo_id")
+    .eq("ativo", true);
+  return new Map<string, string>((data ?? []).map((r: any) => [r.empresa_id, r.grupo_id]));
+}
+
+
 
 /**
  * Calcula o status financeiro de uma movimentação (NÃO persistido no banco).

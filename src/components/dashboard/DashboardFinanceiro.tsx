@@ -21,7 +21,7 @@ import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
-import { periodoVencido, competenciasJanelaPadrao } from "@/lib/financeiro-utils";
+import { periodoVencido, competenciasJanelaPadrao, expandirAnexosPorGrupo, fetchEmpresaGrupoMap } from "@/lib/financeiro-utils";
 
 
 
@@ -139,8 +139,8 @@ export function DashboardFinanceiro() {
       if (rows.length === 0) return [];
 
       // Anexos financeiros existentes → deixam de ser "Pendente"
-      const comAnexo = new Set<string>();
       const ids = rows.map((r: any) => r.id);
+      const anexosAll: any[] = [];
       for (let i = 0; i < ids.length; i += 500) {
         const { data: anx } = await supabase
           .from("anexos_financeiro")
@@ -148,10 +148,18 @@ export function DashboardFinanceiro() {
           .in("financeiro_movimentacao_id", ids.slice(i, i + 500));
         (anx ?? []).forEach((a: any) => {
           const origem = (a.origem || "normal").toLowerCase();
-          if (origem !== "retroativo" && origem !== "reajuste")
-            comAnexo.add(a.financeiro_movimentacao_id);
+          if (origem !== "retroativo" && origem !== "reajuste") anexosAll.push(a);
         });
       }
+      // Anexos compartilhados no Grupo Financeiro contam para todos os contratos
+      const empresaGrupo = await fetchEmpresaGrupoMap(supabase as any);
+      const anexosMap = expandirAnexosPorGrupo(rows as any, anexosAll, empresaGrupo);
+      const comAnexo = new Set<string>(
+        Array.from(anexosMap.entries())
+          .filter(([, list]) => list.length > 0)
+          .map(([id]) => id),
+      );
+
 
       // Envio operacional (Cadastro → Financeiro) → status "Aguardando nota"
       const { data: ops } = await supabase

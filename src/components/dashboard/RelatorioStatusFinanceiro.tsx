@@ -23,6 +23,8 @@ import {
   statusFinanceiroColor,
   formatMesReferencia,
   type StatusFinanceiro,
+  expandirAnexosPorGrupo,
+  fetchEmpresaGrupoMap,
 } from "@/lib/financeiro-utils";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -106,21 +108,21 @@ export function RelatorioStatusFinanceiro() {
       const rows = fins ?? [];
 
       const ids = rows.map((r: any) => r.id);
-      const anexosPorMov = new Map<
-        string,
-        { mime_type: string | null; nome_arquivo: string | null; origem: string | null; created_at: string; uploaded_by: string | null }[]
-      >();
+      const anexosAll: any[] = [];
       for (let i = 0; i < ids.length; i += 500) {
         const { data: anx } = await supabase
           .from("anexos_financeiro")
           .select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem, created_at, uploaded_by")
           .in("financeiro_movimentacao_id", ids.slice(i, i + 500));
-        (anx ?? []).forEach((a: any) => {
-          const list = anexosPorMov.get(a.financeiro_movimentacao_id) ?? [];
-          list.push(a);
-          anexosPorMov.set(a.financeiro_movimentacao_id, list);
-        });
+        (anx ?? []).forEach((a: any) => anexosAll.push(a));
       }
+      // Anexos compartilhados no Grupo Financeiro valem para todos os contratos do grupo
+      const empresaGrupo = await fetchEmpresaGrupoMap(supabase as any);
+      const anexosPorMov = expandirAnexosPorGrupo(rows as any, anexosAll, empresaGrupo) as Map<
+        string,
+        { mime_type: string | null; nome_arquivo: string | null; origem: string | null; created_at: string; uploaded_by: string | null }[]
+      >;
+
 
       const { data: emps } = await supabase
         .from("empresas")
