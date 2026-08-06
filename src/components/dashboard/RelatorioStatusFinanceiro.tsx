@@ -1178,7 +1178,7 @@ export function RelatorioStatusFinanceiro() {
 
                 <section>
                   <div className="flex items-center gap-2.5 mb-4">
-                    <div className="h-9 w-9 rounded-xl bg-info/10 flex items-center justify-center border border-info/20 icon-tile">
+                    <div className="h-9 w-9 rounded-xl bg-info/10 flex items-center justify-center border border-info/20">
                       <Paperclip className="h-4 w-4 text-info" />
                     </div>
                     <h3 className="text-sm font-semibold text-foreground">Anexos</h3>
