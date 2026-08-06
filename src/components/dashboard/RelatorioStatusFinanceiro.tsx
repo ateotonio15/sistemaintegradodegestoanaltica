@@ -1109,100 +1109,126 @@ export function RelatorioStatusFinanceiro() {
       </Dialog>
 
       <Dialog open={!!usuarioDialog} onOpenChange={(open) => !open && setUsuarioDialog(null)}>
-
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden rounded-xl">
-          <DialogHeader className="px-6 py-5 border-b bg-muted/40 space-y-1.5">
-            <DialogTitle className="text-lg">Empresas de {usuarioDialog}</DialogTitle>
-            <DialogDescription className="text-sm">
-              {usuarioDialog && (
-                <>
-                  {empresasPorUsuario.get(usuarioDialog)?.faturamentos.length ?? 0} faturamento(s) e{" "}
-                  {empresasPorUsuario.get(usuarioDialog)?.anexos.length ?? 0} anexo(s).
-                </>
-              )}
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden rounded-xl border-border/60">
+          <DialogHeader className="px-6 py-5 border-b border-border/60 bg-muted/30 space-y-1">
+            <DialogDescription className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+              Sistema SIGA
             </DialogDescription>
+            <DialogTitle className="text-xl font-bold tracking-tight">
+              Empresas de {usuarioDialog}
+            </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-auto px-6 py-5 space-y-6">
+
+          <div className="flex-1 overflow-auto px-6 py-5 space-y-8">
             {usuarioDialog && (
               <>
-                <div>
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <Receipt className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-semibold">Faturamentos</p>
-                    <Badge variant="outline" className="text-xs">
+                <section>
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 icon-tile">
+                      <Receipt className="h-4 w-4 text-primary" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground">Faturamentos</h3>
+                    <Badge variant="outline" className="text-xs font-medium">
                       {empresasPorUsuario.get(usuarioDialog)?.faturamentos.length ?? 0}
                     </Badge>
                   </div>
+
                   {(empresasPorUsuario.get(usuarioDialog)?.faturamentos.length ?? 0) === 0 ? (
-                    <p className="text-sm text-muted-foreground rounded-lg border border-dashed px-4 py-6 text-center">
+                    <p className="text-sm text-muted-foreground rounded-xl border border-dashed border-border/60 px-4 py-6 text-center">
                       Nenhum faturamento no período.
                     </p>
                   ) : (
-                    <div className="rounded-lg border overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="text-muted-foreground sticky top-0 bg-muted/60 backdrop-blur z-10">
-                        <tr className="border-b">
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Empresa</th>
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Contrato</th>
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Competência</th>
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Período</th>
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Iniciado em</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {empresasPorUsuario.get(usuarioDialog)?.faturamentos.map((l) => (
-                          <tr key={`fat-${l.id}`} className="border-b last:border-0 even:bg-muted/20 hover:bg-primary/5 transition-colors">
-                            <td className="px-4 py-2.5 font-medium">{l.empresa_nome}</td>
-                            <td className="px-4 py-2.5 tabular-nums text-muted-foreground">{l.codigo_contrato || "—"}</td>
-                            <td className="px-4 py-2.5">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
-                            <td className="px-4 py-2.5 tabular-nums">{l.periodo ?? "—"}</td>
-                            <td className="px-4 py-2.5 tabular-nums">{fmtDia(l.faturamento_iniciado_em)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <div className="space-y-3">
+                      {empresasPorUsuario.get(usuarioDialog)?.faturamentos.map((l) => (
+                        <div
+                          key={`fat-${l.id}`}
+                          className="group relative bg-card/40 hover:bg-card/70 border border-border/60 hover:border-primary/50 rounded-xl p-5 transition-all duration-200 cursor-pointer card-hover"
+                        >
+                          <div className="flex justify-between items-start gap-3 mb-4">
+                            <h4 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                              {l.empresa_nome}
+                            </h4>
+                            <span className="shrink-0 px-2 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase rounded border border-primary/20">
+                              Faturamento
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Contrato</p>
+                              <p className="text-foreground text-sm font-medium tabular-nums">{l.codigo_contrato || "—"}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Competência</p>
+                              <p className="text-foreground text-sm font-medium">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Período</p>
+                              <p className="text-foreground text-sm font-medium tabular-nums">{l.periodo ?? "—"}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Iniciado em</p>
+                              <p className="text-foreground text-sm font-medium tabular-nums">{fmtDia(l.faturamento_iniciado_em)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <Paperclip className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-semibold">Anexos</p>
-                    <Badge variant="outline" className="text-xs">
+                </section>
+
+                <section>
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="h-9 w-9 rounded-xl bg-info/10 flex items-center justify-center border border-info/20 icon-tile">
+                      <Paperclip className="h-4 w-4 text-info" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground">Anexos</h3>
+                    <Badge variant="outline" className="text-xs font-medium">
                       {empresasPorUsuario.get(usuarioDialog)?.anexos.length ?? 0}
                     </Badge>
                   </div>
+
                   {(empresasPorUsuario.get(usuarioDialog)?.anexos.length ?? 0) === 0 ? (
-                    <p className="text-sm text-muted-foreground rounded-lg border border-dashed px-4 py-6 text-center">
+                    <p className="text-sm text-muted-foreground rounded-xl border border-dashed border-border/60 px-4 py-6 text-center">
                       Nenhum anexo no período.
                     </p>
                   ) : (
-                    <div className="rounded-lg border overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="text-muted-foreground sticky top-0 bg-muted/60 backdrop-blur z-10">
-                        <tr className="border-b">
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Empresa</th>
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Contrato</th>
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Competência</th>
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Período</th>
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Anexado em</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {empresasPorUsuario.get(usuarioDialog)?.anexos.map((l) => (
-                          <tr key={`anx-${l.id}`} className="border-b last:border-0 even:bg-muted/20 hover:bg-primary/5 transition-colors">
-                            <td className="px-4 py-2.5 font-medium">{l.empresa_nome}</td>
-                            <td className="px-4 py-2.5 tabular-nums text-muted-foreground">{l.codigo_contrato || "—"}</td>
-                            <td className="px-4 py-2.5">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
-                            <td className="px-4 py-2.5 tabular-nums">{l.periodo ?? "—"}</td>
-                            <td className="px-4 py-2.5 tabular-nums">{fmtDia(l.ultimo_anexo_em)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <div className="space-y-3">
+                      {empresasPorUsuario.get(usuarioDialog)?.anexos.map((l) => (
+                        <div
+                          key={`anx-${l.id}`}
+                          className="group relative bg-card/40 hover:bg-card/70 border border-border/60 hover:border-info/50 rounded-xl p-5 transition-all duration-200 cursor-pointer card-hover"
+                        >
+                          <div className="flex justify-between items-start gap-3 mb-4">
+                            <h4 className="text-base font-semibold text-foreground group-hover:text-info transition-colors line-clamp-1">
+                              {l.empresa_nome}
+                            </h4>
+                            <span className="shrink-0 px-2 py-1 bg-info/10 text-info text-[10px] font-bold uppercase rounded border border-info/20">
+                              Anexo
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Contrato</p>
+                              <p className="text-foreground text-sm font-medium tabular-nums">{l.codigo_contrato || "—"}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Competência</p>
+                              <p className="text-foreground text-sm font-medium">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Período</p>
+                              <p className="text-foreground text-sm font-medium tabular-nums">{l.periodo ?? "—"}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Anexado em</p>
+                              <p className="text-foreground text-sm font-medium tabular-nums">{fmtDia(l.ultimo_anexo_em)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
-                </div>
+                </section>
               </>
             )}
           </div>
