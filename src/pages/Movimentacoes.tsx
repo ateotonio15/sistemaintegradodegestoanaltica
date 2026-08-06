@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw } from "lucide-react";
-import { Link } from "react-router-dom";
+
 import { useAuth } from "@/hooks/useAuth";
 import {
   type Movimentacao,
@@ -34,6 +34,7 @@ import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentaca
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
+import Dashboard from "@/pages/Dashboard";
 
 import ExcelJS from "exceljs";
 
@@ -80,6 +81,7 @@ const emptyForm = {
 export default function Movimentacoes() {
   const [activeTab, setActiveTab] = useState<"empresas" | "administradoras">("empresas");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -721,10 +723,8 @@ export default function Movimentacoes() {
           <CardContent className="pt-5 pb-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-semibold">Resumo Geral por Período</h2>
-              <Button asChild variant="outline" size="sm" className="rounded-lg">
-                <Link to="/dashboard/geral">
-                  <LayoutDashboard className="mr-2 h-4 w-4" /> Ir para Dashboard Geral
-                </Link>
+              <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setDashboardOpen(true)}>
+                <LayoutDashboard className="mr-2 h-4 w-4" /> Ir para Dashboard Geral
               </Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -876,6 +876,17 @@ export default function Movimentacoes() {
         open={!!anexosMov}
         onOpenChange={(o) => !o && setAnexosMov(null)}
       />
+
+      <Dialog open={dashboardOpen} onOpenChange={setDashboardOpen}>
+        <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="px-6 py-4 border-b shrink-0">
+            <DialogTitle>Dashboard Geral</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            <Dashboard />
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
