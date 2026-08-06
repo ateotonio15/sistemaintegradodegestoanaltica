@@ -900,8 +900,13 @@ export function RelatorioStatusFinanceiro() {
                   </thead>
                   <tbody>
                     {porDia.map((d) => (
-                      <tr key={d.dia} className="border-b last:border-0 hover:bg-muted/40">
-                        <td className="px-4 py-2">{fmtDia(d.dia)}</td>
+                      <tr
+                        key={d.dia}
+                        onClick={() => setDiaDialog(d.dia)}
+                        title="Clique para ver as empresas do dia"
+                        className="border-b last:border-0 hover:bg-primary/5 cursor-pointer transition-colors"
+                      >
+                        <td className="px-4 py-2 font-medium">{fmtDia(d.dia)}</td>
                         <td className="px-4 py-2 text-right">{d.total}</td>
                         <td className="px-4 py-2 text-right font-medium">{d.enviadas}</td>
                         <td className="px-4 py-2 text-right text-muted-foreground">
