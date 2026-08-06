@@ -112,10 +112,12 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("empresa_id, periodo")
+        .select(
+          "empresa_id, periodo, empresas:empresas!movimentacoes_empresa_id_fkey(responsavel_user_id)",
+        )
         .eq("mes_referencia", periodoMes);
       if (error) throw error;
-      return (data ?? []) as { empresa_id: string; periodo: string }[];
+      return (data ?? []) as any[];
     },
     enabled: !!user,
   });
@@ -124,11 +126,14 @@ export default function Dashboard() {
   const { data: movsTipo = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-tipo", tipoMes, tipoPeriodo],
     queryFn: async () => {
-      let q = supabase.from("movimentacoes").select("empresa_id").eq("mes_referencia", tipoMes);
+      let q = supabase
+        .from("movimentacoes")
+        .select("empresa_id, empresas:empresas!movimentacoes_empresa_id_fkey(responsavel_user_id)")
+        .eq("mes_referencia", tipoMes);
       if (tipoPeriodo !== "all") q = q.eq("periodo", tipoPeriodo);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as { empresa_id: string }[];
+      return (data ?? []) as any[];
     },
     enabled: !!user,
   });
