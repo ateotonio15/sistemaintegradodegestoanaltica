@@ -290,11 +290,13 @@ export default function Dashboard() {
   const seriePeriodos = useMemo(() => {
     return PERIODOS.map((p) => {
       const ids = new Set(
-        movsMes.filter((m) => m.periodo === p && empresarialIds.has(m.empresa_id)).map((m) => m.empresa_id),
+        movsMes
+          .filter((m: any) => m.periodo === p && empresarialIds.has(m.empresa_id) && matchUsuario(m))
+          .map((m: any) => m.empresa_id),
       );
       return { periodo: p, empresas: ids.size };
     });
-  }, [movsMes, empresarialIds]);
+  }, [movsMes, empresarialIds, matchUsuario]);
 
 
 
