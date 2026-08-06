@@ -876,6 +876,17 @@ export default function Movimentacoes() {
         open={!!anexosMov}
         onOpenChange={(o) => !o && setAnexosMov(null)}
       />
+
+      <Dialog open={dashboardOpen} onOpenChange={setDashboardOpen}>
+        <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="px-6 py-4 border-b shrink-0">
+            <DialogTitle>Dashboard Geral</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            <Dashboard />
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
