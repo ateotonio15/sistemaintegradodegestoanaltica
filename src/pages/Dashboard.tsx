@@ -15,6 +15,7 @@ import { VidasMensalChart } from "@/components/dashboard/charts/VidasMensalChart
 import { EmpresasMovMensalChart } from "@/components/dashboard/charts/EmpresasMovMensalChart";
 import { EmpresasPorPeriodoChart } from "@/components/dashboard/charts/EmpresasPorPeriodoChart";
 import { ChartFiltros } from "@/components/dashboard/charts/ChartFiltros";
+import { StatusPorUsuarioDialog } from "@/components/dashboard/charts/StatusPorUsuarioDialog";
 
 function ultimosMeses(n: number): string[] {
   const now = new Date();
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const [periodoMes, setPeriodoMes] = useState(getCurrentMesReferencia());
   const [tipoMes, setTipoMes] = useState(getCurrentMesReferencia());
   const [tipoPeriodo, setTipoPeriodo] = useState<string>("all");
+  const [statusUsuarioOpen, setStatusUsuarioOpen] = useState(false);
 
   const meses12 = useMemo(() => ultimosMeses(12), []);
   const mesesOpcoes = useMemo(() => {
@@ -63,7 +65,7 @@ export default function Dashboard() {
       let q = supabase
         .from("movimentacoes")
         .select(
-          "id, empresa_id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, tipo_movimentacao)",
+          "id, empresa_id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, tipo_movimentacao, responsavel_contrato, responsavel_user_id)",
         )
         .eq("mes_referencia", statusMes);
       if (statusPeriodo !== "all") q = q.eq("periodo", statusPeriodo);
@@ -73,6 +75,22 @@ export default function Dashboard() {
     },
     enabled: !!user,
   });
+
+  // Mapa de perfis (nomes dos usuários do Cadastro)
+  const { data: profilesMap = new Map<string, string>() } = useQuery({
+    queryKey: ["dashboard-geral-profiles-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name");
+      if (error) throw error;
+      const m = new Map<string, string>();
+      (data ?? []).forEach((p: any) => {
+        if (p.user_id) m.set(p.user_id, p.display_name || "");
+      });
+      return m;
+    },
+    enabled: !!user,
+  });
+
 
   // Movimentações do mês inteiro (por período)
   const { data: movsMes = [] } = useQuery({
@@ -255,6 +273,7 @@ export default function Dashboard() {
               onPeriodoChange={setStatusPeriodo}
             />
           }
+          onVerPorUsuario={() => setStatusUsuarioOpen(true)}
         />
         <VidasTempoRealCard
           totalGeral={vidas.totalGeral}
@@ -272,6 +291,15 @@ export default function Dashboard() {
           <VidasMensalChart data={serieVidas} />
         </div>
       </div>
+
+      <StatusPorUsuarioDialog
+        open={statusUsuarioOpen}
+        onOpenChange={setStatusUsuarioOpen}
+        movs={movsPeriodo as any}
+        profilesMap={profilesMap}
+        mes={statusMes}
+        periodo={statusPeriodo}
+      />
     </div>
   );
 }

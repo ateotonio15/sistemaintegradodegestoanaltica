@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Users } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface Props {
@@ -8,9 +10,10 @@ interface Props {
   empresa: number;
   financeiro: number;
   filtros?: ReactNode;
+  onVerPorUsuario?: () => void;
 }
 
-export function StatusMovChart({ aguardando, foraDoPrazo, empresa, financeiro, filtros }: Props) {
+export function StatusMovChart({ aguardando, foraDoPrazo, empresa, financeiro, filtros, onVerPorUsuario }: Props) {
   const data = [
     { name: "Aguardando envio", value: aguardando, color: "hsl(var(--muted-foreground))" },
     { name: "Fora do prazo", value: foraDoPrazo, color: "hsl(var(--destructive))" },
@@ -24,7 +27,15 @@ export function StatusMovChart({ aguardando, foraDoPrazo, empresa, financeiro, f
     <Card className="rounded-xl shadow-sm">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base font-semibold">Movimentações por status</CardTitle>
-        {filtros}
+        <div className="flex flex-wrap items-center gap-2">
+          {filtros}
+          {onVerPorUsuario && (
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={onVerPorUsuario}>
+              <Users className="h-3.5 w-3.5" />
+              Por usuário
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {total === 0 ? (
