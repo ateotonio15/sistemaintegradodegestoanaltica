@@ -191,6 +191,15 @@ export default function Dashboard() {
     });
   }, [meses12, movs12]);
 
+  // Empresas por período (mês selecionado)
+  const seriePeriodos = useMemo(() => {
+    return PERIODOS.map((p) => {
+      const ids = new Set(movsMes.filter((m) => m.periodo === p).map((m) => m.empresa_id));
+      return { periodo: p, empresas: ids.size };
+    });
+  }, [movsMes]);
+
+
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
