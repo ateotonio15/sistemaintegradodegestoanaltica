@@ -302,10 +302,69 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
-        <p className="text-sm text-muted-foreground">Visão analítica em tempo real</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
+          <p className="text-sm text-muted-foreground">Visão analítica em tempo real</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={geralMes}
+            onValueChange={(v) => {
+              setGeralMes(v);
+              aplicarGeral(v, geralPeriodo);
+            }}
+          >
+            <SelectTrigger className="h-8 w-[140px] text-xs">
+              <SelectValue placeholder="Competência" />
+            </SelectTrigger>
+            <SelectContent>
+              {mesesOpcoes.map((m) => (
+                <SelectItem key={m} value={m} className="text-xs">
+                  {formatMesReferencia(m)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={geralPeriodo}
+            onValueChange={(v) => {
+              setGeralPeriodo(v);
+              aplicarGeral(geralMes, v);
+            }}
+          >
+            <SelectTrigger className="h-8 w-[130px] text-xs">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">
+                Todos os períodos
+              </SelectItem>
+              {PERIODOS.map((p) => (
+                <SelectItem key={p} value={p} className="text-xs">
+                  {p}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={geralUsuario} onValueChange={setGeralUsuario}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="Usuário" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">
+                Todos os usuários
+              </SelectItem>
+              {Array.from(profilesMap.entries()).map(([id, nome]) => (
+                <SelectItem key={id} value={id} className="text-xs">
+                  {nome || "Sem nome"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
 
 
       <div className="grid gap-4 lg:grid-cols-2">
