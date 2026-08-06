@@ -20,15 +20,19 @@ const COLORS = [
 
 interface Props {
   data: { tipo: string; total: number }[];
+  filtros?: ReactNode;
 }
 
-export function MovTipoChart({ data }: Props) {
+export function MovTipoChart({ data, filtros }: Props) {
   const total = data.reduce((s, d) => s + d.total, 0);
   return (
     <Card className="rounded-xl shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Empresas por tipo de movimentação</CardTitle>
-        <p className="text-xs text-muted-foreground">Total de empresas ativas: {total}</p>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
+        <div>
+          <CardTitle className="text-base font-semibold">Empresas por tipo de movimentação</CardTitle>
+          <p className="text-xs text-muted-foreground">Total de empresas ativas: {total}</p>
+        </div>
+        {filtros}
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
