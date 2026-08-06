@@ -38,6 +38,15 @@ export default function Dashboard() {
   const [tipoMes, setTipoMes] = useState(getCurrentMesReferencia());
   const [tipoPeriodo, setTipoPeriodo] = useState<string>("all");
   const [statusUsuarioOpen, setStatusUsuarioOpen] = useState(false);
+  // Filtro geral (aplica a todos os gráficos)
+  const [geralUsuario, setGeralUsuario] = useState<string>("all");
+  const aplicarGeral = (mes: string, periodo: string) => {
+    setStatusMes(mes);
+    setPeriodoMes(mes);
+    setTipoMes(mes);
+    setStatusPeriodo(periodo === "all" ? "all" : periodo);
+    setTipoPeriodo(periodo);
+  };
 
   const meses12 = useMemo(() => ultimosMeses(12), []);
   const mesesOpcoes = useMemo(() => {
