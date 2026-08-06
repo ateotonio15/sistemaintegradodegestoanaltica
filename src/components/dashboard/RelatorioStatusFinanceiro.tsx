@@ -169,6 +169,7 @@ export function RelatorioStatusFinanceiro() {
           .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
         return {
           id: r.id,
+          empresa_id: r.empresa_id,
           empresa_nome: emp?.nome ?? "—",
           codigo_contrato: emp?.codigo_contrato ?? "",
           mes_referencia: r.mes_referencia,
