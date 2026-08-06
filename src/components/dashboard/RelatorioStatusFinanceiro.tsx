@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Download, FileText, ClipboardList, Activity, Send, Receipt, Paperclip, RefreshCw } from "lucide-react";
+import { Download, FileText, ClipboardList, Activity, Send, Receipt, Paperclip, RefreshCw, CalendarDays, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import samelIcon from "@/assets/samel-icon.png.asset.json";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
