@@ -139,6 +139,8 @@ export default function Dashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "movimentacoes" }, () => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-geral-movs"] });
         queryClient.invalidateQueries({ queryKey: ["dashboard-geral-movs-12"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-geral-movs-mes"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-geral-movs-tipo"] });
       })
       .subscribe();
     return () => {
