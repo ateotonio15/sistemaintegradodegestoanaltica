@@ -59,6 +59,29 @@ function fmtDia(iso: string | null | undefined) {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
 }
 
+/** Converte competência + período (ex.: 2026-08 / 01-05) em datas de início e fim */
+function periodoDatas(mes: string | null, periodo: string | null): { inicio: string; fim: string } {
+  if (!mes || !periodo) return { inicio: "—", fim: "—" };
+  const mm = mes.match(/^(\d{4})-(\d{2})$/);
+  const pp = periodo.match(/^(\d{2})-(\d{2})$/);
+  if (!mm || !pp) return { inicio: "—", fim: "—" };
+  const ano = Number(mm[1]);
+  const m = Number(mm[2]);
+  const ultimoDia = new Date(ano, m, 0).getDate();
+  const d1 = Math.min(Number(pp[1]), ultimoDia);
+  const d2 = Math.min(Number(pp[2]), ultimoDia);
+  const f = (d: number) => `${String(d).padStart(2, "0")}/${mm[2]}/${mm[1]}`;
+  return { inicio: f(d1), fim: f(d2) };
+}
+
+/** Determina se a cobrança é pró-rata a partir do tipo de cobrança */
+function ehProRata(tipo: string | null): boolean | null {
+  if (!tipo) return null;
+  return !tipo.toUpperCase().includes("NÃO-PRORATA");
+}
+
+
+
 interface LinhaRelatorio {
   id: string;
   empresa_id: string;
