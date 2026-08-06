@@ -81,6 +81,7 @@ const emptyForm = {
 export default function Movimentacoes() {
   const [activeTab, setActiveTab] = useState<"empresas" | "administradoras">("empresas");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
