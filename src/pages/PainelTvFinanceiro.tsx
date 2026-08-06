@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useFinanceiroRealtime } from "@/hooks/useFinanceiroRealtime";
 import {
   calcularStatusFinanceiro,
+  expandirAnexosPorGrupo,
+  fetchEmpresaGrupoMap,
   formatMesReferencia,
   getCurrentMesReferencia,
   getMesesOptions,
@@ -323,7 +325,7 @@ export default function PainelTvFinanceiro() {
     },
   });
 
-  const { data: anexosMap = {} } = useQuery({
+  const { data: anexosMapRaw = {} } = useQuery({
     queryKey: ["tv-fin-anexos", movIds.sort().join(",")],
     enabled: movIds.length > 0,
     queryFn: async () => {
@@ -342,6 +344,32 @@ export default function PainelTvFinanceiro() {
       return m;
     },
   });
+
+  // Grupos financeiros: anexos são compartilhados entre contratos do mesmo grupo
+  const { data: empresaGrupoMap } = useQuery({
+    queryKey: ["tv-fin-empresa-grupo"],
+    queryFn: () => fetchEmpresaGrupoMap(supabase as any),
+  });
+
+  const anexosMap = useMemo(() => {
+    const raw = anexosMapRaw as Record<string, any[]>;
+    const grupos = empresaGrupoMap ?? new Map<string, string>();
+    if (grupos.size === 0) return raw;
+    const flat: any[] = [];
+    Object.values(raw).forEach((list) => list.forEach((a) => flat.push(a)));
+    const movs = (fin as any[]).map((f) => ({
+      id: f.id,
+      empresa_id: f.empresa_id,
+      mes_referencia: f.mes_referencia,
+      periodo: f.periodo,
+    }));
+    const expanded = expandirAnexosPorGrupo(movs, flat, grupos);
+    const out: Record<string, any[]> = {};
+    expanded.forEach((list, movId) => {
+      out[movId] = list;
+    });
+    return out;
+  }, [anexosMapRaw, empresaGrupoMap, fin]);
 
   // Mapa: para cada movimentação, o user_id de quem anexou o PDF mais recente
   const pdfUploaderByMov = useMemo(() => {
