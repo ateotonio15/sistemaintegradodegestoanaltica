@@ -152,10 +152,10 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vidas_historico_administradoras")
-        .select("mes_referencia, entradas, saidas, total_atual")
+        .select("empresa_id, mes_referencia, entradas, saidas, total_atual")
         .in("mes_referencia", meses12);
       if (error) throw error;
-      return (data ?? []) as { mes_referencia: string; entradas: number; saidas: number; total_atual: number }[];
+      return (data ?? []) as { empresa_id: string; mes_referencia: string; entradas: number; saidas: number; total_atual: number }[];
     },
     enabled: !!user,
   });
