@@ -3,20 +3,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface Props {
-  pendentes: number;
+  aguardando: number;
+  foraDoPrazo: number;
   empresa: number;
   financeiro: number;
   filtros?: ReactNode;
 }
 
-export function StatusMovChart({ pendentes, empresa, financeiro, filtros }: Props) {
+export function StatusMovChart({ aguardando, foraDoPrazo, empresa, financeiro, filtros }: Props) {
   const data = [
-    { name: "Pendentes", value: pendentes, color: "hsl(var(--destructive))" },
+    { name: "Aguardando envio", value: aguardando, color: "hsl(var(--muted-foreground))" },
+    { name: "Fora do prazo", value: foraDoPrazo, color: "hsl(var(--destructive))" },
     { name: "Enviadas p/ Empresa", value: empresa, color: "hsl(var(--warning))" },
     { name: "Enviadas ao Financeiro", value: financeiro, color: "hsl(var(--success))" },
   ].filter((d) => d.value > 0);
 
-  const total = pendentes + empresa + financeiro;
+  const total = aguardando + foraDoPrazo + empresa + financeiro;
 
   return (
     <Card className="rounded-xl shadow-sm">
