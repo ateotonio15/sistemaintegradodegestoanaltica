@@ -40,6 +40,8 @@ export default function Dashboard() {
   const [statusUsuarioOpen, setStatusUsuarioOpen] = useState(false);
   // Filtro geral (aplica a todos os gráficos)
   const [geralUsuario, setGeralUsuario] = useState<string>("all");
+  const [geralMes, setGeralMes] = useState(getCurrentMesReferencia());
+  const [geralPeriodo, setGeralPeriodo] = useState<string>("all");
   const aplicarGeral = (mes: string, periodo: string) => {
     setStatusMes(mes);
     setPeriodoMes(mes);
