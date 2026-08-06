@@ -33,6 +33,8 @@ export default function Dashboard() {
   const [statusMes, setStatusMes] = useState(getCurrentMesReferencia());
   const [statusPeriodo, setStatusPeriodo] = useState<string>(getCurrentPeriodo());
   const [periodoMes, setPeriodoMes] = useState(getCurrentMesReferencia());
+  const [tipoMes, setTipoMes] = useState(getCurrentMesReferencia());
+  const [tipoPeriodo, setTipoPeriodo] = useState<string>("all");
 
   const meses12 = useMemo(() => ultimosMeses(12), []);
   const mesesOpcoes = useMemo(() => {
