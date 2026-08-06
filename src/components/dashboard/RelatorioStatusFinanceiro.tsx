@@ -250,10 +250,9 @@ export function RelatorioStatusFinanceiro() {
     filtradas.forEach((l) => {
       const d = dataRef(l)!;
       const cur = m.get(d) ?? { adicionadas: [], concluidas: [] };
+      cur.adicionadas.push(l);
       if (l.data_envio_nota && l.data_envio_nota >= dataIni && l.data_envio_nota <= dataFim) {
         cur.concluidas.push(l);
-      } else {
-        cur.adicionadas.push(l);
       }
       m.set(d, cur);
     });
