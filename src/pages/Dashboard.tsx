@@ -76,6 +76,22 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  // Mapa de perfis (nomes dos usuários do Cadastro)
+  const { data: profilesMap = new Map<string, string>() } = useQuery({
+    queryKey: ["dashboard-geral-profiles-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("user_id, display_name");
+      if (error) throw error;
+      const m = new Map<string, string>();
+      (data ?? []).forEach((p: any) => {
+        if (p.user_id) m.set(p.user_id, p.display_name || "");
+      });
+      return m;
+    },
+    enabled: !!user,
+  });
+
+
   // Movimentações do mês inteiro (por período)
   const { data: movsMes = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-mes", periodoMes],
