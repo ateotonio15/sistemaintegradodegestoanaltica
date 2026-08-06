@@ -1018,7 +1018,98 @@ export function RelatorioStatusFinanceiro() {
       </Dialog>
 
 
+      <Dialog open={!!diaDialog} onOpenChange={(open) => !open && setDiaDialog(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden rounded-xl">
+          <DialogHeader className="px-6 py-5 border-b bg-muted/40 space-y-1.5">
+            <DialogTitle className="text-lg flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-primary" />
+              Empresas de {diaDialog ? fmtDia(diaDialog) : ""}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              {diaDialog && (
+                <>
+                  {empresasPorDia.get(diaDialog)?.adicionadas.length ?? 0} adicionada(s) e{" "}
+                  {empresasPorDia.get(diaDialog)?.concluidas.length ?? 0} concluída(s) neste dia.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto px-6 py-5 space-y-6">
+            {diaDialog && (
+              <>
+                {[
+                  {
+                    key: "adicionadas" as const,
+                    titulo: "Adicionadas (movimentações do dia)",
+                    icone: <Activity className="h-4 w-4 text-primary" />,
+                    vazio: "Nenhuma empresa movimentada neste dia.",
+                  },
+                  {
+                    key: "concluidas" as const,
+                    titulo: "Concluídas (nota enviada)",
+                    icone: <CheckCircle2 className="h-4 w-4 text-primary" />,
+                    vazio: "Nenhuma nota enviada neste dia.",
+                  },
+                ].map((sec) => {
+                  const itens = empresasPorDia.get(diaDialog)?.[sec.key] ?? [];
+                  return (
+                    <div key={sec.key}>
+                      <div className="flex items-center gap-2 mb-2.5">
+                        {sec.icone}
+                        <p className="text-sm font-semibold">{sec.titulo}</p>
+                        <Badge variant="outline" className="text-xs">{itens.length}</Badge>
+                      </div>
+                      {itens.length === 0 ? (
+                        <p className="text-sm text-muted-foreground rounded-lg border border-dashed px-4 py-6 text-center">
+                          {sec.vazio}
+                        </p>
+                      ) : (
+                        <div className="rounded-lg border overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead className="text-muted-foreground sticky top-0 bg-muted/60 backdrop-blur z-10">
+                              <tr className="border-b">
+                                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Empresa</th>
+                                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Contrato</th>
+                                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Competência</th>
+                                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Período</th>
+                                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Status</th>
+                                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide">Responsável</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {itens.map((l) => (
+                                <tr key={`${sec.key}-${l.id}`} className="border-b last:border-0 even:bg-muted/20 hover:bg-primary/5 transition-colors">
+                                  <td className="px-4 py-2.5 font-medium">{l.empresa_nome}</td>
+                                  <td className="px-4 py-2.5 tabular-nums text-muted-foreground">{l.codigo_contrato || "—"}</td>
+                                  <td className="px-4 py-2.5">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</td>
+                                  <td className="px-4 py-2.5 tabular-nums">{l.periodo ?? "—"}</td>
+                                  <td className="px-4 py-2.5">
+                                    <Badge className={cn("text-xs font-medium px-2 py-0.5", statusFinanceiroColor(l.status))}>
+                                      {l.statusLabel}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-2.5 text-muted-foreground">
+                                    {(sec.key === "concluidas"
+                                      ? l.usuario_envio
+                                      : l.usuario_faturamento || l.ultimo_anexo_por || l.usuario_envio) || "Não identificado"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!usuarioDialog} onOpenChange={(open) => !open && setUsuarioDialog(null)}>
+
         <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden rounded-xl">
           <DialogHeader className="px-6 py-5 border-b bg-muted/40 space-y-1.5">
             <DialogTitle className="text-lg">Empresas de {usuarioDialog}</DialogTitle>
