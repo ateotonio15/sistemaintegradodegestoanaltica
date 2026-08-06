@@ -59,15 +59,15 @@ export default function Dashboard() {
 
   // Movimentações do mês/período filtrado
   const { data: movsPeriodo = [] } = useQuery({
-    queryKey: ["dashboard-geral-movs", filterMes, filterPeriodo],
+    queryKey: ["dashboard-geral-movs", statusMes, statusPeriodo],
     queryFn: async () => {
       let q = supabase
         .from("movimentacoes")
         .select(
           "id, empresa_id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, tipo_movimentacao)",
         )
-        .eq("mes_referencia", filterMes);
-      if (filterPeriodo !== "all") q = q.eq("periodo", filterPeriodo);
+        .eq("mes_referencia", statusMes);
+      if (statusPeriodo !== "all") q = q.eq("periodo", statusPeriodo);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as any[];
@@ -78,12 +78,12 @@ export default function Dashboard() {
   // Movimentações dos últimos 12 meses (série mensal de empresas)
   // Movimentações do mês inteiro (por período)
   const { data: movsMes = [] } = useQuery({
-    queryKey: ["dashboard-geral-movs-mes", filterMes],
+    queryKey: ["dashboard-geral-movs-mes", statusMes],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
         .select("empresa_id, periodo")
-        .eq("mes_referencia", filterMes);
+        .eq("mes_referencia", statusMes);
       if (error) throw error;
       return (data ?? []) as { empresa_id: string; periodo: string }[];
     },
@@ -215,7 +215,7 @@ export default function Dashboard() {
           <CardContent className="flex flex-wrap items-end gap-3 p-3">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Competência</Label>
-              <Select value={filterMes} onValueChange={setFilterMes}>
+              <Select value={statusMes} onValueChange={setFilterMes}>
                 <SelectTrigger className="h-9 w-[150px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -230,7 +230,7 @@ export default function Dashboard() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Período</Label>
-              <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
+              <Select value={statusPeriodo} onValueChange={setFilterPeriodo}>
                 <SelectTrigger className="h-9 w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
