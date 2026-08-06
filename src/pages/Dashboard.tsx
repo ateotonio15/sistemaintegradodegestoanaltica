@@ -88,6 +88,19 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  // Movimentações filtradas para o gráfico de tipo
+  const { data: movsTipo = [] } = useQuery({
+    queryKey: ["dashboard-geral-movs-tipo", tipoMes, tipoPeriodo],
+    queryFn: async () => {
+      let q = supabase.from("movimentacoes").select("empresa_id").eq("mes_referencia", tipoMes);
+      if (tipoPeriodo !== "all") q = q.eq("periodo", tipoPeriodo);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as { empresa_id: string }[];
+    },
+    enabled: !!user,
+  });
+
   // Movimentações dos últimos 12 meses (série mensal de empresas)
   const { data: movs12 = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-12", meses12[0]],
