@@ -319,86 +319,122 @@ export default function Dashboard() {
 
 
 
+  const viaPortal = porPortal[0]?.total ?? 0;
+  const totalMovs = status.aguardando + status.foraDoPrazo + status.empresa + status.financeiro;
+  const pctPortal = vidas.empresasAtivas > 0 ? Math.round((viaPortal / vidas.empresasAtivas) * 100) : 0;
+
   return (
-    <div className="space-y-4 p-4 md:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
-          <p className="text-sm text-muted-foreground">Visão analítica em tempo real</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={geralMes}
-            onValueChange={(v) => {
-              setGeralMes(v);
-              aplicarGeral(v, geralPeriodo);
-            }}
-          >
-            <SelectTrigger className="h-8 w-[140px] text-xs">
-              <SelectValue placeholder="Competência" />
-            </SelectTrigger>
-            <SelectContent>
-              {mesesOpcoes.map((m) => (
-                <SelectItem key={m} value={m} className="text-xs">
-                  {formatMesReferencia(m)}
+    <div className="space-y-5 p-4 md:p-6">
+      {/* Cabeçalho + filtros gerais */}
+      <div className="rounded-2xl border border-border/60 bg-card/60 p-4 shadow-sm backdrop-blur">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+              </span>
+              <span className="text-[11px] font-medium uppercase tracking-wider text-primary">
+                Em tempo real · Empresarial
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
+            <p className="text-sm text-muted-foreground">
+              Visão analítica de movimentações, canais e vidas da carteira empresarial
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={geralMes}
+              onValueChange={(v) => {
+                setGeralMes(v);
+                aplicarGeral(v, geralPeriodo);
+              }}
+            >
+              <SelectTrigger className="h-9 w-[140px] text-xs">
+                <SelectValue placeholder="Competência" />
+              </SelectTrigger>
+              <SelectContent>
+                {mesesOpcoes.map((m) => (
+                  <SelectItem key={m} value={m} className="text-xs">
+                    {formatMesReferencia(m)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={geralPeriodo}
+              onValueChange={(v) => {
+                setGeralPeriodo(v);
+                aplicarGeral(geralMes, v);
+              }}
+            >
+              <SelectTrigger className="h-9 w-[150px] text-xs">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">
+                  Todos os períodos
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={geralPeriodo}
-            onValueChange={(v) => {
-              setGeralPeriodo(v);
-              aplicarGeral(geralMes, v);
-            }}
-          >
-            <SelectTrigger className="h-8 w-[130px] text-xs">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">
-                Todos os períodos
-              </SelectItem>
-              {PERIODOS.map((p) => (
-                <SelectItem key={p} value={p} className="text-xs">
-                  {p}
+                {PERIODOS.map((p) => (
+                  <SelectItem key={p} value={p} className="text-xs">
+                    {p}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={geralUsuario} onValueChange={setGeralUsuario}>
+              <SelectTrigger className="h-9 w-[180px] text-xs">
+                <SelectValue placeholder="Usuário" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">
+                  Todos os usuários
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={geralUsuario} onValueChange={setGeralUsuario}>
-            <SelectTrigger className="h-8 w-[180px] text-xs">
-              <SelectValue placeholder="Usuário" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">
-                Todos os usuários
-              </SelectItem>
-              {Array.from(profilesMap.entries()).map(([id, nome]) => (
-                <SelectItem key={id} value={id} className="text-xs">
-                  {nome || "Sem nome"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {Array.from(profilesMap.entries()).map(([id, nome]) => (
+                  <SelectItem key={id} value={id} className="text-xs">
+                    {nome || "Sem nome"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <MovTipoChart
-          data={porTipo}
-          filtros={
-            <ChartFiltros
-              meses={mesesOpcoes}
-              mes={tipoMes}
-              onMesChange={setTipoMes}
-              periodo={tipoPeriodo}
-              onPeriodoChange={setTipoPeriodo}
-            />
-          }
+      {/* KPIs */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          label="Empresas ativas"
+          value={vidas.empresasAtivas}
+          hint="Carteira empresarial"
+          icon={<Building2 className="h-5 w-5" />}
         />
+        <KpiCard
+          label="Vidas ativas"
+          value={vidas.totalEmpresarial}
+          hint="Somente empresarial"
+          tone="success"
+          icon={<HeartPulse className="h-5 w-5" />}
+        />
+        <KpiCard
+          label="Movimentação via portal"
+          value={viaPortal}
+          hint={`${pctPortal}% da carteira ativa`}
+          tone="warning"
+          icon={<Globe className="h-5 w-5" />}
+        />
+        <KpiCard
+          label="Movimentações no recorte"
+          value={totalMovs}
+          hint={`${status.financeiro} já no financeiro`}
+          tone="muted"
+          icon={<ArrowLeftRight className="h-5 w-5" />}
+        />
+      </div>
+
+      {/* Gráficos */}
+      <div className="grid items-stretch gap-4 xl:grid-cols-2">
         <StatusMovChart
           aguardando={status.aguardando}
           foraDoPrazo={status.foraDoPrazo}
@@ -415,23 +451,31 @@ export default function Dashboard() {
           }
           onVerPorUsuario={() => setStatusUsuarioOpen(true)}
         />
-        <EmpresasPortalChart data={porPortal} />
-        <VidasTempoRealCard
-          totalGeral={vidas.totalGeral}
-          totalEmpresarial={vidas.totalEmpresarial}
-          empresasAtivas={vidas.empresasAtivas}
+        <MovTipoChart
+          data={porTipo}
+          filtros={
+            <ChartFiltros
+              meses={mesesOpcoes}
+              mes={tipoMes}
+              onMesChange={setTipoMes}
+              periodo={tipoPeriodo}
+              onPeriodoChange={setTipoPeriodo}
+            />
+          }
         />
+        <EmpresasPortalChart data={porPortal} />
         <EmpresasMovMensalChart data={serieEmpresas} />
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-2">
           <EmpresasPorPeriodoChart
             data={seriePeriodos}
             filtros={<ChartFiltros meses={mesesOpcoes} mes={periodoMes} onMesChange={setPeriodoMes} />}
           />
         </div>
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-2">
           <VidasMensalChart data={serieVidas} />
         </div>
       </div>
+
 
       <StatusPorUsuarioDialog
         open={statusUsuarioOpen}
