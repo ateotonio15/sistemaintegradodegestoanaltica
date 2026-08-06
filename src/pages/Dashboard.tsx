@@ -76,20 +76,26 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Mapa de perfis (nomes dos usuários do Cadastro)
+  // Mapa de perfis (somente usuários do Cadastro / empresarial)
   const { data: profilesMap = new Map<string, string>() } = useQuery({
-    queryKey: ["dashboard-geral-profiles-map"],
+    queryKey: ["dashboard-geral-profiles-map-comum"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("user_id, display_name");
-      if (error) throw error;
+      const [{ data: profs, error: e1 }, { data: roles, error: e2 }] = await Promise.all([
+        supabase.from("profiles").select("user_id, display_name"),
+        supabase.from("user_roles").select("user_id").eq("role", "comum"),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+      const comuns = new Set((roles ?? []).map((r: any) => r.user_id));
       const m = new Map<string, string>();
-      (data ?? []).forEach((p: any) => {
-        if (p.user_id) m.set(p.user_id, p.display_name || "");
+      (profs ?? []).forEach((p: any) => {
+        if (p.user_id && comuns.has(p.user_id)) m.set(p.user_id, p.display_name || "");
       });
       return m;
     },
     enabled: !!user,
   });
+
 
 
   // Movimentações do mês inteiro (por período)
