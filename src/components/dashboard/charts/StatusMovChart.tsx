@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -5,9 +6,10 @@ interface Props {
   pendentes: number;
   empresa: number;
   financeiro: number;
+  filtros?: ReactNode;
 }
 
-export function StatusMovChart({ pendentes, empresa, financeiro }: Props) {
+export function StatusMovChart({ pendentes, empresa, financeiro, filtros }: Props) {
   const data = [
     { name: "Pendentes", value: pendentes, color: "hsl(var(--destructive))" },
     { name: "Enviadas p/ Empresa", value: empresa, color: "hsl(var(--warning))" },
@@ -18,8 +20,9 @@ export function StatusMovChart({ pendentes, empresa, financeiro }: Props) {
 
   return (
     <Card className="rounded-xl shadow-sm">
-      <CardHeader className="pb-2">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base font-semibold">Movimentações por status</CardTitle>
+        {filtros}
       </CardHeader>
       <CardContent>
         {total === 0 ? (

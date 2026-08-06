@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import {
   PERIODOS,
   calcularStatus,
   getCurrentMesReferencia,
   getCurrentPeriodo,
-  formatMesReferencia,
 } from "@/lib/movimentacao-utils";
 import { MovTipoChart } from "@/components/dashboard/charts/MovTipoChart";
 import { StatusMovChart } from "@/components/dashboard/charts/StatusMovChart";
@@ -18,6 +14,7 @@ import { VidasTempoRealCard } from "@/components/dashboard/charts/VidasTempoReal
 import { VidasMensalChart } from "@/components/dashboard/charts/VidasMensalChart";
 import { EmpresasMovMensalChart } from "@/components/dashboard/charts/EmpresasMovMensalChart";
 import { EmpresasPorPeriodoChart } from "@/components/dashboard/charts/EmpresasPorPeriodoChart";
+import { ChartFiltros } from "@/components/dashboard/charts/ChartFiltros";
 
 function ultimosMeses(n: number): string[] {
   const now = new Date();
@@ -32,14 +29,17 @@ function ultimosMeses(n: number): string[] {
 export default function Dashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [filterMes, setFilterMes] = useState(getCurrentMesReferencia());
-  const [filterPeriodo, setFilterPeriodo] = useState<string>(getCurrentPeriodo());
+  // Filtros independentes por gráfico
+  const [statusMes, setStatusMes] = useState(getCurrentMesReferencia());
+  const [statusPeriodo, setStatusPeriodo] = useState<string>(getCurrentPeriodo());
+  const [periodoMes, setPeriodoMes] = useState(getCurrentMesReferencia());
 
   const meses12 = useMemo(() => ultimosMeses(12), []);
   const mesesOpcoes = useMemo(() => {
-    const set = new Set([...meses12, filterMes, getCurrentMesReferencia()]);
+    const set = new Set([...meses12, statusMes, periodoMes, getCurrentMesReferencia()]);
     return Array.from(set).sort().reverse();
-  }, [meses12, filterMes]);
+  }, [meses12, statusMes, periodoMes]);
+
 
   // Empresas (vidas em tempo real)
   const { data: empresas = [] } = useQuery({
@@ -56,15 +56,15 @@ export default function Dashboard() {
 
   // Movimentações do mês/período filtrado
   const { data: movsPeriodo = [] } = useQuery({
-    queryKey: ["dashboard-geral-movs", filterMes, filterPeriodo],
+    queryKey: ["dashboard-geral-movs", statusMes, statusPeriodo],
     queryFn: async () => {
       let q = supabase
         .from("movimentacoes")
         .select(
           "id, empresa_id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, tipo_movimentacao)",
         )
-        .eq("mes_referencia", filterMes);
-      if (filterPeriodo !== "all") q = q.eq("periodo", filterPeriodo);
+        .eq("mes_referencia", statusMes);
+      if (statusPeriodo !== "all") q = q.eq("periodo", statusPeriodo);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as any[];
@@ -72,15 +72,14 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Movimentações dos últimos 12 meses (série mensal de empresas)
   // Movimentações do mês inteiro (por período)
   const { data: movsMes = [] } = useQuery({
-    queryKey: ["dashboard-geral-movs-mes", filterMes],
+    queryKey: ["dashboard-geral-movs-mes", periodoMes],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
         .select("empresa_id, periodo")
-        .eq("mes_referencia", filterMes);
+        .eq("mes_referencia", periodoMes);
       if (error) throw error;
       return (data ?? []) as { empresa_id: string; periodo: string }[];
     },
@@ -203,51 +202,28 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 p-4 md:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
-          <p className="text-sm text-muted-foreground">Visão analítica em tempo real</p>
-        </div>
-        <Card className="rounded-xl">
-          <CardContent className="flex flex-wrap items-end gap-3 p-3">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Competência</Label>
-              <Select value={filterMes} onValueChange={setFilterMes}>
-                <SelectTrigger className="h-9 w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {mesesOpcoes.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {formatMesReferencia(m)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Período</Label>
-              <Select value={filterPeriodo} onValueChange={setFilterPeriodo}>
-                <SelectTrigger className="h-9 w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {PERIODOS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
+        <p className="text-sm text-muted-foreground">Visão analítica em tempo real</p>
       </div>
+
 
       <div className="grid gap-4 lg:grid-cols-2">
         <MovTipoChart data={porTipo} />
-        <StatusMovChart pendentes={status.pendentes} empresa={status.empresa} financeiro={status.financeiro} />
+        <StatusMovChart
+          pendentes={status.pendentes}
+          empresa={status.empresa}
+          financeiro={status.financeiro}
+          filtros={
+            <ChartFiltros
+              meses={mesesOpcoes}
+              mes={statusMes}
+              onMesChange={setStatusMes}
+              periodo={statusPeriodo}
+              onPeriodoChange={setStatusPeriodo}
+            />
+          }
+        />
         <VidasTempoRealCard
           totalGeral={vidas.totalGeral}
           totalEmpresarial={vidas.totalEmpresarial}
@@ -255,7 +231,10 @@ export default function Dashboard() {
         />
         <EmpresasMovMensalChart data={serieEmpresas} />
         <div className="lg:col-span-2">
-          <EmpresasPorPeriodoChart data={seriePeriodos} />
+          <EmpresasPorPeriodoChart
+            data={seriePeriodos}
+            filtros={<ChartFiltros meses={mesesOpcoes} mes={periodoMes} onMesChange={setPeriodoMes} />}
+          />
         </div>
         <div className="lg:col-span-2">
           <VidasMensalChart data={serieVidas} />
