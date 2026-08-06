@@ -73,6 +73,21 @@ export default function Dashboard() {
   });
 
   // Movimentações dos últimos 12 meses (série mensal de empresas)
+  // Movimentações do mês inteiro (por período)
+  const { data: movsMes = [] } = useQuery({
+    queryKey: ["dashboard-geral-movs-mes", filterMes],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("movimentacoes")
+        .select("empresa_id, periodo")
+        .eq("mes_referencia", filterMes);
+      if (error) throw error;
+      return (data ?? []) as { empresa_id: string; periodo: string }[];
+    },
+    enabled: !!user,
+  });
+
+  // Movimentações dos últimos 12 meses (série mensal de empresas)
   const { data: movs12 = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-12", meses12[0]],
     queryFn: async () => {
