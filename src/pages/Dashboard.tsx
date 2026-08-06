@@ -14,6 +14,7 @@ import { VidasTempoRealCard } from "@/components/dashboard/charts/VidasTempoReal
 import { VidasMensalChart } from "@/components/dashboard/charts/VidasMensalChart";
 import { EmpresasMovMensalChart } from "@/components/dashboard/charts/EmpresasMovMensalChart";
 import { EmpresasPorPeriodoChart } from "@/components/dashboard/charts/EmpresasPorPeriodoChart";
+import { EmpresasPortalChart } from "@/components/dashboard/charts/EmpresasPortalChart";
 import { ChartFiltros } from "@/components/dashboard/charts/ChartFiltros";
 import { StatusPorUsuarioDialog } from "@/components/dashboard/charts/StatusPorUsuarioDialog";
 
@@ -194,6 +195,17 @@ export default function Dashboard() {
       .sort((a, b) => b.total - a.total);
   }, [empresas, movsTipo]);
 
+  // Empresas ativas EMPRESARIAL por canal de movimentação (Portal vs Não portal)
+  const porPortal = useMemo(() => {
+    const ativas = empresas.filter((e: any) => e.status_empresa === "Ativa");
+    const viaPortal = ativas.filter((e: any) => e.contrato_via_portal === true).length;
+    const naoPortal = ativas.length - viaPortal;
+    return [
+      { categoria: "Via portal", total: viaPortal },
+      { categoria: "Não via portal", total: naoPortal },
+    ];
+  }, [empresas]);
+
 
   // Movimentações restritas a empresas EMPRESARIAL
   const movsPeriodoEmp = useMemo(
@@ -300,6 +312,7 @@ export default function Dashboard() {
           }
           onVerPorUsuario={() => setStatusUsuarioOpen(true)}
         />
+        <EmpresasPortalChart data={porPortal} />
         <VidasTempoRealCard
           totalGeral={vidas.totalGeral}
           totalEmpresarial={vidas.totalEmpresarial}
