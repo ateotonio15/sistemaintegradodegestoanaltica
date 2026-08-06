@@ -45,18 +45,25 @@ export default function Dashboard() {
   }, [meses12, statusMes, periodoMes, tipoMes]);
 
 
-  // Empresas (vidas em tempo real)
+  // Empresas (somente EMPRESARIAL — administradoras ficam de fora)
   const { data: empresas = [] } = useQuery({
     queryKey: ["dashboard-geral-empresas"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, vidas, tipo_contrato, status_empresa, tipo_movimentacao");
+        .select("id, nome, vidas, tipo_contrato, status_empresa, tipo_movimentacao")
+        .eq("tipo_contrato", "EMPRESARIAL");
       if (error) throw error;
       return data;
     },
     enabled: !!user,
   });
+
+  const empresarialIds = useMemo(
+    () => new Set((empresas ?? []).map((e: any) => e.id as string)),
+    [empresas],
+  );
+
 
   // Movimentações do mês/período filtrado
   const { data: movsPeriodo = [] } = useQuery({
