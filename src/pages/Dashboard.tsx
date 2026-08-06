@@ -273,6 +273,7 @@ export default function Dashboard() {
               onPeriodoChange={setStatusPeriodo}
             />
           }
+          onVerPorUsuario={() => setStatusUsuarioOpen(true)}
         />
         <VidasTempoRealCard
           totalGeral={vidas.totalGeral}
@@ -290,6 +291,15 @@ export default function Dashboard() {
           <VidasMensalChart data={serieVidas} />
         </div>
       </div>
+
+      <StatusPorUsuarioDialog
+        open={statusUsuarioOpen}
+        onOpenChange={setStatusUsuarioOpen}
+        movs={movsPeriodo as any}
+        profilesMap={profilesMap}
+        mes={statusMes}
+        periodo={statusPeriodo}
+      />
     </div>
   );
 }
