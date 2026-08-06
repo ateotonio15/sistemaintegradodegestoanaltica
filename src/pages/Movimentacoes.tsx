@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw } from "lucide-react";
-import { Link } from "react-router-dom";
+
 import { useAuth } from "@/hooks/useAuth";
 import {
   type Movimentacao,
