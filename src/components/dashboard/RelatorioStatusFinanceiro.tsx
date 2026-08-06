@@ -61,6 +61,7 @@ function fmtDia(iso: string | null | undefined) {
 
 interface LinhaRelatorio {
   id: string;
+  empresa_id: string;
   empresa_nome: string;
   codigo_contrato: string;
   mes_referencia: string | null;
