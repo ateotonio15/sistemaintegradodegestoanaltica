@@ -97,20 +97,33 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Mapa de perfis (somente usuários do Cadastro / empresarial)
+  // Mapa de perfis (somente usuários internos do Cadastro / empresarial)
   const { data: profilesMap = new Map<string, string>() } = useQuery({
     queryKey: ["dashboard-geral-profiles-map-comum"],
     queryFn: async () => {
-      const [{ data: profs, error: e1 }, { data: roles, error: e2 }] = await Promise.all([
+      const [
+        { data: profs, error: e1 },
+        { data: roles, error: e2 },
+        { data: empUsers },
+        { data: corrUsers },
+      ] = await Promise.all([
         supabase.from("profiles").select("user_id, display_name"),
         supabase.from("user_roles").select("user_id").eq("role", "comum"),
+        supabase.from("empresa_usuarios").select("user_id"),
+        supabase.from("corretora_usuarios").select("user_id"),
       ]);
       if (e1) throw e1;
       if (e2) throw e2;
       const comuns = new Set((roles ?? []).map((r: any) => r.user_id));
+      const externos = new Set<string>([
+        ...((empUsers ?? []).map((r: any) => r.user_id)),
+        ...((corrUsers ?? []).map((r: any) => r.user_id)),
+      ]);
       const m = new Map<string, string>();
       (profs ?? []).forEach((p: any) => {
-        if (p.user_id && comuns.has(p.user_id)) m.set(p.user_id, p.display_name || "");
+        if (p.user_id && comuns.has(p.user_id) && !externos.has(p.user_id)) {
+          m.set(p.user_id, p.display_name || "");
+        }
       });
       return m;
     },
