@@ -1,17 +1,20 @@
+import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 
 interface Props {
   data: { periodo: string; empresas: number }[];
+  filtros?: ReactNode;
 }
 
-export function EmpresasPorPeriodoChart({ data }: Props) {
+export function EmpresasPorPeriodoChart({ data, filtros }: Props) {
   const temDados = data.some((d) => d.empresas > 0);
 
   return (
     <Card className="rounded-xl shadow-sm">
-      <CardHeader className="pb-2">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base font-semibold">Empresas por período</CardTitle>
+        {filtros}
       </CardHeader>
       <CardContent>
         {!temDados ? (
