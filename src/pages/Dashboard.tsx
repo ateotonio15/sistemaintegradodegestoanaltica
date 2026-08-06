@@ -148,11 +148,12 @@ export default function Dashboard() {
     };
   }, [queryClient]);
 
-  // Empresas por tipo de movimentação (todas as empresas ativas — soma = total de ativas)
+  // Empresas por tipo de movimentação (empresas com movimentação no mês/período filtrado)
   const porTipo = useMemo(() => {
+    const idsComMovimentacao = new Set(movsTipo.map((m) => m.empresa_id));
     const map = new Map<string, number>();
     empresas
-      .filter((e: any) => e.status_empresa === "Ativa")
+      .filter((e: any) => idsComMovimentacao.has(e.id))
       .forEach((e: any) => {
         const tipo = (e.tipo_movimentacao || "Não informado").toString();
         map.set(tipo, (map.get(tipo) ?? 0) + 1);
@@ -160,7 +161,7 @@ export default function Dashboard() {
     return Array.from(map.entries())
       .map(([tipo, total]) => ({ tipo, total }))
       .sort((a, b) => b.total - a.total);
-  }, [empresas]);
+  }, [empresas, movsTipo]);
 
 
   // Status
