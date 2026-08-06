@@ -156,11 +156,18 @@ export function GerarHistoricoDialog({
   const periodoCobrancaInfo = useMemo(() => {
     const temPeriodoEspecifico = !!(empresaInfo as any)?.periodo_especifico_cobranca;
     const dataBase = (empresaInfo as any)?.periodo_cobranca_inicio as string | null | undefined;
-    if (temPeriodoEspecifico && dataBase && row?.mes_referencia) {
+    if (temPeriodoEspecifico && dataBase && (competencia || row?.mes_referencia)) {
+      // O período de cobrança deve seguir a competência detectada (nome do
+      // arquivo de faturamento tem prioridade sobre mes_referencia).
+      let mesRef = competencia
+        ? `${competencia.ano}-${String(competencia.mes + 1).padStart(2, "0")}`
+        : (row!.mes_referencia as string);
+
       // Movimentações de período 25-30 são competências do mês anterior,
-      // mas a cobrança/emissão é feita no mês seguinte. Nesse caso, avançar 1 mês.
-      let mesRef = row.mes_referencia;
-      if ((row as any)?.periodo === "25-30") {
+      // mas a cobrança/emissão é feita no mês seguinte. Nesse caso, avançar 1 mês
+      // apenas quando a competência veio do próprio mes_referencia.
+      const veioDoMesReferencia = !competencia || mesRef === row?.mes_referencia;
+      if (veioDoMesReferencia && (row as any)?.periodo === "25-30") {
         const m = /^(\d{4})-(\d{2})$/.exec(mesRef);
         if (m) {
           const ano = Number(m[1]);
@@ -180,7 +187,8 @@ export function GerarHistoricoDialog({
       }
     }
     return null;
-  }, [empresaInfo, row]);
+  }, [empresaInfo, row, competencia]);
+
 
   const notaEmitida = useMemo(() => {
     if (!row) return false;
