@@ -233,14 +233,10 @@ export default function Dashboard() {
       .sort((a, b) => b.total - a.total);
   }, [empresas, movsTipo, matchUsuario, matchEmpresaUsuario]);
 
-  // Empresas por canal de movimentação (Portal vs Não portal) — segue os filtros gerais
+  // Empresas por canal de movimentação (Portal vs Não portal) — todas as ativas do usuário filtrado
   const porPortal = useMemo(() => {
-    const idsComMovimentacao = new Set(
-      movsPeriodo.filter(matchUsuario).map((m: any) => m.empresa_id),
-    );
     const base = empresas.filter(
-      (e: any) =>
-        e.status_empresa === "Ativa" && matchEmpresaUsuario(e) && idsComMovimentacao.has(e.id),
+      (e: any) => e.status_empresa === "Ativa" && matchEmpresaUsuario(e),
     );
     const viaPortal = base.filter((e: any) => e.contrato_via_portal === true).length;
     const naoPortal = base.length - viaPortal;
@@ -248,7 +244,7 @@ export default function Dashboard() {
       { categoria: "Via portal", total: viaPortal },
       { categoria: "Não via portal", total: naoPortal },
     ];
-  }, [empresas, movsPeriodo, matchUsuario, matchEmpresaUsuario]);
+  }, [empresas, matchEmpresaUsuario]);
 
 
 
