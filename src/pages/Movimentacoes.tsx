@@ -723,10 +723,8 @@ export default function Movimentacoes() {
           <CardContent className="pt-5 pb-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-semibold">Resumo Geral por Período</h2>
-              <Button asChild variant="outline" size="sm" className="rounded-lg">
-                <Link to="/dashboard/geral">
-                  <LayoutDashboard className="mr-2 h-4 w-4" /> Ir para Dashboard Geral
-                </Link>
+              <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setDashboardOpen(true)}>
+                <LayoutDashboard className="mr-2 h-4 w-4" /> Ir para Dashboard Geral
               </Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
