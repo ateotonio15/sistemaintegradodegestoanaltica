@@ -12,13 +12,14 @@ import {
 } from "@/lib/movimentacao-utils";
 import { MovTipoChart } from "@/components/dashboard/charts/MovTipoChart";
 import { StatusMovChart } from "@/components/dashboard/charts/StatusMovChart";
-import { VidasTempoRealCard } from "@/components/dashboard/charts/VidasTempoRealCard";
 import { VidasMensalChart } from "@/components/dashboard/charts/VidasMensalChart";
 import { EmpresasMovMensalChart } from "@/components/dashboard/charts/EmpresasMovMensalChart";
 import { EmpresasPorPeriodoChart } from "@/components/dashboard/charts/EmpresasPorPeriodoChart";
 import { EmpresasPortalChart } from "@/components/dashboard/charts/EmpresasPortalChart";
 import { ChartFiltros } from "@/components/dashboard/charts/ChartFiltros";
+import { KpiCard } from "@/components/dashboard/charts/KpiCard";
 import { StatusPorUsuarioDialog } from "@/components/dashboard/charts/StatusPorUsuarioDialog";
+import { Building2, HeartPulse, Globe, ArrowLeftRight } from "lucide-react";
 
 function ultimosMeses(n: number): string[] {
   const now = new Date();
