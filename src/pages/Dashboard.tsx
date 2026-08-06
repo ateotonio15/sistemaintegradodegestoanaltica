@@ -33,12 +33,14 @@ export default function Dashboard() {
   const [statusMes, setStatusMes] = useState(getCurrentMesReferencia());
   const [statusPeriodo, setStatusPeriodo] = useState<string>(getCurrentPeriodo());
   const [periodoMes, setPeriodoMes] = useState(getCurrentMesReferencia());
+  const [tipoMes, setTipoMes] = useState(getCurrentMesReferencia());
+  const [tipoPeriodo, setTipoPeriodo] = useState<string>("all");
 
   const meses12 = useMemo(() => ultimosMeses(12), []);
   const mesesOpcoes = useMemo(() => {
-    const set = new Set([...meses12, statusMes, periodoMes, getCurrentMesReferencia()]);
+    const set = new Set([...meses12, statusMes, periodoMes, tipoMes, getCurrentMesReferencia()]);
     return Array.from(set).sort().reverse();
-  }, [meses12, statusMes, periodoMes]);
+  }, [meses12, statusMes, periodoMes, tipoMes]);
 
 
   // Empresas (vidas em tempo real)
@@ -86,6 +88,19 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  // Movimentações filtradas para o gráfico de tipo
+  const { data: movsTipo = [] } = useQuery({
+    queryKey: ["dashboard-geral-movs-tipo", tipoMes, tipoPeriodo],
+    queryFn: async () => {
+      let q = supabase.from("movimentacoes").select("empresa_id").eq("mes_referencia", tipoMes);
+      if (tipoPeriodo !== "all") q = q.eq("periodo", tipoPeriodo);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as { empresa_id: string }[];
+    },
+    enabled: !!user,
+  });
+
   // Movimentações dos últimos 12 meses (série mensal de empresas)
   const { data: movs12 = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-12", meses12[0]],
@@ -124,6 +139,8 @@ export default function Dashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "movimentacoes" }, () => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-geral-movs"] });
         queryClient.invalidateQueries({ queryKey: ["dashboard-geral-movs-12"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-geral-movs-mes"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-geral-movs-tipo"] });
       })
       .subscribe();
     return () => {
@@ -131,11 +148,12 @@ export default function Dashboard() {
     };
   }, [queryClient]);
 
-  // Empresas por tipo de movimentação (todas as empresas ativas — soma = total de ativas)
+  // Empresas por tipo de movimentação (empresas com movimentação no mês/período filtrado)
   const porTipo = useMemo(() => {
+    const idsComMovimentacao = new Set(movsTipo.map((m) => m.empresa_id));
     const map = new Map<string, number>();
     empresas
-      .filter((e: any) => e.status_empresa === "Ativa")
+      .filter((e: any) => idsComMovimentacao.has(e.id))
       .forEach((e: any) => {
         const tipo = (e.tipo_movimentacao || "Não informado").toString();
         map.set(tipo, (map.get(tipo) ?? 0) + 1);
@@ -143,7 +161,7 @@ export default function Dashboard() {
     return Array.from(map.entries())
       .map(([tipo, total]) => ({ tipo, total }))
       .sort((a, b) => b.total - a.total);
-  }, [empresas]);
+  }, [empresas, movsTipo]);
 
 
   // Status
@@ -209,7 +227,18 @@ export default function Dashboard() {
 
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <MovTipoChart data={porTipo} />
+        <MovTipoChart
+          data={porTipo}
+          filtros={
+            <ChartFiltros
+              meses={mesesOpcoes}
+              mes={tipoMes}
+              onMesChange={setTipoMes}
+              periodo={tipoPeriodo}
+              onPeriodoChange={setTipoPeriodo}
+            />
+          }
+        />
         <StatusMovChart
           pendentes={status.pendentes}
           empresa={status.empresa}
