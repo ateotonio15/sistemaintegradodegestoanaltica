@@ -25,7 +25,7 @@ export function EmpresasMovMensalChart({ data }: Props) {
       emptyLabel="Sem movimentações registradas"
     >
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={chart} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+        <AreaChart data={chart} margin={{ top: 8, right: 8, left: -4, bottom: 0 }}>
           <defs>
             <linearGradient id="gradEmpresasMov" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.45} />
@@ -44,7 +44,7 @@ export function EmpresasMovMensalChart({ data }: Props) {
             allowDecimals={false}
             tickLine={false}
             axisLine={false}
-            width={40}
+            width={46}
           />
           <Tooltip
             contentStyle={{

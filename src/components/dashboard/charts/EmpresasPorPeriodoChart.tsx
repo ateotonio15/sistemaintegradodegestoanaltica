@@ -23,7 +23,7 @@ export function EmpresasPorPeriodoChart({ data, filtros }: Props) {
       height={280}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 24, right: 8, left: -18, bottom: 0 }}>
+        <BarChart data={data} margin={{ top: 24, right: 8, left: -4, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
           <XAxis
             dataKey="periodo"
@@ -36,7 +36,7 @@ export function EmpresasPorPeriodoChart({ data, filtros }: Props) {
             allowDecimals={false}
             tickLine={false}
             axisLine={false}
-            width={40}
+            width={46}
           />
           <Tooltip
             cursor={{ fill: "hsl(var(--muted) / 0.35)" }}

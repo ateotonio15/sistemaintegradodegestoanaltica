@@ -35,7 +35,7 @@ export function MovTipoChart({ data, filtros }: Props) {
       empty={data.length === 0}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 24, right: 8, left: -18, bottom: 0 }}>
+        <BarChart data={data} margin={{ top: 24, right: 8, left: -4, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
           <XAxis
             dataKey="tipo"
@@ -50,7 +50,7 @@ export function MovTipoChart({ data, filtros }: Props) {
             allowDecimals={false}
             tickLine={false}
             axisLine={false}
-            width={40}
+            width={46}
           />
           <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted) / 0.3)" }} />
           <Bar dataKey="total" name="Empresas" radius={[8, 8, 0, 0]} maxBarSize={64}>

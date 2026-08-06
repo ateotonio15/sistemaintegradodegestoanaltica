@@ -418,16 +418,16 @@ export default function Dashboard() {
           icon={<HeartPulse className="h-5 w-5" />}
         />
         <KpiCard
-          label="Movimentação via portal"
+          label="Via portal"
           value={viaPortal}
           hint={`${pctPortal}% da carteira ativa`}
           tone="warning"
           icon={<Globe className="h-5 w-5" />}
         />
         <KpiCard
-          label="Movimentações no recorte"
+          label="Movimentações"
           value={totalMovs}
-          hint={`${status.financeiro} já no financeiro`}
+          hint={`no recorte · ${status.financeiro} no financeiro`}
           tone="muted"
           icon={<ArrowLeftRight className="h-5 w-5" />}
         />
