@@ -1183,129 +1183,165 @@ export function RelatorioStatusFinanceiro() {
       </Dialog>
 
       <Dialog open={!!usuarioDialog} onOpenChange={(open) => !open && setUsuarioDialog(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden rounded-xl border-border/60">
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden rounded-xl border-border/60">
           <DialogHeader className="px-6 py-5 border-b border-border/60 bg-muted/30 space-y-1">
             <DialogDescription className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-              Sistema SIGA
+              Sistema SIGA · Detalhamento do processo
             </DialogDescription>
             <DialogTitle className="text-xl font-bold tracking-tight">
               Empresas de {usuarioDialog}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-auto px-6 py-5 space-y-8">
-            {usuarioDialog && (
-              <>
-                <section>
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                      <Receipt className="h-4 w-4 text-primary" />
+          <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
+            {movsDoUsuario.length === 0 ? (
+              <p className="text-sm text-muted-foreground rounded-xl border border-dashed border-border/60 px-4 py-8 text-center">
+                Nenhuma empresa no período.
+              </p>
+            ) : (
+              movsDoUsuario.map((l) => {
+                const dts = periodoDatas(l.mes_referencia, l.periodo);
+                const prorata = ehProRata(l.tipo_cobranca);
+                const retros = (processoEmpresa?.retro.get(l.empresa_id) ?? []).filter(
+                  (r: any) => !l.mes_referencia || !r.competencia || r.competencia === l.mes_referencia,
+                );
+                const reajs = processoEmpresa?.reaj.get(l.empresa_id) ?? [];
+                const reajComp = reajs.filter(
+                  (r: any) => !l.mes_referencia || !r.competencia || r.competencia === l.mes_referencia,
+                );
+                return (
+                  <div
+                    key={l.id}
+                    className="rounded-xl border border-border/60 bg-card/40 hover:bg-card/70 hover:border-primary/40 transition-all duration-200 overflow-hidden"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 border-b border-border/50 bg-muted/20">
+                      <div className="min-w-0">
+                        <h4 className="text-base font-semibold text-foreground truncate">{l.empresa_nome}</h4>
+                        <p className="text-[11px] text-muted-foreground tabular-nums">
+                          Contrato {l.codigo_contrato || "—"} ·{" "}
+                          {l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}
+                        </p>
+                      </div>
+                      <Badge className={statusFinanceiroColor(l.status)}>{l.statusLabel}</Badge>
                     </div>
-                    <h3 className="text-sm font-semibold text-foreground">Faturamentos</h3>
-                    <Badge variant="outline" className="text-xs font-medium">
-                      {empresasPorUsuario.get(usuarioDialog)?.faturamentos.length ?? 0}
-                    </Badge>
-                  </div>
 
-                  {(empresasPorUsuario.get(usuarioDialog)?.faturamentos.length ?? 0) === 0 ? (
-                    <p className="text-sm text-muted-foreground rounded-xl border border-dashed border-border/60 px-4 py-6 text-center">
-                      Nenhum faturamento no período.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {empresasPorUsuario.get(usuarioDialog)?.faturamentos.map((l) => (
-                        <div
-                          key={`fat-${l.id}`}
-                          className="group relative bg-card/40 hover:bg-card/70 border border-border/60 hover:border-primary/50 rounded-xl p-5 transition-all duration-200 cursor-pointer card-hover"
-                        >
-                          <div className="flex justify-between items-start gap-3 mb-4">
-                            <h4 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                              {l.empresa_nome}
-                            </h4>
-                            <span className="shrink-0 px-2 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase rounded border border-primary/20">
-                              Faturamento
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Contrato</p>
-                              <p className="text-foreground text-sm font-medium tabular-nums">{l.codigo_contrato || "—"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Competência</p>
-                              <p className="text-foreground text-sm font-medium">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Período</p>
-                              <p className="text-foreground text-sm font-medium tabular-nums">{l.periodo ?? "—"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Iniciado em</p>
-                              <p className="text-foreground text-sm font-medium tabular-nums">{fmtDia(l.faturamento_iniciado_em)}</p>
-                            </div>
-                          </div>
+                    <div className="px-5 py-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-muted-foreground text-[11px] mb-1 uppercase font-medium">Início do período</p>
+                        <p className="text-sm font-medium tabular-nums">{dts.inicio}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-[11px] mb-1 uppercase font-medium">Fim do período</p>
+                        <p className="text-sm font-medium tabular-nums">{dts.fim}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-[11px] mb-1 uppercase font-medium">Pró-rata</p>
+                        <p className="text-sm font-medium">
+                          {prorata === null ? "—" : prorata ? "Sim" : "Não (NÃO-PRORATA)"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-[11px] mb-1 uppercase font-medium">Tipo de cobrança</p>
+                        <p className="text-sm font-medium">{l.tipo_cobranca || "—"}</p>
+                      </div>
+                    </div>
+
+                    <div className="px-5 pb-4">
+                      <p className="text-[11px] uppercase font-semibold text-muted-foreground mb-2">
+                        Processo de envio
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-muted-foreground text-[11px] mb-1">Aguardando emissão desde</p>
+                          <p className="text-sm font-medium tabular-nums">{fmtDia(l.aguardando_nota_em)}</p>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
-
-                <section>
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div className="h-9 w-9 rounded-xl bg-info/10 flex items-center justify-center border border-info/20">
-                      <Paperclip className="h-4 w-4 text-info" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-foreground">Anexos</h3>
-                    <Badge variant="outline" className="text-xs font-medium">
-                      {empresasPorUsuario.get(usuarioDialog)?.anexos.length ?? 0}
-                    </Badge>
-                  </div>
-
-                  {(empresasPorUsuario.get(usuarioDialog)?.anexos.length ?? 0) === 0 ? (
-                    <p className="text-sm text-muted-foreground rounded-xl border border-dashed border-border/60 px-4 py-6 text-center">
-                      Nenhum anexo no período.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {empresasPorUsuario.get(usuarioDialog)?.anexos.map((l) => (
-                        <div
-                          key={`anx-${l.id}`}
-                          className="group relative bg-card/40 hover:bg-card/70 border border-border/60 hover:border-info/50 rounded-xl p-5 transition-all duration-200 cursor-pointer card-hover"
-                        >
-                          <div className="flex justify-between items-start gap-3 mb-4">
-                            <h4 className="text-base font-semibold text-foreground group-hover:text-info transition-colors line-clamp-1">
-                              {l.empresa_nome}
-                            </h4>
-                            <span className="shrink-0 px-2 py-1 bg-info/10 text-info text-[10px] font-bold uppercase rounded border border-info/20">
-                              Anexo
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Contrato</p>
-                              <p className="text-foreground text-sm font-medium tabular-nums">{l.codigo_contrato || "—"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Competência</p>
-                              <p className="text-foreground text-sm font-medium">{l.mes_referencia ? formatMesReferencia(l.mes_referencia) : "—"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Período</p>
-                              <p className="text-foreground text-sm font-medium tabular-nums">{l.periodo ?? "—"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground text-[11px] mb-1 uppercase tracking-tighter font-medium">Anexado em</p>
-                              <p className="text-foreground text-sm font-medium tabular-nums">{fmtDia(l.ultimo_anexo_em)}</p>
-                            </div>
-                          </div>
+                        <div>
+                          <p className="text-muted-foreground text-[11px] mb-1">Faturamento iniciado</p>
+                          <p className="text-sm font-medium tabular-nums">{fmtDia(l.faturamento_iniciado_em)}</p>
                         </div>
-                      ))}
+                        <div>
+                          <p className="text-muted-foreground text-[11px] mb-1">Nota enviada</p>
+                          <p className="text-sm font-medium tabular-nums">{fmtDia(l.data_envio_nota)}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[11px] mb-1">Vencimento</p>
+                          <p className="text-sm font-medium tabular-nums">{fmtDia(l.data_vencimento)}</p>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </section>
-              </>
+
+                    <div className="px-5 pb-5">
+                      <p className="text-[11px] uppercase font-semibold text-muted-foreground mb-2">
+                        Cobrança retroativa / reajuste
+                      </p>
+                      {retros.length === 0 && reajComp.length === 0 ? (
+                        <p className="text-sm text-muted-foreground rounded-lg border border-dashed border-border/60 px-3 py-3">
+                          Sem cobrança retroativa nesta competência.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {reajComp.map((r: any) => (
+                            <div
+                              key={`reaj-${r.id}`}
+                              className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5 text-sm"
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className="text-[10px] uppercase">
+                                  Reajuste {r.ano}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {labelStatusReajusteFluxo(r.status_reajuste)}
+                                </span>
+                              </div>
+                              <p className="text-foreground">
+                                Percentual {Number(r.percentual ?? 0).toFixed(2)}% · Retroativo de{" "}
+                                <strong>{r.meses_retroativos ?? 0}</strong>{" "}
+                                {(r.meses_retroativos ?? 0) === 1 ? "mês" : "meses"} ·{" "}
+                                {formatCentavosBRL(r.valor_retroativo_centavos)}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
+                                Mês de reajuste {nomeMes(r.mes_reajuste)} · Aplicação {fmtDia(r.data_aplicacao)}
+                              </p>
+                            </div>
+                          ))}
+                          {retros.map((r: any) => (
+                            <div
+                              key={`retro-${r.id}`}
+                              className="rounded-lg border border-info/25 bg-info/5 px-3 py-2.5 text-sm"
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className="text-[10px] uppercase">
+                                  Cobrança retroativa
+                                </Badge>
+                                <span className="text-xs text-muted-foreground tabular-nums">
+                                  {r.competencia ? formatMesReferencia(r.competencia) : "—"}
+                                </span>
+                              </div>
+                              <p className="text-foreground">
+                                {formatCentavosBRL(
+                                  r.valor_total_manual_centavos ??
+                                    r.valor_total_calculado_centavos ??
+                                    r.valor_centavos,
+                                )}
+                                {r.motivo ? ` · ${r.motivo}` : ""}
+                              </p>
+                              {r.descricao && (
+                                <p className="text-xs text-muted-foreground mt-0.5">{r.descricao}</p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
+                                Registrada em {fmtDia(r.created_at)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
+
         </DialogContent>
       </Dialog>
 
