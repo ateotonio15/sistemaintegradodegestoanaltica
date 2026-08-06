@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [periodoMes, setPeriodoMes] = useState(getCurrentMesReferencia());
   const [tipoMes, setTipoMes] = useState(getCurrentMesReferencia());
   const [tipoPeriodo, setTipoPeriodo] = useState<string>("all");
+  const [statusUsuarioOpen, setStatusUsuarioOpen] = useState(false);
 
   const meses12 = useMemo(() => ultimosMeses(12), []);
   const mesesOpcoes = useMemo(() => {
@@ -64,7 +65,7 @@ export default function Dashboard() {
       let q = supabase
         .from("movimentacoes")
         .select(
-          "id, empresa_id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, tipo_movimentacao)",
+          "id, empresa_id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, tipo_movimentacao, responsavel_contrato, responsavel_user_id)",
         )
         .eq("mes_referencia", statusMes);
       if (statusPeriodo !== "all") q = q.eq("periodo", statusPeriodo);
