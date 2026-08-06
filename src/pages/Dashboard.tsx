@@ -227,7 +227,18 @@ export default function Dashboard() {
 
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <MovTipoChart data={porTipo} />
+        <MovTipoChart
+          data={porTipo}
+          filtros={
+            <ChartFiltros
+              meses={mesesOpcoes}
+              mes={tipoMes}
+              onMesChange={setTipoMes}
+              periodo={tipoPeriodo}
+              onPeriodoChange={setTipoPeriodo}
+            />
+          }
+        />
         <StatusMovChart
           pendentes={status.pendentes}
           empresa={status.empresa}
