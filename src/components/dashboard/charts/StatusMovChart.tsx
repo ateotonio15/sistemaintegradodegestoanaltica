@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Users } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface Props {
@@ -8,9 +10,10 @@ interface Props {
   empresa: number;
   financeiro: number;
   filtros?: ReactNode;
+  onVerPorUsuario?: () => void;
 }
 
-export function StatusMovChart({ aguardando, foraDoPrazo, empresa, financeiro, filtros }: Props) {
+export function StatusMovChart({ aguardando, foraDoPrazo, empresa, financeiro, filtros, onVerPorUsuario }: Props) {
   const data = [
     { name: "Aguardando envio", value: aguardando, color: "hsl(var(--muted-foreground))" },
     { name: "Fora do prazo", value: foraDoPrazo, color: "hsl(var(--destructive))" },
