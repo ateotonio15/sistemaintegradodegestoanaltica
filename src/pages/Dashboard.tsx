@@ -17,6 +17,7 @@ import { StatusMovChart } from "@/components/dashboard/charts/StatusMovChart";
 import { VidasTempoRealCard } from "@/components/dashboard/charts/VidasTempoRealCard";
 import { VidasMensalChart } from "@/components/dashboard/charts/VidasMensalChart";
 import { EmpresasMovMensalChart } from "@/components/dashboard/charts/EmpresasMovMensalChart";
+import { EmpresasPorPeriodoChart } from "@/components/dashboard/charts/EmpresasPorPeriodoChart";
 
 function ultimosMeses(n: number): string[] {
   const now = new Date();
@@ -67,6 +68,21 @@ export default function Dashboard() {
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as any[];
+    },
+    enabled: !!user,
+  });
+
+  // Movimentações dos últimos 12 meses (série mensal de empresas)
+  // Movimentações do mês inteiro (por período)
+  const { data: movsMes = [] } = useQuery({
+    queryKey: ["dashboard-geral-movs-mes", filterMes],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("movimentacoes")
+        .select("empresa_id, periodo")
+        .eq("mes_referencia", filterMes);
+      if (error) throw error;
+      return (data ?? []) as { empresa_id: string; periodo: string }[];
     },
     enabled: !!user,
   });
@@ -175,6 +191,15 @@ export default function Dashboard() {
     });
   }, [meses12, movs12]);
 
+  // Empresas por período (mês selecionado)
+  const seriePeriodos = useMemo(() => {
+    return PERIODOS.map((p) => {
+      const ids = new Set(movsMes.filter((m) => m.periodo === p).map((m) => m.empresa_id));
+      return { periodo: p, empresas: ids.size };
+    });
+  }, [movsMes]);
+
+
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -228,6 +253,9 @@ export default function Dashboard() {
           empresasAtivas={vidas.empresasAtivas}
         />
         <EmpresasMovMensalChart data={serieEmpresas} />
+        <div className="lg:col-span-2">
+          <EmpresasPorPeriodoChart data={seriePeriodos} />
+        </div>
         <div className="lg:col-span-2">
           <VidasMensalChart data={serieVidas} />
         </div>
