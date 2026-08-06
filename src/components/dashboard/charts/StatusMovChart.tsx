@@ -27,7 +27,15 @@ export function StatusMovChart({ aguardando, foraDoPrazo, empresa, financeiro, f
     <Card className="rounded-xl shadow-sm">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base font-semibold">Movimentações por status</CardTitle>
-        {filtros}
+        <div className="flex flex-wrap items-center gap-2">
+          {filtros}
+          {onVerPorUsuario && (
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={onVerPorUsuario}>
+              <Users className="h-3.5 w-3.5" />
+              Por usuário
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {total === 0 ? (
