@@ -1394,6 +1394,32 @@ export default function Financeiro() {
     onError: (e: any) => toast.error("Erro ao provisionar: " + e.message),
   });
 
+  // Auto-provisionamento: contratos recém-implantados (com movimentação operacional
+  // no mês, mas ainda sem linha financeira) passam a aparecer sem clique manual.
+  const autoProvisionadoRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!user || !canManageFinanceiro) return;
+    if (isLoading || provisionarMutation.isPending) return;
+    if (autoProvisionadoRef.current.has(mes)) return;
+    autoProvisionadoRef.current.add(mes);
+    (async () => {
+      try {
+        const { data: movs } = await supabase
+          .from("movimentacoes")
+          .select("empresa_id")
+          .eq("mes_referencia", mes);
+        const comFin = new Set(financeiroRaw.map((f: any) => f.empresa_id));
+        const faltando = (movs || []).some((m: any) => !comFin.has(m.empresa_id));
+        if (faltando) provisionarMutation.mutate();
+      } catch {
+        /* noop */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, canManageFinanceiro, mes, isLoading, financeiroRaw]);
+
+
+
   // Guards de acesso
   if (loading) {
     return (
