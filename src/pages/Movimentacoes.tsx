@@ -98,6 +98,33 @@ export default function Movimentacoes() {
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
   const canEdit = !isViewOnly && isAdmin;
   const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
+  const [gerandoMov, setGerandoMov] = useState(false);
+
+  const handleGerarMovimentacoes = async () => {
+    if (gerandoMov) return;
+    if (!confirm("Gerar as movimentações dos novos contratos (recém implantados cuja primeira competência já chegou)?")) return;
+    setGerandoMov(true);
+    try {
+      const { data, error } = await supabase.rpc("ativar_contratos_pendentes" as any);
+      if (error) throw error;
+      const qtd = typeof data === "number" ? data : 0;
+      toast({
+        title: qtd > 0 ? "Movimentações geradas" : "Nada a gerar",
+        description: qtd > 0
+          ? `${qtd} contrato(s) ativados e com movimentação gerada.`
+          : "Nenhum contrato novo elegível no momento.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-recem-implantados"] });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar movimentações", description: e?.message, variant: "destructive" });
+    } finally {
+      setGerandoMov(false);
+    }
+  };
+
+
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas", activeTab],
