@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw, Sparkles } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -98,6 +98,33 @@ export default function Movimentacoes() {
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
   const canEdit = !isViewOnly && isAdmin;
   const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
+  const [gerandoMov, setGerandoMov] = useState(false);
+
+  const handleGerarMovimentacoes = async () => {
+    if (gerandoMov) return;
+    if (!confirm("Gerar as movimentações dos novos contratos (recém implantados cuja primeira competência já chegou)?")) return;
+    setGerandoMov(true);
+    try {
+      const { data, error } = await supabase.rpc("ativar_contratos_pendentes" as any);
+      if (error) throw error;
+      const qtd = typeof data === "number" ? data : 0;
+      toast({
+        title: qtd > 0 ? "Movimentações geradas" : "Nada a gerar",
+        description: qtd > 0
+          ? `${qtd} contrato(s) ativados e com movimentação gerada.`
+          : "Nenhum contrato novo elegível no momento.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-recem-implantados"] });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar movimentações", description: e?.message, variant: "destructive" });
+    } finally {
+      setGerandoMov(false);
+    }
+  };
+
+
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas", activeTab],
@@ -548,6 +575,19 @@ export default function Movimentacoes() {
             >
               <RefreshCw className="mr-2 h-4 w-4" />Atualizar
             </Button>
+            {canEditDates && (
+              <Button
+                variant="outline"
+                className="rounded-lg"
+                onClick={handleGerarMovimentacoes}
+                disabled={gerandoMov}
+                title="Gerar movimentação dos novos contratos"
+              >
+                <Sparkles className={`mr-2 h-4 w-4 ${gerandoMov ? "animate-pulse" : ""}`} />
+                {gerandoMov ? "Gerando..." : "Gerar Movimentação"}
+              </Button>
+            )}
+
             
             <Button variant="outline" onClick={handleExportExcel} className="rounded-lg">
               <Download className="mr-2 h-4 w-4" />Exportar Excel
