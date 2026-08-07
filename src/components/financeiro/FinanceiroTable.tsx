@@ -100,7 +100,16 @@ export function FinanceiroTable({
     movimentacaoId: string;
     faturamentoIniciadoEm: string | null;
     faturamentoIniciadoPorNome: string | null;
+    permitirAnexosContrato: boolean;
   } | null>(null);
+
+  // Empresas/competências que possuem linha de "Primeira mensalidade":
+  // nesses casos os anexos de implantação (Contrato) aparecem SÓ nessa linha.
+  const empresasComPrimeiraMensalidade = new Set(
+    rows
+      .filter((r: any) => r.tipo_lancamento === "primeira_mensalidade")
+      .map((r: any) => `${r.empresa_id}|${r.mes_referencia}`),
+  );
 
   const { data: orbitMap } = useOrbitEnvios();
   useOrbitEnviosRefresh();
@@ -282,6 +291,11 @@ export function FinanceiroTable({
                             movimentacaoId: row.id,
                             faturamentoIniciadoEm: row.faturamento_iniciado_em ?? null,
                             faturamentoIniciadoPorNome: row.faturamento_iniciado_por_nome ?? null,
+                            permitirAnexosContrato:
+                              (row as any).tipo_lancamento === "primeira_mensalidade" ||
+                              !empresasComPrimeiraMensalidade.has(
+                                `${row.empresa_id}|${row.mes_referencia}`,
+                              ),
                           })
                         }
 
@@ -368,6 +382,7 @@ export function FinanceiroTable({
         movimentacaoId={anexosDialog?.movimentacaoId ?? null}
         faturamentoIniciadoEm={anexosDialog?.faturamentoIniciadoEm ?? null}
         faturamentoIniciadoPorNome={anexosDialog?.faturamentoIniciadoPorNome ?? null}
+        permitirAnexosContrato={anexosDialog?.permitirAnexosContrato ?? true}
 
       />
 

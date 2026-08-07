@@ -674,7 +674,10 @@ export default function Financeiro() {
         anexos_count:
           anexosAll.length +
           (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0) +
-          ((anexosImplantacaoCountMap as Record<string, number>)[f.empresa_id] || 0),
+          (((f as any).tipo_lancamento === "primeira_mensalidade" ||
+          !empresasComPrimeiraMensalidade.has(`${f.empresa_id}|${f.mes_referencia}`)
+            ? (anexosImplantacaoCountMap as Record<string, number>)[f.empresa_id] || 0
+            : 0)),
         enviado_por_nome: uploaderId ? uploaderMap[uploaderId] || null : null,
         faturamento_iniciado_por: (f as any).faturamento_iniciado_por ?? null,
         faturamento_iniciado_por_nome: (f as any).faturamento_iniciado_por_nome ?? null,
