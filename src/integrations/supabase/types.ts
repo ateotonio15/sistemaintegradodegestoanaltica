@@ -4871,6 +4871,21 @@ export type Database = {
         }
         Returns: string
       }
+      dashboard_movimentacoes: {
+        Args: { p_mes_fim?: string; p_mes_ini: string }
+        Returns: {
+          data_envio_empresa: string
+          data_envio_financeiro: string
+          empresa_id: string
+          empresa_nome: string
+          id: string
+          mes_referencia: string
+          periodo: string
+          responsavel_contrato: string
+          responsavel_user_id: string
+          tipo_movimentacao: string
+        }[]
+      }
       demanda_can_edit: { Args: { _executiva: string }; Returns: boolean }
       ensure_plantao_empresa:
         | { Args: { _id: string; _nome: string }; Returns: undefined }
