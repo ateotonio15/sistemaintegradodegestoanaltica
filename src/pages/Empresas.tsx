@@ -123,6 +123,7 @@ export default function Empresas() {
   const anexoInputRef = useRef<HTMLInputElement>(null);
   const [importingAnexo, setImportingAnexo] = useState(false);
   const [loadingRevisao, setLoadingRevisao] = useState(false);
+  const [gerandoMov, setGerandoMov] = useState(false);
   const [respLockOpen, setRespLockOpen] = useState(false);
   const [respUnlocked, setRespUnlocked] = useState(false);
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
