@@ -139,14 +139,15 @@ export default function Dashboard() {
   const { data: movsMes = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-mes", periodoMes],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes")
-        .select(
-          "empresa_id, periodo, empresas:empresas!movimentacoes_empresa_id_fkey(responsavel_user_id)",
-        )
-        .eq("mes_referencia", periodoMes);
+      const { data, error } = await supabase.rpc("dashboard_movimentacoes" as any, {
+        p_mes_ini: periodoMes,
+        p_mes_fim: periodoMes,
+      });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return ((data ?? []) as any[]).map((r) => ({
+        ...r,
+        empresas: { responsavel_user_id: r.responsavel_user_id },
+      }));
     },
     enabled: !!user,
   });
@@ -155,14 +156,14 @@ export default function Dashboard() {
   const { data: movsTipo = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-tipo", tipoMes, tipoPeriodo],
     queryFn: async () => {
-      let q = supabase
-        .from("movimentacoes")
-        .select("empresa_id, empresas:empresas!movimentacoes_empresa_id_fkey(responsavel_user_id)")
-        .eq("mes_referencia", tipoMes);
-      if (tipoPeriodo !== "all") q = q.eq("periodo", tipoPeriodo);
-      const { data, error } = await q;
+      const { data, error } = await supabase.rpc("dashboard_movimentacoes" as any, {
+        p_mes_ini: tipoMes,
+        p_mes_fim: tipoMes,
+      });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return ((data ?? []) as any[])
+        .filter((r) => tipoPeriodo === "all" || r.periodo === tipoPeriodo)
+        .map((r) => ({ ...r, empresas: { responsavel_user_id: r.responsavel_user_id } }));
     },
     enabled: !!user,
   });
@@ -171,15 +172,19 @@ export default function Dashboard() {
   const { data: movs12 = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-12", meses12[0]],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes")
-        .select("empresa_id, mes_referencia")
-        .gte("mes_referencia", meses12[0]);
+      const { data, error } = await supabase.rpc("dashboard_movimentacoes" as any, {
+        p_mes_ini: meses12[0],
+        p_mes_fim: null,
+      });
       if (error) throw error;
-      return (data ?? []) as { empresa_id: string; mes_referencia: string }[];
+      return ((data ?? []) as any[]).map((r) => ({
+        empresa_id: r.empresa_id as string,
+        mes_referencia: r.mes_referencia as string,
+      }));
     },
     enabled: !!user,
   });
+
 
   // Histórico de vidas (entradas/saídas)
   const { data: historicoVidas = [] } = useQuery({
