@@ -84,19 +84,27 @@ export default function Dashboard() {
   const { data: movsPeriodo = [] } = useQuery({
     queryKey: ["dashboard-geral-movs", statusMes, statusPeriodo],
     queryFn: async () => {
-      let q = supabase
-        .from("movimentacoes")
-        .select(
-          "id, empresa_id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, tipo_movimentacao, responsavel_contrato, responsavel_user_id)",
-        )
-        .eq("mes_referencia", statusMes);
-      if (statusPeriodo !== "all") q = q.eq("periodo", statusPeriodo);
-      const { data, error } = await q;
+      const { data, error } = await supabase.rpc("dashboard_movimentacoes" as any, {
+        p_mes_ini: statusMes,
+        p_mes_fim: statusMes,
+      });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return ((data ?? []) as any[])
+        .filter((r) => statusPeriodo === "all" || r.periodo === statusPeriodo)
+        .map((r) => ({
+          ...r,
+          empresas: {
+            id: r.empresa_id,
+            nome: r.empresa_nome,
+            tipo_movimentacao: r.tipo_movimentacao,
+            responsavel_contrato: r.responsavel_contrato,
+            responsavel_user_id: r.responsavel_user_id,
+          },
+        }));
     },
     enabled: !!user,
   });
+
 
   // Mapa de perfis (somente usuários internos do Cadastro / empresarial)
   const { data: profilesMap = new Map<string, string>() } = useQuery({
@@ -131,14 +139,15 @@ export default function Dashboard() {
   const { data: movsMes = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-mes", periodoMes],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes")
-        .select(
-          "empresa_id, periodo, empresas:empresas!movimentacoes_empresa_id_fkey(responsavel_user_id)",
-        )
-        .eq("mes_referencia", periodoMes);
+      const { data, error } = await supabase.rpc("dashboard_movimentacoes" as any, {
+        p_mes_ini: periodoMes,
+        p_mes_fim: periodoMes,
+      });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return ((data ?? []) as any[]).map((r) => ({
+        ...r,
+        empresas: { responsavel_user_id: r.responsavel_user_id },
+      }));
     },
     enabled: !!user,
   });
@@ -147,14 +156,14 @@ export default function Dashboard() {
   const { data: movsTipo = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-tipo", tipoMes, tipoPeriodo],
     queryFn: async () => {
-      let q = supabase
-        .from("movimentacoes")
-        .select("empresa_id, empresas:empresas!movimentacoes_empresa_id_fkey(responsavel_user_id)")
-        .eq("mes_referencia", tipoMes);
-      if (tipoPeriodo !== "all") q = q.eq("periodo", tipoPeriodo);
-      const { data, error } = await q;
+      const { data, error } = await supabase.rpc("dashboard_movimentacoes" as any, {
+        p_mes_ini: tipoMes,
+        p_mes_fim: tipoMes,
+      });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return ((data ?? []) as any[])
+        .filter((r) => tipoPeriodo === "all" || r.periodo === tipoPeriodo)
+        .map((r) => ({ ...r, empresas: { responsavel_user_id: r.responsavel_user_id } }));
     },
     enabled: !!user,
   });
@@ -163,15 +172,19 @@ export default function Dashboard() {
   const { data: movs12 = [] } = useQuery({
     queryKey: ["dashboard-geral-movs-12", meses12[0]],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes")
-        .select("empresa_id, mes_referencia")
-        .gte("mes_referencia", meses12[0]);
+      const { data, error } = await supabase.rpc("dashboard_movimentacoes" as any, {
+        p_mes_ini: meses12[0],
+        p_mes_fim: null,
+      });
       if (error) throw error;
-      return (data ?? []) as { empresa_id: string; mes_referencia: string }[];
+      return ((data ?? []) as any[]).map((r) => ({
+        empresa_id: r.empresa_id as string,
+        mes_referencia: r.mes_referencia as string,
+      }));
     },
     enabled: !!user,
   });
+
 
   // Histórico de vidas (entradas/saídas)
   const { data: historicoVidas = [] } = useQuery({
