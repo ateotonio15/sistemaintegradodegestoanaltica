@@ -64,6 +64,7 @@ import TrocarSenha from "./pages/TrocarSenha";
 import Portal from "./pages/Portal";
 import MeuPainel from "./pages/MeuPainel";
 import EmpresasAcesso from "./pages/EmpresasAcesso";
+import AnaliseContrato from "./pages/AnaliseContrato";
 
 // Desativa gatilhos globais de foco/reconexão: voltar para a aba não deve reiniciar/refazer telas.
 focusManager.setEventListener(() => () => {});
@@ -227,6 +228,10 @@ const AppRoutes = () => (
 
       <Route element={<RoleGate allow={["admin"]} />}>
         <Route path="/usuarios" element={<Usuarios />} />
+      </Route>
+
+      <Route element={<RoleGate allow={["admin", "comum", "vendas", "diretora", "financeiro", "administradoras"]} />}>
+        <Route path="/analise-contrato" element={<AnaliseContrato />} />
       </Route>
 
       <Route path="/honda-exclusoes" element={<HondaExclusoes />} />
