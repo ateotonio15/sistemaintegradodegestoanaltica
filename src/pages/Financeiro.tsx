@@ -587,6 +587,13 @@ export default function Financeiro() {
 
   // Linhas enriquecidas
   const allRows: FinanceiroRow[] = useMemo(() => {
+    // Empresas/competências com linha de "Primeira mensalidade": os anexos de
+    // implantação (Contrato) contam apenas nessa linha.
+    const empresasComPrimeiraMensalidade = new Set(
+      financeiroRaw
+        .filter((f: any) => f.tipo_lancamento === "primeira_mensalidade")
+        .map((f: any) => `${f.empresa_id}|${f.mes_referencia}`),
+    );
     return financeiroRaw
       .filter((f) => {
         const emp = empresasMap[f.empresa_id];
