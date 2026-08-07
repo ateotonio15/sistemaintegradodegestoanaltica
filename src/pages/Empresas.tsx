@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock, MoreHorizontal, RefreshCw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PERIODOS, isPrioridadeAlertaIntenso, periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
