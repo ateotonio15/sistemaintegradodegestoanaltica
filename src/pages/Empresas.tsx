@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock, MoreHorizontal, RefreshCw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PERIODOS, isPrioridadeAlertaIntenso, periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
@@ -123,6 +123,7 @@ export default function Empresas() {
   const anexoInputRef = useRef<HTMLInputElement>(null);
   const [importingAnexo, setImportingAnexo] = useState(false);
   const [loadingRevisao, setLoadingRevisao] = useState(false);
+  const [gerandoMov, setGerandoMov] = useState(false);
   const [respLockOpen, setRespLockOpen] = useState(false);
   const [respUnlocked, setRespUnlocked] = useState(false);
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
@@ -132,6 +133,30 @@ export default function Empresas() {
       if (typeof data === "string") setCurrentUsername(data);
     });
   }, []);
+
+  const handleGerarMovimentacoes = async () => {
+    if (gerandoMov) return;
+    if (!confirm("Gerar as movimentações dos novos contratos (recém implantados cuja primeira competência já chegou)?")) return;
+    setGerandoMov(true);
+    try {
+      const { data, error } = await supabase.rpc("ativar_contratos_pendentes" as any);
+      if (error) throw error;
+      const qtd = typeof data === "number" ? data : 0;
+      toast({
+        title: qtd > 0 ? "Movimentações geradas" : "Nada a gerar",
+        description: qtd > 0
+          ? `${qtd} contrato(s) ativados e com movimentação gerada.`
+          : "Nenhum contrato novo elegível no momento.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-recem-implantados"] });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar movimentações", description: e?.message, variant: "destructive" });
+    } finally {
+      setGerandoMov(false);
+    }
+  };
 
   const handleRevisarEmpresas = async () => {
     if (loadingRevisao) return;
@@ -823,6 +848,12 @@ export default function Empresas() {
           {(canEdit && !isExecutivo && !isEnfermeira) && (
             <div className="flex items-center gap-2">
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+              {canFullEdit && (
+                <Button variant="outline" className="rounded-lg" onClick={handleGerarMovimentacoes} disabled={gerandoMov}>
+                  <RefreshCw className={cn("mr-2 h-4 w-4", gerandoMov && "animate-spin")} />
+                  {gerandoMov ? "Gerando..." : "Gerar Movimentação"}
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="rounded-lg">
@@ -853,6 +884,10 @@ export default function Empresas() {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleRevisarEmpresas} disabled={loadingRevisao}>
                         <Search className="mr-2 h-4 w-4" />{loadingRevisao ? "Revisando..." : "Verificar Empresas e Duplicidade"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleGerarMovimentacoes} disabled={gerandoMov}>
+                        <RefreshCw className={cn("mr-2 h-4 w-4", gerandoMov && "animate-spin")} />
+                        {gerandoMov ? "Gerando..." : "Gerar Movimentação (novos contratos)"}
                       </DropdownMenuItem>
                     </>
                   )}
