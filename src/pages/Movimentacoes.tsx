@@ -102,17 +102,67 @@ export default function Movimentacoes() {
 
   const handleGerarMovimentacoes = async () => {
     if (gerandoMov) return;
-    if (!confirm("Gerar as movimentações dos novos contratos (recém implantados cuja primeira competência já chegou)?")) return;
+    if (!confirm(`Gerar as movimentações faltantes da competência ${filterMes}?`)) return;
     setGerandoMov(true);
     try {
-      const { data, error } = await supabase.rpc("ativar_contratos_pendentes" as any);
-      if (error) throw error;
-      const qtd = typeof data === "number" ? data : 0;
+      // 1) Ativa contratos recém implantados cuja primeira competência já chegou
+      let ativados = 0;
+      const { data: rpcData, error: rpcErr } = await supabase.rpc("ativar_contratos_pendentes" as any);
+      if (rpcErr) throw rpcErr;
+      ativados = typeof rpcData === "number" ? rpcData : 0;
+
+      // 2) Provisiona movimentações faltantes da competência selecionada
+      const { data: emps, error: empErr } = await supabase
+        .from("empresas")
+        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, tipo_contrato, status_implantacao, primeira_competencia_financeira, responsavel_contrato, responsavel_user_id");
+      if (empErr) throw empErr;
+
+      const { data: existentes, error: movErr } = await supabase
+        .from("movimentacoes")
+        .select("empresa_id")
+        .eq("mes_referencia", filterMes);
+      if (movErr) throw movErr;
+      const jaTem = new Set((existentes ?? []).map((m: any) => m.empresa_id));
+
+      const novos: TablesInsert<"movimentacoes">[] = [];
+      for (const e of (emps ?? []) as any[]) {
+        if (e.status_empresa === "Inativa") continue;
+        if (jaTem.has(e.id)) continue;
+        if (
+          e.status_implantacao === "aguardando_primeiro_fechamento" &&
+          (!e.primeira_competencia_financeira || filterMes < e.primeira_competencia_financeira)
+        ) continue;
+
+        const tipo = e.tipo_movimentacao ?? "Fechada";
+        let periodo: string | null = null;
+        if (e.tipo_contrato === "ADMINISTRADORA" && e.data_corte) periodo = periodoDaDataCorte(e.data_corte);
+        else if (tipo === "Diária" && e.data_corte) periodo = periodoDaDataCorte(e.data_corte);
+        else periodo = e.periodo_movimentacao ?? null;
+        if (!periodo) continue;
+
+        novos.push({
+          empresa_id: e.id,
+          mes_referencia: filterMes,
+          periodo,
+          tipo_movimentacao: tipo,
+          responsavel_movimentacao:
+            (e.responsavel_user_id ? profilesMap.get(e.responsavel_user_id) : null) ?? e.responsavel_contrato ?? null,
+        });
+      }
+
+      let criadas = 0;
+      if (novos.length > 0) {
+        const { error: insErr } = await supabase.from("movimentacoes").insert(novos);
+        if (insErr) throw insErr;
+        criadas = novos.length;
+      }
+
       toast({
-        title: qtd > 0 ? "Movimentações geradas" : "Nada a gerar",
-        description: qtd > 0
-          ? `${qtd} contrato(s) ativados e com movimentação gerada.`
-          : "Nenhum contrato novo elegível no momento.",
+        title: criadas > 0 || ativados > 0 ? "Movimentações geradas" : "Nada a gerar",
+        description:
+          criadas > 0 || ativados > 0
+            ? `${criadas} movimentação(ões) criada(s)${ativados > 0 ? ` • ${ativados} contrato(s) ativado(s)` : ""}.`
+            : "Todos os contratos já possuem movimentação nesta competência.",
       });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
@@ -123,6 +173,7 @@ export default function Movimentacoes() {
       setGerandoMov(false);
     }
   };
+
 
 
 
