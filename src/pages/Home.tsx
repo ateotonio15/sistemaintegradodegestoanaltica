@@ -39,6 +39,7 @@ import {
   Sparkles,
   type LucideIcon,
   Star,
+  FileSearch,
 } from "lucide-react";
 
 type InteligenciaItem = {
