@@ -670,6 +670,11 @@ export default function Financeiro() {
         anexosAll.some((a: any) => a.origem === "retroativo") ||
         retroativasInfo.porMov.has(f.id) ||
         retroativasInfo.porEmpresa.has(f.empresa_id);
+      // Regra da primeira linha: anexos de implantação (contrato) equivalem ao
+      // envio do Cadastro → a linha "Primeira mensalidade" fica "Aguardando Emissão".
+      const temAnexoImplantacao =
+        (f as any).tipo_lancamento === "primeira_mensalidade" &&
+        ((anexosImplantacaoCountMap as Record<string, number>)[f.empresa_id] || 0) > 0;
       return {
         ...f,
         empresa_nome: emp?.nome || "—",
@@ -677,7 +682,12 @@ export default function Financeiro() {
         empresa_cnpj: emp?.cnpj ?? null,
         empresa_vidas: emp?.vidas ?? 0,
         periodo_corte: periodoCorte,
-        status: calcularStatusFinanceiro(f, envioOperacional, anexosParaStatus, !!emp?.exige_po_pc),
+        status: calcularStatusFinanceiro(
+          f,
+          envioOperacional || temAnexoImplantacao,
+          anexosParaStatus,
+          !!emp?.exige_po_pc,
+        ),
         anexos_count:
           anexosAll.length +
           (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0) +
