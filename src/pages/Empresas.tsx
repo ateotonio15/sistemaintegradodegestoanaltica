@@ -848,6 +848,12 @@ export default function Empresas() {
           {(canEdit && !isExecutivo && !isEnfermeira) && (
             <div className="flex items-center gap-2">
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+              {canFullEdit && (
+                <Button variant="outline" className="rounded-lg" onClick={handleGerarMovimentacoes} disabled={gerandoMov}>
+                  <RefreshCw className={cn("mr-2 h-4 w-4", gerandoMov && "animate-spin")} />
+                  {gerandoMov ? "Gerando..." : "Gerar Movimentação"}
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="rounded-lg">
