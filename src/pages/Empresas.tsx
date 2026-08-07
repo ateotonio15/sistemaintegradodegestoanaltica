@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock, MoreHorizontal } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PERIODOS, isPrioridadeAlertaIntenso, periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
@@ -821,33 +821,44 @@ export default function Empresas() {
             </p>
           </div>
           {(canEdit && !isExecutivo && !isEnfermeira) && (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={exportarEmpresasExcel} className="rounded-lg">
-                <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar Excel
-              </Button>
-              {canFullEdit && (
-                <>
-                  <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
-                  <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="rounded-lg">
-                    <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
+            <div className="flex items-center gap-2">
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="rounded-lg">
+                    <MoreHorizontal className="mr-2 h-4 w-4" />Ações
                   </Button>
-                  {isAdmin && (
-                    <Button variant="outline" onClick={() => setImportValoresOpen(true)} className="rounded-lg">
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 bg-popover z-50">
+                  <DropdownMenuLabel>Planilhas</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={exportarEmpresasExcel}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar Excel
+                  </DropdownMenuItem>
+                  {canFullEdit && (
+                    <DropdownMenuItem onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
+                      <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
+                    </DropdownMenuItem>
+                  )}
+                  {canFullEdit && isAdmin && (
+                    <DropdownMenuItem onClick={() => setImportValoresOpen(true)}>
                       <FileSpreadsheet className="mr-2 h-4 w-4" />Importar Valores
-                    </Button>
+                    </DropdownMenuItem>
                   )}
-                  {isAdmin && (
-                    <Button variant="outline" onClick={() => setRecalcVidasOpen(true)} className="rounded-lg">
-                      <Users className="mr-2 h-4 w-4" />Recalcular Vidas
-                    </Button>
+                  {canFullEdit && isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Manutenção</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => setRecalcVidasOpen(true)}>
+                        <Users className="mr-2 h-4 w-4" />Recalcular Vidas
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleRevisarEmpresas} disabled={loadingRevisao}>
+                        <Search className="mr-2 h-4 w-4" />{loadingRevisao ? "Revisando..." : "Verificar Empresas e Duplicidade"}
+                      </DropdownMenuItem>
+                    </>
                   )}
-                  {isAdmin && (
-                    <Button variant="secondary" onClick={handleRevisarEmpresas} disabled={loadingRevisao} className="rounded-lg">
-                      <Search className="mr-2 h-4 w-4" />{loadingRevisao ? "Revisando..." : "Verificar Empresas e Duplicidade"}
-                    </Button>
-                  )}
-                </>
-              )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Dialog open={dialogOpen && !isExecutivo && !isEnfermeira} onOpenChange={(open) => {
                 setDialogOpen(open);
                 if (open && !editingId && !draftEmpresaId) {
