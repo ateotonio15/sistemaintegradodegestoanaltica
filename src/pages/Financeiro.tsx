@@ -1650,8 +1650,13 @@ export default function Financeiro() {
     }
 
     // ============ FLUXO NORMAL: agrupamento por CNPJ ============
-    const blocosTotais: import("@/lib/excel-analysis-utils").AnalisePorCnpj[] = [];
+    let blocosTotais: import("@/lib/excel-analysis-utils").AnalisePorCnpj[] = [];
     const metaByCnpj = new Map<string, { hashExcel: string | null; arquivo: string | null }>();
+    // Marca blocos originados de anexos compartilhados pelo grupo — eles só
+    // podem ser exibidos nesta linha se o CNPJ pertencer a este contrato
+    // (CNPJ próprio ou pagador cadastrado). Assim a CALLIDUS não exibe a
+    // análise da TEC TOY / TA NA PORTA apenas por estarem no mesmo grupo.
+    const blocoCompartilhado = new Map<import("@/lib/excel-analysis-utils").AnalisePorCnpj, boolean>();
 
     for (const a of xlsAnexos) {
       try {
@@ -1664,6 +1669,7 @@ export default function Financeiro() {
         const blocos = await analisarExcelFinanceiroPorCnpj(buf);
         blocos.forEach((b) => {
           blocosTotais.push(b);
+          blocoCompartilhado.set(b, !!a._compartilhado_grupo);
           const key = b.cnpj || `__nome::${b.nome}`;
           if (!metaByCnpj.has(key)) {
             metaByCnpj.set(key, { hashExcel: hash, arquivo: a.nome_arquivo ?? null });
@@ -1674,7 +1680,23 @@ export default function Financeiro() {
       }
     }
 
+    const totalBlocosAntes = blocosTotais.length;
+    if (cnpjsDoContratoAnalise.size > 0) {
+      blocosTotais = blocosTotais.filter((b) => {
+        if (!blocoCompartilhado.get(b)) return true;
+        const cnpjBloco = onlyDigitsLocal(b.cnpj);
+        return !!cnpjBloco && cnpjsDoContratoAnalise.has(cnpjBloco);
+      });
+    }
+    const houveDescarte = blocosTotais.length < totalBlocosAntes;
+
     if (blocosTotais.length === 0) {
+      if (houveDescarte) {
+        // Todos os blocos eram de outros pagadores do grupo — nada a analisar aqui.
+        const vazio = { key: cacheKey, resultados: [], comparacoes: [], notasOrfas: [], temXls: false };
+        motherAnalysisCache.current.set(row.id, vazio);
+        return vazio;
+      }
       const r = await (async () => {
         const a = xlsAnexos[0];
         const { data } = await supabase.storage.from("anexos-financeiro").download(a.storage_path!);
