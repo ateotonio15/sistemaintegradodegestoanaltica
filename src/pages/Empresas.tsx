@@ -134,7 +134,6 @@ export default function Empresas() {
     });
   }, []);
 
-  const handleRevisarEmpresas = async () => {
   const handleGerarMovimentacoes = async () => {
     if (gerandoMov) return;
     if (!confirm("Gerar as movimentações dos novos contratos (recém implantados cuja primeira competência já chegou)?")) return;
