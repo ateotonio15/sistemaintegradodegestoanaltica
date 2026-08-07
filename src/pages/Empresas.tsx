@@ -879,6 +879,10 @@ export default function Empresas() {
                       <DropdownMenuItem onClick={handleRevisarEmpresas} disabled={loadingRevisao}>
                         <Search className="mr-2 h-4 w-4" />{loadingRevisao ? "Revisando..." : "Verificar Empresas e Duplicidade"}
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleGerarMovimentacoes} disabled={gerandoMov}>
+                        <RefreshCw className={cn("mr-2 h-4 w-4", gerandoMov && "animate-spin")} />
+                        {gerandoMov ? "Gerando..." : "Gerar Movimentação (novos contratos)"}
+                      </DropdownMenuItem>
                     </>
                   )}
                 </DropdownMenuContent>
