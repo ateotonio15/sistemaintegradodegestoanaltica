@@ -587,25 +587,14 @@ export default function Financeiro() {
 
   // Linhas enriquecidas
   const allRows: FinanceiroRow[] = useMemo(() => {
-    const lancamentosRegulares = new Set(
-      financeiroRaw
-        .filter((f) => ["normal", "fechamento_periodo"].includes((f as any).tipo_lancamento ?? "normal"))
-        .map((f) => `${f.empresa_id}|${f.mes_referencia}|${f.periodo}`),
-    );
-
     return financeiroRaw
       .filter((f) => {
-        if (
-          (f as any).tipo_lancamento === "primeira_mensalidade" &&
-          lancamentosRegulares.has(`${f.empresa_id}|${f.mes_referencia}|${f.periodo}`)
-        ) {
-          return false;
-        }
         const emp = empresasMap[f.empresa_id];
         if (emp?.nao_faturado_financeiro) return false;
         // Oculta empresas desativadas (rescindidas/suspensas/inativas) pelo cadastro
         return emp ? emp.ativa : true;
       })
+
 
       .map((f) => {
       const emp = empresasMap[f.empresa_id];
@@ -1320,6 +1309,28 @@ export default function Financeiro() {
           if (cfg.data_vencimento != null) linha.data_vencimento = cfg.data_vencimento;
           linhas.push(linha);
         });
+
+        // Contrato implantado nesta competência → além da cobrança normal do
+        // período, gera a linha de "Primeira mensalidade" (cobrada fora do
+        // período de movimentação).
+        const impl = (e as any).data_implantacao as string | null;
+        if (ativa && impl && impl.slice(0, 7) === mes) {
+          periodos.forEach((periodo) => {
+            const cfg = configPrev.get(`${e.id}|${periodo}`) ?? {};
+            const linha: any = {
+              empresa_id: e.id,
+              mes_referencia: mes,
+              periodo,
+              dentro_prazo: true,
+              responsavel: e.responsavel_contrato ?? null,
+              tipo_analise: cfg.tipo_analise ?? "normal",
+              possui_prorrogacao: false,
+              tipo_lancamento: "primeira_mensalidade",
+            };
+            if (cfg.dia_emissao != null) linha.dia_emissao = cfg.dia_emissao;
+            linhas.push(linha);
+          });
+        }
       }
 
       if (linhas.length === 0) {
@@ -1329,9 +1340,10 @@ export default function Financeiro() {
       // Dedup em memória (mesma empresa+período pode entrar duas vezes pela junção de fontes)
       const linhasMap = new Map<string, typeof linhas[number]>();
       for (const l of linhas) {
-        const k = `${l.empresa_id}|${l.periodo}`;
+        const k = `${l.empresa_id}|${l.periodo}|${l.tipo_lancamento}`;
         if (!linhasMap.has(k)) linhasMap.set(k, l);
       }
+
       const linhasDedup = Array.from(linhasMap.values());
 
       // Buscar existentes para separar inserções de atualizações.
