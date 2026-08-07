@@ -38,6 +38,8 @@ interface Props {
   movimentacaoId?: string | null;
   faturamentoIniciadoEm?: string | null;
   faturamentoIniciadoPorNome?: string | null;
+  /** Quando false, oculta os anexos de implantação ("Contrato") nesta linha. */
+  permitirAnexosContrato?: boolean;
 }
 
 const BUCKET_FINANCEIRO = "anexos-financeiro";
@@ -68,6 +70,7 @@ export function AnexosViewerDialog({
   movimentacaoId = null,
   faturamentoIniciadoEm = null,
   faturamentoIniciadoPorNome = null,
+  permitirAnexosContrato = true,
 }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -246,7 +249,7 @@ export function AnexosViewerDialog({
 
 
   const { data: anexos = [], isLoading, isError, error } = useQuery<AnexoRow[]>({
-    queryKey: ["anexos-viewer-merged", empresaId, mesReferencia, periodo],
+    queryKey: ["anexos-viewer-merged", empresaId, mesReferencia, periodo, permitirAnexosContrato],
     enabled: open && !!empresaId,
     // Sempre busca dados frescos ao abrir: o badge da tabela pode ter sido
     // atualizado depois do último cache deste diálogo (anexo novo do Cadastro).
@@ -338,7 +341,8 @@ export function AnexosViewerDialog({
         }
       }
       const mostrarAnexosContrato =
-        !primeiraCompetencia || primeiraCompetencia === mesReferencia;
+        permitirAnexosContrato &&
+        (!primeiraCompetencia || primeiraCompetencia === mesReferencia);
 
       const [anxFinRes, anxOpRes, anxImplRes, anxFinIrmaosRes] = await Promise.all([
         movFinIds.length

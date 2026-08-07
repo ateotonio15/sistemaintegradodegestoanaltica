@@ -587,6 +587,13 @@ export default function Financeiro() {
 
   // Linhas enriquecidas
   const allRows: FinanceiroRow[] = useMemo(() => {
+    // Empresas/competências com linha de "Primeira mensalidade": os anexos de
+    // implantação (Contrato) contam apenas nessa linha.
+    const empresasComPrimeiraMensalidade = new Set(
+      financeiroRaw
+        .filter((f: any) => f.tipo_lancamento === "primeira_mensalidade")
+        .map((f: any) => `${f.empresa_id}|${f.mes_referencia}`),
+    );
     return financeiroRaw
       .filter((f) => {
         const emp = empresasMap[f.empresa_id];
@@ -674,7 +681,10 @@ export default function Financeiro() {
         anexos_count:
           anexosAll.length +
           (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0) +
-          ((anexosImplantacaoCountMap as Record<string, number>)[f.empresa_id] || 0),
+          (((f as any).tipo_lancamento === "primeira_mensalidade" ||
+          !empresasComPrimeiraMensalidade.has(`${f.empresa_id}|${f.mes_referencia}`)
+            ? (anexosImplantacaoCountMap as Record<string, number>)[f.empresa_id] || 0
+            : 0)),
         enviado_por_nome: uploaderId ? uploaderMap[uploaderId] || null : null,
         faturamento_iniciado_por: (f as any).faturamento_iniciado_por ?? null,
         faturamento_iniciado_por_nome: (f as any).faturamento_iniciado_por_nome ?? null,
