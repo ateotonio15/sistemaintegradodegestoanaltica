@@ -370,6 +370,16 @@ const SHORTCUTS: Shortcut[] = [
     group: "utilitarios",
     show: () => true,
   },
+  {
+    to: "/analise-contrato",
+    label: "Análise de Contrato",
+    description: "Elegibilidade de inclusão via IA (PDF/DOCX)",
+    icon: FileSearch,
+    group: "utilitarios",
+    show: (c) =>
+      c.isAdmin || c.isFinanceiro || c.isVendas ||
+      ["comum", "diretora", "administradoras"].includes(c.role as string),
+  },
 ];
 
 export default function Home() {
