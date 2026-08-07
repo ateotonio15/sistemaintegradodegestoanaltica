@@ -84,19 +84,27 @@ export default function Dashboard() {
   const { data: movsPeriodo = [] } = useQuery({
     queryKey: ["dashboard-geral-movs", statusMes, statusPeriodo],
     queryFn: async () => {
-      let q = supabase
-        .from("movimentacoes")
-        .select(
-          "id, empresa_id, mes_referencia, periodo, data_envio_empresa, data_envio_financeiro, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, tipo_movimentacao, responsavel_contrato, responsavel_user_id)",
-        )
-        .eq("mes_referencia", statusMes);
-      if (statusPeriodo !== "all") q = q.eq("periodo", statusPeriodo);
-      const { data, error } = await q;
+      const { data, error } = await supabase.rpc("dashboard_movimentacoes" as any, {
+        p_mes_ini: statusMes,
+        p_mes_fim: statusMes,
+      });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return ((data ?? []) as any[])
+        .filter((r) => statusPeriodo === "all" || r.periodo === statusPeriodo)
+        .map((r) => ({
+          ...r,
+          empresas: {
+            id: r.empresa_id,
+            nome: r.empresa_nome,
+            tipo_movimentacao: r.tipo_movimentacao,
+            responsavel_contrato: r.responsavel_contrato,
+            responsavel_user_id: r.responsavel_user_id,
+          },
+        }));
     },
     enabled: !!user,
   });
+
 
   // Mapa de perfis (somente usuários internos do Cadastro / empresarial)
   const { data: profilesMap = new Map<string, string>() } = useQuery({
