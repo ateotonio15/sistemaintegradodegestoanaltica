@@ -548,6 +548,19 @@ export default function Movimentacoes() {
             >
               <RefreshCw className="mr-2 h-4 w-4" />Atualizar
             </Button>
+            {canEditDates && (
+              <Button
+                variant="outline"
+                className="rounded-lg"
+                onClick={handleGerarMovimentacoes}
+                disabled={gerandoMov}
+                title="Gerar movimentação dos novos contratos"
+              >
+                <Sparkles className={`mr-2 h-4 w-4 ${gerandoMov ? "animate-pulse" : ""}`} />
+                {gerandoMov ? "Gerando..." : "Gerar Movimentação"}
+              </Button>
+            )}
+
             
             <Button variant="outline" onClick={handleExportExcel} className="rounded-lg">
               <Download className="mr-2 h-4 w-4" />Exportar Excel
