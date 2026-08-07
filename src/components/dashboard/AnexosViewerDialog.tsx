@@ -70,6 +70,7 @@ export function AnexosViewerDialog({
   movimentacaoId = null,
   faturamentoIniciadoEm = null,
   faturamentoIniciadoPorNome = null,
+  permitirAnexosContrato = true,
 }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
