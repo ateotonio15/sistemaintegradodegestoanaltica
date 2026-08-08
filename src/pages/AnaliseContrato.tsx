@@ -193,9 +193,14 @@ export default function AnaliseContrato() {
                   </Button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={() => salvarCriterios([...criterios, ""])}>
-                <Plus className="mr-1.5 h-4 w-4" /> Adicionar critério
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => salvarCriterios([...criterios, ""])}>
+                  <Plus className="mr-1.5 h-4 w-4" /> Adicionar critério
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => salvarCriterios(CRITERIOS_PADRAO)}>
+                  Restaurar padrão
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
