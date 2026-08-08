@@ -26,7 +26,12 @@ Responda APENAS com um objeto JSON válido, sem texto adicional, no seguinte for
   "alertas": ["pontos que precisam de verificação humana"]
 }
 Em "atendido" use true, false ou a string "indeterminado".
-Avalie UM item de "criterios_atendidos" para CADA critério de elegibilidade informado, na mesma ordem.`;
+Avalie UM item de "criterios_atendidos" para CADA critério de elegibilidade informado, na mesma ordem.
+
+MODALIDADE "PEJOTIZADA VINCULADA À FUTURA":
+- O CNPJ do contratado deve ter sido constituído especificamente para prestar serviços à FUTURA; não pode ser empresa com existência/operação independente própria.
+- ALERTA ESPECIAL: se o contrato ou anexos sugerirem que o CNPJ do contratado já opera de forma independente, possui outros clientes, atividade econômica ampla, estrutura própria, ou poderia sustentar um plano empresarial próprio, defina "status_elegibilidade" como "não elegível — modalidade incorreta" e explique detalhadamente o motivo em "alertas".
+- Se não houver evidência suficiente sobre a independência do CNPJ, marque o critério como "indeterminado" e registre um alerta pedindo verificação humana (consulta ao CNPJ, contrato social, faturamento com outros clientes).`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
