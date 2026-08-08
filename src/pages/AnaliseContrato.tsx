@@ -30,7 +30,9 @@ type Resultado = {
 };
 
 const CRITERIOS_PADRAO = [
+  "O CNPJ do contratado deve ter sido constituído especificamente para a prestação de serviços vinculada à FUTURA (não pode ser empresa com existência/operação independente própria)",
   "Contrato deve ser PJ com CNPJ ativo formalizado",
+  "Vínculo de prestação de serviços exclusivo com a FUTURA (sem indícios de outros clientes)",
   "Vigência mínima de 12 meses a partir da data de assinatura",
   "Contrato deve estar assinado por ambas as partes",
   "Valor de honorários informado no contrato",
