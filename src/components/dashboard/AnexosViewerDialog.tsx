@@ -18,6 +18,7 @@ import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog
 import { formatDateBR } from "@/lib/date-utils";
 import { ConfigFinanceiraEmpresaDialog } from "@/components/financeiro/ConfigFinanceiraEmpresaDialog";
 import { validarConfigFinanceira } from "@/lib/empresa-financeiro-config";
+import { ObservacoesHistorico } from "@/components/movimentacoes/ObservacoesHistorico";
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
@@ -577,7 +578,14 @@ export function AnexosViewerDialog({
           </div>
         )}
 
-        <div className="max-h-[420px] overflow-y-auto">
+        <div className="max-h-[420px] overflow-y-auto space-y-5">
+          <ObservacoesHistorico
+            empresaId={empresaId}
+            mesReferencia={mesReferencia}
+            periodo={periodo}
+            enabled={open}
+          />
+
           {isLoading ? (
             <p className="text-sm text-muted-foreground py-8 text-center">Carregando...</p>
           ) : isError ? (
