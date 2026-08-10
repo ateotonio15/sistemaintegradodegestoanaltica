@@ -99,6 +99,8 @@ export default function Movimentacoes() {
   const canEdit = !isViewOnly && isAdmin;
   const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
   const [gerandoMov, setGerandoMov] = useState(false);
+  const [novaObservacao, setNovaObservacao] = useState("");
+
 
   const handleGerarMovimentacoes = async () => {
     if (gerandoMov) return;
