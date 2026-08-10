@@ -400,6 +400,8 @@ export default function Movimentacoes() {
 
   const openEdit = (m: Movimentacao & { empresas?: { responsavel_contrato: string | null } | null }) => {
     setEditingId(m.id);
+    setNovaObservacao("");
+
     setForm({
       empresa_id: m.empresa_id,
       mes_referencia: m.mes_referencia,
