@@ -120,10 +120,10 @@ export function EmpresaPlantaoCard({
   }, [empresaId, from, to]);
 
   const wppCount = useMemo(() => atend.filter(isWhatsapp).length, [atend]);
-  const presCount = Math.max(0, totalAtendimentos - wppCount);
-  const presPct = totalAtendimentos > 0 ? Math.round((presCount / totalAtendimentos) * 100) : 0;
-  const wppPct = totalAtendimentos > 0 ? 100 - presPct : 0;
-  const media = totalPlantoes > 0 ? (totalAtendimentos / totalPlantoes) : 0;
+  const presCount = Math.max(0, totalAtend - wppCount);
+  const presPct = totalAtend > 0 ? Math.round((presCount / totalAtend) * 100) : 0;
+  const wppPct = totalAtend > 0 ? 100 - presPct : 0;
+  const media = totalPlant > 0 ? (totalAtend / totalPlant) : 0;
 
   const servicoTop = useMemo(() => {
     const map = new Map<string, number>();
@@ -138,18 +138,19 @@ export function EmpresaPlantaoCard({
   }, [atend]);
 
   const ultimoPlantao = useMemo(() => {
-    if (!plantoesDatas.length) return null;
-    const sorted = [...plantoesDatas].sort();
+    if (!datasEfetivas.length) return null;
+    const sorted = [...datasEfetivas].sort();
     return sorted[sorted.length - 1];
-  }, [plantoesDatas]);
+  }, [datasEfetivas.join(",")]);
 
   const tendencia = useMemo(() => {
     if (prevCount === null) return null;
-    if (prevCount === 0) return totalAtendimentos > 0 ? 100 : 0;
-    return Math.round(((totalAtendimentos - prevCount) / prevCount) * 100);
-  }, [prevCount, totalAtendimentos]);
+    if (prevCount === 0) return totalAtend > 0 ? 100 : 0;
+    return Math.round(((totalAtend - prevCount) / prevCount) * 100);
+  }, [prevCount, totalAtend]);
 
-  const status = statusBadge(totalAtendimentos);
+  const status = statusBadge(totalAtend);
+
 
   const exportar = (e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
