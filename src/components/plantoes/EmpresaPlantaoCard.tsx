@@ -158,7 +158,7 @@ export function EmpresaPlantaoCard({
       Empresa: nome, Assunto: a.assunto ?? "", Observação: a.observacao ?? "",
       Canal: isWhatsapp(a) ? "WhatsApp" : "Presencial",
     }));
-    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Empresa: nome, Atendimentos: totalAtendimentos }]);
+    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Empresa: nome, Atendimentos: totalAtend }]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Plantoes");
     XLSX.writeFile(wb, `${nome.slice(0, 30)}_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
@@ -196,15 +196,21 @@ export function EmpresaPlantaoCard({
         )}
       </div>
 
+      {foraDoPeriodo && (
+        <div className="rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+          Sem plantões no período filtrado — exibindo histórico completo da empresa.
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-lg border bg-muted/30 px-2 py-2.5">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><User className="h-3 w-3" /> Atend.</div>
-          <div className="text-2xl font-bold leading-tight">{totalAtendimentos}</div>
+          <div className="text-2xl font-bold leading-tight">{totalAtend}</div>
         </div>
         <div className="rounded-lg border bg-muted/30 px-2 py-2.5">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Calendar className="h-3 w-3" /> Plantões</div>
-          <div className="text-2xl font-bold leading-tight">{totalPlantoes}</div>
+          <div className="text-2xl font-bold leading-tight">{totalPlant}</div>
         </div>
         <div className="rounded-lg border bg-muted/30 px-2 py-2.5">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Média</div>
@@ -236,7 +242,7 @@ export function EmpresaPlantaoCard({
 
       {/* Detalhes */}
       <div className="space-y-1.5 text-xs border-t pt-3">
-        <div className="flex gap-2"><User className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" /><span className="text-muted-foreground">Executiva:</span><span className="font-medium truncate">{plantonista || "—"}</span></div>
+        <div className="flex gap-2"><User className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" /><span className="text-muted-foreground">Executiva:</span><span className="font-medium truncate">{plantonistaEfetivo || "—"}</span></div>
         <div className="flex gap-2"><Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" /><span className="text-muted-foreground">Último plantão:</span><span className="font-medium">{ultimoPlantao ? format(parseISO(ultimoPlantao), "dd 'de' MMM yyyy", { locale: ptBR }) : "—"}</span></div>
         <div className="flex gap-2"><Star className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" /><span className="text-muted-foreground">Serviço top:</span><span className="font-medium truncate">{servicoTop || "—"}</span></div>
         <div className="flex gap-2">
