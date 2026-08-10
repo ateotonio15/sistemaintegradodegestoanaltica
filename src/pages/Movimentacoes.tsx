@@ -394,7 +394,9 @@ export default function Movimentacoes() {
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setNovaObservacao("");
   };
+
 
   const openEdit = (m: Movimentacao & { empresas?: { responsavel_contrato: string | null } | null }) => {
     setEditingId(m.id);
