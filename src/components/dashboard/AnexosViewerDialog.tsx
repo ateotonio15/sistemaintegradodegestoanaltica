@@ -577,7 +577,14 @@ export function AnexosViewerDialog({
           </div>
         )}
 
-        <div className="max-h-[420px] overflow-y-auto">
+        <div className="max-h-[420px] overflow-y-auto space-y-5">
+          <ObservacoesHistorico
+            empresaId={empresaId}
+            mesReferencia={mesReferencia}
+            periodo={periodo}
+            enabled={open}
+          />
+
           {isLoading ? (
             <p className="text-sm text-muted-foreground py-8 text-center">Carregando...</p>
           ) : isError ? (
