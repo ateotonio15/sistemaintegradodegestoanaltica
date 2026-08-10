@@ -722,7 +722,7 @@ export default function Movimentacoes() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Observações</Label>
-                    <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} disabled={!canEdit && !!editingId} className="rounded-lg" />
+                    <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} placeholder="Digite observações sobre esta movimentação" className="rounded-lg min-h-[90px]" />
                   </div>
 
                   <AnexosMovimentacao
