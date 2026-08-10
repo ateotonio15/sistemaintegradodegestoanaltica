@@ -735,23 +735,59 @@ export default function Movimentacoes() {
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Label className="text-sm font-medium">Observações</Label>
+
                     {form.observacoes?.trim() ? (
-                      <div className="rounded-lg border bg-muted/40 p-3 space-y-2 max-h-48 overflow-y-auto">
-                        {form.observacoes.split("\n").filter((l) => l.trim()).map((linha, i) => (
-                          <p key={i} className="text-sm whitespace-pre-wrap break-words border-l-2 border-primary/50 pl-2">{linha}</p>
-                        ))}
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {form.observacoes
+                          .split("\n")
+                          .filter((l) => l.trim())
+                          .map((linha, i) => {
+                            const match = linha.match(/^\[(\d{2}\/\d{2}\/\d{4}(?:, \d{2}:\d{2})?) — ([^\]]+)\]\s*(.*)$/s);
+                            const dataHora = match?.[1] ?? null;
+                            const autor = match?.[2] ?? null;
+                            const texto = match?.[3] ?? linha;
+                            return (
+                              <div
+                                key={i}
+                                className="rounded-xl border border-border/60 bg-card p-3 shadow-sm"
+                              >
+                                <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words">
+                                  {texto}
+                                </p>
+                                {(dataHora || autor) && (
+                                  <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+                                      {(autor || "U").charAt(0).toUpperCase()}
+                                    </span>
+                                    <span className="truncate max-w-[180px]">{autor}</span>
+                                    {dataHora && (
+                                      <>
+                                        <span className="text-border">•</span>
+                                        <span>{dataHora}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground">Nenhuma observação registrada.</p>
+                      <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 p-4 text-center">
+                        <p className="text-xs text-muted-foreground">Nenhuma observação registrada.</p>
+                      </div>
                     )}
-                    <Textarea
-                      value={novaObservacao}
-                      onChange={(e) => setNovaObservacao(e.target.value)}
-                      placeholder="Adicionar nova observação (as anteriores não podem ser alteradas)"
-                      className="rounded-lg min-h-[80px]"
-                    />
+
+                    <div className="rounded-xl border border-border/60 bg-muted/30 p-1">
+                      <Textarea
+                        value={novaObservacao}
+                        onChange={(e) => setNovaObservacao(e.target.value)}
+                        placeholder="Adicionar nova observação (as anteriores não podem ser alteradas)"
+                        className="min-h-[90px] resize-y border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/70"
+                      />
+                    </div>
                   </div>
 
 
