@@ -722,8 +722,23 @@ export default function Movimentacoes() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Observações</Label>
-                    <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} placeholder="Digite observações sobre esta movimentação" className="rounded-lg min-h-[90px]" />
+                    {form.observacoes?.trim() ? (
+                      <div className="rounded-lg border bg-muted/40 p-3 space-y-2 max-h-48 overflow-y-auto">
+                        {form.observacoes.split("\n").filter((l) => l.trim()).map((linha, i) => (
+                          <p key={i} className="text-sm whitespace-pre-wrap break-words border-l-2 border-primary/50 pl-2">{linha}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Nenhuma observação registrada.</p>
+                    )}
+                    <Textarea
+                      value={novaObservacao}
+                      onChange={(e) => setNovaObservacao(e.target.value)}
+                      placeholder="Adicionar nova observação (as anteriores não podem ser alteradas)"
+                      className="rounded-lg min-h-[80px]"
+                    />
                   </div>
+
 
                   <AnexosMovimentacao
                     movimentacaoId={editingId}
