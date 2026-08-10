@@ -346,7 +346,16 @@ export default function Movimentacoes() {
         data_retorno_empresa: values.data_retorno_empresa,
         data_envio_financeiro: values.data_envio_financeiro,
         responsavel_movimentacao: values.responsavel_movimentacao || null,
-        observacoes: values.observacoes || null,
+        observacoes: (() => {
+          const anteriores = (values.observacoes ?? "").trim();
+          const nova = novaObservacao.trim();
+          if (!nova) return anteriores || null;
+          const autor = (user?.id ? profilesMap.get(user.id) : "") || user?.email || "Usuário";
+          const agora = new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+          const entrada = `[${agora} — ${autor}] ${nova}`;
+          return anteriores ? `${anteriores}\n${entrada}` : entrada;
+        })(),
+
         tipo_movimentacao: values.tipo_movimentacao,
       };
       if (editingId) {
