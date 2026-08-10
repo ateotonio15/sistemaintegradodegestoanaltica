@@ -48,19 +48,53 @@ export function EmpresaPlantaoCard({
 }: Props) {
   const [atend, setAtend] = useState<AtendRow[]>([]);
   const [prevCount, setPrevCount] = useState<number | null>(null);
+  const [fallback, setFallback] = useState<{
+    ids: string[]; datas: string[]; plantonista: string | null; total: number;
+  } | null>(null);
+
+  // Se não há plantões no período filtrado, busca o histórico completo da empresa
+  useEffect(() => {
+    let cancel = false;
+    if (plantoesIds.length > 0) { setFallback(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("plantoes")
+        .select("id,data,plantonista,plantoes_atendimentos(count)")
+        .eq("empresa_id", empresaId)
+        .order("data", { ascending: false });
+      if (cancel) return;
+      const rows = (data as any[]) ?? [];
+      if (!rows.length) { setFallback(null); return; }
+      setFallback({
+        ids: rows.map((r) => r.id),
+        datas: rows.map((r) => r.data),
+        plantonista: rows.find((r) => r.plantonista)?.plantonista ?? null,
+        total: rows.reduce((acc, r) => acc + (r.plantoes_atendimentos?.[0]?.count ?? 0), 0),
+      });
+    })();
+    return () => { cancel = true; };
+  }, [empresaId, plantoesIds.join(",")]);
+
+  const idsEfetivos = plantoesIds.length ? plantoesIds : fallback?.ids ?? [];
+  const datasEfetivas = plantoesIds.length ? plantoesDatas : fallback?.datas ?? [];
+  const plantonistaEfetivo = plantoesIds.length ? plantonista : fallback?.plantonista ?? null;
+  const totalAtend = plantoesIds.length ? totalAtendimentos : fallback?.total ?? 0;
+  const totalPlant = plantoesIds.length ? totalPlantoes : fallback?.ids.length ?? 0;
+  const foraDoPeriodo = plantoesIds.length === 0 && !!fallback;
 
   useEffect(() => {
     let cancel = false;
     (async () => {
-      if (plantoesIds.length === 0) { setAtend([]); return; }
+      if (idsEfetivos.length === 0) { setAtend([]); return; }
       const { data } = await supabase
         .from("plantoes_atendimentos")
         .select("id,plantao_id,assunto,observacao")
-        .in("plantao_id", plantoesIds);
+        .in("plantao_id", idsEfetivos);
       if (!cancel) setAtend((data as AtendRow[]) ?? []);
     })();
     return () => { cancel = true; };
-  }, [plantoesIds.join(",")]);
+  }, [idsEfetivos.join(",")]);
+
 
   useEffect(() => {
     let cancel = false;
@@ -86,10 +120,10 @@ export function EmpresaPlantaoCard({
   }, [empresaId, from, to]);
 
   const wppCount = useMemo(() => atend.filter(isWhatsapp).length, [atend]);
-  const presCount = Math.max(0, totalAtendimentos - wppCount);
-  const presPct = totalAtendimentos > 0 ? Math.round((presCount / totalAtendimentos) * 100) : 0;
-  const wppPct = totalAtendimentos > 0 ? 100 - presPct : 0;
-  const media = totalPlantoes > 0 ? (totalAtendimentos / totalPlantoes) : 0;
+  const presCount = Math.max(0, totalAtend - wppCount);
+  const presPct = totalAtend > 0 ? Math.round((presCount / totalAtend) * 100) : 0;
+  const wppPct = totalAtend > 0 ? 100 - presPct : 0;
+  const media = totalPlant > 0 ? (totalAtend / totalPlant) : 0;
 
   const servicoTop = useMemo(() => {
     const map = new Map<string, number>();
@@ -104,18 +138,19 @@ export function EmpresaPlantaoCard({
   }, [atend]);
 
   const ultimoPlantao = useMemo(() => {
-    if (!plantoesDatas.length) return null;
-    const sorted = [...plantoesDatas].sort();
+    if (!datasEfetivas.length) return null;
+    const sorted = [...datasEfetivas].sort();
     return sorted[sorted.length - 1];
-  }, [plantoesDatas]);
+  }, [datasEfetivas.join(",")]);
 
   const tendencia = useMemo(() => {
     if (prevCount === null) return null;
-    if (prevCount === 0) return totalAtendimentos > 0 ? 100 : 0;
-    return Math.round(((totalAtendimentos - prevCount) / prevCount) * 100);
-  }, [prevCount, totalAtendimentos]);
+    if (prevCount === 0) return totalAtend > 0 ? 100 : 0;
+    return Math.round(((totalAtend - prevCount) / prevCount) * 100);
+  }, [prevCount, totalAtend]);
 
-  const status = statusBadge(totalAtendimentos);
+  const status = statusBadge(totalAtend);
+
 
   const exportar = (e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -123,7 +158,7 @@ export function EmpresaPlantaoCard({
       Empresa: nome, Assunto: a.assunto ?? "", Observação: a.observacao ?? "",
       Canal: isWhatsapp(a) ? "WhatsApp" : "Presencial",
     }));
-    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Empresa: nome, Atendimentos: totalAtendimentos }]);
+    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Empresa: nome, Atendimentos: totalAtend }]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Plantoes");
     XLSX.writeFile(wb, `${nome.slice(0, 30)}_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
@@ -161,15 +196,21 @@ export function EmpresaPlantaoCard({
         )}
       </div>
 
+      {foraDoPeriodo && (
+        <div className="rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+          Sem plantões no período filtrado — exibindo histórico completo da empresa.
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-lg border bg-muted/30 px-2 py-2.5">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><User className="h-3 w-3" /> Atend.</div>
-          <div className="text-2xl font-bold leading-tight">{totalAtendimentos}</div>
+          <div className="text-2xl font-bold leading-tight">{totalAtend}</div>
         </div>
         <div className="rounded-lg border bg-muted/30 px-2 py-2.5">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Calendar className="h-3 w-3" /> Plantões</div>
-          <div className="text-2xl font-bold leading-tight">{totalPlantoes}</div>
+          <div className="text-2xl font-bold leading-tight">{totalPlant}</div>
         </div>
         <div className="rounded-lg border bg-muted/30 px-2 py-2.5">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Média</div>
@@ -201,7 +242,7 @@ export function EmpresaPlantaoCard({
 
       {/* Detalhes */}
       <div className="space-y-1.5 text-xs border-t pt-3">
-        <div className="flex gap-2"><User className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" /><span className="text-muted-foreground">Executiva:</span><span className="font-medium truncate">{plantonista || "—"}</span></div>
+        <div className="flex gap-2"><User className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" /><span className="text-muted-foreground">Executiva:</span><span className="font-medium truncate">{plantonistaEfetivo || "—"}</span></div>
         <div className="flex gap-2"><Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" /><span className="text-muted-foreground">Último plantão:</span><span className="font-medium">{ultimoPlantao ? format(parseISO(ultimoPlantao), "dd 'de' MMM yyyy", { locale: ptBR }) : "—"}</span></div>
         <div className="flex gap-2"><Star className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" /><span className="text-muted-foreground">Serviço top:</span><span className="font-medium truncate">{servicoTop || "—"}</span></div>
         <div className="flex gap-2">
