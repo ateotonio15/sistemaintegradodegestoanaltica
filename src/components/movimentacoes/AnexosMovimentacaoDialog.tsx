@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, Paperclip, Eye, Download } from "lucide-react";
+import { FileText, Paperclip, Eye, Download, MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 
