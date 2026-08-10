@@ -2077,8 +2077,21 @@ export async function analisarExcelFinanceiroPorCnpj(
     if (abaEhRetro) return;
     const rowsSheet: unknown[][] = [];
     sheet.eachRow({ includeEmpty: false }, (row) => rowsSheet.push((row.values as unknown[]).slice(1)));
+    let pvQtdIdx = -1;
+    let pvValIdx = -1;
     for (let i = 0; i < rowsSheet.length; i++) {
       const r = rowsSheet[i] || [];
+      // Cabeçalho da tabela dinâmica ("Soma de QTD" / "Soma de Valor")
+      const hQtd = r.findIndex((c) => {
+        const t = norm(c);
+        return t.includes("qtd") || t.includes("quantidade");
+      });
+      const hVal = r.findIndex((c) => norm(c).includes("valor"));
+      if (hVal >= 0 || hQtd >= 0) {
+        pvQtdIdx = hQtd;
+        pvValIdx = hVal;
+        continue;
+      }
       if (r.some((c) => norm(c).startsWith("total"))) continue;
       let hitIdx = -1;
       let hitLabel = "";
@@ -2087,26 +2100,43 @@ export async function analisarExcelFinanceiroPorCnpj(
         if (t.includes("cobranca retroativa")) { hitIdx = c; hitLabel = String(r[c] ?? ""); break; }
       }
       if (hitIdx < 0) continue;
-      // Coleta os números à direita do rótulo, ignorando identificadores
-      // (CNPJ/CPF) que aparecem em algumas planilhas entre o rótulo e o valor.
-      const nums: number[] = [];
-      let qtdCand: number | null = null;
-      for (let c = hitIdx + 1; c < r.length; c++) {
-        const raw = r[c];
-        const n = toNumber(raw);
-        if (isNaN(n)) continue;
-        const digitos = String(raw ?? "").replace(/\D/g, "");
-        if (digitos.length >= 11) continue; // CNPJ/CPF — nunca é qtd nem valor
-        if (qtdCand === null && nums.length === 0 && ehQtdPlausivel(raw, n)) {
-          qtdCand = n;
-          continue;
+      let total = NaN;
+      let qtd = 0;
+      // Prioridade: colunas declaradas no cabeçalho da pivot.
+      if (pvValIdx > hitIdx) {
+        const v = toNumber(r[pvValIdx]);
+        if (!isNaN(v)) total = v;
+        if (pvQtdIdx > hitIdx) {
+          const q = toNumber(r[pvQtdIdx]);
+          if (!isNaN(q)) qtd = Math.round(q);
         }
-        nums.push(n);
-        if (nums.length >= 1) break;
       }
-      const total = nums.length > 0 ? nums[0] : qtdCand !== null ? qtdCand : NaN;
+      if (isNaN(total)) {
+        // Coleta os números à direita do rótulo, ignorando identificadores
+        // (CNPJ/CPF) que aparecem em algumas planilhas entre o rótulo e o valor.
+        const nums: number[] = [];
+        let qtdCand: number | null = null;
+        for (let c = hitIdx + 1; c < r.length; c++) {
+          const raw = r[c];
+          const n = toNumber(raw);
+          if (isNaN(n)) continue;
+          const digitos = String(raw ?? "").replace(/\D/g, "");
+          if (digitos.length >= 11) continue; // CNPJ/CPF — nunca é qtd nem valor
+          if (qtdCand === null && nums.length === 0 && ehQtdPlausivel(raw, n)) {
+            qtdCand = n;
+            continue;
+          }
+          nums.push(n);
+          if (nums.length >= 1) break;
+        }
+        // Sem coluna de valor: um número inteiro isolado é quantidade de
+        // beneficiários, não valor — não deve virar total da cobrança.
+        if (nums.length === 0) continue;
+        total = nums[0];
+        qtd = qtdCand !== null ? Math.round(qtdCand) : 0;
+      }
       if (isNaN(total)) continue;
-      const qtd = nums.length > 0 && qtdCand !== null ? Math.round(qtdCand) : 0;
+
       const mes = extrairMes(hitLabel);
       // Deduplica pelo valor monetário. A mesma cobrança pode aparecer uma vez
       // com quantidade e outra sem quantidade; usar qtd na chave fazia o mesmo
