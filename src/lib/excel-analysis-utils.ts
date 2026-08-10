@@ -1428,8 +1428,26 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   // O valor monetário é a identidade mais estável; a quantidade pode variar
   // entre essas representações e não deve fazer a cobrança ser somada novamente.
   const tailRetroValoresVistos = new Set<string>();
+  // Índices das colunas do cabeçalho da pivot corrente ("Soma de QTD" /
+  // "Soma de Valor"). São reatribuídos a cada novo cabeçalho encontrado.
+  let pvQtdIdx = -1;
+  let pvValIdx = -1;
   for (let i = breakIdx; i < rows.length; i++) {
     const r = rows[i] || [];
+    // Cabeçalho de tabela dinâmica: guarda as colunas de QTD e de Valor
+    const hQtd = r.findIndex((c) => {
+      const t = norm(c);
+      return t.includes("qtd") || t.includes("quantidade");
+    });
+    const hVal = r.findIndex((c) => {
+      const t = norm(c);
+      return t.includes("valor");
+    });
+    if (hVal >= 0 || hQtd >= 0) {
+      pvQtdIdx = hQtd;
+      pvValIdx = hVal;
+      continue;
+    }
     // Ignora cabeçalhos/totais das próprias pivots
     const anyTotalGeral = r.some((c) => norm(c).startsWith("total geral"));
     if (anyTotalGeral) continue;
@@ -1443,20 +1461,46 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       }
     }
     if (hitIdx < 0) continue;
-    const nums: number[] = [];
-    for (let c = hitIdx + 1; c < r.length && nums.length < 2; c++) {
-      const n = toNumber(r[c]);
-      if (!isNaN(n)) nums.push(n);
+
+    let qtd = 0;
+    let total = NaN;
+    // Preferência absoluta: colunas declaradas no cabeçalho da pivot.
+    if (pvValIdx > hitIdx) {
+      const v = toNumber(r[pvValIdx]);
+      if (!isNaN(v)) total = v;
+      if (pvQtdIdx > hitIdx) {
+        const q = toNumber(r[pvQtdIdx]);
+        if (!isNaN(q)) qtd = Math.round(q);
+      }
     }
-    if (nums.length === 0) continue;
-    const qtd = nums.length >= 2 ? Math.round(nums[0]) : 0;
-    const total = nums.length >= 2 ? nums[1] : nums[0];
+    if (isNaN(total)) {
+      const nums: number[] = [];
+      for (let c = hitIdx + 1; c < r.length && nums.length < 2; c++) {
+        const n = toNumber(r[c]);
+        if (!isNaN(n)) nums.push(n);
+      }
+      if (nums.length >= 2) {
+        qtd = Math.round(nums[0]);
+        total = nums[1];
+      } else if (nums.length === 1) {
+        // Só um número: se for inteiro pequeno é quantidade de beneficiários,
+        // nunca o valor da cobrança.
+        const n = nums[0];
+        const ehQtd = Number.isFinite(n) && n >= 0 && n < 100000 && Math.abs(n - Math.round(n)) < 0.001;
+        if (ehQtd) continue;
+        total = n;
+      } else {
+        continue;
+      }
+    }
+    if (isNaN(total)) continue;
     const chaveValor = total.toFixed(2);
     if (tailRetroValoresVistos.has(chaveValor)) continue;
     tailRetroValoresVistos.add(chaveValor);
     tailRetroQtd += qtd;
     tailRetroTotal += total;
   }
+
 
   // O valor consolidado dentro do bloco do CNPJ é a fonte oficial. As tabelas
   // no rodapé são detalhamentos e só devem preencher a retroativa quando o
