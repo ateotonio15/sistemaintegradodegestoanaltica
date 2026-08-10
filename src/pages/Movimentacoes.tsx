@@ -99,6 +99,8 @@ export default function Movimentacoes() {
   const canEdit = !isViewOnly && isAdmin;
   const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
   const [gerandoMov, setGerandoMov] = useState(false);
+  const [novaObservacao, setNovaObservacao] = useState("");
+
 
   const handleGerarMovimentacoes = async () => {
     if (gerandoMov) return;
@@ -344,7 +346,16 @@ export default function Movimentacoes() {
         data_retorno_empresa: values.data_retorno_empresa,
         data_envio_financeiro: values.data_envio_financeiro,
         responsavel_movimentacao: values.responsavel_movimentacao || null,
-        observacoes: values.observacoes || null,
+        observacoes: (() => {
+          const anteriores = (values.observacoes ?? "").trim();
+          const nova = novaObservacao.trim();
+          if (!nova) return anteriores || null;
+          const autor = (user?.id ? profilesMap.get(user.id) : "") || user?.email || "Usuário";
+          const agora = new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+          const entrada = `[${agora} — ${autor}] ${nova}`;
+          return anteriores ? `${anteriores}\n${entrada}` : entrada;
+        })(),
+
         tipo_movimentacao: values.tipo_movimentacao,
       };
       if (editingId) {
@@ -383,10 +394,14 @@ export default function Movimentacoes() {
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setNovaObservacao("");
   };
+
 
   const openEdit = (m: Movimentacao & { empresas?: { responsavel_contrato: string | null } | null }) => {
     setEditingId(m.id);
+    setNovaObservacao("");
+
     setForm({
       empresa_id: m.empresa_id,
       mes_referencia: m.mes_referencia,
@@ -722,8 +737,23 @@ export default function Movimentacoes() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Observações</Label>
-                    <Textarea value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} placeholder="Digite observações sobre esta movimentação" className="rounded-lg min-h-[90px]" />
+                    {form.observacoes?.trim() ? (
+                      <div className="rounded-lg border bg-muted/40 p-3 space-y-2 max-h-48 overflow-y-auto">
+                        {form.observacoes.split("\n").filter((l) => l.trim()).map((linha, i) => (
+                          <p key={i} className="text-sm whitespace-pre-wrap break-words border-l-2 border-primary/50 pl-2">{linha}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Nenhuma observação registrada.</p>
+                    )}
+                    <Textarea
+                      value={novaObservacao}
+                      onChange={(e) => setNovaObservacao(e.target.value)}
+                      placeholder="Adicionar nova observação (as anteriores não podem ser alteradas)"
+                      className="rounded-lg min-h-[80px]"
+                    />
                   </div>
+
 
                   <AnexosMovimentacao
                     movimentacaoId={editingId}
