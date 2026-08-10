@@ -55,12 +55,16 @@ export function AnexosMovimentacaoDialog({
     gcTime: 0,
     refetchOnMount: "always",
     queryFn: async () => {
-      const { data: anexos, error } = await supabase
-        .from("anexos_movimentacao")
-        .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
-        .eq("movimentacao_id", movimentacaoId as string)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+      const [{ data: anexos, error: anexosErr }, { data: mov, error: movErr }] = await Promise.all([
+        supabase
+          .from("anexos_movimentacao")
+          .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
+          .eq("movimentacao_id", movimentacaoId as string)
+          .order("created_at", { ascending: false }),
+        supabase.from("movimentacoes").select("observacoes").eq("id", movimentacaoId as string).single(),
+      ]);
+      if (anexosErr) throw anexosErr;
+      if (movErr && movErr.code !== "PGRST116") throw movErr;
 
       const ids = Array.from(
         new Set((anexos ?? []).map((a) => a.uploaded_by).filter(Boolean)),
@@ -70,10 +74,13 @@ export function AnexosMovimentacaoDialog({
         const { data: users } = await supabase.rpc("get_user_display_names", { _ids: ids });
         (users ?? []).forEach((u: any) => nomes.set(u.user_id, u.display_name));
       }
-      return (anexos ?? []).map((a) => ({
-        ...a,
-        autor: a.uploaded_by ? nomes.get(a.uploaded_by) ?? "Usuário" : null,
-      }));
+      return {
+        anexos: (anexos ?? []).map((a) => ({
+          ...a,
+          autor: a.uploaded_by ? nomes.get(a.uploaded_by) ?? "Usuário" : null,
+        })),
+        observacoes: (mov?.observacoes ?? "").trim(),
+      };
     },
   });
 
