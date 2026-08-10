@@ -48,19 +48,53 @@ export function EmpresaPlantaoCard({
 }: Props) {
   const [atend, setAtend] = useState<AtendRow[]>([]);
   const [prevCount, setPrevCount] = useState<number | null>(null);
+  const [fallback, setFallback] = useState<{
+    ids: string[]; datas: string[]; plantonista: string | null; total: number;
+  } | null>(null);
+
+  // Se não há plantões no período filtrado, busca o histórico completo da empresa
+  useEffect(() => {
+    let cancel = false;
+    if (plantoesIds.length > 0) { setFallback(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("plantoes")
+        .select("id,data,plantonista,plantoes_atendimentos(count)")
+        .eq("empresa_id", empresaId)
+        .order("data", { ascending: false });
+      if (cancel) return;
+      const rows = (data as any[]) ?? [];
+      if (!rows.length) { setFallback(null); return; }
+      setFallback({
+        ids: rows.map((r) => r.id),
+        datas: rows.map((r) => r.data),
+        plantonista: rows.find((r) => r.plantonista)?.plantonista ?? null,
+        total: rows.reduce((acc, r) => acc + (r.plantoes_atendimentos?.[0]?.count ?? 0), 0),
+      });
+    })();
+    return () => { cancel = true; };
+  }, [empresaId, plantoesIds.join(",")]);
+
+  const idsEfetivos = plantoesIds.length ? plantoesIds : fallback?.ids ?? [];
+  const datasEfetivas = plantoesIds.length ? plantoesDatas : fallback?.datas ?? [];
+  const plantonistaEfetivo = plantoesIds.length ? plantonista : fallback?.plantonista ?? null;
+  const totalAtend = plantoesIds.length ? totalAtendimentos : fallback?.total ?? 0;
+  const totalPlant = plantoesIds.length ? totalPlantoes : fallback?.ids.length ?? 0;
+  const foraDoPeriodo = plantoesIds.length === 0 && !!fallback;
 
   useEffect(() => {
     let cancel = false;
     (async () => {
-      if (plantoesIds.length === 0) { setAtend([]); return; }
+      if (idsEfetivos.length === 0) { setAtend([]); return; }
       const { data } = await supabase
         .from("plantoes_atendimentos")
         .select("id,plantao_id,assunto,observacao")
-        .in("plantao_id", plantoesIds);
+        .in("plantao_id", idsEfetivos);
       if (!cancel) setAtend((data as AtendRow[]) ?? []);
     })();
     return () => { cancel = true; };
-  }, [plantoesIds.join(",")]);
+  }, [idsEfetivos.join(",")]);
+
 
   useEffect(() => {
     let cancel = false;
