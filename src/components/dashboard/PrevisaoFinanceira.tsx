@@ -572,11 +572,30 @@ export function PrevisaoFinanceira() {
       </CardHeader>
 
       <CardContent className="px-0 pb-2">
-        {rows.length === 0 ? (
+        {carregando ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium">Carregando previsão financeira…</p>
+            <p className="text-xs text-muted-foreground">
+              {progresso && progresso.total > 0
+                ? `Analisando planilhas ${progresso.done} de ${progresso.total}`
+                : "Buscando movimentações e anexos"}
+            </p>
+            {progresso && progresso.total > 0 && (
+              <div className="h-1.5 w-64 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${Math.round((progresso.done / progresso.total) * 100)}%` }}
+                />
+              </div>
+            )}
+          </div>
+        ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground py-10 text-center">
             Nenhuma empresa com vencimento encontrada para previsão financeira.
           </p>
         ) : (
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
