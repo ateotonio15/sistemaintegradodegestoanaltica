@@ -222,6 +222,7 @@ export function PrevisaoFinanceira() {
 
   // Lazy-load analysis for each row
   useEffect(() => {
+    if (!filtroPeriodo) return;
     let cancelled = false;
     (async () => {
       const { analisarExcelFinanceiroPorPagador } = await import(
@@ -305,7 +306,7 @@ export function PrevisaoFinanceira() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows]);
+  }, [rows, filtroPeriodo]);
 
   const hoje = useMemo(() => {
     const d = new Date();
