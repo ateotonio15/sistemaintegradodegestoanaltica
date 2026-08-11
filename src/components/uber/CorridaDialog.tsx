@@ -133,7 +133,32 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
     },
   });
 
-  useEffect(() => {
+  const { data: enderecosUsados = [] } = useQuery({
+    queryKey: ["uber-enderecos-usados"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("uber_corridas" as any)
+        .select("origem, destino")
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return (data ?? []) as unknown as { origem: string | null; destino: string | null }[];
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const enderecos = useMemo(() => {
+    const set = new Set<string>();
+    set.add(ENDERECO_SAMEL);
+    enderecosUsados.forEach((c) => {
+      [c.origem, c.destino].forEach((v) => { if (v && v.trim()) set.add(v.trim()); });
+    });
+    empresas.forEach((e) => { if (e.endereco && e.endereco.trim()) set.add(e.endereco.trim()); });
+    const arr = Array.from(set);
+    return [ENDERECO_SAMEL, ...arr.filter((a) => a !== ENDERECO_SAMEL).sort((a, b) => a.localeCompare(b, "pt-BR"))];
+  }, [enderecosUsados, empresas]);
+
+
     if (open) {
       setForm(
         corrida ?? {
