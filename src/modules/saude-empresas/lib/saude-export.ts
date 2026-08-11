@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import type { Triagem, AcaoSaude } from "../hooks/useSaudeEmpresas";
 import { classificarImc, classificarPa, classificarGlicemia, PA_ALTERADAS } from "./saude-rules";
+import { aplicarLayoutSamel, estilizarLinhaSamel, type ColunaPadrao } from "./saude-excel-layout";
 import bgCapaAsset from "@/assets/saude_bg_capa.png.asset.json";
 import bgConteudoAsset from "@/assets/saude_bg_conteudo.png.asset.json";
 
