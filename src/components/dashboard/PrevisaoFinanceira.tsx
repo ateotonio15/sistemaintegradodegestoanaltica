@@ -84,9 +84,9 @@ function diffDias(d: Date, base: Date): number {
 }
 
 export function PrevisaoFinanceira() {
-  const [filtroPeriodo, setFiltroPeriodo] = useState<"todos" | "hoje" | "7" | "15" | "30">("todos");
-  const [filtroStatus, setFiltroStatus] = useState<"todos" | "a_vencer" | "hoje" | "vencido">("todos");
-  const [ordenacao, setOrdenacao] = useState<"data" | "valor" | "empresa">("data");
+  const [filtroPeriodo, setFiltroPeriodo] = useState<"" | "todos" | "hoje" | "7" | "15" | "30">("");
+  const [filtroStatus, setFiltroStatus] = useState<"" | "todos" | "a_vencer" | "hoje" | "vencido">("");
+  const [ordenacao, setOrdenacao] = useState<"" | "data" | "valor" | "empresa">("");
   const [analises, setAnalises] = useState<Record<string, AnaliseDado>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -318,7 +318,7 @@ export function PrevisaoFinanceira() {
     const list = rows.filter((r) => {
       const venc = parseLocalDate(r.data_vencimento);
       // filtro período
-      if (filtroPeriodo !== "todos") {
+      if (filtroPeriodo && filtroPeriodo !== "todos") {
         if (!venc) return false;
         const dias = diffDias(venc, hoje);
         if (filtroPeriodo === "hoje" && dias !== 0) return false;
@@ -326,7 +326,7 @@ export function PrevisaoFinanceira() {
         if (filtroPeriodo === "15" && (dias < 0 || dias > 15)) return false;
         if (filtroPeriodo === "30" && (dias < 0 || dias > 30)) return false;
       }
-      if (filtroStatus !== "todos") {
+      if (filtroStatus && filtroStatus !== "todos") {
         if (!venc) return false;
         const dias = diffDias(venc, hoje);
         if (filtroStatus === "hoje" && dias !== 0) return false;
@@ -411,7 +411,7 @@ export function PrevisaoFinanceira() {
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-2 pt-3">
           <Select value={filtroPeriodo} onValueChange={(v: any) => setFiltroPeriodo(v)}>
-            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue placeholder="Período" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Período: Todos</SelectItem>
               <SelectItem value="hoje">Vencimento: Hoje</SelectItem>
@@ -421,7 +421,7 @@ export function PrevisaoFinanceira() {
             </SelectContent>
           </Select>
           <Select value={filtroStatus} onValueChange={(v: any) => setFiltroStatus(v)}>
-            <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Status: Todos</SelectItem>
               <SelectItem value="a_vencer">A vencer</SelectItem>
@@ -430,7 +430,7 @@ export function PrevisaoFinanceira() {
             </SelectContent>
           </Select>
           <Select value={ordenacao} onValueChange={(v: any) => setOrdenacao(v)}>
-            <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder="Ordenar" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="data">Ordenar: Data mais próxima</SelectItem>
               <SelectItem value="valor">Ordenar: Maior valor</SelectItem>
