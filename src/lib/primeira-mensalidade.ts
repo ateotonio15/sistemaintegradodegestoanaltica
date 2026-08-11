@@ -15,7 +15,12 @@ function mesAtual(): string {
 
 function periodoBase(e: any): string | null {
   if (e.tipo_movimentacao === "Diária" && e.data_corte) return periodoDaDataCorte(e.data_corte);
-  return e.periodo_movimentacao ?? null;
+  if (e.periodo_movimentacao) return e.periodo_movimentacao;
+  if (e.data_corte) return periodoDaDataCorte(e.data_corte);
+  // Contrato novo sem período/corte configurado: deriva do dia da implantação
+  const dia = Number((e.data_implantacao ?? "").slice(8, 10));
+  if (dia >= 1 && dia <= 31) return periodoDaDataCorte(dia);
+  return getCurrentPeriodo();
 }
 
 /**
