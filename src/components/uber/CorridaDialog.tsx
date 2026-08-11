@@ -158,7 +158,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
     return [ENDERECO_SAMEL, ...arr.filter((a) => a !== ENDERECO_SAMEL).sort((a, b) => a.localeCompare(b, "pt-BR"))];
   }, [enderecosUsados, empresas]);
 
-
+  useEffect(() => {
     if (open) {
       setForm(
         corrida ?? {
