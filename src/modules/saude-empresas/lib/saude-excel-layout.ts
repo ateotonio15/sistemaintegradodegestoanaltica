@@ -1,5 +1,7 @@
 // Layout padrão das planilhas do módulo "Saúde nas Empresas"
 // Cabeçalho de marca SAMEL (título verde, tagline, barra separadora) + header de colunas.
+import { LOGO_SAMEL_MARCA, LOGO_SAMEL_SELO } from "./saude-excel-logos";
+
 
 export const SAMEL_XLS = {
   GREEN: "FF006B45",
