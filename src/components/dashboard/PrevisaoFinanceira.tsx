@@ -605,7 +605,9 @@ export function PrevisaoFinanceira() {
     };
   }, [filteredRows, analises, hoje]);
 
-  const carregando = !!aplicado && (!progresso || progresso.done < progresso.total);
+  const carregando =
+    !!aplicado && (!scanPdfPronto || !progresso || progresso.done < progresso.total);
+
 
   function rowStatus(r: AnaliseRow): { label: string; variant: "default" | "destructive" | "secondary" | "outline"; cls: string } {
     const venc = parseLocalDate(r.data_vencimento);
