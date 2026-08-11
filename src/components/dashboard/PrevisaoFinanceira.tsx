@@ -32,7 +32,9 @@ import {
   calcularStatusFinanceiro,
   formatMesReferencia,
   isXlsAnexo,
+  isPdfAnexo,
 } from "@/lib/financeiro-utils";
+
 
 type AnaliseRow = {
   rowKey: string;
