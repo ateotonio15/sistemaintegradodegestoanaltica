@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { expandirAnexosPorGrupo, fetchEmpresaGrupoMap } from "@/lib/financeiro-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -169,19 +170,20 @@ export function PrevisaoFinanceira() {
     },
   });
 
+  const { data: empresaGrupo = new Map<string, string>() } = useQuery({
+    queryKey: ["prev-fin-grupos"],
+    queryFn: () => fetchEmpresaGrupoMap(supabase as any),
+  });
+
   const empresaMap = useMemo(
     () => new Map(empresas.map((e: any) => [e.id, e])),
     [empresas],
   );
-  const anexosPorMov = useMemo(() => {
-    const m = new Map<string, any[]>();
-    for (const a of anexos as any[]) {
-      const list = m.get(a.financeiro_movimentacao_id) ?? [];
-      list.push(a);
-      m.set(a.financeiro_movimentacao_id, list);
-    }
-    return m;
-  }, [anexos]);
+  // Compartilha anexos entre contratos do mesmo Grupo Financeiro (igual à aba Faturamento)
+  const anexosPorMov = useMemo(
+    () => expandirAnexosPorGrupo(movs as any, anexos as any[], empresaGrupo),
+    [movs, anexos, empresaGrupo],
+  );
   const pagadoresPorEmpresa = useMemo(() => {
     const m = new Map<string, any[]>();
     for (const p of pagadores as any[]) {
