@@ -164,10 +164,10 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
         corrida ?? {
           data: new Date().toISOString().slice(0, 10),
           cancelada: false,
-          valor: 0,
+          valor: null as any,
           tem_reembolso: false,
-          valor_reembolso: 0,
-          reembolso: 0,
+          valor_reembolso: null as any,
+          reembolso: null as any,
           responsavel: meuNome,
         }
       );
