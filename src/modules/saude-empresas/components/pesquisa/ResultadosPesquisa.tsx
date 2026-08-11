@@ -29,13 +29,18 @@ export function ResultadosPesquisa() {
         .sort(),
     [itens],
   );
-  const periodos = useMemo(
-    () =>
-      (Array.from(new Set(itens.map((i) => mesKey(i.data)))) as string[])
-        .filter((p) => !!p)
-        .sort(),
-    [itens],
-  );
+  const periodos = useMemo(() => {
+    const set = new Set<string>(
+      itens.map((i) => mesKey(i.data)).filter((p): p is string => !!p),
+    );
+    // Sempre oferecer os últimos 12 meses, mesmo sem respostas registradas
+    const hoje = new Date();
+    for (let n = 0; n < 12; n++) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - n, 1);
+      set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [itens]);
 
 
   const filtrado = useMemo(
