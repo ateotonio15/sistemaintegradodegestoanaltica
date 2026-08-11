@@ -45,6 +45,7 @@ type AnaliseRow = {
   data_vencimento: string | null;
   data_prorrogacao: string | null;
   possui_prorrogacao: boolean;
+  nota_emitida: boolean;
   xlsPaths: string[];
   filtroPagador: { cnpj: string | null; nome: string | null } | null;
 };
@@ -194,13 +195,14 @@ export function PrevisaoFinanceira() {
     return m;
   }, [pagadores]);
 
-  // Build base rows: only movs with status "Nota emitida"
+  // A previsão é guiada pelo vencimento. Portanto, inclui todas as
+  // movimentações com vencimento, mesmo quando a nota ainda não foi emitida.
   const rows: AnaliseRow[] = useMemo(() => {
     const out: AnaliseRow[] = [];
     for (const m of movs as any[]) {
       const anex = anexosPorMov.get(m.id) ?? [];
       const status = calcularStatusFinanceiro(m, !!m.aguardando_nota_em, anex);
-      if (status !== "Nota emitida" && status !== "Enviada") continue;
+      if (!m.data_vencimento) continue;
       const emp = empresaMap.get(m.empresa_id) as any;
       if (!emp) continue;
       const xlsPaths = anex
@@ -216,6 +218,7 @@ export function PrevisaoFinanceira() {
         data_vencimento: m.data_vencimento,
         data_prorrogacao: m.data_prorrogacao,
         possui_prorrogacao: !!m.possui_prorrogacao,
+        nota_emitida: status === "Nota emitida" || status === "Enviada",
         xlsPaths,
       };
 
@@ -415,7 +418,7 @@ export function PrevisaoFinanceira() {
     }
     return {
       totalPrevisto,
-      notasEmitidas: filteredRows.length,
+      notasEmitidas: filteredRows.filter((r) => r.nota_emitida).length,
       venceHoje,
       vencidos,
       comProrrogacao,
@@ -441,7 +444,7 @@ export function PrevisaoFinanceira() {
               Previsão financeira
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Apenas notas emitidas — valores extraídos da análise da planilha.
+              Empresas com vencimento no período — valores disponíveis são extraídos da planilha.
             </p>
           </div>
         </div>
@@ -521,7 +524,7 @@ export function PrevisaoFinanceira() {
       <CardContent className="px-0 pb-2">
         {rows.length === 0 ? (
           <p className="text-sm text-muted-foreground py-10 text-center">
-            Nenhuma nota emitida encontrada para previsão financeira.
+            Nenhuma empresa com vencimento encontrada para previsão financeira.
           </p>
         ) : (
           <div className="overflow-x-auto">
