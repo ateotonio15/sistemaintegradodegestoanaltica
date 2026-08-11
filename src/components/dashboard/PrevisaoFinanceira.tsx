@@ -278,32 +278,50 @@ export function PrevisaoFinanceira() {
     return out;
   }, [movs, anexosPorMov, empresaMap, pagadoresPorEmpresa]);
 
-  // Lazy-load analysis for each row
+  // Carrega TODAS as análises do período de uma só vez (em paralelo) e
+  // só libera a tabela quando tudo estiver pronto.
+  const [progresso, setProgresso] = useState<{ done: number; total: number } | null>(null);
+
   useEffect(() => {
-    if (!aplicado) return;
+    if (!aplicado) {
+      setProgresso(null);
+      return;
+    }
     let cancelled = false;
     (async () => {
+      const alvos = baseRows;
+      setAnalises({});
+      setProgresso({ done: 0, total: alvos.length });
+      if (alvos.length === 0) return;
+
       const { analisarExcelFinanceiroPorPagador } = await import(
         "@/lib/excel-analysis-utils"
       );
-      // shared download cache
-      const bufCache = new Map<string, ArrayBuffer>();
+      const bufCache = new Map<string, Promise<ArrayBuffer>>();
+      const resultado: Record<string, AnaliseDado> = {};
+      let done = 0;
 
-      for (const r of rows) {
-        if (cancelled) return;
-        if (analises[r.rowKey]) continue;
-        if (r.xlsPaths.length === 0) {
-          setAnalises((prev) => ({
-            ...prev,
-            [r.rowKey]: { ...EMPTY_ANALISE, erro: "Sem planilha anexada" },
-          }));
-          continue;
+      const baixar = (path: string) => {
+        let p = bufCache.get(path);
+        if (!p) {
+          p = (async () => {
+            const { data, error } = await supabase.storage
+              .from("anexos-financeiro")
+              .download(path);
+            if (error) throw error;
+            return await data.arrayBuffer();
+          })();
+          bufCache.set(path, p);
         }
-        setAnalises((prev) => ({
-          ...prev,
-          [r.rowKey]: { ...EMPTY_ANALISE, loading: true },
-        }));
+        return p;
+      };
+
+      const processar = async (r: AnaliseRow) => {
         try {
+          if (r.xlsPaths.length === 0) {
+            resultado[r.rowKey] = { ...EMPTY_ANALISE, erro: "Sem planilha anexada" };
+            return;
+          }
           let enfBeneficiarios = 0;
           let enfTotal = 0;
           let aptBeneficiarios = 0;
@@ -312,15 +330,7 @@ export function PrevisaoFinanceira() {
           let exclusoesTotal = 0;
           const detalhes: any[] = [];
           for (const path of r.xlsPaths) {
-            let buf = bufCache.get(path);
-            if (!buf) {
-              const { data, error } = await supabase.storage
-                .from("anexos-financeiro")
-                .download(path);
-              if (error) throw error;
-              buf = await data.arrayBuffer();
-              bufCache.set(path, buf);
-            }
+            const buf = await baixar(path);
             const res = await analisarExcelFinanceiroPorPagador(
               buf,
               r.filtroPagador
@@ -335,36 +345,49 @@ export function PrevisaoFinanceira() {
             exclusoesTotal += res.exclusoes?.total || 0;
             detalhes.push(res);
           }
-          if (cancelled) return;
-          const totalGeral = enfTotal + aptTotal + inclusoesTotal + exclusoesTotal;
-          setAnalises((prev) => ({
-            ...prev,
-            [r.rowKey]: {
-              loading: false,
-              enfBeneficiarios,
-              enfTotal,
-              aptBeneficiarios,
-              aptTotal,
-              inclusoesTotal,
-              exclusoesTotal,
-              totalGeral,
-              detalhe: detalhes,
-            },
-          }));
+          resultado[r.rowKey] = {
+            loading: false,
+            enfBeneficiarios,
+            enfTotal,
+            aptBeneficiarios,
+            aptTotal,
+            inclusoesTotal,
+            exclusoesTotal,
+            totalGeral: enfTotal + aptTotal + inclusoesTotal + exclusoesTotal,
+            detalhe: detalhes,
+          };
         } catch (e: any) {
-          if (cancelled) return;
-          setAnalises((prev) => ({
-            ...prev,
-            [r.rowKey]: { ...EMPTY_ANALISE, erro: e?.message || "Falha ao analisar planilha" },
-          }));
+          resultado[r.rowKey] = {
+            ...EMPTY_ANALISE,
+            erro: e?.message || "Falha ao analisar planilha",
+          };
+        } finally {
+          done++;
+          if (!cancelled) setProgresso({ done, total: alvos.length });
         }
-      }
+      };
+
+      // Concorrência limitada para não saturar a rede
+      const CONC = 6;
+      let cursor = 0;
+      const workers = Array.from({ length: Math.min(CONC, alvos.length) }, async () => {
+        while (!cancelled) {
+          const i = cursor++;
+          if (i >= alvos.length) break;
+          await processar(alvos[i]);
+        }
+      });
+      await Promise.all(workers);
+      if (cancelled) return;
+      setAnalises(resultado);
+      setProgresso({ done: alvos.length, total: alvos.length });
     })();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, aplicado]);
+  }, [baseRows, aplicado]);
+
 
   const hoje = useMemo(() => {
     const d = new Date();
