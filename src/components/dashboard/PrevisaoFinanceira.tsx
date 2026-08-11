@@ -362,7 +362,7 @@ export function PrevisaoFinanceira() {
       return da - db;
     });
     return list;
-  }, [rows, filtroPeriodo, filtroStatus, ordenacao, analises, hoje]);
+  }, [rows, filtroPeriodo, dataInicio, dataFim, filtroStatus, ordenacao, analises, hoje]);
 
   // KPIs respeitam o período escolhido; antes disso permanecem zerados.
   const kpis = useMemo(() => {
