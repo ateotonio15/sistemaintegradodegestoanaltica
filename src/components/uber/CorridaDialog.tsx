@@ -38,6 +38,68 @@ const MOTIVOS = [
   "Gravação da Palestra",
 ];
 const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
+const ENDERECO_SAMEL = "Samel - Av. Joaquim Nabuco, 1550 - Centro";
+
+function EnderecoCombobox({
+  value,
+  onChange,
+  opcoes,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  opcoes: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [busca, setBusca] = useState("");
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          className={cn("w-full justify-between font-normal text-left", !value && "text-muted-foreground")}
+        >
+          <span className="truncate">{value || "Selecione ou digite o endereço"}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command shouldFilter>
+          <CommandInput placeholder="Buscar endereço..." value={busca} onValueChange={setBusca} />
+          <CommandList>
+            <CommandEmpty>
+              {busca.trim() ? (
+                <button
+                  type="button"
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-accent"
+                  onClick={() => { onChange(busca.trim()); setOpen(false); setBusca(""); }}
+                >
+                  Usar "{busca.trim()}"
+                </button>
+              ) : (
+                "Nenhum endereço encontrado."
+              )}
+            </CommandEmpty>
+            <CommandGroup>
+              {opcoes.map((o) => (
+                <CommandItem
+                  key={o}
+                  value={o}
+                  onSelect={() => { onChange(o); setOpen(false); setBusca(""); }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4 shrink-0", value === o ? "opacity-100" : "opacity-0")} />
+                  <span className="truncate">{o}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const upsert = useUpsertCorrida();
@@ -70,6 +132,31 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
       return (data?.display_name || "") as string;
     },
   });
+
+  const { data: enderecosUsados = [] } = useQuery({
+    queryKey: ["uber-enderecos-usados"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("uber_corridas" as any)
+        .select("origem, destino")
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return (data ?? []) as unknown as { origem: string | null; destino: string | null }[];
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const enderecos = useMemo(() => {
+    const set = new Set<string>();
+    set.add(ENDERECO_SAMEL);
+    enderecosUsados.forEach((c) => {
+      [c.origem, c.destino].forEach((v) => { if (v && v.trim()) set.add(v.trim()); });
+    });
+    empresas.forEach((e) => { if (e.endereco && e.endereco.trim()) set.add(e.endereco.trim()); });
+    const arr = Array.from(set);
+    return [ENDERECO_SAMEL, ...arr.filter((a) => a !== ENDERECO_SAMEL).sort((a, b) => a.localeCompare(b, "pt-BR"))];
+  }, [enderecosUsados, empresas]);
 
   useEffect(() => {
     if (open) {
@@ -116,11 +203,11 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div className="sm:col-span-2">
             <Label>Origem</Label>
-            <Input value={form.origem ?? ""} onChange={(e) => set("origem", e.target.value)} />
+            <EnderecoCombobox value={form.origem ?? ""} onChange={(v) => set("origem", v)} opcoes={enderecos} />
           </div>
           <div className="sm:col-span-2">
             <Label>Destino</Label>
-            <Input value={form.destino ?? ""} onChange={(e) => set("destino", e.target.value)} />
+            <EnderecoCombobox value={form.destino ?? ""} onChange={(v) => set("destino", v)} opcoes={enderecos} />
           </div>
           <div>
             <Label>Motivo</Label>
