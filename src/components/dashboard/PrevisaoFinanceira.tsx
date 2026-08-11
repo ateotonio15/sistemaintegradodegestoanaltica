@@ -278,6 +278,67 @@ export function PrevisaoFinanceira() {
     return out;
   }, [movs, anexosPorMov, empresaMap, pagadoresPorEmpresa]);
 
+
+
+  const hoje = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  // Aplicar filtros + ordenação
+  const baseRows = useMemo(() => {
+    // Enquanto o usuário não confirmar os filtros, nada é listado
+    if (!aplicado) return [] as AnaliseRow[];
+    const { periodo: filtroPeriodo, inicio, fim: fimStr, status: filtroStatus } = aplicado;
+    if (!filtroPeriodo) return [] as AnaliseRow[];
+    if (filtroPeriodo === "custom" && (!inicio || !fimStr)) return [] as AnaliseRow[];
+    const ini = parseLocalDate(inicio);
+    const fim = parseLocalDate(fimStr);
+    return rows.filter((r) => {
+      const venc = parseLocalDate(r.data_vencimento);
+      // filtro período
+      if (filtroPeriodo && filtroPeriodo !== "todos") {
+        if (!venc) return false;
+        if (filtroPeriodo === "custom") {
+          if (ini && venc < ini) return false;
+          if (fim && venc > fim) return false;
+        } else {
+          const dias = diffDias(venc, hoje);
+          if (filtroPeriodo === "hoje" && dias !== 0) return false;
+          if (filtroPeriodo === "7" && (dias < 0 || dias > 7)) return false;
+          if (filtroPeriodo === "15" && (dias < 0 || dias > 15)) return false;
+          if (filtroPeriodo === "30" && (dias < 0 || dias > 30)) return false;
+        }
+      }
+      if (filtroStatus && filtroStatus !== "todos") {
+        if (!venc) return false;
+        const dias = diffDias(venc, hoje);
+        if (filtroStatus === "hoje" && dias !== 0) return false;
+        if (filtroStatus === "a_vencer" && dias <= 0) return false;
+        if (filtroStatus === "vencido" && dias >= 0) return false;
+      }
+      return true;
+    });
+  }, [rows, aplicado, hoje]);
+
+  // Aplicar ordenação
+  const filteredRows = useMemo(() => {
+    const list = [...baseRows];
+    list.sort((a, b) => {
+      if (ordenacao === "empresa") return a.empresa_nome.localeCompare(b.empresa_nome, "pt-BR");
+      if (ordenacao === "valor") {
+        const va = analises[a.rowKey]?.totalGeral ?? 0;
+        const vb = analises[b.rowKey]?.totalGeral ?? 0;
+        return vb - va;
+      }
+      const da = parseLocalDate(a.data_vencimento)?.getTime() ?? Infinity;
+      const db = parseLocalDate(b.data_vencimento)?.getTime() ?? Infinity;
+      return da - db;
+    });
+    return list;
+  }, [baseRows, ordenacao, analises]);
+
   // Carrega TODAS as análises do período de uma só vez (em paralelo) e
   // só libera a tabela quando tudo estiver pronto.
   const [progresso, setProgresso] = useState<{ done: number; total: number } | null>(null);
@@ -387,66 +448,6 @@ export function PrevisaoFinanceira() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseRows, aplicado]);
-
-
-  const hoje = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
-
-  // Aplicar filtros + ordenação
-  const baseRows = useMemo(() => {
-    // Enquanto o usuário não confirmar os filtros, nada é listado
-    if (!aplicado) return [] as AnaliseRow[];
-    const { periodo: filtroPeriodo, inicio, fim: fimStr, status: filtroStatus } = aplicado;
-    if (!filtroPeriodo) return [] as AnaliseRow[];
-    if (filtroPeriodo === "custom" && (!inicio || !fimStr)) return [] as AnaliseRow[];
-    const ini = parseLocalDate(inicio);
-    const fim = parseLocalDate(fimStr);
-    return rows.filter((r) => {
-      const venc = parseLocalDate(r.data_vencimento);
-      // filtro período
-      if (filtroPeriodo && filtroPeriodo !== "todos") {
-        if (!venc) return false;
-        if (filtroPeriodo === "custom") {
-          if (ini && venc < ini) return false;
-          if (fim && venc > fim) return false;
-        } else {
-          const dias = diffDias(venc, hoje);
-          if (filtroPeriodo === "hoje" && dias !== 0) return false;
-          if (filtroPeriodo === "7" && (dias < 0 || dias > 7)) return false;
-          if (filtroPeriodo === "15" && (dias < 0 || dias > 15)) return false;
-          if (filtroPeriodo === "30" && (dias < 0 || dias > 30)) return false;
-        }
-      }
-      if (filtroStatus && filtroStatus !== "todos") {
-        if (!venc) return false;
-        const dias = diffDias(venc, hoje);
-        if (filtroStatus === "hoje" && dias !== 0) return false;
-        if (filtroStatus === "a_vencer" && dias <= 0) return false;
-        if (filtroStatus === "vencido" && dias >= 0) return false;
-      }
-      return true;
-    });
-  }, [rows, aplicado, hoje]);
-
-  // Aplicar ordenação
-  const filteredRows = useMemo(() => {
-    const list = [...baseRows];
-    list.sort((a, b) => {
-      if (ordenacao === "empresa") return a.empresa_nome.localeCompare(b.empresa_nome, "pt-BR");
-      if (ordenacao === "valor") {
-        const va = analises[a.rowKey]?.totalGeral ?? 0;
-        const vb = analises[b.rowKey]?.totalGeral ?? 0;
-        return vb - va;
-      }
-      const da = parseLocalDate(a.data_vencimento)?.getTime() ?? Infinity;
-      const db = parseLocalDate(b.data_vencimento)?.getTime() ?? Infinity;
-      return da - db;
-    });
-    return list;
-  }, [baseRows, ordenacao, analises]);
 
 
   // KPIs respeitam o período escolhido; antes disso permanecem zerados.
