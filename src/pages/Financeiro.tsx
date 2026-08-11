@@ -1335,7 +1335,20 @@ export default function Financeiro() {
         // período de movimentação).
         const impl = (e as any).data_implantacao as string | null;
         if (ativa && impl && impl.slice(0, 7) === mes) {
-          periodos.forEach((periodo) => {
+          // Mesmo que a vigência do contrato ultrapasse o fim do período de
+          // movimentação (contrato novo entrando no meio do mês), a Primeira
+          // mensalidade deve aparecer: usa o período configurado da empresa.
+          const periodosPrimeira = new Set<string>(periodos);
+          if (periodosPrimeira.size === 0) {
+            let base: string | null = null;
+            if (e.tipo_movimentacao === "Diária" && e.data_corte) {
+              base = periodoDaDataCorte(e.data_corte);
+            } else if (e.periodo_movimentacao) {
+              base = e.periodo_movimentacao;
+            }
+            if (base && PERIODOS_VALIDOS.has(base)) periodosPrimeira.add(base);
+          }
+          periodosPrimeira.forEach((periodo) => {
             const cfg = configPrev.get(`${e.id}|${periodo}`) ?? {};
             const linha: any = {
               empresa_id: e.id,
