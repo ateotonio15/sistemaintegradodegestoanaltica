@@ -222,6 +222,7 @@ export function PrevisaoFinanceira() {
 
   // Lazy-load analysis for each row
   useEffect(() => {
+    if (!filtroPeriodo) return;
     let cancelled = false;
     (async () => {
       const { analisarExcelFinanceiroPorPagador } = await import(
@@ -305,7 +306,7 @@ export function PrevisaoFinanceira() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows]);
+  }, [rows, filtroPeriodo]);
 
   const hoje = useMemo(() => {
     const d = new Date();
@@ -352,13 +353,13 @@ export function PrevisaoFinanceira() {
     return list;
   }, [rows, filtroPeriodo, filtroStatus, ordenacao, analises, hoje]);
 
-  // KPIs (sobre todos os rows com status Nota emitida)
+  // KPIs respeitam o período escolhido; antes disso permanecem zerados.
   const kpis = useMemo(() => {
     let totalPrevisto = 0;
     let venceHoje = 0;
     let vencidos = 0;
     let comProrrogacao = 0;
-    for (const r of rows) {
+    for (const r of filteredRows) {
       totalPrevisto += analises[r.rowKey]?.totalGeral ?? 0;
       const venc = parseLocalDate(r.data_vencimento);
       if (venc) {
@@ -370,12 +371,12 @@ export function PrevisaoFinanceira() {
     }
     return {
       totalPrevisto,
-      notasEmitidas: rows.length,
+      notasEmitidas: filteredRows.length,
       venceHoje,
       vencidos,
       comProrrogacao,
     };
-  }, [rows, analises, hoje]);
+  }, [filteredRows, analises, hoje]);
 
   function rowStatus(r: AnaliseRow): { label: string; variant: "default" | "destructive" | "secondary" | "outline"; cls: string } {
     const venc = parseLocalDate(r.data_vencimento);
