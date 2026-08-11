@@ -13,6 +13,25 @@ function mesAtual(): string {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
 }
 
+const PERIODO_FIM_DIA: Record<string, number> = {
+  "01-05": 5, "05-10": 10, "10-15": 15, "15-20": 20, "20-25": 25, "25-30": 30,
+};
+
+/**
+ * O contrato só entra no período de movimentação do mês se a implantação
+ * ocorrer até o último dia do período. Caso contrário a movimentação
+ * operacional só existirá na competência seguinte (só a 1ª mensalidade é
+ * cobrada agora).
+ */
+function vigenciaAlcancaPeriodo(dataImpl: string | null | undefined, periodo: string, mes: string) {
+  if (!dataImpl) return true;
+  const [yi, mi, di] = dataImpl.split("-").map(Number);
+  const [yr, mr] = mes.split("-").map(Number);
+  if (yi > yr || (yi === yr && mi > mr)) return false;
+  if (yi < yr || (yi === yr && mi < mr)) return true;
+  return di <= (PERIODO_FIM_DIA[periodo] ?? 31);
+}
+
 function periodoBase(e: any): string | null {
   if (e.tipo_movimentacao === "Diária" && e.data_corte) return periodoDaDataCorte(e.data_corte);
   if (e.periodo_movimentacao) return e.periodo_movimentacao;
@@ -71,7 +90,9 @@ export async function gerarPrimeiraMensalidade(mes: string = mesAtual()): Promis
     if (!periodo) continue;
     nomes.push(e.nome);
 
-    if (!movKeys.has(`${e.id}|${periodo}`)) {
+    const entraNoPeriodo = vigenciaAlcancaPeriodo(e.data_implantacao, periodo, mes);
+
+    if (entraNoPeriodo && !movKeys.has(`${e.id}|${periodo}`)) {
       novasMovs.push({
         empresa_id: e.id,
         mes_referencia: mes,
