@@ -178,11 +178,11 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div className="sm:col-span-2">
             <Label>Origem</Label>
-            <Input value={form.origem ?? ""} onChange={(e) => set("origem", e.target.value)} />
+            <EnderecoCombobox value={form.origem ?? ""} onChange={(v) => set("origem", v)} opcoes={enderecos} />
           </div>
           <div className="sm:col-span-2">
             <Label>Destino</Label>
-            <Input value={form.destino ?? ""} onChange={(e) => set("destino", e.target.value)} />
+            <EnderecoCombobox value={form.destino ?? ""} onChange={(v) => set("destino", v)} opcoes={enderecos} />
           </div>
           <div>
             <Label>Motivo</Label>
