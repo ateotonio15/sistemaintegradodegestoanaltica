@@ -3446,6 +3446,7 @@ export type Database = {
       }
       orbit_envios: {
         Row: {
+          competencia: string | null
           contrato: string | null
           created_at: string
           empresa_nome: string
@@ -3455,6 +3456,7 @@ export type Database = {
           orbit_user: string
         }
         Insert: {
+          competencia?: string | null
           contrato?: string | null
           created_at?: string
           empresa_nome: string
@@ -3464,6 +3466,7 @@ export type Database = {
           orbit_user: string
         }
         Update: {
+          competencia?: string | null
           contrato?: string | null
           created_at?: string
           empresa_nome?: string

@@ -2930,6 +2930,7 @@ export default function Financeiro() {
         <EnviarOrbitDialog
           open={orbitOpen}
           onOpenChange={setOrbitOpen}
+          competencia={mes}
           empresas={allRows.map((r: any) => ({
             id: r.id,
             nome: r.empresa_nome,

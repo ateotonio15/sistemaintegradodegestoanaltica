@@ -136,9 +136,12 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   empresas: OrbitEmpresa[];
+  /** Competência (YYYY-MM) selecionada na tela de Faturamento */
+  competencia?: string;
 }
 
-export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
+export function EnviarOrbitDialog({ open, onOpenChange, empresas, competencia }: Props) {
+  const comp = (competencia ?? new Date().toISOString().slice(0, 7)).slice(0, 7);
   const [etapa, setEtapa] = useState<1 | 2>(1);
   const [busca, setBusca] = useState("");
   const [statusSel, setStatusSel] = useState<string[]>([]);
@@ -154,7 +157,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   const [loginsValidos, setLoginsValidos] = useState<Set<string>>(new Set());
   const [validado, setValidado] = useState(false);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
-  const [envios, setEnvios] = useState<Array<{ empresa_nome: string; contrato: string | null; orbit_user: string; enviado_em: string }>>([]);
+  const [envios, setEnvios] = useState<Array<{ empresa_nome: string; contrato: string | null; orbit_user: string; enviado_em: string; competencia?: string | null }>>([]);
   const [ocultarEnviadas, setOcultarEnviadas] = useState(false);
   const [evitarDuplicados, setEvitarDuplicados] = useState(true);
 
@@ -168,7 +171,8 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
   async function carregarEnvios() {
     const { data } = await supabase
       .from("orbit_envios")
-      .select("empresa_nome, contrato, orbit_user, enviado_em")
+      .select("empresa_nome, contrato, orbit_user, enviado_em, competencia")
+      .eq("competencia", comp)
       .order("enviado_em", { ascending: false })
       .limit(5000);
     setEnvios((data ?? []) as any);
@@ -428,6 +432,7 @@ export function EnviarOrbitDialog({ open, onOpenChange, empresas }: Props) {
           empresa_nome: emp.nome,
           contrato: (emp.contrato ?? "").trim() || null,
           orbit_user: e.user,
+          competencia: comp,
           enviado_por: auth.user?.id ?? null,
         })),
       );
