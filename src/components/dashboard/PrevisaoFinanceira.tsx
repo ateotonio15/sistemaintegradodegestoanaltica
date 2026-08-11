@@ -85,11 +85,21 @@ function diffDias(d: Date, base: Date): number {
 }
 
 export function PrevisaoFinanceira() {
-  const [filtroPeriodo, setFiltroPeriodo] = useState<"" | "todos" | "hoje" | "7" | "15" | "30" | "custom">("");
+  type PeriodoOpt = "" | "todos" | "hoje" | "7" | "15" | "30" | "custom";
+  // "Data específica" é a opção padrão ao abrir a aba
+  const [filtroPeriodo, setFiltroPeriodo] = useState<PeriodoOpt>("custom");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"" | "todos" | "a_vencer" | "hoje" | "vencido">("");
   const [ordenacao, setOrdenacao] = useState<"" | "data" | "valor" | "empresa">("");
+  // Filtros efetivamente aplicados (somente após "Confirmar")
+  const [aplicado, setAplicado] = useState<{
+    periodo: PeriodoOpt;
+    inicio: string;
+    fim: string;
+    status: "" | "todos" | "a_vencer" | "hoje" | "vencido";
+  } | null>(null);
+
   const [analises, setAnalises] = useState<Record<string, AnaliseDado>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
