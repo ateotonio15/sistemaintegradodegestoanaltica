@@ -38,6 +38,68 @@ const MOTIVOS = [
   "Gravação da Palestra",
 ];
 const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
+const ENDERECO_SAMEL = "Samel - Av. Joaquim Nabuco, 1550 - Centro";
+
+function EnderecoCombobox({
+  value,
+  onChange,
+  opcoes,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  opcoes: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [busca, setBusca] = useState("");
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          className={cn("w-full justify-between font-normal text-left", !value && "text-muted-foreground")}
+        >
+          <span className="truncate">{value || "Selecione ou digite o endereço"}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command shouldFilter>
+          <CommandInput placeholder="Buscar endereço..." value={busca} onValueChange={setBusca} />
+          <CommandList>
+            <CommandEmpty>
+              {busca.trim() ? (
+                <button
+                  type="button"
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-accent"
+                  onClick={() => { onChange(busca.trim()); setOpen(false); setBusca(""); }}
+                >
+                  Usar "{busca.trim()}"
+                </button>
+              ) : (
+                "Nenhum endereço encontrado."
+              )}
+            </CommandEmpty>
+            <CommandGroup>
+              {opcoes.map((o) => (
+                <CommandItem
+                  key={o}
+                  value={o}
+                  onSelect={() => { onChange(o); setOpen(false); setBusca(""); }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4 shrink-0", value === o ? "opacity-100" : "opacity-0")} />
+                  <span className="truncate">{o}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const upsert = useUpsertCorrida();
