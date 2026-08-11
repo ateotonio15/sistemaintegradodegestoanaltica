@@ -411,7 +411,7 @@ export function PrevisaoFinanceira() {
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-2 pt-3">
           <Select value={filtroPeriodo} onValueChange={(v: any) => setFiltroPeriodo(v)}>
-            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue placeholder="Período" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Período: Todos</SelectItem>
               <SelectItem value="hoje">Vencimento: Hoje</SelectItem>
@@ -421,7 +421,7 @@ export function PrevisaoFinanceira() {
             </SelectContent>
           </Select>
           <Select value={filtroStatus} onValueChange={(v: any) => setFiltroStatus(v)}>
-            <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Status: Todos</SelectItem>
               <SelectItem value="a_vencer">A vencer</SelectItem>
@@ -430,7 +430,7 @@ export function PrevisaoFinanceira() {
             </SelectContent>
           </Select>
           <Select value={ordenacao} onValueChange={(v: any) => setOrdenacao(v)}>
-            <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder="Ordenar" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="data">Ordenar: Data mais próxima</SelectItem>
               <SelectItem value="valor">Ordenar: Maior valor</SelectItem>
