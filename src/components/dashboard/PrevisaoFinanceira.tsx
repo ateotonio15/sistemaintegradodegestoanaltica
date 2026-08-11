@@ -21,6 +21,7 @@ import {
   Timer,
   TrendingUp,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/date-utils";
 import {
