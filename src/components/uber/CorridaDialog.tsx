@@ -66,34 +66,44 @@ function EnderecoCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command shouldFilter>
-          <CommandInput placeholder="Buscar endereço..." value={busca} onValueChange={setBusca} />
+        <Command shouldFilter={false}>
+          <CommandInput placeholder="Buscar ou digitar novo endereço..." value={busca} onValueChange={setBusca} />
           <CommandList>
-            <CommandEmpty>
-              {busca.trim() ? (
-                <button
-                  type="button"
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-accent"
-                  onClick={() => { onChange(busca.trim()); setOpen(false); setBusca(""); }}
-                >
-                  Usar "{busca.trim()}"
-                </button>
-              ) : (
-                "Nenhum endereço encontrado."
-              )}
-            </CommandEmpty>
-            <CommandGroup>
-              {opcoes.map((o) => (
-                <CommandItem
-                  key={o}
-                  value={o}
-                  onSelect={() => { onChange(o); setOpen(false); setBusca(""); }}
-                >
-                  <Check className={cn("mr-2 h-4 w-4 shrink-0", value === o ? "opacity-100" : "opacity-0")} />
-                  <span className="truncate">{o}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {(() => {
+              const q = busca.trim().toLowerCase();
+              const filtradas = q ? opcoes.filter((o) => o.toLowerCase().includes(q)) : opcoes;
+              const podeCriar = !!busca.trim() && !opcoes.some((o) => o.toLowerCase() === q);
+              return (
+                <>
+                  {!podeCriar && filtradas.length === 0 && <CommandEmpty>Nenhum endereço encontrado.</CommandEmpty>}
+                  {podeCriar && (
+                    <CommandGroup heading="Novo endereço">
+                      <CommandItem
+                        value={`__novo__${busca}`}
+                        onSelect={() => { onChange(busca.trim()); setOpen(false); setBusca(""); }}
+                      >
+                        <Plus className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="truncate">Usar "{busca.trim()}"</span>
+                      </CommandItem>
+                    </CommandGroup>
+                  )}
+                  {filtradas.length > 0 && (
+                    <CommandGroup heading="Endereços cadastrados">
+                      {filtradas.map((o) => (
+                        <CommandItem
+                          key={o}
+                          value={o}
+                          onSelect={() => { onChange(o); setOpen(false); setBusca(""); }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4 shrink-0", value === o ? "opacity-100" : "opacity-0")} />
+                          <span className="truncate">{o}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </>
+              );
+            })()}
           </CommandList>
         </Command>
       </PopoverContent>
