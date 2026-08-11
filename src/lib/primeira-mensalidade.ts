@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { periodoDaDataCorte, getCurrentPeriodo } from "@/lib/movimentacao-utils";
 
 export interface GerarPrimeiraResultado {
   empresas: number;
