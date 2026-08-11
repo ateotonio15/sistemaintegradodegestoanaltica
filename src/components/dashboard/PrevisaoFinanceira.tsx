@@ -85,7 +85,9 @@ function diffDias(d: Date, base: Date): number {
 }
 
 export function PrevisaoFinanceira() {
-  const [filtroPeriodo, setFiltroPeriodo] = useState<"" | "todos" | "hoje" | "7" | "15" | "30">("");
+  const [filtroPeriodo, setFiltroPeriodo] = useState<"" | "todos" | "hoje" | "7" | "15" | "30" | "custom">("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"" | "todos" | "a_vencer" | "hoje" | "vencido">("");
   const [ordenacao, setOrdenacao] = useState<"" | "data" | "valor" | "empresa">("");
   const [analises, setAnalises] = useState<Record<string, AnaliseDado>>({});
