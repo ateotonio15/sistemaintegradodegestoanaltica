@@ -178,7 +178,12 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
 
   const save = async () => {
     if (!form.data || !form.colaborador) return;
-    await upsert.mutateAsync(form);
+    await upsert.mutateAsync({
+      ...form,
+      valor: Number(form.valor ?? 0),
+      valor_reembolso: Number(form.valor_reembolso ?? 0),
+      reembolso: Number(form.reembolso ?? form.valor_reembolso ?? 0),
+    });
     onOpenChange(false);
   };
 
