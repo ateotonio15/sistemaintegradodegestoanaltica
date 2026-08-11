@@ -432,8 +432,26 @@ export function PrevisaoFinanceira() {
               <SelectItem value="7">Próximos 7 dias</SelectItem>
               <SelectItem value="15">Próximos 15 dias</SelectItem>
               <SelectItem value="30">Próximos 30 dias</SelectItem>
+              <SelectItem value="custom">Data específica (intervalo)</SelectItem>
             </SelectContent>
           </Select>
+          {filtroPeriodo === "custom" && (
+            <div className="flex items-center gap-1">
+              <Input
+                type="date"
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
+                className="h-8 w-[140px] text-xs"
+              />
+              <span className="text-xs text-muted-foreground">até</span>
+              <Input
+                type="date"
+                value={dataFim}
+                onChange={(e) => setDataFim(e.target.value)}
+                className="h-8 w-[140px] text-xs"
+              />
+            </div>
+          )}
           <Select value={filtroStatus} onValueChange={(v: any) => setFiltroStatus(v)}>
             <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
