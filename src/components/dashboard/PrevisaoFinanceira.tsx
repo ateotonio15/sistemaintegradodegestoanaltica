@@ -43,13 +43,17 @@ type AnaliseRow = {
   pagador_cnpj: string | null;
   pagador_id: string | null;
   competencia: string;
+  /** Vencimento registrado no sistema (já normalizado pelo envio da nota) */
   data_vencimento: string | null;
+  data_envio_nota: string | null;
   data_prorrogacao: string | null;
   possui_prorrogacao: boolean;
   nota_emitida: boolean;
   xlsPaths: string[];
+  pdfPaths: string[];
   filtroPagador: { cnpj: string | null; nome: string | null } | null;
 };
+
 
 type AnaliseDado = {
   loading: boolean;
