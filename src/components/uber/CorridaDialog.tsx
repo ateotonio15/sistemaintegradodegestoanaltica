@@ -294,7 +294,14 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div>
             <Label>Valor (R$)</Label>
-            <Input type="number" step="0.01" value={form.valor ?? 0} onChange={(e) => set("valor", Number(e.target.value))} />
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="0,00"
+              value={form.valor === null || form.valor === undefined ? "" : String(form.valor)}
+              onChange={(e) => set("valor", e.target.value === "" ? null : Number(e.target.value))}
+              onBlur={(e) => { if (e.target.value === "") set("valor", 0); }}
+            />
           </div>
           <div>
             <Label>Tem reembolso?</Label>
