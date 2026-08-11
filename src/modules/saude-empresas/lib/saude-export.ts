@@ -127,29 +127,87 @@ async function carregarHistorico(acao: AcaoSaude, triagensAtuais: Triagem[]): Pr
 
 
 // ============================================================
-// EXCEL (mantido)
+// EXCEL — layout padronizado (cabeçalho verde, colunas fixas)
 // ============================================================
-export function exportTriagensExcel(acao: AcaoSaude, triagens: Triagem[]) {
+const up = (v: any) =>
+  v === null || v === undefined || v === "" ? "" : String(v).toUpperCase();
+
+export async function exportTriagensExcel(acao: AcaoSaude, triagens: Triagem[]) {
+  const ExcelJS = (await import("exceljs")).default ?? (await import("exceljs"));
   const empresaNome = acao.empresa?.nome ?? "empresa";
-  const rows = triagens.map((t) => ({
-    Nome: t.nome,
-    CPF: t.cpf ?? "",
-    PAS: t.pas_mmhg ?? "",
-    PAD: t.pad_mmhg ?? "",
-    "Classif. PA": t.classificacao_pa ?? "",
-    Glicemia: t.glicemia_mg_dl ?? "",
-    Jejum: t.jejum ? "Sim" : "Não",
-    "Classif. Glicemia": t.classificacao_glicemia ?? "",
-    HAS: t.tem_has ? "Sim" : "Não",
-    DM: t.tem_dm ? "Sim" : "Não",
-    Risco: t.risco_geral ?? "",
-    Recomendação: t.recomendacao ?? "",
-  }));
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "Triagens");
-  const fname = `triagens_${safeName(empresaNome)}_${acao.data_acao}.xlsx`;
-  XLSX.writeFile(wb, fname);
+
+  const wb = new (ExcelJS as any).Workbook();
+  const ws = wb.addWorksheet("Triagens", {
+    views: [{ state: "frozen", ySplit: 1 }],
+  });
+
+  const cols: Array<{ header: string; key: string; width: number; align?: "left" | "center" | "right" }> = [
+    { header: "NOME", key: "nome", width: 42, align: "left" },
+    { header: "CPF", key: "cpf", width: 18, align: "left" },
+    { header: "PAS", key: "pas", width: 7, align: "right" },
+    { header: "PAD", key: "pad", width: 7, align: "right" },
+    { header: "CLASSIF. PA", key: "cpa", width: 26, align: "left" },
+    { header: "GLICEMIA", key: "gli", width: 11, align: "right" },
+    { header: "JEJUM", key: "jejum", width: 9, align: "left" },
+    { header: "CLASSIF. GLICEMIA", key: "cgli", width: 26, align: "left" },
+    { header: "HAS", key: "has", width: 7, align: "left" },
+    { header: "DM", key: "dm", width: 7, align: "left" },
+    { header: "RISCO", key: "risco", width: 10, align: "left" },
+  ];
+  ws.columns = cols.map((c) => ({ key: c.key, width: c.width }));
+
+  const headerRow = ws.addRow(Object.fromEntries(cols.map((c) => [c.key, c.header])));
+  headerRow.height = 22;
+  headerRow.eachCell((cell: any) => {
+    cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FF1B3A4B" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E2C4" } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = {
+      top: { style: "thin", color: { argb: "FFB7C49E" } },
+      bottom: { style: "thin", color: { argb: "FFB7C49E" } },
+      left: { style: "thin", color: { argb: "FFB7C49E" } },
+      right: { style: "thin", color: { argb: "FFB7C49E" } },
+    };
+  });
+
+  triagens.forEach((t) => {
+    const semPa = t.pas_mmhg == null || t.pad_mmhg == null;
+    const row = ws.addRow({
+      nome: up(t.nome),
+      cpf: t.cpf ?? "",
+      pas: semPa ? "" : t.pas_mmhg,
+      pad: semPa ? "" : t.pad_mmhg,
+      cpa: semPa ? "NÃO REALIZADO" : up(t.classificacao_pa ?? classificarPa(t.pas_mmhg, t.pad_mmhg)),
+      gli: t.glicemia_mg_dl ?? "",
+      jejum: t.jejum ? "SIM" : "NÃO",
+      cgli: up(t.classificacao_glicemia ?? classificarGlicemia(t.glicemia_mg_dl, t.jejum) ?? ""),
+      has: t.tem_has ? "SIM" : "NÃO",
+      dm: t.tem_dm ? "SIM" : "NÃO",
+      risco: up(t.risco_geral ?? ""),
+    });
+    row.height = 18;
+    row.eachCell({ includeEmpty: true }, (cell: any, col: number) => {
+      cell.font = { name: "Calibri", size: 11 };
+      cell.alignment = { horizontal: cols[col - 1]?.align ?? "left", vertical: "middle" };
+      cell.border = {
+        top: { style: "hair", color: { argb: "FFD9D9D9" } },
+        bottom: { style: "hair", color: { argb: "FFD9D9D9" } },
+        left: { style: "hair", color: { argb: "FFD9D9D9" } },
+        right: { style: "hair", color: { argb: "FFD9D9D9" } },
+      };
+    });
+  });
+
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cols.length } };
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `triagens_${safeName(empresaNome)}_${acao.data_acao}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ============================================================
