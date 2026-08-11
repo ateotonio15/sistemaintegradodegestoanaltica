@@ -568,7 +568,9 @@ export function PrevisaoFinanceira() {
                 {filteredRows.length === 0 && (
                   <tr>
                     <td colSpan={15} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                      Nenhum registro para os filtros selecionados.
+                      {!filtroPeriodo
+                        ? "Selecione um período para visualizar os registros."
+                        : "Nenhum registro para os filtros selecionados."}
                     </td>
                   </tr>
                 )}
