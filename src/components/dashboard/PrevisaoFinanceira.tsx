@@ -813,7 +813,18 @@ export function PrevisaoFinanceira() {
                           {a?.loading ? "…" : a && a.totalGeral !== 0 ? BRL(a.totalGeral) : "—"}
                         </td>
                         <td className="px-3 py-2 align-top">
-                          {r.data_vencimento ? formatDateBR(r.data_vencimento) : "—"}
+                          <div className="flex flex-col gap-0.5">
+                            <span>{r.data_vencimento ? formatDateBR(r.data_vencimento) : "—"}</span>
+                            {r.venc_origem === "pdf" && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] py-0 px-1.5 w-fit border-primary/40 text-primary"
+                                title={`Sistema: ${r.venc_sistema ? formatDateBR(r.venc_sistema) : "—"}`}
+                              >
+                                Conforme nota
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 py-2 align-top">
                           {r.possui_prorrogacao && r.data_prorrogacao ? (
@@ -823,10 +834,20 @@ export function PrevisaoFinanceira() {
                                 Prorrogado
                               </Badge>
                             </div>
+                          ) : r.venc_origem === "pdf" && r.venc_sistema ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-muted-foreground text-[11px]">
+                                Sistema: {formatDateBR(r.venc_sistema)}
+                              </span>
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 w-fit border-warning/40 text-warning">
+                                Divergente
+                              </Badge>
+                            </div>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
+
                         <td className="px-3 py-2 align-top">
                           <Badge variant="outline" className={cn("text-[11px]", st.cls)}>
                             {st.label}
