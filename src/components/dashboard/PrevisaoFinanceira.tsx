@@ -102,13 +102,20 @@ function calcularVencimentoEfetivo(
   if (!dataVencimento || !dataEnvioNota) return dataVencimento;
   const venc = parseLocalDate(dataVencimento);
   const envio = parseLocalDate(dataEnvioNota);
-  if (!venc || !envio || venc >= envio || (venc.getFullYear() === envio.getFullYear() && venc.getMonth() === envio.getMonth())) {
-    return dataVencimento;
-  }
-  const ultimoDia = new Date(envio.getFullYear(), envio.getMonth() + 1, 0).getDate();
-  const dia = Math.min(venc.getDate(), ultimoDia);
-  return `${envio.getFullYear()}-${String(envio.getMonth() + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+  if (!venc || !envio || venc >= envio) return dataVencimento;
+
+  // O vencimento registrado ficou defasado em relação ao envio da nota.
+  // Avança o mesmo dia do mês até a primeira data >= envio da nota.
+  const dia = venc.getDate();
+  const build = (ano: number, mesIdx: number) => {
+    const ultimoDia = new Date(ano, mesIdx + 1, 0).getDate();
+    return new Date(ano, mesIdx, Math.min(dia, ultimoDia));
+  };
+  let cand = build(envio.getFullYear(), envio.getMonth());
+  if (cand < envio) cand = build(envio.getFullYear(), envio.getMonth() + 1);
+  return `${cand.getFullYear()}-${String(cand.getMonth() + 1).padStart(2, "0")}-${String(cand.getDate()).padStart(2, "0")}`;
 }
+
 
 export function PrevisaoFinanceira() {
   type PeriodoOpt = "" | "todos" | "hoje" | "7" | "15" | "30" | "custom";
