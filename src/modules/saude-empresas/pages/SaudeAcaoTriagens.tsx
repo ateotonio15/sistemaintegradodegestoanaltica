@@ -370,6 +370,8 @@ export default function SaudeAcaoTriagens() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
+
   );
 }
