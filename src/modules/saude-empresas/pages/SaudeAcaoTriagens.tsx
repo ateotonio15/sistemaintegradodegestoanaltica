@@ -340,8 +340,9 @@ export default function SaudeAcaoTriagens() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
+
 
       <BioimpedanciaDialog
         open={bioOpen}
