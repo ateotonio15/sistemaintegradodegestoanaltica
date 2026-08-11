@@ -23,6 +23,7 @@ import {
   AlertOctagon,
   Timer,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -474,6 +475,8 @@ export function PrevisaoFinanceira() {
       comProrrogacao,
     };
   }, [filteredRows, analises, hoje]);
+
+  const carregando = !!aplicado && (!progresso || progresso.done < progresso.total);
 
   function rowStatus(r: AnaliseRow): { label: string; variant: "default" | "destructive" | "secondary" | "outline"; cls: string } {
     const venc = parseLocalDate(r.data_vencimento);
