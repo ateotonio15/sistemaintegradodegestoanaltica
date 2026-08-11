@@ -137,40 +137,29 @@ export async function exportTriagensExcel(acao: AcaoSaude, triagens: Triagem[]) 
   const empresaNome = acao.empresa?.nome ?? "empresa";
 
   const wb = new (ExcelJS as any).Workbook();
-  const ws = wb.addWorksheet("Triagens", {
-    views: [{ state: "frozen", ySplit: 1 }],
-  });
+  const ws = wb.addWorksheet("Aferições");
 
-  const cols: Array<{ header: string; key: string; width: number; align?: "left" | "center" | "right" }> = [
-    { header: "NOME", key: "nome", width: 42, align: "left" },
+  const cols: ColunaPadrao[] = [
+    { header: "NOME", key: "nome", width: 34, align: "left" },
     { header: "CPF", key: "cpf", width: 18, align: "left" },
-    { header: "PAS", key: "pas", width: 7, align: "right" },
-    { header: "PAD", key: "pad", width: 7, align: "right" },
-    { header: "CLASSIF. PA", key: "cpa", width: 26, align: "left" },
-    { header: "GLICEMIA", key: "gli", width: 11, align: "right" },
-    { header: "JEJUM", key: "jejum", width: 9, align: "left" },
-    { header: "CLASSIF. GLICEMIA", key: "cgli", width: 26, align: "left" },
-    { header: "HAS", key: "has", width: 7, align: "left" },
-    { header: "DM", key: "dm", width: 7, align: "left" },
-    { header: "RISCO", key: "risco", width: 10, align: "left" },
+    { header: "PAS", key: "pas", width: 9, align: "center" },
+    { header: "PAD", key: "pad", width: 9, align: "center" },
+    { header: "CLASSIF. PA", key: "cpa", width: 23, align: "left" },
+    { header: "GLICEMIA", key: "gli", width: 13, align: "center" },
+    { header: "JEJUM", key: "jejum", width: 11, align: "center" },
+    { header: "CLASSIF. GLICEMIA", key: "cgli", width: 25, align: "left" },
+    { header: "HAS", key: "has", width: 9, align: "center" },
+    { header: "DM", key: "dm", width: 9, align: "center" },
+    { header: "RISCO", key: "risco", width: 12, align: "center" },
   ];
-  ws.columns = cols.map((c) => ({ key: c.key, width: c.width }));
 
-  const headerRow = ws.addRow(Object.fromEntries(cols.map((c) => [c.key, c.header])));
-  headerRow.height = 22;
-  headerRow.eachCell((cell: any) => {
-    cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FF1B3A4B" } };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E2C4" } };
-    cell.alignment = { horizontal: "center", vertical: "middle" };
-    cell.border = {
-      top: { style: "thin", color: { argb: "FFB7C49E" } },
-      bottom: { style: "thin", color: { argb: "FFB7C49E" } },
-      left: { style: "thin", color: { argb: "FFB7C49E" } },
-      right: { style: "thin", color: { argb: "FFB7C49E" } },
-    };
-  });
+  aplicarLayoutSamel(
+    ws,
+    cols,
+    `${up(empresaNome)}  ·  AFERIÇÕES DE ${formatDateBR(acao.data_acao)}  ·  ${triagens.length} PARTICIPANTE(S)`,
+  );
 
-  triagens.forEach((t) => {
+  triagens.forEach((t, i) => {
     const semPa = t.pas_mmhg == null || t.pad_mmhg == null;
     const row = ws.addRow({
       nome: up(t.nome),
@@ -185,20 +174,9 @@ export async function exportTriagensExcel(acao: AcaoSaude, triagens: Triagem[]) 
       dm: t.tem_dm ? "SIM" : "NÃO",
       risco: up(t.risco_geral ?? ""),
     });
-    row.height = 18;
-    row.eachCell({ includeEmpty: true }, (cell: any, col: number) => {
-      cell.font = { name: "Calibri", size: 11 };
-      cell.alignment = { horizontal: cols[col - 1]?.align ?? "left", vertical: "middle" };
-      cell.border = {
-        top: { style: "hair", color: { argb: "FFD9D9D9" } },
-        bottom: { style: "hair", color: { argb: "FFD9D9D9" } },
-        left: { style: "hair", color: { argb: "FFD9D9D9" } },
-        right: { style: "hair", color: { argb: "FFD9D9D9" } },
-      };
-    });
+    estilizarLinhaSamel(row, cols, i);
   });
 
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cols.length } };
 
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
