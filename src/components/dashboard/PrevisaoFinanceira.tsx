@@ -315,6 +315,8 @@ export function PrevisaoFinanceira() {
 
   // Aplicar filtros + ordenação
   const filteredRows = useMemo(() => {
+    // Enquanto o usuário não selecionar um período, nada é listado
+    if (!filtroPeriodo) return [];
     const list = rows.filter((r) => {
       const venc = parseLocalDate(r.data_vencimento);
       // filtro período
