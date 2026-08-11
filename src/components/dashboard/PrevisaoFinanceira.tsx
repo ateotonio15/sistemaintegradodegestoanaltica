@@ -321,16 +321,24 @@ export function PrevisaoFinanceira() {
   const filteredRows = useMemo(() => {
     // Enquanto o usuário não selecionar um período, nada é listado
     if (!filtroPeriodo) return [];
+    if (filtroPeriodo === "custom" && (!dataInicio || !dataFim)) return [];
+    const ini = parseLocalDate(dataInicio);
+    const fim = parseLocalDate(dataFim);
     const list = rows.filter((r) => {
       const venc = parseLocalDate(r.data_vencimento);
       // filtro período
       if (filtroPeriodo && filtroPeriodo !== "todos") {
         if (!venc) return false;
-        const dias = diffDias(venc, hoje);
-        if (filtroPeriodo === "hoje" && dias !== 0) return false;
-        if (filtroPeriodo === "7" && (dias < 0 || dias > 7)) return false;
-        if (filtroPeriodo === "15" && (dias < 0 || dias > 15)) return false;
-        if (filtroPeriodo === "30" && (dias < 0 || dias > 30)) return false;
+        if (filtroPeriodo === "custom") {
+          if (ini && venc < ini) return false;
+          if (fim && venc > fim) return false;
+        } else {
+          const dias = diffDias(venc, hoje);
+          if (filtroPeriodo === "hoje" && dias !== 0) return false;
+          if (filtroPeriodo === "7" && (dias < 0 || dias > 7)) return false;
+          if (filtroPeriodo === "15" && (dias < 0 || dias > 15)) return false;
+          if (filtroPeriodo === "30" && (dias < 0 || dias > 30)) return false;
+        }
       }
       if (filtroStatus && filtroStatus !== "todos") {
         if (!venc) return false;
