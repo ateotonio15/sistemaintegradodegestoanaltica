@@ -329,12 +329,14 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
             <Input
               type="number"
               step="0.01"
+              placeholder="0,00"
               disabled={!form.tem_reembolso}
-              value={form.valor_reembolso ?? 0}
+              value={form.valor_reembolso === null || form.valor_reembolso === undefined ? "" : String(form.valor_reembolso)}
               onChange={(e) => {
-                const v = Number(e.target.value);
-                setForm((p) => ({ ...p, valor_reembolso: v, reembolso: v }));
+                const v = e.target.value === "" ? null : Number(e.target.value);
+                setForm((p) => ({ ...p, valor_reembolso: v as any, reembolso: v as any }));
               }}
+              onBlur={(e) => { if (e.target.value === "") setForm((p) => ({ ...p, valor_reembolso: 0, reembolso: 0 })); }}
             />
           </div>
           <div className="flex items-center gap-2 pt-6">
