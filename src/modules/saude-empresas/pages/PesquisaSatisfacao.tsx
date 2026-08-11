@@ -165,11 +165,17 @@ export default function PesquisaSatisfacao() {
 
 
       <Tabs defaultValue="palestras">
-        <TabsList>
-          <TabsTrigger value="palestras" className="gap-2">
+        <TabsList className="h-12 w-full max-w-md gap-1 rounded-xl border border-border/60 bg-muted/40 p-1.5 shadow-sm">
+          <TabsTrigger
+            value="palestras"
+            className="flex-1 gap-2 rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+          >
             <ClipboardList className="h-4 w-4" /> Palestras
           </TabsTrigger>
-          <TabsTrigger value="resultados" className="gap-2">
+          <TabsTrigger
+            value="resultados"
+            className="flex-1 gap-2 rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+          >
             <BarChart3 className="h-4 w-4" /> Resultados
           </TabsTrigger>
         </TabsList>
