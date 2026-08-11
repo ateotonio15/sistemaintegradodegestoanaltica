@@ -53,6 +53,10 @@ type AnaliseRow = {
   nota_emitida: boolean;
   xlsPaths: string[];
   pdfPaths: string[];
+  /** Vencimento que estava registrado no sistema, quando o PDF divergiu */
+  venc_sistema?: string | null;
+  venc_origem?: "pdf";
+
   filtroPagador: { cnpj: string | null; nome: string | null } | null;
 };
 
