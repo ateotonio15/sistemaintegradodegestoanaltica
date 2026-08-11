@@ -883,6 +883,18 @@ export default function Empresas() {
                   {gerandoMov ? "Gerando..." : "Gerar Movimentação"}
                 </Button>
               )}
+              {canFullEdit && (
+                <Button
+                  variant="default"
+                  className="rounded-lg"
+                  onClick={handleGerarPrimeiraMensalidade}
+                  disabled={gerandoPrimeira}
+                  title="Gera a Primeira Mensalidade no Financeiro e a primeira movimentação do mês para contratos novos"
+                >
+                  <RefreshCw className={cn("mr-2 h-4 w-4", gerandoPrimeira && "animate-spin")} />
+                  {gerandoPrimeira ? "Gerando..." : "Gerar 1ª Mensalidade"}
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="rounded-lg">
