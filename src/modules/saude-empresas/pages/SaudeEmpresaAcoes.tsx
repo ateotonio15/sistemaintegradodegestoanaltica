@@ -79,7 +79,14 @@ export default function SaudeEmpresaAcoes() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {acoes.map((a) => (
-            <Card key={a.id} className="hover:border-primary/40 transition-colors">
+            <Card
+              key={a.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`/saude-empresas/acao/${a.id}`)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/saude-empresas/acao/${a.id}`); } }}
+              className="hover:border-primary/40 transition-colors cursor-pointer"
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base">{a.titulo || tipoLabel[a.tipo]}</CardTitle>
@@ -91,11 +98,11 @@ export default function SaudeEmpresaAcoes() {
                 <div className="text-sm text-muted-foreground">{tipoLabel[a.tipo]} · {a.enfermeira_nome ?? "—"}</div>
                 <div className="text-2xl font-semibold mt-2">{a.total_atendidos} atendidos</div>
                 <div className="flex items-center justify-between mt-3">
-                  <Button variant="outline" size="sm" onClick={() => navigate(`/saude-empresas/acao/${a.id}`)}>Abrir triagens</Button>
+                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/saude-empresas/acao/${a.id}`); }}>Abrir triagens</Button>
                   {canEdit && (
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => { setEdit(a); setDlg(true); }}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover esta ação e TODAS as triagens?")) deleteAcao.mutate(a.id); }}><Trash2 className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setEdit(a); setDlg(true); }}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("Remover esta ação e TODAS as triagens?")) deleteAcao.mutate(a.id); }}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   )}
                 </div>
