@@ -79,7 +79,14 @@ export default function SaudeEmpresaAcoes() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {acoes.map((a) => (
-            <Card key={a.id} className="hover:border-primary/40 transition-colors">
+            <Card
+              key={a.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`/saude-empresas/acao/${a.id}`)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/saude-empresas/acao/${a.id}`); } }}
+              className="hover:border-primary/40 transition-colors cursor-pointer"
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base">{a.titulo || tipoLabel[a.tipo]}</CardTitle>
