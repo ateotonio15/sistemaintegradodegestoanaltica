@@ -32,7 +32,9 @@ import {
   calcularStatusFinanceiro,
   formatMesReferencia,
   isXlsAnexo,
+  isPdfAnexo,
 } from "@/lib/financeiro-utils";
+
 
 type AnaliseRow = {
   rowKey: string;
@@ -43,13 +45,21 @@ type AnaliseRow = {
   pagador_cnpj: string | null;
   pagador_id: string | null;
   competencia: string;
+  /** Vencimento registrado no sistema (já normalizado pelo envio da nota) */
   data_vencimento: string | null;
+  data_envio_nota: string | null;
   data_prorrogacao: string | null;
   possui_prorrogacao: boolean;
   nota_emitida: boolean;
   xlsPaths: string[];
+  pdfPaths: string[];
+  /** Vencimento que estava registrado no sistema, quando o PDF divergiu */
+  venc_sistema?: string | null;
+  venc_origem?: "pdf";
+
   filtroPagador: { cnpj: string | null; nome: string | null } | null;
 };
+
 
 type AnaliseDado = {
   loading: boolean;
@@ -237,6 +247,9 @@ export function PrevisaoFinanceira() {
       const xlsPaths = anex
         .filter((a) => isXlsAnexo(a) && a.storage_path)
         .map((a) => a.storage_path as string);
+      const pdfPaths = anex
+        .filter((a) => isPdfAnexo(a) && a.storage_path)
+        .map((a) => a.storage_path as string);
       const pags = pagadoresPorEmpresa.get(m.empresa_id) ?? [];
 
       const baseRow: Omit<AnaliseRow, "rowKey" | "pagador_nome" | "pagador_cnpj" | "pagador_id" | "filtroPagador"> = {
@@ -245,11 +258,14 @@ export function PrevisaoFinanceira() {
         empresa_nome: emp.nome ?? "—",
         competencia: m.mes_referencia,
         data_vencimento: calcularVencimentoEfetivo(m.data_vencimento, m.data_envio_nota),
+        data_envio_nota: m.data_envio_nota ?? null,
         data_prorrogacao: m.data_prorrogacao,
         possui_prorrogacao: !!m.possui_prorrogacao,
         nota_emitida: status === "Nota emitida" || status === "Enviada",
         xlsPaths,
+        pdfPaths,
       };
+
 
       if (pags.length === 0) {
         out.push({
@@ -294,16 +310,121 @@ export function PrevisaoFinanceira() {
     return d;
   }, []);
 
+  /** Janela [início, fim] efetiva do filtro aplicado. */
+  const janela = useMemo(() => {
+    if (!aplicado || !aplicado.periodo) return null;
+    if (aplicado.periodo === "todos") return null;
+    if (aplicado.periodo === "custom") {
+      const ini = parseLocalDate(aplicado.inicio);
+      const fim = parseLocalDate(aplicado.fim);
+      if (!ini || !fim) return null;
+      return { ini, fim };
+    }
+    const dias = aplicado.periodo === "hoje" ? 0 : Number(aplicado.periodo);
+    return { ini: hoje, fim: new Date(hoje.getTime() + dias * 86400000) };
+  }, [aplicado, hoje]);
+
+  /**
+   * Vencimento declarado na nota (bloco "Descrição do Serviço" do PDF).
+   * É a fonte mais confiável: o sistema pode ter o vencimento defasado.
+   */
+  const [vencPdf, setVencPdf] = useState<Record<string, string>>({});
+  const [scanPdfPronto, setScanPdfPronto] = useState(false);
+
+  useEffect(() => {
+    if (!aplicado) {
+      setVencPdf({});
+      setScanPdfPronto(false);
+      return;
+    }
+    let cancelled = false;
+    setScanPdfPronto(false);
+    (async () => {
+      // Candidatos: notas com PDF cujo vencimento registrado ou envio estejam
+      // próximos da janela pesquisada (margem de 45 dias para os defasados).
+      const MARGEM = 45 * 86400000;
+      const ini = janela ? new Date(janela.ini.getTime() - MARGEM) : null;
+      const fim = janela ? new Date(janela.fim.getTime() + MARGEM) : null;
+      const vistos = new Set<string>();
+      const alvos: AnaliseRow[] = [];
+      for (const r of rows) {
+        if (vistos.has(r.mov_id) || r.pdfPaths.length === 0) continue;
+        if (ini && fim) {
+          const venc = parseLocalDate(r.data_vencimento);
+          const envio = parseLocalDate(r.data_envio_nota);
+          const dentro =
+            (venc && venc >= ini && venc <= fim) || (envio && envio >= ini && envio <= fim);
+          if (!dentro) continue;
+        }
+        vistos.add(r.mov_id);
+        alvos.push(r);
+      }
+      if (alvos.length === 0) {
+        if (!cancelled) {
+          setVencPdf({});
+          setScanPdfPronto(true);
+        }
+        return;
+      }
+
+      const { extrairVencimentoPdf } = await import("@/lib/pdf-analysis-utils");
+      const encontrado: Record<string, string> = {};
+      const CONC = 6;
+      let cursor = 0;
+      const workers = Array.from({ length: Math.min(CONC, alvos.length) }, async () => {
+        while (!cancelled) {
+          const i = cursor++;
+          if (i >= alvos.length) break;
+          const r = alvos[i];
+          try {
+            const { data, error } = await supabase.storage
+              .from("anexos-financeiro")
+              .download(r.pdfPaths[0]);
+            if (error || !data) continue;
+            const venc = await extrairVencimentoPdf(await data.arrayBuffer());
+            if (venc) encontrado[r.mov_id] = venc;
+          } catch {
+            /* PDF ilegível → mantém o vencimento do sistema */
+          }
+        }
+      });
+      await Promise.all(workers);
+      if (cancelled) return;
+      setVencPdf(encontrado);
+      setScanPdfPronto(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, aplicado, janela]);
+
+  /** Linhas com o vencimento reconciliado (PDF tem prioridade sobre o sistema). */
+  const rowsReconciliadas = useMemo(() => {
+    return rows.map((r) => {
+      const doPdf = vencPdf[r.mov_id];
+      if (!doPdf || doPdf === r.data_vencimento) return r;
+      return {
+        ...r,
+        data_vencimento: doPdf,
+        venc_sistema: r.data_vencimento,
+        venc_origem: "pdf" as const,
+      };
+    });
+  }, [rows, vencPdf]);
+
   // Aplicar filtros + ordenação
   const baseRows = useMemo(() => {
     // Enquanto o usuário não confirmar os filtros, nada é listado
     if (!aplicado) return [] as AnaliseRow[];
+    // Aguarda a leitura dos PDFs para não esconder empresas com vencimento defasado
+    if (!scanPdfPronto) return [] as AnaliseRow[];
     const { periodo: filtroPeriodo, inicio, fim: fimStr, status: filtroStatus } = aplicado;
     if (!filtroPeriodo) return [] as AnaliseRow[];
     if (filtroPeriodo === "custom" && (!inicio || !fimStr)) return [] as AnaliseRow[];
     const ini = parseLocalDate(inicio);
     const fim = parseLocalDate(fimStr);
-    return rows.filter((r) => {
+    return rowsReconciliadas.filter((r) => {
       const venc = parseLocalDate(r.data_vencimento);
       // filtro período
       if (filtroPeriodo && filtroPeriodo !== "todos") {
@@ -328,7 +449,8 @@ export function PrevisaoFinanceira() {
       }
       return true;
     });
-  }, [rows, aplicado, hoje]);
+  }, [rowsReconciliadas, aplicado, hoje, scanPdfPronto]);
+
 
   // Aplicar ordenação
   const filteredRows = useMemo(() => {
@@ -483,7 +605,9 @@ export function PrevisaoFinanceira() {
     };
   }, [filteredRows, analises, hoje]);
 
-  const carregando = !!aplicado && (!progresso || progresso.done < progresso.total);
+  const carregando =
+    !!aplicado && (!scanPdfPronto || !progresso || progresso.done < progresso.total);
+
 
   function rowStatus(r: AnaliseRow): { label: string; variant: "default" | "destructive" | "secondary" | "outline"; cls: string } {
     const venc = parseLocalDate(r.data_vencimento);
@@ -689,7 +813,18 @@ export function PrevisaoFinanceira() {
                           {a?.loading ? "…" : a && a.totalGeral !== 0 ? BRL(a.totalGeral) : "—"}
                         </td>
                         <td className="px-3 py-2 align-top">
-                          {r.data_vencimento ? formatDateBR(r.data_vencimento) : "—"}
+                          <div className="flex flex-col gap-0.5">
+                            <span>{r.data_vencimento ? formatDateBR(r.data_vencimento) : "—"}</span>
+                            {r.venc_origem === "pdf" && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] py-0 px-1.5 w-fit border-primary/40 text-primary"
+                                title={`Sistema: ${r.venc_sistema ? formatDateBR(r.venc_sistema) : "—"}`}
+                              >
+                                Conforme nota
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 py-2 align-top">
                           {r.possui_prorrogacao && r.data_prorrogacao ? (
@@ -699,10 +834,20 @@ export function PrevisaoFinanceira() {
                                 Prorrogado
                               </Badge>
                             </div>
+                          ) : r.venc_origem === "pdf" && r.venc_sistema ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-muted-foreground text-[11px]">
+                                Sistema: {formatDateBR(r.venc_sistema)}
+                              </span>
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 w-fit border-warning/40 text-warning">
+                                Divergente
+                              </Badge>
+                            </div>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
+
                         <td className="px-3 py-2 align-top">
                           <Badge variant="outline" className={cn("text-[11px]", st.cls)}>
                             {st.label}

@@ -193,6 +193,43 @@ export async function extrairTextoPdf(buffer: ArrayBuffer): Promise<string> {
 }
 
 /**
+ * Extrai a "Data de Vencimento" declarada no bloco "Descrição do Serviço"
+ * da NFS-e (ex.: "Data de Vencimento: 01/08/2026") e devolve em ISO (YYYY-MM-DD).
+ * Também aceita variações como "Vencimento: 01/08/26" ou "Venc.: 01/08/2026".
+ */
+export function extrairVencimentoDaDescricao(texto: string): string | null {
+  if (!texto) return null;
+  const limpo = texto.replace(/\s+/g, " ");
+  const regexes = [
+    /data\s*d[eo]\s*vencimento\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{2,4})/i,
+    /vencimento\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{2,4})/i,
+    /venc\.?\s*[:\-]?\s*(\d{2})[\/.-](\d{2})[\/.-](\d{2,4})/i,
+  ];
+  for (const re of regexes) {
+    const m = limpo.match(re);
+    if (!m) continue;
+    const dia = Number(m[1]);
+    const mes = Number(m[2]);
+    let ano = Number(m[3]);
+    if (ano < 100) ano += 2000;
+    if (dia < 1 || dia > 31 || mes < 1 || mes > 12 || ano < 2000 || ano > 2100) continue;
+    return `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+  }
+  return null;
+}
+
+/** Baixa/analisa um PDF e devolve o vencimento declarado na descrição do serviço. */
+export async function extrairVencimentoPdf(buffer: ArrayBuffer): Promise<string | null> {
+  try {
+    const texto = await extrairTextoPdf(buffer);
+    return extrairVencimentoDaDescricao(texto);
+  } catch {
+    return null;
+  }
+}
+
+
+/**
  * Lê um PDF (NFS-e Samel) e extrai os totais de Enfermaria / Apartamento / Inclusões
  * a partir do bloco "Descrição do Serviço".
  *
