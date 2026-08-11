@@ -119,24 +119,41 @@ export function PrevisaoFinanceira() {
   const { data: movs = [] } = useQuery({
     queryKey: ["prev-fin-movs"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select(
-          "id, empresa_id, mes_referencia, periodo, data_envio_nota, data_vencimento, dentro_prazo, aguardando_nota_em, possui_prorrogacao, data_prorrogacao",
-        );
-      if (error) throw error;
-      return data ?? [];
+      // Paginado: o backend limita cada requisição a 1000 linhas
+      const out: any[] = [];
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("financeiro_movimentacoes")
+          .select(
+            "id, empresa_id, mes_referencia, periodo, data_envio_nota, data_vencimento, dentro_prazo, aguardando_nota_em, possui_prorrogacao, data_prorrogacao",
+          )
+          .order("id")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        out.push(...(data ?? []));
+        if (!data || data.length < PAGE) break;
+      }
+      return out;
     },
   });
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["prev-fin-anexos"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("anexos_financeiro")
-        .select("financeiro_movimentacao_id, mime_type, nome_arquivo, storage_path, origem");
-      if (error) throw error;
-      return (data ?? []).filter((a: any) => a.origem !== "retroativo");
+      const out: any[] = [];
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("anexos_financeiro")
+          .select("financeiro_movimentacao_id, mime_type, nome_arquivo, storage_path, origem")
+          .order("id")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        out.push(...(data ?? []));
+        if (!data || data.length < PAGE) break;
+      }
+      return out.filter((a: any) => a.origem !== "retroativo");
     },
   });
 
