@@ -98,8 +98,31 @@ export function aplicarLayoutSamel(
   });
 
   ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: last } };
+
+  // Logos institucionais no canto superior direito
+  try {
+    const wb = ws.workbook;
+    if (wb?.addImage) {
+      const idMarca = wb.addImage({ base64: LOGO_SAMEL_MARCA, extension: "png" });
+      const idSelo = wb.addImage({ base64: LOGO_SAMEL_SELO, extension: "png" });
+      ws.addImage(idMarca, {
+        tl: { col: Math.max(0, last - 2.6), row: 0.15 },
+        ext: { width: 82, height: 70 },
+        editAs: "oneCell",
+      });
+      ws.addImage(idSelo, {
+        tl: { col: Math.max(0, last - 1.3), row: 0.05 },
+        ext: { width: 92, height: 82 },
+        editAs: "oneCell",
+      });
+    }
+  } catch {
+    // exportação segue sem logos caso a lib não suporte imagens
+  }
+
   return 6;
 }
+
 
 /** Estiliza uma linha de dados no padrão (zebra + bordas suaves). */
 export function estilizarLinhaSamel(row: any, cols: ColunaPadrao[], index: number) {
