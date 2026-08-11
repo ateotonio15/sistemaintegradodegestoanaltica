@@ -88,6 +88,27 @@ function diffDias(d: Date, base: Date): number {
   return Math.round((d.getTime() - base.getTime()) / 86400000);
 }
 
+/**
+ * Registros antigos podem ter sido gravados na competência anterior, embora a
+ * nota pertença ao ciclo do mês em que foi enviada. Nesses casos preservamos o
+ * dia configurado e usamos o mês real do envio (ex.: 10/07 + envio em agosto
+ * passa a vencer em 10/08).
+ */
+function calcularVencimentoEfetivo(
+  dataVencimento: string | null,
+  dataEnvioNota: string | null,
+): string | null {
+  if (!dataVencimento || !dataEnvioNota) return dataVencimento;
+  const venc = parseLocalDate(dataVencimento);
+  const envio = parseLocalDate(dataEnvioNota);
+  if (!venc || !envio || venc >= envio || (venc.getFullYear() === envio.getFullYear() && venc.getMonth() === envio.getMonth())) {
+    return dataVencimento;
+  }
+  const ultimoDia = new Date(envio.getFullYear(), envio.getMonth() + 1, 0).getDate();
+  const dia = Math.min(venc.getDate(), ultimoDia);
+  return `${envio.getFullYear()}-${String(envio.getMonth() + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+}
+
 export function PrevisaoFinanceira() {
   type PeriodoOpt = "" | "todos" | "hoje" | "7" | "15" | "30" | "custom";
   // "Data específica" é a opção padrão ao abrir a aba
@@ -215,7 +236,7 @@ export function PrevisaoFinanceira() {
         empresa_id: m.empresa_id,
         empresa_nome: emp.nome ?? "—",
         competencia: m.mes_referencia,
-        data_vencimento: m.data_vencimento,
+        data_vencimento: calcularVencimentoEfetivo(m.data_vencimento, m.data_envio_nota),
         data_prorrogacao: m.data_prorrogacao,
         possui_prorrogacao: !!m.possui_prorrogacao,
         nota_emitida: status === "Nota emitida" || status === "Enviada",
