@@ -235,7 +235,7 @@ export function PrevisaoFinanceira() {
 
   // Lazy-load analysis for each row
   useEffect(() => {
-    if (!filtroPeriodo) return;
+    if (!aplicado) return;
     let cancelled = false;
     (async () => {
       const { analisarExcelFinanceiroPorPagador } = await import(
@@ -319,7 +319,7 @@ export function PrevisaoFinanceira() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, filtroPeriodo]);
+  }, [rows, aplicado]);
 
   const hoje = useMemo(() => {
     const d = new Date();
@@ -329,11 +329,13 @@ export function PrevisaoFinanceira() {
 
   // Aplicar filtros + ordenação
   const filteredRows = useMemo(() => {
-    // Enquanto o usuário não selecionar um período, nada é listado
+    // Enquanto o usuário não confirmar os filtros, nada é listado
+    if (!aplicado) return [];
+    const { periodo: filtroPeriodo, inicio, fim: fimStr, status: filtroStatus } = aplicado;
     if (!filtroPeriodo) return [];
-    if (filtroPeriodo === "custom" && (!dataInicio || !dataFim)) return [];
-    const ini = parseLocalDate(dataInicio);
-    const fim = parseLocalDate(dataFim);
+    if (filtroPeriodo === "custom" && (!inicio || !fimStr)) return [];
+    const ini = parseLocalDate(inicio);
+    const fim = parseLocalDate(fimStr);
     const list = rows.filter((r) => {
       const venc = parseLocalDate(r.data_vencimento);
       // filtro período
@@ -372,7 +374,7 @@ export function PrevisaoFinanceira() {
       return da - db;
     });
     return list;
-  }, [rows, filtroPeriodo, dataInicio, dataFim, filtroStatus, ordenacao, analises, hoje]);
+  }, [rows, aplicado, ordenacao, analises, hoje]);
 
   // KPIs respeitam o período escolhido; antes disso permanecem zerados.
   const kpis = useMemo(() => {
@@ -479,6 +481,16 @@ export function PrevisaoFinanceira() {
               <SelectItem value="empresa">Ordenar: Empresa A-Z</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            size="sm"
+            className="h-8 text-xs"
+            disabled={!filtroPeriodo || (filtroPeriodo === "custom" && (!dataInicio || !dataFim))}
+            onClick={() =>
+              setAplicado({ periodo: filtroPeriodo, inicio: dataInicio, fim: dataFim, status: filtroStatus })
+            }
+          >
+            Confirmar
+          </Button>
           <span className="text-xs text-muted-foreground ml-auto">
             <strong className="text-foreground">{filteredRows.length}</strong> registro{filteredRows.length === 1 ? "" : "s"}
           </span>
@@ -608,9 +620,11 @@ export function PrevisaoFinanceira() {
                 {filteredRows.length === 0 && (
                   <tr>
                     <td colSpan={15} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                      {!filtroPeriodo
-                        ? "Selecione um período para visualizar os registros."
-                        : "Nenhum registro para os filtros selecionados."}
+                      {!aplicado
+                        ? "Selecione o período e clique em Confirmar para visualizar os registros."
+                        : aplicado.status && aplicado.status !== "todos"
+                          ? "Nenhum registro para os filtros selecionados. Dica: o filtro de Status pode estar excluindo notas já vencidas — tente Status: Todos."
+                          : "Nenhum registro para os filtros selecionados."}
                     </td>
                   </tr>
                 )}
