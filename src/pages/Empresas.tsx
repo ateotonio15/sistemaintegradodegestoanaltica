@@ -158,6 +158,33 @@ export default function Empresas() {
     }
   };
 
+  const handleGerarPrimeiraMensalidade = async () => {
+    if (gerandoPrimeira) return;
+    if (!confirm("Gerar a Primeira Mensalidade (Financeiro) e a primeira movimentação do mês dos contratos implantados nesta competência?")) return;
+    setGerandoPrimeira(true);
+    try {
+      const res = await gerarPrimeiraMensalidade();
+      toast({
+        title:
+          res.movimentacoes + res.primeirasMensalidades > 0
+            ? "Primeira Mensalidade gerada"
+            : "Nada a gerar",
+        description:
+          res.empresas === 0
+            ? "Nenhum contrato implantado nesta competência."
+            : `${res.empresas} contrato(s) novo(s): ${res.primeirasMensalidades} primeira(s) mensalidade(s) e ${res.movimentacoes} movimentação(ões) criadas.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-recem-implantados"] });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar Primeira Mensalidade", description: e?.message, variant: "destructive" });
+    } finally {
+      setGerandoPrimeira(false);
+    }
+  };
+
   const handleRevisarEmpresas = async () => {
     if (loadingRevisao) return;
     if (!confirm("Deseja revisar todas as empresas e movimentações? Isso corrige inconsistências e remove movimentações duplicadas (mesma empresa + mês + período).")) return;
