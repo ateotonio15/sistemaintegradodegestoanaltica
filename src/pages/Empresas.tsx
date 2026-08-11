@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { gerarPrimeiraMensalidade } from "@/lib/primeira-mensalidade";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,6 +125,7 @@ export default function Empresas() {
   const [importingAnexo, setImportingAnexo] = useState(false);
   const [loadingRevisao, setLoadingRevisao] = useState(false);
   const [gerandoMov, setGerandoMov] = useState(false);
+  const [gerandoPrimeira, setGerandoPrimeira] = useState(false);
   const [respLockOpen, setRespLockOpen] = useState(false);
   const [respUnlocked, setRespUnlocked] = useState(false);
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
@@ -155,6 +157,33 @@ export default function Empresas() {
       toast({ title: "Erro ao gerar movimentações", description: e?.message, variant: "destructive" });
     } finally {
       setGerandoMov(false);
+    }
+  };
+
+  const handleGerarPrimeiraMensalidade = async () => {
+    if (gerandoPrimeira) return;
+    if (!confirm("Gerar a Primeira Mensalidade (Financeiro) e a primeira movimentação do mês dos contratos implantados nesta competência?")) return;
+    setGerandoPrimeira(true);
+    try {
+      const res = await gerarPrimeiraMensalidade();
+      toast({
+        title:
+          res.movimentacoes + res.primeirasMensalidades > 0
+            ? "Primeira Mensalidade gerada"
+            : "Nada a gerar",
+        description:
+          res.empresas === 0
+            ? "Nenhum contrato implantado nesta competência."
+            : `${res.empresas} contrato(s) novo(s): ${res.primeirasMensalidades} primeira(s) mensalidade(s) e ${res.movimentacoes} movimentação(ões) criadas.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-recem-implantados"] });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar Primeira Mensalidade", description: e?.message, variant: "destructive" });
+    } finally {
+      setGerandoPrimeira(false);
     }
   };
 
@@ -852,6 +881,18 @@ export default function Empresas() {
                 <Button variant="outline" className="rounded-lg" onClick={handleGerarMovimentacoes} disabled={gerandoMov}>
                   <RefreshCw className={cn("mr-2 h-4 w-4", gerandoMov && "animate-spin")} />
                   {gerandoMov ? "Gerando..." : "Gerar Movimentação"}
+                </Button>
+              )}
+              {canFullEdit && (
+                <Button
+                  variant="default"
+                  className="rounded-lg"
+                  onClick={handleGerarPrimeiraMensalidade}
+                  disabled={gerandoPrimeira}
+                  title="Gera a Primeira Mensalidade no Financeiro e a primeira movimentação do mês para contratos novos"
+                >
+                  <RefreshCw className={cn("mr-2 h-4 w-4", gerandoPrimeira && "animate-spin")} />
+                  {gerandoPrimeira ? "Gerando..." : "Gerar 1ª Mensalidade"}
                 </Button>
               )}
               <DropdownMenu>
