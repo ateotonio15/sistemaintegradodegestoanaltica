@@ -23,6 +23,7 @@ import {
   AlertOctagon,
   Timer,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -278,93 +279,7 @@ export function PrevisaoFinanceira() {
     return out;
   }, [movs, anexosPorMov, empresaMap, pagadoresPorEmpresa]);
 
-  // Lazy-load analysis for each row
-  useEffect(() => {
-    if (!aplicado) return;
-    let cancelled = false;
-    (async () => {
-      const { analisarExcelFinanceiroPorPagador } = await import(
-        "@/lib/excel-analysis-utils"
-      );
-      // shared download cache
-      const bufCache = new Map<string, ArrayBuffer>();
 
-      for (const r of rows) {
-        if (cancelled) return;
-        if (analises[r.rowKey]) continue;
-        if (r.xlsPaths.length === 0) {
-          setAnalises((prev) => ({
-            ...prev,
-            [r.rowKey]: { ...EMPTY_ANALISE, erro: "Sem planilha anexada" },
-          }));
-          continue;
-        }
-        setAnalises((prev) => ({
-          ...prev,
-          [r.rowKey]: { ...EMPTY_ANALISE, loading: true },
-        }));
-        try {
-          let enfBeneficiarios = 0;
-          let enfTotal = 0;
-          let aptBeneficiarios = 0;
-          let aptTotal = 0;
-          let inclusoesTotal = 0;
-          let exclusoesTotal = 0;
-          const detalhes: any[] = [];
-          for (const path of r.xlsPaths) {
-            let buf = bufCache.get(path);
-            if (!buf) {
-              const { data, error } = await supabase.storage
-                .from("anexos-financeiro")
-                .download(path);
-              if (error) throw error;
-              buf = await data.arrayBuffer();
-              bufCache.set(path, buf);
-            }
-            const res = await analisarExcelFinanceiroPorPagador(
-              buf,
-              r.filtroPagador
-                ? { cnpj: r.filtroPagador.cnpj ?? "", nome: r.filtroPagador.nome ?? "" }
-                : undefined,
-            );
-            enfBeneficiarios += res.enfermaria.beneficiarios;
-            enfTotal += res.enfermaria.total;
-            aptBeneficiarios += res.apartamento.beneficiarios;
-            aptTotal += res.apartamento.total;
-            inclusoesTotal += res.inclusoes?.total || 0;
-            exclusoesTotal += res.exclusoes?.total || 0;
-            detalhes.push(res);
-          }
-          if (cancelled) return;
-          const totalGeral = enfTotal + aptTotal + inclusoesTotal + exclusoesTotal;
-          setAnalises((prev) => ({
-            ...prev,
-            [r.rowKey]: {
-              loading: false,
-              enfBeneficiarios,
-              enfTotal,
-              aptBeneficiarios,
-              aptTotal,
-              inclusoesTotal,
-              exclusoesTotal,
-              totalGeral,
-              detalhe: detalhes,
-            },
-          }));
-        } catch (e: any) {
-          if (cancelled) return;
-          setAnalises((prev) => ({
-            ...prev,
-            [r.rowKey]: { ...EMPTY_ANALISE, erro: e?.message || "Falha ao analisar planilha" },
-          }));
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, aplicado]);
 
   const hoje = useMemo(() => {
     const d = new Date();
@@ -373,15 +288,15 @@ export function PrevisaoFinanceira() {
   }, []);
 
   // Aplicar filtros + ordenação
-  const filteredRows = useMemo(() => {
+  const baseRows = useMemo(() => {
     // Enquanto o usuário não confirmar os filtros, nada é listado
-    if (!aplicado) return [];
+    if (!aplicado) return [] as AnaliseRow[];
     const { periodo: filtroPeriodo, inicio, fim: fimStr, status: filtroStatus } = aplicado;
-    if (!filtroPeriodo) return [];
-    if (filtroPeriodo === "custom" && (!inicio || !fimStr)) return [];
+    if (!filtroPeriodo) return [] as AnaliseRow[];
+    if (filtroPeriodo === "custom" && (!inicio || !fimStr)) return [] as AnaliseRow[];
     const ini = parseLocalDate(inicio);
     const fim = parseLocalDate(fimStr);
-    const list = rows.filter((r) => {
+    return rows.filter((r) => {
       const venc = parseLocalDate(r.data_vencimento);
       // filtro período
       if (filtroPeriodo && filtroPeriodo !== "todos") {
@@ -406,7 +321,11 @@ export function PrevisaoFinanceira() {
       }
       return true;
     });
+  }, [rows, aplicado, hoje]);
 
+  // Aplicar ordenação
+  const filteredRows = useMemo(() => {
+    const list = [...baseRows];
     list.sort((a, b) => {
       if (ordenacao === "empresa") return a.empresa_nome.localeCompare(b.empresa_nome, "pt-BR");
       if (ordenacao === "valor") {
@@ -419,7 +338,118 @@ export function PrevisaoFinanceira() {
       return da - db;
     });
     return list;
-  }, [rows, aplicado, ordenacao, analises, hoje]);
+  }, [baseRows, ordenacao, analises]);
+
+  // Carrega TODAS as análises do período de uma só vez (em paralelo) e
+  // só libera a tabela quando tudo estiver pronto.
+  const [progresso, setProgresso] = useState<{ done: number; total: number } | null>(null);
+
+  useEffect(() => {
+    if (!aplicado) {
+      setProgresso(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const alvos = baseRows;
+      setAnalises({});
+      setProgresso({ done: 0, total: alvos.length });
+      if (alvos.length === 0) return;
+
+      const { analisarExcelFinanceiroPorPagador } = await import(
+        "@/lib/excel-analysis-utils"
+      );
+      const bufCache = new Map<string, Promise<ArrayBuffer>>();
+      const resultado: Record<string, AnaliseDado> = {};
+      let done = 0;
+
+      const baixar = (path: string) => {
+        let p = bufCache.get(path);
+        if (!p) {
+          p = (async () => {
+            const { data, error } = await supabase.storage
+              .from("anexos-financeiro")
+              .download(path);
+            if (error) throw error;
+            return await data.arrayBuffer();
+          })();
+          bufCache.set(path, p);
+        }
+        return p;
+      };
+
+      const processar = async (r: AnaliseRow) => {
+        try {
+          if (r.xlsPaths.length === 0) {
+            resultado[r.rowKey] = { ...EMPTY_ANALISE, erro: "Sem planilha anexada" };
+            return;
+          }
+          let enfBeneficiarios = 0;
+          let enfTotal = 0;
+          let aptBeneficiarios = 0;
+          let aptTotal = 0;
+          let inclusoesTotal = 0;
+          let exclusoesTotal = 0;
+          const detalhes: any[] = [];
+          for (const path of r.xlsPaths) {
+            const buf = await baixar(path);
+            const res = await analisarExcelFinanceiroPorPagador(
+              buf,
+              r.filtroPagador
+                ? { cnpj: r.filtroPagador.cnpj ?? "", nome: r.filtroPagador.nome ?? "" }
+                : undefined,
+            );
+            enfBeneficiarios += res.enfermaria.beneficiarios;
+            enfTotal += res.enfermaria.total;
+            aptBeneficiarios += res.apartamento.beneficiarios;
+            aptTotal += res.apartamento.total;
+            inclusoesTotal += res.inclusoes?.total || 0;
+            exclusoesTotal += res.exclusoes?.total || 0;
+            detalhes.push(res);
+          }
+          resultado[r.rowKey] = {
+            loading: false,
+            enfBeneficiarios,
+            enfTotal,
+            aptBeneficiarios,
+            aptTotal,
+            inclusoesTotal,
+            exclusoesTotal,
+            totalGeral: enfTotal + aptTotal + inclusoesTotal + exclusoesTotal,
+            detalhe: detalhes,
+          };
+        } catch (e: any) {
+          resultado[r.rowKey] = {
+            ...EMPTY_ANALISE,
+            erro: e?.message || "Falha ao analisar planilha",
+          };
+        } finally {
+          done++;
+          if (!cancelled) setProgresso({ done, total: alvos.length });
+        }
+      };
+
+      // Concorrência limitada para não saturar a rede
+      const CONC = 6;
+      let cursor = 0;
+      const workers = Array.from({ length: Math.min(CONC, alvos.length) }, async () => {
+        while (!cancelled) {
+          const i = cursor++;
+          if (i >= alvos.length) break;
+          await processar(alvos[i]);
+        }
+      });
+      await Promise.all(workers);
+      if (cancelled) return;
+      setAnalises(resultado);
+      setProgresso({ done: alvos.length, total: alvos.length });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseRows, aplicado]);
+
 
   // KPIs respeitam o período escolhido; antes disso permanecem zerados.
   const kpis = useMemo(() => {
@@ -445,6 +475,8 @@ export function PrevisaoFinanceira() {
       comProrrogacao,
     };
   }, [filteredRows, analises, hoje]);
+
+  const carregando = !!aplicado && (!progresso || progresso.done < progresso.total);
 
   function rowStatus(r: AnaliseRow): { label: string; variant: "default" | "destructive" | "secondary" | "outline"; cls: string } {
     const venc = parseLocalDate(r.data_vencimento);
@@ -543,11 +575,30 @@ export function PrevisaoFinanceira() {
       </CardHeader>
 
       <CardContent className="px-0 pb-2">
-        {rows.length === 0 ? (
+        {carregando ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium">Carregando previsão financeira…</p>
+            <p className="text-xs text-muted-foreground">
+              {progresso && progresso.total > 0
+                ? `Analisando planilhas ${progresso.done} de ${progresso.total}`
+                : "Buscando movimentações e anexos"}
+            </p>
+            {progresso && progresso.total > 0 && (
+              <div className="h-1.5 w-64 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${Math.round((progresso.done / progresso.total) * 100)}%` }}
+                />
+              </div>
+            )}
+          </div>
+        ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground py-10 text-center">
             Nenhuma empresa com vencimento encontrada para previsão financeira.
           </p>
         ) : (
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
