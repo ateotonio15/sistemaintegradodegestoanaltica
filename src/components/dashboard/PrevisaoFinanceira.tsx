@@ -373,15 +373,15 @@ export function PrevisaoFinanceira() {
   }, []);
 
   // Aplicar filtros + ordenação
-  const filteredRows = useMemo(() => {
+  const baseRows = useMemo(() => {
     // Enquanto o usuário não confirmar os filtros, nada é listado
-    if (!aplicado) return [];
+    if (!aplicado) return [] as AnaliseRow[];
     const { periodo: filtroPeriodo, inicio, fim: fimStr, status: filtroStatus } = aplicado;
-    if (!filtroPeriodo) return [];
-    if (filtroPeriodo === "custom" && (!inicio || !fimStr)) return [];
+    if (!filtroPeriodo) return [] as AnaliseRow[];
+    if (filtroPeriodo === "custom" && (!inicio || !fimStr)) return [] as AnaliseRow[];
     const ini = parseLocalDate(inicio);
     const fim = parseLocalDate(fimStr);
-    const list = rows.filter((r) => {
+    return rows.filter((r) => {
       const venc = parseLocalDate(r.data_vencimento);
       // filtro período
       if (filtroPeriodo && filtroPeriodo !== "todos") {
@@ -406,7 +406,11 @@ export function PrevisaoFinanceira() {
       }
       return true;
     });
+  }, [rows, aplicado, hoje]);
 
+  // Aplicar ordenação
+  const filteredRows = useMemo(() => {
+    const list = [...baseRows];
     list.sort((a, b) => {
       if (ordenacao === "empresa") return a.empresa_nome.localeCompare(b.empresa_nome, "pt-BR");
       if (ordenacao === "valor") {
@@ -419,7 +423,8 @@ export function PrevisaoFinanceira() {
       return da - db;
     });
     return list;
-  }, [rows, aplicado, ordenacao, analises, hoje]);
+  }, [baseRows, ordenacao, analises]);
+
 
   // KPIs respeitam o período escolhido; antes disso permanecem zerados.
   const kpis = useMemo(() => {
