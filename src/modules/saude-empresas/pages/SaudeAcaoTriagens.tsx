@@ -121,91 +121,123 @@ export default function SaudeAcaoTriagens() {
 
   const editRow = (t: Triagem) => { setEdit(t); setBioOpen(true); };
 
+  const kpiTiles = [
+    { label: "Total triagens", value: kpis.total, icon: Users, tone: "neutral" as const, show: true },
+    { label: "PA Normal", value: `${kpis.paNormalPct}%`, icon: HeartPulse, tone: "success" as const, show: temPa },
+    { label: "PA Alterada", value: `${kpis.paAltPct}%`, icon: AlertTriangle, tone: kpis.paAltPct > 0 ? ("danger" as const) : ("neutral" as const), show: temPa },
+    { label: "Glicemia Normal", value: `${kpis.giNormalPct}%`, icon: Droplets, tone: "success" as const, show: temGli },
+    { label: "Glicemia Alterada", value: `${kpis.giAltPct}%`, icon: AlertTriangle, tone: kpis.giAltPct > 0 ? ("danger" as const) : ("neutral" as const), show: temGli },
+    { label: "Bioimpedâncias", value: kpis.bioCount, icon: Scale, tone: "neutral" as const, show: temBio },
+  ].filter((k) => k.show);
+
+  const toneText = (t: string) =>
+    t === "success" ? "text-primary" : t === "danger" ? "text-destructive" : "text-foreground";
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="container mx-auto px-4 py-6 space-y-6 animate-fade-in">
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to={`/saude-empresas/empresa/${acao.empresa_id}`}><ArrowLeft className="h-5 w-5" /></Link>
-          </Button>
-          <div>
-            <div className="text-xs text-muted-foreground">
-              <Link to="/saude-empresas" className="hover:underline">Saúde nas Empresas</Link> ·{" "}
-              <Link to={`/saude-empresas/empresa/${acao.empresa_id}`} className="hover:underline">
-                {acao.empresa?.nome}
-              </Link>
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {acao.empresa?.nome} — {formatDateBR(acao.data_acao)}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              {temPa && <Badge variant="secondary">Pressão Arterial</Badge>}
-              {temGli && <Badge variant="secondary">Glicemia</Badge>}
-              {temBio && <Badge variant="secondary">Bioimpedância</Badge>}
-              <span className="text-xs text-muted-foreground">· {triagens.length} triagem(ns)</span>
+      <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 md:p-6">
+        <div className="absolute top-0 right-0 h-40 w-40 -mr-16 -mt-16 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+        <div className="relative flex items-start justify-between flex-wrap gap-4">
+          <div className="flex items-start gap-3 min-w-0">
+            <Button variant="ghost" size="icon" asChild className="mt-1">
+              <Link to={`/saude-empresas/empresa/${acao.empresa_id}`}><ArrowLeft className="h-5 w-5" /></Link>
+            </Button>
+            <div className="min-w-0">
+              <p className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-1">
+                Saúde nas Empresas · Triagens
+              </p>
+              <div className="text-xs text-muted-foreground mb-1">
+                <Link to="/saude-empresas" className="hover:underline">Saúde nas Empresas</Link> ·{" "}
+                <Link to={`/saude-empresas/empresa/${acao.empresa_id}`} className="hover:underline">
+                  {acao.empresa?.nome}
+                </Link>
+              </div>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight break-words">
+                {acao.empresa?.nome} — {formatDateBR(acao.data_acao)}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {temPa && <Badge variant="secondary">Pressão Arterial</Badge>}
+                {temGli && <Badge variant="secondary">Glicemia</Badge>}
+                {temBio && <Badge variant="secondary">Bioimpedância</Badge>}
+                <span className="text-xs text-muted-foreground">· {triagens.length} triagem(ns)</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />Atualizar
-          </Button>
-          <Button variant="outline" onClick={() => exportTriagensExcel(acao, triagens)}>
-            <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
-          </Button>
-          <Button variant="outline" onClick={() => exportRelatorioPptx(acao, triagens)}>
-            <FileType className="h-4 w-4 mr-1" />PowerPoint
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />Atualizar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportTriagensExcel(acao, triagens)}>
+              <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
+            </Button>
+            <Button size="sm" onClick={() => exportRelatorioPptx(acao, triagens)}>
+              <FileType className="h-4 w-4 mr-1" />PowerPoint
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <MetricCard icon={Users} label="Total triagens" value={kpis.total} />
-        {temPa && <MetricCard icon={HeartPulse} label="PA Normal" value={`${kpis.paNormalPct}%`} tone="success" />}
-        {temPa && <MetricCard icon={AlertTriangle} label="PA Alterada" value={`${kpis.paAltPct}%`} tone={kpis.paAltPct > 0 ? "danger" : "default"} />}
-        {temGli && <MetricCard icon={Droplets} label="Glicemia Normal" value={`${kpis.giNormalPct}%`} tone="success" />}
-        {temGli && <MetricCard icon={AlertTriangle} label="Glicemia Alterada" value={`${kpis.giAltPct}%`} tone={kpis.giAltPct > 0 ? "danger" : "default"} />}
-        {temBio && <MetricCard icon={Scale} label="Bioimpedâncias" value={kpis.bioCount} />}
+        {kpiTiles.map(({ label, value, icon: Icon, tone }) => (
+          <div
+            key={label}
+            className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
+          >
+            <div className="absolute top-0 right-0 h-24 w-24 -mr-12 -mt-12 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+            <div className="relative flex items-center justify-between gap-2">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+              <Icon className="h-4 w-4 text-primary/70" />
+            </div>
+            <h3 className={`relative mt-2 text-2xl md:text-3xl font-bold tracking-tight ${toneText(tone)}`}>{value}</h3>
+          </div>
+        ))}
       </div>
 
       {/* Gráficos */}
       {(temPa || temGli) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {temPa && (
-            <Card>
-              <CardHeader><CardTitle>Pressão Arterial</CardTitle></CardHeader>
-              <CardContent>
+            <section className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 md:px-6 py-3 border-b border-border flex items-center gap-2">
+                <HeartPulse className="h-4 w-4 text-primary" />
+                <h2 className="text-xs md:text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pressão Arterial</h2>
+              </div>
+              <div className="p-4">
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={paData} margin={{ bottom: 20 }}>
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={60} interval={0} />
                     <YAxis allowDecimals={false} />
-                    <Tooltip />
+                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                     <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                       {paData.map((d) => <Cell key={d.name} fill={PA_COLORS[d.name]} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           )}
           {temGli && (
-            <Card>
-              <CardHeader><CardTitle>Glicemia</CardTitle></CardHeader>
-              <CardContent>
+            <section className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="px-4 md:px-6 py-3 border-b border-border flex items-center gap-2">
+                <Droplets className="h-4 w-4 text-primary" />
+                <h2 className="text-xs md:text-sm font-semibold uppercase tracking-wider text-muted-foreground">Glicemia</h2>
+              </div>
+              <div className="p-4">
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={gliData} margin={{ bottom: 20 }}>
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={60} interval={0} />
                     <YAxis allowDecimals={false} />
-                    <Tooltip />
+                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                     <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                       {gliData.map((d) => <Cell key={d.name} fill={GLI_COLORS[d.name]} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           )}
         </div>
       )}
@@ -222,9 +254,14 @@ export default function SaudeAcaoTriagens() {
       )}
 
       {/* Tabela */}
-      <Card>
-        <CardHeader><CardTitle>Triagens registradas ({triagens.length})</CardTitle></CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+      <section className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="px-4 md:px-6 py-3 border-b border-border flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          <h2 className="text-xs md:text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Triagens registradas ({triagens.length})
+          </h2>
+        </div>
+        <div className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Carregando...</div>
           ) : triagens.length === 0 ? (
