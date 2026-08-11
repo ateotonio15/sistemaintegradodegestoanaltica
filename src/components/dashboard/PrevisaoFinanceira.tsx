@@ -241,6 +241,9 @@ export function PrevisaoFinanceira() {
       const xlsPaths = anex
         .filter((a) => isXlsAnexo(a) && a.storage_path)
         .map((a) => a.storage_path as string);
+      const pdfPaths = anex
+        .filter((a) => isPdfAnexo(a) && a.storage_path)
+        .map((a) => a.storage_path as string);
       const pags = pagadoresPorEmpresa.get(m.empresa_id) ?? [];
 
       const baseRow: Omit<AnaliseRow, "rowKey" | "pagador_nome" | "pagador_cnpj" | "pagador_id" | "filtroPagador"> = {
@@ -249,11 +252,14 @@ export function PrevisaoFinanceira() {
         empresa_nome: emp.nome ?? "—",
         competencia: m.mes_referencia,
         data_vencimento: calcularVencimentoEfetivo(m.data_vencimento, m.data_envio_nota),
+        data_envio_nota: m.data_envio_nota ?? null,
         data_prorrogacao: m.data_prorrogacao,
         possui_prorrogacao: !!m.possui_prorrogacao,
         nota_emitida: status === "Nota emitida" || status === "Enviada",
         xlsPaths,
+        pdfPaths,
       };
+
 
       if (pags.length === 0) {
         out.push({
