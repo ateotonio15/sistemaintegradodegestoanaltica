@@ -164,10 +164,10 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
         corrida ?? {
           data: new Date().toISOString().slice(0, 10),
           cancelada: false,
-          valor: 0,
+          valor: null as any,
           tem_reembolso: false,
-          valor_reembolso: 0,
-          reembolso: 0,
+          valor_reembolso: null as any,
+          reembolso: null as any,
           responsavel: meuNome,
         }
       );
@@ -178,7 +178,12 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
 
   const save = async () => {
     if (!form.data || !form.colaborador) return;
-    await upsert.mutateAsync(form);
+    await upsert.mutateAsync({
+      ...form,
+      valor: Number(form.valor ?? 0),
+      valor_reembolso: Number(form.valor_reembolso ?? 0),
+      reembolso: Number(form.reembolso ?? form.valor_reembolso ?? 0),
+    });
     onOpenChange(false);
   };
 
@@ -294,7 +299,14 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div>
             <Label>Valor (R$)</Label>
-            <Input type="number" step="0.01" value={form.valor ?? 0} onChange={(e) => set("valor", Number(e.target.value))} />
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="0,00"
+              value={form.valor === null || form.valor === undefined ? "" : String(form.valor)}
+              onChange={(e) => set("valor", e.target.value === "" ? null : Number(e.target.value))}
+              onBlur={(e) => { if (e.target.value === "") set("valor", 0); }}
+            />
           </div>
           <div>
             <Label>Tem reembolso?</Label>
@@ -322,12 +334,14 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
             <Input
               type="number"
               step="0.01"
+              placeholder="0,00"
               disabled={!form.tem_reembolso}
-              value={form.valor_reembolso ?? 0}
+              value={form.valor_reembolso === null || form.valor_reembolso === undefined ? "" : String(form.valor_reembolso)}
               onChange={(e) => {
-                const v = Number(e.target.value);
-                setForm((p) => ({ ...p, valor_reembolso: v, reembolso: v }));
+                const v = e.target.value === "" ? null : Number(e.target.value);
+                setForm((p) => ({ ...p, valor_reembolso: v as any, reembolso: v as any }));
               }}
+              onBlur={(e) => { if (e.target.value === "") setForm((p) => ({ ...p, valor_reembolso: 0, reembolso: 0 })); }}
             />
           </div>
           <div className="flex items-center gap-2 pt-6">
