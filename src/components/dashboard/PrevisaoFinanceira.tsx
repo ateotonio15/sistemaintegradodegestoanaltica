@@ -306,16 +306,121 @@ export function PrevisaoFinanceira() {
     return d;
   }, []);
 
+  /** Janela [início, fim] efetiva do filtro aplicado. */
+  const janela = useMemo(() => {
+    if (!aplicado || !aplicado.periodo) return null;
+    if (aplicado.periodo === "todos") return null;
+    if (aplicado.periodo === "custom") {
+      const ini = parseLocalDate(aplicado.inicio);
+      const fim = parseLocalDate(aplicado.fim);
+      if (!ini || !fim) return null;
+      return { ini, fim };
+    }
+    const dias = aplicado.periodo === "hoje" ? 0 : Number(aplicado.periodo);
+    return { ini: hoje, fim: new Date(hoje.getTime() + dias * 86400000) };
+  }, [aplicado, hoje]);
+
+  /**
+   * Vencimento declarado na nota (bloco "Descrição do Serviço" do PDF).
+   * É a fonte mais confiável: o sistema pode ter o vencimento defasado.
+   */
+  const [vencPdf, setVencPdf] = useState<Record<string, string>>({});
+  const [scanPdfPronto, setScanPdfPronto] = useState(false);
+
+  useEffect(() => {
+    if (!aplicado) {
+      setVencPdf({});
+      setScanPdfPronto(false);
+      return;
+    }
+    let cancelled = false;
+    setScanPdfPronto(false);
+    (async () => {
+      // Candidatos: notas com PDF cujo vencimento registrado ou envio estejam
+      // próximos da janela pesquisada (margem de 45 dias para os defasados).
+      const MARGEM = 45 * 86400000;
+      const ini = janela ? new Date(janela.ini.getTime() - MARGEM) : null;
+      const fim = janela ? new Date(janela.fim.getTime() + MARGEM) : null;
+      const vistos = new Set<string>();
+      const alvos: AnaliseRow[] = [];
+      for (const r of rows) {
+        if (vistos.has(r.mov_id) || r.pdfPaths.length === 0) continue;
+        if (ini && fim) {
+          const venc = parseLocalDate(r.data_vencimento);
+          const envio = parseLocalDate(r.data_envio_nota);
+          const dentro =
+            (venc && venc >= ini && venc <= fim) || (envio && envio >= ini && envio <= fim);
+          if (!dentro) continue;
+        }
+        vistos.add(r.mov_id);
+        alvos.push(r);
+      }
+      if (alvos.length === 0) {
+        if (!cancelled) {
+          setVencPdf({});
+          setScanPdfPronto(true);
+        }
+        return;
+      }
+
+      const { extrairVencimentoPdf } = await import("@/lib/pdf-analysis-utils");
+      const encontrado: Record<string, string> = {};
+      const CONC = 6;
+      let cursor = 0;
+      const workers = Array.from({ length: Math.min(CONC, alvos.length) }, async () => {
+        while (!cancelled) {
+          const i = cursor++;
+          if (i >= alvos.length) break;
+          const r = alvos[i];
+          try {
+            const { data, error } = await supabase.storage
+              .from("anexos-financeiro")
+              .download(r.pdfPaths[0]);
+            if (error || !data) continue;
+            const venc = await extrairVencimentoPdf(await data.arrayBuffer());
+            if (venc) encontrado[r.mov_id] = venc;
+          } catch {
+            /* PDF ilegível → mantém o vencimento do sistema */
+          }
+        }
+      });
+      await Promise.all(workers);
+      if (cancelled) return;
+      setVencPdf(encontrado);
+      setScanPdfPronto(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, aplicado, janela]);
+
+  /** Linhas com o vencimento reconciliado (PDF tem prioridade sobre o sistema). */
+  const rowsReconciliadas = useMemo(() => {
+    return rows.map((r) => {
+      const doPdf = vencPdf[r.mov_id];
+      if (!doPdf || doPdf === r.data_vencimento) return r;
+      return {
+        ...r,
+        data_vencimento: doPdf,
+        venc_sistema: r.data_vencimento,
+        venc_origem: "pdf" as const,
+      };
+    });
+  }, [rows, vencPdf]);
+
   // Aplicar filtros + ordenação
   const baseRows = useMemo(() => {
     // Enquanto o usuário não confirmar os filtros, nada é listado
     if (!aplicado) return [] as AnaliseRow[];
+    // Aguarda a leitura dos PDFs para não esconder empresas com vencimento defasado
+    if (!scanPdfPronto) return [] as AnaliseRow[];
     const { periodo: filtroPeriodo, inicio, fim: fimStr, status: filtroStatus } = aplicado;
     if (!filtroPeriodo) return [] as AnaliseRow[];
     if (filtroPeriodo === "custom" && (!inicio || !fimStr)) return [] as AnaliseRow[];
     const ini = parseLocalDate(inicio);
     const fim = parseLocalDate(fimStr);
-    return rows.filter((r) => {
+    return rowsReconciliadas.filter((r) => {
       const venc = parseLocalDate(r.data_vencimento);
       // filtro período
       if (filtroPeriodo && filtroPeriodo !== "todos") {
@@ -340,7 +445,8 @@ export function PrevisaoFinanceira() {
       }
       return true;
     });
-  }, [rows, aplicado, hoje]);
+  }, [rowsReconciliadas, aplicado, hoje, scanPdfPronto]);
+
 
   // Aplicar ordenação
   const filteredRows = useMemo(() => {
