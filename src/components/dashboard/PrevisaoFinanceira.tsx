@@ -21,6 +21,7 @@ import {
   Timer,
   TrendingUp,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/date-utils";
 import {
@@ -84,7 +85,9 @@ function diffDias(d: Date, base: Date): number {
 }
 
 export function PrevisaoFinanceira() {
-  const [filtroPeriodo, setFiltroPeriodo] = useState<"" | "todos" | "hoje" | "7" | "15" | "30">("");
+  const [filtroPeriodo, setFiltroPeriodo] = useState<"" | "todos" | "hoje" | "7" | "15" | "30" | "custom">("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"" | "todos" | "a_vencer" | "hoje" | "vencido">("");
   const [ordenacao, setOrdenacao] = useState<"" | "data" | "valor" | "empresa">("");
   const [analises, setAnalises] = useState<Record<string, AnaliseDado>>({});
@@ -318,16 +321,24 @@ export function PrevisaoFinanceira() {
   const filteredRows = useMemo(() => {
     // Enquanto o usuário não selecionar um período, nada é listado
     if (!filtroPeriodo) return [];
+    if (filtroPeriodo === "custom" && (!dataInicio || !dataFim)) return [];
+    const ini = parseLocalDate(dataInicio);
+    const fim = parseLocalDate(dataFim);
     const list = rows.filter((r) => {
       const venc = parseLocalDate(r.data_vencimento);
       // filtro período
       if (filtroPeriodo && filtroPeriodo !== "todos") {
         if (!venc) return false;
-        const dias = diffDias(venc, hoje);
-        if (filtroPeriodo === "hoje" && dias !== 0) return false;
-        if (filtroPeriodo === "7" && (dias < 0 || dias > 7)) return false;
-        if (filtroPeriodo === "15" && (dias < 0 || dias > 15)) return false;
-        if (filtroPeriodo === "30" && (dias < 0 || dias > 30)) return false;
+        if (filtroPeriodo === "custom") {
+          if (ini && venc < ini) return false;
+          if (fim && venc > fim) return false;
+        } else {
+          const dias = diffDias(venc, hoje);
+          if (filtroPeriodo === "hoje" && dias !== 0) return false;
+          if (filtroPeriodo === "7" && (dias < 0 || dias > 7)) return false;
+          if (filtroPeriodo === "15" && (dias < 0 || dias > 15)) return false;
+          if (filtroPeriodo === "30" && (dias < 0 || dias > 30)) return false;
+        }
       }
       if (filtroStatus && filtroStatus !== "todos") {
         if (!venc) return false;
@@ -351,7 +362,7 @@ export function PrevisaoFinanceira() {
       return da - db;
     });
     return list;
-  }, [rows, filtroPeriodo, filtroStatus, ordenacao, analises, hoje]);
+  }, [rows, filtroPeriodo, dataInicio, dataFim, filtroStatus, ordenacao, analises, hoje]);
 
   // KPIs respeitam o período escolhido; antes disso permanecem zerados.
   const kpis = useMemo(() => {
@@ -421,8 +432,26 @@ export function PrevisaoFinanceira() {
               <SelectItem value="7">Próximos 7 dias</SelectItem>
               <SelectItem value="15">Próximos 15 dias</SelectItem>
               <SelectItem value="30">Próximos 30 dias</SelectItem>
+              <SelectItem value="custom">Data específica (intervalo)</SelectItem>
             </SelectContent>
           </Select>
+          {filtroPeriodo === "custom" && (
+            <div className="flex items-center gap-1">
+              <Input
+                type="date"
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
+                className="h-8 w-[140px] text-xs"
+              />
+              <span className="text-xs text-muted-foreground">até</span>
+              <Input
+                type="date"
+                value={dataFim}
+                onChange={(e) => setDataFim(e.target.value)}
+                className="h-8 w-[140px] text-xs"
+              />
+            </div>
+          )}
           <Select value={filtroStatus} onValueChange={(v: any) => setFiltroStatus(v)}>
             <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
