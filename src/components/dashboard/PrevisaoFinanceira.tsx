@@ -318,7 +318,7 @@ export function PrevisaoFinanceira() {
     const list = rows.filter((r) => {
       const venc = parseLocalDate(r.data_vencimento);
       // filtro período
-      if (filtroPeriodo !== "todos") {
+      if (filtroPeriodo && filtroPeriodo !== "todos") {
         if (!venc) return false;
         const dias = diffDias(venc, hoje);
         if (filtroPeriodo === "hoje" && dias !== 0) return false;
@@ -326,7 +326,7 @@ export function PrevisaoFinanceira() {
         if (filtroPeriodo === "15" && (dias < 0 || dias > 15)) return false;
         if (filtroPeriodo === "30" && (dias < 0 || dias > 30)) return false;
       }
-      if (filtroStatus !== "todos") {
+      if (filtroStatus && filtroStatus !== "todos") {
         if (!venc) return false;
         const dias = diffDias(venc, hoje);
         if (filtroStatus === "hoje" && dias !== 0) return false;
