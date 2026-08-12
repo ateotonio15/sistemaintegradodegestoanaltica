@@ -273,16 +273,16 @@ export async function renderCalendarioCanvas(
   return canvas;
 }
 
-export function exportCalendarioPNG(cursor: Date, eventos: CalEvento[], bloqueios: CalBloqueio[]) {
-  const canvas = renderCalendarioCanvas(cursor, eventos, bloqueios);
+export async function exportCalendarioPNG(cursor: Date, eventos: CalEvento[], bloqueios: CalBloqueio[]) {
+  const canvas = await renderCalendarioCanvas(cursor, eventos, bloqueios);
   const a = document.createElement("a");
   a.href = canvas.toDataURL("image/png");
   a.download = `calendario-palestras-${format(cursor, "yyyy-MM")}.png`;
   a.click();
 }
 
-export function exportCalendarioPDF(cursor: Date, eventos: CalEvento[], bloqueios: CalBloqueio[]) {
-  const canvas = renderCalendarioCanvas(cursor, eventos, bloqueios);
+export async function exportCalendarioPDF(cursor: Date, eventos: CalEvento[], bloqueios: CalBloqueio[]) {
+  const canvas = await renderCalendarioCanvas(cursor, eventos, bloqueios);
   const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pw = pdf.internal.pageSize.getWidth();
   const ph = pdf.internal.pageSize.getHeight();
@@ -292,3 +292,4 @@ export function exportCalendarioPDF(cursor: Date, eventos: CalEvento[], bloqueio
   pdf.addImage(canvas.toDataURL("image/png"), "PNG", (pw - w) / 2, (ph - h) / 2, w, h);
   pdf.save(`calendario-palestras-${format(cursor, "yyyy-MM")}.pdf`);
 }
+
