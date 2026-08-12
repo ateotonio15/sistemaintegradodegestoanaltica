@@ -149,7 +149,7 @@ export async function renderCalendarioCanvas(
   const grad = ctx.createLinearGradient(0, 0, W, bannerH);
   grad.addColorStop(0, "#04331d");
   grad.addColorStop(0.45, "#0b5c34");
-  grad.addColorStop(1, "#12措".replace("措", "8f52"));
+  grad.addColorStop(1, "#128f52");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, bannerH);
 
