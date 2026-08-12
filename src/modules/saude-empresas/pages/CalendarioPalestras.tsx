@@ -7,8 +7,9 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, ArrowLeft, Plus, FileSpreadsheet,
-  X, Ban, CalendarDays, BarChart3,
+  X, Ban, CalendarDays, BarChart3, FileDown, Image as ImageIcon,
 } from "lucide-react";
+import { exportCalendarioPDF, exportCalendarioPNG } from "../lib/palestras-calendario-export";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -241,9 +242,16 @@ export default function CalendarioPalestras() {
               <Button variant="outline" onClick={exportXlsx}>
                 <FileSpreadsheet className="h-4 w-4 mr-1" /> Exportar Excel
               </Button>
+              <Button variant="outline" onClick={() => exportCalendarioPDF(cursor, filtradas as any, bloqueios as any)}>
+                <FileDown className="h-4 w-4 mr-1" /> Calendário PDF
+              </Button>
+              <Button variant="outline" onClick={() => exportCalendarioPNG(cursor, filtradas as any, bloqueios as any)}>
+                <ImageIcon className="h-4 w-4 mr-1" /> Calendário PNG
+              </Button>
               <Button variant="outline" onClick={() => setRelatorioOpen(true)}>
                 <BarChart3 className="h-4 w-4 mr-1" /> Gerar Relatório Mensal
               </Button>
+
               <div className="flex gap-2">
                 {podeEditar && (
                   <>
