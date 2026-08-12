@@ -90,7 +90,10 @@ export async function renderCalendarioCanvas(
   bloqueios: CalBloqueio[],
   opts: CalOpts = {},
 ): Promise<HTMLCanvasElement> {
-  const headerImg = await loadImage(headerAsset.url);
+  const [headerImg, textureImg] = await Promise.all([
+    loadImage(headerAsset.url),
+    loadImage(textureAsset.url),
+  ]);
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
