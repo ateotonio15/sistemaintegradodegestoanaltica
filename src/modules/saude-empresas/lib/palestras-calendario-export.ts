@@ -145,30 +145,54 @@ export async function renderCalendarioCanvas(
 
   const bannerH = 150;
 
-  // fundo verde SIGA em degradê
-  const grad = ctx.createLinearGradient(0, 0, W, bannerH);
-  grad.addColorStop(0, "#04331d");
-  grad.addColorStop(0.45, "#0b5c34");
-  grad.addColorStop(1, "#128f52");
-  ctx.fillStyle = grad;
+  // fundo: textura aquarela (fallback em degradê claro)
+  if (textureImg) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, bannerH);
+    ctx.clip();
+    // cobre a faixa mantendo proporção (cover)
+    const r = textureImg.width / textureImg.height;
+    let dw = W;
+    let dh = dw / r;
+    if (dh < bannerH) {
+      dh = bannerH;
+      dw = dh * r;
+    }
+    ctx.drawImage(textureImg, (W - dw) / 2, (bannerH - dh) / 2, dw, dh);
+    ctx.restore();
+  } else {
+    const g = ctx.createLinearGradient(0, 0, W, bannerH);
+    g.addColorStop(0, "#eaf6fa");
+    g.addColorStop(1, "#cfe9f2");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, bannerH);
+  }
+
+  // véu suave para uniformizar a leitura
+  const veil = ctx.createLinearGradient(0, 0, 0, bannerH);
+  veil.addColorStop(0, "rgba(255,255,255,0.35)");
+  veil.addColorStop(0.55, "rgba(255,255,255,0.10)");
+  veil.addColorStop(1, "rgba(255,255,255,0.45)");
+  ctx.fillStyle = veil;
   ctx.fillRect(0, 0, W, bannerH);
 
-  // textura: arcos concêntricos sutis (marca d'água)
+  // arcos concêntricos discretos (marca d'água SIGA)
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, W, bannerH);
   ctx.clip();
-  ctx.strokeStyle = "rgba(255,255,255,0.07)";
-  ctx.lineWidth = 26;
+  ctx.strokeStyle = "rgba(11,92,52,0.06)";
+  ctx.lineWidth = 22;
   for (let i = 0; i < 5; i++) {
     ctx.beginPath();
-    ctx.arc(W - 120, bannerH + 40, 150 + i * 90, Math.PI, Math.PI * 2);
+    ctx.arc(W - 140, bannerH + 50, 140 + i * 85, Math.PI, Math.PI * 2);
     ctx.stroke();
   }
-  ctx.strokeStyle = "rgba(255,255,255,0.05)";
+  ctx.strokeStyle = "rgba(11,92,52,0.045)";
   for (let i = 0; i < 4; i++) {
     ctx.beginPath();
-    ctx.arc(90, -30, 120 + i * 80, 0, Math.PI);
+    ctx.arc(100, -30, 110 + i * 75, 0, Math.PI);
     ctx.stroke();
   }
   ctx.restore();
@@ -177,33 +201,42 @@ export async function renderCalendarioCanvas(
   if (headerImg) {
     const r = headerImg.width / headerImg.height;
     const maxCardW = W - 360;
-    const cardH = 96;
-    let drawH = cardH - 22;
+    const cardH = 100;
+    let drawH = cardH - 24;
     let drawW = drawH * r;
-    if (drawW > maxCardW - 56) {
-      drawW = maxCardW - 56;
+    if (drawW > maxCardW - 60) {
+      drawW = maxCardW - 60;
       drawH = drawW / r;
     }
-    const cardW = drawW + 56;
+    const cardW = drawW + 60;
     const cardX = (W - cardW) / 2;
     const cardY = (bannerH - cardH) / 2;
 
     ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.28)";
-    ctx.shadowBlur = 22;
-    ctx.shadowOffsetY = 6;
-    ctx.fillStyle = "#ffffff";
-    roundRect(cardX, cardY, cardW, cardH, 18);
+    ctx.shadowColor = "rgba(15,46,30,0.18)";
+    ctx.shadowBlur = 26;
+    ctx.shadowOffsetY = 8;
+    ctx.fillStyle = "rgba(255,255,255,0.94)";
+    roundRect(cardX, cardY, cardW, cardH, 20);
     ctx.fill();
     ctx.restore();
 
-    ctx.drawImage(headerImg, cardX + 28, cardY + (cardH - drawH) / 2, drawW, drawH);
+    ctx.strokeStyle = "rgba(11,92,52,0.10)";
+    ctx.lineWidth = 1;
+    roundRect(cardX + 0.5, cardY + 0.5, cardW - 1, cardH - 1, 20);
+    ctx.stroke();
+
+    ctx.drawImage(headerImg, cardX + 30, cardY + (cardH - drawH) / 2, drawW, drawH);
   }
 
-  // filete dourado/claro de acabamento
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  ctx.fillRect(0, bannerH - 5, W, 5);
-  ctx.fillStyle = "#7bd39b";
+  // acabamento inferior
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.fillRect(0, bannerH - 4, W, 4);
+  const line = ctx.createLinearGradient(0, 0, W, 0);
+  line.addColorStop(0, "#0b5c34");
+  line.addColorStop(0.5, "#12a05c");
+  line.addColorStop(1, "#7bd39b");
+  ctx.fillStyle = line;
   ctx.fillRect(0, bannerH, W, 4);
 
   // ---------- Faixa de título ----------
