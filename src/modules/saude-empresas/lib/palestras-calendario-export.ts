@@ -124,17 +124,15 @@ export async function renderCalendarioCanvas(
 
   // faixa institucional com as logos Samel / Saúde nas Empresas
   const bannerH = 130;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, W, bannerH);
   if (headerImg) {
     const r = headerImg.width / headerImg.height;
-    const drawW = bannerH * r;
-    // fundo suave da faixa
-    ctx.fillStyle = "#f2f7f3";
-    ctx.fillRect(0, 0, W, bannerH);
-    ctx.drawImage(headerImg, (W - drawW) / 2, 0, drawW, bannerH);
-  } else {
-    ctx.fillStyle = "#f2f7f3";
-    ctx.fillRect(0, 0, W, bannerH);
+    const drawH = Math.min(bannerH, W / r);
+    const drawW = drawH * r;
+    ctx.drawImage(headerImg, (W - drawW) / 2, (bannerH - drawH) / 2, drawW, drawH);
   }
+
   ctx.fillStyle = "#0f6d3c";
   ctx.fillRect(0, bannerH, W, 6);
 
