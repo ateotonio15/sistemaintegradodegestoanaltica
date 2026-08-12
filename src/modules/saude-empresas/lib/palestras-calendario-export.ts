@@ -132,41 +132,121 @@ export async function renderCalendarioCanvas(
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, H);
 
-  // faixa institucional com as logos Samel / Saúde nas Empresas
-  const bannerH = 130;
-  ctx.fillStyle = "#ffffff";
+  // ---------- Cabeçalho institucional (padrão SIGA) ----------
+  const roundRect = (x: number, y: number, w: number, h: number, r: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  };
+
+  const bannerH = 150;
+
+  // fundo verde SIGA em degradê
+  const grad = ctx.createLinearGradient(0, 0, W, bannerH);
+  grad.addColorStop(0, "#04331d");
+  grad.addColorStop(0.45, "#0b5c34");
+  grad.addColorStop(1, "#12措".replace("措", "8f52"));
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, bannerH);
+
+  // textura: arcos concêntricos sutis (marca d'água)
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, W, bannerH);
+  ctx.clip();
+  ctx.strokeStyle = "rgba(255,255,255,0.07)";
+  ctx.lineWidth = 26;
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.arc(W - 120, bannerH + 40, 150 + i * 90, Math.PI, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(255,255,255,0.05)";
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.arc(90, -30, 120 + i * 80, 0, Math.PI);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // cartão branco central com as logos Samel / Saúde nas Empresas
   if (headerImg) {
     const r = headerImg.width / headerImg.height;
-    const drawH = Math.min(bannerH, W / r);
-    const drawW = drawH * r;
-    ctx.drawImage(headerImg, (W - drawW) / 2, (bannerH - drawH) / 2, drawW, drawH);
+    const maxCardW = W - 360;
+    const cardH = 96;
+    let drawH = cardH - 22;
+    let drawW = drawH * r;
+    if (drawW > maxCardW - 56) {
+      drawW = maxCardW - 56;
+      drawH = drawW / r;
+    }
+    const cardW = drawW + 56;
+    const cardX = (W - cardW) / 2;
+    const cardY = (bannerH - cardH) / 2;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.28)";
+    ctx.shadowBlur = 22;
+    ctx.shadowOffsetY = 6;
+    ctx.fillStyle = "#ffffff";
+    roundRect(cardX, cardY, cardW, cardH, 18);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.drawImage(headerImg, cardX + 28, cardY + (cardH - drawH) / 2, drawW, drawH);
   }
 
-  ctx.fillStyle = "#0f6d3c";
-  ctx.fillRect(0, bannerH, W, 6);
+  // filete dourado/claro de acabamento
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
+  ctx.fillRect(0, bannerH - 5, W, 5);
+  ctx.fillStyle = "#7bd39b";
+  ctx.fillRect(0, bannerH, W, 4);
 
-  // título
-  const baseY = bannerH + 6;
-  ctx.fillStyle = "#0f172a";
+  // ---------- Faixa de título ----------
+  const baseY = bannerH + 4;
+  const titleH = headerH - baseY;
+  ctx.fillStyle = "#f4f9f5";
+  ctx.fillRect(0, baseY, W, titleH);
+  ctx.strokeStyle = "#dbeadf";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, baseY + titleH);
+  ctx.lineTo(W, baseY + titleH);
+  ctx.stroke();
+
+  // marcador vertical
+  ctx.fillStyle = "#0b5c34";
+  roundRect(marginX, baseY + 20, 6, titleH - 40, 3);
+  ctx.fill();
+
+  ctx.fillStyle = "#0f2e1e";
   ctx.font = "bold 34px Helvetica, Arial, sans-serif";
-  ctx.fillText(opts.titulo ?? "Calendário de Palestras", marginX, baseY + 46);
-  ctx.fillStyle = "#475569";
+  ctx.fillText(opts.titulo ?? "Calendário de Palestras", marginX + 22, baseY + 50);
+  ctx.fillStyle = "#4b6a58";
   ctx.font = "20px Helvetica, Arial, sans-serif";
   const titulo = format(cursor, "MMMM 'de' yyyy", { locale: ptBR });
-  ctx.fillText(titulo.charAt(0).toUpperCase() + titulo.slice(1), marginX, baseY + 78);
+  ctx.fillText(titulo.charAt(0).toUpperCase() + titulo.slice(1), marginX + 22, baseY + 80);
+
+  // pílulas à direita
+  const pill = (texto: string, y: number, bg: string, fg: string) => {
+    ctx.font = "bold 15px Helvetica, Arial, sans-serif";
+    const tw = ctx.measureText(texto).width;
+    const pw = tw + 30;
+    const px = W - marginX - pw;
+    ctx.fillStyle = bg;
+    roundRect(px, y - 20, pw, 30, 15);
+    ctx.fill();
+    ctx.fillStyle = fg;
+    ctx.fillText(texto, px + 15, y);
+  };
 
   const camp = opts.mostrarCampanha === false ? null : CAMPANHAS[cursor.getMonth()];
-  if (camp) {
-    ctx.fillStyle = camp.hex;
-    ctx.font = "bold 18px Helvetica, Arial, sans-serif";
-    const txt = `Campanha do mês: ${camp.tema}`;
-    ctx.fillText(txt, W - marginX - ctx.measureText(txt).width, baseY + 46);
-  }
-  ctx.fillStyle = "#94a3b8";
-  ctx.font = "14px Helvetica, Arial, sans-serif";
-  const total = `${eventos.length} agendamento(s)`;
-  ctx.fillText(total, W - marginX - ctx.measureText(total).width, baseY + 76);
+  if (camp) pill(`Campanha do mês: ${camp.tema}`, baseY + 44, `${camp.hex}22`, camp.hex);
+  pill(`${eventos.length} agendamento(s)`, baseY + 84, "#e3f1e8", "#0b5c34");
 
 
   // cabeçalho dos dias
