@@ -61,8 +61,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
   return lines;
 }
 
-import headerAsset from "@/assets/saude-header-banner.png.asset.json";
-import textureAsset from "@/assets/saude-header-texture.png.asset.json";
+import headerAsset from "@/assets/saude-header-texto.png.asset.json";
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
