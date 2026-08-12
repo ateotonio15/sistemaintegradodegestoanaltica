@@ -7,7 +7,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   Activity, FlaskConical, Stethoscope, ChevronLeft, ChevronRight,
-  ArrowLeft, Plus, FileSpreadsheet, Info, X, ChevronsUpDown,
+  ArrowLeft, Plus, FileSpreadsheet, Info, X, ChevronsUpDown, FileDown, Image as ImageIcon,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
