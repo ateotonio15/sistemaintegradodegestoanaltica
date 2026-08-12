@@ -241,9 +241,16 @@ export default function CalendarioPalestras() {
               <Button variant="outline" onClick={exportXlsx}>
                 <FileSpreadsheet className="h-4 w-4 mr-1" /> Exportar Excel
               </Button>
+              <Button variant="outline" onClick={() => exportCalendarioPDF(cursor, filtradas as any, bloqueios as any)}>
+                <FileDown className="h-4 w-4 mr-1" /> Calendário PDF
+              </Button>
+              <Button variant="outline" onClick={() => exportCalendarioPNG(cursor, filtradas as any, bloqueios as any)}>
+                <ImageIcon className="h-4 w-4 mr-1" /> Calendário PNG
+              </Button>
               <Button variant="outline" onClick={() => setRelatorioOpen(true)}>
                 <BarChart3 className="h-4 w-4 mr-1" /> Gerar Relatório Mensal
               </Button>
+
               <div className="flex gap-2">
                 {podeEditar && (
                   <>
