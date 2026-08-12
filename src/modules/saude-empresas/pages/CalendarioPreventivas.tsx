@@ -7,7 +7,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   Activity, FlaskConical, Stethoscope, ChevronLeft, ChevronRight,
-  ArrowLeft, Plus, FileSpreadsheet, Info, X, ChevronsUpDown,
+  ArrowLeft, Plus, FileSpreadsheet, Info, X, ChevronsUpDown, FileDown, Image as ImageIcon,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
 } from "../hooks/useAcoesPreventivas";
 import { feriadoEm } from "../lib/feriados";
 import { EventoPreventivoDialog } from "../components/EventoPreventivoDialog";
+import { exportCalendarioPDF, exportCalendarioPNG, type CalEvento } from "../lib/palestras-calendario-export";
 
 const TIPOS: { v: AcaoPreventivaTipo; label: string; sub: string; icon: any; gradient: string }[] = [
   { v: "sinais_vitais", label: "Sinais Vitais", sub: "Aferição de PA, glicemia e bioimpedância nas empresas", icon: Activity, gradient: "from-emerald-500 to-teal-600" },
@@ -218,6 +219,30 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
   const tipoMeta = TIPOS.find((t) => t.v === tipo)!;
   const Icon = tipoMeta.icon;
 
+  const exportCal = async (fmt: "pdf" | "png") => {
+    const evs: CalEvento[] = filtrados.map((e) => ({
+      data: e.data,
+      empresa: e.empresa?.nome ?? "",
+      executiva: e.executiva_nome ?? null,
+      tema: e.responsavel ? `Resp.: ${e.responsavel}` : e.endereco ?? null,
+      horario_inicio: e.horario_inicio ?? null,
+      horario_fim: e.horario_fim ?? null,
+      status: e.status,
+    }));
+    const opts = {
+      titulo: `Calendário de ${tipoMeta.label}`,
+      mostrarCampanha: false,
+      arquivo: `calendario-${tipo}`,
+    };
+    try {
+      if (fmt === "pdf") await exportCalendarioPDF(cursor, evs, [], opts);
+      else await exportCalendarioPNG(cursor, evs, [], opts);
+    } catch {
+      toast.error("Não foi possível gerar o calendário.");
+    }
+  };
+
+
   return (
     <div className="container mx-auto py-6 space-y-4">
       {/* Header */}
@@ -239,6 +264,12 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" onClick={exportXlsx}>
             <FileSpreadsheet className="h-4 w-4 mr-1" /> Exportar Excel
+          </Button>
+          <Button variant="outline" onClick={() => exportCal("pdf")}>
+            <FileDown className="h-4 w-4 mr-1" /> Calendário PDF
+          </Button>
+          <Button variant="outline" onClick={() => exportCal("png")}>
+            <ImageIcon className="h-4 w-4 mr-1" /> Calendário PNG
           </Button>
           {canEdit && (
             <Button onClick={openBlank}>
