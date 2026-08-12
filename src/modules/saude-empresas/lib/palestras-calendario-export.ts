@@ -105,7 +105,7 @@ export async function renderCalendarioCanvas(
   const scale = 2;
   const W = 1600;
   const marginX = 40;
-  const headerH = 150;
+  const headerH = 250;
   const weekH = 44;
   const cellW = (W - marginX * 2) / 5;
   const cellH = 210;
@@ -122,28 +122,44 @@ export async function renderCalendarioCanvas(
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, H);
 
-  // header
-  ctx.fillStyle = "#16a34a";
-  ctx.fillRect(0, 0, W, 8);
+  // faixa institucional com as logos Samel / Saúde nas Empresas
+  const bannerH = 130;
+  if (headerImg) {
+    const r = headerImg.width / headerImg.height;
+    const drawW = bannerH * r;
+    // fundo suave da faixa
+    ctx.fillStyle = "#f2f7f3";
+    ctx.fillRect(0, 0, W, bannerH);
+    ctx.drawImage(headerImg, (W - drawW) / 2, 0, drawW, bannerH);
+  } else {
+    ctx.fillStyle = "#f2f7f3";
+    ctx.fillRect(0, 0, W, bannerH);
+  }
+  ctx.fillStyle = "#0f6d3c";
+  ctx.fillRect(0, bannerH, W, 6);
+
+  // título
+  const baseY = bannerH + 6;
   ctx.fillStyle = "#0f172a";
   ctx.font = "bold 34px Helvetica, Arial, sans-serif";
-  ctx.fillText("Calendário de Palestras", marginX, 60);
+  ctx.fillText("Calendário de Palestras", marginX, baseY + 46);
   ctx.fillStyle = "#475569";
   ctx.font = "20px Helvetica, Arial, sans-serif";
   const titulo = format(cursor, "MMMM 'de' yyyy", { locale: ptBR });
-  ctx.fillText(titulo.charAt(0).toUpperCase() + titulo.slice(1), marginX, 92);
+  ctx.fillText(titulo.charAt(0).toUpperCase() + titulo.slice(1), marginX, baseY + 78);
 
   const camp = CAMPANHAS[cursor.getMonth()];
   if (camp) {
     ctx.fillStyle = camp.hex;
     ctx.font = "bold 18px Helvetica, Arial, sans-serif";
     const txt = `Campanha do mês: ${camp.tema}`;
-    ctx.fillText(txt, W - marginX - ctx.measureText(txt).width, 60);
+    ctx.fillText(txt, W - marginX - ctx.measureText(txt).width, baseY + 46);
   }
   ctx.fillStyle = "#94a3b8";
   ctx.font = "14px Helvetica, Arial, sans-serif";
   const total = `${eventos.length} agendamento(s)`;
-  ctx.fillText(total, W - marginX - ctx.measureText(total).width, 90);
+  ctx.fillText(total, W - marginX - ctx.measureText(total).width, baseY + 76);
+
 
   // cabeçalho dos dias
   const top = headerH;
