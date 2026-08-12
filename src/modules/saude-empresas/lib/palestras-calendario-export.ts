@@ -150,13 +150,13 @@ export async function renderCalendarioCanvas(
   const baseY = bannerH + 6;
   ctx.fillStyle = "#0f172a";
   ctx.font = "bold 34px Helvetica, Arial, sans-serif";
-  ctx.fillText("Calendário de Palestras", marginX, baseY + 46);
+  ctx.fillText(opts.titulo ?? "Calendário de Palestras", marginX, baseY + 46);
   ctx.fillStyle = "#475569";
   ctx.font = "20px Helvetica, Arial, sans-serif";
   const titulo = format(cursor, "MMMM 'de' yyyy", { locale: ptBR });
   ctx.fillText(titulo.charAt(0).toUpperCase() + titulo.slice(1), marginX, baseY + 78);
 
-  const camp = CAMPANHAS[cursor.getMonth()];
+  const camp = opts.mostrarCampanha === false ? null : CAMPANHAS[cursor.getMonth()];
   if (camp) {
     ctx.fillStyle = camp.hex;
     ctx.font = "bold 18px Helvetica, Arial, sans-serif";
