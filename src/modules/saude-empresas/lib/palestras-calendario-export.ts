@@ -73,11 +73,21 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
+export interface CalOpts {
+  /** Título principal do calendário. Padrão: "Calendário de Palestras" */
+  titulo?: string;
+  /** Exibe a campanha do mês no canto direito. Padrão: true */
+  mostrarCampanha?: boolean;
+  /** Prefixo do arquivo exportado. Padrão: "calendario-palestras" */
+  arquivo?: string;
+}
+
 /** Desenha o calendário do mês em um canvas e devolve o elemento. */
 export async function renderCalendarioCanvas(
   cursor: Date,
   eventos: CalEvento[],
   bloqueios: CalBloqueio[],
+  opts: CalOpts = {},
 ): Promise<HTMLCanvasElement> {
   const headerImg = await loadImage(headerAsset.url);
 
