@@ -143,18 +143,14 @@ export async function renderCalendarioCanvas(
     ctx.closePath();
   };
 
-  const bannerH = 180;
+  const bannerH = 160;
 
-  // banner: imagem enviada cobre toda a largura
+  // banner: imagem enviada ocupa toda a largura, centralizada verticalmente
   if (headerImg) {
     const r = headerImg.width / headerImg.height;
-    let dw = W;
-    let dh = dw / r;
-    if (dh < bannerH) {
-      dh = bannerH;
-      dw = dh * r;
-    }
-    ctx.drawImage(headerImg, (W - dw) / 2, (bannerH - dh) / 2, dw, dh);
+    const dw = W;
+    const dh = dw / r;
+    ctx.drawImage(headerImg, 0, (bannerH - dh) / 2, dw, dh);
   } else {
     const g = ctx.createLinearGradient(0, 0, W, bannerH);
     g.addColorStop(0, "#eaf6fa");
