@@ -61,8 +61,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
   return lines;
 }
 
-import headerAsset from "@/assets/saude-header-banner.png.asset.json";
-import textureAsset from "@/assets/saude-header-texture.png.asset.json";
+import headerAsset from "@/assets/saude-header-texto.png.asset.json";
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -90,10 +89,7 @@ export async function renderCalendarioCanvas(
   bloqueios: CalBloqueio[],
   opts: CalOpts = {},
 ): Promise<HTMLCanvasElement> {
-  const [headerImg, textureImg] = await Promise.all([
-    loadImage(headerAsset.url),
-    loadImage(textureAsset.url),
-  ]);
+  const headerImg = await loadImage(headerAsset.url);
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
@@ -147,24 +143,14 @@ export async function renderCalendarioCanvas(
     ctx.closePath();
   };
 
-  const bannerH = 150;
+  const bannerH = 160;
 
-  // fundo: textura aquarela (fallback em degradê claro)
-  if (textureImg) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, W, bannerH);
-    ctx.clip();
-    // cobre a faixa mantendo proporção (cover)
-    const r = textureImg.width / textureImg.height;
-    let dw = W;
-    let dh = dw / r;
-    if (dh < bannerH) {
-      dh = bannerH;
-      dw = dh * r;
-    }
-    ctx.drawImage(textureImg, (W - dw) / 2, (bannerH - dh) / 2, dw, dh);
-    ctx.restore();
+  // banner: imagem enviada ocupa toda a largura, centralizada verticalmente
+  if (headerImg) {
+    const r = headerImg.width / headerImg.height;
+    const dw = W;
+    const dh = dw / r;
+    ctx.drawImage(headerImg, 0, (bannerH - dh) / 2, dw, dh);
   } else {
     const g = ctx.createLinearGradient(0, 0, W, bannerH);
     g.addColorStop(0, "#eaf6fa");
@@ -173,69 +159,7 @@ export async function renderCalendarioCanvas(
     ctx.fillRect(0, 0, W, bannerH);
   }
 
-  // véu suave para uniformizar a leitura
-  const veil = ctx.createLinearGradient(0, 0, 0, bannerH);
-  veil.addColorStop(0, "rgba(255,255,255,0.35)");
-  veil.addColorStop(0.55, "rgba(255,255,255,0.10)");
-  veil.addColorStop(1, "rgba(255,255,255,0.45)");
-  ctx.fillStyle = veil;
-  ctx.fillRect(0, 0, W, bannerH);
-
-  // arcos concêntricos discretos (marca d'água SIGA)
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, W, bannerH);
-  ctx.clip();
-  ctx.strokeStyle = "rgba(11,92,52,0.06)";
-  ctx.lineWidth = 22;
-  for (let i = 0; i < 5; i++) {
-    ctx.beginPath();
-    ctx.arc(W - 140, bannerH + 50, 140 + i * 85, Math.PI, Math.PI * 2);
-    ctx.stroke();
-  }
-  ctx.strokeStyle = "rgba(11,92,52,0.045)";
-  for (let i = 0; i < 4; i++) {
-    ctx.beginPath();
-    ctx.arc(100, -30, 110 + i * 75, 0, Math.PI);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // cartão branco central com as logos Samel / Saúde nas Empresas
-  if (headerImg) {
-    const r = headerImg.width / headerImg.height;
-    const maxCardW = W - 360;
-    const cardH = 100;
-    let drawH = cardH - 24;
-    let drawW = drawH * r;
-    if (drawW > maxCardW - 60) {
-      drawW = maxCardW - 60;
-      drawH = drawW / r;
-    }
-    const cardW = drawW + 60;
-    const cardX = (W - cardW) / 2;
-    const cardY = (bannerH - cardH) / 2;
-
-    ctx.save();
-    ctx.shadowColor = "rgba(15,46,30,0.18)";
-    ctx.shadowBlur = 26;
-    ctx.shadowOffsetY = 8;
-    ctx.fillStyle = "rgba(255,255,255,0.94)";
-    roundRect(cardX, cardY, cardW, cardH, 20);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.strokeStyle = "rgba(11,92,52,0.10)";
-    ctx.lineWidth = 1;
-    roundRect(cardX + 0.5, cardY + 0.5, cardW - 1, cardH - 1, 20);
-    ctx.stroke();
-
-    ctx.drawImage(headerImg, cardX + 30, cardY + (cardH - drawH) / 2, drawW, drawH);
-  }
-
-  // acabamento inferior
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillRect(0, bannerH - 4, W, 4);
+  // filete verde SIGA de separação
   const line = ctx.createLinearGradient(0, 0, W, 0);
   line.addColorStop(0, "#0b5c34");
   line.addColorStop(0.5, "#12a05c");
