@@ -240,6 +240,12 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
           <Button variant="outline" onClick={exportXlsx}>
             <FileSpreadsheet className="h-4 w-4 mr-1" /> Exportar Excel
           </Button>
+          <Button variant="outline" onClick={() => exportCal("pdf")}>
+            <FileDown className="h-4 w-4 mr-1" /> Calendário PDF
+          </Button>
+          <Button variant="outline" onClick={() => exportCal("png")}>
+            <ImageIcon className="h-4 w-4 mr-1" /> Calendário PNG
+          </Button>
           {canEdit && (
             <Button onClick={openBlank}>
               <Plus className="h-4 w-4 mr-1" /> Novo evento
