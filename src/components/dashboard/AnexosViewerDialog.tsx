@@ -341,9 +341,23 @@ export function AnexosViewerDialog({
           primeiraCompetencia = (primeiraMov as any)?.mes_referencia ?? null;
         }
       }
+      // Se existir um lançamento de "primeira mensalidade" nesta competência,
+      // os anexos de contrato também devem aparecer aqui.
+      let temPrimeiraMensalidadeNoMes = false;
+      if (permitirAnexosContrato && primeiraCompetencia !== mesReferencia) {
+        const { data: pm } = await supabase
+          .from("financeiro_movimentacoes")
+          .select("id")
+          .eq("empresa_id", empresaId!)
+          .eq("mes_referencia", mesReferencia)
+          .eq("tipo_lancamento", "primeira_mensalidade")
+          .limit(1);
+        temPrimeiraMensalidadeNoMes = ((pm as any[]) ?? []).length > 0;
+      }
       const mostrarAnexosContrato =
         permitirAnexosContrato &&
-        (!primeiraCompetencia || primeiraCompetencia === mesReferencia);
+        (!primeiraCompetencia || primeiraCompetencia === mesReferencia || temPrimeiraMensalidadeNoMes);
+
 
       const [anxFinRes, anxOpRes, anxImplRes, anxFinIrmaosRes] = await Promise.all([
         movFinIds.length

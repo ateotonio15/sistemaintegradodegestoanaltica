@@ -273,10 +273,23 @@ export default function Financeiro() {
       const primeiraMap = new Map<string, string | null>(
         ((emps as any[]) ?? []).map((e) => [e.id, e.primeira_competencia_financeira]),
       );
+      // Também são elegíveis empresas que possuem lançamento de
+      // "primeira mensalidade" nesta competência (mesmo que a primeira
+      // competência cadastrada esteja divergente).
+      const { data: primeirasMov } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("empresa_id")
+        .in("empresa_id", empresaIds)
+        .eq("mes_referencia", mes)
+        .eq("tipo_lancamento", "primeira_mensalidade");
+      const comPrimeiraMensalidade = new Set(
+        ((primeirasMov as any[]) ?? []).map((m) => m.empresa_id),
+      );
       const elegiveis = empresaIds.filter(
-        (id) => (primeiraMap.get(id) ?? null) === mes,
+        (id) => (primeiraMap.get(id) ?? null) === mes || comPrimeiraMensalidade.has(id),
       );
       if (elegiveis.length === 0) return {} as Record<string, number>;
+
       const { data, error } = await supabase
         .from("implantacao_anexos" as any)
         .select("empresa_id")
