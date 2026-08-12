@@ -179,7 +179,7 @@ export function renderCalendarioCanvas(
       ctx.fillText(label.toUpperCase(), x + 16, cy + 15);
       cy += 28;
     };
-    if (fer) chip(typeof fer === "string" ? fer : "Feriado", "#b91c1c", "#fee2e2");
+    if (fer) chip(fer.nome, "#b91c1c", "#fee2e2");
     if (bl)
       chip(
         bl.periodo === "dia_todo" ? `Bloqueado: ${bl.motivo}` : `${bl.periodo === "manha" ? "Manhã" : "Tarde"} bloqueada`,
