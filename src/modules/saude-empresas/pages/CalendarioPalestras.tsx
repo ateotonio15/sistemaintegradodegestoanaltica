@@ -7,8 +7,9 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, ArrowLeft, Plus, FileSpreadsheet,
-  X, Ban, CalendarDays, BarChart3,
+  X, Ban, CalendarDays, BarChart3, FileDown, Image as ImageIcon,
 } from "lucide-react";
+import { exportCalendarioPDF, exportCalendarioPNG } from "../lib/palestras-calendario-export";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
