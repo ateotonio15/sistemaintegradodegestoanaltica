@@ -61,12 +61,26 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
   return lines;
 }
 
+import headerAsset from "@/assets/saude-header.png.asset.json";
+
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
 /** Desenha o calendário do mês em um canvas e devolve o elemento. */
-export function renderCalendarioCanvas(
+export async function renderCalendarioCanvas(
   cursor: Date,
   eventos: CalEvento[],
   bloqueios: CalBloqueio[],
-): HTMLCanvasElement {
+): Promise<HTMLCanvasElement> {
+  const headerImg = await loadImage(headerAsset.url);
+
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
   const dias = eachDayOfInterval({ start: monthStart, end: monthEnd }).filter(
