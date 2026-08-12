@@ -25,6 +25,7 @@ import {
 } from "../hooks/useAcoesPreventivas";
 import { feriadoEm } from "../lib/feriados";
 import { EventoPreventivoDialog } from "../components/EventoPreventivoDialog";
+import { exportCalendarioPDF, exportCalendarioPNG, type CalEvento } from "../lib/palestras-calendario-export";
 
 const TIPOS: { v: AcaoPreventivaTipo; label: string; sub: string; icon: any; gradient: string }[] = [
   { v: "sinais_vitais", label: "Sinais Vitais", sub: "Aferição de PA, glicemia e bioimpedância nas empresas", icon: Activity, gradient: "from-emerald-500 to-teal-600" },
