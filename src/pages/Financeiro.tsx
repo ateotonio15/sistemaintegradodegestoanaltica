@@ -2782,6 +2782,19 @@ export default function Financeiro() {
                   if (grp) {
                     if (renderedGrupos.has(grp.id)) return;
                     renderedGrupos.add(grp.id);
+                    const membrosVisiveis = grp.empresaIds
+                      .map((id) => rowsById.get(id))
+                      .filter(Boolean) as FinanceiroRow[];
+                    // Grupo com menos de 2 membros visíveis (os demais já foram
+                    // enviados/finalizados): não podemos esconder quem sobrou —
+                    // renderiza como chip solto.
+                    if (membrosVisiveis.length < 2) {
+                      membrosVisiveis.forEach((m) => {
+                        renderedEmpresas.add(m.empresa_id);
+                        nodes.push(renderChipEmpresa(m));
+                      });
+                      return;
+                    }
                     grp.empresaIds.forEach((id) => renderedEmpresas.add(id));
                     const node = renderChipGrupo(grp);
                     if (node) nodes.push(node);
