@@ -66,6 +66,8 @@ export interface HistoricoOpts {
   pagamentoViaDeposito?: boolean;
   /** Número fixo de PO da empresa (ex.: PST = 4600004172). Quando preenchido, adiciona linha "PO:XXX" após o vencimento. */
   poFixo?: string | null;
+  /** Rótulo da linha do número fixo (padrão "PO"). Ex.: CONVER usa "PC". */
+  poRotulo?: string | null;
   /**
    * Quando a empresa possuir período específico de cobrança (intervalo de 30 dias),
    * substitui a primeira linha do histórico por "Período de: 13/05/2026 à 12/06/2026".
@@ -188,7 +190,7 @@ export function gerarHistoricoTexto(
   linhas.push(`Data de Vencimento: ${opts.dataVencimento}.`);
   if (opts.poFixo && opts.poFixo.trim()) {
     linhas.push("");
-    linhas.push(`PO:${opts.poFixo.trim()}`);
+    linhas.push(`${(opts.poRotulo || "PO").trim()}:${opts.poFixo.trim()}`);
   }
   linhas.push("");
 
