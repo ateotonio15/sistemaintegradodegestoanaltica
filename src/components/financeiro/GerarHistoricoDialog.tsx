@@ -215,6 +215,7 @@ export function GerarHistoricoDialog({
       incluirDda: true,
       pagamentoViaDeposito: pagamentoViaDepositoHistorico,
       poFixo,
+      poRotulo,
       periodoCobrancaLabel: periodoCobrancaInfo?.label ?? null,
       tipoAnalise: (row as any)?.tipo_analise ?? null,
     });
