@@ -142,13 +142,13 @@ export function FinanceiroTable({
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow className="border-0">
+            <TableRow>
               <TableCell colSpan={COL_COUNT} className="text-center text-muted-foreground py-12">
                 Carregando...
               </TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
-            <TableRow className="border-0">
+            <TableRow>
               <TableCell colSpan={COL_COUNT} className="text-center text-muted-foreground py-12">
                 Nenhuma movimentação encontrada para os filtros atuais.
               </TableCell>
@@ -166,7 +166,6 @@ export function FinanceiroTable({
                 <Fragment key={rowKey}>
                   <TableRow
                     className={cn(
-                      "border-0",
                       isOverdue && "bg-destructive/5 border-l-2 border-l-destructive",
                       row.status === "Em faturamento" &&
                         "bg-blue-50/70 dark:bg-blue-500/10 border-l-4 border-l-blue-500",

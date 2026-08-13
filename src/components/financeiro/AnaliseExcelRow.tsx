@@ -138,7 +138,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
   };
 
   return (
-    <TableRow className="bg-muted/30 border-0 border-l-2 border-l-primary hover:bg-muted/30">
+    <TableRow className="bg-muted/30 border-l-2 border-l-primary hover:bg-muted/30">
       <TableCell colSpan={colSpan} className="p-0">
         <div className="px-6 py-4 relative">
           {!isLoading && (onReanalisar || (onGerarHistorico && temResultados) || contexto) && (
