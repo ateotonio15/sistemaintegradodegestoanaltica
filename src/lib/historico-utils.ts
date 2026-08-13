@@ -190,7 +190,7 @@ export function gerarHistoricoTexto(
   linhas.push(`Data de Vencimento: ${opts.dataVencimento}.`);
   if (opts.poFixo && opts.poFixo.trim()) {
     linhas.push("");
-    linhas.push(`PO:${opts.poFixo.trim()}`);
+    linhas.push(`${(opts.poRotulo || "PO").trim()}:${opts.poFixo.trim()}`);
   }
   linhas.push("");
 
