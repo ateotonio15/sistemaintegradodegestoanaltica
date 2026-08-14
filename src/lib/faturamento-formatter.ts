@@ -248,6 +248,15 @@ export async function formatarFaturamentoExcel(
       let y = parseInt(m[3], 10); if (y < 100) y += 2000;
       return new Date(Date.UTC(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10), 12));
     };
+    // Competência de faturamento (mais recente) → define o ciclo de referência
+    let compRef: Date | null = null;
+    if (iComp >= 0) {
+      for (const r of rows1) {
+        const cv = r[iComp];
+        const d = cv instanceof Date ? cv : parseBRDate(String(cv ?? ""));
+        if (d && (!compRef || d > compRef)) compRef = d;
+      }
+    }
     for (const r of rows1) {
       if (lower(r[iTipo]) !== "exclusão") continue;
       const cnpjDigits = String(r[iCNPJ] ?? "").replace(/\D/g, "");
@@ -259,9 +268,10 @@ export async function formatarFaturamentoExcel(
       const rv = r[iDtResc];
       const dResc = rv instanceof Date ? rv : parseBRDate(String(rv ?? ""));
       if (!dResc) continue;
-      const v = calcularProporcionalPeriodo(dResc, mens, diaInicio);
+      const v = calcularProporcionalPeriodo(dResc, mens, diaInicio, compRef);
       if (v != null) r[iValor] = v;
     }
+
   }
 
   // Remove Dt_rescisão if empty
