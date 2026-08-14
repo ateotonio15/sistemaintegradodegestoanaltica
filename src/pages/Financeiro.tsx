@@ -821,14 +821,23 @@ export default function Financeiro() {
     if (idsDoMes.size === 0) return [];
     const dispensados = new Set(dispensadosIds);
     const byEmpresa = new Map<string, FinanceiroRow>();
+    // Prioriza a linha que realmente está em faturamento (evita que uma
+    // movimentação duplicada/pendente da mesma empresa "esconda" o chip).
+    const peso = (r: FinanceiroRow) =>
+      (r.faturamento_iniciado_em ? 2 : 0) + (r.status !== "Pendente" ? 1 : 0);
     allRows.forEach((r) => {
       if (!idsDoMes.has(r.empresa_id)) return;
       if ((r.mes_referencia || mes) !== mes) return;
       const prev = byEmpresa.get(r.empresa_id);
-      if (!prev || (r.created_at || "") > (prev.created_at || "")) {
+      if (
+        !prev ||
+        peso(r) > peso(prev) ||
+        (peso(r) === peso(prev) && (r.created_at || "") > (prev.created_at || ""))
+      ) {
         byEmpresa.set(r.empresa_id, r);
       }
     });
+
     return Array.from(byEmpresa.values()).filter((r) => {
       // Persistido no banco: chip ocultado pelo usuário nesta competência.
       if (ocultosSet.has(r.empresa_id)) return false;
