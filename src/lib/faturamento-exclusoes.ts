@@ -131,28 +131,47 @@ function onlyDigits(s: unknown): string {
 
 /**
  * Proporcional de exclusão para empresa de PERÍODO específico.
- * O "fim do ciclo" é o dia (diaInicioCiclo - 1) na próxima ocorrência ≥ dResc.
- * Ex.: ciclo 10/07 → 09/08 (diaInicio=10). Rescisão 05/07 → fim 09/07;
- * rescisão 20/07 → fim 09/08.
+ *
+ * O ciclo de referência é o ciclo que está sendo faturado nesta remessa
+ * (derivado da competência mais recente do arquivo bruto), e NÃO o ciclo
+ * que contém a data de rescisão. Assim, exclusões lançadas em atraso
+ * (rescisão no mês anterior) são cobradas até o fim do ciclo atual.
+ *
+ * Ex.: ciclo dia 20, competência 01/08 → ciclo 20/07 a 19/08 (31 dias).
+ * Rescisão 16/07 → 35 dias proporcionais (16/07 até 19/08).
  */
 export function calcularProporcionalPeriodo(
   dResc: Date,
   mensalidade: number,
   diaInicioCiclo: number,
+  competenciaRef?: Date | null,
 ): number | null {
   const diaFim = diaInicioCiclo === 1 ? 0 : diaInicioCiclo - 1; // 0 ⇒ último dia do mês
-  let year = dResc.getUTCFullYear();
-  let month = dResc.getUTCMonth();
-  const diaResc = dResc.getUTCDate();
 
-  let cycleEnd: Date;
-  if (diaFim === 0) {
-    cycleEnd = new Date(Date.UTC(year, month + 1, 0, 12));
-  } else {
-    if (diaResc > diaFim) month += 1;
-    const lastDom = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-    const diaFimSafe = Math.min(diaFim, lastDom);
-    cycleEnd = new Date(Date.UTC(year, month, diaFimSafe, 12));
+  // Base do ciclo: mês da competência de faturamento; sem ela, usa a rescisão.
+  const base = competenciaRef ?? dResc;
+  let year = base.getUTCFullYear();
+  let month = base.getUTCMonth();
+
+  const buildEnd = (y: number, m: number): Date => {
+    if (diaFim === 0) return new Date(Date.UTC(y, m + 1, 0, 12));
+    const lastDom = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    return new Date(Date.UTC(y, m, Math.min(diaFim, lastDom), 12));
+  };
+
+  let cycleEnd = buildEnd(year, month);
+
+  if (!competenciaRef) {
+    // Fallback: ciclo que contém a rescisão
+    if (diaFim !== 0 && dResc.getUTCDate() > diaFim) cycleEnd = buildEnd(year, month + 1);
+  } else if (dResc.getTime() > cycleEnd.getTime()) {
+    // Rescisão além do ciclo de referência → avança ciclos até alcançá-la
+    let guard = 0;
+    while (dResc.getTime() > cycleEnd.getTime() && guard < 24) {
+      month += 1;
+      cycleEnd = buildEnd(year, month);
+      guard++;
+    }
   }
 
   const cycleStart = new Date(cycleEnd);
@@ -166,6 +185,7 @@ export function calcularProporcionalPeriodo(
   const v = -1 * (mensalidade / totalDiasCiclo) * diasProp;
   return Math.round(v * 100) / 100;
 }
+
 
 export interface CnpjPeriodoSuspeita {
   cnpj: string;
