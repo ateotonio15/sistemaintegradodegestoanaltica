@@ -412,7 +412,7 @@ export async function adicionarExclusoesAoBruto(
       const dResc = toDateSafe(linhaExc[idxRescExc]);
       if (dResc) {
         if (diaInicioPeriodo && diaInicioPeriodo >= 1 && diaInicioPeriodo <= 31) {
-          const v = calcularProporcionalPeriodo(dResc, mensalidade, diaInicioPeriodo);
+          const v = calcularProporcionalPeriodo(dResc, mensalidade, diaInicioPeriodo, maxComp);
           if (v != null) valorProporcional = v;
         } else {
           const totalDias = diasDoMes(dResc);
