@@ -922,9 +922,13 @@ export default function Empresas() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 bg-popover z-50">
                   <DropdownMenuLabel>Planilhas</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={exportarEmpresasExcel}>
+                  <DropdownMenuItem onClick={() => exportarEmpresasExcel()}>
                     <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar Excel
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarAte99Vidas}>
+                    <Users className="mr-2 h-4 w-4" />Empresas até 99 vidas
+                  </DropdownMenuItem>
+
                   {canFullEdit && (
                     <DropdownMenuItem onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
                       <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
