@@ -385,6 +385,7 @@ const SHORTCUTS: Shortcut[] = [
 
 export default function Home() {
   const { isAdmin, isExecutivo, isExecutivoExterno, isViewOnly, isEnfermeira, isFinanceiro, isVendas, role, user } = useAuth();
+  const soSaude = role === "tec_enfermagem";
   const { data: canHonda } = useCanAccessHonda();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"funcoes" | "utilitarios">("funcoes");
@@ -404,13 +405,14 @@ export default function Home() {
   };
 
   const visible = useMemo(() => {
+    if (soSaude) return [] as Shortcut[];
     return SHORTCUTS.filter((s) => s.show(ctx)).map((s) => {
       if (isGroup(s)) {
         return { ...s, children: s.children.filter((c) => c.show(ctx)) };
       }
       return s;
     });
-  }, [ctx]);
+  }, [ctx, soSaude]);
 
   const activeGroup = useMemo(
     () => (openGroup ? (visible.find((s) => isGroup(s) && s.groupKey === openGroup) as GroupShortcut | undefined) : null),
@@ -603,6 +605,7 @@ export default function Home() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {activeSection.items.filter((item) => {
+                        if (soSaude) return (item.to || "").startsWith("/saude");
                         if (!isExecutivoExterno) return true;
                         return ["/demandas", "/plantoes", "/mailing-brindes"].includes(item.to || "");
                       }).map((item) => {
@@ -637,6 +640,7 @@ export default function Home() {
               return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {INTELIGENCIA_SECTIONS.filter((section) => {
+                    if (soSaude) return section.title === "Saúde nas Empresas";
                     if (!isExecutivoExterno) return true;
                     return ["Demandas", "Plantões", "Mailing de Brindes"].includes(section.title);
                   }).map((section) => {
