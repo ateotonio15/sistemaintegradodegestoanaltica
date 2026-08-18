@@ -532,7 +532,7 @@ export default function Home() {
         )}
 
         {/* Tabs */}
-        {!query && !activeGroup && (
+        {!query && !activeGroup && !soSaude && (
           <div className="inline-flex items-center gap-1 p-1 bg-muted/60 rounded-xl">
             {(["funcoes", "utilitarios"] as const).map((t) => {
               const active = tab === t;
@@ -555,17 +555,19 @@ export default function Home() {
         )}
 
         {/* Grid */}
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.length === 0 ? (
-            <div className="col-span-full text-center text-sm text-muted-foreground py-12">
-              Nenhum módulo encontrado.
-            </div>
-          ) : (
-            filtered.map((s: any) =>
-              isGroup(s) ? renderCard(s, { asGroup: true }) : renderCard(s),
-            )
-          )}
-        </div>
+        {!soSaude && (
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.length === 0 ? (
+              <div className="col-span-full text-center text-sm text-muted-foreground py-12">
+                Nenhum módulo encontrado.
+              </div>
+            ) : (
+              filtered.map((s: any) =>
+                isGroup(s) ? renderCard(s, { asGroup: true }) : renderCard(s),
+              )
+            )}
+          </div>
+        )}
 
 
         {/* Inteligência de Relacionamento — oculto para Cadastro (Comum) e Financeiro */}
