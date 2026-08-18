@@ -15,7 +15,7 @@ import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, 
 import { Navigate } from "react-router-dom";
 import { FeriasSection } from "@/components/ferias/FeriasSection";
 
-type AppRole = "admin" | "comum" | "executivo" | "executivo_externo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras";
+type AppRole = "admin" | "comum" | "executivo" | "executivo_externo" | "visualizacao" | "diretora" | "enfermeira" | "tec_enfermagem" | "financeiro" | "vendas" | "administradoras";
 
 interface UserProfile {
   user_id: string;
@@ -33,6 +33,7 @@ const roleLabel: Record<AppRole, string> = {
   visualizacao: "Visualização",
   diretora: "Diretora",
   enfermeira: "Enfermeira",
+  tec_enfermagem: "Téc. Enfermagem",
   financeiro: "Financeiro",
   vendas: "Vendas",
   administradoras: "Administradoras",
@@ -46,6 +47,7 @@ const roleIcon: Record<AppRole, typeof Shield> = {
   visualizacao: Eye,
   diretora: Eye,
   enfermeira: HeartPulse,
+  tec_enfermagem: HeartPulse,
   financeiro: Wallet,
   vendas: User,
   administradoras: Building2,
@@ -332,6 +334,7 @@ export default function Usuarios() {
                       <SelectItem value="visualizacao">Visualização</SelectItem>
                       <SelectItem value="diretora">Diretora</SelectItem>
                       <SelectItem value="enfermeira">Enfermeira</SelectItem>
+                      <SelectItem value="tec_enfermagem">Téc. Enfermagem</SelectItem>
                       <SelectItem value="financeiro">Financeiro</SelectItem>
                       <SelectItem value="vendas">Vendas</SelectItem>
                       <SelectItem value="administradoras">Administradoras</SelectItem>
@@ -460,6 +463,7 @@ export default function Usuarios() {
                     <SelectItem value="visualizacao">Visualização</SelectItem>
                     <SelectItem value="diretora">Diretora</SelectItem>
                     <SelectItem value="enfermeira">Enfermeira</SelectItem>
+                      <SelectItem value="tec_enfermagem">Téc. Enfermagem</SelectItem>
                     <SelectItem value="financeiro">Financeiro</SelectItem>
                     <SelectItem value="vendas">Vendas</SelectItem>
                     <SelectItem value="administradoras">Administradoras</SelectItem>

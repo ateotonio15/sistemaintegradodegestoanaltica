@@ -166,7 +166,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         return allowed.includes(item.to);
       }
       if (isEnfermeira) {
-        const allowed = ["/uber", "/uber/dashboard", "/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras", "/saude-empresas/pesquisas"];
+        const saude = ["/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras", "/saude-empresas/pesquisas"];
+        const allowed = role === "tec_enfermagem" ? saude : ["/uber", "/uber/dashboard", ...saude];
         return allowed.includes(item.to);
       }
       if (role === "vendas") {

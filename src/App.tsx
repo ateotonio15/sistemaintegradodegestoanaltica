@@ -252,7 +252,7 @@ const AppRoutes = () => (
       <Route path="/uber" element={<UberCorridas />} />
       <Route path="/uber/dashboard" element={<UberDashboard />} />
 
-      <Route element={<RoleGate allow={["admin", "enfermeira", "executivo", "coordenadora", "diretora", "diretora_saude"]} />}>
+      <Route element={<RoleGate allow={["admin", "enfermeira", "tec_enfermagem", "executivo", "coordenadora", "diretora", "diretora_saude"]} />}>
         <Route path="/saude-empresas" element={<SaudeEmpresasLista />} />
         <Route path="/saude-empresas/visao-geral" element={<SaudeVisaoGeral />} />
         <Route path="/saude-empresas/dashboard-executivo" element={<DashboardExecutivo />} />
