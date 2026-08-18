@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { clearSessionNamespace } from "@/hooks/useSessionState";
 import type { User, Session } from "@supabase/supabase-js";
 
-type UserRole = "admin" | "comum" | "executivo" | "executivo_externo" | "visualizacao" | "diretora" | "enfermeira" | "financeiro" | "vendas" | "administradoras" | "admin_interno" | null;
+type UserRole = "admin" | "comum" | "executivo" | "executivo_externo" | "visualizacao" | "diretora" | "enfermeira" | "tec_enfermagem" | "financeiro" | "vendas" | "administradoras" | "admin_interno" | null;
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +15,7 @@ interface AuthContextType {
   isExecutivoExterno: boolean;
   isViewOnly: boolean;
   isEnfermeira: boolean;
+  isTecEnfermagem: boolean;
   isFinanceiro: boolean;
   isComum: boolean;
   isVendas: boolean;
@@ -46,6 +47,7 @@ const AuthContext = createContext<AuthContextType>({
   isExecutivoExterno: false,
   isViewOnly: false,
   isEnfermeira: false,
+  isTecEnfermagem: false,
   isFinanceiro: false,
   isComum: false,
   isVendas: false,
