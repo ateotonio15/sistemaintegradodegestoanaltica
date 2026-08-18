@@ -797,8 +797,12 @@ export default function Empresas() {
     toast({ title: "Relatório gerado", description: `${inativas.length} contrato(s) inativo(s) exportado(s).` });
   }
 
-  async function exportarEmpresasExcel() {
-    if (filtered.length === 0) {
+  async function exportarEmpresasExcel(
+    rows: any[] = filtered,
+    nomeArquivo = "empresas",
+    aba = "Empresas",
+  ) {
+    if (rows.length === 0) {
       toast({ title: "Sem dados", description: "Nenhuma empresa para exportar.", variant: "destructive" });
       return;
     }
@@ -809,8 +813,9 @@ export default function Empresas() {
     const isUserKey = (k: string) => k === "responsavel_user_id" || k === "executiva_user_id";
     const skipKeys = new Set(["faixas_etarias", "portal_secoes"]);
 
-    const sample = filtered[0] as any;
+    const sample = rows[0] as any;
     const keys = Object.keys(sample).filter((k) => !skipKeys.has(k));
+
 
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Empresas");
