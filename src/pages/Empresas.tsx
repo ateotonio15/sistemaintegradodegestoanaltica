@@ -893,7 +893,7 @@ export default function Empresas() {
               {`${filtered.length} empresa(s) ${showInativas ? "inativas" : "ativas"}`}
             </p>
           </div>
-          {(canEdit && !isExecutivo && !isEnfermeira) && (
+          {(canEdit && !isEnfermeira) && (
             <div className="flex items-center gap-2">
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
               {canFullEdit && (
