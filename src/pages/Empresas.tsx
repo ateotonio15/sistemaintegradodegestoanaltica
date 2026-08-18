@@ -818,7 +818,7 @@ export default function Empresas() {
 
 
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Empresas");
+    const ws = wb.addWorksheet(aba);
     ws.columns = keys.map((k) => ({
       header: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
       key: k,
@@ -827,7 +827,7 @@ export default function Empresas() {
     ws.getRow(1).font = { bold: true };
     ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } } as any;
 
-    filtered.forEach((e: any) => {
+    rows.forEach((e: any) => {
       const row: Record<string, any> = {};
       for (const k of keys) {
         let v = e[k];
@@ -851,12 +851,26 @@ export default function Empresas() {
     const a = document.createElement("a");
     const hoje = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `empresas-${hoje}.xlsx`;
+    a.download = `${nomeArquivo}-${hoje}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
 
-    toast({ title: "Exportação concluída", description: `${filtered.length} empresa(s) exportada(s).` });
+    toast({ title: "Exportação concluída", description: `${rows.length} empresa(s) exportada(s).` });
   }
+
+  function exportarAte99Vidas() {
+    const ate99 = (empresas as any[]).filter((e) => {
+      const ativa = (e.status_empresa ?? "Ativa") === "Ativa" && !e.data_rescisao;
+      const v = Number(e.vidas ?? 0);
+      return ativa && v > 0 && v <= 99;
+    });
+    if (ate99.length === 0) {
+      toast({ title: "Sem dados", description: "Nenhuma empresa com até 99 vidas ativas.", variant: "destructive" });
+      return;
+    }
+    exportarEmpresasExcel(ate99, "empresas-ate-99-vidas", "Até 99 vidas");
+  }
+
 
   return (
     <>
