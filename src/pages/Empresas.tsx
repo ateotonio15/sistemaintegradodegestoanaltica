@@ -797,8 +797,12 @@ export default function Empresas() {
     toast({ title: "Relatório gerado", description: `${inativas.length} contrato(s) inativo(s) exportado(s).` });
   }
 
-  async function exportarEmpresasExcel() {
-    if (filtered.length === 0) {
+  async function exportarEmpresasExcel(
+    rows: any[] = filtered,
+    nomeArquivo = "empresas",
+    aba = "Empresas",
+  ) {
+    if (rows.length === 0) {
       toast({ title: "Sem dados", description: "Nenhuma empresa para exportar.", variant: "destructive" });
       return;
     }
@@ -809,11 +813,12 @@ export default function Empresas() {
     const isUserKey = (k: string) => k === "responsavel_user_id" || k === "executiva_user_id";
     const skipKeys = new Set(["faixas_etarias", "portal_secoes"]);
 
-    const sample = filtered[0] as any;
+    const sample = rows[0] as any;
     const keys = Object.keys(sample).filter((k) => !skipKeys.has(k));
 
+
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Empresas");
+    const ws = wb.addWorksheet(aba);
     ws.columns = keys.map((k) => ({
       header: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
       key: k,
@@ -822,7 +827,7 @@ export default function Empresas() {
     ws.getRow(1).font = { bold: true };
     ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } } as any;
 
-    filtered.forEach((e: any) => {
+    rows.forEach((e: any) => {
       const row: Record<string, any> = {};
       for (const k of keys) {
         let v = e[k];
@@ -846,12 +851,26 @@ export default function Empresas() {
     const a = document.createElement("a");
     const hoje = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `empresas-${hoje}.xlsx`;
+    a.download = `${nomeArquivo}-${hoje}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
 
-    toast({ title: "Exportação concluída", description: `${filtered.length} empresa(s) exportada(s).` });
+    toast({ title: "Exportação concluída", description: `${rows.length} empresa(s) exportada(s).` });
   }
+
+  function exportarAte99Vidas() {
+    const ate99 = (empresas as any[]).filter((e) => {
+      const ativa = (e.status_empresa ?? "Ativa") === "Ativa" && !e.data_rescisao;
+      const v = Number(e.vidas ?? 0);
+      return ativa && v > 0 && v <= 99;
+    });
+    if (ate99.length === 0) {
+      toast({ title: "Sem dados", description: "Nenhuma empresa com até 99 vidas ativas.", variant: "destructive" });
+      return;
+    }
+    exportarEmpresasExcel(ate99, "empresas-ate-99-vidas", "Até 99 vidas");
+  }
+
 
   return (
     <>
@@ -903,9 +922,13 @@ export default function Empresas() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 bg-popover z-50">
                   <DropdownMenuLabel>Planilhas</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={exportarEmpresasExcel}>
+                  <DropdownMenuItem onClick={() => exportarEmpresasExcel()}>
                     <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar Excel
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarAte99Vidas}>
+                    <Users className="mr-2 h-4 w-4" />Empresas até 99 vidas
+                  </DropdownMenuItem>
+
                   {canFullEdit && (
                     <DropdownMenuItem onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
                       <Upload className="mr-2 h-4 w-4" />{importMutation.isPending ? "Importando..." : "Importar Excel"}
