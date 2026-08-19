@@ -798,11 +798,13 @@ export default function Movimentacoes() {
                     empresaId={form.empresa_id || null}
                     required={!!form.data_envio_financeiro}
                   />
+                  </div>
 
-                  <div className="flex justify-end gap-2">
+                  <div className="shrink-0 flex justify-end gap-2 border-t border-border/50 bg-background/95 px-6 py-3 backdrop-blur">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
                     <Button type="submit" disabled={upsert.isPending || !form.empresa_id} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
                   </div>
+
                 </form>
               </DialogContent>
             </Dialog>
