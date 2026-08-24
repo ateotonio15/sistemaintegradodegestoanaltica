@@ -27,6 +27,8 @@ export interface EmpresaVidas {
   total_anterior: number;
   saldo: number;
   ultima_atualizacao: string | null;
+  /** true quando existe cálculo persistido para o mês selecionado */
+  tem_historico_mes: boolean;
 }
 
 export interface HistoricoMes {
@@ -115,6 +117,7 @@ export function useGestaoVidas(filters: VidasFilters) {
           total_atual,
           total_anterior,
           saldo: entradas - saidas,
+          tem_historico_mes: !!h,
           ultima_atualizacao: h?.calculado_em ?? latest?.calculado_em ?? null,
         } as EmpresaVidas;
       });
