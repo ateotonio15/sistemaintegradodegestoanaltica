@@ -172,6 +172,14 @@ export default function GestaoVidas() {
         mesesBusca.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
       }
 
+      // empresa_id -> mes_referencia mais recente com layout Excel (qualquer origem)
+      const alvoMap = new Map<string, string>();
+      const marcar = (empresaId: string, mes: string) => {
+        const atual = alvoMap.get(empresaId);
+        if (!atual || mes > atual) alvoMap.set(empresaId, mes);
+      };
+
+      // Origem 1: anexos de fechamento (movimentações)
       const { data: movs } = await supabase
         .from("movimentacoes")
         .select("id, empresa_id, mes_referencia")
@@ -179,8 +187,6 @@ export default function GestaoVidas() {
         .in("mes_referencia", mesesBusca);
 
       const movIds = (movs ?? []).map((m: any) => m.id);
-      // empresa_id -> mes_referencia mais recente com anexo Excel
-      const alvoMap = new Map<string, string>();
       if (movIds.length) {
         const { data: anexos } = await supabase
           .from("anexos_movimentacao")
@@ -194,10 +200,50 @@ export default function GestaoVidas() {
           if (!["xlsx", "xlsm", "xls"].includes(ext)) return;
           const info = movInfo.get(a.movimentacao_id);
           if (!info) return;
-          const atual = alvoMap.get(info.empresa_id);
-          if (!atual || info.mes > atual) alvoMap.set(info.empresa_id, info.mes);
+          marcar(info.empresa_id, info.mes);
         });
       }
+
+      // Origem 2: anexos da aba Faturamento
+      const { data: finMovs } = await supabase
+        .from("financeiro_movimentacoes")
+        .select("id, empresa_id, mes_referencia")
+        .in("empresa_id", empresasPendentes)
+        .in("mes_referencia", mesesBusca);
+      const finIds = (finMovs ?? []).map((m: any) => m.id);
+      if (finIds.length) {
+        const { data: finAnexos } = await supabase
+          .from("anexos_financeiro")
+          .select("financeiro_movimentacao_id, nome_arquivo")
+          .in("financeiro_movimentacao_id", finIds);
+        const finInfo = new Map<string, { empresa_id: string; mes: string }>(
+          (finMovs ?? []).map((m: any) => [m.id, { empresa_id: m.empresa_id, mes: m.mes_referencia }]),
+        );
+        (finAnexos ?? []).forEach((a: any) => {
+          const ext = (a.nome_arquivo?.split(".").pop() || "").toLowerCase();
+          if (!["xlsx", "xlsm", "xls"].includes(ext)) return;
+          const info = finInfo.get(a.financeiro_movimentacao_id);
+          if (!info) return;
+          marcar(info.empresa_id, info.mes);
+        });
+      }
+
+      // Origem 3: anexos de implantação (sem competência própria → mês de criação)
+      const inicioBusca = `${mesesBusca[mesesBusca.length - 1]}-01T00:00:00.000Z`;
+      const { data: implAnexos } = await supabase
+        .from("implantacao_anexos")
+        .select("empresa_id, nome_arquivo, created_at")
+        .in("empresa_id", empresasPendentes)
+        .gte("created_at", inicioBusca);
+      (implAnexos ?? []).forEach((a: any) => {
+        const ext = (a.nome_arquivo?.split(".").pop() || "").toLowerCase();
+        if (!["xlsx", "xlsm", "xls"].includes(ext)) return;
+        if (!a.empresa_id) return;
+        const mes = String(a.created_at).slice(0, 7);
+        if (!mesesBusca.includes(mes)) return;
+        marcar(a.empresa_id, mes);
+      });
+
 
       if (alvoMap.size === 0) {
         toast({
