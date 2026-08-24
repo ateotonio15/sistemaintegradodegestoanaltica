@@ -108,6 +108,7 @@ export function gerarHistoricoTexto(
   let benefApt = 0, totalApt = 0, mensApt = 0;
   let totalInc = 0;
   let totalExc = 0;
+  let totalDev = 0;
   let totalAdesao = 0;
   let totalRetro = 0;
 
