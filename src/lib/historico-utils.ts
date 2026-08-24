@@ -159,6 +159,9 @@ export function gerarHistoricoTexto(
       const v = Math.abs(totalExc);
       linhas.push(`Exclusão: (${fmtBR(v)}).`);
     }
+    if (totalDev !== 0) {
+      linhas.push(`Devolução: (${fmtBR(Math.abs(totalDev))}).`);
+    }
     if (totalRetro > 0) {
       linhas.push(`C.Retroativa: ${fmtBR(totalRetro)}`);
     }
