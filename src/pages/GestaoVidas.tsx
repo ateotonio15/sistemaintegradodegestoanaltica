@@ -115,7 +115,7 @@ export default function GestaoVidas() {
 
   const [mesRef, setMesRef] = useState<string>(currentMonth());
   const [tipoContrato, setTipoContrato] = useState<VidasFilters["tipoContrato"]>("TODOS");
-  const [status, setStatus] = useState<string>("TODOS");
+  const [status, setStatus] = useState<string>("Ativa");
   const [search, setSearch] = useState("");
   const [gerando, setGerando] = useState(false);
   const [progresso, setProgresso] = useState<{ done: number; total: number } | null>(null);
@@ -370,6 +370,8 @@ export default function GestaoVidas() {
               <SelectItem value="Ativa">Ativa</SelectItem>
               <SelectItem value="Suspensa">Suspensa</SelectItem>
               <SelectItem value="Rescindida">Rescindida</SelectItem>
+              <SelectItem value="Inativa">Inativa</SelectItem>
+
             </SelectContent>
           </Select>
           <Input
