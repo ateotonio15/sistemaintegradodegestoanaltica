@@ -117,6 +117,7 @@ export function useGestaoVidas(filters: VidasFilters) {
           total_atual,
           total_anterior,
           saldo: entradas - saidas,
+          tem_historico_mes: !!h,
           ultima_atualizacao: h?.calculado_em ?? latest?.calculado_em ?? null,
         } as EmpresaVidas;
       });
