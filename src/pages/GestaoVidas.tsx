@@ -370,6 +370,8 @@ export default function GestaoVidas() {
               <SelectItem value="Ativa">Ativa</SelectItem>
               <SelectItem value="Suspensa">Suspensa</SelectItem>
               <SelectItem value="Rescindida">Rescindida</SelectItem>
+              <SelectItem value="Inativa">Inativa</SelectItem>
+
             </SelectContent>
           </Select>
           <Input
