@@ -27,6 +27,8 @@ export interface EmpresaVidas {
   total_anterior: number;
   saldo: number;
   ultima_atualizacao: string | null;
+  /** true quando existe cálculo persistido para o mês selecionado */
+  tem_historico_mes: boolean;
 }
 
 export interface HistoricoMes {
