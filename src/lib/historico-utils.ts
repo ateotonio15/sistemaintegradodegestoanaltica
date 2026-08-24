@@ -125,6 +125,7 @@ export function gerarHistoricoTexto(
     }
     if (r.inclusoes?.total) totalInc += r.inclusoes.total;
     if (r.exclusoes?.total) totalExc += r.exclusoes.total;
+    if ((r as any).devolucoes?.total) totalDev += (r as any).devolucoes.total;
     if (r.taxaAdesao?.total) totalAdesao += r.taxaAdesao.total;
     if ((r as any).retroativas?.total) totalRetro += (r as any).retroativas.total;
   });
