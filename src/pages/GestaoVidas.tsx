@@ -150,9 +150,10 @@ export default function GestaoVidas() {
     };
   }, [empresas]);
 
-  // Empresas com layout anexado no mês porém com total_atual = 0 — candidatos a recalcular.
+  // Candidatos a recalcular: sem cálculo persistido no mês selecionado (entradas/saídas
+  // ficariam zeradas) ou com total de vidas zerado.
   const empresasPendentes = useMemo(
-    () => empresas.filter((e) => (e.total_atual || 0) === 0).map((e) => e.id),
+    () => empresas.filter((e) => !e.tem_historico_mes || (e.total_atual || 0) === 0).map((e) => e.id),
     [empresas],
   );
 
