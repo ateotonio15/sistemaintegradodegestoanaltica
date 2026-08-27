@@ -1523,9 +1523,13 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       }
     }
     if (isNaN(total)) continue;
-    const chaveValor = total.toFixed(2);
+    // Deduplica por rótulo + valor: meses diferentes podem ter exatamente o
+    // mesmo valor (ex.: Maio26 e Junho26 = R$ 7.072,00) e não podem ser
+    // tratados como repetição do mesmo pivot.
+    const chaveValor = `${norm(hitLabel)}|${total.toFixed(2)}`;
     if (tailRetroValoresVistos.has(chaveValor)) continue;
     tailRetroValoresVistos.add(chaveValor);
+
     tailRetroQtd += qtd;
     tailRetroTotal += total;
   }
