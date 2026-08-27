@@ -2188,12 +2188,13 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (isNaN(total)) continue;
 
       const mes = extrairMes(hitLabel);
-      // Deduplica pelo valor monetário. A mesma cobrança pode aparecer uma vez
-      // com quantidade e outra sem quantidade; usar qtd na chave fazia o mesmo
-      // R$ 430,28 ser tratado como dois lançamentos diferentes.
-      const chave = total.toFixed(2);
+      // Deduplica por rótulo (mês) + valor. A mesma cobrança pode aparecer uma
+      // vez com quantidade e outra sem, mas meses distintos podem ter o mesmo
+      // valor (ex.: Maio26 e Junho26 = R$ 7.072,00) e devem ser somados.
+      const chave = `${mes || norm(hitLabel)}|${total.toFixed(2)}`;
       if (pivotsVistos.has(chave)) continue;
       pivotsVistos.add(chave);
+
       pivotEncontrado = true;
       extraRetroQtd += qtd;
       extraRetroTotal += total;
