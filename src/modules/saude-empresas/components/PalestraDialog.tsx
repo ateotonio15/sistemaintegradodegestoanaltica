@@ -20,7 +20,6 @@ import {
   Palestra, PalestraStatus, usePalestraMutations,
 } from "../hooks/usePalestras";
 import { useEmpresasAtivas, useExecutivas } from "../hooks/useAcoesPreventivas";
-import { EnderecoCombobox, useEnderecosSugeridos } from "@/components/EnderecoCombobox";
 import { feriadoEm } from "../lib/feriados";
 import { GESTANTES_2026, CAMPANHAS, MESES_PT } from "../lib/palestras-calendario";
 
@@ -64,7 +63,6 @@ export function PalestraDialog({
   const { data: empresas = [] } = useEmpresasAtivas();
   const { data: executivas = [] } = useExecutivas();
   const { createMany, updateOne, deleteOne } = usePalestraMutations();
-  const enderecos = useEnderecosSugeridos();
 
   const [empresa, setEmpresa] = useState("");
   const [endereco, setEndereco] = useState("");
@@ -323,7 +321,7 @@ export function PalestraDialog({
 
           <div className="grid gap-2">
             <Label>Endereço *</Label>
-            <EnderecoCombobox value={endereco} onChange={setEndereco} opcoes={enderecos} disabled={dis} />
+            <Input value={endereco} onChange={(e) => setEndereco(e.target.value)} disabled={dis} placeholder="Local da palestra" />
           </div>
 
           <div className="grid gap-2">

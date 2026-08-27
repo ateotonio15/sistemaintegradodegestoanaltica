@@ -22,7 +22,6 @@ import {
   useAcaoPreventivaMutations, useEmpresasAtivas, useExecutivas,
 } from "../hooks/useAcoesPreventivas";
 import { feriadoEm } from "../lib/feriados";
-import { EnderecoCombobox, useEnderecosSugeridos } from "@/components/EnderecoCombobox";
 
 const STATUS_OPTIONS: { v: AcaoPreventivaStatus; label: string }[] = [
   { v: "a_confirmar", label: "A confirmar" },
@@ -71,7 +70,6 @@ export function EventoPreventivoDialog({
   const { data: empresas = [] } = useEmpresasAtivas();
   const { data: executivas = [] } = useExecutivas();
   const { createMany, updateOne, deleteOne } = useAcaoPreventivaMutations();
-  const enderecos = useEnderecosSugeridos();
 
   const [empresaId, setEmpresaId] = useState<string>("");
   const [endereco, setEndereco] = useState("");
@@ -302,7 +300,7 @@ export function EventoPreventivoDialog({
 
           <div className="grid gap-2">
             <Label>Endereço</Label>
-            <EnderecoCombobox value={endereco} onChange={setEndereco} opcoes={enderecos} disabled={dis} />
+            <Input value={endereco} onChange={(e) => setEndereco(e.target.value)} disabled={dis} placeholder="Endereço do atendimento" />
           </div>
 
           <div className="grid gap-2">
