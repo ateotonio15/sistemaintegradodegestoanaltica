@@ -8,12 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpsertCorrida, type UberCorrida } from "@/hooks/useUberCorridas";
 import { useAuth } from "@/hooks/useAuth";
+import { EnderecoCombobox, useEnderecosSugeridos } from "@/components/EnderecoCombobox";
 
 interface Props {
   open: boolean;
@@ -38,78 +39,6 @@ const MOTIVOS = [
   "Gravação da Palestra",
 ];
 const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
-const ENDERECO_SAMEL = "Samel - Av. Joaquim Nabuco, 1550 - Centro";
-
-function EnderecoCombobox({
-  value,
-  onChange,
-  opcoes,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  opcoes: string[];
-}) {
-  const [open, setOpen] = useState(false);
-  const [busca, setBusca] = useState("");
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          className={cn("w-full justify-between font-normal text-left", !value && "text-muted-foreground")}
-        >
-          <span className="truncate">{value || "Selecione ou digite o endereço"}</span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command shouldFilter={false}>
-          <CommandInput placeholder="Buscar ou digitar novo endereço..." value={busca} onValueChange={setBusca} />
-          <CommandList>
-            {(() => {
-              const q = busca.trim().toLowerCase();
-              const filtradas = q ? opcoes.filter((o) => o.toLowerCase().includes(q)) : opcoes;
-              const podeCriar = !!busca.trim() && !opcoes.some((o) => o.toLowerCase() === q);
-              return (
-                <>
-                  {!podeCriar && filtradas.length === 0 && <CommandEmpty>Nenhum endereço encontrado.</CommandEmpty>}
-                  {podeCriar && (
-                    <CommandGroup heading="Novo endereço">
-                      <CommandItem
-                        value={`__novo__${busca}`}
-                        onSelect={() => { onChange(busca.trim()); setOpen(false); setBusca(""); }}
-                      >
-                        <Plus className="mr-2 h-4 w-4 shrink-0" />
-                        <span className="truncate">Usar "{busca.trim()}"</span>
-                      </CommandItem>
-                    </CommandGroup>
-                  )}
-                  {filtradas.length > 0 && (
-                    <CommandGroup heading="Endereços cadastrados">
-                      {filtradas.map((o) => (
-                        <CommandItem
-                          key={o}
-                          value={o}
-                          onSelect={() => { onChange(o); setOpen(false); setBusca(""); }}
-                        >
-                          <Check className={cn("mr-2 h-4 w-4 shrink-0", value === o ? "opacity-100" : "opacity-0")} />
-                          <span className="truncate">{o}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  )}
-                </>
-              );
-            })()}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const upsert = useUpsertCorrida();
@@ -143,30 +72,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
     },
   });
 
-  const { data: enderecosUsados = [] } = useQuery({
-    queryKey: ["uber-enderecos-usados"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("uber_corridas" as any)
-        .select("origem, destino")
-        .order("created_at", { ascending: false })
-        .limit(1000);
-      if (error) throw error;
-      return (data ?? []) as unknown as { origem: string | null; destino: string | null }[];
-    },
-    staleTime: 60 * 1000,
-  });
-
-  const enderecos = useMemo(() => {
-    const set = new Set<string>();
-    set.add(ENDERECO_SAMEL);
-    enderecosUsados.forEach((c) => {
-      [c.origem, c.destino].forEach((v) => { if (v && v.trim()) set.add(v.trim()); });
-    });
-    empresas.forEach((e) => { if (e.endereco && e.endereco.trim()) set.add(e.endereco.trim()); });
-    const arr = Array.from(set);
-    return [ENDERECO_SAMEL, ...arr.filter((a) => a !== ENDERECO_SAMEL).sort((a, b) => a.localeCompare(b, "pt-BR"))];
-  }, [enderecosUsados, empresas]);
+  const enderecos = useEnderecosSugeridos();
 
   useEffect(() => {
     if (open) {
