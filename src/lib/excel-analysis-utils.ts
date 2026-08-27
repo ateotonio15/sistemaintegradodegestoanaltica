@@ -54,6 +54,8 @@ export interface AnaliseResultado {
   exclusoes?: InclusaoResultado;
   /** Devoluções — categoria própria com valor negativo (crédito). */
   devolucoes?: InclusaoResultado;
+  /** Permuta — categoria própria com valor negativo (abatimento). */
+  permuta?: InclusaoResultado;
   /** Taxa de Adesão — cobrada uma única vez por adesão. */
   taxaAdesao?: InclusaoResultado;
   /** Detalhamento por faixa etária quando disponível na RESUMO. */
@@ -76,6 +78,7 @@ export interface AnalisePorCnpj {
   retroativas?: InclusaoResultado;
   exclusoes?: InclusaoResultado;
   devolucoes?: InclusaoResultado;
+  permuta?: InclusaoResultado;
   taxaAdesao?: InclusaoResultado;
   /** Detalhamento por faixa etária (quando a aba RESUMO contém faixas). */
   faixasEtarias?: FaixaEtariaResumo[];
@@ -364,6 +367,10 @@ function isDevolucao(tipo: string): boolean {
   return t.includes("devolu") || t.includes("devolvid");
 }
 
+function isPermuta(tipo: string): boolean {
+  return norm(tipo).includes("permuta");
+}
+
 export function isTaxaAdesao(tipo: string): boolean {
   const t = norm(tipo);
   // Casa "Taxa de Adesão", "TAXA ADESAO", "Adesão", "Adesao"
@@ -477,6 +484,8 @@ export async function analisarExcelFinanceiroPorPagador(
   let excTotal = 0;
   let devQtd = 0;
   let devTotal = 0;
+  let permQtd = 0;
+  let permTotal = 0;
   let adesaoQtd = 0;
   let adesaoTotal = 0;
 
@@ -515,6 +524,12 @@ export async function analisarExcelFinanceiroPorPagador(
     if (rowHasTaxaAdesao(r, idxTipo)) {
       adesaoQtd += 1;
       if (valorValido) adesaoTotal += valor;
+      continue;
+    }
+
+    if (idxTipo >= 0 && isPermuta(String(tipoCell))) {
+      permQtd += 1;
+      permTotal += valorNum > 0 ? -valorNum : valorNum;
       continue;
     }
 
@@ -580,6 +595,9 @@ export async function analisarExcelFinanceiroPorPagador(
   }
   if (devQtd > 0 || devTotal !== 0) {
     result.devolucoes = { quantidade: devQtd, total: devTotal };
+  }
+  if (permQtd > 0 || permTotal !== 0) {
+    result.permuta = { quantidade: permQtd, total: permTotal };
   }
   if (adesaoQtd > 0 || adesaoTotal !== 0) {
     result.taxaAdesao = { quantidade: adesaoQtd, total: adesaoTotal };
@@ -1242,6 +1260,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     retroQtd: number; retroTotal: number;
     excQtd: number; excTotal: number;
     devQtd: number; devTotal: number;
+    permQtd: number; permTotal: number;
     adesaoQtd: number; adesaoTotal: number;
     /** Valor da linha "TOTAL" declarada na planilha para este bloco. */
     totalDecl: number | null;
@@ -1332,6 +1351,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         retroQtd: 0, retroTotal: 0,
         excQtd: 0, excTotal: 0,
         devQtd: 0, devTotal: 0,
+        permQtd: 0, permTotal: 0,
         adesaoQtd: 0, adesaoTotal: 0,
         totalDecl: null,
         faixas: new Map(),
@@ -1370,6 +1390,12 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       continue;
     }
 
+
+    if (labelNorm.includes("permuta")) {
+      cur.permQtd += qtdNum;
+      cur.permTotal += valNum;
+      continue;
+    }
 
     if (labelNorm.includes("devolu")) {
       cur.devQtd += qtdNum;
@@ -1594,6 +1620,9 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (g.devQtd > 0 || g.devTotal !== 0) {
       bloco.devolucoes = { quantidade: g.devQtd, total: g.devTotal };
     }
+    if (g.permQtd > 0 || g.permTotal !== 0) {
+      bloco.permuta = { quantidade: g.permQtd, total: g.permTotal };
+    }
     if (g.adesaoQtd > 0 || g.adesaoTotal !== 0) {
       bloco.taxaAdesao = { quantidade: g.adesaoQtd, total: g.adesaoTotal };
     }
@@ -1775,6 +1804,8 @@ export async function analisarExcelFinanceiroPorCnpj(
     excTotal: number;
     devQtd: number;
     devTotal: number;
+    permQtd: number;
+    permTotal: number;
     adesaoQtd: number;
     adesaoTotal: number;
     faixas: Map<string, FaixaEtariaResumo>;
@@ -1822,6 +1853,8 @@ export async function analisarExcelFinanceiroPorCnpj(
         excTotal: 0,
         devQtd: 0,
         devTotal: 0,
+        permQtd: 0,
+        permTotal: 0,
         adesaoQtd: 0,
         adesaoTotal: 0,
         faixas: new Map(),
@@ -1872,6 +1905,11 @@ export async function analisarExcelFinanceiroPorCnpj(
       continue;
     }
 
+    if (idxTipo >= 0 && isPermuta(String(tipoCell))) {
+      grp.permQtd += 1;
+      grp.permTotal += valorNum > 0 ? -valorNum : valorNum;
+      continue;
+    }
     if (idxTipo >= 0 && isDevolucao(String(tipoCell))) {
       grp.devQtd += 1;
       grp.devTotal += valorNum > 0 ? -valorNum : valorNum;
@@ -1917,6 +1955,7 @@ export async function analisarExcelFinanceiroPorCnpj(
       dest.retroQtd += g.retroQtd; dest.retroTotal += g.retroTotal;
       dest.excQtd += g.excQtd; dest.excTotal += g.excTotal;
       dest.devQtd += g.devQtd; dest.devTotal += g.devTotal;
+      dest.permQtd += g.permQtd; dest.permTotal += g.permTotal;
       dest.adesaoQtd += g.adesaoQtd; dest.adesaoTotal += g.adesaoTotal;
       g.faixas.forEach((f, key) => {
         const prev = dest.faixas.get(key) || { ...f, quantidade: 0, total: 0 };
@@ -1960,6 +1999,9 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (g.devQtd > 0 || g.devTotal !== 0) {
         bloco.devolucoes = { quantidade: g.devQtd, total: g.devTotal };
       }
+      if (g.permQtd > 0 || g.permTotal !== 0) {
+        bloco.permuta = { quantidade: g.permQtd, total: g.permTotal };
+      }
       if (g.adesaoQtd > 0 || g.adesaoTotal !== 0) {
         bloco.taxaAdesao = { quantidade: g.adesaoQtd, total: g.adesaoTotal };
       }
@@ -1980,6 +2022,7 @@ export async function analisarExcelFinanceiroPorCnpj(
         b.inclusoes.quantidade > 0 ||
         (b.exclusoes && b.exclusoes.quantidade > 0) ||
         (b.devolucoes && b.devolucoes.quantidade > 0) ||
+        (b.permuta && (b.permuta.quantidade > 0 || b.permuta.total !== 0)) ||
         (b.taxaAdesao && b.taxaAdesao.quantidade > 0),
     )
 
@@ -2288,6 +2331,7 @@ export async function analisarExcelFinanceiroPorCnpj(
       (b.inclusoes?.total ?? 0) +
       (b.exclusoes?.total ?? 0) +
       (b.devolucoes?.total ?? 0) +
+      (b.permuta?.total ?? 0) +
       (b.taxaAdesao?.total ?? 0);
     const excesso = soma - decl;
     if (excesso <= 0.05) return;
@@ -2393,7 +2437,7 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
     const mensalidade = beneficiarios > 0 ? total / beneficiarios : 0;
     return { beneficiarios, mensalidade, total };
   };
-  const somaQT = (arr: AnalisePorCnpj[], key: "inclusoes" | "retroativas" | "exclusoes" | "devolucoes" | "taxaAdesao") => {
+  const somaQT = (arr: AnalisePorCnpj[], key: "inclusoes" | "retroativas" | "exclusoes" | "devolucoes" | "permuta" | "taxaAdesao") => {
     const items = arr.map((x) => (x as any)[key]).filter(Boolean) as { quantidade: number; total: number }[];
     if (items.length === 0) return undefined;
     return { quantidade: items.reduce((s, x) => s + x.quantidade, 0), total: items.reduce((s, x) => s + x.total, 0) };
@@ -2443,6 +2487,7 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
 
     const exc = somaQT(arr, "exclusoes"); if (exc) novoBloco.exclusoes = exc;
     const dev = somaQT(arr, "devolucoes"); if (dev) novoBloco.devolucoes = dev;
+    const perm = somaQT(arr, "permuta"); if (perm) novoBloco.permuta = perm;
     const ade = somaQT(arr, "taxaAdesao"); if (ade) novoBloco.taxaAdesao = ade;
     // Coparticipação: soma quantidade/total e concatena substipulantes.
     const copartics = arr.map((x) => x.coparticipacao).filter(Boolean) as CoparticipacaoResultado[];
@@ -2513,6 +2558,7 @@ export function cruzarExcelComPdfs(
       retroativas: bloco.retroativas,
       exclusoes: bloco.exclusoes,
       devolucoes: bloco.devolucoes,
+      permuta: bloco.permuta,
       taxaAdesao: bloco.taxaAdesao,
       faixasEtarias: bloco.faixasEtarias,
       coparticipacao: bloco.coparticipacao,

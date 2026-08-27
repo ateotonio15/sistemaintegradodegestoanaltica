@@ -111,6 +111,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
         (r.inclusoes.total ?? 0) > 0 ||
         (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)) ||
         (r.devolucoes && (r.devolucoes.quantidade > 0 || r.devolucoes.total !== 0)) ||
+        (r.permuta && (r.permuta.quantidade > 0 || r.permuta.total !== 0)) ||
         (r.taxaAdesao && ((r.taxaAdesao.quantidade ?? 0) > 0 || (r.taxaAdesao.total ?? 0) > 0)),
     );
 
@@ -297,6 +298,15 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     beneficiarios: r.devolucoes.quantidade,
                     mensalidade: null,
                     total: r.devolucoes.total,
+                    destaqueNegativo: true,
+                  });
+                }
+                if (r.permuta && (r.permuta.quantidade > 0 || r.permuta.total !== 0)) {
+                  linhas.push({
+                    label: "Permuta",
+                    beneficiarios: r.permuta.quantidade,
+                    mensalidade: null,
+                    total: r.permuta.total,
                     destaqueNegativo: true,
                   });
                 }
