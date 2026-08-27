@@ -1837,13 +1837,13 @@ export default function Financeiro() {
           const _blocoCombinaRegra = _padroes.some((p) =>
             _norm(b.nomeExibicao || b.nome || "").includes(p),
           );
-          const _algumPdfCombinaRegra = pdfsValidos.some((p) =>
+          const _algumPdfCombinaRegra = pdfsNotaFiscal.some((p) =>
             _padroes.some((pat) => _norm(p.tomadorNome || "").includes(pat)),
           );
           const suprimir =
             _empresaTemRegra && (_blocoCombinaRegra || _algumPdfCombinaRegra);
           if (!suprimir) {
-            const tomadores = pdfsValidos
+            const tomadores = pdfsNotaFiscal
               .map((p) => {
                 const cnpjFmt = p.tomadorCnpj
                   ? `${p.tomadorCnpj.slice(0, 2)}.${p.tomadorCnpj.slice(2, 5)}.${p.tomadorCnpj.slice(5, 8)}/${p.tomadorCnpj.slice(8, 12)}-${p.tomadorCnpj.slice(12)}`
