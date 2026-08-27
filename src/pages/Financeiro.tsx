@@ -1869,6 +1869,7 @@ export default function Financeiro() {
         if (b.retroativas) out.retroativas = b.retroativas;
         if (b.exclusoes) out.exclusoes = b.exclusoes;
         if (b.devolucoes) out.devolucoes = b.devolucoes;
+        if (b.permuta) out.permuta = b.permuta;
         if (b.taxaAdesao) out.taxaAdesao = b.taxaAdesao;
         if (b.faixasEtarias) out.faixasEtarias = b.faixasEtarias;
         if (b.coparticipacao) out.coparticipacao = b.coparticipacao;

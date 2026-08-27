@@ -109,6 +109,7 @@ export function gerarHistoricoTexto(
   let totalInc = 0;
   let totalExc = 0;
   let totalDev = 0;
+  let totalPermuta = 0;
   let totalAdesao = 0;
   let totalRetro = 0;
 
@@ -126,6 +127,7 @@ export function gerarHistoricoTexto(
     if (r.inclusoes?.total) totalInc += r.inclusoes.total;
     if (r.exclusoes?.total) totalExc += r.exclusoes.total;
     if ((r as any).devolucoes?.total) totalDev += (r as any).devolucoes.total;
+    if ((r as any).permuta?.total) totalPermuta += (r as any).permuta.total;
     if (r.taxaAdesao?.total) totalAdesao += r.taxaAdesao.total;
     if ((r as any).retroativas?.total) totalRetro += (r as any).retroativas.total;
   });
@@ -162,6 +164,9 @@ export function gerarHistoricoTexto(
     if (totalDev !== 0) {
       linhas.push(`Devolução: (${fmtBR(Math.abs(totalDev))}).`);
     }
+    if (totalPermuta !== 0) {
+      linhas.push(`Permuta: (${fmtBR(Math.abs(totalPermuta))}).`);
+    }
     if (totalRetro > 0) {
       linhas.push(`C.Retroativa: ${fmtBR(totalRetro)}`);
     }
@@ -187,6 +192,9 @@ export function gerarHistoricoTexto(
     }
     if (totalDev !== 0) {
       linhas.push(`Devolução: (${fmtBR(Math.abs(totalDev))})`);
+    }
+    if (totalPermuta !== 0) {
+      linhas.push(`Permuta: (${fmtBR(Math.abs(totalPermuta))})`);
     }
     if (totalRetro > 0) {
       linhas.push(`C.Retroativa: ${fmtBR(totalRetro)}`);
