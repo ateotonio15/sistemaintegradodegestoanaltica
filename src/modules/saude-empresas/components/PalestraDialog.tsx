@@ -77,6 +77,7 @@ export function PalestraDialog({
   const [status, setStatus] = useState<PalestraStatus>("a_confirmar");
   const [motivo, setMotivo] = useState("");
   const [datasPopOpen, setDatasPopOpen] = useState(false);
+  const [empPopOpen, setEmpPopOpen] = useState(false);
   const [viewMode, setViewMode] = useState(true);
 
   useEffect(() => {
