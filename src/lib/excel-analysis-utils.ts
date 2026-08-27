@@ -1479,14 +1479,17 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (anyTotalGeral) continue;
     // Encontra a célula com "cobranca retroativa" e pega os dois próximos números
     let hitIdx = -1;
+    let hitLabel = "";
     for (let c = 0; c < r.length; c++) {
       const t = norm(r[c]);
       if (t.includes("cobranca retroativa") || (t.includes("retroativ") && !t.startsWith("total"))) {
         hitIdx = c;
+        hitLabel = String(r[c] ?? "");
         break;
       }
     }
     if (hitIdx < 0) continue;
+
 
     let qtd = 0;
     let total = NaN;
