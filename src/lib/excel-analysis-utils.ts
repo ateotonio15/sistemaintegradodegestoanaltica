@@ -1479,14 +1479,17 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (anyTotalGeral) continue;
     // Encontra a célula com "cobranca retroativa" e pega os dois próximos números
     let hitIdx = -1;
+    let hitLabel = "";
     for (let c = 0; c < r.length; c++) {
       const t = norm(r[c]);
       if (t.includes("cobranca retroativa") || (t.includes("retroativ") && !t.startsWith("total"))) {
         hitIdx = c;
+        hitLabel = String(r[c] ?? "");
         break;
       }
     }
     if (hitIdx < 0) continue;
+
 
     let qtd = 0;
     let total = NaN;
@@ -1520,9 +1523,13 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       }
     }
     if (isNaN(total)) continue;
-    const chaveValor = total.toFixed(2);
+    // Deduplica por rótulo + valor: meses diferentes podem ter exatamente o
+    // mesmo valor (ex.: Maio26 e Junho26 = R$ 7.072,00) e não podem ser
+    // tratados como repetição do mesmo pivot.
+    const chaveValor = `${norm(hitLabel)}|${total.toFixed(2)}`;
     if (tailRetroValoresVistos.has(chaveValor)) continue;
     tailRetroValoresVistos.add(chaveValor);
+
     tailRetroQtd += qtd;
     tailRetroTotal += total;
   }
@@ -2181,12 +2188,13 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (isNaN(total)) continue;
 
       const mes = extrairMes(hitLabel);
-      // Deduplica pelo valor monetário. A mesma cobrança pode aparecer uma vez
-      // com quantidade e outra sem quantidade; usar qtd na chave fazia o mesmo
-      // R$ 430,28 ser tratado como dois lançamentos diferentes.
-      const chave = total.toFixed(2);
+      // Deduplica por rótulo (mês) + valor. A mesma cobrança pode aparecer uma
+      // vez com quantidade e outra sem, mas meses distintos podem ter o mesmo
+      // valor (ex.: Maio26 e Junho26 = R$ 7.072,00) e devem ser somados.
+      const chave = `${mes || norm(hitLabel)}|${total.toFixed(2)}`;
       if (pivotsVistos.has(chave)) continue;
       pivotsVistos.add(chave);
+
       pivotEncontrado = true;
       extraRetroQtd += qtd;
       extraRetroTotal += total;
