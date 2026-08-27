@@ -1813,9 +1813,12 @@ export default function Financeiro() {
         const cmp: any = comparacoes[i] ?? null;
         const avisos: string[] = [...(b.avisos || [])];
 
-        // Aviso quando há PDFs anexados, mas nenhum casou com este bloco do Excel
-        // (tomador do PDF diverge do CNPJ do pagador → análise completa fica inviável).
-        if (pdfsValidos.length > 0 && !cmp?.arquivoPdf) {
+        // Aviso quando há PDFs de NOTA FISCAL anexados, mas nenhum casou com este bloco
+        // do Excel. PDFs que não são NFS-e (ex.: "Cobrança Retroativa") são ignorados aqui.
+        const pdfsNotaFiscal = pdfsValidos.filter(
+          (p) => !!p.nfNumero || !!onlyDigitsLocal(p.tomadorCnpj),
+        );
+        if (pdfsNotaFiscal.length > 0 && !cmp?.arquivoPdf) {
           // Suprime o aviso quando a empresa tem regra "agrupar por nome"
           // (ex.: Pioneiro Combustíveis) e o bloco/tomador combina com o padrão:
           // nesses contratos os Excels/PDFs são compartilhados entre múltiplos
