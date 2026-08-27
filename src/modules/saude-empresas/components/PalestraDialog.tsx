@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, CalendarIcon, Sparkles, X, Ban, Pencil, Building2, MapPin, Clock, User, MessageSquare, CalendarDays, StickyNote } from "lucide-react";
+import { Trash2, CalendarIcon, Sparkles, X, Ban, Pencil, Building2, MapPin, Clock, User, MessageSquare, CalendarDays, StickyNote, Check, ChevronsUpDown } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -75,6 +77,7 @@ export function PalestraDialog({
   const [status, setStatus] = useState<PalestraStatus>("a_confirmar");
   const [motivo, setMotivo] = useState("");
   const [datasPopOpen, setDatasPopOpen] = useState(false);
+  const [empPopOpen, setEmpPopOpen] = useState(false);
   const [viewMode, setViewMode] = useState(true);
 
   useEffect(() => {
@@ -309,14 +312,45 @@ export function PalestraDialog({
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label>Empresa *</Label>
-            <Select value={empresa} onValueChange={setEmpresa} disabled={dis}>
-              <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
-              <SelectContent>
-                {empresas.map((e) => (
-                  <SelectItem key={e.id} value={e.nome}>{e.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={empPopOpen} onOpenChange={setEmpPopOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  disabled={dis}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className="truncate">{empresa || "Selecione a empresa"}</span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  filter={(value, search) => {
+                    const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+                    return norm(value).includes(norm(search)) ? 1 : 0;
+                  }}
+                >
+                  <CommandInput placeholder="Buscar empresa..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
+                    <CommandGroup>
+                      {empresas.map((e) => (
+                        <CommandItem
+                          key={e.id}
+                          value={e.nome}
+                          onSelect={() => { setEmpresa(e.nome); setEmpPopOpen(false); }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", empresa === e.nome ? "opacity-100" : "opacity-0")} />
+                          <span className="truncate">{e.nome}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="grid gap-2">
