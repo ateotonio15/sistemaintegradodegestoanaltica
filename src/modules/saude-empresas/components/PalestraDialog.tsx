@@ -312,14 +312,45 @@ export function PalestraDialog({
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label>Empresa *</Label>
-            <Select value={empresa} onValueChange={setEmpresa} disabled={dis}>
-              <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
-              <SelectContent>
-                {empresas.map((e) => (
-                  <SelectItem key={e.id} value={e.nome}>{e.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={empPopOpen} onOpenChange={setEmpPopOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  disabled={dis}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className="truncate">{empresa || "Selecione a empresa"}</span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  filter={(value, search) => {
+                    const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+                    return norm(value).includes(norm(search)) ? 1 : 0;
+                  }}
+                >
+                  <CommandInput placeholder="Buscar empresa..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
+                    <CommandGroup>
+                      {empresas.map((e) => (
+                        <CommandItem
+                          key={e.id}
+                          value={e.nome}
+                          onSelect={() => { setEmpresa(e.nome); setEmpPopOpen(false); }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", empresa === e.nome ? "opacity-100" : "opacity-0")} />
+                          <span className="truncate">{e.nome}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="grid gap-2">
