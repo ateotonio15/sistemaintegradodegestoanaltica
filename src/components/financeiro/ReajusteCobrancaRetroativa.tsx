@@ -424,6 +424,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [cobValor, setCobValor] = useState<string>("");
   const [cobDescricao, setCobDescricao] = useState("");
   const [cobTipo, setCobTipo] = useState<"retroativa" | "devolucao">("retroativa");
+  const [cobOrigem, setCobOrigem] = useState<"reajuste" | "beneficiarios">("reajuste");
   const [cobFiles, setCobFiles] = useState<File[]>([]);
   const [cobSaving, setCobSaving] = useState(false);
   const [anexoAtualNome, setAnexoAtualNome] = useState<string | null>(null);
@@ -435,6 +436,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setCobValor("");
     setCobDescricao("");
     setCobTipo("retroativa");
+    setCobOrigem("reajuste");
     setCobFiles([]);
     setCobCompet(competencia || getCurrentMesReferencia());
     setManualValorInput("");
@@ -452,6 +454,13 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setCobValor((Math.abs(c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
     setCobDescricao(c.descricao || "");
     setCobTipo(c.tipo === "devolucao" ? "devolucao" : "retroativa");
+    setCobOrigem(
+      c.origem_retroativo === "beneficiarios" || c.origem_retroativo === "reajuste"
+        ? c.origem_retroativo
+        : c.tipo === "devolucao"
+          ? "beneficiarios"
+          : "reajuste",
+    );
     setCalcItensPorCobranca((m) => ({ ...m, [c.id]: parseResumoParaItens(c.descricao) }));
     setCobFiles([]);
     setAnexoAtualNome(null);
@@ -489,7 +498,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             valor_centavos: cents,
             descricao: cobDescricao || null,
             tipo: cobTipo,
-          })
+            origem_retroativo: cobOrigem,
+          } as any)
           .eq("id", editCobId);
         if (error) throw error;
         if (cobFiles.length > 0) {
@@ -512,7 +522,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
           financeiro_movimentacao_id: movId,
           created_by: user?.id ?? null,
           tipo: cobTipo,
-        });
+          origem_retroativo: cobOrigem,
+        } as any);
         if (error) throw error;
         toast.success(
           cobTipo === "devolucao"
@@ -536,11 +547,22 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [conferindo, setConferindo] = useState<string | null>(null);
   const [conferindoTodas, setConferindoTodas] = useState(false);
 
-  /** Retorna o total retroativo (em centavos) encontrado nas planilhas da empresa/competência. */
+  interface RetroPlanilha {
+    /** Retroativo de reajuste — abas dedicadas "C.RETROATIVA <MES>". */
+    reajusteCentavos: number;
+    /** Retroativo/devolução de beneficiários específicos — relatório principal. */
+    beneficiariosCentavos: number;
+    meses: string[];
+    detalhe: Array<{ mes: string; total: number }>;
+    temReajuste: boolean;
+    temBeneficiarios: boolean;
+  }
+
+  /** Lê as planilhas da empresa/competência e separa o retroativo por origem. */
   const buscarRetroativoPlanilha = async (
     empresaId: string,
     compet: string,
-  ): Promise<number | null> => {
+  ): Promise<RetroPlanilha | null> => {
     const { data: movs, error: movErr } = await supabase
       .from("financeiro_movimentacoes")
       .select("id")
@@ -561,7 +583,12 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     if (xls.length === 0) return null;
 
     const { analisarExcelFinanceiroPorCnpj } = await import("@/lib/excel-analysis-utils");
-    let totalReais = 0;
+    let reajusteReais = 0;
+    let beneficiariosReais = 0;
+    let temReajuste = false;
+    let temBeneficiarios = false;
+    const mesesSet = new Set<string>();
+    const detalheMap = new Map<string, number>();
     let algumLido = false;
     for (const a of xls) {
       try {
@@ -571,21 +598,55 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         if (error) throw error;
         const blocos = await analisarExcelFinanceiroPorCnpj(await data.arrayBuffer());
         algumLido = true;
-        blocos.forEach((b) => (totalReais += b.retroativas?.total ?? 0));
+        blocos.forEach((b: any) => {
+          const rea = b.retroativasReajuste?.total ?? 0;
+          const benRetro = b.retroativasBeneficiarios?.total ?? 0;
+          const benDev = b.devolucoes?.total ?? 0;
+          if (b.retroativasReajuste) temReajuste = true;
+          if (b.retroativasBeneficiarios || b.devolucoes) temBeneficiarios = true;
+          reajusteReais += rea;
+          beneficiariosReais += benRetro + benDev;
+          (b.retroativasReajuste?.meses || b.retroativas?.meses || []).forEach((m: string) =>
+            mesesSet.add(m),
+          );
+          (b.retroativasReajuste?.mesesDetalhe || b.retroativas?.mesesDetalhe || []).forEach(
+            (d: any) => detalheMap.set(d.mes, (detalheMap.get(d.mes) || 0) + (d.total || 0)),
+          );
+        });
       } catch {
         /* ignora arquivo ilegível */
       }
     }
     if (!algumLido) return null;
-    return Math.round(totalReais * 100);
+    return {
+      reajusteCentavos: Math.round(reajusteReais * 100),
+      beneficiariosCentavos: Math.round(beneficiariosReais * 100),
+      meses: Array.from(mesesSet),
+      detalhe: Array.from(detalheMap.entries()).map(([mes, total]) => ({ mes, total })),
+      temReajuste,
+      temBeneficiarios,
+    };
   };
 
   const conferirCobranca = async (c: any, silencioso = false) => {
     setConferindo(c.id);
     try {
-      const encontrado = await buscarRetroativoPlanilha(c.empresa_id, c.competencia);
+      const planilha = await buscarRetroativoPlanilha(c.empresa_id, c.competencia);
       const ehDevolucao = c.tipo === "devolucao";
+      const origem: "reajuste" | "beneficiarios" =
+        c.origem_retroativo === "beneficiarios" || c.origem_retroativo === "reajuste"
+          ? c.origem_retroativo
+          : ehDevolucao
+            ? "beneficiarios"
+            : "reajuste";
       const registrado = c.valor_centavos || 0;
+
+      const balde =
+        origem === "reajuste" ? planilha?.reajusteCentavos ?? null : planilha?.beneficiariosCentavos ?? null;
+      const baldeExiste =
+        origem === "reajuste" ? !!planilha?.temReajuste : !!planilha?.temBeneficiarios;
+      const encontrado = planilha && baldeExiste ? balde : null;
+
       const status =
         encontrado === null
           ? "nao_encontrada"
@@ -615,10 +676,26 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       if (error) throw error;
       if (!silencioso) {
         const label = ehDevolucao ? "Devolução" : "Cobrança";
-        if (status === "confirmada") toast.success(`${label} confirmada na planilha.`);
+        const fonte =
+          origem === "reajuste"
+            ? planilha?.detalhe?.length
+              ? ` Abas de reajuste: ${planilha.detalhe
+                  .map((d) => `${d.mes} ${formatBRL(Math.round(d.total * 100))}`)
+                  .join(", ")}.`
+              : ""
+            : "";
+        if (status === "confirmada") toast.success(`${label} confirmada na planilha.${fonte}`);
         else if (status === "divergente")
           toast.warning(
-            `${label} — divergência: planilha ${formatBRL(encontrado ?? 0)} × registrado ${formatBRL(registrado)}.`,
+            `${label} (${origem === "reajuste" ? "reajuste" : "beneficiários"}) — divergência: planilha ${formatBRL(
+              encontrado ?? 0,
+            )} × registrado ${formatBRL(registrado)}.${fonte}`,
+          );
+        else if (planilha && !baldeExiste)
+          toast.info(
+            origem === "reajuste"
+              ? "A planilha não tem abas de cobrança retroativa (só há lançamentos de beneficiários)."
+              : "A planilha não tem retroativo de beneficiários (só há abas de reajuste).",
           );
         else toast.info("Nenhuma planilha de faturamento encontrada para esta competência.");
       }
