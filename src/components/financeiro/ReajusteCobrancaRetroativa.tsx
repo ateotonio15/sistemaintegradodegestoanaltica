@@ -447,6 +447,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [cobFiles, setCobFiles] = useState<File[]>([]);
   const [cobSaving, setCobSaving] = useState(false);
   const [anexoAtualNome, setAnexoAtualNome] = useState<string | null>(null);
+  const [cobArquivoRef, setCobArquivoRef] = useState<{ id: string; nome: string } | null>(null);
 
   const resetCob = () => {
     setEditCobId(null);
@@ -457,6 +458,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setCobTipo("retroativa");
     setCobOrigem("reajuste");
     setCobFiles([]);
+    setCobArquivoRef(null);
+
     setCobCompet(competencia || getCurrentMesReferencia());
     setManualValorInput("");
     
