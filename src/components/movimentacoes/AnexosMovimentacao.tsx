@@ -197,7 +197,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
 
   const confirmarExclusao = async () => {
     if (!alvoExclusao) return;
-    const { id, path, nome } = alvoExclusao;
+    const { id, path, nome, tipo, criadoEm } = alvoExclusao;
     setExcluindo(true);
     try {
       const { data: deleted, error } = await supabase
@@ -321,7 +321,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRegistrarObs(false); setAlvoExclusao({ id: a.id, path: a.storage_path, nome: a.nome_arquivo }); }}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRegistrarObs(false); setAlvoExclusao({ id: a.id, path: a.storage_path, nome: a.nome_arquivo, tipo: tipoArquivo(a.nome_arquivo.split(".").pop()), criadoEm: a.created_at }); }}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </li>
