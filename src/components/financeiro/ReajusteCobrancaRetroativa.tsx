@@ -1094,6 +1094,33 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
               </p>
             </div>
 
+            {/* Origem da cobrança */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                Origem <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={cobOrigem}
+                onValueChange={(v) => setCobOrigem(v as "reajuste" | "beneficiarios")}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="reajuste">Reajuste (abas C.RETROATIVA)</SelectItem>
+                  <SelectItem value="beneficiarios">Beneficiários específicos</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                {cobOrigem === "reajuste"
+                  ? "Conferência comparada com as abas de cobrança retroativa da planilha (ex.: C.RETROATIVA MAI26)."
+                  : "Conferência comparada com as linhas de retroativa/devolução do relatório de beneficiários."}
+              </p>
+            </div>
+
+
+
             {/* Descrição / Observação */}
             <div className="space-y-2">
               <Label className="text-xs font-medium flex items-center gap-1.5">
