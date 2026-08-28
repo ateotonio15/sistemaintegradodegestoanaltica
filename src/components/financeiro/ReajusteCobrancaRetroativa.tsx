@@ -450,6 +450,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setCobCompet(c.competencia);
     setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
     setCobDescricao(c.descricao || "");
+    setCobTipo(c.tipo === "devolucao" ? "devolucao" : "retroativa");
     setCalcItensPorCobranca((m) => ({ ...m, [c.id]: parseResumoParaItens(c.descricao) }));
     setCobFiles([]);
     setAnexoAtualNome(null);
