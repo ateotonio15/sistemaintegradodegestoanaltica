@@ -177,6 +177,47 @@ export default function DashboardAdministradoras() {
     },
   });
 
+  // Status de faturamento (mesma regra da aba Faturamento) via RPC SECURITY DEFINER
+  type FinStatusInfo = { status: StatusFinanceiro; faturamento_por: string | null };
+  const { data: finStatusMap = new Map<string, FinStatusInfo>() } = useQuery({
+    queryKey: ["fin-status-administradoras", mesRef],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("status_faturamento_competencia", { p_mes: mesRef });
+      if (error) throw error;
+      const m = new Map<string, FinStatusInfo>();
+      for (const r of (data ?? []) as Array<{
+        empresa_id: string;
+        periodo: string | null;
+        status: string;
+        faturamento_por: string | null;
+      }>) {
+        m.set(`${r.empresa_id}|${r.periodo}`, {
+          status: r.status as StatusFinanceiro,
+          faturamento_por: r.faturamento_por ?? null,
+        });
+      }
+      return m;
+    },
+  });
+
+  // Atualização em tempo real do status vindo da aba Faturamento
+  useEffect(() => {
+    const channel = supabase
+      .channel("administradoras-financeiro-status")
+      .on("postgres_changes", { event: "*", schema: "public", table: "financeiro_movimentacoes" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["fin-status-administradoras"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "anexos_financeiro" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["fin-status-administradoras"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+
+
   // Histórico de entradas/saídas para o mês selecionado
   const { data: historicoMes = [] } = useQuery({
     queryKey: ["vidas-historico-adm", mesRef, empresaIds.join(",")],
