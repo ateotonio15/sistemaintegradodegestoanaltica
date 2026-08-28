@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
@@ -29,6 +29,13 @@ import {
   isPrioridadeAlertaIntenso,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import {
+  calcularStatusFinanceiro,
+  statusFinanceiroColor,
+  labelStatusFinanceiro,
+  anexoAlteraStatus,
+  type StatusFinanceiro,
+} from "@/lib/financeiro-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
@@ -285,28 +292,101 @@ export default function Movimentacoes() {
   });
 
 
-  // Mapa de "Nota Enviada" do módulo financeiro: (empresa_id|mes|periodo) -> data_envio_nota
-  const { data: notasMap = new Map<string, string>() } = useQuery({
-    queryKey: ["financeiro-notas-map", filterMes],
+  // Mapa do módulo Faturamento: (empresa_id|mes|periodo) -> { nota, status, por }
+  type FinInfo = {
+    data_envio_nota: string | null;
+    status: StatusFinanceiro;
+    faturamento_por: string | null;
+  };
+  const { data: finMap = new Map<string, FinInfo>() } = useQuery({
+    queryKey: ["financeiro-status-map", filterMes],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: fins, error } = await supabase
         .from("financeiro_movimentacoes")
-        .select("empresa_id, mes_referencia, periodo, data_envio_nota")
-        .eq("mes_referencia", filterMes)
-        .not("data_envio_nota", "is", null);
+        .select(
+          "id, empresa_id, mes_referencia, periodo, data_envio_nota, dentro_prazo, faturamento_iniciado_em, faturamento_iniciado_por_nome",
+        )
+        .eq("mes_referencia", filterMes);
       if (error) throw error;
-      const m = new Map<string, string>();
-      for (const r of data ?? []) {
-        const key = `${r.empresa_id}|${r.mes_referencia}|${r.periodo}`;
-        const prev = m.get(key);
-        if (!prev || (r.data_envio_nota && r.data_envio_nota > prev)) {
-          m.set(key, r.data_envio_nota as string);
+      const rows = fins ?? [];
+      const ids = rows.map((r) => r.id);
+
+      const anexosPorMov = new Map<string, Array<{ mime_type: string | null; nome_arquivo: string | null; origem: string | null }>>();
+      for (let i = 0; i < ids.length; i += 200) {
+        const slice = ids.slice(i, i + 200);
+        if (slice.length === 0) break;
+        const { data: anexos } = await supabase
+          .from("anexos_financeiro")
+          .select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem")
+          .in("financeiro_movimentacao_id", slice);
+        for (const a of anexos ?? []) {
+          const arr = anexosPorMov.get(a.financeiro_movimentacao_id as string) ?? [];
+          arr.push({ mime_type: a.mime_type, nome_arquivo: a.nome_arquivo, origem: a.origem });
+          anexosPorMov.set(a.financeiro_movimentacao_id as string, arr);
         }
+      }
+
+      const empresaIdsFin = Array.from(new Set(rows.map((r) => r.empresa_id).filter(Boolean))) as string[];
+      const exigeMap = new Map<string, boolean>();
+      if (empresaIdsFin.length > 0) {
+        const { data: emps } = await supabase
+          .from("empresas")
+          .select("id, exige_po_pc")
+          .in("id", empresaIdsFin);
+        for (const e of emps ?? []) exigeMap.set(e.id, !!(e as any).exige_po_pc);
+      }
+
+      // Envio operacional (Cadastro → Financeiro) por empresa|mes|periodo
+      const { data: movs } = await supabase
+        .from("movimentacoes")
+        .select("empresa_id, mes_referencia, periodo, data_envio_financeiro")
+        .eq("mes_referencia", filterMes);
+      const envioSet = new Set<string>();
+      for (const mv of movs ?? []) {
+        if (mv.data_envio_financeiro) envioSet.add(`${mv.empresa_id}|${mv.mes_referencia}|${mv.periodo}`);
+      }
+
+      const m = new Map<string, FinInfo>();
+      for (const r of rows) {
+        const key = `${r.empresa_id}|${r.mes_referencia}|${r.periodo}`;
+        const anexos = (anexosPorMov.get(r.id) ?? []).filter(anexoAlteraStatus);
+        const status = calcularStatusFinanceiro(
+          r as any,
+          envioSet.has(key),
+          anexos,
+          exigeMap.get(r.empresa_id as string) ?? false,
+        );
+        const info: FinInfo = {
+          data_envio_nota: r.data_envio_nota ?? null,
+          status,
+          faturamento_por: (r as any).faturamento_iniciado_por_nome ?? null,
+        };
+        const prev = m.get(key);
+        // Prioriza a linha mais avançada (com nota / faturamento iniciado)
+        const peso = (x: FinInfo) => (x.data_envio_nota ? 3 : x.status !== "Pendente" ? 2 : 1);
+        if (!prev || peso(info) > peso(prev)) m.set(key, info);
       }
       return m;
     },
     enabled: !!user,
   });
+
+  // Atualização em tempo real do status vindo da aba Faturamento
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("movimentacoes-financeiro-status")
+      .on("postgres_changes", { event: "*", schema: "public", table: "financeiro_movimentacoes" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["financeiro-status-map"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "anexos_financeiro" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["financeiro-status-map"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   const movimentacoesSemEmpresa = useMemo(() => {
     return movimentacoes.filter((m) => !m.empresa_id || !m.empresas);
@@ -456,7 +536,7 @@ export default function Movimentacoes() {
       const status = calcularStatus(m);
       const tipo = (m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao) === "Diária" ? "Diário" : "Período";
       const notaKey = `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`;
-      const dataNota = notasMap.get(notaKey) ?? "";
+      const dataNota = finMap.get(notaKey)?.data_envio_nota ?? "";
       return {
         "Contrato": m.empresas?.codigo_contrato ?? "",
         "CNPJ": m.empresas?.cnpj ?? "",
@@ -944,21 +1024,23 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Resp. Mov.</TableHead>
                     {true && <TableHead className="font-semibold">Envio Empresa</TableHead>}
                     <TableHead className="font-semibold">Financeiro</TableHead>
+                    <TableHead className="font-semibold">Status Faturamento</TableHead>
                     <TableHead className="font-semibold">Nota Enviada</TableHead>
                     {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? (false ? 10 : 11) : (false ? 9 : 10)} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 12 : 11} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? (false ? 10 : 11) : (false ? 9 : 10)} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 12 : 11} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
                       const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
                       const notaKey = `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`;
-                      const dataNota = notasMap.get(notaKey) ?? null;
+                      const finInfo = finMap.get(notaKey) ?? null;
+                      const dataNota = finInfo?.data_envio_nota ?? null;
                       const temPrio = !!(m.empresas as any)?.prioridade_maxima_id;
                       const prioAtiva = temPrio && !m.data_envio_financeiro;
                       const prioIntensa = prioAtiva && isPrioridadeAlertaIntenso(m.empresas as any);
@@ -1001,6 +1083,25 @@ export default function Movimentacoes() {
                           <TableCell className="text-muted-foreground">{respMovOf(m.empresas) || "—"}</TableCell>
                           {true && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
+                          <TableCell>
+                            {finInfo ? (
+                              <div className="flex flex-col items-start gap-0.5">
+                                <Badge className={`${statusFinanceiroColor(finInfo.status)} rounded-md gap-1 text-xs`}>
+                                  {finInfo.status === "Em faturamento" && (
+                                    <RefreshCw className="h-3 w-3 animate-spin" />
+                                  )}
+                                  {labelStatusFinanceiro(finInfo.status)}
+                                </Badge>
+                                {finInfo.status === "Em faturamento" && finInfo.faturamento_por && (
+                                  <span className="text-[10px] leading-tight text-blue-600 dark:text-blue-300">
+                                    por {finInfo.faturamento_por}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             {dataNota ? (
                               <Badge className="rounded-md bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
