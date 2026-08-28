@@ -628,6 +628,8 @@ export default function DashboardAdministradoras() {
                         const mov = movsPorEmpresa[e.id];
                         const enviado = !!mov?.data_envio_financeiro;
                         const qtdAnexos = anexosCount[e.id] ?? 0;
+                        const periodoFin = mov?.periodo ?? getPeriodoAdministradora(e);
+                        const finInfo = finStatusMap.get(`${e.id}|${periodoFin}`) ?? null;
                         const es = entradasSaidasPorEmpresa[e.id];
                         return (
                         <TableRow
