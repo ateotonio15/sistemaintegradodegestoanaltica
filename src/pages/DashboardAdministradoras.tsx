@@ -615,7 +615,7 @@ export default function DashboardAdministradoras() {
                       <TableHead className="font-semibold">Enviado Financ.</TableHead>
                       <TableHead className="font-semibold">Nota Enviada</TableHead>
                       <TableHead className="font-semibold text-center">Anexos</TableHead>
-                      <TableHead className="font-semibold text-right">Status</TableHead>
+                      <TableHead className="font-semibold text-right">Status Faturamento</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
