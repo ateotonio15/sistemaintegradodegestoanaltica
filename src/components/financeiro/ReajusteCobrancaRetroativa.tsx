@@ -499,6 +499,18 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setOpenCobDialog(true);
   };
 
+  /** Abre o cadastro já vinculado a um arquivo anexado como "Reajuste". */
+  const openCobrancaDoArquivo = (a: any) => {
+    resetCob();
+    setCobEmpresa(a.empresa_id);
+    setCobCompet(a.competencia);
+    setCobOrigem("reajuste");
+    setCobDescricao(`Reajuste — ${a.nome_original}`);
+    setCobArquivoRef({ id: a.id, nome: a.nome_original });
+    setOpenCobDialog(true);
+  };
+
+
   const submitCobranca = async () => {
     if (!cobEmpresa) return toast.error("Selecione um contrato.");
     if (!cobCompet) return toast.error("Selecione a competência.");
