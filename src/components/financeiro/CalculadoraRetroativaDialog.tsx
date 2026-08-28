@@ -127,10 +127,12 @@ export function CalculadoraRetroativaDialog({
     };
   }, [inicio, fim, beneficiarios, mensalidade, divisor]);
 
-  const totalGeral = useMemo(
+  const totalGeralBruto = useMemo(
     () => itens.reduce((s, i) => s + i.total, 0) + (atual.valido ? atual.total : 0),
     [itens, atual],
   );
+  const totalGeral = tipoCobranca === "devolucao" ? -totalGeralBruto : totalGeralBruto;
+  const ehDevolucao = tipoCobranca === "devolucao";
 
   const resumoItem = (i: CalcItem) =>
     `${i.qtd} benef. × ${i.dias} dia(s) (${br(i.inicio)} a ${br(i.fim)}) · ${formatBRLFromCentavos(
