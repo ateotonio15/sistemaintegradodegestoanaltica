@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { computeEntradasSaidas, type EmpresaEntradaSaida } from "@/lib/entradas-saidas-analyzer";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Line } from "recharts";
+import { labelStatusFinanceiro, statusFinanceiroColor, type StatusFinanceiro } from "@/lib/financeiro-utils";
 
 type Empresa = Tables<"empresas">;
 type Movimentacao = Tables<"movimentacoes">;
@@ -176,6 +177,47 @@ export default function DashboardAdministradoras() {
       return map;
     },
   });
+
+  // Status de faturamento (mesma regra da aba Faturamento) via RPC SECURITY DEFINER
+  type FinStatusInfo = { status: StatusFinanceiro; faturamento_por: string | null };
+  const { data: finStatusMap = new Map<string, FinStatusInfo>() } = useQuery({
+    queryKey: ["fin-status-administradoras", mesRef],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("status_faturamento_competencia", { p_mes: mesRef });
+      if (error) throw error;
+      const m = new Map<string, FinStatusInfo>();
+      for (const r of (data ?? []) as Array<{
+        empresa_id: string;
+        periodo: string | null;
+        status: string;
+        faturamento_por: string | null;
+      }>) {
+        m.set(`${r.empresa_id}|${r.periodo}`, {
+          status: r.status as StatusFinanceiro,
+          faturamento_por: r.faturamento_por ?? null,
+        });
+      }
+      return m;
+    },
+  });
+
+  // Atualização em tempo real do status vindo da aba Faturamento
+  useEffect(() => {
+    const channel = supabase
+      .channel("administradoras-financeiro-status")
+      .on("postgres_changes", { event: "*", schema: "public", table: "financeiro_movimentacoes" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["fin-status-administradoras"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "anexos_financeiro" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["fin-status-administradoras"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+
 
   // Histórico de entradas/saídas para o mês selecionado
   const { data: historicoMes = [] } = useQuery({
@@ -573,7 +615,7 @@ export default function DashboardAdministradoras() {
                       <TableHead className="font-semibold">Enviado Financ.</TableHead>
                       <TableHead className="font-semibold">Nota Enviada</TableHead>
                       <TableHead className="font-semibold text-center">Anexos</TableHead>
-                      <TableHead className="font-semibold text-right">Status</TableHead>
+                      <TableHead className="font-semibold text-right">Status Faturamento</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -586,6 +628,8 @@ export default function DashboardAdministradoras() {
                         const mov = movsPorEmpresa[e.id];
                         const enviado = !!mov?.data_envio_financeiro;
                         const qtdAnexos = anexosCount[e.id] ?? 0;
+                        const periodoFin = mov?.periodo ?? getPeriodoAdministradora(e);
+                        const finInfo = finStatusMap.get(`${e.id}|${periodoFin}`) ?? null;
                         const es = entradasSaidasPorEmpresa[e.id];
                         return (
                         <TableRow
@@ -652,13 +696,23 @@ export default function DashboardAdministradoras() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Badge
-                              variant={e.status_empresa === "Ativa" ? "default" : "secondary"}
-                              className="rounded-md"
-                            >
-                              {e.status_empresa}
-                            </Badge>
+                            {finInfo ? (
+                              <div className="flex flex-col items-end gap-0.5">
+                                <Badge className={`${statusFinanceiroColor(finInfo.status)} rounded-md gap-1 text-xs`}>
+                                  {finInfo.status === "Em faturamento" && <RefreshCw className="h-3 w-3 animate-spin" />}
+                                  {labelStatusFinanceiro(finInfo.status)}
+                                </Badge>
+                                {finInfo.status === "Em faturamento" && finInfo.faturamento_por && (
+                                  <span className="text-[10px] leading-tight text-blue-600 dark:text-blue-300">
+                                    por {finInfo.faturamento_por}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </TableCell>
+
                         </TableRow>
                       );})
 
