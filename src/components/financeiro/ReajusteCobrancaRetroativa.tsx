@@ -257,7 +257,7 @@ function parseResumoParaItens(descricao: string | null | undefined): CalcItem[] 
   return itens;
 }
 
-export function ReajusteCobrancaRetroativa() {
+export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: string } = {}) {
   const { user, isAdmin, isFinanceiro } = useAuth();
   const canManage = isAdmin || isFinanceiro;
   const queryClient = useQueryClient();
@@ -361,22 +361,27 @@ export function ReajusteCobrancaRetroativa() {
   }, [empresas]);
 
   const { data: cobrancas = [], isLoading: loadingCob } = useQuery({
-    queryKey: ["cobrancas-retroativas"],
+    queryKey: ["cobrancas-retroativas", competencia ?? "todas"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("cobrancas_retroativas")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(200);
+      if (competencia) q = q.eq("competencia", competencia);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
   });
 
   const lista = useMemo(() => {
+    const base = (cobrancas as any[]).filter(
+      (c) => !competencia || c.competencia === competencia,
+    );
     const q = busca.trim().toLowerCase();
-    if (!q) return cobrancas as any[];
-    return (cobrancas as any[]).filter((c) => {
+    if (!q) return base;
+    return base.filter((c) => {
       const emp = empresasMap[c.empresa_id];
       return (
         (emp?.nome || "").toLowerCase().includes(q) ||
@@ -384,7 +389,7 @@ export function ReajusteCobrancaRetroativa() {
         (c.descricao || "").toLowerCase().includes(q)
       );
     });
-  }, [cobrancas, busca, empresasMap]);
+  }, [cobrancas, busca, empresasMap, competencia]);
 
   const totalCentavos = useMemo(
     () => (lista as any[]).reduce((s, c) => s + (c.valor_centavos || 0), 0),
@@ -395,7 +400,7 @@ export function ReajusteCobrancaRetroativa() {
   const [editCobId, setEditCobId] = useState<string | null>(null);
   const [editCobMovId, setEditCobMovId] = useState<string | null>(null);
   const [cobEmpresa, setCobEmpresa] = useState<string | null>(null);
-  const [cobCompet, setCobCompet] = useState<string>(getCurrentMesReferencia());
+  const [cobCompet, setCobCompet] = useState<string>(competencia || getCurrentMesReferencia());
   const [cobValor, setCobValor] = useState<string>("");
   const [cobDescricao, setCobDescricao] = useState("");
   const [cobFiles, setCobFiles] = useState<File[]>([]);
@@ -409,7 +414,7 @@ export function ReajusteCobrancaRetroativa() {
     setCobValor("");
     setCobDescricao("");
     setCobFiles([]);
-    setCobCompet(getCurrentMesReferencia());
+    setCobCompet(competencia || getCurrentMesReferencia());
     setManualValorInput("");
     setAnexoAtualNome(null);
     setCalcItensPorCobranca((m) => ({ ...m, nova: [] }));
@@ -557,7 +562,7 @@ export function ReajusteCobrancaRetroativa() {
         ) : lista.length === 0 ? (
           <div className="py-10 text-center space-y-1">
             <Receipt className="h-6 w-6 mx-auto text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">Nenhuma cobrança retroativa registrada.</p>
+            <p className="text-sm text-muted-foreground">Nenhuma cobrança retroativa nesta competência.</p>
           </div>
         ) : (
           <div className="max-h-[320px] overflow-y-auto space-y-2 pr-1">

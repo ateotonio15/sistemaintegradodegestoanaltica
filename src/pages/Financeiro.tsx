@@ -2531,7 +2531,7 @@ export default function Financeiro() {
               selected={filtroPeriodo}
               onSelect={setFiltroPeriodo}
             />
-            <ReajusteCobrancaRetroativa />
+            <ReajusteCobrancaRetroativa competencia={mes} />
           </div>
           {canManageFinanceiro && (
             <div className="lg:col-span-1">
