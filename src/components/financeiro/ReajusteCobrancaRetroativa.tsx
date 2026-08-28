@@ -1114,12 +1114,14 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         open={calcOpen}
         onOpenChange={setCalcOpen}
         itensIniciais={calcItensPorCobranca[editCobId ?? "nova"] ?? []}
+        tipoInicial={cobTipo}
         onItensChange={(itens) =>
           setCalcItensPorCobranca((m) => ({ ...m, [editCobId ?? "nova"]: itens }))
         }
-        onAplicar={(totalCentavos, resumo) => {
+        onAplicar={(totalCentavos, resumo, tipo) => {
           setCobValor((totalCentavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
           setCobDescricao(resumo);
+          setCobTipo(tipo);
           setOpenCobDialog(true);
         }}
         onPular={() => {
