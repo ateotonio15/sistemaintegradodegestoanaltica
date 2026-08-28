@@ -1121,14 +1121,12 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         open={calcOpen}
         onOpenChange={setCalcOpen}
         itensIniciais={calcItensPorCobranca[editCobId ?? "nova"] ?? []}
-        tipoInicial={cobTipo}
         onItensChange={(itens) =>
           setCalcItensPorCobranca((m) => ({ ...m, [editCobId ?? "nova"]: itens }))
         }
-        onAplicar={(totalCentavos, resumo, tipo) => {
+        onAplicar={(totalCentavos, resumo) => {
           setCobValor((totalCentavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
           setCobDescricao(resumo);
-          setCobTipo(tipo);
           setOpenCobDialog(true);
         }}
         onPular={() => {
@@ -1142,10 +1140,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         open={manualValorOpen}
         onOpenChange={(o) => {
           setManualValorOpen(o);
-          if (!o) {
-            setManualValorInput("");
-            setManualTipo("retroativa");
-          }
+          if (!o) setManualValorInput("");
         }}
       >
         <DialogContent className="max-w-sm">
@@ -1154,26 +1149,9 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
               <Receipt className="h-4 w-4 text-primary" />
               Valor total da cobrança
             </DialogTitle>
-            <DialogDescription>
-              Informe o valor total e o tipo de lançamento.
-            </DialogDescription>
+            <DialogDescription>Informe o valor total da cobrança.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Tipo de lançamento *</Label>
-              <Select
-                value={manualTipo}
-                onValueChange={(v) => setManualTipo(v as "retroativa" | "devolucao")}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="retroativa">Cobrança retroativa</SelectItem>
-                  <SelectItem value="devolucao">Devolução</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Valor total (R$) *</Label>
               <Input
@@ -1183,11 +1161,6 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 onChange={(e) => setManualValorInput(formatCurrencyInput(e.target.value))}
                 autoFocus
               />
-              {manualTipo === "devolucao" && (
-                <p className="text-[10px] text-amber-500">
-                  O valor será registrado como negativo.
-                </p>
-              )}
             </div>
           </div>
           <DialogFooter className="gap-2">
@@ -1198,12 +1171,9 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
               onClick={() => {
                 const cents = parseBRLInput(manualValorInput);
                 if (cents === 0) return toast.error("Informe um valor válido.");
-                const finalCents = manualTipo === "devolucao" ? -Math.abs(cents) : Math.abs(cents);
-                setCobValor((finalCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
-                setCobTipo(manualTipo);
+                setCobValor((Math.abs(cents) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
                 setManualValorOpen(false);
                 setManualValorInput("");
-                setManualTipo("retroativa");
               }}
             >
               Aplicar
