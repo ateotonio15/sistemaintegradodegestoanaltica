@@ -390,6 +390,25 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     },
   });
 
+  // ===== Arquivos anexados como "Reajuste" — entram automaticamente nesta janela =====
+  const { data: arquivosReajuste = [], isLoading: loadingArqReaj } = useQuery({
+    queryKey: ["arquivos-reajuste-rcr", competencia ?? "todas"],
+    queryFn: async () => {
+      let q = supabase
+        .from("financeiro_arquivos")
+        .select("id, empresa_id, competencia, nome_original, storage_path, mime_type, created_at, uploaded_by_nome, status, categoria")
+        .eq("categoria", "Reajuste")
+        .neq("status", "removido")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (competencia) q = q.eq("competencia", competencia);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+
   const lista = useMemo(() => {
     const base = (cobrancas as any[]).filter(
       (c) => !competencia || c.competencia === competencia,
@@ -428,6 +447,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [cobFiles, setCobFiles] = useState<File[]>([]);
   const [cobSaving, setCobSaving] = useState(false);
   const [anexoAtualNome, setAnexoAtualNome] = useState<string | null>(null);
+  const [cobArquivoRef, setCobArquivoRef] = useState<{ id: string; nome: string } | null>(null);
 
   const resetCob = () => {
     setEditCobId(null);
@@ -438,6 +458,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setCobTipo("retroativa");
     setCobOrigem("reajuste");
     setCobFiles([]);
+    setCobArquivoRef(null);
+
     setCobCompet(competencia || getCurrentMesReferencia());
     setManualValorInput("");
     
@@ -477,13 +499,27 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setOpenCobDialog(true);
   };
 
+  /** Abre o cadastro já vinculado a um arquivo anexado como "Reajuste". */
+  const openCobrancaDoArquivo = (a: any) => {
+    resetCob();
+    setCobEmpresa(a.empresa_id);
+    setCobCompet(a.competencia);
+    setCobOrigem("reajuste");
+    setCobDescricao(`Reajuste — ${a.nome_original}`);
+    setCobArquivoRef({ id: a.id, nome: a.nome_original });
+    setOpenCobDialog(true);
+  };
+
+
   const submitCobranca = async () => {
     if (!cobEmpresa) return toast.error("Selecione um contrato.");
     if (!cobCompet) return toast.error("Selecione a competência.");
     const centsRaw = parseBRLInput(cobValor);
     if (centsRaw === 0) return toast.error("Informe um valor válido.");
     const cents = cobTipo === "devolucao" ? -Math.abs(centsRaw) : Math.abs(centsRaw);
-    if (!editCobId && cobFiles.length === 0) return toast.error("Anexe ao menos um PDF da cobrança.");
+    if (!editCobId && cobFiles.length === 0 && !cobArquivoRef)
+      return toast.error("Anexe ao menos um PDF da cobrança.");
+
     if (cobFiles.some((f) => f.type && !f.type.includes("pdf")))
       return toast.error("Apenas arquivos PDF são aceitos.");
 
@@ -525,6 +561,14 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
           origem_retroativo: cobOrigem,
         } as any);
         if (error) throw error;
+        if (cobArquivoRef) {
+          await supabase
+            .from("financeiro_arquivos")
+            .update({ financeiro_movimentacao_id: movId, categoria: "Retroativo" } as any)
+            .eq("id", cobArquivoRef.id);
+          queryClient.invalidateQueries({ queryKey: ["arquivos-reajuste-rcr"] });
+        }
+
         toast.success(
           cobTipo === "devolucao"
             ? "Devolução cadastrada e PDF anexado ao processo."
@@ -821,6 +865,70 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         </div>
       </CardHeader>
       <CardContent className="pt-3">
+        {/* Arquivos anexados como "Reajuste" na competência selecionada */}
+        {(loadingArqReaj || arquivosReajuste.length > 0) && (
+          <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5">
+            <div className="flex items-center gap-2 mb-2">
+              <Paperclip className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <p className="text-xs font-medium">
+                Arquivos de Reajuste
+                {competencia ? ` · ${formatMesReferencia(competencia)}` : " · todas as competências"}
+              </p>
+              <Badge variant="outline" className="h-5 text-[10px]">
+                {arquivosReajuste.length}
+              </Badge>
+            </div>
+            {loadingArqReaj ? (
+              <p className="text-xs text-muted-foreground">Carregando arquivos...</p>
+            ) : (
+              <div className="max-h-[180px] overflow-y-auto space-y-1.5 pr-1">
+                {(arquivosReajuste as any[]).map((a) => {
+                  const emp = empresasMap[a.empresa_id];
+                  return (
+                    <div
+                      key={a.id}
+                      className="flex items-center gap-2 rounded-md border bg-card px-2.5 py-1.5"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium truncate">{emp?.nome || "Empresa"}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {formatMesReferencia(a.competencia)} · {a.nome_original}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2"
+                        onClick={() =>
+                          setPreviewAnexo({
+                            path: a.storage_path,
+                            nome: a.nome_original,
+                            mime: a.mime_type,
+                          })
+                        }
+                        title="Visualizar"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      {canManage && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1 text-[11px]"
+                          onClick={() => openCobrancaDoArquivo(a)}
+                        >
+                          <Plus className="h-3 w-3" /> Cobrança
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {loadingCob ? (
           <div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>
         ) : lista.length === 0 ? (
@@ -1155,13 +1263,23 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 <Label className="text-xs font-medium flex items-center gap-1.5 m-0">
                   <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                   Anexos da cobrança (PDF)
-                  {editCobId ? (
+                  {editCobId || cobArquivoRef ? (
                     <span className="text-[10px] font-normal text-muted-foreground">(opcional)</span>
                   ) : (
                     <span className="text-destructive">*</span>
                   )}
                 </Label>
               </div>
+
+              {cobArquivoRef && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-center gap-2">
+                  <Paperclip className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <p className="text-xs truncate">
+                    Vinculado ao arquivo de reajuste: <span className="font-medium">{cobArquivoRef.nome}</span>
+                  </p>
+                </div>
+              )}
+
 
               {editCobId && editCobMovId && anexoAtualNome && (
                 <div className="rounded-lg border bg-card px-3 py-2.5 flex items-center gap-3">
