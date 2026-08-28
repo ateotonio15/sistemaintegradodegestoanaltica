@@ -583,10 +583,16 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setConferindo(c.id);
     try {
       const encontrado = await buscarRetroativoPlanilha(c.empresa_id, c.competencia);
+      const ehDevolucao = c.tipo === "devolucao";
+      const registrado = c.valor_centavos || 0;
       const status =
         encontrado === null
           ? "nao_encontrada"
-          : Math.abs(encontrado - (c.valor_centavos || 0)) <= 5
+          : Math.abs(
+              ehDevolucao
+                ? Math.abs(encontrado) - Math.abs(registrado)
+                : encontrado - registrado,
+            ) <= 5
             ? "confirmada"
             : "divergente";
       const { error } = await supabase
@@ -607,10 +613,11 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         .eq("id", c.id);
       if (error) throw error;
       if (!silencioso) {
-        if (status === "confirmada") toast.success("Cobrança confirmada na planilha.");
+        const label = ehDevolucao ? "Devolução" : "Cobrança";
+        if (status === "confirmada") toast.success(`${label} confirmada na planilha.`);
         else if (status === "divergente")
           toast.warning(
-            `Divergência: planilha ${formatBRL(encontrado ?? 0)} × registrado ${formatBRL(c.valor_centavos || 0)}.`,
+            `${label} — divergência: planilha ${formatBRL(encontrado ?? 0)} × registrado ${formatBRL(registrado)}.`,
           );
         else toast.info("Nenhuma planilha de faturamento encontrada para esta competência.");
       }
