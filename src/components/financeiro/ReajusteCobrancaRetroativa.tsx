@@ -1172,6 +1172,31 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 </div>
               );
             })}
+            {totalPaginas > 1 && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border bg-card/80 px-3 py-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 text-[11px]"
+                  onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                  disabled={pagina <= 1}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" /> Anterior
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Página {pagina} de {totalPaginas}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 text-[11px]"
+                  onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                  disabled={pagina >= totalPaginas}
+                >
+                  Próxima <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
             <div className="sticky bottom-0 rounded-lg border border-primary/20 bg-card/95 backdrop-blur px-3 py-2 flex items-center justify-between">
               <span className="text-sm font-medium">Total na competência</span>
               <span
@@ -1181,6 +1206,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
               </span>
             </div>
           </div>
+
         )}
 
       </CardContent>
