@@ -77,6 +77,16 @@ function parseBRLInput(s: string): number {
   return Math.round(n * 100);
 }
 
+function formatCurrencyInput(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  const cents = Number(digits);
+  return (cents / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function EmpresaCombobox({
   empresas,
   value,
