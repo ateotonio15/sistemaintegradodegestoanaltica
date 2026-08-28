@@ -49,6 +49,9 @@ import {
   CalendarIcon,
   Paperclip,
   Save,
+  ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -390,6 +393,11 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       );
     });
   }, [cobrancas, busca, empresasMap, competencia]);
+
+  const confirmadasCount = useMemo(
+    () => (lista as any[]).filter((c) => c.confirmado).length,
+    [lista],
+  );
 
   const totalCentavos = useMemo(
     () => (lista as any[]).reduce((s, c) => s + (c.valor_centavos || 0), 0),
