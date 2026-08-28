@@ -1084,6 +1084,25 @@ export default function Movimentacoes() {
                           {true && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
+                            {finInfo ? (
+                              <div className="flex flex-col items-start gap-0.5">
+                                <Badge className={`${statusFinanceiroColor(finInfo.status)} rounded-md gap-1 text-xs`}>
+                                  {finInfo.status === "Em faturamento" && (
+                                    <RefreshCw className="h-3 w-3 animate-spin" />
+                                  )}
+                                  {labelStatusFinanceiro(finInfo.status)}
+                                </Badge>
+                                {finInfo.status === "Em faturamento" && finInfo.faturamento_por && (
+                                  <span className="text-[10px] leading-tight text-blue-600 dark:text-blue-300">
+                                    por {finInfo.faturamento_por}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             {dataNota ? (
                               <Badge className="rounded-md bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
                                 {formatDateBR(dataNota)}
