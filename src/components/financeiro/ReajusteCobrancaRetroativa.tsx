@@ -848,7 +848,14 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                           Devolução
                         </Badge>
                       )}
+                      <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
+                        {(c.origem_retroativo ?? (c.tipo === "devolucao" ? "beneficiarios" : "reajuste")) ===
+                        "beneficiarios"
+                          ? "Beneficiários"
+                          : "Reajuste"}
+                      </Badge>
                     </div>
+
                     <p className="text-xs text-muted-foreground truncate">
                       {emp?.codigo_contrato ? `Contrato ${emp.codigo_contrato} · ` : ""}
                       Competência {formatMesReferencia(c.competencia)}
