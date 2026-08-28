@@ -999,7 +999,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
           </div>
         ) : (
           <div className="max-h-[380px] overflow-y-auto space-y-2 pr-1">
-            {itens.map((item) => {
+            {itensPaginados.map((item) => {
+
               const emp = empresasMap[item.empresa_id];
               const c = item.raw as any;
               const isReajuste = item.kind === "reajuste";
