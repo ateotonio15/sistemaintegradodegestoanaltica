@@ -2138,6 +2138,9 @@ export async function analisarExcelFinanceiroPorCnpj(
   // Chaves já contabilizadas (rótulo + valor) para não somar o mesmo pivot
   // duas vezes quando ele se repete em mais de uma aba/linha.
   const pivotsVistos = new Set<string>();
+  // Valor -> primeira ocorrência (mês do rótulo, quando houver, e quantidade).
+  const valoresGenericos = new Map<string, { mes: string | null; qtd: number }>();
+
   // Uma quantidade plausível de beneficiários: inteiro pequeno.
   // Evita capturar CNPJ/CPF (ex.: 81611931005007) como "quantidade".
   const ehQtdPlausivel = (raw: unknown, n: number): boolean => {
@@ -2215,14 +2218,32 @@ export async function analisarExcelFinanceiroPorCnpj(
       // Deduplica por rótulo (mês) + valor. A mesma cobrança pode aparecer uma
       // vez com quantidade e outra sem, mas meses distintos podem ter o mesmo
       // valor (ex.: Maio26 e Junho26 = R$ 7.072,00) e devem ser somados.
-      const chave = `${mes || norm(hitLabel)}|${total.toFixed(2)}`;
+      const chaveValor = total.toFixed(2);
+      const chave = `${mes || norm(hitLabel)}|${chaveValor}`;
       if (pivotsVistos.has(chave)) continue;
+      const anterior = valoresGenericos.get(chaveValor);
+      if (anterior !== undefined) {
+        // Já contabilizamos esse mesmo valor com rótulo genérico
+        // ("Cobrança Retroativa") ou com mês: a repetição é a mesma cobrança
+        // listada duas vezes (com e sem quantidade) — não soma de novo.
+        if (!mes || anterior.mes === null) {
+          if (mes && anterior.mes === null) {
+            valoresGenericos.set(chaveValor, { mes, qtd: anterior.qtd });
+            mesesRetro.add(mes);
+            addDetalhe(mes, Math.max(qtd, anterior.qtd) - anterior.qtd, 0);
+          }
+          pivotsVistos.add(chave);
+          continue;
+        }
+      }
       pivotsVistos.add(chave);
+      valoresGenericos.set(chaveValor, { mes: mes || null, qtd });
 
       pivotEncontrado = true;
       extraRetroQtd += qtd;
       extraRetroTotal += total;
       if (mes) { mesesRetro.add(mes); addDetalhe(mes, qtd, total); }
+
     }
   });
 
