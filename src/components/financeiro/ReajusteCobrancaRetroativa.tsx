@@ -493,6 +493,16 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     () => itens.reduce((s, i) => s + (i.valor_centavos || 0), 0),
     [itens],
   );
+  const totalPaginas = Math.max(1, Math.ceil(itens.length / ITENS_POR_PAGINA));
+  const itensPaginados = useMemo(() => {
+    const inicio = (pagina - 1) * ITENS_POR_PAGINA;
+    return itens.slice(inicio, inicio + ITENS_POR_PAGINA);
+  }, [itens, pagina]);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, tipoFiltro, statusFiltro]);
+
   const countsFiltro = useMemo(() => {
     const cobr = lista as any[];
     return {
@@ -504,6 +514,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       divergente: cobr.filter((c) => c.conferencia_status === "divergente" && !c.confirmado).length,
     };
   }, [lista, arquivosReajuste]);
+
 
 
   // ============ Form ============
