@@ -712,6 +712,12 @@ export type Database = {
       cobrancas_retroativas: {
         Row: {
           competencia: string
+          conferencia_status: string | null
+          conferido_em: string | null
+          confirmado: boolean
+          confirmado_em: string | null
+          confirmado_origem: string | null
+          confirmado_por: string | null
           created_at: string
           created_by: string | null
           descricao: string | null
@@ -723,11 +729,18 @@ export type Database = {
           tipo_ajuste: string
           updated_at: string
           valor_centavos: number
+          valor_planilha_centavos: number | null
           valor_total_calculado_centavos: number | null
           valor_total_manual_centavos: number | null
         }
         Insert: {
           competencia: string
+          conferencia_status?: string | null
+          conferido_em?: string | null
+          confirmado?: boolean
+          confirmado_em?: string | null
+          confirmado_origem?: string | null
+          confirmado_por?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
@@ -739,11 +752,18 @@ export type Database = {
           tipo_ajuste?: string
           updated_at?: string
           valor_centavos: number
+          valor_planilha_centavos?: number | null
           valor_total_calculado_centavos?: number | null
           valor_total_manual_centavos?: number | null
         }
         Update: {
           competencia?: string
+          conferencia_status?: string | null
+          conferido_em?: string | null
+          confirmado?: boolean
+          confirmado_em?: string | null
+          confirmado_origem?: string | null
+          confirmado_por?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
@@ -755,6 +775,7 @@ export type Database = {
           tipo_ajuste?: string
           updated_at?: string
           valor_centavos?: number
+          valor_planilha_centavos?: number | null
           valor_total_calculado_centavos?: number | null
           valor_total_manual_centavos?: number | null
         }
