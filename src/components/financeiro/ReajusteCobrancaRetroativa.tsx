@@ -657,7 +657,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             <div className="min-w-0">
               <CardTitle className="text-sm font-semibold truncate">Cobrança Retroativa</CardTitle>
               <p className="text-xs text-muted-foreground">
-                {lista.length} registro(s) · Total {formatBRL(totalCentavos)}
+                {lista.length} registro(s) · Total {formatBRL(totalCentavos)} ·{" "}
+                {confirmadasCount} confirmada(s)
               </p>
             </div>
           </div>
@@ -671,6 +672,23 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 className="h-8 w-44 pl-8 text-xs"
               />
             </div>
+            {canManage && lista.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1"
+                onClick={conferirTodas}
+                disabled={conferindoTodas}
+                title="Conferir os valores na planilha de faturamento da competência"
+              >
+                {conferindoTodas ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                )}
+                Conferir todas
+              </Button>
+            )}
             {canManage && (
               <Button
                 size="sm"
