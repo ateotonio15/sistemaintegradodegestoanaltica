@@ -57,14 +57,15 @@ function mesAtual(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-// Lista competências de 01/2026 até o mês atual (mais recente primeiro).
-// Não permite competências futuras. Conforme o tempo avança, novos meses
-// são adicionados automaticamente.
+// Lista competências de 01/2026 até o mês seguinte ao atual (mais recente
+// primeiro), permitindo registrar cobranças que só serão enviadas no próximo
+// mês. Conforme o tempo avança, novos meses são adicionados automaticamente.
 function getMesesOptions(): string[] {
   const out: string[] = [];
   const now = new Date();
-  const endY = now.getFullYear();
-  const endM = now.getMonth() + 1; // 1..12
+  const limite = new Date(now.getFullYear(), now.getMonth() + 1, 1); // próximo mês
+  const endY = limite.getFullYear();
+  const endM = limite.getMonth() + 1; // 1..12
   let y = 2026;
   let m = 1;
   while (y < endY || (y === endY && m <= endM)) {
@@ -74,6 +75,7 @@ function getMesesOptions(): string[] {
   }
   return out.reverse();
 }
+
 
 export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defaultCompetencia }: Props) {
   const { user } = useAuth();
