@@ -284,6 +284,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [calcItensPorCobranca, setCalcItensPorCobranca] = useState<Record<string, CalcItem[]>>({});
   const [manualValorOpen, setManualValorOpen] = useState(false);
   const [manualValorInput, setManualValorInput] = useState("");
+  const [manualTipo, setManualTipo] = useState<"retroativa" | "devolucao">("retroativa");
 
   const handleViewPdf = async (movimentacaoId: string | null) => {
     if (!movimentacaoId) {
