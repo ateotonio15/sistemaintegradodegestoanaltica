@@ -154,8 +154,45 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
     a.click();
   };
 
-  const handleDelete = async (id: string, path: string) => {
-    if (!confirm("Excluir este anexo?")) return;
+  const registrarObservacaoExclusao = async (nomeArquivo: string) => {
+    if (!movimentacaoId) return;
+    try {
+      const { data: mov } = await supabase
+        .from("movimentacoes")
+        .select("observacoes")
+        .eq("id", movimentacaoId)
+        .maybeSingle();
+      let autor = user?.email ?? "Usuário";
+      if (user?.id) {
+        const { data: nomes } = await supabase.rpc("get_user_display_names", { _ids: [user.id] });
+        const nome = (nomes as any[] | null)?.[0]?.display_name;
+        if (nome) autor = nome;
+      }
+      const agora = new Date().toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const entrada = `[${agora} — ${autor}] Anexo "${nomeArquivo}" foi deletado a pedido do financeiro.`;
+      const anteriores = (mov?.observacoes ?? "").trim();
+      const { error } = await supabase
+        .from("movimentacoes")
+        .update({ observacoes: anteriores ? `${anteriores}\n${entrada}` : entrada })
+        .eq("id", movimentacaoId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["anexos-mov-dialog", movimentacaoId] });
+    } catch (err: any) {
+      toast.error("Anexo excluído, mas não foi possível registrar a observação.");
+    }
+  };
+
+  const confirmarExclusao = async () => {
+    if (!alvoExclusao) return;
+    const { id, path, nome } = alvoExclusao;
+    setExcluindo(true);
     try {
       const { data: deleted, error } = await supabase
         .from("anexos_movimentacao")
@@ -168,13 +205,19 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         return;
       }
       await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+      if (registrarObs) await registrarObservacaoExclusao(nome);
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
       onAttachmentsChange?.();
       toast.success("Anexo excluído");
+      setAlvoExclusao(null);
+      setRegistrarObs(false);
     } catch (err: any) {
       toast.error("Erro ao excluir: " + err.message);
+    } finally {
+      setExcluindo(false);
     }
   };
+
 
   const handleExtrairVidas = async (path: string, nome: string) => {
     if (!empresaId) return;
