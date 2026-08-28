@@ -725,6 +725,7 @@ export type Database = {
           financeiro_movimentacao_id: string | null
           id: string
           motivo: string | null
+          origem_retroativo: string | null
           status_calc: string
           tipo: string
           tipo_ajuste: string
@@ -749,6 +750,7 @@ export type Database = {
           financeiro_movimentacao_id?: string | null
           id?: string
           motivo?: string | null
+          origem_retroativo?: string | null
           status_calc?: string
           tipo?: string
           tipo_ajuste?: string
@@ -773,6 +775,7 @@ export type Database = {
           financeiro_movimentacao_id?: string | null
           id?: string
           motivo?: string | null
+          origem_retroativo?: string | null
           status_calc?: string
           tipo?: string
           tipo_ajuste?: string

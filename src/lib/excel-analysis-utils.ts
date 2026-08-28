@@ -38,6 +38,20 @@ export interface CoparticipacaoResultado {
 
 
 
+/**
+ * Quando o retroativo do bloco veio de abas dedicadas ("C.RETROATIVA MAI26"),
+ * ele é de reajuste — não de beneficiários específicos.
+ */
+function reclassificarRetroComoReajuste(b: {
+  retroativas?: InclusaoResultado;
+  retroativasReajuste?: InclusaoResultado;
+  retroativasBeneficiarios?: InclusaoResultado;
+}) {
+  if (!b.retroativas) return;
+  b.retroativasReajuste = { ...b.retroativas };
+  b.retroativasBeneficiarios = undefined;
+}
+
 export interface AnaliseResultado {
   pagador: string;
   /** CNPJ normalizado (14 dígitos) do pagador da planilha, quando identificado. */
@@ -50,6 +64,10 @@ export interface AnaliseResultado {
   inclusoes: InclusaoResultado;
   /** Cobrança Retroativa — subset de inclusoes, exibido como linha própria. */
   retroativas?: InclusaoResultado;
+  /** Parte do retroativo vinda de abas dedicadas (ex.: "C.RETROATIVA MAI26") — reajuste. */
+  retroativasReajuste?: InclusaoResultado;
+  /** Parte do retroativo vinda de linhas do relatório de beneficiários. */
+  retroativasBeneficiarios?: InclusaoResultado;
   /** Apenas Análise Moto Honda — total geralmente negativo. */
   exclusoes?: InclusaoResultado;
   /** Devoluções — categoria própria com valor negativo (crédito). */
@@ -76,6 +94,10 @@ export interface AnalisePorCnpj {
   apartamento: CategoriaResultado;
   inclusoes: InclusaoResultado;
   retroativas?: InclusaoResultado;
+  /** Parte do retroativo vinda de abas dedicadas (reajuste). */
+  retroativasReajuste?: InclusaoResultado;
+  /** Parte do retroativo vinda do relatório de beneficiários. */
+  retroativasBeneficiarios?: InclusaoResultado;
   exclusoes?: InclusaoResultado;
   devolucoes?: InclusaoResultado;
   permuta?: InclusaoResultado;
@@ -1999,6 +2021,8 @@ export async function analisarExcelFinanceiroPorCnpj(
       };
       if (g.retroQtd > 0 || g.retroTotal !== 0) {
         bloco.retroativas = { quantidade: g.retroQtd, total: g.retroTotal };
+        // Origem: linhas do relatório de beneficiários (aba principal).
+        bloco.retroativasBeneficiarios = { quantidade: g.retroQtd, total: g.retroTotal };
       }
       if (g.excQtd > 0 || g.excTotal !== 0) {
         bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
@@ -2292,6 +2316,12 @@ export async function analisarExcelFinanceiroPorCnpj(
           meses: mesesArr.length ? mesesArr : b.retroativas?.meses,
           mesesDetalhe: scaleDetalhe(1) ?? b.retroativas?.mesesDetalhe,
         };
+        b.retroativasReajuste = {
+          quantidade: (b.retroativasReajuste?.quantidade ?? 0) + deltaQ,
+          total: (b.retroativasReajuste?.total ?? 0) + deltaT,
+          ...(mesesArr.length ? { meses: mesesArr } : {}),
+          ...(detalheArr.length ? { mesesDetalhe: scaleDetalhe(1) } : {}),
+        };
         b.inclusoes = { quantidade: b.inclusoes.quantidade + deltaQ, total: b.inclusoes.total + deltaT };
       } else {
         const base = blocos.map((b) => Math.abs(b.inclusoes.total) || 0);
@@ -2306,6 +2336,12 @@ export async function analisarExcelFinanceiroPorCnpj(
             meses: mesesArr.length ? mesesArr : b.retroativas?.meses,
             mesesDetalhe: scaleDetalhe(w) ?? b.retroativas?.mesesDetalhe,
           };
+          b.retroativasReajuste = {
+            quantidade: (b.retroativasReajuste?.quantidade ?? 0) + q,
+            total: (b.retroativasReajuste?.total ?? 0) + v,
+            ...(mesesArr.length ? { meses: mesesArr } : {}),
+            ...(detalheArr.length ? { mesesDetalhe: scaleDetalhe(w) } : {}),
+          };
           b.inclusoes = { quantidade: b.inclusoes.quantidade + q, total: b.inclusoes.total + v };
         });
       }
@@ -2314,6 +2350,7 @@ export async function analisarExcelFinanceiroPorCnpj(
         if (b.retroativas) {
           b.retroativas.meses = mesesArr;
           if (detalheArr.length) b.retroativas.mesesDetalhe = scaleDetalhe(1);
+          reclassificarRetroComoReajuste(b);
         }
       });
     }
@@ -2322,6 +2359,7 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (b.retroativas) {
         b.retroativas.meses = mesesArr;
         if (detalheArr.length) b.retroativas.mesesDetalhe = scaleDetalhe(1);
+        reclassificarRetroComoReajuste(b);
       }
     });
   }
@@ -2445,7 +2483,18 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
     const mensalidade = beneficiarios > 0 ? total / beneficiarios : 0;
     return { beneficiarios, mensalidade, total };
   };
-  const somaQT = (arr: AnalisePorCnpj[], key: "inclusoes" | "retroativas" | "exclusoes" | "devolucoes" | "permuta" | "taxaAdesao") => {
+  const somaQT = (
+    arr: AnalisePorCnpj[],
+    key:
+      | "inclusoes"
+      | "retroativas"
+      | "retroativasReajuste"
+      | "retroativasBeneficiarios"
+      | "exclusoes"
+      | "devolucoes"
+      | "permuta"
+      | "taxaAdesao",
+  ) => {
     const items = arr.map((x) => (x as any)[key]).filter(Boolean) as { quantidade: number; total: number }[];
     if (items.length === 0) return undefined;
     return { quantidade: items.reduce((s, x) => s + x.quantidade, 0), total: items.reduce((s, x) => s + x.total, 0) };
@@ -2493,6 +2542,13 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
     }
 
 
+    const retroRea = somaQT(arr, "retroativasReajuste");
+    if (retroRea) {
+      const meses = Array.from(new Set(arr.flatMap((x) => x.retroativasReajuste?.meses || [])));
+      novoBloco.retroativasReajuste = { ...retroRea, ...(meses.length ? { meses } : {}) };
+    }
+    const retroBen = somaQT(arr, "retroativasBeneficiarios");
+    if (retroBen) novoBloco.retroativasBeneficiarios = retroBen;
     const exc = somaQT(arr, "exclusoes"); if (exc) novoBloco.exclusoes = exc;
     const dev = somaQT(arr, "devolucoes"); if (dev) novoBloco.devolucoes = dev;
     const perm = somaQT(arr, "permuta"); if (perm) novoBloco.permuta = perm;
@@ -2564,6 +2620,8 @@ export function cruzarExcelComPdfs(
       apartamento: bloco.apartamento,
       inclusoes: bloco.inclusoes,
       retroativas: bloco.retroativas,
+      retroativasReajuste: bloco.retroativasReajuste,
+      retroativasBeneficiarios: bloco.retroativasBeneficiarios,
       exclusoes: bloco.exclusoes,
       devolucoes: bloco.devolucoes,
       permuta: bloco.permuta,
