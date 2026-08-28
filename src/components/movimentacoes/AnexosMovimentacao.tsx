@@ -4,6 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Paperclip, Upload, FileText, Download, Trash2, AlertCircle, Users } from "lucide-react";
 import {
   ACCEPTED_FILE_TYPES,
@@ -11,6 +22,7 @@ import {
   formatBytes,
 } from "@/lib/financeiro-utils";
 import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
+
 
 interface Props {
   movimentacaoId: string | null;
@@ -35,6 +47,9 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const [alvoExclusao, setAlvoExclusao] = useState<{ id: string; path: string; nome: string } | null>(null);
+  const [registrarObs, setRegistrarObs] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["anexos-movimentacao", movimentacaoId],
@@ -142,8 +157,45 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
     a.click();
   };
 
-  const handleDelete = async (id: string, path: string) => {
-    if (!confirm("Excluir este anexo?")) return;
+  const registrarObservacaoExclusao = async (nomeArquivo: string) => {
+    if (!movimentacaoId) return;
+    try {
+      const { data: mov } = await supabase
+        .from("movimentacoes")
+        .select("observacoes")
+        .eq("id", movimentacaoId)
+        .maybeSingle();
+      let autor = user?.email ?? "Usuário";
+      if (user?.id) {
+        const { data: nomes } = await supabase.rpc("get_user_display_names", { _ids: [user.id] });
+        const nome = (nomes as any[] | null)?.[0]?.display_name;
+        if (nome) autor = nome;
+      }
+      const agora = new Date().toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const entrada = `[${agora} — ${autor}] Anexo "${nomeArquivo}" foi deletado a pedido do financeiro.`;
+      const anteriores = (mov?.observacoes ?? "").trim();
+      const { error } = await supabase
+        .from("movimentacoes")
+        .update({ observacoes: anteriores ? `${anteriores}\n${entrada}` : entrada })
+        .eq("id", movimentacaoId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["anexos-mov-dialog", movimentacaoId] });
+    } catch (err: any) {
+      toast.error("Anexo excluído, mas não foi possível registrar a observação.");
+    }
+  };
+
+  const confirmarExclusao = async () => {
+    if (!alvoExclusao) return;
+    const { id, path, nome } = alvoExclusao;
+    setExcluindo(true);
     try {
       const { data: deleted, error } = await supabase
         .from("anexos_movimentacao")
@@ -156,13 +208,19 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         return;
       }
       await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+      if (registrarObs) await registrarObservacaoExclusao(nome);
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
       onAttachmentsChange?.();
       toast.success("Anexo excluído");
+      setAlvoExclusao(null);
+      setRegistrarObs(false);
     } catch (err: any) {
       toast.error("Erro ao excluir: " + err.message);
+    } finally {
+      setExcluindo(false);
     }
   };
+
 
   const handleExtrairVidas = async (path: string, nome: string) => {
     if (!empresaId) return;
@@ -260,7 +318,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={() => handleDelete(a.id, a.storage_path)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRegistrarObs(false); setAlvoExclusao({ id: a.id, path: a.storage_path, nome: a.nome_arquivo }); }}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </li>
@@ -268,6 +326,52 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
           })}
         </ul>
       )}
+
+      <AlertDialog
+        open={!!alvoExclusao}
+        onOpenChange={(v) => {
+          if (!v && !excluindo) {
+            setAlvoExclusao(null);
+            setRegistrarObs(false);
+          }
+        }}
+      >
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir anexo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alvoExclusao?.nome
+                ? `O arquivo "${alvoExclusao.nome}" será removido permanentemente.`
+                : "O arquivo será removido permanentemente."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <label className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 cursor-pointer">
+            <Checkbox
+              checked={registrarObs}
+              onCheckedChange={(v) => setRegistrarObs(v === true)}
+              className="mt-0.5"
+            />
+            <span className="text-xs leading-relaxed">
+              Registrar na observação que o anexo foi <strong>deletado a pedido do financeiro</strong>.
+            </span>
+          </label>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindo}
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarExclusao();
+              }}
+            >
+              {excluindo ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
