@@ -1024,21 +1024,23 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Resp. Mov.</TableHead>
                     {true && <TableHead className="font-semibold">Envio Empresa</TableHead>}
                     <TableHead className="font-semibold">Financeiro</TableHead>
+                    <TableHead className="font-semibold">Status Faturamento</TableHead>
                     <TableHead className="font-semibold">Nota Enviada</TableHead>
                     {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? (false ? 10 : 11) : (false ? 9 : 10)} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 12 : 11} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? (false ? 10 : 11) : (false ? 9 : 10)} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 12 : 11} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
                       const tipo = m.tipo_movimentacao ?? m.empresas?.tipo_movimentacao ?? "—";
                       const notaKey = `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`;
-                      const dataNota = notasMap.get(notaKey) ?? null;
+                      const finInfo = finMap.get(notaKey) ?? null;
+                      const dataNota = finInfo?.data_envio_nota ?? null;
                       const temPrio = !!(m.empresas as any)?.prioridade_maxima_id;
                       const prioAtiva = temPrio && !m.data_envio_financeiro;
                       const prioIntensa = prioAtiva && isPrioridadeAlertaIntenso(m.empresas as any);
