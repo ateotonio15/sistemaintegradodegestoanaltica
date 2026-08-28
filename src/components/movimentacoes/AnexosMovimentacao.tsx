@@ -22,6 +22,8 @@ import {
   formatBytes,
 } from "@/lib/financeiro-utils";
 import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
+import { tipoArquivo } from "@/lib/arquivos-utils";
+import { formatDateBR } from "@/lib/date-utils";
 
 
 interface Props {
@@ -47,7 +49,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
-  const [alvoExclusao, setAlvoExclusao] = useState<{ id: string; path: string; nome: string } | null>(null);
+  const [alvoExclusao, setAlvoExclusao] = useState<{ id: string; path: string; nome: string; tipo: string; criadoEm: string } | null>(null);
   const [registrarObs, setRegistrarObs] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
 
@@ -157,7 +159,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
     a.click();
   };
 
-  const registrarObservacaoExclusao = async (nomeArquivo: string) => {
+  const registrarObservacaoExclusao = async (nomeArquivo: string, tipo: string, criadoEm: string) => {
     if (!movimentacaoId) return;
     try {
       const { data: mov } = await supabase
@@ -178,7 +180,8 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         hour: "2-digit",
         minute: "2-digit",
       });
-      const entrada = `[${agora} — ${autor}] Anexo "${nomeArquivo}" foi deletado a pedido do financeiro.`;
+      const anexadoEm = formatDateBR(criadoEm);
+      const entrada = `[${agora} — ${autor}] Anexo "${nomeArquivo}" (Tipo: ${tipo}, anexado em ${anexadoEm}) foi deletado a pedido do financeiro.`;
       const anteriores = (mov?.observacoes ?? "").trim();
       const { error } = await supabase
         .from("movimentacoes")
@@ -194,7 +197,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
 
   const confirmarExclusao = async () => {
     if (!alvoExclusao) return;
-    const { id, path, nome } = alvoExclusao;
+    const { id, path, nome, tipo, criadoEm } = alvoExclusao;
     setExcluindo(true);
     try {
       const { data: deleted, error } = await supabase
@@ -208,7 +211,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         return;
       }
       await supabase.storage.from(STORAGE_BUCKET).remove([path]);
-      if (registrarObs) await registrarObservacaoExclusao(nome);
+      if (registrarObs) await registrarObservacaoExclusao(nome, tipo, criadoEm);
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
       onAttachmentsChange?.();
       toast.success("Anexo excluído");
@@ -318,7 +321,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRegistrarObs(false); setAlvoExclusao({ id: a.id, path: a.storage_path, nome: a.nome_arquivo }); }}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRegistrarObs(false); setAlvoExclusao({ id: a.id, path: a.storage_path, nome: a.nome_arquivo, tipo: tipoArquivo(a.nome_arquivo.split(".").pop()), criadoEm: a.created_at }); }}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </li>
