@@ -986,7 +986,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             <p className="text-sm text-muted-foreground">Nenhum registro para os filtros selecionados.</p>
           </div>
         ) : (
-          <div className="max-h-[420px] overflow-y-auto space-y-2 pr-1">
+          <div className="max-h-[260px] overflow-y-auto space-y-2 pr-1">
             {itens.map((item) => {
 
 
@@ -1161,15 +1161,6 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 </div>
               );
             })}
-            <div className="sticky bottom-0 rounded-lg border border-primary/20 bg-card/95 backdrop-blur px-3 py-2 flex items-center justify-between">
-
-              <span className="text-sm font-medium">Total na competência</span>
-              <span
-                className={cn("text-base font-bold tabular-nums", totalFiltrado < 0 && "text-amber-500")}
-              >
-                {formatBRL(totalFiltrado)}
-              </span>
-            </div>
           </div>
 
         )}
