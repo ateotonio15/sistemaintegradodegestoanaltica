@@ -390,6 +390,25 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     },
   });
 
+  // ===== Arquivos anexados como "Reajuste" — entram automaticamente nesta janela =====
+  const { data: arquivosReajuste = [], isLoading: loadingArqReaj } = useQuery({
+    queryKey: ["arquivos-reajuste-rcr", competencia ?? "todas"],
+    queryFn: async () => {
+      let q = supabase
+        .from("financeiro_arquivos")
+        .select("id, empresa_id, competencia, nome_original, storage_path, mime_type, created_at, uploaded_by_nome, status, categoria")
+        .eq("categoria", "Reajuste")
+        .neq("status", "removido")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (competencia) q = q.eq("competencia", competencia);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+
   const lista = useMemo(() => {
     const base = (cobrancas as any[]).filter(
       (c) => !competencia || c.competencia === competencia,
