@@ -865,6 +865,70 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         </div>
       </CardHeader>
       <CardContent className="pt-3">
+        {/* Arquivos anexados como "Reajuste" na competência selecionada */}
+        {(loadingArqReaj || arquivosReajuste.length > 0) && (
+          <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5">
+            <div className="flex items-center gap-2 mb-2">
+              <Paperclip className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <p className="text-xs font-medium">
+                Arquivos de Reajuste
+                {competencia ? ` · ${formatMesReferencia(competencia)}` : " · todas as competências"}
+              </p>
+              <Badge variant="outline" className="h-5 text-[10px]">
+                {arquivosReajuste.length}
+              </Badge>
+            </div>
+            {loadingArqReaj ? (
+              <p className="text-xs text-muted-foreground">Carregando arquivos...</p>
+            ) : (
+              <div className="max-h-[180px] overflow-y-auto space-y-1.5 pr-1">
+                {(arquivosReajuste as any[]).map((a) => {
+                  const emp = empresasMap[a.empresa_id];
+                  return (
+                    <div
+                      key={a.id}
+                      className="flex items-center gap-2 rounded-md border bg-card px-2.5 py-1.5"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium truncate">{emp?.nome || "Empresa"}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {formatMesReferencia(a.competencia)} · {a.nome_original}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2"
+                        onClick={() =>
+                          setPreviewAnexo({
+                            path: a.storage_path,
+                            nome: a.nome_original,
+                            mime: a.mime_type,
+                          })
+                        }
+                        title="Visualizar"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      {canManage && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1 text-[11px]"
+                          onClick={() => openCobrancaDoArquivo(a)}
+                        >
+                          <Plus className="h-3 w-3" /> Cobrança
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {loadingCob ? (
           <div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>
         ) : lista.length === 0 ? (
