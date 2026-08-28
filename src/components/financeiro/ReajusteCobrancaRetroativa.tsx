@@ -257,7 +257,7 @@ function parseResumoParaItens(descricao: string | null | undefined): CalcItem[] 
   return itens;
 }
 
-export function ReajusteCobrancaRetroativa() {
+export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: string } = {}) {
   const { user, isAdmin, isFinanceiro } = useAuth();
   const canManage = isAdmin || isFinanceiro;
   const queryClient = useQueryClient();
