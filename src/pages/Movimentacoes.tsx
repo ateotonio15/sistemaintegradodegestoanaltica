@@ -292,28 +292,101 @@ export default function Movimentacoes() {
   });
 
 
-  // Mapa de "Nota Enviada" do módulo financeiro: (empresa_id|mes|periodo) -> data_envio_nota
-  const { data: notasMap = new Map<string, string>() } = useQuery({
-    queryKey: ["financeiro-notas-map", filterMes],
+  // Mapa do módulo Faturamento: (empresa_id|mes|periodo) -> { nota, status, por }
+  type FinInfo = {
+    data_envio_nota: string | null;
+    status: StatusFinanceiro;
+    faturamento_por: string | null;
+  };
+  const { data: finMap = new Map<string, FinInfo>() } = useQuery({
+    queryKey: ["financeiro-status-map", filterMes],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: fins, error } = await supabase
         .from("financeiro_movimentacoes")
-        .select("empresa_id, mes_referencia, periodo, data_envio_nota")
-        .eq("mes_referencia", filterMes)
-        .not("data_envio_nota", "is", null);
+        .select(
+          "id, empresa_id, mes_referencia, periodo, data_envio_nota, dentro_prazo, faturamento_iniciado_em, faturamento_iniciado_por_nome",
+        )
+        .eq("mes_referencia", filterMes);
       if (error) throw error;
-      const m = new Map<string, string>();
-      for (const r of data ?? []) {
-        const key = `${r.empresa_id}|${r.mes_referencia}|${r.periodo}`;
-        const prev = m.get(key);
-        if (!prev || (r.data_envio_nota && r.data_envio_nota > prev)) {
-          m.set(key, r.data_envio_nota as string);
+      const rows = fins ?? [];
+      const ids = rows.map((r) => r.id);
+
+      const anexosPorMov = new Map<string, Array<{ mime_type: string | null; nome_arquivo: string | null; origem: string | null }>>();
+      for (let i = 0; i < ids.length; i += 200) {
+        const slice = ids.slice(i, i + 200);
+        if (slice.length === 0) break;
+        const { data: anexos } = await supabase
+          .from("anexos_financeiro")
+          .select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem")
+          .in("financeiro_movimentacao_id", slice);
+        for (const a of anexos ?? []) {
+          const arr = anexosPorMov.get(a.financeiro_movimentacao_id as string) ?? [];
+          arr.push({ mime_type: a.mime_type, nome_arquivo: a.nome_arquivo, origem: a.origem });
+          anexosPorMov.set(a.financeiro_movimentacao_id as string, arr);
         }
+      }
+
+      const empresaIdsFin = Array.from(new Set(rows.map((r) => r.empresa_id).filter(Boolean))) as string[];
+      const exigeMap = new Map<string, boolean>();
+      if (empresaIdsFin.length > 0) {
+        const { data: emps } = await supabase
+          .from("empresas")
+          .select("id, exige_po_pc")
+          .in("id", empresaIdsFin);
+        for (const e of emps ?? []) exigeMap.set(e.id, !!(e as any).exige_po_pc);
+      }
+
+      // Envio operacional (Cadastro → Financeiro) por empresa|mes|periodo
+      const { data: movs } = await supabase
+        .from("movimentacoes")
+        .select("empresa_id, mes_referencia, periodo, data_envio_financeiro")
+        .eq("mes_referencia", filterMes);
+      const envioSet = new Set<string>();
+      for (const mv of movs ?? []) {
+        if (mv.data_envio_financeiro) envioSet.add(`${mv.empresa_id}|${mv.mes_referencia}|${mv.periodo}`);
+      }
+
+      const m = new Map<string, FinInfo>();
+      for (const r of rows) {
+        const key = `${r.empresa_id}|${r.mes_referencia}|${r.periodo}`;
+        const anexos = (anexosPorMov.get(r.id) ?? []).filter(anexoAlteraStatus);
+        const status = calcularStatusFinanceiro(
+          r as any,
+          envioSet.has(key),
+          anexos,
+          exigeMap.get(r.empresa_id as string) ?? false,
+        );
+        const info: FinInfo = {
+          data_envio_nota: r.data_envio_nota ?? null,
+          status,
+          faturamento_por: (r as any).faturamento_iniciado_por_nome ?? null,
+        };
+        const prev = m.get(key);
+        // Prioriza a linha mais avançada (com nota / faturamento iniciado)
+        const peso = (x: FinInfo) => (x.data_envio_nota ? 3 : x.status !== "Pendente" ? 2 : 1);
+        if (!prev || peso(info) > peso(prev)) m.set(key, info);
       }
       return m;
     },
     enabled: !!user,
   });
+
+  // Atualização em tempo real do status vindo da aba Faturamento
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("movimentacoes-financeiro-status")
+      .on("postgres_changes", { event: "*", schema: "public", table: "financeiro_movimentacoes" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["financeiro-status-map"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "anexos_financeiro" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["financeiro-status-map"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   const movimentacoesSemEmpresa = useMemo(() => {
     return movimentacoes.filter((m) => !m.empresa_id || !m.empresas);
