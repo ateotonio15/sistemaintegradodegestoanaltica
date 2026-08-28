@@ -30,12 +30,11 @@ import {
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
 import {
-  calcularStatusFinanceiro,
   statusFinanceiroColor,
   labelStatusFinanceiro,
-  anexoAlteraStatus,
   type StatusFinanceiro,
 } from "@/lib/financeiro-utils";
+
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
