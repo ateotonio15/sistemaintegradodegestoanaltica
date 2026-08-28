@@ -67,12 +67,14 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
   const [divisor, setDivisor] = useState("30");
   const [copiado, setCopiado] = useState(false);
   const [itens, setItens] = useState<CalcItem[]>([]);
+  const [tipoCobranca, setTipoCobranca] = useState<"" | "retroativa" | "devolucao">("");
 
   // Ao abrir, carrega apenas os cálculos já registrados desta cobrança
   useEffect(() => {
     if (!open) return;
     setCopiado(false);
     setItens(itensIniciais ?? []);
+    setTipoCobranca("");
     setInicio("");
     setFim("");
     setBeneficiarios("1");
@@ -129,8 +131,17 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
         total: atual.total,
       });
     }
-    return todos.map((i) => `${resumoItem(i)} = ${formatBRLFromCentavos(i.total)}`).join(" | ");
-  }, [itens, atual, inicio, fim]);
+    const detalhes = todos
+      .map((i) => `${resumoItem(i)} = ${formatBRLFromCentavos(i.total)}`)
+      .join(" | ");
+    const prefixo =
+      tipoCobranca === "devolucao"
+        ? "Devolução"
+        : tipoCobranca === "retroativa"
+          ? "Cobrança retroativa"
+          : "";
+    return prefixo ? `${prefixo}: ${detalhes}` : detalhes;
+  }, [itens, atual, inicio, fim, tipoCobranca]);
 
   const limparCampos = () => {
     setInicio("");
@@ -141,6 +152,10 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
   };
 
   const adicionarItem = () => {
+    if (!tipoCobranca) {
+      toast.error("Selecione o tipo de lançamento (cobrança retroativa ou devolução).");
+      return;
+    }
     if (!atual.valido) return;
     setItens((prev) => [
       ...prev,
@@ -158,7 +173,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
     limparCampos();
   };
 
-  const podeAplicar = totalGeral > 0;
+  const podeAplicar = totalGeral > 0 && !!tipoCobranca;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -183,6 +198,24 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               Dados da cobrança
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">
+                Tipo de lançamento <span className="text-destructive">*</span>
+              </Label>
+              <Select value={tipoCobranca} onValueChange={(v) => setTipoCobranca(v as any)}>
+                <SelectTrigger className={tipoCobranca ? "" : "border-destructive/60"}>
+                  <SelectValue placeholder="Selecione: cobrança retroativa ou devolução" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="retroativa">Cobrança retroativa</SelectItem>
+                  <SelectItem value="devolucao">Devolução</SelectItem>
+                </SelectContent>
+              </Select>
+              {!tipoCobranca && (
+                <p className="text-[11px] text-destructive">Campo obrigatório.</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -365,6 +398,10 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
                   className="flex-1 gap-1.5 sm:flex-none"
                   disabled={!podeAplicar}
                   onClick={() => {
+                    if (!tipoCobranca) {
+                      toast.error("Selecione o tipo de lançamento.");
+                      return;
+                    }
                     onAplicar(totalGeral, resumoFinal);
                     onOpenChange(false);
                   }}

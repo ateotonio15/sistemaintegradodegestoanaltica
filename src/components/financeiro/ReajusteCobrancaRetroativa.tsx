@@ -49,6 +49,9 @@ import {
   CalendarIcon,
   Paperclip,
   Save,
+  ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -391,6 +394,11 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     });
   }, [cobrancas, busca, empresasMap, competencia]);
 
+  const confirmadasCount = useMemo(
+    () => (lista as any[]).filter((c) => c.confirmado).length,
+    [lista],
+  );
+
   const totalCentavos = useMemo(
     () => (lista as any[]).reduce((s, c) => s + (c.valor_centavos || 0), 0),
     [lista],
@@ -501,6 +509,137 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     }
   };
 
+  // ===== Conferência da cobrança na planilha de faturamento =====
+  const [conferindo, setConferindo] = useState<string | null>(null);
+  const [conferindoTodas, setConferindoTodas] = useState(false);
+
+  /** Retorna o total retroativo (em centavos) encontrado nas planilhas da empresa/competência. */
+  const buscarRetroativoPlanilha = async (
+    empresaId: string,
+    compet: string,
+  ): Promise<number | null> => {
+    const { data: movs, error: movErr } = await supabase
+      .from("financeiro_movimentacoes")
+      .select("id")
+      .eq("empresa_id", empresaId)
+      .eq("mes_referencia", compet);
+    if (movErr) throw movErr;
+    const movIds = (movs || []).map((m: any) => m.id);
+    if (movIds.length === 0) return null;
+
+    const { data: anexos, error: anxErr } = await supabase
+      .from("anexos_financeiro")
+      .select("nome_arquivo, storage_path, mime_type")
+      .in("financeiro_movimentacao_id", movIds);
+    if (anxErr) throw anxErr;
+
+    const { isXlsAnexo } = await import("@/lib/financeiro-utils");
+    const xls = (anexos || []).filter((a: any) => isXlsAnexo(a) && a.storage_path);
+    if (xls.length === 0) return null;
+
+    const { analisarExcelFinanceiroPorCnpj } = await import("@/lib/excel-analysis-utils");
+    let totalReais = 0;
+    let algumLido = false;
+    for (const a of xls) {
+      try {
+        const { data, error } = await supabase.storage
+          .from("anexos-financeiro")
+          .download((a as any).storage_path);
+        if (error) throw error;
+        const blocos = await analisarExcelFinanceiroPorCnpj(await data.arrayBuffer());
+        algumLido = true;
+        blocos.forEach((b) => (totalReais += b.retroativas?.total ?? 0));
+      } catch {
+        /* ignora arquivo ilegível */
+      }
+    }
+    if (!algumLido) return null;
+    return Math.round(totalReais * 100);
+  };
+
+  const conferirCobranca = async (c: any, silencioso = false) => {
+    setConferindo(c.id);
+    try {
+      const encontrado = await buscarRetroativoPlanilha(c.empresa_id, c.competencia);
+      const status =
+        encontrado === null
+          ? "nao_encontrada"
+          : Math.abs(encontrado - (c.valor_centavos || 0)) <= 5
+            ? "confirmada"
+            : "divergente";
+      const { error } = await supabase
+        .from("cobrancas_retroativas")
+        .update({
+          conferencia_status: status,
+          conferido_em: new Date().toISOString(),
+          valor_planilha_centavos: encontrado,
+          ...(status === "confirmada"
+            ? {
+                confirmado: true,
+                confirmado_em: new Date().toISOString(),
+                confirmado_por: user?.id ?? null,
+                confirmado_origem: "planilha",
+              }
+            : {}),
+        } as any)
+        .eq("id", c.id);
+      if (error) throw error;
+      if (!silencioso) {
+        if (status === "confirmada") toast.success("Cobrança confirmada na planilha.");
+        else if (status === "divergente")
+          toast.warning(
+            `Divergência: planilha ${formatBRL(encontrado ?? 0)} × registrado ${formatBRL(c.valor_centavos || 0)}.`,
+          );
+        else toast.info("Nenhuma planilha de faturamento encontrada para esta competência.");
+      }
+      queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
+      return status;
+    } catch (e: any) {
+      if (!silencioso) toast.error("Erro ao conferir: " + (e?.message || "desconhecido"));
+      return null;
+    } finally {
+      setConferindo(null);
+    }
+  };
+
+  const conferirTodas = async () => {
+    setConferindoTodas(true);
+    let ok = 0;
+    let div = 0;
+    let semPlan = 0;
+    try {
+      for (const c of lista as any[]) {
+        const s = await conferirCobranca(c, true);
+        if (s === "confirmada") ok++;
+        else if (s === "divergente") div++;
+        else semPlan++;
+      }
+      toast.success(`Conferência: ${ok} confirmada(s), ${div} divergente(s), ${semPlan} sem planilha.`);
+    } finally {
+      setConferindoTodas(false);
+      queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
+    }
+  };
+
+  const confirmarManual = useMutation({
+    mutationFn: async (c: any) => {
+      const { error } = await supabase
+        .from("cobrancas_retroativas")
+        .update({
+          confirmado: !c.confirmado,
+          confirmado_em: !c.confirmado ? new Date().toISOString() : null,
+          confirmado_por: !c.confirmado ? user?.id ?? null : null,
+          confirmado_origem: !c.confirmado ? "manual" : null,
+        } as any)
+        .eq("id", c.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao confirmar."),
+  });
+
   const deleteCob = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("cobrancas_retroativas").delete().eq("id", id);
@@ -526,7 +665,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             <div className="min-w-0">
               <CardTitle className="text-sm font-semibold truncate">Cobrança Retroativa</CardTitle>
               <p className="text-xs text-muted-foreground">
-                {lista.length} registro(s) · Total {formatBRL(totalCentavos)}
+                {lista.length} registro(s) · Total {formatBRL(totalCentavos)} ·{" "}
+                {confirmadasCount} confirmada(s)
               </p>
             </div>
           </div>
@@ -540,6 +680,23 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 className="h-8 w-44 pl-8 text-xs"
               />
             </div>
+            {canManage && lista.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1"
+                onClick={conferirTodas}
+                disabled={conferindoTodas}
+                title="Conferir os valores na planilha de faturamento da competência"
+              >
+                {conferindoTodas ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                )}
+                Conferir todas
+              </Button>
+            )}
             {canManage && (
               <Button
                 size="sm"
@@ -580,6 +737,27 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                       Competência {formatMesReferencia(c.competencia)}
                       {c.descricao ? ` · ${c.descricao}` : ""}
                     </p>
+                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                      {c.confirmado ? (
+                        <Badge className="h-5 gap-1 bg-emerald-600/15 text-emerald-500 border-emerald-600/30 text-[10px]">
+                          <ShieldCheck className="h-3 w-3" />
+                          Confirmada {c.confirmado_origem === "manual" ? "(manual)" : "(planilha)"}
+                        </Badge>
+                      ) : c.conferencia_status === "divergente" ? (
+                        <Badge className="h-5 gap-1 bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px]">
+                          <AlertTriangle className="h-3 w-3" />
+                          Divergente · planilha {formatBRL(c.valor_planilha_centavos ?? 0)}
+                        </Badge>
+                      ) : c.conferencia_status === "nao_encontrada" ? (
+                        <Badge variant="outline" className="h-5 text-[10px]">
+                          Não encontrada na planilha
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
+                          Não conferida
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <Badge variant="secondary" className="shrink-0 tabular-nums">
                     {formatBRL(c.valor_centavos)}
@@ -599,6 +777,38 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                         <Eye className="h-3.5 w-3.5 text-primary" />
                       )}
                     </Button>
+                    {canManage && (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title="Conferir na planilha de faturamento"
+                          onClick={() => conferirCobranca(c)}
+                          disabled={conferindo === c.id || conferindoTodas}
+                        >
+                          {conferindo === c.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title={c.confirmado ? "Desfazer confirmação" : "Confirmar manualmente"}
+                          onClick={() => confirmarManual.mutate(c)}
+                        >
+                          <CheckCircle2
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              c.confirmado ? "text-emerald-500" : "text-muted-foreground",
+                            )}
+                          />
+                        </Button>
+                      </>
+                    )}
                     {canManage && (
                       <>
                         <Button
