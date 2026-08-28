@@ -252,10 +252,10 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
               <div className="space-y-1">
                 <Label className="text-xs">Mensalidade base (R$)</Label>
                 <Input
-                  inputMode="decimal"
+                  inputMode="numeric"
                   placeholder="0,00"
                   value={mensalidade}
-                  onChange={(e) => setMensalidade(e.target.value)}
+                  onChange={(e) => setMensalidade(formatCurrencyInput(e.target.value))}
                 />
               </div>
             </div>
