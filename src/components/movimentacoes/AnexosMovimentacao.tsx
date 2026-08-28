@@ -211,7 +211,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         return;
       }
       await supabase.storage.from(STORAGE_BUCKET).remove([path]);
-      if (registrarObs) await registrarObservacaoExclusao(nome);
+      if (registrarObs) await registrarObservacaoExclusao(nome, tipo, criadoEm);
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
       onAttachmentsChange?.();
       toast.success("Anexo excluído");
