@@ -983,6 +983,31 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
               </div>
             </div>
 
+            {/* Tipo de lançamento */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
+                Tipo de lançamento <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={cobTipo}
+                onValueChange={(v) => setCobTipo(v as "retroativa" | "devolucao")}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="retroativa">Cobrança retroativa</SelectItem>
+                  <SelectItem value="devolucao">Devolução</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                {cobTipo === "devolucao"
+                  ? "O valor será registrado como negativo (crédito para o cliente)."
+                  : "O valor será registrado como positivo (débito para o cliente)."}
+              </p>
+            </div>
+
             {/* Descrição / Observação */}
             <div className="space-y-2">
               <Label className="text-xs font-medium flex items-center gap-1.5">
