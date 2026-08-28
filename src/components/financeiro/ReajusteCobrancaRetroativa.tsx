@@ -561,6 +561,14 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
           origem_retroativo: cobOrigem,
         } as any);
         if (error) throw error;
+        if (cobArquivoRef) {
+          await supabase
+            .from("financeiro_arquivos")
+            .update({ financeiro_movimentacao_id: movId, categoria: "Retroativo" } as any)
+            .eq("id", cobArquivoRef.id);
+          queryClient.invalidateQueries({ queryKey: ["arquivos-reajuste-rcr"] });
+        }
+
         toast.success(
           cobTipo === "devolucao"
             ? "Devolução cadastrada e PDF anexado ao processo."
