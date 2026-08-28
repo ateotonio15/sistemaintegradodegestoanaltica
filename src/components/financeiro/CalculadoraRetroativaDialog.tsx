@@ -24,14 +24,16 @@ import { diasEntreInclusivo, formatBRLFromCentavos } from "@/lib/cobranca-retroa
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  /** Recebe o total calculado (em centavos) para preencher a cobrança. */
-  onAplicar?: (totalCentavos: number, resumo: string) => void;
+  /** Recebe o total calculado (em centavos) e o tipo para preencher a cobrança. */
+  onAplicar?: (totalCentavos: number, resumo: string, tipo: "retroativa" | "devolucao") => void;
   /** Segue para o cadastro da cobrança sem usar o cálculo. */
   onPular?: () => void;
   /** Cálculos já registrados para esta cobrança específica. */
   itensIniciais?: CalcItem[];
   /** Notifica o pai sobre os itens registrados desta cobrança. */
   onItensChange?: (itens: CalcItem[]) => void;
+  /** Tipo pré-selecionado ao abrir. */
+  tipoInicial?: "retroativa" | "devolucao" | "";
 }
 
 
