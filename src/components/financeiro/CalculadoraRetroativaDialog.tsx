@@ -196,7 +196,7 @@ export function CalculadoraRetroativaDialog({
     limparCampos();
   };
 
-  const podeAplicar = totalGeral > 0 && !!tipoCobranca;
+  const podeAplicar = totalGeral !== 0 && !!tipoCobranca;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
