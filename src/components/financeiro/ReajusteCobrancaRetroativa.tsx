@@ -35,8 +35,6 @@ import {
 import {
   Check,
   ChevronsUpDown,
-  ChevronLeft,
-  ChevronRight,
   Upload,
   FileText,
   Loader2,
