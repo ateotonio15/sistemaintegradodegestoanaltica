@@ -4,6 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Paperclip, Upload, FileText, Download, Trash2, AlertCircle, Users } from "lucide-react";
 import {
   ACCEPTED_FILE_TYPES,
@@ -11,6 +22,7 @@ import {
   formatBytes,
 } from "@/lib/financeiro-utils";
 import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
+
 
 interface Props {
   movimentacaoId: string | null;
