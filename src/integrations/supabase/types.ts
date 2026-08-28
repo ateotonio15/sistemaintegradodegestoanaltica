@@ -5080,6 +5080,16 @@ export type Database = {
         Returns: string
       }
       solicitar_reajuste: { Args: { p_empresa_id: string }; Returns: string }
+      status_faturamento_competencia: {
+        Args: { p_mes: string }
+        Returns: {
+          data_envio_nota: string
+          empresa_id: string
+          faturamento_por: string
+          periodo: string
+          status: string
+        }[]
+      }
       tem_movimentacao_pendente: {
         Args: { p_empresa_id: string }
         Returns: boolean
