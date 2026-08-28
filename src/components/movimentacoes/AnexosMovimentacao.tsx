@@ -22,6 +22,8 @@ import {
   formatBytes,
 } from "@/lib/financeiro-utils";
 import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
+import { tipoArquivo } from "@/lib/arquivos-utils";
+import { formatDateBR } from "@/lib/date-utils";
 
 
 interface Props {
@@ -47,7 +49,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
-  const [alvoExclusao, setAlvoExclusao] = useState<{ id: string; path: string; nome: string } | null>(null);
+  const [alvoExclusao, setAlvoExclusao] = useState<{ id: string; path: string; nome: string; tipo: string; criadoEm: string } | null>(null);
   const [registrarObs, setRegistrarObs] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
 
