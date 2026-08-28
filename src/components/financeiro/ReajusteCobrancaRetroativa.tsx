@@ -998,8 +998,9 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             <p className="text-sm text-muted-foreground">Nenhum registro para os filtros selecionados.</p>
           </div>
         ) : (
-          <div className="max-h-[380px] overflow-y-auto space-y-2 pr-1">
-            {itensPaginados.map((item) => {
+          <div className="max-h-[420px] overflow-y-auto space-y-2 pr-1">
+            {itens.map((item) => {
+
 
               const emp = empresasMap[item.empresa_id];
               const c = item.raw as any;
