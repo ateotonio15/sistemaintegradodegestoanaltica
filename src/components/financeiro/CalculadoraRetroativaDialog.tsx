@@ -361,10 +361,24 @@ export function CalculadoraRetroativaDialog({
             </div>
           )}
 
-          <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 px-4 py-3">
-            <span className="text-sm font-semibold">Total a cobrar</span>
-            <span className="text-xl font-bold text-primary tabular-nums">
-              {totalGeral > 0 ? formatBRLFromCentavos(totalGeral) : "—"}
+          <div
+            className={cn(
+              "flex items-center justify-between rounded-xl border px-4 py-3",
+              ehDevolucao
+                ? "border-amber-500/30 bg-amber-500/10"
+                : "border-primary/30 bg-primary/10",
+            )}
+          >
+            <span className="text-sm font-semibold">
+              {ehDevolucao ? "Total a devolver" : "Total a cobrar"}
+            </span>
+            <span
+              className={cn(
+                "text-xl font-bold tabular-nums",
+                ehDevolucao ? "text-amber-500" : "text-primary",
+              )}
+            >
+              {totalGeral !== 0 ? formatBRLFromCentavos(totalGeral) : "—"}
             </span>
           </div>
         </div>
