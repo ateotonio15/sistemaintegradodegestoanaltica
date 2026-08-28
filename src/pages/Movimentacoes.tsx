@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
@@ -29,6 +29,13 @@ import {
   isPrioridadeAlertaIntenso,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import {
+  calcularStatusFinanceiro,
+  statusFinanceiroColor,
+  labelStatusFinanceiro,
+  anexoAlteraStatus,
+  type StatusFinanceiro,
+} from "@/lib/financeiro-utils";
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
