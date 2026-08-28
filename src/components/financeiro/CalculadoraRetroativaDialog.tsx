@@ -26,15 +26,13 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   /** Recebe o total calculado (em centavos) e o tipo para preencher a cobrança. */
-  onAplicar?: (totalCentavos: number, resumo: string, tipo: "retroativa" | "devolucao") => void;
+  onAplicar?: (totalCentavos: number, resumo: string) => void;
   /** Segue para o cadastro da cobrança sem usar o cálculo. */
   onPular?: () => void;
   /** Cálculos já registrados para esta cobrança específica. */
   itensIniciais?: CalcItem[];
   /** Notifica o pai sobre os itens registrados desta cobrança. */
   onItensChange?: (itens: CalcItem[]) => void;
-  /** Tipo pré-selecionado ao abrir. */
-  tipoInicial?: "retroativa" | "devolucao" | "";
 }
 
 
@@ -79,7 +77,6 @@ export function CalculadoraRetroativaDialog({
   onPular,
   itensIniciais,
   onItensChange,
-  tipoInicial = "",
 }: Props) {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
@@ -88,21 +85,19 @@ export function CalculadoraRetroativaDialog({
   const [divisor, setDivisor] = useState("30");
   const [copiado, setCopiado] = useState(false);
   const [itens, setItens] = useState<CalcItem[]>([]);
-  const [tipoCobranca, setTipoCobranca] = useState<"" | "retroativa" | "devolucao">("");
 
   // Ao abrir, carrega apenas os cálculos já registrados desta cobrança
   useEffect(() => {
     if (!open) return;
     setCopiado(false);
     setItens(itensIniciais ?? []);
-    setTipoCobranca(tipoInicial || "");
     setInicio("");
     setFim("");
     setBeneficiarios("1");
     setMensalidade("");
     setDivisor("30");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, tipoInicial]);
+  }, [open]);
 
   useEffect(() => {
     if (open) onItensChange?.(itens);
@@ -132,8 +127,7 @@ export function CalculadoraRetroativaDialog({
     () => itens.reduce((s, i) => s + i.total, 0) + (atual.valido ? atual.total : 0),
     [itens, atual],
   );
-  const totalGeral = tipoCobranca === "devolucao" ? -totalGeralBruto : totalGeralBruto;
-  const ehDevolucao = tipoCobranca === "devolucao";
+  const totalGeral = totalGeralBruto;
 
   const resumoItem = (i: CalcItem) =>
     `${i.qtd} benef. × ${i.dias} dia(s) (${br(i.inicio)} a ${br(i.fim)}) · ${formatBRLFromCentavos(
@@ -154,17 +148,10 @@ export function CalculadoraRetroativaDialog({
         total: atual.total,
       });
     }
-    const detalhes = todos
+    return todos
       .map((i) => `${resumoItem(i)} = ${formatBRLFromCentavos(i.total)}`)
       .join(" | ");
-    const prefixo =
-      tipoCobranca === "devolucao"
-        ? "Devolução"
-        : tipoCobranca === "retroativa"
-          ? "Cobrança retroativa"
-          : "";
-    return prefixo ? `${prefixo}: ${detalhes}` : detalhes;
-  }, [itens, atual, inicio, fim, tipoCobranca]);
+  }, [itens, atual, inicio, fim]);
 
   const limparCampos = () => {
     setInicio("");
@@ -175,10 +162,6 @@ export function CalculadoraRetroativaDialog({
   };
 
   const adicionarItem = () => {
-    if (!tipoCobranca) {
-      toast.error("Selecione o tipo de lançamento (cobrança retroativa ou devolução).");
-      return;
-    }
     if (!atual.valido) return;
     setItens((prev) => [
       ...prev,
@@ -196,7 +179,7 @@ export function CalculadoraRetroativaDialog({
     limparCampos();
   };
 
-  const podeAplicar = totalGeral !== 0 && !!tipoCobranca;
+  const podeAplicar = totalGeral !== 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -221,24 +204,6 @@ export function CalculadoraRetroativaDialog({
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               Dados da cobrança
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">
-                Tipo de lançamento <span className="text-destructive">*</span>
-              </Label>
-              <Select value={tipoCobranca} onValueChange={(v) => setTipoCobranca(v as any)}>
-                <SelectTrigger className={tipoCobranca ? "" : "border-destructive/60"}>
-                  <SelectValue placeholder="Selecione: cobrança retroativa ou devolução" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="retroativa">Cobrança retroativa</SelectItem>
-                  <SelectItem value="devolucao">Devolução</SelectItem>
-                </SelectContent>
-              </Select>
-              {!tipoCobranca && (
-                <p className="text-[11px] text-destructive">Campo obrigatório.</p>
-              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -365,18 +330,13 @@ export function CalculadoraRetroativaDialog({
           <div
             className={cn(
               "flex items-center justify-between rounded-xl border px-4 py-3",
-              ehDevolucao
-                ? "border-amber-500/30 bg-amber-500/10"
-                : "border-primary/30 bg-primary/10",
+              "border-primary/30 bg-primary/10",
             )}
           >
-            <span className="text-sm font-semibold">
-              {ehDevolucao ? "Total a devolver" : "Total a cobrar"}
-            </span>
+            <span className="text-sm font-semibold">Total a cobrar</span>
             <span
               className={cn(
-                "text-xl font-bold tabular-nums",
-                ehDevolucao ? "text-amber-500" : "text-primary",
+                "text-xl font-bold tabular-nums text-primary",
               )}
             >
               {totalGeral !== 0 ? formatBRLFromCentavos(totalGeral) : "—"}
@@ -435,11 +395,7 @@ export function CalculadoraRetroativaDialog({
                   className="flex-1 gap-1.5 sm:flex-none"
                   disabled={!podeAplicar}
                   onClick={() => {
-                    if (!tipoCobranca) {
-                      toast.error("Selecione o tipo de lançamento.");
-                      return;
-                    }
-                    onAplicar(totalGeral, resumoFinal, tipoCobranca);
+                    onAplicar(totalGeral, resumoFinal);
                     onOpenChange(false);
                   }}
                 >
