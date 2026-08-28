@@ -2138,6 +2138,9 @@ export async function analisarExcelFinanceiroPorCnpj(
   // Chaves já contabilizadas (rótulo + valor) para não somar o mesmo pivot
   // duas vezes quando ele se repete em mais de uma aba/linha.
   const pivotsVistos = new Set<string>();
+  // Valor -> primeira ocorrência (mês do rótulo, quando houver, e quantidade).
+  const valoresGenericos = new Map<string, { mes: string | null; qtd: number }>();
+
   // Uma quantidade plausível de beneficiários: inteiro pequeno.
   // Evita capturar CNPJ/CPF (ex.: 81611931005007) como "quantidade".
   const ehQtdPlausivel = (raw: unknown, n: number): boolean => {
