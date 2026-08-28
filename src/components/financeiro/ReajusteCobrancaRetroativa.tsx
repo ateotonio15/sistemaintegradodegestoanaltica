@@ -872,6 +872,19 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 </div>
               );
             })}
+            {lista.length > 0 && (
+              <div className="sticky bottom-0 rounded-lg border border-primary/20 bg-card/95 backdrop-blur px-3 py-2 flex items-center justify-between">
+                <span className="text-sm font-medium">Total na competência</span>
+                <span
+                  className={cn(
+                    "text-base font-bold tabular-nums",
+                    lista.reduce((s, c) => s + (c.valor_centavos || 0), 0) < 0 && "text-amber-500",
+                  )}
+                >
+                  {formatBRL(lista.reduce((s, c) => s + (c.valor_centavos || 0), 0))}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
