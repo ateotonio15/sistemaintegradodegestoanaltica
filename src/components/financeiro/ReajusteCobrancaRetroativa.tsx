@@ -438,7 +438,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setCobFiles([]);
     setCobCompet(competencia || getCurrentMesReferencia());
     setManualValorInput("");
-    setManualTipo("retroativa");
+    
     setAnexoAtualNome(null);
     setCalcItensPorCobranca((m) => ({ ...m, nova: [] }));
   };
