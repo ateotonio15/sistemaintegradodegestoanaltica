@@ -5083,6 +5083,7 @@ export type Database = {
       status_faturamento_competencia: {
         Args: { p_mes: string }
         Returns: {
+          data_envio_nota: string
           empresa_id: string
           faturamento_por: string
           periodo: string
