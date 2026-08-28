@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +35,8 @@ import {
 import {
   Check,
   ChevronsUpDown,
+  ChevronLeft,
+  ChevronRight,
   Upload,
   FileText,
   Loader2,
@@ -436,10 +438,13 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   );
 
   // ===== Lista unificada: cobranças retroativas + arquivos de reajuste (mesmo layout) =====
+  const ITENS_POR_PAGINA = 4;
   const [tipoFiltro, setTipoFiltro] = useState<"todos" | "retroativo" | "reajuste">("todos");
   const [statusFiltro, setStatusFiltro] = useState<"todos" | "cobrado" | "nao_cobrado" | "divergente">(
     "todos",
   );
+  const [pagina, setPagina] = useState(1);
+
 
   const itens = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -490,6 +495,16 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     () => itens.reduce((s, i) => s + (i.valor_centavos || 0), 0),
     [itens],
   );
+  const totalPaginas = Math.max(1, Math.ceil(itens.length / ITENS_POR_PAGINA));
+  const itensPaginados = useMemo(() => {
+    const inicio = (pagina - 1) * ITENS_POR_PAGINA;
+    return itens.slice(inicio, inicio + ITENS_POR_PAGINA);
+  }, [itens, pagina]);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, tipoFiltro, statusFiltro]);
+
   const countsFiltro = useMemo(() => {
     const cobr = lista as any[];
     return {
@@ -501,6 +516,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       divergente: cobr.filter((c) => c.conferencia_status === "divergente" && !c.confirmado).length,
     };
   }, [lista, arquivosReajuste]);
+
 
 
   // ============ Form ============
@@ -884,9 +900,10 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             <div className="min-w-0">
               <CardTitle className="text-sm font-semibold truncate">Cobrança Retroativa</CardTitle>
               <p className="text-xs text-muted-foreground">
-                {lista.length} registro(s) · Total {formatBRL(totalCentavos)} ·{" "}
-                {confirmadasCount} confirmada(s)
+                Mostrando {itensPaginados.length} de {itens.length} · Página {pagina}/{totalPaginas} ·{" "}
+                Total {formatBRL(totalFiltrado)} · {confirmadasCount} confirmada(s)
               </p>
+
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -982,7 +999,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
           </div>
         ) : (
           <div className="max-h-[380px] overflow-y-auto space-y-2 pr-1">
-            {itens.map((item) => {
+            {itensPaginados.map((item) => {
+
               const emp = empresasMap[item.empresa_id];
               const c = item.raw as any;
               const isReajuste = item.kind === "reajuste";
@@ -1154,6 +1172,31 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 </div>
               );
             })}
+            {totalPaginas > 1 && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border bg-card/80 px-3 py-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 text-[11px]"
+                  onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                  disabled={pagina <= 1}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" /> Anterior
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Página {pagina} de {totalPaginas}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 text-[11px]"
+                  onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                  disabled={pagina >= totalPaginas}
+                >
+                  Próxima <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
             <div className="sticky bottom-0 rounded-lg border border-primary/20 bg-card/95 backdrop-blur px-3 py-2 flex items-center justify-between">
               <span className="text-sm font-medium">Total na competência</span>
               <span
@@ -1163,6 +1206,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
               </span>
             </div>
           </div>
+
         )}
 
       </CardContent>
