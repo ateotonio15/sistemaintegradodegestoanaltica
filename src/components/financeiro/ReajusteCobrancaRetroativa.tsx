@@ -1263,13 +1263,23 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 <Label className="text-xs font-medium flex items-center gap-1.5 m-0">
                   <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                   Anexos da cobrança (PDF)
-                  {editCobId ? (
+                  {editCobId || cobArquivoRef ? (
                     <span className="text-[10px] font-normal text-muted-foreground">(opcional)</span>
                   ) : (
                     <span className="text-destructive">*</span>
                   )}
                 </Label>
               </div>
+
+              {cobArquivoRef && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-center gap-2">
+                  <Paperclip className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <p className="text-xs truncate">
+                    Vinculado ao arquivo de reajuste: <span className="font-medium">{cobArquivoRef.nome}</span>
+                  </p>
+                </div>
+              )}
+
 
               {editCobId && editCobMovId && anexoAtualNome && (
                 <div className="rounded-lg border bg-card px-3 py-2.5 flex items-center gap-3">
