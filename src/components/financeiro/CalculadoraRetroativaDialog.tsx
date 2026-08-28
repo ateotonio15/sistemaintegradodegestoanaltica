@@ -71,7 +71,15 @@ function formatCurrencyInput(value: string): string {
 
 const br = (d: string) => (d ? d.split("-").reverse().join("/") : "—");
 
-export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onPular, itensIniciais, onItensChange }: Props) {
+export function CalculadoraRetroativaDialog({
+  open,
+  onOpenChange,
+  onAplicar,
+  onPular,
+  itensIniciais,
+  onItensChange,
+  tipoInicial = "",
+}: Props) {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [beneficiarios, setBeneficiarios] = useState("1");
@@ -86,14 +94,14 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
     if (!open) return;
     setCopiado(false);
     setItens(itensIniciais ?? []);
-    setTipoCobranca("");
+    setTipoCobranca(tipoInicial || "");
     setInicio("");
     setFim("");
     setBeneficiarios("1");
     setMensalidade("");
     setDivisor("30");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, tipoInicial]);
 
   useEffect(() => {
     if (open) onItensChange?.(itens);
