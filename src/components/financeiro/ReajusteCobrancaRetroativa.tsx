@@ -729,6 +729,27 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                       Competência {formatMesReferencia(c.competencia)}
                       {c.descricao ? ` · ${c.descricao}` : ""}
                     </p>
+                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                      {c.confirmado ? (
+                        <Badge className="h-5 gap-1 bg-emerald-600/15 text-emerald-500 border-emerald-600/30 text-[10px]">
+                          <ShieldCheck className="h-3 w-3" />
+                          Confirmada {c.confirmado_origem === "manual" ? "(manual)" : "(planilha)"}
+                        </Badge>
+                      ) : c.conferencia_status === "divergente" ? (
+                        <Badge className="h-5 gap-1 bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px]">
+                          <AlertTriangle className="h-3 w-3" />
+                          Divergente · planilha {formatBRL(c.valor_planilha_centavos ?? 0)}
+                        </Badge>
+                      ) : c.conferencia_status === "nao_encontrada" ? (
+                        <Badge variant="outline" className="h-5 text-[10px]">
+                          Não encontrada na planilha
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
+                          Não conferida
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <Badge variant="secondary" className="shrink-0 tabular-nums">
                     {formatBRL(c.valor_centavos)}
@@ -748,6 +769,38 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                         <Eye className="h-3.5 w-3.5 text-primary" />
                       )}
                     </Button>
+                    {canManage && (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title="Conferir na planilha de faturamento"
+                          onClick={() => conferirCobranca(c)}
+                          disabled={conferindo === c.id || conferindoTodas}
+                        >
+                          {conferindo === c.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title={c.confirmado ? "Desfazer confirmação" : "Confirmar manualmente"}
+                          onClick={() => confirmarManual.mutate(c)}
+                        >
+                          <CheckCircle2
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              c.confirmado ? "text-emerald-500" : "text-muted-foreground",
+                            )}
+                          />
+                        </Button>
+                      </>
+                    )}
                     {canManage && (
                       <>
                         <Button
