@@ -47,7 +47,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { compLabel, formatBytes, tipoArquivo } from "@/lib/arquivos-utils";
 import { cn } from "@/lib/utils";
 
-const CATEGORIAS = ["Mensalidade", "Reajuste", "Implantação", "Retroativo"] as const;
+const CATEGORIAS = ["Mensalidade", "Reajuste", "Implantação", "Retroativo", "Fluxo"] as const;
 type Categoria = (typeof CATEGORIAS)[number];
 
 function categoriaChipClass(cat: string): string {
@@ -60,6 +60,8 @@ function categoriaChipClass(cat: string): string {
       return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30";
     case "Retroativo":
       return "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30";
+    case "Fluxo":
+      return "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30";
     default:
       return "bg-muted text-muted-foreground border-border";
   }
