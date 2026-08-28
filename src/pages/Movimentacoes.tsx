@@ -313,13 +313,15 @@ export default function Movimentacoes() {
         periodo: string | null;
         status: string;
         faturamento_por: string | null;
+        data_envio_nota: string | null;
       }>) {
         m.set(`${r.empresa_id}|${filterMes}|${r.periodo}`, {
-          data_envio_nota: r.status === "Enviada" ? filterMes : null,
+          data_envio_nota: r.data_envio_nota ?? null,
           status: r.status as StatusFinanceiro,
           faturamento_por: r.faturamento_por ?? null,
         });
       }
+
       return m;
     },
     enabled: !!user,
