@@ -454,7 +454,7 @@ export default function Movimentacoes() {
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    return movimentacoes.filter((m) => {
+    const rows = movimentacoes.filter((m) => {
       if ((m.empresas as any)?.status_empresa === "Inativa") return false;
       // Esconde contratos recém implantados antes da primeira competência válida
       const statusImpl = (m.empresas as any)?.status_implantacao;
@@ -474,6 +474,10 @@ export default function Movimentacoes() {
       }
       return true;
     });
+    rows.sort((a, b) =>
+      (a.empresas?.nome ?? "").localeCompare(b.empresas?.nome ?? "", "pt-BR", { sensitivity: "base" })
+    );
+    return rows;
   }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm, respContratoOf]);
 
   const mesesOptions = useMemo(() => {
