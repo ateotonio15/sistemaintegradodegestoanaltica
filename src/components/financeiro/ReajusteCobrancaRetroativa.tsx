@@ -421,6 +421,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [cobCompet, setCobCompet] = useState<string>(competencia || getCurrentMesReferencia());
   const [cobValor, setCobValor] = useState<string>("");
   const [cobDescricao, setCobDescricao] = useState("");
+  const [cobTipo, setCobTipo] = useState<"retroativa" | "devolucao">("retroativa");
   const [cobFiles, setCobFiles] = useState<File[]>([]);
   const [cobSaving, setCobSaving] = useState(false);
   const [anexoAtualNome, setAnexoAtualNome] = useState<string | null>(null);
@@ -431,9 +432,11 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setCobEmpresa(null);
     setCobValor("");
     setCobDescricao("");
+    setCobTipo("retroativa");
     setCobFiles([]);
     setCobCompet(competencia || getCurrentMesReferencia());
     setManualValorInput("");
+    setManualTipo("retroativa");
     setAnexoAtualNome(null);
     setCalcItensPorCobranca((m) => ({ ...m, nova: [] }));
   };
