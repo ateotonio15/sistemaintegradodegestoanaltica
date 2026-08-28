@@ -361,22 +361,27 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   }, [empresas]);
 
   const { data: cobrancas = [], isLoading: loadingCob } = useQuery({
-    queryKey: ["cobrancas-retroativas"],
+    queryKey: ["cobrancas-retroativas", competencia ?? "todas"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("cobrancas_retroativas")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(200);
+      if (competencia) q = q.eq("competencia", competencia);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
   });
 
   const lista = useMemo(() => {
+    const base = (cobrancas as any[]).filter(
+      (c) => !competencia || c.competencia === competencia,
+    );
     const q = busca.trim().toLowerCase();
-    if (!q) return cobrancas as any[];
-    return (cobrancas as any[]).filter((c) => {
+    if (!q) return base;
+    return base.filter((c) => {
       const emp = empresasMap[c.empresa_id];
       return (
         (emp?.nome || "").toLowerCase().includes(q) ||
@@ -384,7 +389,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         (c.descricao || "").toLowerCase().includes(q)
       );
     });
-  }, [cobrancas, busca, empresasMap]);
+  }, [cobrancas, busca, empresasMap, competencia]);
 
   const totalCentavos = useMemo(
     () => (lista as any[]).reduce((s, c) => s + (c.valor_centavos || 0), 0),
