@@ -889,8 +889,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             <div className="min-w-0">
               <CardTitle className="text-sm font-semibold truncate">Cobrança Retroativa</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Mostrando {itensPaginados.length} de {itens.length} · Página {pagina}/{totalPaginas} ·{" "}
-                Total {formatBRL(totalFiltrado)} · {confirmadasCount} confirmada(s)
+                {itens.length} registro(s) · Total {formatBRL(totalFiltrado)} · {confirmadasCount} confirmada(s)
               </p>
 
             </div>
