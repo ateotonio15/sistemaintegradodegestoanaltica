@@ -749,10 +749,20 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
               return (
                 <div
                   key={c.id}
-                  className="group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-accent/40"
+                  className={cn(
+                    "group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-accent/40",
+                    c.tipo === "devolucao" && "border-amber-500/20 bg-amber-500/5",
+                  )}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate text-foreground">{emp?.nome || "—"}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium truncate text-foreground">{emp?.nome || "—"}</p>
+                      {c.tipo === "devolucao" && (
+                        <Badge className="h-5 gap-1 bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px]">
+                          Devolução
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {emp?.codigo_contrato ? `Contrato ${emp.codigo_contrato} · ` : ""}
                       Competência {formatMesReferencia(c.competencia)}
@@ -780,7 +790,13 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                       )}
                     </div>
                   </div>
-                  <Badge variant="secondary" className="shrink-0 tabular-nums">
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "shrink-0 tabular-nums",
+                      (c.valor_centavos || 0) < 0 && "text-amber-500 bg-amber-500/10",
+                    )}
+                  >
                     {formatBRL(c.valor_centavos)}
                   </Badge>
                   <div className="flex items-center gap-0.5 shrink-0">
