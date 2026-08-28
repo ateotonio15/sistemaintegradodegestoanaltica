@@ -1131,7 +1131,16 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       />
 
       {/* ============ DIALOG: VALOR MANUAL ============ */}
-      <Dialog open={manualValorOpen} onOpenChange={(o) => { setManualValorOpen(o); if (!o) setManualValorInput(""); }}>
+      <Dialog
+        open={manualValorOpen}
+        onOpenChange={(o) => {
+          setManualValorOpen(o);
+          if (!o) {
+            setManualValorInput("");
+            setManualTipo("retroativa");
+          }
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1139,10 +1148,25 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
               Valor total da cobrança
             </DialogTitle>
             <DialogDescription>
-              Informe o valor total da cobrança retroativa manualmente.
+              Informe o valor total e o tipo de lançamento.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Tipo de lançamento *</Label>
+              <Select
+                value={manualTipo}
+                onValueChange={(v) => setManualTipo(v as "retroativa" | "devolucao")}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="retroativa">Cobrança retroativa</SelectItem>
+                  <SelectItem value="devolucao">Devolução</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Valor total (R$) *</Label>
               <Input
@@ -1152,6 +1176,11 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 onChange={(e) => setManualValorInput(formatCurrencyInput(e.target.value))}
                 autoFocus
               />
+              {manualTipo === "devolucao" && (
+                <p className="text-[10px] text-amber-500">
+                  O valor será registrado como negativo.
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter className="gap-2">
@@ -1161,10 +1190,13 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             <Button
               onClick={() => {
                 const cents = parseBRLInput(manualValorInput);
-                if (cents <= 0) return toast.error("Informe um valor válido.");
-                setCobValor((cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+                if (cents === 0) return toast.error("Informe um valor válido.");
+                const finalCents = manualTipo === "devolucao" ? -Math.abs(cents) : Math.abs(cents);
+                setCobValor((finalCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+                setCobTipo(manualTipo);
                 setManualValorOpen(false);
                 setManualValorInput("");
+                setManualTipo("retroativa");
               }}
             >
               Aplicar
