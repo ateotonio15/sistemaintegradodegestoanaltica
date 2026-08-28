@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Calculator, Copy, Check, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { diasEntreInclusivo, formatBRLFromCentavos } from "@/lib/cobranca-retroativa-calc";
 
 interface Props {
