@@ -400,7 +400,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [editCobId, setEditCobId] = useState<string | null>(null);
   const [editCobMovId, setEditCobMovId] = useState<string | null>(null);
   const [cobEmpresa, setCobEmpresa] = useState<string | null>(null);
-  const [cobCompet, setCobCompet] = useState<string>(getCurrentMesReferencia());
+  const [cobCompet, setCobCompet] = useState<string>(competencia || getCurrentMesReferencia());
   const [cobValor, setCobValor] = useState<string>("");
   const [cobDescricao, setCobDescricao] = useState("");
   const [cobFiles, setCobFiles] = useState<File[]>([]);
@@ -414,7 +414,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setCobValor("");
     setCobDescricao("");
     setCobFiles([]);
-    setCobCompet(getCurrentMesReferencia());
+    setCobCompet(competencia || getCurrentMesReferencia());
     setManualValorInput("");
     setAnexoAtualNome(null);
     setCalcItensPorCobranca((m) => ({ ...m, nova: [] }));
@@ -562,7 +562,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         ) : lista.length === 0 ? (
           <div className="py-10 text-center space-y-1">
             <Receipt className="h-6 w-6 mx-auto text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">Nenhuma cobrança retroativa registrada.</p>
+            <p className="text-sm text-muted-foreground">Nenhuma cobrança retroativa nesta competência.</p>
           </div>
         ) : (
           <div className="max-h-[320px] overflow-y-auto space-y-2 pr-1">
