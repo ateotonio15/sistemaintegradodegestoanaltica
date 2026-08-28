@@ -435,6 +435,74 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     [lista],
   );
 
+  // ===== Lista unificada: cobranças retroativas + arquivos de reajuste (mesmo layout) =====
+  const [tipoFiltro, setTipoFiltro] = useState<"todos" | "retroativo" | "reajuste">("todos");
+  const [statusFiltro, setStatusFiltro] = useState<"todos" | "cobrado" | "nao_cobrado" | "divergente">(
+    "todos",
+  );
+
+  const itens = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    const deCobrancas = (lista as any[]).map((c) => ({
+      kind: "retroativo" as const,
+      id: c.id,
+      empresa_id: c.empresa_id,
+      competencia: c.competencia,
+      valor_centavos: c.valor_centavos || 0,
+      descricao: c.descricao || "",
+      cobrado: !!c.confirmado,
+      divergente: c.conferencia_status === "divergente" && !c.confirmado,
+      raw: c,
+    }));
+
+    const deArquivos = (arquivosReajuste as any[])
+      .filter((a) => {
+        const emp = empresasMap[a.empresa_id];
+        if (!q) return true;
+        return (
+          (emp?.nome || "").toLowerCase().includes(q) ||
+          (emp?.codigo_contrato || "").toLowerCase().includes(q) ||
+          (a.nome_original || "").toLowerCase().includes(q)
+        );
+      })
+      .map((a) => ({
+        kind: "reajuste" as const,
+        id: `arq-${a.id}`,
+        empresa_id: a.empresa_id,
+        competencia: a.competencia,
+        valor_centavos: 0,
+        descricao: a.nome_original || "",
+        cobrado: false,
+        divergente: false,
+        raw: a,
+      }));
+
+    return [...deCobrancas, ...deArquivos].filter((i) => {
+      if (tipoFiltro !== "todos" && i.kind !== tipoFiltro) return false;
+      if (statusFiltro === "cobrado") return i.cobrado;
+      if (statusFiltro === "nao_cobrado") return !i.cobrado;
+      if (statusFiltro === "divergente") return i.divergente;
+      return true;
+    });
+  }, [lista, arquivosReajuste, empresasMap, busca, tipoFiltro, statusFiltro]);
+
+  const totalFiltrado = useMemo(
+    () => itens.reduce((s, i) => s + (i.valor_centavos || 0), 0),
+    [itens],
+  );
+  const countsFiltro = useMemo(() => {
+    const cobr = lista as any[];
+    return {
+      retroativo: cobr.length,
+      reajuste: (arquivosReajuste as any[]).length,
+      cobrado: cobr.filter((c) => c.confirmado).length,
+      naoCobrado:
+        cobr.filter((c) => !c.confirmado).length + (arquivosReajuste as any[]).length,
+      divergente: cobr.filter((c) => c.conferencia_status === "divergente" && !c.confirmado).length,
+    };
+  }, [lista, arquivosReajuste]);
+
+
   // ============ Form ============
   const [editCobId, setEditCobId] = useState<string | null>(null);
   const [editCobMovId, setEditCobMovId] = useState<string | null>(null);
