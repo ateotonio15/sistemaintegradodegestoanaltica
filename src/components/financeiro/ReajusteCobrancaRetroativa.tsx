@@ -848,11 +848,17 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                           Devolução
                         </Badge>
                       )}
-                      <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
-                        {(c.origem_retroativo ?? (c.tipo === "devolucao" ? "beneficiarios" : "reajuste")) ===
-                        "beneficiarios"
-                          ? "Beneficiários"
-                          : "Reajuste"}
+                      <Badge
+                        variant="outline"
+                        className="h-5 gap-1 bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 text-[10px]"
+                        title={`Origem: ${
+                          (c.origem_retroativo ?? (c.tipo === "devolucao" ? "beneficiarios" : "reajuste")) ===
+                          "beneficiarios"
+                            ? "Beneficiários"
+                            : "Reajuste"
+                        }`}
+                      >
+                        Retroativo
                       </Badge>
                     </div>
 
