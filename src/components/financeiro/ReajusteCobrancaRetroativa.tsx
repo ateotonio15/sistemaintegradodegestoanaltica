@@ -471,7 +471,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     if (!cobEmpresa) return toast.error("Selecione um contrato.");
     if (!cobCompet) return toast.error("Selecione a competência.");
     const cents = parseBRLInput(cobValor);
-    if (cents <= 0) return toast.error("Informe um valor válido.");
+    if (cents === 0) return toast.error("Informe um valor válido.");
     if (!editCobId && cobFiles.length === 0) return toast.error("Anexe ao menos um PDF da cobrança.");
     if (cobFiles.some((f) => f.type && !f.type.includes("pdf")))
       return toast.error("Apenas arquivos PDF são aceitos.");
@@ -486,6 +486,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             competencia: cobCompet,
             valor_centavos: cents,
             descricao: cobDescricao || null,
+            tipo: cobTipo,
           })
           .eq("id", editCobId);
         if (error) throw error;
@@ -497,7 +498,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             .update({ financeiro_movimentacao_id: movId })
             .eq("id", editCobId);
         }
-        toast.success("Cobrança atualizada.");
+        toast.success(cobTipo === "devolucao" ? "Devolução atualizada." : "Cobrança atualizada.");
       } else {
         const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
         for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, cobCompet, user?.id);
@@ -508,9 +509,14 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
           descricao: cobDescricao || null,
           financeiro_movimentacao_id: movId,
           created_by: user?.id ?? null,
+          tipo: cobTipo,
         });
         if (error) throw error;
-        toast.success("Cobrança retroativa cadastrada e PDF anexado ao processo.");
+        toast.success(
+          cobTipo === "devolucao"
+            ? "Devolução cadastrada e PDF anexado ao processo."
+            : "Cobrança retroativa cadastrada e PDF anexado ao processo.",
+        );
       }
       resetCob();
       setOpenCobDialog(false);
