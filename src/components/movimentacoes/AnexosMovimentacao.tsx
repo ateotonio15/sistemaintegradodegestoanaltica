@@ -326,6 +326,52 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
           })}
         </ul>
       )}
+
+      <AlertDialog
+        open={!!alvoExclusao}
+        onOpenChange={(v) => {
+          if (!v && !excluindo) {
+            setAlvoExclusao(null);
+            setRegistrarObs(false);
+          }
+        }}
+      >
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir anexo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alvoExclusao?.nome
+                ? `O arquivo "${alvoExclusao.nome}" será removido permanentemente.`
+                : "O arquivo será removido permanentemente."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <label className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 cursor-pointer">
+            <Checkbox
+              checked={registrarObs}
+              onCheckedChange={(v) => setRegistrarObs(v === true)}
+              className="mt-0.5"
+            />
+            <span className="text-xs leading-relaxed">
+              Registrar na observação que o anexo foi <strong>deletado a pedido do financeiro</strong>.
+            </span>
+          </label>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindo}
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarExclusao();
+              }}
+            >
+              {excluindo ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
