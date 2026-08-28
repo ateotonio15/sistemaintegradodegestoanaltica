@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { computeEntradasSaidas, type EmpresaEntradaSaida } from "@/lib/entradas-saidas-analyzer";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Line } from "recharts";
+import { labelStatusFinanceiro, statusFinanceiroColor, type StatusFinanceiro } from "@/lib/financeiro-utils";
 
 type Empresa = Tables<"empresas">;
 type Movimentacao = Tables<"movimentacoes">;
