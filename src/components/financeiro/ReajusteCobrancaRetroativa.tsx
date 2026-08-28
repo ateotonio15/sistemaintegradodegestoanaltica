@@ -436,10 +436,13 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   );
 
   // ===== Lista unificada: cobranças retroativas + arquivos de reajuste (mesmo layout) =====
+  const ITENS_POR_PAGINA = 4;
   const [tipoFiltro, setTipoFiltro] = useState<"todos" | "retroativo" | "reajuste">("todos");
   const [statusFiltro, setStatusFiltro] = useState<"todos" | "cobrado" | "nao_cobrado" | "divergente">(
     "todos",
   );
+  const [pagina, setPagina] = useState(1);
+
 
   const itens = useMemo(() => {
     const q = busca.trim().toLowerCase();
