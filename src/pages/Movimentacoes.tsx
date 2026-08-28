@@ -301,75 +301,30 @@ export default function Movimentacoes() {
   const { data: finMap = new Map<string, FinInfo>() } = useQuery({
     queryKey: ["financeiro-status-map", filterMes],
     queryFn: async () => {
-      const { data: fins, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select(
-          "id, empresa_id, mes_referencia, periodo, data_envio_nota, dentro_prazo, faturamento_iniciado_em, faturamento_iniciado_por_nome",
-        )
-        .eq("mes_referencia", filterMes);
+      // RPC SECURITY DEFINER: calcula o status igual à aba Faturamento
+      // (perfis Cadastro/Executiva não têm leitura em anexos_financeiro).
+      const { data, error } = await supabase.rpc("status_faturamento_competencia", {
+        p_mes: filterMes,
+      });
       if (error) throw error;
-      const rows = fins ?? [];
-      const ids = rows.map((r) => r.id);
-
-      const anexosPorMov = new Map<string, Array<{ mime_type: string | null; nome_arquivo: string | null; origem: string | null }>>();
-      for (let i = 0; i < ids.length; i += 200) {
-        const slice = ids.slice(i, i + 200);
-        if (slice.length === 0) break;
-        const { data: anexos } = await supabase
-          .from("anexos_financeiro")
-          .select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem")
-          .in("financeiro_movimentacao_id", slice);
-        for (const a of anexos ?? []) {
-          const arr = anexosPorMov.get(a.financeiro_movimentacao_id as string) ?? [];
-          arr.push({ mime_type: a.mime_type, nome_arquivo: a.nome_arquivo, origem: a.origem });
-          anexosPorMov.set(a.financeiro_movimentacao_id as string, arr);
-        }
-      }
-
-      const empresaIdsFin = Array.from(new Set(rows.map((r) => r.empresa_id).filter(Boolean))) as string[];
-      const exigeMap = new Map<string, boolean>();
-      if (empresaIdsFin.length > 0) {
-        const { data: emps } = await supabase
-          .from("empresas")
-          .select("id, exige_po_pc")
-          .in("id", empresaIdsFin);
-        for (const e of emps ?? []) exigeMap.set(e.id, !!(e as any).exige_po_pc);
-      }
-
-      // Envio operacional (Cadastro → Financeiro) por empresa|mes|periodo
-      const { data: movs } = await supabase
-        .from("movimentacoes")
-        .select("empresa_id, mes_referencia, periodo, data_envio_financeiro")
-        .eq("mes_referencia", filterMes);
-      const envioSet = new Set<string>();
-      for (const mv of movs ?? []) {
-        if (mv.data_envio_financeiro) envioSet.add(`${mv.empresa_id}|${mv.mes_referencia}|${mv.periodo}`);
-      }
-
       const m = new Map<string, FinInfo>();
-      for (const r of rows) {
-        const key = `${r.empresa_id}|${r.mes_referencia}|${r.periodo}`;
-        const anexos = (anexosPorMov.get(r.id) ?? []).filter(anexoAlteraStatus);
-        const status = calcularStatusFinanceiro(
-          r as any,
-          envioSet.has(key),
-          anexos,
-          exigeMap.get(r.empresa_id as string) ?? false,
-        );
-        const info: FinInfo = {
-          data_envio_nota: r.data_envio_nota ?? null,
-          status,
-          faturamento_por: (r as any).faturamento_iniciado_por_nome ?? null,
-        };
-        const prev = m.get(key);
-        // Prioriza a linha mais avançada (com nota / faturamento iniciado)
-        const peso = (x: FinInfo) => (x.data_envio_nota ? 3 : x.status !== "Pendente" ? 2 : 1);
-        if (!prev || peso(info) > peso(prev)) m.set(key, info);
+      for (const r of (data ?? []) as Array<{
+        empresa_id: string;
+        periodo: string | null;
+        status: string;
+        faturamento_por: string | null;
+      }>) {
+        m.set(`${r.empresa_id}|${filterMes}|${r.periodo}`, {
+          data_envio_nota: r.status === "Enviada" ? filterMes : null,
+          status: r.status as StatusFinanceiro,
+          faturamento_por: r.faturamento_por ?? null,
+        });
       }
       return m;
     },
     enabled: !!user,
   });
+
 
   // Atualização em tempo real do status vindo da aba Faturamento
   useEffect(() => {
