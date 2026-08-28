@@ -159,7 +159,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
     a.click();
   };
 
-  const registrarObservacaoExclusao = async (nomeArquivo: string) => {
+  const registrarObservacaoExclusao = async (nomeArquivo: string, tipo: string, criadoEm: string) => {
     if (!movimentacaoId) return;
     try {
       const { data: mov } = await supabase
@@ -180,7 +180,8 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         hour: "2-digit",
         minute: "2-digit",
       });
-      const entrada = `[${agora} — ${autor}] Anexo "${nomeArquivo}" foi deletado a pedido do financeiro.`;
+      const anexadoEm = formatDateBR(criadoEm);
+      const entrada = `[${agora} — ${autor}] Anexo "${nomeArquivo}" (Tipo: ${tipo}, anexado em ${anexadoEm}) foi deletado a pedido do financeiro.`;
       const anteriores = (mov?.observacoes ?? "").trim();
       const { error } = await supabase
         .from("movimentacoes")
