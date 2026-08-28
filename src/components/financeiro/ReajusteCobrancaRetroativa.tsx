@@ -435,6 +435,74 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     [lista],
   );
 
+  // ===== Lista unificada: cobranças retroativas + arquivos de reajuste (mesmo layout) =====
+  const [tipoFiltro, setTipoFiltro] = useState<"todos" | "retroativo" | "reajuste">("todos");
+  const [statusFiltro, setStatusFiltro] = useState<"todos" | "cobrado" | "nao_cobrado" | "divergente">(
+    "todos",
+  );
+
+  const itens = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    const deCobrancas = (lista as any[]).map((c) => ({
+      kind: "retroativo" as const,
+      id: c.id,
+      empresa_id: c.empresa_id,
+      competencia: c.competencia,
+      valor_centavos: c.valor_centavos || 0,
+      descricao: c.descricao || "",
+      cobrado: !!c.confirmado,
+      divergente: c.conferencia_status === "divergente" && !c.confirmado,
+      raw: c,
+    }));
+
+    const deArquivos = (arquivosReajuste as any[])
+      .filter((a) => {
+        const emp = empresasMap[a.empresa_id];
+        if (!q) return true;
+        return (
+          (emp?.nome || "").toLowerCase().includes(q) ||
+          (emp?.codigo_contrato || "").toLowerCase().includes(q) ||
+          (a.nome_original || "").toLowerCase().includes(q)
+        );
+      })
+      .map((a) => ({
+        kind: "reajuste" as const,
+        id: `arq-${a.id}`,
+        empresa_id: a.empresa_id,
+        competencia: a.competencia,
+        valor_centavos: 0,
+        descricao: a.nome_original || "",
+        cobrado: false,
+        divergente: false,
+        raw: a,
+      }));
+
+    return [...deCobrancas, ...deArquivos].filter((i) => {
+      if (tipoFiltro !== "todos" && i.kind !== tipoFiltro) return false;
+      if (statusFiltro === "cobrado") return i.cobrado;
+      if (statusFiltro === "nao_cobrado") return !i.cobrado;
+      if (statusFiltro === "divergente") return i.divergente;
+      return true;
+    });
+  }, [lista, arquivosReajuste, empresasMap, busca, tipoFiltro, statusFiltro]);
+
+  const totalFiltrado = useMemo(
+    () => itens.reduce((s, i) => s + (i.valor_centavos || 0), 0),
+    [itens],
+  );
+  const countsFiltro = useMemo(() => {
+    const cobr = lista as any[];
+    return {
+      retroativo: cobr.length,
+      reajuste: (arquivosReajuste as any[]).length,
+      cobrado: cobr.filter((c) => c.confirmado).length,
+      naoCobrado:
+        cobr.filter((c) => !c.confirmado).length + (arquivosReajuste as any[]).length,
+      divergente: cobr.filter((c) => c.conferencia_status === "divergente" && !c.confirmado).length,
+    };
+  }, [lista, arquivosReajuste]);
+
+
   // ============ Form ============
   const [editCobId, setEditCobId] = useState<string | null>(null);
   const [editCobMovId, setEditCobMovId] = useState<string | null>(null);
@@ -865,118 +933,109 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         </div>
       </CardHeader>
       <CardContent className="pt-3">
-        {/* Arquivos anexados como "Reajuste" na competência selecionada */}
-        {(loadingArqReaj || arquivosReajuste.length > 0) && (
-          <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5">
-            <div className="flex items-center gap-2 mb-2">
-              <Paperclip className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-              <p className="text-xs font-medium">
-                Arquivos de Reajuste
-                {competencia ? ` · ${formatMesReferencia(competencia)}` : " · todas as competências"}
-              </p>
-              <Badge variant="outline" className="h-5 text-[10px]">
-                {arquivosReajuste.length}
-              </Badge>
-            </div>
-            {loadingArqReaj ? (
-              <p className="text-xs text-muted-foreground">Carregando arquivos...</p>
-            ) : (
-              <div className="max-h-[180px] overflow-y-auto space-y-1.5 pr-1">
-                {(arquivosReajuste as any[]).map((a) => {
-                  const emp = empresasMap[a.empresa_id];
-                  return (
-                    <div
-                      key={a.id}
-                      className="flex items-center gap-2 rounded-md border bg-card px-2.5 py-1.5"
-                    >
-                      <FileText className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium truncate">{emp?.nome || "Empresa"}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {formatMesReferencia(a.competencia)} · {a.nome_original}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 px-2"
-                        onClick={() =>
-                          setPreviewAnexo({
-                            path: a.storage_path,
-                            nome: a.nome_original,
-                            mime: a.mime_type,
-                          })
-                        }
-                        title="Visualizar"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                      {canManage && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 gap-1 text-[11px]"
-                          onClick={() => openCobrancaDoArquivo(a)}
-                        >
-                          <Plus className="h-3 w-3" /> Cobrança
-                        </Button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+        {/* ===== Filtros interativos ===== */}
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          {(
+            [
+              { k: "todos", label: `Todos (${countsFiltro.retroativo + countsFiltro.reajuste})` },
+              { k: "retroativo", label: `Retroativo (${countsFiltro.retroativo})` },
+              { k: "reajuste", label: `Reajuste (${countsFiltro.reajuste})` },
+            ] as const
+          ).map((f) => (
+            <Button
+              key={f.k}
+              size="sm"
+              variant={tipoFiltro === f.k ? "default" : "outline"}
+              className="h-7 rounded-full px-3 text-[11px]"
+              onClick={() => setTipoFiltro(f.k)}
+            >
+              {f.label}
+            </Button>
+          ))}
+          <span className="mx-1 h-4 w-px bg-border" />
+          {(
+            [
+              { k: "todos", label: "Status: todos" },
+              { k: "cobrado", label: `Cobrados (${countsFiltro.cobrado})` },
+              { k: "nao_cobrado", label: `Não cobrados (${countsFiltro.naoCobrado})` },
+              { k: "divergente", label: `Divergentes (${countsFiltro.divergente})` },
+            ] as const
+          ).map((f) => (
+            <Button
+              key={f.k}
+              size="sm"
+              variant={statusFiltro === f.k ? "secondary" : "outline"}
+              className="h-7 rounded-full px-3 text-[11px]"
+              onClick={() => setStatusFiltro(f.k)}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
 
-        {loadingCob ? (
+        {loadingCob || loadingArqReaj ? (
           <div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>
-        ) : lista.length === 0 ? (
+        ) : itens.length === 0 ? (
           <div className="py-10 text-center space-y-1">
             <Receipt className="h-6 w-6 mx-auto text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">Nenhuma cobrança retroativa nesta competência.</p>
+            <p className="text-sm text-muted-foreground">Nenhum registro para os filtros selecionados.</p>
           </div>
         ) : (
-          <div className="max-h-[320px] overflow-y-auto space-y-2 pr-1">
-            {(lista as any[]).map((c) => {
-              const emp = empresasMap[c.empresa_id];
+          <div className="max-h-[380px] overflow-y-auto space-y-2 pr-1">
+            {itens.map((item) => {
+              const emp = empresasMap[item.empresa_id];
+              const c = item.raw as any;
+              const isReajuste = item.kind === "reajuste";
               return (
                 <div
-                  key={c.id}
+                  key={item.id}
                   className={cn(
                     "group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-accent/40",
-                    c.tipo === "devolucao" && "border-amber-500/20 bg-amber-500/5",
+                    !isReajuste && c.tipo === "devolucao" && "border-amber-500/20 bg-amber-500/5",
                   )}
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium truncate text-foreground">{emp?.nome || "—"}</p>
-                      {c.tipo === "devolucao" && (
+                      {!isReajuste && c.tipo === "devolucao" && (
                         <Badge className="h-5 gap-1 bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px]">
                           Devolução
                         </Badge>
                       )}
-                      <Badge
-                        variant="outline"
-                        className="h-5 gap-1 bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 text-[10px]"
-                        title={`Origem: ${
-                          (c.origem_retroativo ?? (c.tipo === "devolucao" ? "beneficiarios" : "reajuste")) ===
-                          "beneficiarios"
-                            ? "Beneficiários"
-                            : "Reajuste"
-                        }`}
-                      >
-                        Retroativo
-                      </Badge>
+                      {isReajuste ? (
+                        <Badge
+                          variant="outline"
+                          className="h-5 gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30 text-[10px]"
+                        >
+                          Reajuste
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="h-5 gap-1 bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 text-[10px]"
+                          title={`Origem: ${
+                            (c.origem_retroativo ?? (c.tipo === "devolucao" ? "beneficiarios" : "reajuste")) ===
+                            "beneficiarios"
+                              ? "Beneficiários"
+                              : "Reajuste"
+                          }`}
+                        >
+                          Retroativo
+                        </Badge>
+                      )}
                     </div>
 
                     <p className="text-xs text-muted-foreground truncate">
                       {emp?.codigo_contrato ? `Contrato ${emp.codigo_contrato} · ` : ""}
-                      Competência {formatMesReferencia(c.competencia)}
-                      {c.descricao ? ` · ${c.descricao}` : ""}
+                      Competência {formatMesReferencia(item.competencia)}
+                      {item.descricao ? ` · ${item.descricao}` : ""}
                     </p>
                     <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      {c.confirmado ? (
+                      {isReajuste ? (
+                        <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
+                          Arquivo pendente de cobrança
+                        </Badge>
+                      ) : c.confirmado ? (
                         <Badge className="h-5 gap-1 bg-emerald-600/15 text-emerald-500 border-emerald-600/30 text-[10px]">
                           <ShieldCheck className="h-3 w-3" />
                           Confirmada {c.confirmado_origem === "manual" ? "(manual)" : "(planilha)"}
@@ -997,31 +1056,51 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                       )}
                     </div>
                   </div>
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      "shrink-0 tabular-nums",
-                      (c.valor_centavos || 0) < 0 && "text-amber-500 bg-amber-500/10",
-                    )}
-                  >
-                    {formatBRL(c.valor_centavos)}
-                  </Badge>
+                  {!isReajuste && (
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "shrink-0 tabular-nums",
+                        (item.valor_centavos || 0) < 0 && "text-amber-500 bg-amber-500/10",
+                      )}
+                    >
+                      {formatBRL(item.valor_centavos)}
+                    </Badge>
+                  )}
                   <div className="flex items-center gap-0.5 shrink-0">
                     <Button
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
                       title="Visualizar PDF"
-                      onClick={() => handleViewPdf(c.financeiro_movimentacao_id ?? null)}
-                      disabled={loadingPreview === c.financeiro_movimentacao_id}
+                      onClick={() =>
+                        isReajuste
+                          ? setPreviewAnexo({
+                              path: c.storage_path,
+                              nome: c.nome_original,
+                              mime: c.mime_type,
+                            })
+                          : handleViewPdf(c.financeiro_movimentacao_id ?? null)
+                      }
+                      disabled={!isReajuste && loadingPreview === c.financeiro_movimentacao_id}
                     >
-                      {loadingPreview === c.financeiro_movimentacao_id ? (
+                      {!isReajuste && loadingPreview === c.financeiro_movimentacao_id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
                         <Eye className="h-3.5 w-3.5 text-primary" />
                       )}
                     </Button>
-                    {canManage && (
+                    {canManage && isReajuste && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 text-[11px]"
+                        onClick={() => openCobrancaDoArquivo(c)}
+                      >
+                        <Plus className="h-3 w-3" /> Cobrança
+                      </Button>
+                    )}
+                    {canManage && !isReajuste && (
                       <>
                         <Button
                           size="icon"
@@ -1051,10 +1130,6 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                             )}
                           />
                         </Button>
-                      </>
-                    )}
-                    {canManage && (
-                      <>
                         <Button
                           size="icon"
                           variant="ghost"
@@ -1079,21 +1154,17 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 </div>
               );
             })}
-            {lista.length > 0 && (
-              <div className="sticky bottom-0 rounded-lg border border-primary/20 bg-card/95 backdrop-blur px-3 py-2 flex items-center justify-between">
-                <span className="text-sm font-medium">Total na competência</span>
-                <span
-                  className={cn(
-                    "text-base font-bold tabular-nums",
-                    lista.reduce((s, c) => s + (c.valor_centavos || 0), 0) < 0 && "text-amber-500",
-                  )}
-                >
-                  {formatBRL(lista.reduce((s, c) => s + (c.valor_centavos || 0), 0))}
-                </span>
-              </div>
-            )}
+            <div className="sticky bottom-0 rounded-lg border border-primary/20 bg-card/95 backdrop-blur px-3 py-2 flex items-center justify-between">
+              <span className="text-sm font-medium">Total na competência</span>
+              <span
+                className={cn("text-base font-bold tabular-nums", totalFiltrado < 0 && "text-amber-500")}
+              >
+                {formatBRL(totalFiltrado)}
+              </span>
+            </div>
           </div>
         )}
+
       </CardContent>
 
       {/* ============ DIALOG: COBRANÇA RETROATIVA ============ */}
