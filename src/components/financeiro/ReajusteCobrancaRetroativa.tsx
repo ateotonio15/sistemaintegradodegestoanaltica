@@ -1078,10 +1078,10 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             <div className="space-y-1.5">
               <Label className="text-xs">Valor total (R$) *</Label>
               <Input
-                inputMode="decimal"
+                inputMode="numeric"
                 placeholder="0,00"
                 value={manualValorInput}
-                onChange={(e) => setManualValorInput(e.target.value)}
+                onChange={(e) => setManualValorInput(formatCurrencyInput(e.target.value))}
                 autoFocus
               />
             </div>
