@@ -449,7 +449,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setEditCobMovId(c.financeiro_movimentacao_id ?? null);
     setCobEmpresa(c.empresa_id);
     setCobCompet(c.competencia);
-    setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+    setCobValor((Math.abs(c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
     setCobDescricao(c.descricao || "");
     setCobTipo(c.tipo === "devolucao" ? "devolucao" : "retroativa");
     setCalcItensPorCobranca((m) => ({ ...m, [c.id]: parseResumoParaItens(c.descricao) }));
@@ -471,8 +471,9 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const submitCobranca = async () => {
     if (!cobEmpresa) return toast.error("Selecione um contrato.");
     if (!cobCompet) return toast.error("Selecione a competência.");
-    const cents = parseBRLInput(cobValor);
-    if (cents === 0) return toast.error("Informe um valor válido.");
+    const centsRaw = parseBRLInput(cobValor);
+    if (centsRaw === 0) return toast.error("Informe um valor válido.");
+    const cents = cobTipo === "devolucao" ? -Math.abs(centsRaw) : Math.abs(centsRaw);
     if (!editCobId && cobFiles.length === 0) return toast.error("Anexe ao menos um PDF da cobrança.");
     if (cobFiles.some((f) => f.type && !f.type.includes("pdf")))
       return toast.error("Apenas arquivos PDF são aceitos.");
