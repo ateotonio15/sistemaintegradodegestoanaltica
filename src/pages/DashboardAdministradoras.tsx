@@ -694,13 +694,23 @@ export default function DashboardAdministradoras() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Badge
-                              variant={e.status_empresa === "Ativa" ? "default" : "secondary"}
-                              className="rounded-md"
-                            >
-                              {e.status_empresa}
-                            </Badge>
+                            {finInfo ? (
+                              <div className="flex flex-col items-end gap-0.5">
+                                <Badge className={`${statusFinanceiroColor(finInfo.status)} rounded-md gap-1 text-xs`}>
+                                  {finInfo.status === "Em faturamento" && <RefreshCw className="h-3 w-3 animate-spin" />}
+                                  {labelStatusFinanceiro(finInfo.status)}
+                                </Badge>
+                                {finInfo.status === "Em faturamento" && finInfo.faturamento_por && (
+                                  <span className="text-[10px] leading-tight text-blue-600 dark:text-blue-300">
+                                    por {finInfo.faturamento_por}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </TableCell>
+
                         </TableRow>
                       );})
 
