@@ -57,6 +57,16 @@ function parseBRLToCentavos(s: string): number {
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 }
 
+function formatCurrencyInput(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  const cents = Number(digits);
+  return (cents / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 const br = (d: string) => (d ? d.split("-").reverse().join("/") : "—");
 
 export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onPular, itensIniciais, onItensChange }: Props) {
