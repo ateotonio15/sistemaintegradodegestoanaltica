@@ -517,7 +517,9 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     const centsRaw = parseBRLInput(cobValor);
     if (centsRaw === 0) return toast.error("Informe um valor válido.");
     const cents = cobTipo === "devolucao" ? -Math.abs(centsRaw) : Math.abs(centsRaw);
-    if (!editCobId && cobFiles.length === 0) return toast.error("Anexe ao menos um PDF da cobrança.");
+    if (!editCobId && cobFiles.length === 0 && !cobArquivoRef)
+      return toast.error("Anexe ao menos um PDF da cobrança.");
+
     if (cobFiles.some((f) => f.type && !f.type.includes("pdf")))
       return toast.error("Apenas arquivos PDF são aceitos.");
 
