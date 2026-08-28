@@ -77,6 +77,16 @@ function parseBRLInput(s: string): number {
   return Math.round(n * 100);
 }
 
+function formatCurrencyInput(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  const cents = Number(digits);
+  return (cents / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function EmpresaCombobox({
   empresas,
   value,
@@ -1068,10 +1078,10 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             <div className="space-y-1.5">
               <Label className="text-xs">Valor total (R$) *</Label>
               <Input
-                inputMode="decimal"
+                inputMode="numeric"
                 placeholder="0,00"
                 value={manualValorInput}
-                onChange={(e) => setManualValorInput(e.target.value)}
+                onChange={(e) => setManualValorInput(formatCurrencyInput(e.target.value))}
                 autoFocus
               />
             </div>

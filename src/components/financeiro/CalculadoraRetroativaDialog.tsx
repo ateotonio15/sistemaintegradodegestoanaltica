@@ -57,6 +57,16 @@ function parseBRLToCentavos(s: string): number {
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 }
 
+function formatCurrencyInput(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  const cents = Number(digits);
+  return (cents / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 const br = (d: string) => (d ? d.split("-").reverse().join("/") : "—");
 
 export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onPular, itensIniciais, onItensChange }: Props) {
@@ -242,10 +252,10 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
               <div className="space-y-1">
                 <Label className="text-xs">Mensalidade base (R$)</Label>
                 <Input
-                  inputMode="decimal"
+                  inputMode="numeric"
                   placeholder="0,00"
                   value={mensalidade}
-                  onChange={(e) => setMensalidade(e.target.value)}
+                  onChange={(e) => setMensalidade(formatCurrencyInput(e.target.value))}
                 />
               </div>
             </div>
