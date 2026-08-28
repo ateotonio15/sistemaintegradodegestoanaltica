@@ -439,7 +439,7 @@ export function CalculadoraRetroativaDialog({
                       toast.error("Selecione o tipo de lançamento.");
                       return;
                     }
-                    onAplicar(totalGeral, resumoFinal);
+                    onAplicar(totalGeral, resumoFinal, tipoCobranca);
                     onOpenChange(false);
                   }}
                 >
