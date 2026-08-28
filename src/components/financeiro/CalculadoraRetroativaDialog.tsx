@@ -19,19 +19,22 @@ import {
 } from "@/components/ui/select";
 import { Calculator, Copy, Check, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { diasEntreInclusivo, formatBRLFromCentavos } from "@/lib/cobranca-retroativa-calc";
 
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  /** Recebe o total calculado (em centavos) para preencher a cobrança. */
-  onAplicar?: (totalCentavos: number, resumo: string) => void;
+  /** Recebe o total calculado (em centavos) e o tipo para preencher a cobrança. */
+  onAplicar?: (totalCentavos: number, resumo: string, tipo: "retroativa" | "devolucao") => void;
   /** Segue para o cadastro da cobrança sem usar o cálculo. */
   onPular?: () => void;
   /** Cálculos já registrados para esta cobrança específica. */
   itensIniciais?: CalcItem[];
   /** Notifica o pai sobre os itens registrados desta cobrança. */
   onItensChange?: (itens: CalcItem[]) => void;
+  /** Tipo pré-selecionado ao abrir. */
+  tipoInicial?: "retroativa" | "devolucao" | "";
 }
 
 
@@ -69,7 +72,15 @@ function formatCurrencyInput(value: string): string {
 
 const br = (d: string) => (d ? d.split("-").reverse().join("/") : "—");
 
-export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onPular, itensIniciais, onItensChange }: Props) {
+export function CalculadoraRetroativaDialog({
+  open,
+  onOpenChange,
+  onAplicar,
+  onPular,
+  itensIniciais,
+  onItensChange,
+  tipoInicial = "",
+}: Props) {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [beneficiarios, setBeneficiarios] = useState("1");
@@ -84,14 +95,14 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
     if (!open) return;
     setCopiado(false);
     setItens(itensIniciais ?? []);
-    setTipoCobranca("");
+    setTipoCobranca(tipoInicial || "");
     setInicio("");
     setFim("");
     setBeneficiarios("1");
     setMensalidade("");
     setDivisor("30");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, tipoInicial]);
 
   useEffect(() => {
     if (open) onItensChange?.(itens);
@@ -117,10 +128,12 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
     };
   }, [inicio, fim, beneficiarios, mensalidade, divisor]);
 
-  const totalGeral = useMemo(
+  const totalGeralBruto = useMemo(
     () => itens.reduce((s, i) => s + i.total, 0) + (atual.valido ? atual.total : 0),
     [itens, atual],
   );
+  const totalGeral = tipoCobranca === "devolucao" ? -totalGeralBruto : totalGeralBruto;
+  const ehDevolucao = tipoCobranca === "devolucao";
 
   const resumoItem = (i: CalcItem) =>
     `${i.qtd} benef. × ${i.dias} dia(s) (${br(i.inicio)} a ${br(i.fim)}) · ${formatBRLFromCentavos(
@@ -183,7 +196,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
     limparCampos();
   };
 
-  const podeAplicar = totalGeral > 0 && !!tipoCobranca;
+  const podeAplicar = totalGeral !== 0 && !!tipoCobranca;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -349,10 +362,24 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
             </div>
           )}
 
-          <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 px-4 py-3">
-            <span className="text-sm font-semibold">Total a cobrar</span>
-            <span className="text-xl font-bold text-primary tabular-nums">
-              {totalGeral > 0 ? formatBRLFromCentavos(totalGeral) : "—"}
+          <div
+            className={cn(
+              "flex items-center justify-between rounded-xl border px-4 py-3",
+              ehDevolucao
+                ? "border-amber-500/30 bg-amber-500/10"
+                : "border-primary/30 bg-primary/10",
+            )}
+          >
+            <span className="text-sm font-semibold">
+              {ehDevolucao ? "Total a devolver" : "Total a cobrar"}
+            </span>
+            <span
+              className={cn(
+                "text-xl font-bold tabular-nums",
+                ehDevolucao ? "text-amber-500" : "text-primary",
+              )}
+            >
+              {totalGeral !== 0 ? formatBRLFromCentavos(totalGeral) : "—"}
             </span>
           </div>
         </div>
@@ -412,7 +439,7 @@ export function CalculadoraRetroativaDialog({ open, onOpenChange, onAplicar, onP
                       toast.error("Selecione o tipo de lançamento.");
                       return;
                     }
-                    onAplicar(totalGeral, resumoFinal);
+                    onAplicar(totalGeral, resumoFinal, tipoCobranca);
                     onOpenChange(false);
                   }}
                 >

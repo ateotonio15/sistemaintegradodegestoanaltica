@@ -726,6 +726,7 @@ export type Database = {
           id: string
           motivo: string | null
           status_calc: string
+          tipo: string
           tipo_ajuste: string
           updated_at: string
           valor_centavos: number
@@ -749,6 +750,7 @@ export type Database = {
           id?: string
           motivo?: string | null
           status_calc?: string
+          tipo?: string
           tipo_ajuste?: string
           updated_at?: string
           valor_centavos: number
@@ -772,6 +774,7 @@ export type Database = {
           id?: string
           motivo?: string | null
           status_calc?: string
+          tipo?: string
           tipo_ajuste?: string
           updated_at?: string
           valor_centavos?: number

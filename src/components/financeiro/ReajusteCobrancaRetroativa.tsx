@@ -52,6 +52,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
+  ArrowLeftRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -284,6 +285,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [calcItensPorCobranca, setCalcItensPorCobranca] = useState<Record<string, CalcItem[]>>({});
   const [manualValorOpen, setManualValorOpen] = useState(false);
   const [manualValorInput, setManualValorInput] = useState("");
+  const [manualTipo, setManualTipo] = useState<"retroativa" | "devolucao">("retroativa");
 
   const handleViewPdf = async (movimentacaoId: string | null) => {
     if (!movimentacaoId) {
@@ -421,6 +423,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [cobCompet, setCobCompet] = useState<string>(competencia || getCurrentMesReferencia());
   const [cobValor, setCobValor] = useState<string>("");
   const [cobDescricao, setCobDescricao] = useState("");
+  const [cobTipo, setCobTipo] = useState<"retroativa" | "devolucao">("retroativa");
   const [cobFiles, setCobFiles] = useState<File[]>([]);
   const [cobSaving, setCobSaving] = useState(false);
   const [anexoAtualNome, setAnexoAtualNome] = useState<string | null>(null);
@@ -431,9 +434,11 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setCobEmpresa(null);
     setCobValor("");
     setCobDescricao("");
+    setCobTipo("retroativa");
     setCobFiles([]);
     setCobCompet(competencia || getCurrentMesReferencia());
     setManualValorInput("");
+    setManualTipo("retroativa");
     setAnexoAtualNome(null);
     setCalcItensPorCobranca((m) => ({ ...m, nova: [] }));
   };
@@ -446,6 +451,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setCobCompet(c.competencia);
     setCobValor(((c.valor_centavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
     setCobDescricao(c.descricao || "");
+    setCobTipo(c.tipo === "devolucao" ? "devolucao" : "retroativa");
     setCalcItensPorCobranca((m) => ({ ...m, [c.id]: parseResumoParaItens(c.descricao) }));
     setCobFiles([]);
     setAnexoAtualNome(null);
@@ -466,7 +472,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     if (!cobEmpresa) return toast.error("Selecione um contrato.");
     if (!cobCompet) return toast.error("Selecione a competência.");
     const cents = parseBRLInput(cobValor);
-    if (cents <= 0) return toast.error("Informe um valor válido.");
+    if (cents === 0) return toast.error("Informe um valor válido.");
     if (!editCobId && cobFiles.length === 0) return toast.error("Anexe ao menos um PDF da cobrança.");
     if (cobFiles.some((f) => f.type && !f.type.includes("pdf")))
       return toast.error("Apenas arquivos PDF são aceitos.");
@@ -481,6 +487,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             competencia: cobCompet,
             valor_centavos: cents,
             descricao: cobDescricao || null,
+            tipo: cobTipo,
           })
           .eq("id", editCobId);
         if (error) throw error;
@@ -492,7 +499,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             .update({ financeiro_movimentacao_id: movId })
             .eq("id", editCobId);
         }
-        toast.success("Cobrança atualizada.");
+        toast.success(cobTipo === "devolucao" ? "Devolução atualizada." : "Cobrança atualizada.");
       } else {
         const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
         for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, cobCompet, user?.id);
@@ -503,9 +510,14 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
           descricao: cobDescricao || null,
           financeiro_movimentacao_id: movId,
           created_by: user?.id ?? null,
+          tipo: cobTipo,
         });
         if (error) throw error;
-        toast.success("Cobrança retroativa cadastrada e PDF anexado ao processo.");
+        toast.success(
+          cobTipo === "devolucao"
+            ? "Devolução cadastrada e PDF anexado ao processo."
+            : "Cobrança retroativa cadastrada e PDF anexado ao processo.",
+        );
       }
       resetCob();
       setOpenCobDialog(false);
@@ -571,10 +583,16 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     setConferindo(c.id);
     try {
       const encontrado = await buscarRetroativoPlanilha(c.empresa_id, c.competencia);
+      const ehDevolucao = c.tipo === "devolucao";
+      const registrado = c.valor_centavos || 0;
       const status =
         encontrado === null
           ? "nao_encontrada"
-          : Math.abs(encontrado - (c.valor_centavos || 0)) <= 5
+          : Math.abs(
+              ehDevolucao
+                ? Math.abs(encontrado) - Math.abs(registrado)
+                : encontrado - registrado,
+            ) <= 5
             ? "confirmada"
             : "divergente";
       const { error } = await supabase
@@ -595,10 +613,11 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         .eq("id", c.id);
       if (error) throw error;
       if (!silencioso) {
-        if (status === "confirmada") toast.success("Cobrança confirmada na planilha.");
+        const label = ehDevolucao ? "Devolução" : "Cobrança";
+        if (status === "confirmada") toast.success(`${label} confirmada na planilha.`);
         else if (status === "divergente")
           toast.warning(
-            `Divergência: planilha ${formatBRL(encontrado ?? 0)} × registrado ${formatBRL(c.valor_centavos || 0)}.`,
+            `${label} — divergência: planilha ${formatBRL(encontrado ?? 0)} × registrado ${formatBRL(registrado)}.`,
           );
         else toast.info("Nenhuma planilha de faturamento encontrada para esta competência.");
       }
@@ -738,10 +757,20 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
               return (
                 <div
                   key={c.id}
-                  className="group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-accent/40"
+                  className={cn(
+                    "group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-accent/40",
+                    c.tipo === "devolucao" && "border-amber-500/20 bg-amber-500/5",
+                  )}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate text-foreground">{emp?.nome || "—"}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium truncate text-foreground">{emp?.nome || "—"}</p>
+                      {c.tipo === "devolucao" && (
+                        <Badge className="h-5 gap-1 bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px]">
+                          Devolução
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {emp?.codigo_contrato ? `Contrato ${emp.codigo_contrato} · ` : ""}
                       Competência {formatMesReferencia(c.competencia)}
@@ -769,7 +798,13 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                       )}
                     </div>
                   </div>
-                  <Badge variant="secondary" className="shrink-0 tabular-nums">
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "shrink-0 tabular-nums",
+                      (c.valor_centavos || 0) < 0 && "text-amber-500 bg-amber-500/10",
+                    )}
+                  >
                     {formatBRL(c.valor_centavos)}
                   </Badge>
                   <div className="flex items-center gap-0.5 shrink-0">
@@ -845,6 +880,19 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 </div>
               );
             })}
+            {lista.length > 0 && (
+              <div className="sticky bottom-0 rounded-lg border border-primary/20 bg-card/95 backdrop-blur px-3 py-2 flex items-center justify-between">
+                <span className="text-sm font-medium">Total na competência</span>
+                <span
+                  className={cn(
+                    "text-base font-bold tabular-nums",
+                    lista.reduce((s, c) => s + (c.valor_centavos || 0), 0) < 0 && "text-amber-500",
+                  )}
+                >
+                  {formatBRL(lista.reduce((s, c) => s + (c.valor_centavos || 0), 0))}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
@@ -941,6 +989,31 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                   <Calculator className="ml-2 h-4 w-4 shrink-0 text-primary" />
                 </Button>
               </div>
+            </div>
+
+            {/* Tipo de lançamento */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
+                Tipo de lançamento <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={cobTipo}
+                onValueChange={(v) => setCobTipo(v as "retroativa" | "devolucao")}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="retroativa">Cobrança retroativa</SelectItem>
+                  <SelectItem value="devolucao">Devolução</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                {cobTipo === "devolucao"
+                  ? "O valor será registrado como negativo (crédito para o cliente)."
+                  : "O valor será registrado como positivo (débito para o cliente)."}
+              </p>
             </div>
 
             {/* Descrição / Observação */}
@@ -1048,12 +1121,14 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         open={calcOpen}
         onOpenChange={setCalcOpen}
         itensIniciais={calcItensPorCobranca[editCobId ?? "nova"] ?? []}
+        tipoInicial={cobTipo}
         onItensChange={(itens) =>
           setCalcItensPorCobranca((m) => ({ ...m, [editCobId ?? "nova"]: itens }))
         }
-        onAplicar={(totalCentavos, resumo) => {
+        onAplicar={(totalCentavos, resumo, tipo) => {
           setCobValor((totalCentavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
           setCobDescricao(resumo);
+          setCobTipo(tipo);
           setOpenCobDialog(true);
         }}
         onPular={() => {
@@ -1063,7 +1138,16 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       />
 
       {/* ============ DIALOG: VALOR MANUAL ============ */}
-      <Dialog open={manualValorOpen} onOpenChange={(o) => { setManualValorOpen(o); if (!o) setManualValorInput(""); }}>
+      <Dialog
+        open={manualValorOpen}
+        onOpenChange={(o) => {
+          setManualValorOpen(o);
+          if (!o) {
+            setManualValorInput("");
+            setManualTipo("retroativa");
+          }
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1071,10 +1155,25 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
               Valor total da cobrança
             </DialogTitle>
             <DialogDescription>
-              Informe o valor total da cobrança retroativa manualmente.
+              Informe o valor total e o tipo de lançamento.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Tipo de lançamento *</Label>
+              <Select
+                value={manualTipo}
+                onValueChange={(v) => setManualTipo(v as "retroativa" | "devolucao")}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="retroativa">Cobrança retroativa</SelectItem>
+                  <SelectItem value="devolucao">Devolução</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Valor total (R$) *</Label>
               <Input
@@ -1084,6 +1183,11 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                 onChange={(e) => setManualValorInput(formatCurrencyInput(e.target.value))}
                 autoFocus
               />
+              {manualTipo === "devolucao" && (
+                <p className="text-[10px] text-amber-500">
+                  O valor será registrado como negativo.
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter className="gap-2">
@@ -1093,10 +1197,13 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
             <Button
               onClick={() => {
                 const cents = parseBRLInput(manualValorInput);
-                if (cents <= 0) return toast.error("Informe um valor válido.");
-                setCobValor((cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+                if (cents === 0) return toast.error("Informe um valor válido.");
+                const finalCents = manualTipo === "devolucao" ? -Math.abs(cents) : Math.abs(cents);
+                setCobValor((finalCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+                setCobTipo(manualTipo);
                 setManualValorOpen(false);
                 setManualValorInput("");
+                setManualTipo("retroativa");
               }}
             >
               Aplicar
