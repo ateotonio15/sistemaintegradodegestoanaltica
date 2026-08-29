@@ -213,6 +213,12 @@ export default function Movimentacoes() {
     enabled: !!user,
   });
 
+  const nomeContratoPrincipal = grupoPrincipalId
+    ? empresas.find((e) => e.id === grupoPrincipalId)?.nome ?? null
+    : null;
+
+
+
   const { data: profilesMap = new Map<string, string>() } = useQuery({
     queryKey: ["profiles-map-mov"],
     queryFn: async () => {
