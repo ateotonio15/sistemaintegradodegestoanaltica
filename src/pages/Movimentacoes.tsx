@@ -873,10 +873,12 @@ export default function Movimentacoes() {
                       <Textarea
                         value={novaObservacao}
                         onChange={(e) => setNovaObservacao(e.target.value)}
-                        placeholder="Adicionar nova observação (as anteriores não podem ser alteradas)"
+                        disabled={formEhSecundarioGrupo}
+                        placeholder={formEhSecundarioGrupo ? "Gerenciado pelo contrato principal do grupo" : "Adicionar nova observação (as anteriores não podem ser alteradas)"}
                         className="min-h-[90px] resize-y border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/70"
                       />
                     </div>
+
                   </div>
 
 
