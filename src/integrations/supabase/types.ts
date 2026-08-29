@@ -2571,6 +2571,7 @@ export type Database = {
         Row: {
           atualizado_por_id: string | null
           atualizado_por_nome: string | null
+          contrato_principal_empresa_id: string | null
           created_at: string
           criado_por_id: string | null
           criado_por_nome: string | null
@@ -2587,6 +2588,7 @@ export type Database = {
         Insert: {
           atualizado_por_id?: string | null
           atualizado_por_nome?: string | null
+          contrato_principal_empresa_id?: string | null
           created_at?: string
           criado_por_id?: string | null
           criado_por_nome?: string | null
@@ -2603,6 +2605,7 @@ export type Database = {
         Update: {
           atualizado_por_id?: string | null
           atualizado_por_nome?: string | null
+          contrato_principal_empresa_id?: string | null
           created_at?: string
           criado_por_id?: string | null
           criado_por_nome?: string | null
@@ -2616,7 +2619,15 @@ export type Database = {
           updated_at?: string
           vencimento_compartilhado?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "grupos_financeiros_contrato_principal_empresa_id_fkey"
+            columns: ["contrato_principal_empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       grupos_financeiros_auditoria: {
         Row: {
