@@ -38,6 +38,8 @@ import {
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
+import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
+
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 import Dashboard from "@/pages/Dashboard";
