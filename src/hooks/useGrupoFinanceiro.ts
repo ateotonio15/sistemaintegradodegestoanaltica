@@ -10,7 +10,9 @@ export interface GrupoFinanceiro {
   forma_pagamento: "DDA" | "Depósito" | null;
   observacao: string | null;
   status: "Ativo" | "Inativo";
+  contrato_principal_empresa_id?: string | null;
 }
+
 
 export interface GrupoContrato {
   id: string;
