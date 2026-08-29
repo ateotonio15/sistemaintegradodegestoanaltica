@@ -55,16 +55,68 @@ export function AnexosMovimentacaoDialog({
     gcTime: 0,
     refetchOnMount: "always",
     queryFn: async () => {
-      const [{ data: anexos, error: anexosErr }, { data: mov, error: movErr }] = await Promise.all([
-        supabase
-          .from("anexos_movimentacao")
-          .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
-          .eq("movimentacao_id", movimentacaoId as string)
-          .order("created_at", { ascending: false }),
-        supabase.from("movimentacoes").select("observacoes").eq("id", movimentacaoId as string).single(),
-      ]);
-      if (anexosErr) throw anexosErr;
+      const { data: mov, error: movErr } = await supabase
+        .from("movimentacoes")
+        .select("empresa_id, mes_referencia, periodo, observacoes")
+        .eq("id", movimentacaoId as string)
+        .single();
       if (movErr && movErr.code !== "PGRST116") throw movErr;
+
+      // Grupo Financeiro: anexos e observações do contrato principal são compartilhados
+      let irmaosMovIds: string[] = [];
+      let nomePorEmpresa = new Map<string, string | null>();
+      let observacoesPrincipal = "";
+      let nomeGrupo: string | null = null;
+      if (mov?.empresa_id) {
+        const { data: vinc } = await supabase
+          .from("grupos_financeiros_contratos" as any)
+          .select("grupo_id")
+          .eq("empresa_id", mov.empresa_id)
+          .eq("ativo", true)
+          .maybeSingle();
+        const grupoId = (vinc as any)?.grupo_id as string | undefined;
+        if (grupoId) {
+          const [{ data: grupo }, { data: contratos }] = await Promise.all([
+            supabase
+              .from("grupos_financeiros" as any)
+              .select("nome_grupo, status, contrato_principal_empresa_id")
+              .eq("id", grupoId)
+              .maybeSingle(),
+            supabase
+              .from("grupos_financeiros_contratos" as any)
+              .select("empresa_id, nome_empresa")
+              .eq("grupo_id", grupoId)
+              .eq("ativo", true),
+          ]);
+          if (grupo && (grupo as any).status === "Ativo") {
+            nomeGrupo = (grupo as any).nome_grupo ?? null;
+            const lista = ((contratos as any[]) ?? []) as { empresa_id: string; nome_empresa: string | null }[];
+            nomePorEmpresa = new Map(lista.map((c) => [c.empresa_id, c.nome_empresa]));
+            const outras = lista.map((c) => c.empresa_id).filter((id) => id !== mov.empresa_id);
+            if (outras.length) {
+              const { data: irmaos } = await supabase
+                .from("movimentacoes")
+                .select("id, empresa_id, observacoes")
+                .in("empresa_id", outras)
+                .eq("mes_referencia", mov.mes_referencia)
+                .eq("periodo", mov.periodo);
+              const rows = ((irmaos as any[]) ?? []);
+              irmaosMovIds = rows.map((r) => r.id as string);
+              const principalId = (grupo as any).contrato_principal_empresa_id as string | null;
+              if (principalId && principalId !== mov.empresa_id) {
+                observacoesPrincipal = (rows.find((r) => r.empresa_id === principalId)?.observacoes ?? "").trim();
+              }
+            }
+          }
+        }
+      }
+
+      const { data: anexos, error: anexosErr } = await supabase
+        .from("anexos_movimentacao")
+        .select("id, nome_arquivo, storage_path, created_at, uploaded_by, movimentacao_id, empresa_id")
+        .in("movimentacao_id", [movimentacaoId as string, ...irmaosMovIds])
+        .order("created_at", { ascending: false });
+      if (anexosErr) throw anexosErr;
 
       const ids = Array.from(
         new Set((anexos ?? []).map((a) => a.uploaded_by).filter(Boolean)),
@@ -75,14 +127,20 @@ export function AnexosMovimentacaoDialog({
         (users ?? []).forEach((u: any) => nomes.set(u.user_id, u.display_name));
       }
       return {
+        nomeGrupo,
         anexos: (anexos ?? []).map((a) => ({
           ...a,
           autor: a.uploaded_by ? nomes.get(a.uploaded_by) ?? "Usuário" : null,
+          do_grupo: a.movimentacao_id !== movimentacaoId,
+          origem_empresa:
+            a.movimentacao_id !== movimentacaoId ? nomePorEmpresa.get(a.empresa_id) ?? null : null,
         })),
         observacoes: (mov?.observacoes ?? "").trim(),
+        observacoesPrincipal,
       };
     },
   });
+
 
   const handleDownload = async (storagePath: string, nome: string) => {
     const { data: file, error } = await supabase.storage.from(BUCKET).download(storagePath);
