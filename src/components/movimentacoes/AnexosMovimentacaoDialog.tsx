@@ -225,6 +225,27 @@ export function AnexosMovimentacaoDialog({
                     <p className="text-xs text-muted-foreground">Nenhuma observação registrada.</p>
                   </div>
                 )}
+
+                {data?.observacoesPrincipal && (
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-medium text-info flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      Observações do contrato principal do grupo{data.nomeGrupo ? ` (${data.nomeGrupo})` : ""}
+                    </p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {data.observacoesPrincipal
+                        .split("\n")
+                        .filter((l) => l.trim())
+                        .map((linha, i) => (
+                          <div key={i} className="rounded-xl border border-info/30 bg-info/5 p-3">
+                            <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words">
+                              {linha}
+                            </p>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -244,14 +265,21 @@ export function AnexosMovimentacaoDialog({
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium" title={a.nome_arquivo}>
                             {a.nome_arquivo}
+                            {a.do_grupo && (
+                              <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-info/40 bg-info/10 px-1.5 py-0.5 text-[10px] font-medium text-info align-middle">
+                                <Users className="h-2.5 w-2.5" />
+                                Do grupo
+                              </span>
+                            )}
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
                             {tipoArquivo(a.nome_arquivo)}
                             {` · ${formatDateTime(a.created_at)}`}
                             {a.autor ? ` · Anexado por ${a.autor}` : ""}
-                            {" · Cadastro"}
+                            {a.do_grupo ? ` · ${a.origem_empresa ?? "Contrato do grupo"}` : " · Cadastro"}
                           </p>
                         </div>
+
                         <Button
                           variant="ghost"
                           size="icon"
