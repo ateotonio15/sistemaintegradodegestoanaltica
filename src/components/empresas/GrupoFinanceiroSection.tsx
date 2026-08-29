@@ -403,9 +403,31 @@ function EditarGrupoDialog({
             </div>
           </div>
           <div className="space-y-2">
+            <Label>Contrato principal do grupo</Label>
+            <Select
+              value={form.contrato_principal_empresa_id ?? "none"}
+              onValueChange={(v) => setForm({ ...form, contrato_principal_empresa_id: v === "none" ? null : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum (sem compartilhamento)</SelectItem>
+                {contratosGrupo.map((c) => (
+                  <SelectItem key={c.empresa_id} value={c.empresa_id}>
+                    {c.nome_empresa ?? "—"}{c.codigo_contrato ? ` · ${c.codigo_contrato}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Na aba Movimentações, as datas e observações lançadas no contrato principal são
+              replicadas para os demais contratos do grupo, e os anexos aparecem em todos eles.
+            </p>
+          </div>
+          <div className="space-y-2">
             <Label>Observação</Label>
             <Textarea value={form.observacao ?? ""} onChange={(e) => setForm({ ...form, observacao: e.target.value })} />
           </div>
+
           <div className="space-y-2">
             <Label>Status</Label>
             <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
