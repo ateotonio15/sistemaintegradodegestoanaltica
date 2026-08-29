@@ -115,8 +115,7 @@ export default function Movimentacoes() {
   const grupoPrincipalId = grupoForm?.principal_empresa_id ?? null;
   const formEhPrincipalGrupo = !!grupoPrincipalId && grupoPrincipalId === form.empresa_id;
   const formEhSecundarioGrupo = !!grupoPrincipalId && grupoPrincipalId !== form.empresa_id;
-  const nomeContratoPrincipal =
-    grupoPrincipalId ? empresas.find((e) => e.id === grupoPrincipalId)?.nome ?? null : null;
+
 
 
 
