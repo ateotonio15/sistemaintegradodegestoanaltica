@@ -53,20 +53,10 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
   const [registrarObs, setRegistrarObs] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
 
-  const { data: anexos = [] } = useQuery({
-    queryKey: ["anexos-movimentacao", movimentacaoId],
-    queryFn: async () => {
-      if (!movimentacaoId) return [];
-      const { data, error } = await supabase
-        .from("anexos_movimentacao")
-        .select("*")
-        .eq("movimentacao_id", movimentacaoId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!movimentacaoId,
-  });
+  const { data: grupoData } = useAnexosMovimentacaoGrupo(movimentacaoId);
+  const anexos = grupoData?.anexos ?? [];
+  const grupoInfo = grupoData?.grupo;
+
 
   // notifica pai sobre quantidade
   if (onCountChange) {
