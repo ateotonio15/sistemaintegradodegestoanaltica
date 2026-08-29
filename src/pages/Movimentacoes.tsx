@@ -419,7 +419,35 @@ export default function Movimentacoes() {
         const { error } = await supabase.from("movimentacoes").insert(payload);
         if (error) throw error;
       }
+
+      // Grupo Financeiro: contrato principal replica datas e observações
+      // para os demais contratos do grupo na mesma competência/período.
+      const grupo = empresaGrupoMap?.get(values.empresa_id);
+      if (grupo?.principal_empresa_id && grupo.principal_empresa_id === values.empresa_id) {
+        const { data: contratos } = await supabase
+          .from("grupos_financeiros_contratos" as any)
+          .select("empresa_id")
+          .eq("grupo_id", grupo.grupo_id)
+          .eq("ativo", true);
+        const outras = (((contratos as any[]) ?? []).map((c) => c.empresa_id as string)).filter(
+          (id) => id !== values.empresa_id,
+        );
+        if (outras.length) {
+          await supabase
+            .from("movimentacoes")
+            .update({
+              data_envio_empresa: payload.data_envio_empresa,
+              data_retorno_empresa: payload.data_retorno_empresa,
+              data_envio_financeiro: payload.data_envio_financeiro,
+              observacoes: payload.observacoes,
+            })
+            .in("empresa_id", outras)
+            .eq("mes_referencia", values.mes_referencia)
+            .eq("periodo", values.periodo);
+        }
+      }
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
