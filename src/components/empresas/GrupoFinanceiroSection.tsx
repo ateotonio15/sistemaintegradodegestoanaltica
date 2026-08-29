@@ -297,6 +297,19 @@ function EditarGrupoDialog({
       return data as any;
     },
   });
+  const { data: contratosGrupo = [] } = useQuery({
+    queryKey: ["grupo-financeiro", "contratos", grupoId],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("grupos_financeiros_contratos" as any)
+        .select("empresa_id, nome_empresa, codigo_contrato")
+        .eq("grupo_id", grupoId)
+        .eq("ativo", true)
+        .order("nome_empresa");
+      return ((data as any[]) ?? []) as { empresa_id: string; nome_empresa: string | null; codigo_contrato: string | null }[];
+    },
+  });
   const [form, setForm] = useState<any>(null);
   // sincroniza form quando grupo carregar
   if (grupo && (!form || form.id !== grupo.id)) setForm(grupo);
@@ -311,9 +324,11 @@ function EditarGrupoDialog({
         forma_pagamento: form.forma_pagamento || null,
         observacao: form.observacao || null,
         status: form.status,
+        contrato_principal_empresa_id: form.contrato_principal_empresa_id || null,
       }).eq("id", grupoId);
       if (error) throw error;
     },
+
     onSuccess: () => {
       toast({ title: "Grupo atualizado" });
       qc.invalidateQueries({ queryKey: ["grupo-financeiro"] });
