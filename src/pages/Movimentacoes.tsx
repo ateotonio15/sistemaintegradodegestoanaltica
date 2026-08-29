@@ -108,6 +108,17 @@ export default function Movimentacoes() {
   const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
   const [gerandoMov, setGerandoMov] = useState(false);
   const [novaObservacao, setNovaObservacao] = useState("");
+  const { data: empresaGrupoMap } = useEmpresaGrupoMap();
+
+  /** Grupo Financeiro do contrato selecionado no formulário */
+  const grupoForm = form.empresa_id ? empresaGrupoMap?.get(form.empresa_id) ?? null : null;
+  const grupoPrincipalId = grupoForm?.principal_empresa_id ?? null;
+  const formEhPrincipalGrupo = !!grupoPrincipalId && grupoPrincipalId === form.empresa_id;
+  const formEhSecundarioGrupo = !!grupoPrincipalId && grupoPrincipalId !== form.empresa_id;
+  const nomeContratoPrincipal =
+    grupoPrincipalId ? empresas.find((e) => e.id === grupoPrincipalId)?.nome ?? null : null;
+
+
 
 
   const handleGerarMovimentacoes = async () => {
