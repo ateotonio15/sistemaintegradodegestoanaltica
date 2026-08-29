@@ -274,11 +274,24 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         </label>
       </div>
 
+      {grupoInfo?.grupoId && (
+        <p className="text-[11px] text-info flex items-center gap-1">
+          <Users className="h-3 w-3" />
+          Grupo: {grupoInfo.nomeGrupo}
+          {grupoInfo.ehPrincipal
+            ? " · contrato principal — os anexos aparecem em todos os contratos do grupo."
+            : grupoInfo.ehSecundario
+              ? " · anexos do contrato principal são exibidos aqui."
+              : " · anexos compartilhados entre os contratos do grupo."}
+        </p>
+      )}
+
       {!movimentacaoId && (
         <p className="text-[11px] text-muted-foreground">
           Salve a movimentação primeiro para poder anexar documentos.
         </p>
       )}
+
 
       {showRequiredWarn && movimentacaoId && (
         <p className="text-[11px] text-warning flex items-center gap-1">
