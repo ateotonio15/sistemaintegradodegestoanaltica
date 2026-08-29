@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +24,7 @@ import {
 import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
 import { tipoArquivo } from "@/lib/arquivos-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { useAnexosMovimentacaoGrupo } from "@/hooks/useAnexosMovimentacaoGrupo";
 
 
 interface Props {
@@ -123,7 +124,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
           }
         }
       }
-      queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
+      queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao-grupo", movimentacaoId] });
       onAttachmentsChange?.();
       toast.success(files.length > 1 ? `${files.length} arquivos enviados` : "Arquivo enviado");
     } catch (err: any) {
@@ -202,7 +203,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
       }
       await supabase.storage.from(STORAGE_BUCKET).remove([path]);
       if (registrarObs) await registrarObservacaoExclusao(nome, tipo, criadoEm);
-      queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
+      queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao-grupo", movimentacaoId] });
       onAttachmentsChange?.();
       toast.success("Anexo excluído");
       setAlvoExclusao(null);
