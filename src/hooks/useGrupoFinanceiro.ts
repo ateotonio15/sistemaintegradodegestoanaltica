@@ -10,7 +10,9 @@ export interface GrupoFinanceiro {
   forma_pagamento: "DDA" | "Depósito" | null;
   observacao: string | null;
   status: "Ativo" | "Inativo";
+  contrato_principal_empresa_id?: string | null;
 }
+
 
 export interface GrupoContrato {
   id: string;
@@ -79,17 +81,27 @@ export function useEmpresaGrupoMap() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("grupos_financeiros_contratos" as any)
-        .select("empresa_id, grupo_id, grupos_financeiros(nome_grupo, status)")
+        .select(
+          "empresa_id, grupo_id, grupos_financeiros(nome_grupo, status, contrato_principal_empresa_id)",
+        )
         .eq("ativo", true);
       if (error) throw error;
-      const map = new Map<string, { grupo_id: string; nome_grupo: string }>();
+      const map = new Map<
+        string,
+        { grupo_id: string; nome_grupo: string; principal_empresa_id: string | null }
+      >();
       for (const r of (data as any[]) ?? []) {
         const g = r?.grupos_financeiros;
         if (!g || g.status !== "Ativo") continue;
-        map.set(r.empresa_id, { grupo_id: r.grupo_id, nome_grupo: g.nome_grupo });
+        map.set(r.empresa_id, {
+          grupo_id: r.grupo_id,
+          nome_grupo: g.nome_grupo,
+          principal_empresa_id: g.contrato_principal_empresa_id ?? null,
+        });
       }
       return map;
     },
     staleTime: 30_000,
   });
 }
+

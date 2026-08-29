@@ -297,6 +297,19 @@ function EditarGrupoDialog({
       return data as any;
     },
   });
+  const { data: contratosGrupo = [] } = useQuery({
+    queryKey: ["grupo-financeiro", "contratos", grupoId],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("grupos_financeiros_contratos" as any)
+        .select("empresa_id, nome_empresa, codigo_contrato")
+        .eq("grupo_id", grupoId)
+        .eq("ativo", true)
+        .order("nome_empresa");
+      return ((data as any[]) ?? []) as { empresa_id: string; nome_empresa: string | null; codigo_contrato: string | null }[];
+    },
+  });
   const [form, setForm] = useState<any>(null);
   // sincroniza form quando grupo carregar
   if (grupo && (!form || form.id !== grupo.id)) setForm(grupo);
@@ -311,9 +324,11 @@ function EditarGrupoDialog({
         forma_pagamento: form.forma_pagamento || null,
         observacao: form.observacao || null,
         status: form.status,
+        contrato_principal_empresa_id: form.contrato_principal_empresa_id || null,
       }).eq("id", grupoId);
       if (error) throw error;
     },
+
     onSuccess: () => {
       toast({ title: "Grupo atualizado" });
       qc.invalidateQueries({ queryKey: ["grupo-financeiro"] });
@@ -388,9 +403,31 @@ function EditarGrupoDialog({
             </div>
           </div>
           <div className="space-y-2">
+            <Label>Contrato principal do grupo</Label>
+            <Select
+              value={form.contrato_principal_empresa_id ?? "none"}
+              onValueChange={(v) => setForm({ ...form, contrato_principal_empresa_id: v === "none" ? null : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum (sem compartilhamento)</SelectItem>
+                {contratosGrupo.map((c) => (
+                  <SelectItem key={c.empresa_id} value={c.empresa_id}>
+                    {c.nome_empresa ?? "—"}{c.codigo_contrato ? ` · ${c.codigo_contrato}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Na aba Movimentações, as datas e observações lançadas no contrato principal são
+              replicadas para os demais contratos do grupo, e os anexos aparecem em todos eles.
+            </p>
+          </div>
+          <div className="space-y-2">
             <Label>Observação</Label>
             <Textarea value={form.observacao ?? ""} onChange={(e) => setForm({ ...form, observacao: e.target.value })} />
           </div>
+
           <div className="space-y-2">
             <Label>Status</Label>
             <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>

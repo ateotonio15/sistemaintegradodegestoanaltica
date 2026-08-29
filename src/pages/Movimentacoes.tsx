@@ -38,6 +38,8 @@ import {
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
+import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
+
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
 import Dashboard from "@/pages/Dashboard";
@@ -106,6 +108,16 @@ export default function Movimentacoes() {
   const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
   const [gerandoMov, setGerandoMov] = useState(false);
   const [novaObservacao, setNovaObservacao] = useState("");
+  const { data: empresaGrupoMap } = useEmpresaGrupoMap();
+
+  /** Grupo Financeiro do contrato selecionado no formulário */
+  const grupoForm = form.empresa_id ? empresaGrupoMap?.get(form.empresa_id) ?? null : null;
+  const grupoPrincipalId = grupoForm?.principal_empresa_id ?? null;
+  const formEhPrincipalGrupo = !!grupoPrincipalId && grupoPrincipalId === form.empresa_id;
+  const formEhSecundarioGrupo = !!grupoPrincipalId && grupoPrincipalId !== form.empresa_id;
+
+
+
 
 
   const handleGerarMovimentacoes = async () => {
@@ -200,6 +212,12 @@ export default function Movimentacoes() {
     },
     enabled: !!user,
   });
+
+  const nomeContratoPrincipal = grupoPrincipalId
+    ? empresas.find((e) => e.id === grupoPrincipalId)?.nome ?? null
+    : null;
+
+
 
   const { data: profilesMap = new Map<string, string>() } = useQuery({
     queryKey: ["profiles-map-mov"],
@@ -401,7 +419,35 @@ export default function Movimentacoes() {
         const { error } = await supabase.from("movimentacoes").insert(payload);
         if (error) throw error;
       }
+
+      // Grupo Financeiro: contrato principal replica datas e observações
+      // para os demais contratos do grupo na mesma competência/período.
+      const grupo = empresaGrupoMap?.get(values.empresa_id);
+      if (grupo?.principal_empresa_id && grupo.principal_empresa_id === values.empresa_id) {
+        const { data: contratos } = await supabase
+          .from("grupos_financeiros_contratos" as any)
+          .select("empresa_id")
+          .eq("grupo_id", grupo.grupo_id)
+          .eq("ativo", true);
+        const outras = (((contratos as any[]) ?? []).map((c) => c.empresa_id as string)).filter(
+          (id) => id !== values.empresa_id,
+        );
+        if (outras.length) {
+          await supabase
+            .from("movimentacoes")
+            .update({
+              data_envio_empresa: payload.data_envio_empresa,
+              data_retorno_empresa: payload.data_retorno_empresa,
+              data_envio_financeiro: payload.data_envio_financeiro,
+              observacoes: payload.observacoes,
+            })
+            .in("empresa_id", outras)
+            .eq("mes_referencia", values.mes_referencia)
+            .eq("periodo", values.periodo);
+        }
+      }
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
@@ -752,12 +798,13 @@ export default function Movimentacoes() {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Data Envio p/ Empresa</Label>
-                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} className="rounded-lg" />
+                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} disabled={formEhSecundarioGrupo} className="rounded-lg" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Data Envio Financeiro</Label>
                       <div className="flex gap-2">
-                        <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} className="rounded-lg flex-1" />
+                        <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} disabled={formEhSecundarioGrupo} className="rounded-lg flex-1" />
+
                         {form.data_envio_financeiro && editingId && (
                           <Button
                             type="button"
@@ -826,12 +873,24 @@ export default function Movimentacoes() {
                       <Textarea
                         value={novaObservacao}
                         onChange={(e) => setNovaObservacao(e.target.value)}
-                        placeholder="Adicionar nova observação (as anteriores não podem ser alteradas)"
+                        disabled={formEhSecundarioGrupo}
+                        placeholder={formEhSecundarioGrupo ? "Gerenciado pelo contrato principal do grupo" : "Adicionar nova observação (as anteriores não podem ser alteradas)"}
                         className="min-h-[90px] resize-y border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/70"
                       />
                     </div>
+
                   </div>
 
+
+                  {grupoForm && grupoPrincipalId && (
+                    <div className={`rounded-lg border px-3 py-2 text-[11px] ${formEhSecundarioGrupo ? "border-warning/40 bg-warning/5 text-warning" : "border-info/40 bg-info/5 text-info"}`}>
+                      {formEhSecundarioGrupo
+                        ? `Contrato do grupo "${grupoForm.nome_grupo}". Datas, observações e anexos são gerenciados pelo contrato principal${nomeContratoPrincipal ? ` (${nomeContratoPrincipal})` : ""}.`
+                        : formEhPrincipalGrupo
+                          ? `Contrato principal do grupo "${grupoForm.nome_grupo}". Datas, observações e anexos serão replicados para os demais contratos na mesma competência/período.`
+                          : `Contrato do grupo "${grupoForm.nome_grupo}".`}
+                    </div>
+                  )}
 
                   <AnexosMovimentacao
                     movimentacaoId={editingId}
@@ -839,6 +898,7 @@ export default function Movimentacoes() {
                     required={!!form.data_envio_financeiro}
                   />
                   </div>
+
 
                   <div className="shrink-0 flex justify-end gap-2 border-t border-border/50 bg-background/95 px-6 py-3 backdrop-blur">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>

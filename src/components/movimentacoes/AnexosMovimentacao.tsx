@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +24,7 @@ import {
 import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
 import { tipoArquivo } from "@/lib/arquivos-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { useAnexosMovimentacaoGrupo } from "@/hooks/useAnexosMovimentacaoGrupo";
 
 
 interface Props {
@@ -53,20 +54,10 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
   const [registrarObs, setRegistrarObs] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
 
-  const { data: anexos = [] } = useQuery({
-    queryKey: ["anexos-movimentacao", movimentacaoId],
-    queryFn: async () => {
-      if (!movimentacaoId) return [];
-      const { data, error } = await supabase
-        .from("anexos_movimentacao")
-        .select("*")
-        .eq("movimentacao_id", movimentacaoId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!movimentacaoId,
-  });
+  const { data: grupoData } = useAnexosMovimentacaoGrupo(movimentacaoId);
+  const anexos = grupoData?.anexos ?? [];
+  const grupoInfo = grupoData?.grupo;
+
 
   // notifica pai sobre quantidade
   if (onCountChange) {
@@ -133,7 +124,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
           }
         }
       }
-      queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
+      queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao-grupo", movimentacaoId] });
       onAttachmentsChange?.();
       toast.success(files.length > 1 ? `${files.length} arquivos enviados` : "Arquivo enviado");
     } catch (err: any) {
@@ -212,7 +203,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
       }
       await supabase.storage.from(STORAGE_BUCKET).remove([path]);
       if (registrarObs) await registrarObservacaoExclusao(nome, tipo, criadoEm);
-      queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao", movimentacaoId] });
+      queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao-grupo", movimentacaoId] });
       onAttachmentsChange?.();
       toast.success("Anexo excluído");
       setAlvoExclusao(null);
@@ -283,11 +274,24 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         </label>
       </div>
 
+      {grupoInfo?.grupoId && (
+        <p className="text-[11px] text-info flex items-center gap-1">
+          <Users className="h-3 w-3" />
+          Grupo: {grupoInfo.nomeGrupo}
+          {grupoInfo.ehPrincipal
+            ? " · contrato principal — os anexos aparecem em todos os contratos do grupo."
+            : grupoInfo.ehSecundario
+              ? " · anexos do contrato principal são exibidos aqui."
+              : " · anexos compartilhados entre os contratos do grupo."}
+        </p>
+      )}
+
       {!movimentacaoId && (
         <p className="text-[11px] text-muted-foreground">
           Salve a movimentação primeiro para poder anexar documentos.
         </p>
       )}
+
 
       {showRequiredWarn && movimentacaoId && (
         <p className="text-[11px] text-warning flex items-center gap-1">
@@ -311,7 +315,18 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
                 className="grid min-w-0 max-w-full grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
               >
                 <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="min-w-0 truncate" title={a.nome_arquivo}>{a.nome_arquivo}</span>
+                <span className="min-w-0 truncate" title={a.nome_arquivo}>
+                  {a.nome_arquivo}
+                  {a.do_grupo && (
+                    <span
+                      className="ml-2 inline-flex items-center gap-1 rounded-full border border-info/40 bg-info/10 px-1.5 py-0.5 text-[10px] font-medium text-info align-middle"
+                      title={`Anexo do contrato ${a.origem_empresa ?? "do grupo"}`}
+                    >
+                      <Users className="h-2.5 w-2.5" />
+                      Do grupo
+                    </span>
+                  )}
+                </span>
                 <span className="text-xs text-muted-foreground shrink-0">{formatBytes(a.tamanho_bytes)}</span>
                 {isExcel ? (
                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-info hover:text-info" title="Extrair Vidas Ativas" onClick={() => handleExtrairVidas(a.storage_path, a.nome_arquivo)}>
@@ -321,12 +336,17 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRegistrarObs(false); setAlvoExclusao({ id: a.id, path: a.storage_path, nome: a.nome_arquivo, tipo: tipoArquivo(a.nome_arquivo.split(".").pop()), criadoEm: a.created_at }); }}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                {a.do_grupo ? (
+                  <span />
+                ) : (
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRegistrarObs(false); setAlvoExclusao({ id: a.id, path: a.storage_path, nome: a.nome_arquivo, tipo: tipoArquivo(a.nome_arquivo.split(".").pop()), criadoEm: a.created_at }); }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </li>
             );
           })}
+
         </ul>
       )}
 
