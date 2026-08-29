@@ -882,12 +882,23 @@ export default function Movimentacoes() {
                   </div>
 
 
+                  {grupoForm && grupoPrincipalId && (
+                    <div className={`rounded-lg border px-3 py-2 text-[11px] ${formEhSecundarioGrupo ? "border-warning/40 bg-warning/5 text-warning" : "border-info/40 bg-info/5 text-info"}`}>
+                      {formEhSecundarioGrupo
+                        ? `Contrato do grupo "${grupoForm.nome_grupo}". Datas, observações e anexos são gerenciados pelo contrato principal${nomeContratoPrincipal ? ` (${nomeContratoPrincipal})` : ""}.`
+                        : formEhPrincipalGrupo
+                          ? `Contrato principal do grupo "${grupoForm.nome_grupo}". Datas, observações e anexos serão replicados para os demais contratos na mesma competência/período.`
+                          : `Contrato do grupo "${grupoForm.nome_grupo}".`}
+                    </div>
+                  )}
+
                   <AnexosMovimentacao
                     movimentacaoId={editingId}
                     empresaId={form.empresa_id || null}
                     required={!!form.data_envio_financeiro}
                   />
                   </div>
+
 
                   <div className="shrink-0 flex justify-end gap-2 border-t border-border/50 bg-background/95 px-6 py-3 backdrop-blur">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
