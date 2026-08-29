@@ -798,12 +798,13 @@ export default function Movimentacoes() {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Data Envio p/ Empresa</Label>
-                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} className="rounded-lg" />
+                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} disabled={formEhSecundarioGrupo} className="rounded-lg" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Data Envio Financeiro</Label>
                       <div className="flex gap-2">
-                        <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} className="rounded-lg flex-1" />
+                        <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} disabled={formEhSecundarioGrupo} className="rounded-lg flex-1" />
+
                         {form.data_envio_financeiro && editingId && (
                           <Button
                             type="button"
