@@ -302,7 +302,18 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
                 className="grid min-w-0 max-w-full grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
               >
                 <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="min-w-0 truncate" title={a.nome_arquivo}>{a.nome_arquivo}</span>
+                <span className="min-w-0 truncate" title={a.nome_arquivo}>
+                  {a.nome_arquivo}
+                  {a.do_grupo && (
+                    <span
+                      className="ml-2 inline-flex items-center gap-1 rounded-full border border-info/40 bg-info/10 px-1.5 py-0.5 text-[10px] font-medium text-info align-middle"
+                      title={`Anexo do contrato ${a.origem_empresa ?? "do grupo"}`}
+                    >
+                      <Users className="h-2.5 w-2.5" />
+                      Do grupo
+                    </span>
+                  )}
+                </span>
                 <span className="text-xs text-muted-foreground shrink-0">{formatBytes(a.tamanho_bytes)}</span>
                 {isExcel ? (
                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-info hover:text-info" title="Extrair Vidas Ativas" onClick={() => handleExtrairVidas(a.storage_path, a.nome_arquivo)}>
@@ -312,12 +323,17 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRegistrarObs(false); setAlvoExclusao({ id: a.id, path: a.storage_path, nome: a.nome_arquivo, tipo: tipoArquivo(a.nome_arquivo.split(".").pop()), criadoEm: a.created_at }); }}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                {a.do_grupo ? (
+                  <span />
+                ) : (
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRegistrarObs(false); setAlvoExclusao({ id: a.id, path: a.storage_path, nome: a.nome_arquivo, tipo: tipoArquivo(a.nome_arquivo.split(".").pop()), criadoEm: a.created_at }); }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </li>
             );
           })}
+
         </ul>
       )}
 
