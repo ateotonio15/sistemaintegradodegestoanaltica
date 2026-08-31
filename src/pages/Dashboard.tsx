@@ -167,7 +167,14 @@ export default function Dashboard() {
       if (error) throw error;
       return ((data ?? []) as any[])
         .filter((r) => tipoPeriodo === "all" || r.periodo === tipoPeriodo)
-        .map((r) => ({ ...r, empresas: { responsavel_user_id: r.responsavel_user_id } }));
+        .map((r) => ({
+          ...r,
+          empresas: {
+            responsavel_user_id: r.responsavel_user_id,
+            nome: r.empresa_nome,
+            responsavel_contrato: r.responsavel_contrato,
+          },
+        }));
     },
     enabled: !!user,
   });
