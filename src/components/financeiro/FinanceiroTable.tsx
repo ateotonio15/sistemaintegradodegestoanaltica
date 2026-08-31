@@ -100,6 +100,7 @@ export function FinanceiroTable({
     movimentacaoId: string;
     faturamentoIniciadoEm: string | null;
     faturamentoIniciadoPorNome: string | null;
+    faturamentoIniciadoPorId: string | null;
     permitirAnexosContrato: boolean;
   } | null>(null);
 
