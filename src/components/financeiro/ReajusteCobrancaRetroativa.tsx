@@ -1062,9 +1062,16 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                     </p>
                     <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                       {isReajuste ? (
-                        <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
-                          Arquivo pendente de cobrança
-                        </Badge>
+                        c.cobranca_confirmada ? (
+                          <Badge className="h-5 gap-1 bg-emerald-600/15 text-emerald-500 border-emerald-600/30 text-[10px]">
+                            <ShieldCheck className="h-3 w-3" />
+                            Cobrança confirmada
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
+                            Arquivo pendente de cobrança
+                          </Badge>
+                        )
                       ) : c.confirmado ? (
                         <Badge className="h-5 gap-1 bg-emerald-600/15 text-emerald-500 border-emerald-600/30 text-[10px]">
                           <ShieldCheck className="h-3 w-3" />
