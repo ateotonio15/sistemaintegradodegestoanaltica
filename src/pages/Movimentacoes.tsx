@@ -39,6 +39,7 @@ import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
 import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
+import { GrupoTag } from "@/components/financeiro/GrupoTag";
 
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
@@ -1064,6 +1065,7 @@ export default function Movimentacoes() {
                       const temPrio = !!(m.empresas as any)?.prioridade_maxima_id;
                       const prioAtiva = temPrio && !m.data_envio_financeiro;
                       const prioIntensa = prioAtiva && isPrioridadeAlertaIntenso(m.empresas as any);
+                      const grupoLinha = m.empresa_id ? empresaGrupoMap?.get(m.empresa_id) ?? null : null;
                       return (
                         <TableRow
                           key={m.id}
@@ -1075,23 +1077,29 @@ export default function Movimentacoes() {
                           className={`cursor-pointer transition-colors ${!m.empresas ? "bg-destructive/5" : status === "Fora do prazo" ? "bg-destructive/5 hover:bg-destructive/10" : prioAtiva ? "bg-red-500/5 priority-row hover:bg-red-500/10" : "hover:bg-accent/50"}`}
                         >
                           <TableCell className="font-medium">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span>
-                                {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
-                              </span>
-
-                              {(m.empresas as any)?.contrato_via_portal && (
-                                <span
-                                  className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"
-                                  title="Movimentação realizada pelo portal"
-                                >
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                  Portal
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span>
+                                  {m.empresas?.nome ?? <span className="text-destructive">Sem empresa</span>}
                                 </span>
+
+                                {(m.empresas as any)?.contrato_via_portal && (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"
+                                    title="Movimentação realizada pelo portal"
+                                  >
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                    Portal
+                                  </span>
+                                )}
+                                {temPrio && <PrioridadeBadge variant="compact" intense={prioIntensa} />}
+                              </div>
+                              {grupoLinha && (
+                                <GrupoTag empresaId={m.empresa_id} grupoNome={grupoLinha.nome_grupo} />
                               )}
-                              {temPrio && <PrioridadeBadge variant="compact" intense={prioIntensa} />}
                             </div>
                           </TableCell>
+
 
                           <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-muted-foreground">{respContratoOf(m.empresas) || "—"}</TableCell>
