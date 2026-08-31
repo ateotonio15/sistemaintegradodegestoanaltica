@@ -292,6 +292,7 @@ export function FinanceiroTable({
                             movimentacaoId: row.id,
                             faturamentoIniciadoEm: row.faturamento_iniciado_em ?? null,
                             faturamentoIniciadoPorNome: row.faturamento_iniciado_por_nome ?? null,
+                            faturamentoIniciadoPorId: row.faturamento_iniciado_por ?? null,
                             permitirAnexosContrato:
                               (row as any).tipo_lancamento === "primeira_mensalidade" ||
                               !empresasComPrimeiraMensalidade.has(
