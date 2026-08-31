@@ -71,16 +71,16 @@ function CelulaStatus({
 
   return (
     <TableCell className={`text-right tabular-nums ${className ?? ""}`}>
-      <HoverCard openDelay={100} closeDelay={80}>
-        <HoverCardTrigger asChild>
+      <Popover>
+        <PopoverTrigger asChild>
           <button
             type="button"
-            className="underline decoration-dotted underline-offset-4 hover:opacity-80 cursor-help"
+            className="underline decoration-dotted underline-offset-4 hover:opacity-80 cursor-pointer"
           >
             {itens.length}
           </button>
-        </HoverCardTrigger>
-        <HoverCardContent align="end" className="w-80 p-0">
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-80 p-0">
           <div className="px-3 py-2 border-b">
             <p className="text-xs font-semibold">{titulo}</p>
             <p className="text-[11px] text-muted-foreground">{itens.length} contrato(s)</p>
