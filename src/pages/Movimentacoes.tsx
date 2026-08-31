@@ -1064,6 +1064,7 @@ export default function Movimentacoes() {
                       const temPrio = !!(m.empresas as any)?.prioridade_maxima_id;
                       const prioAtiva = temPrio && !m.data_envio_financeiro;
                       const prioIntensa = prioAtiva && isPrioridadeAlertaIntenso(m.empresas as any);
+                      const grupoLinha = m.empresa_id ? empresaGrupoMap?.get(m.empresa_id) ?? null : null;
                       return (
                         <TableRow
                           key={m.id}
