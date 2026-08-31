@@ -474,7 +474,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         competencia: a.competencia,
         valor_centavos: 0,
         descricao: a.nome_original || "",
-        cobrado: false,
+        cobrado: !!a.cobranca_confirmada,
         divergente: false,
         raw: a,
       }));
