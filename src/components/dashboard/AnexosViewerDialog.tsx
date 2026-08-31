@@ -687,20 +687,22 @@ export function AnexosViewerDialog({
                     Iniciado às {formatDateTime(iniciadoEmEfetivo)}
                   </span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancelarFaturamento}
-                  disabled={cancelando}
-                  className="shrink-0 border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-400/40 dark:text-blue-200 dark:hover:bg-blue-500/20"
-                >
-                  {cancelando ? (
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  ) : (
-                    <X className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  Cancelar
-                </Button>
+                {podeCancelar && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelarFaturamento}
+                    disabled={cancelando}
+                    className="shrink-0 border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-400/40 dark:text-blue-200 dark:hover:bg-blue-500/20"
+                  >
+                    {cancelando ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Cancelar
+                  </Button>
+                )}
               </div>
             ) : (
               <Button
