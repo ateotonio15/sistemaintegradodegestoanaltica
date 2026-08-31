@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { calcularStatus } from "@/lib/movimentacao-utils";
 
 export interface MovRow {
@@ -51,7 +51,7 @@ interface Linha {
   total: Bucket;
 }
 
-/** Célula numérica com hover mostrando os contratos e o responsável. */
+/** Célula numérica: ao clicar, abre a janela com os contratos e o responsável. */
 function CelulaStatus({
   bucket,
   titulo,
@@ -71,16 +71,16 @@ function CelulaStatus({
 
   return (
     <TableCell className={`text-right tabular-nums ${className ?? ""}`}>
-      <HoverCard openDelay={100} closeDelay={80}>
-        <HoverCardTrigger asChild>
+      <Popover>
+        <PopoverTrigger asChild>
           <button
             type="button"
-            className="underline decoration-dotted underline-offset-4 hover:opacity-80 cursor-help"
+            className="underline decoration-dotted underline-offset-4 hover:opacity-80 cursor-pointer"
           >
             {itens.length}
           </button>
-        </HoverCardTrigger>
-        <HoverCardContent align="end" className="w-80 p-0">
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-80 p-0">
           <div className="px-3 py-2 border-b">
             <p className="text-xs font-semibold">{titulo}</p>
             <p className="text-[11px] text-muted-foreground">{itens.length} contrato(s)</p>
@@ -96,8 +96,8 @@ function CelulaStatus({
               </div>
             ))}
           </div>
-        </HoverCardContent>
-      </HoverCard>
+        </PopoverContent>
+      </Popover>
     </TableCell>
   );
 }
@@ -159,8 +159,8 @@ export function StatusPorUsuarioDialog({ open, onOpenChange, movs, profilesMap, 
         <DialogHeader>
           <DialogTitle>Empresas por status e usuário do Cadastro</DialogTitle>
           <DialogDescription>
-            Competência {mes} · Período {periodo === "all" ? "todos" : periodo} · passe o mouse sobre os
-            números para ver os contratos
+            Competência {mes} · Período {periodo === "all" ? "todos" : periodo} · clique nos números para
+            ver os contratos
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[60vh] overflow-y-auto">
