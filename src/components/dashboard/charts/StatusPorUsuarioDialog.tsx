@@ -96,8 +96,8 @@ function CelulaStatus({
               </div>
             ))}
           </div>
-        </HoverCardContent>
-      </HoverCard>
+        </PopoverContent>
+      </Popover>
     </TableCell>
   );
 }
