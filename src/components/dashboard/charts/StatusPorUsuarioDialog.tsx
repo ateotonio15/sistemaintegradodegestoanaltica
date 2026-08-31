@@ -51,7 +51,7 @@ interface Linha {
   total: Bucket;
 }
 
-/** Célula numérica com hover mostrando os contratos e o responsável. */
+/** Célula numérica: ao clicar, abre a janela com os contratos e o responsável. */
 function CelulaStatus({
   bucket,
   titulo,
