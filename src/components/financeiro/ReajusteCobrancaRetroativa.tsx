@@ -1129,14 +1129,35 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                       )}
                     </Button>
                     {canManage && isReajuste && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 gap-1 text-[11px]"
-                        onClick={() => openCobrancaDoArquivo(c)}
-                      >
-                        <Plus className="h-3 w-3" /> Cobrança
-                      </Button>
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title={
+                            c.cobranca_confirmada
+                              ? "Desfazer confirmação de cobrança"
+                              : "Confirmar que a cobrança do reajuste foi feita"
+                          }
+                          onClick={() => confirmarCobrancaReajuste.mutate(c)}
+                          disabled={confirmarCobrancaReajuste.isPending}
+                        >
+                          <CheckCircle2
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              c.cobranca_confirmada ? "text-emerald-500" : "text-muted-foreground",
+                            )}
+                          />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1 text-[11px]"
+                          onClick={() => openCobrancaDoArquivo(c)}
+                        >
+                          <Plus className="h-3 w-3" /> Cobrança
+                        </Button>
+                      </>
                     )}
                     {canManage && !isReajuste && (
                       <>
