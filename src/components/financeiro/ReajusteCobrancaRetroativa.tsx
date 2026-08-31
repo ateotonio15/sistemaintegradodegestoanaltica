@@ -396,7 +396,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     queryFn: async () => {
       let q = supabase
         .from("financeiro_arquivos")
-        .select("id, empresa_id, competencia, nome_original, storage_path, mime_type, created_at, uploaded_by_nome, status, categoria, bucket")
+        .select("id, empresa_id, competencia, nome_original, storage_path, mime_type, created_at, uploaded_by_nome, status, categoria, bucket, cobranca_confirmada, cobranca_confirmada_em")
         .eq("categoria", "Reajuste")
         .neq("status", "removido")
         .order("created_at", { ascending: false })
@@ -474,7 +474,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         competencia: a.competencia,
         valor_centavos: 0,
         descricao: a.nome_original || "",
-        cobrado: false,
+        cobrado: !!a.cobranca_confirmada,
         divergente: false,
         raw: a,
       }));
@@ -496,12 +496,13 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
 
   const countsFiltro = useMemo(() => {
     const cobr = lista as any[];
+    const arq = arquivosReajuste as any[];
     return {
       retroativo: cobr.length,
-      reajuste: (arquivosReajuste as any[]).length,
-      cobrado: cobr.filter((c) => c.confirmado).length,
+      reajuste: arq.length,
+      cobrado: cobr.filter((c) => c.confirmado).length + arq.filter((a) => a.cobranca_confirmada).length,
       naoCobrado:
-        cobr.filter((c) => !c.confirmado).length + (arquivosReajuste as any[]).length,
+        cobr.filter((c) => !c.confirmado).length + arq.filter((a) => !a.cobranca_confirmada).length,
       divergente: cobr.filter((c) => c.conferencia_status === "divergente" && !c.confirmado).length,
     };
   }, [lista, arquivosReajuste]);
@@ -864,6 +865,28 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     onError: (e: any) => toast.error(e?.message || "Erro ao confirmar."),
   });
 
+  /** Confirma/desfaz manualmente que a cobrança de um arquivo de Reajuste já foi feita. */
+  const confirmarCobrancaReajuste = useMutation({
+    mutationFn: async (a: any) => {
+      const novo = !a.cobranca_confirmada;
+      const { error } = await supabase
+        .from("financeiro_arquivos")
+        .update({
+          cobranca_confirmada: novo,
+          cobranca_confirmada_em: novo ? new Date().toISOString() : null,
+          cobranca_confirmada_por: novo ? user?.id ?? null : null,
+        } as any)
+        .eq("id", a.id);
+      if (error) throw error;
+      return novo;
+    },
+    onSuccess: (novo) => {
+      toast.success(novo ? "Cobrança do reajuste confirmada." : "Confirmação removida.");
+      queryClient.invalidateQueries({ queryKey: ["arquivos-reajuste-rcr"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao confirmar."),
+  });
+
   const deleteCob = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("cobrancas_retroativas").delete().eq("id", id);
@@ -1039,9 +1062,16 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                     </p>
                     <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                       {isReajuste ? (
-                        <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
-                          Arquivo pendente de cobrança
-                        </Badge>
+                        c.cobranca_confirmada ? (
+                          <Badge className="h-5 gap-1 bg-emerald-600/15 text-emerald-500 border-emerald-600/30 text-[10px]">
+                            <ShieldCheck className="h-3 w-3" />
+                            Cobrança confirmada
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
+                            Arquivo pendente de cobrança
+                          </Badge>
+                        )
                       ) : c.confirmado ? (
                         <Badge className="h-5 gap-1 bg-emerald-600/15 text-emerald-500 border-emerald-600/30 text-[10px]">
                           <ShieldCheck className="h-3 w-3" />
@@ -1099,14 +1129,35 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                       )}
                     </Button>
                     {canManage && isReajuste && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 gap-1 text-[11px]"
-                        onClick={() => openCobrancaDoArquivo(c)}
-                      >
-                        <Plus className="h-3 w-3" /> Cobrança
-                      </Button>
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title={
+                            c.cobranca_confirmada
+                              ? "Desfazer confirmação de cobrança"
+                              : "Confirmar que a cobrança do reajuste foi feita"
+                          }
+                          onClick={() => confirmarCobrancaReajuste.mutate(c)}
+                          disabled={confirmarCobrancaReajuste.isPending}
+                        >
+                          <CheckCircle2
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              c.cobranca_confirmada ? "text-emerald-500" : "text-muted-foreground",
+                            )}
+                          />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1 text-[11px]"
+                          onClick={() => openCobrancaDoArquivo(c)}
+                        >
+                          <Plus className="h-3 w-3" /> Cobrança
+                        </Button>
+                      </>
                     )}
                     {canManage && !isReajuste && (
                       <>
