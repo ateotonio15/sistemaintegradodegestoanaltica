@@ -870,7 +870,7 @@ export default function Financeiro() {
         r.status === "Aguardando validação";
       return !(finalizado && dispensados.has(chaveAcomp(r.empresa_id, mes)));
     });
-  }, [allRows, acompanhandoIds, dispensadosIds, mes, ocultosSet]);
+  }, [allRows, acompanhandoIds, dispensadosIds, mes, ocultosSet, user?.id]);
 
   // ===== Agrupamento de chips de Faturados (drag & drop) =====
   // Persistido em public.financeiro_chip_grupos (compartilhado entre usuários)
