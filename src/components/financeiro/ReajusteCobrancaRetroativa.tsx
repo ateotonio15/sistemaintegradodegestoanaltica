@@ -865,6 +865,28 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     onError: (e: any) => toast.error(e?.message || "Erro ao confirmar."),
   });
 
+  /** Confirma/desfaz manualmente que a cobrança de um arquivo de Reajuste já foi feita. */
+  const confirmarCobrancaReajuste = useMutation({
+    mutationFn: async (a: any) => {
+      const novo = !a.cobranca_confirmada;
+      const { error } = await supabase
+        .from("financeiro_arquivos")
+        .update({
+          cobranca_confirmada: novo,
+          cobranca_confirmada_em: novo ? new Date().toISOString() : null,
+          cobranca_confirmada_por: novo ? user?.id ?? null : null,
+        } as any)
+        .eq("id", a.id);
+      if (error) throw error;
+      return novo;
+    },
+    onSuccess: (novo) => {
+      toast.success(novo ? "Cobrança do reajuste confirmada." : "Confirmação removida.");
+      queryClient.invalidateQueries({ queryKey: ["arquivos-reajuste-rcr"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao confirmar."),
+  });
+
   const deleteCob = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("cobrancas_retroativas").delete().eq("id", id);
