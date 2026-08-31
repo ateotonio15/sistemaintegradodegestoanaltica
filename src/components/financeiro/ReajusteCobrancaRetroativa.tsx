@@ -277,7 +277,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const queryClient = useQueryClient();
 
   const [openCobDialog, setOpenCobDialog] = useState(false);
-  const [previewAnexo, setPreviewAnexo] = useState<{ path: string; nome: string; mime: string | null } | null>(null);
+  const [previewAnexo, setPreviewAnexo] = useState<{ path: string; nome: string; mime: string | null; bucket?: string } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [calcOpen, setCalcOpen] = useState(false);
@@ -396,7 +396,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     queryFn: async () => {
       let q = supabase
         .from("financeiro_arquivos")
-        .select("id, empresa_id, competencia, nome_original, storage_path, mime_type, created_at, uploaded_by_nome, status, categoria")
+        .select("id, empresa_id, competencia, nome_original, storage_path, mime_type, created_at, uploaded_by_nome, status, categoria, bucket")
         .eq("categoria", "Reajuste")
         .neq("status", "removido")
         .order("created_at", { ascending: false })
@@ -1086,6 +1086,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                               path: c.storage_path,
                               nome: c.nome_original,
                               mime: c.mime_type,
+                              bucket: (c as any).bucket || "arquivos-financeiro",
                             })
                           : handleViewPdf(c.financeiro_movimentacao_id ?? null)
                       }
@@ -1417,7 +1418,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         <PreviewArquivoDialog
           open={!!previewAnexo}
           onOpenChange={(o) => { if (!o) setPreviewAnexo(null); }}
-          bucket="anexos-financeiro"
+          bucket={previewAnexo.bucket || "anexos-financeiro"}
           storagePath={previewAnexo.path}
           nomeArquivo={previewAnexo.nome}
           mimeType={previewAnexo.mime}
