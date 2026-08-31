@@ -842,6 +842,16 @@ export default function Financeiro() {
       // Persistido no banco: chip ocultado pelo usuário nesta competência.
       if (ocultosSet.has(r.empresa_id)) return false;
       if (r.status === "Enviada") return false;
+      // O chip é pessoal: só aparece para quem iniciou o faturamento.
+      // Evita que um chip antigo (persistido na sessão) continue exibido
+      // quando o faturamento foi iniciado por outro usuário.
+      if (
+        r.faturamento_iniciado_por &&
+        r.faturamento_iniciado_por !== user?.id
+      ) {
+        return false;
+      }
+
       // Se o usuário cancelou o faturamento, o status volta para "Pendente"
       // / "Aguardando Emissão" / "Fora do prazo" (sem faturamento_iniciado_em
       // e sem anexos). Nesse caso, removemos o chip "Faturando"
