@@ -39,6 +39,7 @@ import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
 import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
+import { GrupoTag } from "@/components/financeiro/GrupoTag";
 
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
