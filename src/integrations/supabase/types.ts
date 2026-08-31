@@ -2276,6 +2276,9 @@ export type Database = {
           anexo_financeiro_id: string | null
           bucket: string
           categoria: string
+          cobranca_confirmada: boolean
+          cobranca_confirmada_em: string | null
+          cobranca_confirmada_por: string | null
           competencia: string
           created_at: string
           empresa_id: string
@@ -2301,6 +2304,9 @@ export type Database = {
           anexo_financeiro_id?: string | null
           bucket?: string
           categoria: string
+          cobranca_confirmada?: boolean
+          cobranca_confirmada_em?: string | null
+          cobranca_confirmada_por?: string | null
           competencia: string
           created_at?: string
           empresa_id: string
@@ -2326,6 +2332,9 @@ export type Database = {
           anexo_financeiro_id?: string | null
           bucket?: string
           categoria?: string
+          cobranca_confirmada?: boolean
+          cobranca_confirmada_em?: string | null
+          cobranca_confirmada_por?: string | null
           competencia?: string
           created_at?: string
           empresa_id?: string
