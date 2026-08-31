@@ -434,6 +434,7 @@ export default function Movimentacoes() {
           (id) => id !== values.empresa_id,
         );
         if (outras.length) {
+          // Atualiza as movimentações irmãs já existentes...
           await supabase
             .from("movimentacoes")
             .update({
@@ -445,6 +446,31 @@ export default function Movimentacoes() {
             .in("empresa_id", outras)
             .eq("mes_referencia", values.mes_referencia)
             .eq("periodo", values.periodo);
+
+          // ...e cria as que ainda não existem na competência/período,
+          // para que as datas do principal apareçam em todo o grupo.
+          const { data: existentes } = await supabase
+            .from("movimentacoes")
+            .select("empresa_id")
+            .in("empresa_id", outras)
+            .eq("mes_referencia", values.mes_referencia)
+            .eq("periodo", values.periodo);
+          const jaTem = new Set(((existentes as any[]) ?? []).map((r) => r.empresa_id as string));
+          const faltantes = outras.filter((id) => !jaTem.has(id));
+          if (faltantes.length) {
+            const novas: TablesInsert<"movimentacoes">[] = faltantes.map((empresaId) => ({
+              empresa_id: empresaId,
+              mes_referencia: values.mes_referencia,
+              periodo: values.periodo,
+              data_envio_empresa: payload.data_envio_empresa,
+              data_retorno_empresa: payload.data_retorno_empresa,
+              data_envio_financeiro: payload.data_envio_financeiro,
+              observacoes: payload.observacoes,
+              responsavel_movimentacao: payload.responsavel_movimentacao ?? null,
+              tipo_movimentacao: values.tipo_movimentacao,
+            }));
+            await supabase.from("movimentacoes").insert(novas);
+          }
         }
       }
     },
