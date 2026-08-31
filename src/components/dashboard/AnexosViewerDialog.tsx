@@ -39,6 +39,8 @@ interface Props {
   movimentacaoId?: string | null;
   faturamentoIniciadoEm?: string | null;
   faturamentoIniciadoPorNome?: string | null;
+  /** user_id de quem iniciou o faturamento (só ele pode cancelar). */
+  faturamentoIniciadoPorId?: string | null;
   /** Quando false, oculta os anexos de implantação ("Contrato") nesta linha. */
   permitirAnexosContrato?: boolean;
 }
@@ -71,10 +73,11 @@ export function AnexosViewerDialog({
   movimentacaoId = null,
   faturamentoIniciadoEm = null,
   faturamentoIniciadoPorNome = null,
+  faturamentoIniciadoPorId = null,
   permitirAnexosContrato = true,
 }: Props) {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [iniciando, setIniciando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
@@ -87,6 +90,7 @@ export function AnexosViewerDialog({
   // sem esperar o refetch do parent.
   const [localIniciadoEm, setLocalIniciadoEm] = useState<string | null>(null);
   const [localIniciadoPorNome, setLocalIniciadoPorNome] = useState<string | null>(null);
+  const [localIniciadoPorId, setLocalIniciadoPorId] = useState<string | null>(null);
   const [localCancelado, setLocalCancelado] = useState(false);
   const [avisos, setAvisos] = useState<{
     exigePoPc: boolean;
@@ -97,11 +101,19 @@ export function AnexosViewerDialog({
 
   const iniciadoEmEfetivo = localCancelado ? null : (localIniciadoEm ?? faturamentoIniciadoEm);
   const iniciadoPorEfetivo = localCancelado ? null : (localIniciadoPorNome ?? faturamentoIniciadoPorNome);
+  const iniciadoPorIdEfetivo = localCancelado
+    ? null
+    : (localIniciadoPorId ?? faturamentoIniciadoPorId);
+  // Só quem iniciou (ou um admin) pode cancelar o faturamento em andamento.
+  const podeCancelar =
+    !!iniciadoEmEfetivo &&
+    (isAdmin || !iniciadoPorIdEfetivo || iniciadoPorIdEfetivo === user?.id);
 
   // Reseta overrides locais quando muda a movimentação alvo ou o dialog reabre.
   useEffect(() => {
     setLocalIniciadoEm(null);
     setLocalIniciadoPorNome(null);
+    setLocalIniciadoPorId(null);
     setLocalCancelado(false);
   }, [movimentacaoId, open]);
 
@@ -160,6 +172,7 @@ export function AnexosViewerDialog({
       // Atualiza estado local para refletir início imediatamente na UI.
       setLocalIniciadoEm(new Date().toISOString());
       setLocalIniciadoPorNome(nome);
+      setLocalIniciadoPorId(user.id);
       setLocalCancelado(false);
 
       toast.success("Faturamento iniciado");
@@ -674,20 +687,22 @@ export function AnexosViewerDialog({
                     Iniciado às {formatDateTime(iniciadoEmEfetivo)}
                   </span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancelarFaturamento}
-                  disabled={cancelando}
-                  className="shrink-0 border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-400/40 dark:text-blue-200 dark:hover:bg-blue-500/20"
-                >
-                  {cancelando ? (
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  ) : (
-                    <X className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  Cancelar
-                </Button>
+                {podeCancelar && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelarFaturamento}
+                    disabled={cancelando}
+                    className="shrink-0 border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-400/40 dark:text-blue-200 dark:hover:bg-blue-500/20"
+                  >
+                    {cancelando ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Cancelar
+                  </Button>
+                )}
               </div>
             ) : (
               <Button
