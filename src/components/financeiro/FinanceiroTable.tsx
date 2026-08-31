@@ -385,6 +385,7 @@ export function FinanceiroTable({
         movimentacaoId={anexosDialog?.movimentacaoId ?? null}
         faturamentoIniciadoEm={anexosDialog?.faturamentoIniciadoEm ?? null}
         faturamentoIniciadoPorNome={anexosDialog?.faturamentoIniciadoPorNome ?? null}
+        faturamentoIniciadoPorId={anexosDialog?.faturamentoIniciadoPorId ?? null}
         permitirAnexosContrato={anexosDialog?.permitirAnexosContrato ?? true}
 
       />
