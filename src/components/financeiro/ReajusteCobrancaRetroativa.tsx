@@ -496,12 +496,13 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
 
   const countsFiltro = useMemo(() => {
     const cobr = lista as any[];
+    const arq = arquivosReajuste as any[];
     return {
       retroativo: cobr.length,
-      reajuste: (arquivosReajuste as any[]).length,
-      cobrado: cobr.filter((c) => c.confirmado).length,
+      reajuste: arq.length,
+      cobrado: cobr.filter((c) => c.confirmado).length + arq.filter((a) => a.cobranca_confirmada).length,
       naoCobrado:
-        cobr.filter((c) => !c.confirmado).length + (arquivosReajuste as any[]).length,
+        cobr.filter((c) => !c.confirmado).length + arq.filter((a) => !a.cobranca_confirmada).length,
       divergente: cobr.filter((c) => c.conferencia_status === "divergente" && !c.confirmado).length,
     };
   }, [lista, arquivosReajuste]);
