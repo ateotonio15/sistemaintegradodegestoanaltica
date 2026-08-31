@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { calcularStatus } from "@/lib/movimentacao-utils";
 
 export interface MovRow {
@@ -16,6 +17,7 @@ export interface MovRow {
   empresas?: {
     id?: string;
     nome?: string | null;
+    codigo_contrato?: string | null;
     responsavel_contrato?: string | null;
     responsavel_user_id?: string | null;
   } | null;
@@ -31,13 +33,73 @@ interface Props {
   periodo: string;
 }
 
+interface Contrato {
+  id: string;
+  nome: string;
+  codigo: string | null;
+  responsavel: string;
+}
+
+type Bucket = Map<string, Contrato>;
+
 interface Linha {
   usuario: string;
-  aguardando: Set<string>;
-  foraDoPrazo: Set<string>;
-  empresa: Set<string>;
-  financeiro: Set<string>;
-  total: Set<string>;
+  aguardando: Bucket;
+  foraDoPrazo: Bucket;
+  empresa: Bucket;
+  financeiro: Bucket;
+  total: Bucket;
+}
+
+/** Célula numérica com hover mostrando os contratos e o responsável. */
+function CelulaStatus({
+  bucket,
+  titulo,
+  className,
+}: {
+  bucket: Bucket;
+  titulo: string;
+  className?: string;
+}) {
+  const itens = Array.from(bucket.values()).sort((a, b) =>
+    a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }),
+  );
+
+  if (itens.length === 0) {
+    return <TableCell className={`text-right tabular-nums ${className ?? ""}`}>0</TableCell>;
+  }
+
+  return (
+    <TableCell className={`text-right tabular-nums ${className ?? ""}`}>
+      <HoverCard openDelay={100} closeDelay={80}>
+        <HoverCardTrigger asChild>
+          <button
+            type="button"
+            className="underline decoration-dotted underline-offset-4 hover:opacity-80 cursor-help"
+          >
+            {itens.length}
+          </button>
+        </HoverCardTrigger>
+        <HoverCardContent align="end" className="w-80 p-0">
+          <div className="px-3 py-2 border-b">
+            <p className="text-xs font-semibold">{titulo}</p>
+            <p className="text-[11px] text-muted-foreground">{itens.length} contrato(s)</p>
+          </div>
+          <div className="max-h-64 overflow-y-auto divide-y">
+            {itens.map((c) => (
+              <div key={c.id} className="px-3 py-2">
+                <p className="text-xs font-medium leading-tight">
+                  {c.nome}
+                  {c.codigo ? <span className="text-muted-foreground"> · {c.codigo}</span> : null}
+                </p>
+                <p className="text-[11px] text-muted-foreground">Responsável: {c.responsavel}</p>
+              </div>
+            ))}
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    </TableCell>
+  );
 }
 
 export function StatusPorUsuarioDialog({ open, onOpenChange, movs, profilesMap, mes, periodo }: Props) {
@@ -54,21 +116,27 @@ export function StatusPorUsuarioDialog({ open, onOpenChange, movs, profilesMap, 
       if (!l) {
         l = {
           usuario: nome,
-          aguardando: new Set(),
-          foraDoPrazo: new Set(),
-          empresa: new Set(),
-          financeiro: new Set(),
-          total: new Set(),
+          aguardando: new Map(),
+          foraDoPrazo: new Map(),
+          empresa: new Map(),
+          financeiro: new Map(),
+          total: new Map(),
         };
         map.set(nome, l);
       }
       const s = calcularStatus(m as any);
       const id = m.empresa_id;
-      l.total.add(id);
-      if (s === "Enviado ao financeiro") l.financeiro.add(id);
-      else if (s === "Enviado para empresa") l.empresa.add(id);
-      else if (s === "Fora do prazo") l.foraDoPrazo.add(id);
-      else l.aguardando.add(id);
+      const contrato: Contrato = {
+        id,
+        nome: emp?.nome || "Empresa sem nome",
+        codigo: emp?.codigo_contrato ?? null,
+        responsavel: nome,
+      };
+      l.total.set(id, contrato);
+      if (s === "Enviado ao financeiro") l.financeiro.set(id, contrato);
+      else if (s === "Enviado para empresa") l.empresa.set(id, contrato);
+      else if (s === "Fora do prazo") l.foraDoPrazo.set(id, contrato);
+      else l.aguardando.set(id, contrato);
     });
     return Array.from(map.values()).sort((a, b) => b.total.size - a.total.size);
   }, [movs, profilesMap]);
@@ -91,7 +159,8 @@ export function StatusPorUsuarioDialog({ open, onOpenChange, movs, profilesMap, 
         <DialogHeader>
           <DialogTitle>Empresas por status e usuário do Cadastro</DialogTitle>
           <DialogDescription>
-            Competência {mes} · Período {periodo === "all" ? "todos" : periodo}
+            Competência {mes} · Período {periodo === "all" ? "todos" : periodo} · passe o mouse sobre os
+            números para ver os contratos
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[60vh] overflow-y-auto">
@@ -117,15 +186,31 @@ export function StatusPorUsuarioDialog({ open, onOpenChange, movs, profilesMap, 
               {linhas.map((l) => (
                 <TableRow key={l.usuario}>
                   <TableCell className="font-medium">{l.usuario}</TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {l.aguardando.size}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums text-destructive">
-                    {l.foraDoPrazo.size}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums text-warning">{l.empresa.size}</TableCell>
-                  <TableCell className="text-right tabular-nums text-success">{l.financeiro.size}</TableCell>
-                  <TableCell className="text-right tabular-nums font-semibold">{l.total.size}</TableCell>
+                  <CelulaStatus
+                    bucket={l.aguardando}
+                    titulo={`Aguardando — ${l.usuario}`}
+                    className="text-muted-foreground"
+                  />
+                  <CelulaStatus
+                    bucket={l.foraDoPrazo}
+                    titulo={`Fora do prazo — ${l.usuario}`}
+                    className="text-destructive"
+                  />
+                  <CelulaStatus
+                    bucket={l.empresa}
+                    titulo={`Enviado para empresa — ${l.usuario}`}
+                    className="text-warning"
+                  />
+                  <CelulaStatus
+                    bucket={l.financeiro}
+                    titulo={`Enviado ao financeiro — ${l.usuario}`}
+                    className="text-success"
+                  />
+                  <CelulaStatus
+                    bucket={l.total}
+                    titulo={`Todos os contratos — ${l.usuario}`}
+                    className="font-semibold"
+                  />
                 </TableRow>
               ))}
               {linhas.length > 0 && (
