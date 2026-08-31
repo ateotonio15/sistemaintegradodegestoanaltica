@@ -159,8 +159,8 @@ export function StatusPorUsuarioDialog({ open, onOpenChange, movs, profilesMap, 
         <DialogHeader>
           <DialogTitle>Empresas por status e usuário do Cadastro</DialogTitle>
           <DialogDescription>
-            Competência {mes} · Período {periodo === "all" ? "todos" : periodo} · passe o mouse sobre os
-            números para ver os contratos
+            Competência {mes} · Período {periodo === "all" ? "todos" : periodo} · clique nos números para
+            ver os contratos
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[60vh] overflow-y-auto">
