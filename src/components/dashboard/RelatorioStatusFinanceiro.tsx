@@ -321,15 +321,20 @@ export function RelatorioStatusFinanceiro() {
       return v;
     };
     filtradas.forEach((l) => {
-      if (l.data_envio_nota) get(l.usuario_envio || "Não identificado").enviadas += 1;
-      if (l.faturamento_iniciado_em) get(l.usuario_faturamento || "Não identificado").faturamentos += 1;
-      // Todos que anexaram contam, não apenas o último
-      anexadores(l).forEach((nome) => (get(nome).anexos += 1));
+      // Produção = notas emitidas no período pelo usuário
+      if (noPeriodo(l.data_envio_nota)) get(l.usuario_envio || "Não identificado").enviadas += 1;
+      if (noPeriodo(l.faturamento_iniciado_em?.slice(0, 10)))
+        get(l.usuario_faturamento || "Não identificado").faturamentos += 1;
+      // Todos que anexaram no período contam, não apenas o último
+      Array.from(
+        new Set(l.anexos_usuarios.filter((a) => noPeriodo(a.dia)).map((a) => a.nome).filter(Boolean)),
+      ).forEach((nome) => (get(nome).anexos += 1));
     });
     return Array.from(m.entries())
       .map(([usuario, v]) => ({ usuario, ...v }))
+      .filter((u) => u.enviadas > 0 || u.faturamentos > 0 || u.anexos > 0)
       .sort((a, b) => b.enviadas - a.enviadas || a.usuario.localeCompare(b.usuario));
-  }, [filtradas]);
+  }, [filtradas, dataIni, dataFim]);
 
   const empresasPorUsuario = useMemo(() => {
     const m = new Map<string, { faturamentos: LinhaRelatorio[]; anexos: LinhaRelatorio[]; envios: LinhaRelatorio[] }>();
@@ -339,12 +344,16 @@ export function RelatorioStatusFinanceiro() {
       return v;
     };
     filtradas.forEach((l) => {
-      if (l.data_envio_nota) get(l.usuario_envio || "Não identificado").envios.push(l);
-      if (l.faturamento_iniciado_em) get(l.usuario_faturamento || "Não identificado").faturamentos.push(l);
-      anexadores(l).forEach((nome) => get(nome).anexos.push(l));
+      if (noPeriodo(l.data_envio_nota)) get(l.usuario_envio || "Não identificado").envios.push(l);
+      if (noPeriodo(l.faturamento_iniciado_em?.slice(0, 10)))
+        get(l.usuario_faturamento || "Não identificado").faturamentos.push(l);
+      Array.from(
+        new Set(l.anexos_usuarios.filter((a) => noPeriodo(a.dia)).map((a) => a.nome).filter(Boolean)),
+      ).forEach((nome) => get(nome).anexos.push(l));
     });
     return m;
-  }, [filtradas]);
+  }, [filtradas, dataIni, dataFim]);
+
 
 
   /** Movimentações únicas (nota enviada + faturamento + anexo) do usuário selecionado */
