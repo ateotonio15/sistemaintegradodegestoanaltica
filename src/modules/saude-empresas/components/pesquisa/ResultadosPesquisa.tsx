@@ -215,7 +215,9 @@ export function ResultadosPesquisa() {
                     {p.tema ?? "Sem tema"} · {p.data?.split("-").reverse().join("/")}
                   </p>
                 </div>
-                <Badge variant="outline">{p.respostas.size}</Badge>
+                <Badge variant="outline">
+                  {p.respostas.size} {p.respostas.size === 1 ? "pessoa" : "pessoas"}
+                </Badge>
               </div>
             ))}
           </div>
