@@ -123,9 +123,11 @@ export function ResultadosPesquisa() {
   const porPalestra = useMemo(() => {
     const map = new Map<string, { empresa: string; tema: string | null; data: string; origem: string; respostas: Set<string> }>();
     filtrado.forEach((i) => {
-      const key = `${i.origem}|${i.palestra_id}|${i.empresa}|${i.data}`;
+      const emp = nomeEmpresa(i.empresa);
+      const key = `${i.origem}|${i.palestra_id}|${emp}|${i.data}`;
       const cur = map.get(key) ?? {
-        empresa: i.empresa, tema: i.tema, data: i.data, origem: i.origem, respostas: new Set<string>(),
+        empresa: emp, tema: i.tema, data: i.data, origem: i.origem, respostas: new Set<string>(),
+
       };
       cur.respostas.add(i.resposta_id);
       map.set(key, cur);
