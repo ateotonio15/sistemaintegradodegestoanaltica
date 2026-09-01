@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft, QrCode, Copy, Download, Plus, Trash2, ArrowUp, ArrowDown,
-  Save, Star, Lock, Unlock, ClipboardList, BarChart3,
+  Save, Star, Lock, Unlock, ClipboardList, BarChart3, Activity, Building2, CalendarDays, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -125,10 +125,11 @@ export default function PesquisaSatisfacao() {
       </header>
 
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <PesquisaGeralCard
-          titulo="Palestras — QR Code e Link únicos"
-          descricao="Um único QR Code para todas as palestras — o participante informa o nome da empresa ao responder."
+          icone={ClipboardList}
+          titulo="QR Code único · Palestras"
+          descricao="Acesso simplificado para todas as palestras do período — o participante informa a empresa ao responder."
           pesquisa={geral}
           respostas={geral ? contagemGeral[geral.id] ?? 0 : 0}
           canEdit={canEdit}
@@ -141,8 +142,9 @@ export default function PesquisaSatisfacao() {
         />
 
         <PesquisaGeralCard
-          titulo="Ações — QR Code e Link únicos"
-          descricao="QR Code exclusivo das ações de saúde (triagem, preventivas, bioimpedância), com perguntas próprias."
+          icone={Activity}
+          titulo="QR Code único · Ações"
+          descricao="Link direto para as ações in loco: triagem, sinais vitais, preventivas e bioimpedância."
           pesquisa={geralAcoes}
           respostas={geralAcoes ? contagemAcoes[geralAcoes.id] ?? 0 : 0}
           canEdit={canEdit}
@@ -159,23 +161,23 @@ export default function PesquisaSatisfacao() {
 
 
       <Tabs defaultValue="palestras">
-        <TabsList className="h-12 w-full max-w-md gap-1 rounded-xl border border-border/60 bg-muted/40 p-1.5 shadow-sm">
+        <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b border-border bg-transparent p-0">
           <TabsTrigger
             value="palestras"
-            className="flex-1 gap-2 rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+            className="gap-2 rounded-none border-b-2 border-transparent bg-transparent px-6 py-3 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
           >
             <ClipboardList className="h-4 w-4" /> Palestras
           </TabsTrigger>
           <TabsTrigger
             value="resultados"
-            className="flex-1 gap-2 rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+            className="gap-2 rounded-none border-b-2 border-transparent bg-transparent px-6 py-3 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
           >
-            <BarChart3 className="h-4 w-4" /> Resultados
+            <BarChart3 className="h-4 w-4" /> Resultados consolidados
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="palestras" className="space-y-4 mt-4">
-          <Card className="p-4 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -197,15 +199,18 @@ export default function PesquisaSatisfacao() {
                 {empresas.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
               </SelectContent>
             </Select>
-          </Card>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {lista.length} palestra{lista.length === 1 ? "" : "s"} no período
+            </span>
+          </div>
 
           {lista.length === 0 && (
-            <Card className="p-8 text-center text-sm text-muted-foreground">
+            <Card className="border-dashed p-10 text-center text-sm text-muted-foreground">
               Nenhuma palestra cadastrada neste período.
             </Card>
           )}
 
-          <div className="grid gap-3">
+          <div className="grid gap-2.5">
             {lista.map((p: any) => {
               const pes = pesquisaPorPalestra.get(p.id);
               return (
