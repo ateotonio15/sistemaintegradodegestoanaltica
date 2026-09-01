@@ -314,68 +314,102 @@ function PalestraCard({
   const [tema, setTema] = useState(palestra.tema ?? "");
   useEffect(() => setTema(palestra.tema ?? ""), [palestra.tema]);
 
+  const dirty = canEdit && tema !== (palestra.tema ?? "");
+
   return (
-    <Card className="p-4 space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-semibold truncate">{palestra.empresa}</p>
-          <p className="text-xs text-muted-foreground">
-            {format(new Date(`${palestra.data}T12:00:00`), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-          </p>
+    <Card
+      className={`flex flex-col gap-4 rounded-xl border-border/70 p-4 transition-colors md:flex-row md:items-center md:justify-between ${
+        pesquisa && !pesquisa.aberta ? "bg-card/30" : "bg-card/50 hover:bg-card"
+      }`}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-4">
+        <div
+          className={`h-12 w-1 shrink-0 rounded-full ${
+            !pesquisa ? "bg-border" : pesquisa.aberta ? "bg-primary" : "bg-muted-foreground/40"
+          }`}
+        />
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate font-semibold">{palestra.empresa}</p>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                !pesquisa
+                  ? "bg-muted text-muted-foreground"
+                  : pesquisa.aberta
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {!pesquisa ? "Sem pesquisa" : pesquisa.aberta ? "Ativa" : "Encerrada"}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <CalendarDays className="h-3 w-3" />
+              {format(new Date(`${palestra.data}T12:00:00`), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Input
+              value={tema}
+              onChange={(e) => setTema(e.target.value)}
+              placeholder="Tema de saúde do mês (ex: Saúde Mental)"
+              className="h-8 max-w-xs border-transparent bg-muted/40 text-sm hover:border-border focus-visible:border-primary"
+              disabled={!canEdit}
+            />
+            {dirty && (
+              <Button size="sm" variant="secondary" className="h-8" onClick={() => onSalvarTema(palestra.id, tema)}>
+                <Save className="mr-1 h-3.5 w-3.5" /> Salvar
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {pesquisa ? (
-            <>
-              <Badge variant={pesquisa.aberta ? "default" : "secondary"}>
-                {pesquisa.aberta ? "Aberta" : "Encerrada"}
-              </Badge>
-              <Badge variant="outline">{respostas} resposta{respostas === 1 ? "" : "s"}</Badge>
-            </>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-5 md:justify-end">
+        {pesquisa && (
+          <div className="flex flex-col items-start md:items-end">
+            <span className="text-lg font-bold leading-tight">{respostas}</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Respostas
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5">
+          {!pesquisa ? (
+            <Button size="sm" onClick={onGerar} disabled={!canEdit}>
+              <QrCode className="mr-2 h-4 w-4" /> Gerar QR Code
+            </Button>
           ) : (
-            <Badge variant="outline">Sem pesquisa</Badge>
+            <>
+              <Button size="icon" variant="ghost" className="h-9 w-9" title="QR Code e link" onClick={onQr}>
+                <QrCode className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9"
+                title="Perguntas"
+                onClick={onEditarPerguntas}
+                disabled={!canEdit}
+              >
+                <ClipboardList className="h-4 w-4" />
+              </Button>
+              <div className="mx-1 h-6 w-px bg-border" />
+              <Button size="sm" variant="outline" className="h-9" onClick={onToggle} disabled={!canEdit}>
+                {pesquisa.aberta
+                  ? <><Lock className="mr-1.5 h-3.5 w-3.5" /> Encerrar</>
+                  : <><Unlock className="mr-1.5 h-3.5 w-3.5" /> Reabrir</>}
+              </Button>
+            </>
           )}
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={tema}
-          onChange={(e) => setTema(e.target.value)}
-          placeholder="Tema de saúde do mês (ex: Saúde Mental)"
-          className="max-w-sm"
-          disabled={!canEdit}
-        />
-        {canEdit && tema !== (palestra.tema ?? "") && (
-          <Button size="sm" variant="secondary" onClick={() => onSalvarTema(palestra.id, tema)}>
-            <Save className="h-4 w-4 mr-1" /> Salvar tema
-          </Button>
-        )}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {!pesquisa ? (
-          <Button size="sm" onClick={onGerar} disabled={!canEdit}>
-            <QrCode className="h-4 w-4 mr-1" /> Gerar QR Code e Link
-          </Button>
-        ) : (
-          <>
-            <Button size="sm" onClick={onQr}>
-              <QrCode className="h-4 w-4 mr-1" /> QR Code e Link
-            </Button>
-            <Button size="sm" variant="outline" onClick={onEditarPerguntas} disabled={!canEdit}>
-              <ClipboardList className="h-4 w-4 mr-1" /> Perguntas
-            </Button>
-            <Button size="sm" variant="ghost" onClick={onToggle} disabled={!canEdit}>
-              {pesquisa.aberta
-                ? <><Lock className="h-4 w-4 mr-1" /> Encerrar</>
-                : <><Unlock className="h-4 w-4 mr-1" /> Reabrir</>}
-            </Button>
-          </>
-        )}
       </div>
     </Card>
   );
 }
+
 
 function QrDialog({ data, onClose }: { data: any; onClose: () => void }) {
   const [png, setPng] = useState<string>("");
