@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
   BarChart, Bar,
 } from "recharts";
@@ -90,23 +90,6 @@ export function ResultadosPesquisa() {
     ? (notas.reduce((a, b) => a + (b.valor_nota ?? 0), 0) / notas.length).toFixed(2)
     : "—";
 
-  const porMes = useMemo(() => {
-    const map = new Map<string, { soma: number; n: number; pessoas: Set<string> }>();
-    notas.forEach((i) => {
-      const k = mesKey(i.data);
-      const cur = map.get(k) ?? { soma: 0, n: 0, pessoas: new Set<string>() };
-      cur.pessoas.add(i.resposta_id);
-      map.set(k, { soma: cur.soma + (i.valor_nota ?? 0), n: cur.n + 1, pessoas: cur.pessoas });
-    });
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, v]) => ({
-        mes: mesLabel(k),
-        media: Number((v.soma / v.n).toFixed(2)),
-        pessoas: v.pessoas.size,
-      }));
-  }, [notas]);
-
   const porEmpresa = useMemo(() => {
     const map = new Map<string, { label: string; soma: number; n: number; pessoas: Set<string> }>();
     notas.forEach((i) => {
@@ -128,11 +111,6 @@ export function ResultadosPesquisa() {
       .sort((a, b) => b.pessoas - a.pessoas || b.media - a.media)
       .slice(0, 12);
   }, [notas, canonico]);
-
-  const porEmpresaMedia = useMemo(
-    () => [...porEmpresa].sort((a, b) => b.media - a.media),
-    [porEmpresa],
-  );
 
 
 
@@ -221,102 +199,43 @@ export function ResultadosPesquisa() {
         </div>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold">Satisfação por mês</p>
-            <span className="text-xs text-muted-foreground">{totalRespostas} avaliações</span>
-          </div>
-          <div style={{ width: "100%", height: 220 }}>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={porMes} margin={{ top: 5, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={28} />
-                <RTooltip
-                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                  formatter={(v: any, n: any, p: any) => [`${v} · ${p?.payload?.pessoas ?? 0} pessoas`, n]}
-                />
-                <Line type="monotone" dataKey="media" name="Média" stroke="#2a78d6" strokeWidth={2} dot />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold">Satisfação por empresa</p>
-            <Badge variant="outline" className="text-[11px]">
-              {porEmpresa.reduce((s, e) => s + e.pessoas, 0)} pessoas · {porEmpresa.length} empresas
-            </Badge>
-          </div>
-          {porEmpresa.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma avaliação no filtro atual.</p>
-          ) : (
-            <div className="space-y-3 max-h-[260px] overflow-auto pr-1">
-              {porEmpresa.map((e) => (
-                <div key={e.empresa} className="space-y-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-xs font-medium truncate" title={e.empresa}>{e.empresa}</span>
-                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                      {e.pessoas} {e.pessoas === 1 ? "pessoa" : "pessoas"} · <span className="text-foreground font-semibold">{e.media}</span>/5
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${Math.max(4, (e.media / 5) * 100)}%` }}
-                    />
-                  </div>
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold">Satisfação por empresa</p>
+          <Badge variant="outline" className="text-[11px]">
+            {porEmpresa.reduce((s, e) => s + e.pessoas, 0)} pessoas · {porEmpresa.length} empresas
+          </Badge>
+        </div>
+        {porEmpresa.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhuma avaliação no filtro atual.</p>
+        ) : (
+          <div className="space-y-3 max-h-[260px] overflow-auto pr-1">
+            {porEmpresa.map((e) => (
+              <div key={e.empresa} className="space-y-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-xs font-medium truncate" title={e.empresa}>{e.empresa}</span>
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    {e.pessoas} {e.pessoas === 1 ? "pessoa" : "pessoas"} · <span className="text-foreground font-semibold">{e.media}</span>/5
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${Math.max(4, (e.media / 5) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
-
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard
-          title="Média por empresa"
-          subtitle="Nota média de satisfação (0 a 5)"
-          empty={porEmpresaMedia.length === 0}
-          height={260}
-        >
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={porEmpresaMedia} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-              <XAxis type="number" domain={[0, 5]} hide />
-              <YAxis
-                type="category"
-                dataKey="empresa"
-                width={130}
-                tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <RTooltip
-                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: any) => [`${v}/5`, "Média"]}
-              />
-              <Bar
-                dataKey="media"
-                name="Média"
-                fill="hsl(var(--primary))"
-                radius={[0, 4, 4, 0]}
-                label={{ position: "right", formatter: (v: number) => v, fontSize: 10, fill: "hsl(var(--foreground))" }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="Quantidade de pessoas por empresa"
-          subtitle="Avaliadores únicos"
-          empty={porEmpresa.length === 0}
-          height={260}
-        >
+      <ChartCard
+        title="Quantidade de pessoas por empresa"
+        subtitle="Avaliadores únicos"
+        empty={porEmpresa.length === 0}
+        height={260}
+      >
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={porEmpresa} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 5 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
@@ -343,7 +262,6 @@ export function ResultadosPesquisa() {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-      </div>
 
       <Card className="p-4">
         <p className="text-sm font-semibold mb-3">Respostas por palestra / ação</p>
