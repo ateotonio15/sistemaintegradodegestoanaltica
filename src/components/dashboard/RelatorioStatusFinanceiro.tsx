@@ -126,24 +126,39 @@ export function RelatorioStatusFinanceiro() {
     refetchInterval: 60_000,
     queryKey: ["fin-relatorio-status", dataIni, dataFim],
     queryFn: async (): Promise<LinhaRelatorio[]> => {
-      const { data: fins, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select(
-          "id, empresa_id, mes_referencia, periodo, tipo_cobranca, tipo_analise, data_envio_nota, data_vencimento, dia_emissao, aguardando_nota_em, faturamento_iniciado_em, faturamento_iniciado_por, faturamento_iniciado_por_nome, enviado_por_user_id, dentro_prazo, updated_at",
-        )
-        .limit(20000);
-      if (error) throw error;
-      const rows = fins ?? [];
+      // Paginação: o backend limita 1000 linhas por requisição
+      const COLS =
+        "id, empresa_id, mes_referencia, periodo, tipo_cobranca, tipo_analise, data_envio_nota, data_vencimento, dia_emissao, aguardando_nota_em, faturamento_iniciado_em, faturamento_iniciado_por, faturamento_iniciado_por_nome, enviado_por_user_id, dentro_prazo, updated_at";
+      const rows: any[] = [];
+      const PAGE = 1000;
+      for (let offset = 0; ; offset += PAGE) {
+        const { data: page, error } = await supabase
+          .from("financeiro_movimentacoes")
+          .select(COLS)
+          .order("id", { ascending: true })
+          .range(offset, offset + PAGE - 1);
+        if (error) throw error;
+        rows.push(...(page ?? []));
+        if (!page || page.length < PAGE || offset > 50_000) break;
+      }
+
 
       const ids = rows.map((r: any) => r.id);
       const anexosAll: any[] = [];
-      for (let i = 0; i < ids.length; i += 500) {
-        const { data: anx } = await supabase
-          .from("anexos_financeiro")
-          .select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem, created_at, uploaded_by")
-          .in("financeiro_movimentacao_id", ids.slice(i, i + 500));
-        (anx ?? []).forEach((a: any) => anexosAll.push(a));
+      for (let i = 0; i < ids.length; i += 300) {
+        const chunk = ids.slice(i, i + 300);
+        for (let off = 0; ; off += PAGE) {
+          const { data: anx } = await supabase
+            .from("anexos_financeiro")
+            .select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem, created_at, uploaded_by")
+            .in("financeiro_movimentacao_id", chunk)
+            .order("created_at", { ascending: true })
+            .range(off, off + PAGE - 1);
+          (anx ?? []).forEach((a: any) => anexosAll.push(a));
+          if (!anx || anx.length < PAGE) break;
+        }
       }
+
       // Anexos compartilhados no Grupo Financeiro valem para todos os contratos do grupo
       const empresaGrupo = await fetchEmpresaGrupoMap(supabase as any);
       const anexosPorMov = expandirAnexosPorGrupo(rows as any, anexosAll, empresaGrupo) as Map<
@@ -152,19 +167,30 @@ export function RelatorioStatusFinanceiro() {
       >;
 
 
-      const { data: emps } = await supabase
-        .from("empresas")
-        .select("id, nome, codigo_contrato, exige_po_pc");
-      const empMap = new Map((emps ?? []).map((e: any) => [e.id, e]));
+      const empsAll: any[] = [];
+      for (let off = 0; ; off += PAGE) {
+        const { data: emps } = await supabase
+          .from("empresas")
+          .select("id, nome, codigo_contrato, exige_po_pc")
+          .order("id", { ascending: true })
+          .range(off, off + PAGE - 1);
+        (emps ?? []).forEach((e: any) => empsAll.push(e));
+        if (!emps || emps.length < PAGE) break;
+      }
+      const empMap = new Map(empsAll.map((e: any) => [e.id, e]));
 
-      const { data: ops } = await supabase
-        .from("movimentacoes")
-        .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
-        .not("data_envio_financeiro", "is", null)
-        .limit(20000);
-      const envioSet = new Set(
-        (ops ?? []).map((m: any) => `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`),
-      );
+      const envioSet = new Set<string>();
+      for (let off = 0; ; off += PAGE) {
+        const { data: ops } = await supabase
+          .from("movimentacoes")
+          .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
+          .not("data_envio_financeiro", "is", null)
+          .order("id", { ascending: true })
+          .range(off, off + PAGE - 1);
+        (ops ?? []).forEach((m: any) => envioSet.add(`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`));
+        if (!ops || ops.length < PAGE || off > 50_000) break;
+      }
+
 
       const userIds = Array.from(
         new Set(
