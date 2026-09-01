@@ -469,6 +469,20 @@ export default function Financeiro() {
     return m;
   }, [financeiroRaw, empresasMap, pagadoresCadastradosMap]);
 
+  // Todos os CNPJs reconhecidos por algum contrato da competência.
+  // Usado para só descartar um anexo próprio quando o CNPJ detectado nele
+  // pertence de fato a OUTRO contrato (ex.: planilha da Tec Toy anexada no
+  // Callidus). Se o CNPJ não é de nenhum outro contrato — caso comum de
+  // planilha emitida em nome de outra razão social do mesmo cliente —
+  // o anexo continua sendo analisado.
+  const cnpjsReconhecidos = useMemo(() => {
+    const s = new Set<string>();
+    cnpjsPorContrato.forEach((set) => set.forEach((c) => s.add(c)));
+    return s;
+  }, [cnpjsPorContrato]);
+
+
+
   // Mapa: para cada movimentação, o user_id de quem anexou o PDF mais recente
   const pdfUploaderByMov = useMemo(() => {
     const map: Record<string, string> = {};
