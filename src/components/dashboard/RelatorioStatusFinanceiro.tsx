@@ -321,15 +321,20 @@ export function RelatorioStatusFinanceiro() {
       return v;
     };
     filtradas.forEach((l) => {
-      if (l.data_envio_nota) get(l.usuario_envio || "Não identificado").enviadas += 1;
-      if (l.faturamento_iniciado_em) get(l.usuario_faturamento || "Não identificado").faturamentos += 1;
-      // Todos que anexaram contam, não apenas o último
-      anexadores(l).forEach((nome) => (get(nome).anexos += 1));
+      // Produção = notas emitidas no período pelo usuário
+      if (noPeriodo(l.data_envio_nota)) get(l.usuario_envio || "Não identificado").enviadas += 1;
+      if (noPeriodo(l.faturamento_iniciado_em?.slice(0, 10)))
+        get(l.usuario_faturamento || "Não identificado").faturamentos += 1;
+      // Todos que anexaram no período contam, não apenas o último
+      Array.from(
+        new Set(l.anexos_usuarios.filter((a) => noPeriodo(a.dia)).map((a) => a.nome).filter(Boolean)),
+      ).forEach((nome) => (get(nome).anexos += 1));
     });
     return Array.from(m.entries())
       .map(([usuario, v]) => ({ usuario, ...v }))
+      .filter((u) => u.enviadas > 0 || u.faturamentos > 0 || u.anexos > 0)
       .sort((a, b) => b.enviadas - a.enviadas || a.usuario.localeCompare(b.usuario));
-  }, [filtradas]);
+  }, [filtradas, dataIni, dataFim]);
 
   const empresasPorUsuario = useMemo(() => {
     const m = new Map<string, { faturamentos: LinhaRelatorio[]; anexos: LinhaRelatorio[]; envios: LinhaRelatorio[] }>();
@@ -339,12 +344,16 @@ export function RelatorioStatusFinanceiro() {
       return v;
     };
     filtradas.forEach((l) => {
-      if (l.data_envio_nota) get(l.usuario_envio || "Não identificado").envios.push(l);
-      if (l.faturamento_iniciado_em) get(l.usuario_faturamento || "Não identificado").faturamentos.push(l);
-      anexadores(l).forEach((nome) => get(nome).anexos.push(l));
+      if (noPeriodo(l.data_envio_nota)) get(l.usuario_envio || "Não identificado").envios.push(l);
+      if (noPeriodo(l.faturamento_iniciado_em?.slice(0, 10)))
+        get(l.usuario_faturamento || "Não identificado").faturamentos.push(l);
+      Array.from(
+        new Set(l.anexos_usuarios.filter((a) => noPeriodo(a.dia)).map((a) => a.nome).filter(Boolean)),
+      ).forEach((nome) => get(nome).anexos.push(l));
     });
     return m;
-  }, [filtradas]);
+  }, [filtradas, dataIni, dataFim]);
+
 
 
   /** Movimentações únicas (nota enviada + faturamento + anexo) do usuário selecionado */
@@ -597,14 +606,14 @@ export function RelatorioStatusFinanceiro() {
     wsUser.getCell("C1").fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
     wsUser.addRow([]).height = 8;
 
-    const hdrUser = wsUser.addRow(["Usuário", "Faturamentos", "Anexos"]);
+    const hdrUser = wsUser.addRow(["Usuário", "Notas emitidas", "Faturamentos", "Anexos"]);
     hdrUser.height = 18;
     hdrUser.eachCell((cell) => {
       cell.font = { size: 10, bold: true, color: { argb: CINZA } };
       cell.alignment = { vertical: "middle", indent: 1 };
     });
     porUsuario.forEach((u) => {
-      const row = wsUser.addRow([u.usuario, u.faturamentos, u.anexos]);
+      const row = wsUser.addRow([u.usuario, u.enviadas, u.faturamentos, u.anexos]);
       row.height = 20;
       row.eachCell((cell, col) => {
         cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
@@ -756,8 +765,8 @@ export function RelatorioStatusFinanceiro() {
     // Por usuário
     autoTable(doc, {
       startY: y,
-      head: [["Usuário", "Faturamentos", "Anexos"]],
-      body: porUsuario.map((u) => [u.usuario, String(u.faturamentos), String(u.anexos)]),
+      head: [["Usuário", "Notas emitidas", "Faturamentos", "Anexos"]],
+      body: porUsuario.map((u) => [u.usuario, String(u.enviadas), String(u.faturamentos), String(u.anexos)]),
       theme: "plain",
       styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
       headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 9 },
@@ -1028,6 +1037,7 @@ export function RelatorioStatusFinanceiro() {
               <div className="px-4 py-3 bg-muted/50 border-b">
                 <p className="text-sm font-semibold">Produção por usuário</p>
                 <p className="text-sm text-muted-foreground leading-snug">
+                  <strong>Notas emitidas</strong> = notas que ele emitiu no período ·{" "}
                   <strong>Faturamentos</strong> = faturamentos que ele iniciou · <strong>Anexos</strong> = arquivos
                   que ele subiu.
                 </p>
@@ -1037,6 +1047,7 @@ export function RelatorioStatusFinanceiro() {
                   <thead className="text-muted-foreground sticky top-0 bg-card">
                     <tr className="border-b">
                       <th className="text-left px-4 py-2 font-medium">Usuário</th>
+                      <th className="text-right px-4 py-2 font-medium">Notas emitidas</th>
                       <th className="text-right px-4 py-2 font-medium">Faturamentos</th>
                       <th className="text-right px-4 py-2 font-medium">Anexos</th>
                     </tr>
@@ -1049,8 +1060,10 @@ export function RelatorioStatusFinanceiro() {
                         onClick={() => setUsuarioDialog(u.usuario)}
                       >
                         <td className="px-4 py-2 truncate max-w-[200px]">{u.usuario}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-foreground">{u.enviadas}</td>
                         <td className="px-4 py-2 text-right">{u.faturamentos}</td>
                         <td className="px-4 py-2 text-right">{u.anexos}</td>
+
                       </tr>
                     ))}
                   </tbody>
