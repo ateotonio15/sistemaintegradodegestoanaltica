@@ -685,10 +685,11 @@ export default function Financeiro() {
           // (CNPJ ou token significativo do nome da empresa).
           return matchPorNomeArquivo(a.nome_arquivo);
         }
-        // próprio: se o CNPJ já foi detectado e NÃO pertence a este contrato, ignora
+        // próprio: só ignora se o CNPJ detectado pertence a OUTRO contrato
         if (cnpjsDoArquivo && cnpjsDoArquivo.size > 0) {
           for (const c of cnpjsDoArquivo) if (cnpjsDoContrato.has(c)) return true;
-          return false;
+          for (const c of cnpjsDoArquivo) if (cnpjsReconhecidos.has(c)) return false;
+          return true;
         }
         return true;
       });
