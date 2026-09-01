@@ -283,7 +283,6 @@ export function ResultadosPesquisa() {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-      </div>
 
       <Card className="p-4">
         <p className="text-sm font-semibold mb-3">Respostas por palestra / ação</p>
