@@ -125,7 +125,7 @@ export default function PesquisaSatisfacao() {
       </header>
 
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <PesquisaGeralCard
           icone={ClipboardList}
           titulo="QR Code único · Palestras"
@@ -157,7 +157,28 @@ export default function PesquisaSatisfacao() {
           }
           onToggle={() => geralAcoes && toggle.mutate({ id: geralAcoes.id, aberta: !geralAcoes.aberta })}
         />
+
+        <PesquisaGeralCard
+          icone={Tablet}
+          titulo="Modo Tablet · Palestras"
+          descricao="Link/QR para o tablet da enfermeira: informa a empresa uma vez e o formulário se repete a cada beneficiário."
+          pesquisa={geral}
+          respostas={geral ? contagemGeral[geral.id] ?? 0 : 0}
+          canEdit={canEdit}
+          onCriar={() => criarGeral.mutate()}
+          onQr={() =>
+            setQrPalestra({
+              empresa: "Modo Tablet",
+              tema: "Palestras de Saúde",
+              pesquisa: geral,
+              tablet: true,
+            })
+          }
+          onPerguntas={() => geral && setEditando({ pesquisaId: geral.id, titulo: "Pesquisa geral — Palestras" })}
+          onToggle={() => geral && toggle.mutate({ id: geral.id, aberta: !geral.aberta })}
+        />
       </div>
+
 
 
       <Tabs defaultValue="palestras">
