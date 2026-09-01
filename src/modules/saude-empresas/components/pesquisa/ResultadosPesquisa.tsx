@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LabelList,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,21 +83,26 @@ export function ResultadosPesquisa() {
   }, [notas]);
 
   const porEmpresa = useMemo(() => {
-    const map = new Map<string, { soma: number; n: number; pessoas: Set<string> }>();
+    const map = new Map<string, { label: string; soma: number; n: number; pessoas: Set<string> }>();
     notas.forEach((i) => {
-      const cur = map.get(i.empresa) ?? { soma: 0, n: 0, pessoas: new Set<string>() };
+      const label = (i.empresa ?? "").trim();
+      const key = label.toLowerCase().replace(/\s+/g, " ");
+      const cur = map.get(key) ?? { label, soma: 0, n: 0, pessoas: new Set<string>() };
       cur.pessoas.add(i.resposta_id);
-      map.set(i.empresa, { soma: cur.soma + (i.valor_nota ?? 0), n: cur.n + 1, pessoas: cur.pessoas });
+      cur.soma += i.valor_nota ?? 0;
+      cur.n += 1;
+      map.set(key, cur);
     });
-    return Array.from(map.entries())
-      .map(([k, v]) => ({
-        empresa: k,
+    return Array.from(map.values())
+      .map((v) => ({
+        empresa: v.label,
         media: Number((v.soma / v.n).toFixed(2)),
         pessoas: v.pessoas.size,
       }))
-      .sort((a, b) => b.media - a.media)
+      .sort((a, b) => b.pessoas - a.pessoas || b.media - a.media)
       .slice(0, 12);
   }, [notas]);
+
 
   const porPalestra = useMemo(() => {
     const map = new Map<string, { empresa: string; tema: string | null; data: string; respostas: Set<string> }>();
@@ -185,37 +190,34 @@ export function ResultadosPesquisa() {
         <Card className="p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold">Satisfação por empresa</p>
-            <span className="text-xs text-muted-foreground">
-              {porEmpresa.reduce((s, e) => s + e.pessoas, 0)} pessoas
-            </span>
+            <Badge variant="outline" className="text-[11px]">
+              {porEmpresa.reduce((s, e) => s + e.pessoas, 0)} pessoas · {porEmpresa.length} empresas
+            </Badge>
           </div>
-          <div style={{ width: "100%", height: 220 }}>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={porEmpresa} margin={{ top: 5, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="empresa" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={50} />
-                <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={28} />
-                <RTooltip
-                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                  formatter={(v: any, n: any, p: any) => [`${v} · ${p?.payload?.pessoas ?? 0} pessoas`, n]}
-                />
-                <Bar dataKey="media" name="Média" fill="#2a78d6" radius={[4, 4, 0, 0]}>
-                  <LabelList dataKey="pessoas" position="top" formatter={(v: any) => `${v}`} style={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-3 space-y-1 max-h-40 overflow-auto">
-            {porEmpresa.map((e) => (
-              <div key={e.empresa} className="flex items-center justify-between text-xs">
-                <span className="truncate pr-2">{e.empresa}</span>
-                <span className="text-muted-foreground whitespace-nowrap">
-                  {e.pessoas} {e.pessoas === 1 ? "pessoa" : "pessoas"} · média {e.media}
-                </span>
-              </div>
-            ))}
-          </div>
+          {porEmpresa.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma avaliação no filtro atual.</p>
+          ) : (
+            <div className="space-y-3 max-h-[260px] overflow-auto pr-1">
+              {porEmpresa.map((e) => (
+                <div key={e.empresa} className="space-y-1">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-xs font-medium truncate" title={e.empresa}>{e.empresa}</span>
+                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                      {e.pessoas} {e.pessoas === 1 ? "pessoa" : "pessoas"} · <span className="text-foreground font-semibold">{e.media}</span>/5
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${Math.max(4, (e.media / 5) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
+
 
       </div>
 
