@@ -61,10 +61,11 @@ export function ResultadosPesquisa() {
       itens.filter(
         (i) =>
           (origem === "all" || i.origem === origem) &&
-          (empresa === "all" || i.empresa === empresa) &&
+          (empresa === "all" || nomeEmpresa(i.empresa) === empresa) &&
           (periodo === "all" || mesKey(i.data) === periodo),
       ),
-    [itens, empresa, periodo, origem],
+    [itens, empresa, periodo, origem, canonico],
+
   );
 
   const totalRespostas = useMemo(
