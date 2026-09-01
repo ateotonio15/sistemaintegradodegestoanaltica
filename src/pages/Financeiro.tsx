@@ -469,6 +469,20 @@ export default function Financeiro() {
     return m;
   }, [financeiroRaw, empresasMap, pagadoresCadastradosMap]);
 
+  // Todos os CNPJs reconhecidos por algum contrato da competência.
+  // Usado para só descartar um anexo próprio quando o CNPJ detectado nele
+  // pertence de fato a OUTRO contrato (ex.: planilha da Tec Toy anexada no
+  // Callidus). Se o CNPJ não é de nenhum outro contrato — caso comum de
+  // planilha emitida em nome de outra razão social do mesmo cliente —
+  // o anexo continua sendo analisado.
+  const cnpjsReconhecidos = useMemo(() => {
+    const s = new Set<string>();
+    cnpjsPorContrato.forEach((set) => set.forEach((c) => s.add(c)));
+    return s;
+  }, [cnpjsPorContrato]);
+
+
+
   // Mapa: para cada movimentação, o user_id de quem anexou o PDF mais recente
   const pdfUploaderByMov = useMemo(() => {
     const map: Record<string, string> = {};
@@ -671,10 +685,11 @@ export default function Financeiro() {
           // (CNPJ ou token significativo do nome da empresa).
           return matchPorNomeArquivo(a.nome_arquivo);
         }
-        // próprio: se o CNPJ já foi detectado e NÃO pertence a este contrato, ignora
+        // próprio: só ignora se o CNPJ detectado pertence a OUTRO contrato
         if (cnpjsDoArquivo && cnpjsDoArquivo.size > 0) {
           for (const c of cnpjsDoArquivo) if (cnpjsDoContrato.has(c)) return true;
-          return false;
+          for (const c of cnpjsDoArquivo) if (cnpjsReconhecidos.has(c)) return false;
+          return true;
         }
         return true;
       });
@@ -1609,7 +1624,9 @@ export default function Financeiro() {
       }
       if (cnpjsDoArquivo && cnpjsDoArquivo.size > 0) {
         for (const c of cnpjsDoArquivo) if (cnpjsDoContratoAnalise.has(c)) return true;
-        return false;
+        // Só descarta se o CNPJ pertence a OUTRO contrato da competência.
+        for (const c of cnpjsDoArquivo) if (cnpjsReconhecidos.has(c)) return false;
+        return true;
       }
       return true;
     };
