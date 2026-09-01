@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useResultadosPesquisas } from "../../hooks/usePesquisas";
+import { unificarEmpresas } from "@/lib/empresa-nome-similar";
+
 
 const MESES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const PIE_COLORS = ["#2a78d6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#8a8a8a"];
@@ -24,13 +26,25 @@ export function ResultadosPesquisa() {
   const [periodo, setPeriodo] = useState("all");
   const [origem, setOrigem] = useState("all");
 
-  const empresas = useMemo(
-    () =>
-      (Array.from(new Set(itens.map((i) => (i.empresa ?? "").trim()))) as string[])
-        .filter(Boolean)
-        .sort(),
+  // Unifica nomes parecidos ("Vitória regia" = "Indústrias Reunidas Vitória Régia LTDA")
+  const canonico = useMemo(
+    () => unificarEmpresas(itens.map((i) => (i.empresa ?? "").trim())),
     [itens],
   );
+  const nomeEmpresa = (v?: string | null) => {
+    const raw = (v ?? "").trim();
+    return canonico.get(raw) ?? raw;
+  };
+
+  const empresas = useMemo(
+    () =>
+      Array.from(new Set<string>(itens.map((i) => nomeEmpresa(i.empresa))))
+        .filter(Boolean)
+        .sort(),
+
+    [itens, canonico],
+  );
+
   const periodos = useMemo(() => {
     const set = new Set<string>(
       itens.map((i) => mesKey(i.data)).filter((p): p is string => !!p),
@@ -50,10 +64,11 @@ export function ResultadosPesquisa() {
       itens.filter(
         (i) =>
           (origem === "all" || i.origem === origem) &&
-          (empresa === "all" || i.empresa === empresa) &&
+          (empresa === "all" || nomeEmpresa(i.empresa) === empresa) &&
           (periodo === "all" || mesKey(i.data) === periodo),
       ),
-    [itens, empresa, periodo, origem],
+    [itens, empresa, periodo, origem, canonico],
+
   );
 
   const totalRespostas = useMemo(
@@ -87,8 +102,9 @@ export function ResultadosPesquisa() {
   const porEmpresa = useMemo(() => {
     const map = new Map<string, { label: string; soma: number; n: number; pessoas: Set<string> }>();
     notas.forEach((i) => {
-      const label = (i.empresa ?? "").trim();
-      const key = label.toLowerCase().replace(/\s+/g, " ");
+      const label = nomeEmpresa(i.empresa);
+      if (!label) return;
+      const key = label.toLowerCase();
       const cur = map.get(key) ?? { label, soma: 0, n: 0, pessoas: new Set<string>() };
       cur.pessoas.add(i.resposta_id);
       cur.soma += i.valor_nota ?? 0;
@@ -103,15 +119,18 @@ export function ResultadosPesquisa() {
       }))
       .sort((a, b) => b.pessoas - a.pessoas || b.media - a.media)
       .slice(0, 12);
-  }, [notas]);
+  }, [notas, canonico]);
+
 
 
   const porPalestra = useMemo(() => {
     const map = new Map<string, { empresa: string; tema: string | null; data: string; origem: string; respostas: Set<string> }>();
     filtrado.forEach((i) => {
-      const key = `${i.origem}|${i.palestra_id}|${i.empresa}|${i.data}`;
+      const emp = nomeEmpresa(i.empresa);
+      const key = `${i.origem}|${i.palestra_id}|${emp}|${i.data}`;
       const cur = map.get(key) ?? {
-        empresa: i.empresa, tema: i.tema, data: i.data, origem: i.origem, respostas: new Set<string>(),
+        empresa: emp, tema: i.tema, data: i.data, origem: i.origem, respostas: new Set<string>(),
+
       };
       cur.respostas.add(i.resposta_id);
       map.set(key, cur);
