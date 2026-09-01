@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LabelList,
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -183,7 +183,12 @@ export function ResultadosPesquisa() {
         </Card>
 
         <Card className="p-4">
-          <p className="text-sm font-semibold mb-3">Satisfação por empresa</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold">Satisfação por empresa</p>
+            <span className="text-xs text-muted-foreground">
+              {porEmpresa.reduce((s, e) => s + e.pessoas, 0)} pessoas
+            </span>
+          </div>
           <div style={{ width: "100%", height: 220 }}>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={porEmpresa} margin={{ top: 5, right: 8, bottom: 0, left: 0 }}>
@@ -194,11 +199,24 @@ export function ResultadosPesquisa() {
                   contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                   formatter={(v: any, n: any, p: any) => [`${v} · ${p?.payload?.pessoas ?? 0} pessoas`, n]}
                 />
-                <Bar dataKey="media" name="Média" fill="#2a78d6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="media" name="Média" fill="#2a78d6" radius={[4, 4, 0, 0]}>
+                  <LabelList dataKey="pessoas" position="top" formatter={(v: any) => `${v}`} style={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <div className="mt-3 space-y-1 max-h-40 overflow-auto">
+            {porEmpresa.map((e) => (
+              <div key={e.empresa} className="flex items-center justify-between text-xs">
+                <span className="truncate pr-2">{e.empresa}</span>
+                <span className="text-muted-foreground whitespace-nowrap">
+                  {e.pessoas} {e.pessoas === 1 ? "pessoa" : "pessoas"} · média {e.media}
+                </span>
+              </div>
+            ))}
+          </div>
         </Card>
+
       </div>
 
       <Card className="p-4">
