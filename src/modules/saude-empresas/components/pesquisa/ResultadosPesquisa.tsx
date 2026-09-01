@@ -13,8 +13,9 @@ const PIE_COLORS = ["#2a78d6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#8a8
 
 const mesKey = (iso: string) => (iso ?? "").slice(0, 7);
 const mesLabel = (key: string) => {
-  const [a, m] = key.split("-");
-  return `${MESES_CURTO[Number(m) - 1] ?? m}/${a?.slice(2)}`;
+  const [a, m] = (key ?? "").split("-");
+  if (!a || !m) return "—";
+  return `${MESES_CURTO[Number(m) - 1] ?? m}/${a.slice(2)}`;
 };
 
 export function ResultadosPesquisa() {
