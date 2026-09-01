@@ -166,6 +166,7 @@ const AppRoutes = () => (
     
     <Route path="/carteira-samel/avaliacoes/rh/responder/:formId" element={<CSResponderRH />} />
     <Route path="/avaliar/:token" element={<CSResponderToken />} />
+    <Route path="/pesquisa/tablet/:token" element={<PesquisaTablet />} />
     <Route path="/pesquisa/:token" element={<ResponderPesquisa />} />
     <Route element={<AppShell />}>
       <Route path="/portal" element={<Portal />} />
