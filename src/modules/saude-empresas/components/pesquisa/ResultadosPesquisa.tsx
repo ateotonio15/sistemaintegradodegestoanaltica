@@ -24,13 +24,24 @@ export function ResultadosPesquisa() {
   const [periodo, setPeriodo] = useState("all");
   const [origem, setOrigem] = useState("all");
 
-  const empresas = useMemo(
-    () =>
-      (Array.from(new Set(itens.map((i) => (i.empresa ?? "").trim()))) as string[])
-        .filter(Boolean)
-        .sort(),
+  // Unifica nomes parecidos ("Vitória regia" = "Indústrias Reunidas Vitória Régia LTDA")
+  const canonico = useMemo(
+    () => unificarEmpresas(itens.map((i) => (i.empresa ?? "").trim())),
     [itens],
   );
+  const nomeEmpresa = (v?: string | null) => {
+    const raw = (v ?? "").trim();
+    return canonico.get(raw) ?? raw;
+  };
+
+  const empresas = useMemo(
+    () =>
+      Array.from(new Set(itens.map((i) => nomeEmpresa(i.empresa))))
+        .filter(Boolean)
+        .sort(),
+    [itens, canonico],
+  );
+
   const periodos = useMemo(() => {
     const set = new Set<string>(
       itens.map((i) => mesKey(i.data)).filter((p): p is string => !!p),
