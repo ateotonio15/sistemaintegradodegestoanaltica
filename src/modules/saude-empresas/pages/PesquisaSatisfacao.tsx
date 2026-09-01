@@ -99,18 +99,31 @@ export default function PesquisaSatisfacao() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-5">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/saude-empresas"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link>
-        </Button>
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Pesquisa de Satisfação</h1>
-          <p className="text-sm text-muted-foreground">
-            Avaliação dos participantes após as palestras de saúde
-          </p>
+    <div className="p-4 md:p-8 space-y-8 max-w-6xl mx-auto">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" asChild className="shrink-0">
+            <Link to="/saude-empresas" aria-label="Voltar"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Pesquisa de Satisfação</h1>
+            <p className="text-sm text-muted-foreground">
+              Gerencie o feedback e o engajamento das palestras e ações de saúde.
+            </p>
+          </div>
         </div>
-      </div>
+        <div className="flex items-center gap-3 text-xs">
+          <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Respostas · Palestras</p>
+            <p className="text-base font-bold">{geral ? contagemGeral[geral.id] ?? 0 : 0}</p>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Respostas · Ações</p>
+            <p className="text-base font-bold">{geralAcoes ? contagemAcoes[geralAcoes.id] ?? 0 : 0}</p>
+          </div>
+        </div>
+      </header>
+
 
       <div className="grid gap-3 lg:grid-cols-2">
         <PesquisaGeralCard
