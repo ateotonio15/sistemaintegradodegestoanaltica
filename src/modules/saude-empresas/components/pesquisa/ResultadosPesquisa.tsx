@@ -2,10 +2,12 @@ import { useMemo, useState } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  BarChart, Bar,
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChartCard } from "@/components/dashboard/charts/ChartCard";
 import { useResultadosPesquisas } from "../../hooks/usePesquisas";
 import { unificarEmpresas } from "@/lib/empresa-nome-similar";
 
@@ -118,6 +120,37 @@ export function ResultadosPesquisa() {
         pessoas: v.pessoas.size,
       }))
       .sort((a, b) => b.pessoas - a.pessoas || b.media - a.media)
+      .slice(0, 12);
+  }, [notas, canonico]);
+
+  const porEmpresaMedia = useMemo(
+    () => [...porEmpresa].sort((a, b) => b.media - a.media),
+    [porEmpresa],
+  );
+
+  const distribuicaoNotas = useMemo(() => {
+    const map = new Map<string, { empresa: string; pessoas: Set<string>; notas: Record<number, number> }>();
+    notas.forEach((i) => {
+      const label = nomeEmpresa(i.empresa);
+      if (!label) return;
+      const key = label.toLowerCase();
+      const cur = map.get(key) ?? { empresa: label, pessoas: new Set<string>(), notas: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+      cur.pessoas.add(i.resposta_id);
+      const n = Math.round(i.valor_nota ?? 0);
+      if (n >= 1 && n <= 5) cur.notas[n] = (cur.notas[n] ?? 0) + 1;
+      map.set(key, cur);
+    });
+    return Array.from(map.values())
+      .map((v) => ({
+        empresa: v.empresa,
+        pessoas: v.pessoas.size,
+        nota1: v.notas[1],
+        nota2: v.notas[2],
+        nota3: v.notas[3],
+        nota4: v.notas[4],
+        nota5: v.notas[5],
+      }))
+      .sort((a, b) => b.pessoas - a.pessoas)
       .slice(0, 12);
   }, [notas, canonico]);
 
@@ -249,6 +282,106 @@ export function ResultadosPesquisa() {
         </Card>
 
 
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <ChartCard
+          title="Média por empresa"
+          subtitle="Nota média de satisfação (0 a 5)"
+          empty={porEmpresaMedia.length === 0}
+          height={260}
+        >
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={porEmpresaMedia} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+              <XAxis type="number" domain={[0, 5]} hide />
+              <YAxis
+                type="category"
+                dataKey="empresa"
+                width={130}
+                tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <RTooltip
+                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                formatter={(v: any) => [`${v}/5`, "Média"]}
+              />
+              <Bar
+                dataKey="media"
+                name="Média"
+                fill="hsl(var(--primary))"
+                radius={[0, 4, 4, 0]}
+                label={{ position: "right", formatter: (v: number) => v, fontSize: 10, fill: "hsl(var(--foreground))" }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard
+          title="Quantidade de pessoas por empresa"
+          subtitle="Avaliadores únicos"
+          empty={porEmpresa.length === 0}
+          height={260}
+        >
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={porEmpresa} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+              <XAxis type="number" hide />
+              <YAxis
+                type="category"
+                dataKey="empresa"
+                width={130}
+                tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <RTooltip
+                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                formatter={(v: any) => [`${v} pessoa${v === 1 ? "" : "s"}`, "Pessoas"]}
+              />
+              <Bar
+                dataKey="pessoas"
+                name="Pessoas"
+                fill="hsl(var(--primary))"
+                radius={[0, 4, 4, 0]}
+                label={{ position: "right", formatter: (v: number) => v, fontSize: 10, fill: "hsl(var(--foreground))" }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard
+          title="Notas por empresa"
+          subtitle="Distribuição das notas 1 a 5"
+          empty={distribuicaoNotas.length === 0}
+          height={260}
+        >
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={distribuicaoNotas} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 5 }} stackOffset="expand">
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+              <XAxis type="number" hide />
+              <YAxis
+                type="category"
+                dataKey="empresa"
+                width={120}
+                tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <RTooltip
+                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                formatter={(v: any, n: any) => [`${v} resposta${v === 1 ? "" : "s"}`, `Nota ${n}`]}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar stackId="a" dataKey="nota1" name="1" fill="hsl(0 84% 60%)" radius={[0, 0, 0, 0]} />
+              <Bar stackId="a" dataKey="nota2" name="2" fill="hsl(25 95% 53%)" />
+              <Bar stackId="a" dataKey="nota3" name="3" fill="hsl(45 93% 47%)" />
+              <Bar stackId="a" dataKey="nota4" name="4" fill="hsl(142 45% 55%)" />
+              <Bar stackId="a" dataKey="nota5" name="5" fill="hsl(142 71% 45%)" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
       </div>
 
       <Card className="p-4">
