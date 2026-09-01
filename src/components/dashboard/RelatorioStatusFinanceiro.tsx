@@ -167,19 +167,30 @@ export function RelatorioStatusFinanceiro() {
       >;
 
 
-      const { data: emps } = await supabase
-        .from("empresas")
-        .select("id, nome, codigo_contrato, exige_po_pc");
-      const empMap = new Map((emps ?? []).map((e: any) => [e.id, e]));
+      const empsAll: any[] = [];
+      for (let off = 0; ; off += PAGE) {
+        const { data: emps } = await supabase
+          .from("empresas")
+          .select("id, nome, codigo_contrato, exige_po_pc")
+          .order("id", { ascending: true })
+          .range(off, off + PAGE - 1);
+        (emps ?? []).forEach((e: any) => empsAll.push(e));
+        if (!emps || emps.length < PAGE) break;
+      }
+      const empMap = new Map(empsAll.map((e: any) => [e.id, e]));
 
-      const { data: ops } = await supabase
-        .from("movimentacoes")
-        .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
-        .not("data_envio_financeiro", "is", null)
-        .limit(20000);
-      const envioSet = new Set(
-        (ops ?? []).map((m: any) => `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`),
-      );
+      const envioSet = new Set<string>();
+      for (let off = 0; ; off += PAGE) {
+        const { data: ops } = await supabase
+          .from("movimentacoes")
+          .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
+          .not("data_envio_financeiro", "is", null)
+          .order("id", { ascending: true })
+          .range(off, off + PAGE - 1);
+        (ops ?? []).forEach((m: any) => envioSet.add(`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`));
+        if (!ops || ops.length < PAGE || off > 50_000) break;
+      }
+
 
       const userIds = Array.from(
         new Set(
