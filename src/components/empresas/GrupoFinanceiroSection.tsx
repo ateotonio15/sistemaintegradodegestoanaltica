@@ -148,29 +148,77 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
               )}
             </div>
             <ul className="divide-y">
-              {contratos.map((c) => (
-                <li key={c.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{c.nome_empresa ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {c.codigo_contrato ?? "—"} · {c.cnpj ?? "—"}
+              {contratos.map((c) => {
+                const ehPrincipal = grupo.contrato_principal_empresa_id === c.empresa_id;
+                return (
+                  <li
+                    key={c.id}
+                    className={`flex items-center justify-between gap-2 px-3 py-2 text-sm ${ehPrincipal ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{c.nome_empresa ?? "—"}</span>
+                        {ehPrincipal && (
+                          <Badge className="h-5 gap-1 text-[10px]">
+                            <Crown className="h-3 w-3" /> Principal
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {c.codigo_contrato ?? "—"} · {c.cnpj ?? "—"}
+                      </div>
                     </div>
-                  </div>
-                  {podeGerenciar && c.empresa_id !== empresaId && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive"
-                      onClick={() => removerVinculo.mutate(c.id)}
-                      title="Remover do grupo"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </li>
-              ))}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {podeGerenciar && !ehPrincipal && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[11px]"
+                          disabled={definirPrincipal.isPending}
+                          onClick={() => definirPrincipal.mutate(c.empresa_id)}
+                          title="Definir como contrato principal do grupo"
+                        >
+                          <Crown className="h-3.5 w-3.5 mr-1" /> Tornar principal
+                        </Button>
+                      )}
+                      {podeGerenciar && ehPrincipal && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-[11px] text-muted-foreground"
+                          disabled={definirPrincipal.isPending}
+                          onClick={() => definirPrincipal.mutate(null)}
+                          title="Remover contrato principal"
+                        >
+                          Remover principal
+                        </Button>
+                      )}
+                      {podeGerenciar && c.empresa_id !== empresaId && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => removerVinculo.mutate(c.id)}
+                          title="Remover do grupo"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
+            {!grupo.contrato_principal_empresa_id && (
+              <div className="border-t px-3 py-2 text-[11px] text-warning">
+                Nenhum contrato principal definido. Defina um para que datas, observações e anexos
+                sejam replicados para todo o grupo.
+              </div>
+            )}
+
           </div>
 
           {podeGerenciar && (
