@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft, QrCode, Copy, Download, Plus, Trash2, ArrowUp, ArrowDown,
-  Save, Star, Lock, Unlock, ClipboardList, BarChart3, Activity, Building2, CalendarDays, Link2, Tablet,
+  Save, Star, Lock, Unlock, ClipboardList, BarChart3, Activity, Building2, CalendarDays, Link2, Tablet, FlaskConical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,7 +24,7 @@ import {
   Pergunta, PerguntaTipo, TIPO_LABEL,
   useContagemRespostas, useCriarPesquisa, usePerguntasPesquisa,
   usePesquisasPorPalestras, useSalvarComoPadrao, useSalvarPerguntas, useToggleAberta,
-  usePesquisaGeral, useCriarPesquisaGeral,
+  usePesquisaGeral, useCriarPesquisaGeral, useContagemTestes, useLimparTestes,
 } from "../hooks/usePesquisas";
 import { ResultadosPesquisa } from "../components/pesquisa/ResultadosPesquisa";
 
@@ -90,6 +90,9 @@ export default function PesquisaSatisfacao() {
   const { data: geralAcoes } = usePesquisaGeral("acao");
   const criarGeralAcoes = useCriarPesquisaGeral("acao");
   const { data: contagemAcoes = {} } = useContagemRespostas(geralAcoes ? [geralAcoes.id] : []);
+
+  const { data: testes = 0 } = useContagemTestes();
+  const limparTestes = useLimparTestes();
 
   const salvarTema = async (palestraId: string, tema: string) => {
     const { error } = await db.from("palestras_saude").update({ tema }).eq("id", palestraId);
@@ -179,7 +182,59 @@ export default function PesquisaSatisfacao() {
         />
       </div>
 
-
+      {canEdit && (
+        <Card className="rounded-xl border-amber-500/40 bg-amber-500/5 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 space-y-1">
+              <div className="flex items-center gap-2">
+                <FlaskConical className="h-4 w-4 text-amber-600" />
+                <h3 className="font-semibold">Modo teste</h3>
+                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600">
+                  {testes} resposta{testes === 1 ? "" : "s"} de teste
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Use os links abaixo para testar o fluxo à vontade: as respostas ficam marcadas como teste,
+                não entram nos resultados e podem ser apagadas de uma vez.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!geral}
+                onClick={() => geral && window.open(`${window.location.origin}/pesquisa/${geral.token}?teste=1`, "_blank")}
+              >
+                <Link2 className="mr-1.5 h-3.5 w-3.5" /> Testar Palestras
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!geral}
+                onClick={() => geral && window.open(`${window.location.origin}/pesquisa/tablet/${geral.token}?teste=1`, "_blank")}
+              >
+                <Tablet className="mr-1.5 h-3.5 w-3.5" /> Testar Tablet
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!geralAcoes}
+                onClick={() => geralAcoes && window.open(`${window.location.origin}/pesquisa/${geralAcoes.token}?teste=1`, "_blank")}
+              >
+                <Activity className="mr-1.5 h-3.5 w-3.5" /> Testar Ações
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={!testes || limparTestes.isPending}
+                onClick={() => limparTestes.mutate()}
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Limpar testes
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Tabs defaultValue="palestras">
         <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b border-border bg-transparent p-0">

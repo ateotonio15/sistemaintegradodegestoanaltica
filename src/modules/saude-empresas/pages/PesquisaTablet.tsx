@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ interface PerguntaPublica {
  */
 export default function PesquisaTablet() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const modoTeste = searchParams.get("teste") === "1";
   const empresaKey = `pesquisa-tablet-empresa-${token}`;
 
   const [loading, setLoading] = useState(true);
@@ -106,6 +108,7 @@ export default function PesquisaTablet() {
       p_token: token,
       p_respostas: payload,
       p_empresa: empresaConfirmada,
+      p_teste: modoTeste,
     });
     setEnviando(false);
     if (error) {
@@ -194,6 +197,11 @@ export default function PesquisaTablet() {
   return (
     <Wrapper>
       <div className="mx-auto w-full max-w-2xl">
+        {modoTeste && (
+          <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-center text-xs font-semibold uppercase tracking-wider text-amber-600">
+            Modo teste — as respostas não entram nos resultados
+          </div>
+        )}
         <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Empresa</p>

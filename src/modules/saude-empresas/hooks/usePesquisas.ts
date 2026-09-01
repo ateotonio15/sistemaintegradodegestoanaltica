@@ -281,6 +281,7 @@ export function useResultadosPesquisas() {
       const { data: respostas } = await db
         .from("palestra_pesquisa_respostas")
         .select("id, pesquisa_id, respondido_em, empresa_nome")
+        .eq("teste", false)
         .in("pesquisa_id", pesquisaIds);
       if (!respostas?.length) return [] as RespostaItemFlat[];
 
@@ -335,6 +336,7 @@ export function useContagemRespostas(pesquisaIds: string[]) {
       const { data, error } = await db
         .from("palestra_pesquisa_respostas")
         .select("id, pesquisa_id")
+        .eq("teste", false)
         .in("pesquisa_id", pesquisaIds);
       if (error) throw error;
       const map: Record<string, number> = {};
@@ -343,6 +345,50 @@ export function useContagemRespostas(pesquisaIds: string[]) {
       });
       return map;
     },
+  });
+}
+
+/** Quantidade de respostas marcadas como teste (não entram nos resultados) */
+export function useContagemTestes() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["pp_testes"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count, error } = await db
+        .from("palestra_pesquisa_respostas")
+        .select("id", { count: "exact", head: true })
+        .eq("teste", true);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
+
+/** Apaga todas as respostas de teste */
+export function useLimparTestes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data: ids, error: e1 } = await db
+        .from("palestra_pesquisa_respostas")
+        .select("id")
+        .eq("teste", true);
+      if (e1) throw e1;
+      const lista = (ids ?? []).map((r: any) => r.id);
+      if (!lista.length) return 0;
+      await db.from("palestra_pesquisa_respostas_itens").delete().in("resposta_id", lista);
+      const { error } = await db.from("palestra_pesquisa_respostas").delete().in("id", lista);
+      if (error) throw error;
+      return lista.length;
+    },
+    onSuccess: (n) => {
+      toast.success(n ? `${n} resposta(s) de teste removida(s)` : "Nenhuma resposta de teste");
+      qc.invalidateQueries({ queryKey: ["pp_testes"] });
+      qc.invalidateQueries({ queryKey: ["pp_resultados"] });
+      qc.invalidateQueries({ queryKey: ["pp_contagem"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao limpar testes"),
   });
 }
 

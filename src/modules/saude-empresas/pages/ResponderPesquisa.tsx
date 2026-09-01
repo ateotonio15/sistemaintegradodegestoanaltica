@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ interface PerguntaPublica {
 
 export default function ResponderPesquisa() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const modoTeste = searchParams.get("teste") === "1";
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [info, setInfo] = useState<any>(null);
@@ -82,6 +84,7 @@ export default function ResponderPesquisa() {
       p_token: token,
       p_respostas: payload,
       p_empresa: empresaNome.trim() || null,
+      p_teste: modoTeste,
     });
     setEnviando(false);
     if (error) {
