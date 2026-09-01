@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LabelList,
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
