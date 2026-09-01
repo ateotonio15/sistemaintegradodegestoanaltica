@@ -305,28 +305,30 @@ export function RelatorioStatusFinanceiro() {
   }, [filtradas]);
 
   const empresasPorUsuario = useMemo(() => {
-    const m = new Map<string, { faturamentos: LinhaRelatorio[]; anexos: LinhaRelatorio[] }>();
+    const m = new Map<string, { faturamentos: LinhaRelatorio[]; anexos: LinhaRelatorio[]; envios: LinhaRelatorio[] }>();
     const get = (k: string) => {
-      const v = m.get(k) ?? { faturamentos: [], anexos: [] };
+      const v = m.get(k) ?? { faturamentos: [], anexos: [], envios: [] };
       m.set(k, v);
       return v;
     };
     filtradas.forEach((l) => {
+      if (l.data_envio_nota) get(l.usuario_envio || "Não identificado").envios.push(l);
       if (l.faturamento_iniciado_em) get(l.usuario_faturamento || "Não identificado").faturamentos.push(l);
       if (l.ultimo_anexo_por) get(l.ultimo_anexo_por).anexos.push(l);
     });
     return m;
   }, [filtradas]);
 
-  /** Movimentações únicas (faturamento + anexo) do usuário selecionado */
+  /** Movimentações únicas (nota enviada + faturamento + anexo) do usuário selecionado */
   const movsDoUsuario = useMemo(() => {
     if (!usuarioDialog) return [] as LinhaRelatorio[];
     const v = empresasPorUsuario.get(usuarioDialog);
     if (!v) return [] as LinhaRelatorio[];
     const m = new Map<string, LinhaRelatorio>();
-    [...v.faturamentos, ...v.anexos].forEach((l) => m.set(l.id, l));
+    [...v.envios, ...v.faturamentos, ...v.anexos].forEach((l) => m.set(l.id, l));
     return Array.from(m.values()).sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome));
   }, [usuarioDialog, empresasPorUsuario]);
+
 
   const empresaIdsUsuario = useMemo(
     () => Array.from(new Set(movsDoUsuario.map((l) => l.empresa_id))).filter(Boolean),
