@@ -83,7 +83,28 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  const definirPrincipal = useMutation({
+    mutationFn: async (empresaPrincipalId: string | null) => {
+      if (!grupo) throw new Error("Grupo inválido");
+      const { error } = await (supabase as any)
+        .from("grupos_financeiros")
+        .update({ contrato_principal_empresa_id: empresaPrincipalId })
+        .eq("id", grupo.id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, empresaPrincipalId) => {
+      toast({
+        title: empresaPrincipalId ? "Contrato principal definido" : "Contrato principal removido",
+      });
+      qc.invalidateQueries({ queryKey: ["grupo-financeiro"] });
+      qc.invalidateQueries({ queryKey: ["grupos-financeiros"] });
+      qc.invalidateQueries({ queryKey: ["empresa-grupo-map"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
   if (!empresaId) {
+
     return (
       <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
         Salve a empresa antes de configurar o grupo financeiro.
