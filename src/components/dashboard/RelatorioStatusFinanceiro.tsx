@@ -106,6 +106,8 @@ interface LinhaRelatorio {
   qtd_anexos: number;
   ultimo_anexo_em: string | null;
   ultimo_anexo_por: string;
+  /** Todos os anexos do movimento com quem anexou e quando (YYYY-MM-DD) */
+  anexos_usuarios: { nome: string; dia: string }[];
 }
 
 export function RelatorioStatusFinanceiro() {
