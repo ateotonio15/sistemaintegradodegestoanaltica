@@ -478,9 +478,10 @@ export default function Movimentacoes() {
             }));
             const { error: errIns } = await supabase.from("movimentacoes").insert(novas);
             if (errIns) throw errIns;
-
+          }
         }
       }
+
     },
 
     onSuccess: () => {
