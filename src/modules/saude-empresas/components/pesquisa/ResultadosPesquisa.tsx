@@ -22,6 +22,12 @@ const mesLabel = (key: string) => {
   return `${MESES_CURTO[Number(m) - 1] ?? m}/${a.slice(2)}`;
 };
 
+const rotuloTema = (origem: string, tema?: string | null) => {
+  if (origem === "acao") return "Ação de saúde";
+  if (tema) return tema;
+  return null;
+};
+
 export function ResultadosPesquisa() {
   const { data: itens = [], isLoading } = useResultadosPesquisas();
   const [empresa, setEmpresa] = useState("all");
