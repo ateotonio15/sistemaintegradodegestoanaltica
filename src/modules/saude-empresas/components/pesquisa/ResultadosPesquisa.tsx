@@ -22,6 +22,7 @@ export function ResultadosPesquisa() {
   const { data: itens = [], isLoading } = useResultadosPesquisas();
   const [empresa, setEmpresa] = useState("all");
   const [periodo, setPeriodo] = useState("all");
+  const [origem, setOrigem] = useState("all");
 
   const empresas = useMemo(
     () =>
@@ -48,10 +49,11 @@ export function ResultadosPesquisa() {
     () =>
       itens.filter(
         (i) =>
+          (origem === "all" || i.origem === origem) &&
           (empresa === "all" || i.empresa === empresa) &&
           (periodo === "all" || mesKey(i.data) === periodo),
       ),
-    [itens, empresa, periodo],
+    [itens, empresa, periodo, origem],
   );
 
   const totalRespostas = useMemo(
@@ -105,13 +107,14 @@ export function ResultadosPesquisa() {
 
 
   const porPalestra = useMemo(() => {
-    const map = new Map<string, { empresa: string; tema: string | null; data: string; respostas: Set<string> }>();
+    const map = new Map<string, { empresa: string; tema: string | null; data: string; origem: string; respostas: Set<string> }>();
     filtrado.forEach((i) => {
-      const cur = map.get(i.palestra_id) ?? {
-        empresa: i.empresa, tema: i.tema, data: i.data, respostas: new Set<string>(),
+      const key = `${i.origem}|${i.palestra_id}|${i.empresa}|${i.data}`;
+      const cur = map.get(key) ?? {
+        empresa: i.empresa, tema: i.tema, data: i.data, origem: i.origem, respostas: new Set<string>(),
       };
       cur.respostas.add(i.resposta_id);
-      map.set(i.palestra_id, cur);
+      map.set(key, cur);
     });
     return Array.from(map.values()).sort((a, b) => (b.data ?? "").localeCompare(a.data ?? ""));
   }, [filtrado]);
@@ -148,6 +151,14 @@ export function ResultadosPesquisa() {
           <SelectContent>
             <SelectItem value="all">Todas as empresas</SelectItem>
             {empresas.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={origem} onValueChange={setOrigem}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Origem" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Palestras e Ações</SelectItem>
+            <SelectItem value="palestra">Somente palestras</SelectItem>
+            <SelectItem value="acao">Somente ações</SelectItem>
           </SelectContent>
         </Select>
         <Select value={periodo} onValueChange={setPeriodo}>
@@ -222,7 +233,7 @@ export function ResultadosPesquisa() {
       </div>
 
       <Card className="p-4">
-        <p className="text-sm font-semibold mb-3">Respostas por palestra</p>
+        <p className="text-sm font-semibold mb-3">Respostas por palestra / ação</p>
         {porPalestra.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhuma resposta no filtro atual.</p>
         ) : (
@@ -232,7 +243,7 @@ export function ResultadosPesquisa() {
                 <div className="min-w-0">
                   <p className="font-medium truncate">{p.empresa}</p>
                   <p className="text-xs text-muted-foreground">
-                    {p.tema ?? "Sem tema"} · {p.data?.split("-").reverse().join("/")}
+                    {p.origem === "acao" ? "Ação de saúde" : p.tema ?? "Sem tema"} · {p.data?.split("-").reverse().join("/")}
                   </p>
                 </div>
                 <Badge variant="outline">
@@ -277,7 +288,7 @@ export function ResultadosPesquisa() {
               <li key={i} className="rounded-md border p-3 text-sm">
                 <p>{t.valor_texto}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t.empresa} · {t.tema ?? "sem tema"} · {t.data?.split("-").reverse().join("/")}
+                  {t.empresa} · {t.origem === "acao" ? "ação" : t.tema ?? "sem tema"} · {t.data?.split("-").reverse().join("/")}
                 </p>
               </li>
             ))}
