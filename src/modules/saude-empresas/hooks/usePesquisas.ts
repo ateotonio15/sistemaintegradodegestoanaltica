@@ -247,6 +247,7 @@ export interface RespostaItemFlat {
   respondido_em: string;
   pesquisa_id: string;
   palestra_id: string;
+  origem: "palestra" | "acao";
   empresa: string;
   tema: string | null;
   data: string;
@@ -266,15 +267,14 @@ export function useResultadosPesquisas() {
     queryFn: async () => {
       const { data: pesquisas, error: e1 } = await db
         .from("palestra_pesquisas")
-        .select("id, palestra_id, token, aberta");
+        .select("id, palestra_id, token, aberta, tipo, titulo");
       if (e1) throw e1;
       if (!pesquisas?.length) return [] as RespostaItemFlat[];
 
-      const palestraIds = pesquisas.map((p: any) => p.palestra_id);
-      const { data: palestras } = await db
-        .from("palestras_saude")
-        .select("id, empresa, tema, data")
-        .in("id", palestraIds);
+      const palestraIds = pesquisas.map((p: any) => p.palestra_id).filter(Boolean);
+      const { data: palestras } = palestraIds.length
+        ? await db.from("palestras_saude").select("id, empresa, tema, data").in("id", palestraIds)
+        : { data: [] };
       const palestraMap = new Map<string, any>((palestras ?? []).map((p: any) => [p.id, p]));
 
       const pesquisaIds = pesquisas.map((p: any) => p.id);
@@ -309,10 +309,11 @@ export function useResultadosPesquisas() {
           resposta_id: i.resposta_id,
           respondido_em: resp?.respondido_em,
           pesquisa_id: resp?.pesquisa_id,
-          palestra_id: pes?.palestra_id,
+          palestra_id: pes?.palestra_id ?? pes?.id,
+          origem: (pes?.tipo === "acao" ? "acao" : "palestra") as "palestra" | "acao",
           empresa: pal?.empresa ?? resp?.empresa_nome ?? "—",
           tema: pal?.tema ?? null,
-          data: pal?.data,
+          data: pal?.data ?? String(resp?.respondido_em ?? "").slice(0, 10),
           pergunta_id: i.pergunta_id,
           pergunta: q?.texto ?? "",
           tipo: (q?.tipo ?? "nota") as PerguntaTipo,
