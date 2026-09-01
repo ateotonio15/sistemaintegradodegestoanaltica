@@ -83,9 +83,13 @@ export default function PesquisaSatisfacao() {
   const toggle = useToggleAberta();
   const qc = useQueryClient();
 
-  const { data: geral } = usePesquisaGeral();
-  const criarGeral = useCriarPesquisaGeral();
+  const { data: geral } = usePesquisaGeral("palestra");
+  const criarGeral = useCriarPesquisaGeral("palestra");
   const { data: contagemGeral = {} } = useContagemRespostas(geral ? [geral.id] : []);
+
+  const { data: geralAcoes } = usePesquisaGeral("acao");
+  const criarGeralAcoes = useCriarPesquisaGeral("acao");
+  const { data: contagemAcoes = {} } = useContagemRespostas(geralAcoes ? [geralAcoes.id] : []);
 
   const salvarTema = async (palestraId: string, tema: string) => {
     const { error } = await db.from("palestras_saude").update({ tema }).eq("id", palestraId);
