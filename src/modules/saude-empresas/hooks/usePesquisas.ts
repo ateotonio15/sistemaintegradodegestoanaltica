@@ -345,26 +345,47 @@ export function useContagemRespostas(pesquisaIds: string[]) {
   });
 }
 
-/** Pesquisa geral única (QR Code e link únicos para todas as palestras) */
-export function usePesquisaGeral() {
+/** Perguntas padrão para a pesquisa das Ações de saúde */
+export const PERGUNTAS_PADRAO_ACOES: Partial<Pergunta>[] = [
+  { texto: "Como você avalia a ação de saúde realizada na sua empresa?", tipo: "nota", opcoes: [], obrigatoria: true },
+  { texto: "Como você avalia o atendimento da equipe de saúde?", tipo: "nota", opcoes: [], obrigatoria: true },
+  { texto: "A estrutura e o local da ação foram adequados?", tipo: "nota", opcoes: [], obrigatoria: true },
+  {
+    texto: "Qual ação você participou?",
+    tipo: "multipla_escolha",
+    opcoes: ["Triagem", "Aferição de sinais vitais", "Bioimpedância", "Exame preventivo/PSA", "Outra"],
+    obrigatoria: true,
+  },
+  {
+    texto: "Você recomendaria esta ação para outros colaboradores?",
+    tipo: "multipla_escolha",
+    opcoes: ["Sim", "Talvez", "Não"],
+    obrigatoria: true,
+  },
+  { texto: "Deixe um comentário ou sugestão", tipo: "texto_livre", opcoes: [], obrigatoria: false },
+];
+
+/** Pesquisa geral única por tipo (QR Code e link únicos) */
+export function usePesquisaGeral(tipo: "palestra" | "acao" = "palestra") {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["pp_pesquisa_geral"],
+    queryKey: ["pp_pesquisa_geral", tipo],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await db
         .from("palestra_pesquisas")
         .select("*")
         .eq("geral", true)
+        .eq("tipo", tipo)
         .maybeSingle();
       if (error) throw error;
-      return (data ?? null) as (Pesquisa & { geral: boolean; titulo: string | null }) | null;
+      return (data ?? null) as (Pesquisa & { geral: boolean; titulo: string | null; tipo: string }) | null;
     },
   });
 }
 
-/** Cria (uma única vez) a pesquisa geral copiando as perguntas do template padrão */
-export function useCriarPesquisaGeral() {
+/** Cria (uma única vez) a pesquisa geral do tipo informado */
+export function useCriarPesquisaGeral(tipo: "palestra" | "acao" = "palestra") {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
@@ -373,6 +394,7 @@ export function useCriarPesquisaGeral() {
         .from("palestra_pesquisas")
         .select("*")
         .eq("geral", true)
+        .eq("tipo", tipo)
         .maybeSingle();
       if (existente) return existente;
 
@@ -380,38 +402,55 @@ export function useCriarPesquisaGeral() {
         .from("palestra_pesquisas")
         .insert({
           geral: true,
+          tipo,
           palestra_id: null,
-          titulo: "Pesquisa de Satisfação — Palestras de Saúde",
+          titulo:
+            tipo === "acao"
+              ? "Pesquisa de Satisfação — Ações de Saúde"
+              : "Pesquisa de Satisfação — Palestras de Saúde",
           criado_por: user?.id ?? null,
         })
         .select("*")
         .single();
       if (error) throw error;
 
-      const { data: tpl } = await db
-        .from("palestra_pesquisa_templates")
-        .select("id")
-        .eq("ativo", true)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (tpl) {
-        const { data: perguntas } = await db
-          .from("palestra_pesquisa_perguntas")
-          .select("*")
-          .eq("template_id", tpl.id)
-          .order("ordem", { ascending: true });
-        if (perguntas?.length) {
-          await db.from("palestra_pesquisa_perguntas").insert(
-            perguntas.map((p: Pergunta) => ({
-              pesquisa_id: nova.id,
-              texto: p.texto,
-              tipo: p.tipo,
-              opcoes: p.opcoes,
-              obrigatoria: p.obrigatoria,
-              ordem: p.ordem,
-            })),
-          );
+      if (tipo === "acao") {
+        await db.from("palestra_pesquisa_perguntas").insert(
+          PERGUNTAS_PADRAO_ACOES.map((p, i) => ({
+            pesquisa_id: nova.id,
+            texto: p.texto,
+            tipo: p.tipo,
+            opcoes: p.opcoes ?? [],
+            obrigatoria: p.obrigatoria ?? true,
+            ordem: i + 1,
+          })),
+        );
+      } else {
+        const { data: tpl } = await db
+          .from("palestra_pesquisa_templates")
+          .select("id")
+          .eq("ativo", true)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (tpl) {
+          const { data: perguntas } = await db
+            .from("palestra_pesquisa_perguntas")
+            .select("*")
+            .eq("template_id", tpl.id)
+            .order("ordem", { ascending: true });
+          if (perguntas?.length) {
+            await db.from("palestra_pesquisa_perguntas").insert(
+              perguntas.map((p: Pergunta) => ({
+                pesquisa_id: nova.id,
+                texto: p.texto,
+                tipo: p.tipo,
+                opcoes: p.opcoes,
+                obrigatoria: p.obrigatoria,
+                ordem: p.ordem,
+              })),
+            );
+          }
         }
       }
       return nova;
