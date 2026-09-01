@@ -217,6 +217,12 @@ export function RelatorioStatusFinanceiro() {
           qtd_anexos: anexos.length,
           ultimo_anexo_em: ultimo?.created_at ?? null,
           ultimo_anexo_por: ultimo?.uploaded_by ? nomeMap.get(ultimo.uploaded_by) ?? "" : "",
+          anexos_usuarios: anexos
+            .filter((a) => a.uploaded_by && a.created_at)
+            .map((a) => ({
+              nome: nomeMap.get(a.uploaded_by as string) ?? "Não identificado",
+              dia: a.created_at.slice(0, 10),
+            })),
         };
       });
     },
