@@ -89,23 +89,6 @@ export function ResultadosPesquisa() {
     ? (notas.reduce((a, b) => a + (b.valor_nota ?? 0), 0) / notas.length).toFixed(2)
     : "—";
 
-  const porMes = useMemo(() => {
-    const map = new Map<string, { soma: number; n: number; pessoas: Set<string> }>();
-    notas.forEach((i) => {
-      const k = mesKey(i.data);
-      const cur = map.get(k) ?? { soma: 0, n: 0, pessoas: new Set<string>() };
-      cur.pessoas.add(i.resposta_id);
-      map.set(k, { soma: cur.soma + (i.valor_nota ?? 0), n: cur.n + 1, pessoas: cur.pessoas });
-    });
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, v]) => ({
-        mes: mesLabel(k),
-        media: Number((v.soma / v.n).toFixed(2)),
-        pessoas: v.pessoas.size,
-      }));
-  }, [notas]);
-
   const porEmpresa = useMemo(() => {
     const map = new Map<string, { label: string; soma: number; n: number; pessoas: Set<string> }>();
     notas.forEach((i) => {
@@ -127,11 +110,6 @@ export function ResultadosPesquisa() {
       .sort((a, b) => b.pessoas - a.pessoas || b.media - a.media)
       .slice(0, 12);
   }, [notas, canonico]);
-
-  const porEmpresaMedia = useMemo(
-    () => [...porEmpresa].sort((a, b) => b.media - a.media),
-    [porEmpresa],
-  );
 
 
 
