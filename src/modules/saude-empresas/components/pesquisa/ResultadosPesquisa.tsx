@@ -302,7 +302,7 @@ export function ResultadosPesquisa() {
 
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2">
         <ChartCard
           title="Média por empresa"
           subtitle="Nota média de satisfação (0 a 5)"
@@ -365,38 +365,6 @@ export function ResultadosPesquisa() {
                 radius={[0, 4, 4, 0]}
                 label={{ position: "right", formatter: (v: number) => v, fontSize: 10, fill: "hsl(var(--foreground))" }}
               />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="Notas por empresa"
-          subtitle="Distribuição das notas 1 a 5"
-          empty={distribuicaoNotas.length === 0}
-          height={260}
-        >
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={distribuicaoNotas} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 5 }} stackOffset="expand">
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-              <XAxis type="number" hide />
-              <YAxis
-                type="category"
-                dataKey="empresa"
-                width={120}
-                tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <RTooltip
-                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: any, n: any) => [`${v} resposta${v === 1 ? "" : "s"}`, `Nota ${n}`]}
-              />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar stackId="a" dataKey="nota1" name="1" fill="hsl(0 84% 60%)" radius={[0, 0, 0, 0]} />
-              <Bar stackId="a" dataKey="nota2" name="2" fill="hsl(25 95% 53%)" />
-              <Bar stackId="a" dataKey="nota3" name="3" fill="hsl(45 93% 47%)" />
-              <Bar stackId="a" dataKey="nota4" name="4" fill="hsl(142 45% 55%)" />
-              <Bar stackId="a" dataKey="nota5" name="5" fill="hsl(142 71% 45%)" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
