@@ -242,20 +242,34 @@ export function RelatorioStatusFinanceiro() {
     );
   }
 
+  /** Datas de todos os eventos do movimento (envio da nota, anexos, início do faturamento...) */
+  function datasEventos(l: LinhaRelatorio) {
+    return [
+      l.data_envio_nota,
+      l.ultimo_anexo_em?.slice(0, 10) ?? null,
+      ...l.anexos_usuarios.map((a) => a.dia),
+      l.faturamento_iniciado_em?.slice(0, 10) ?? null,
+      l.aguardando_nota_em?.slice(0, 10) ?? null,
+      l.atualizado_em?.slice(0, 10) ?? null,
+    ].filter(Boolean) as string[];
+  }
+
+  const noPeriodo = (d?: string | null) =>
+    !!d && (!dataIni || d >= dataIni) && (!dataFim || d <= dataFim);
+
   const filtradas = useMemo(
     () =>
       linhas
         .filter((l) => {
-          const d = dataRef(l);
-          if (!d) return false;
-          if (dataIni && d < dataIni) return false;
-          if (dataFim && d > dataFim) return false;
+          // Qualquer evento dentro do intervalo mantém o contrato no relatório
+          if (!datasEventos(l).some((d) => noPeriodo(d))) return false;
           if (statusSel.length > 0 && !statusSel.includes(l.status)) return false;
           return true;
         })
         .sort((a, b) => (dataRef(b) ?? "").localeCompare(dataRef(a) ?? "")),
     [linhas, dataIni, dataFim, statusSel],
   );
+
 
   const resumoStatus = useMemo(() => {
     const m = new Map<StatusFinanceiro, number>();
