@@ -606,7 +606,7 @@ export function RelatorioStatusFinanceiro() {
     wsUser.getCell("C1").fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
     wsUser.addRow([]).height = 8;
 
-    const hdrUser = wsUser.addRow(["Usuário", "Faturamentos", "Anexos"]);
+    const hdrUser = wsUser.addRow(["Usuário", "Notas emitidas", "Faturamentos", "Anexos"]);
     hdrUser.height = 18;
     hdrUser.eachCell((cell) => {
       cell.font = { size: 10, bold: true, color: { argb: CINZA } };
@@ -765,8 +765,8 @@ export function RelatorioStatusFinanceiro() {
     // Por usuário
     autoTable(doc, {
       startY: y,
-      head: [["Usuário", "Faturamentos", "Anexos"]],
-      body: porUsuario.map((u) => [u.usuario, String(u.faturamentos), String(u.anexos)]),
+      head: [["Usuário", "Notas emitidas", "Faturamentos", "Anexos"]],
+      body: porUsuario.map((u) => [u.usuario, String(u.enviadas), String(u.faturamentos), String(u.anexos)]),
       theme: "plain",
       styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
       headStyles: { fillColor: [50, 169, 118], textColor: 255, fontStyle: "bold", fontSize: 9 },
