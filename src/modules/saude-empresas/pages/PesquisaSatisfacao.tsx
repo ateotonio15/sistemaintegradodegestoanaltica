@@ -249,50 +249,63 @@ export default function PesquisaSatisfacao() {
 }
 
 function PesquisaGeralCard({
-  titulo, descricao, pesquisa, respostas, canEdit, onCriar, onQr, onPerguntas, onToggle,
+  icone: Icone = QrCode, titulo, descricao, pesquisa, respostas, canEdit, onCriar, onQr, onPerguntas, onToggle,
 }: any) {
   return (
-    <Card className="p-4 space-y-3 border-primary/30">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-semibold">{titulo}</p>
-          <p className="text-xs text-muted-foreground">{descricao}</p>
-        </div>
-        {pesquisa && (
-          <div className="flex items-center gap-2">
-            <Badge variant={pesquisa.aberta ? "default" : "secondary"}>
-              {pesquisa.aberta ? "Aberta" : "Encerrada"}
-            </Badge>
-            <Badge variant="outline">
-              {respostas} resposta{respostas === 1 ? "" : "s"}
-            </Badge>
+    <Card className="group relative overflow-hidden rounded-xl border-border/70 bg-card/60 p-6 transition-colors hover:border-primary/50">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold">{titulo}</h3>
+            {pesquisa && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                  pesquisa.aberta
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {pesquisa.aberta ? "Ativa" : "Encerrada"}
+              </span>
+            )}
           </div>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {!pesquisa ? (
-          <Button size="sm" onClick={onCriar} disabled={!canEdit}>
-            <QrCode className="h-4 w-4 mr-1" /> Gerar QR Code único
-          </Button>
-        ) : (
-          <>
-            <Button size="sm" onClick={onQr}>
-              <QrCode className="h-4 w-4 mr-1" /> QR Code e Link
-            </Button>
-            <Button size="sm" variant="outline" disabled={!canEdit} onClick={onPerguntas}>
-              <ClipboardList className="h-4 w-4 mr-1" /> Perguntas
-            </Button>
-            <Button size="sm" variant="ghost" disabled={!canEdit} onClick={onToggle}>
-              {pesquisa.aberta
-                ? <><Lock className="h-4 w-4 mr-1" /> Encerrar</>
-                : <><Unlock className="h-4 w-4 mr-1" /> Reabrir</>}
-            </Button>
-          </>
-        )}
+          <p className="text-sm leading-relaxed text-muted-foreground">{descricao}</p>
+          {pesquisa && (
+            <p className="text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">{respostas}</span>{" "}
+              resposta{respostas === 1 ? "" : "s"} recebida{respostas === 1 ? "" : "s"}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            {!pesquisa ? (
+              <Button size="sm" onClick={onCriar} disabled={!canEdit}>
+                <QrCode className="mr-2 h-4 w-4" /> Gerar QR Code
+              </Button>
+            ) : (
+              <>
+                <Button size="sm" onClick={onQr}>
+                  <QrCode className="mr-2 h-4 w-4" /> QR Code e Link
+                </Button>
+                <Button size="sm" variant="outline" disabled={!canEdit} onClick={onPerguntas}>
+                  <ClipboardList className="mr-2 h-4 w-4" /> Perguntas
+                </Button>
+                <Button size="sm" variant="ghost" disabled={!canEdit} onClick={onToggle}>
+                  {pesquisa.aberta
+                    ? <><Lock className="mr-2 h-4 w-4" /> Encerrar</>
+                    : <><Unlock className="mr-2 h-4 w-4" /> Reabrir</>}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="rounded-lg bg-muted p-3 text-muted-foreground">
+          <Icone className="h-7 w-7" />
+        </div>
       </div>
     </Card>
   );
 }
+
 
 function PalestraCard({
   palestra, pesquisa, respostas, canEdit,
