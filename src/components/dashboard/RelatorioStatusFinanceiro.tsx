@@ -145,13 +145,20 @@ export function RelatorioStatusFinanceiro() {
 
       const ids = rows.map((r: any) => r.id);
       const anexosAll: any[] = [];
-      for (let i = 0; i < ids.length; i += 500) {
-        const { data: anx } = await supabase
-          .from("anexos_financeiro")
-          .select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem, created_at, uploaded_by")
-          .in("financeiro_movimentacao_id", ids.slice(i, i + 500));
-        (anx ?? []).forEach((a: any) => anexosAll.push(a));
+      for (let i = 0; i < ids.length; i += 300) {
+        const chunk = ids.slice(i, i + 300);
+        for (let off = 0; ; off += PAGE) {
+          const { data: anx } = await supabase
+            .from("anexos_financeiro")
+            .select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem, created_at, uploaded_by")
+            .in("financeiro_movimentacao_id", chunk)
+            .order("created_at", { ascending: true })
+            .range(off, off + PAGE - 1);
+          (anx ?? []).forEach((a: any) => anexosAll.push(a));
+          if (!anx || anx.length < PAGE) break;
+        }
       }
+
       // Anexos compartilhados no Grupo Financeiro valem para todos os contratos do grupo
       const empresaGrupo = await fetchEmpresaGrupoMap(supabase as any);
       const anexosPorMov = expandirAnexosPorGrupo(rows as any, anexosAll, empresaGrupo) as Map<
