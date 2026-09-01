@@ -98,7 +98,7 @@ export function GrupoFinanceiroSection({ empresaId }: Props) {
       });
       qc.invalidateQueries({ queryKey: ["grupo-financeiro"] });
       qc.invalidateQueries({ queryKey: ["grupos-financeiros"] });
-      qc.invalidateQueries({ queryKey: ["empresa-grupo-map"] });
+      qc.invalidateQueries({ queryKey: ["grupo-financeiro", "empresa-map"] });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
