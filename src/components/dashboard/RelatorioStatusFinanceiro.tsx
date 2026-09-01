@@ -309,6 +309,10 @@ export function RelatorioStatusFinanceiro() {
 
 
 
+  /** Nomes distintos de quem anexou algum arquivo no movimento */
+  const anexadores = (l: LinhaRelatorio) =>
+    Array.from(new Set(l.anexos_usuarios.map((a) => a.nome).filter(Boolean)));
+
   const porUsuario = useMemo(() => {
     const m = new Map<string, { enviadas: number; faturamentos: number; anexos: number }>();
     const get = (k: string) => {
@@ -319,7 +323,8 @@ export function RelatorioStatusFinanceiro() {
     filtradas.forEach((l) => {
       if (l.data_envio_nota) get(l.usuario_envio || "Não identificado").enviadas += 1;
       if (l.faturamento_iniciado_em) get(l.usuario_faturamento || "Não identificado").faturamentos += 1;
-      if (l.ultimo_anexo_por) get(l.ultimo_anexo_por).anexos += 1;
+      // Todos que anexaram contam, não apenas o último
+      anexadores(l).forEach((nome) => (get(nome).anexos += 1));
     });
     return Array.from(m.entries())
       .map(([usuario, v]) => ({ usuario, ...v }))
@@ -336,10 +341,11 @@ export function RelatorioStatusFinanceiro() {
     filtradas.forEach((l) => {
       if (l.data_envio_nota) get(l.usuario_envio || "Não identificado").envios.push(l);
       if (l.faturamento_iniciado_em) get(l.usuario_faturamento || "Não identificado").faturamentos.push(l);
-      if (l.ultimo_anexo_por) get(l.ultimo_anexo_por).anexos.push(l);
+      anexadores(l).forEach((nome) => get(nome).anexos.push(l));
     });
     return m;
   }, [filtradas]);
+
 
   /** Movimentações únicas (nota enviada + faturamento + anexo) do usuário selecionado */
   const movsDoUsuario = useMemo(() => {
