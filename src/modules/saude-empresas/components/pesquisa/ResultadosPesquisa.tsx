@@ -186,9 +186,21 @@ export function ResultadosPesquisa() {
     }));
   }, [filtrado]);
 
-  const textos = useMemo(
-    () => filtrado.filter((i) => i.tipo === "texto_livre" && (i.valor_texto ?? "").trim()),
+  // IDs de respostas que possuem nota válida (para comentários só aparecerem junto de uma nota)
+  const respostasComNota = useMemo(
+    () => new Set(filtrado.filter((i) => i.tipo === "nota" && i.valor_nota != null).map((i) => i.resposta_id)),
     [filtrado],
+  );
+
+  const textos = useMemo(
+    () =>
+      filtrado.filter(
+        (i) =>
+          i.tipo === "texto_livre" &&
+          respostasComNota.has(i.resposta_id) &&
+          (i.valor_texto ?? "").trim(),
+      ),
+    [filtrado, respostasComNota],
   );
 
   if (isLoading) {
