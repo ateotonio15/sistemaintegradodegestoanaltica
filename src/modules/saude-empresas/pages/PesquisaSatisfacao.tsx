@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft, QrCode, Copy, Download, Plus, Trash2, ArrowUp, ArrowDown,
-  Save, Star, Lock, Unlock, ClipboardList, BarChart3, Activity, Building2, CalendarDays, Link2,
+  Save, Star, Lock, Unlock, ClipboardList, BarChart3, Activity, Building2, CalendarDays, Link2, Tablet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
