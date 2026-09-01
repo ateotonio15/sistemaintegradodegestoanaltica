@@ -5,10 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { CheckCircle2, Loader2, AlertTriangle, Star, HeartPulse, Building2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -38,7 +34,6 @@ export default function PesquisaTablet() {
   const [empresaNome, setEmpresaNome] = useState("");
   const [empresaConfirmada, setEmpresaConfirmada] = useState<string | null>(null);
   const [respostas, setRespostas] = useState<Record<string, string | number>>({});
-  const [confirmando, setConfirmando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [salvo, setSalvo] = useState(false);
   const [total, setTotal] = useState(0);
@@ -99,7 +94,6 @@ export default function PesquisaTablet() {
   };
 
   const enviar = async () => {
-    setConfirmando(false);
     setEnviando(true);
     const payload = perguntas
       .filter((p) => respostas[p.id] !== undefined && respostas[p.id] !== "")
@@ -290,27 +284,14 @@ export default function PesquisaTablet() {
         <Button
           className="mt-6 h-14 w-full text-base"
           disabled={enviando}
-          onClick={() => validar() && setConfirmando(true)}
+          onClick={() => {
+            if (validar()) enviar();
+          }}
         >
           {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Finalizar avaliação
         </Button>
 
-        <AlertDialog open={confirmando} onOpenChange={setConfirmando}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Salvar avaliação?</AlertDialogTitle>
-              <AlertDialogDescription>
-                As respostas serão registradas para {empresaConfirmada} e um novo formulário será
-                aberto automaticamente para o próximo participante.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Revisar</AlertDialogCancel>
-              <AlertDialogAction onClick={enviar}>Salvar avaliação</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </Wrapper>
   );
