@@ -95,6 +95,8 @@ interface LinhaRelatorio {
   status: StatusFinanceiro;
   statusLabel: string;
   data_envio_nota: string | null;
+  /** Data efetiva da nota: campo do envio ou, na falta, o dia em que a NF foi anexada */
+  data_nota_efetiva: string | null;
   data_vencimento: string | null;
   dia_emissao: number | null;
   aguardando_nota_em: string | null;
@@ -241,6 +243,8 @@ export function RelatorioStatusFinanceiro() {
           status,
           statusLabel: labelStatusFinanceiro(status),
           data_envio_nota: r.data_envio_nota,
+          data_nota_efetiva:
+            r.data_envio_nota ?? (anexoNota ? anexoNota.created_at.slice(0, 10) : null),
           data_vencimento: r.data_vencimento,
           dia_emissao: r.dia_emissao,
           aguardando_nota_em: r.aguardando_nota_em,
@@ -360,7 +364,7 @@ export function RelatorioStatusFinanceiro() {
     };
     filtradas.forEach((l) => {
       // Produção = notas emitidas no período pelo usuário
-      if (noPeriodo(l.data_envio_nota)) get(l.usuario_envio || "Não identificado").enviadas += 1;
+      if (noPeriodo(l.data_nota_efetiva)) get(l.usuario_envio || "Não identificado").enviadas += 1;
       if (noPeriodo(l.faturamento_iniciado_em?.slice(0, 10)))
         get(l.usuario_faturamento || "Não identificado").faturamentos += 1;
       // Todos que anexaram no período contam, não apenas o último
@@ -382,7 +386,7 @@ export function RelatorioStatusFinanceiro() {
       return v;
     };
     filtradas.forEach((l) => {
-      if (noPeriodo(l.data_envio_nota)) get(l.usuario_envio || "Não identificado").envios.push(l);
+      if (noPeriodo(l.data_nota_efetiva)) get(l.usuario_envio || "Não identificado").envios.push(l);
       if (noPeriodo(l.faturamento_iniciado_em?.slice(0, 10)))
         get(l.usuario_faturamento || "Não identificado").faturamentos.push(l);
       Array.from(
