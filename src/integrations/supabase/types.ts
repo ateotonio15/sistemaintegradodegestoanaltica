@@ -3611,18 +3611,21 @@ export type Database = {
           id: string
           pesquisa_id: string
           respondido_em: string
+          teste: boolean
         }
         Insert: {
           empresa_nome?: string | null
           id?: string
           pesquisa_id: string
           respondido_em?: string
+          teste?: boolean
         }
         Update: {
           empresa_nome?: string | null
           id?: string
           pesquisa_id?: string
           respondido_em?: string
+          teste?: boolean
         }
         Relationships: [
           {
@@ -5088,6 +5091,15 @@ export type Database = {
         | { Args: { p_respostas: Json; p_token: string }; Returns: string }
         | {
             Args: { p_empresa?: string; p_respostas: Json; p_token: string }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_empresa?: string
+              p_respostas: Json
+              p_teste?: boolean
+              p_token: string
+            }
             Returns: string
           }
       set_lock_password: {
