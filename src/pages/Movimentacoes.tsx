@@ -429,8 +429,7 @@ export default function Movimentacoes() {
       const podeReplicar =
         !!grupo &&
         (!grupo.principal_empresa_id || grupo.principal_empresa_id === values.empresa_id);
-      if (podeReplicar) {
-
+      if (grupo && podeReplicar) {
         const { data: contratos } = await supabase
           .from("grupos_financeiros_contratos" as any)
           .select("empresa_id")
@@ -441,7 +440,7 @@ export default function Movimentacoes() {
         );
         if (outras.length) {
           // Atualiza as movimentações irmãs já existentes...
-          await supabase
+          const { error: errUpd } = await supabase
             .from("movimentacoes")
             .update({
               data_envio_empresa: payload.data_envio_empresa,
@@ -452,6 +451,8 @@ export default function Movimentacoes() {
             .in("empresa_id", outras)
             .eq("mes_referencia", values.mes_referencia)
             .eq("periodo", values.periodo);
+          if (errUpd) throw errUpd;
+
 
           // ...e cria as que ainda não existem na competência/período,
           // para que as datas do principal apareçam em todo o grupo.
