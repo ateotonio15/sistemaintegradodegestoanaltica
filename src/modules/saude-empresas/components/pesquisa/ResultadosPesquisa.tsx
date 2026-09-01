@@ -99,8 +99,9 @@ export function ResultadosPesquisa() {
   const porEmpresa = useMemo(() => {
     const map = new Map<string, { label: string; soma: number; n: number; pessoas: Set<string> }>();
     notas.forEach((i) => {
-      const label = (i.empresa ?? "").trim();
-      const key = label.toLowerCase().replace(/\s+/g, " ");
+      const label = nomeEmpresa(i.empresa);
+      if (!label) return;
+      const key = label.toLowerCase();
       const cur = map.get(key) ?? { label, soma: 0, n: 0, pessoas: new Set<string>() };
       cur.pessoas.add(i.resposta_id);
       cur.soma += i.valor_nota ?? 0;
@@ -115,7 +116,8 @@ export function ResultadosPesquisa() {
       }))
       .sort((a, b) => b.pessoas - a.pessoas || b.media - a.media)
       .slice(0, 12);
-  }, [notas]);
+  }, [notas, canonico]);
+
 
 
   const porPalestra = useMemo(() => {
