@@ -83,21 +83,26 @@ export function ResultadosPesquisa() {
   }, [notas]);
 
   const porEmpresa = useMemo(() => {
-    const map = new Map<string, { soma: number; n: number; pessoas: Set<string> }>();
+    const map = new Map<string, { label: string; soma: number; n: number; pessoas: Set<string> }>();
     notas.forEach((i) => {
-      const cur = map.get(i.empresa) ?? { soma: 0, n: 0, pessoas: new Set<string>() };
+      const label = (i.empresa ?? "").trim();
+      const key = label.toLowerCase().replace(/\s+/g, " ");
+      const cur = map.get(key) ?? { label, soma: 0, n: 0, pessoas: new Set<string>() };
       cur.pessoas.add(i.resposta_id);
-      map.set(i.empresa, { soma: cur.soma + (i.valor_nota ?? 0), n: cur.n + 1, pessoas: cur.pessoas });
+      cur.soma += i.valor_nota ?? 0;
+      cur.n += 1;
+      map.set(key, cur);
     });
-    return Array.from(map.entries())
-      .map(([k, v]) => ({
-        empresa: k,
+    return Array.from(map.values())
+      .map((v) => ({
+        empresa: v.label,
         media: Number((v.soma / v.n).toFixed(2)),
         pessoas: v.pessoas.size,
       }))
-      .sort((a, b) => b.media - a.media)
+      .sort((a, b) => b.pessoas - a.pessoas || b.media - a.media)
       .slice(0, 12);
   }, [notas]);
+
 
   const porPalestra = useMemo(() => {
     const map = new Map<string, { empresa: string; tema: string | null; data: string; respostas: Set<string> }>();
