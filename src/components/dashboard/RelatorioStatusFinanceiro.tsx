@@ -1037,6 +1037,7 @@ export function RelatorioStatusFinanceiro() {
               <div className="px-4 py-3 bg-muted/50 border-b">
                 <p className="text-sm font-semibold">Produção por usuário</p>
                 <p className="text-sm text-muted-foreground leading-snug">
+                  <strong>Notas emitidas</strong> = notas que ele emitiu no período ·{" "}
                   <strong>Faturamentos</strong> = faturamentos que ele iniciou · <strong>Anexos</strong> = arquivos
                   que ele subiu.
                 </p>
@@ -1046,6 +1047,7 @@ export function RelatorioStatusFinanceiro() {
                   <thead className="text-muted-foreground sticky top-0 bg-card">
                     <tr className="border-b">
                       <th className="text-left px-4 py-2 font-medium">Usuário</th>
+                      <th className="text-right px-4 py-2 font-medium">Notas emitidas</th>
                       <th className="text-right px-4 py-2 font-medium">Faturamentos</th>
                       <th className="text-right px-4 py-2 font-medium">Anexos</th>
                     </tr>
@@ -1058,8 +1060,10 @@ export function RelatorioStatusFinanceiro() {
                         onClick={() => setUsuarioDialog(u.usuario)}
                       >
                         <td className="px-4 py-2 truncate max-w-[200px]">{u.usuario}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-foreground">{u.enviadas}</td>
                         <td className="px-4 py-2 text-right">{u.faturamentos}</td>
                         <td className="px-4 py-2 text-right">{u.anexos}</td>
+
                       </tr>
                     ))}
                   </tbody>
