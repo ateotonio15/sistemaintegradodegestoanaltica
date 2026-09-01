@@ -290,27 +290,14 @@ export default function PesquisaTablet() {
         <Button
           className="mt-6 h-14 w-full text-base"
           disabled={enviando}
-          onClick={() => validar() && setConfirmando(true)}
+          onClick={() => {
+            if (validar()) enviar();
+          }}
         >
           {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Finalizar avaliação
         </Button>
 
-        <AlertDialog open={confirmando} onOpenChange={setConfirmando}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Salvar avaliação?</AlertDialogTitle>
-              <AlertDialogDescription>
-                As respostas serão registradas para {empresaConfirmada} e um novo formulário será
-                aberto automaticamente para o próximo participante.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Revisar</AlertDialogCancel>
-              <AlertDialogAction onClick={enviar}>Salvar avaliação</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </Wrapper>
   );
