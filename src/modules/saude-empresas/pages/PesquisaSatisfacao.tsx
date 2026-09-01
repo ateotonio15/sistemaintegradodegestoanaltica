@@ -435,7 +435,9 @@ function PalestraCard({
 function QrDialog({ data, onClose }: { data: any; onClose: () => void }) {
   const [png, setPng] = useState<string>("");
   const token = data?.pesquisa?.token;
-  const url = token ? `${window.location.origin}/pesquisa/${token}` : "";
+  const url = token
+    ? `${window.location.origin}/pesquisa/${data?.tablet ? "tablet/" : ""}${token}`
+    : "";
 
   useEffect(() => {
     let cancel = false;
