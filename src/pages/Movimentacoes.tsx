@@ -423,8 +423,14 @@ export default function Movimentacoes() {
 
       // Grupo Financeiro: contrato principal replica datas e observações
       // para os demais contratos do grupo na mesma competência/período.
+      // Se o grupo não tiver um contrato principal definido, o contrato
+      // que está sendo editado atua como origem da replicação.
       const grupo = empresaGrupoMap?.get(values.empresa_id);
-      if (grupo?.principal_empresa_id && grupo.principal_empresa_id === values.empresa_id) {
+      const podeReplicar =
+        !!grupo &&
+        (!grupo.principal_empresa_id || grupo.principal_empresa_id === values.empresa_id);
+      if (podeReplicar) {
+
         const { data: contratos } = await supabase
           .from("grupos_financeiros_contratos" as any)
           .select("empresa_id")
