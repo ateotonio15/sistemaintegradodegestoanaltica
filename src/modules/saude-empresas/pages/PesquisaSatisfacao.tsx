@@ -230,6 +230,52 @@ export default function PesquisaSatisfacao() {
   );
 }
 
+function PesquisaGeralCard({
+  titulo, descricao, pesquisa, respostas, canEdit, onCriar, onQr, onPerguntas, onToggle,
+}: any) {
+  return (
+    <Card className="p-4 space-y-3 border-primary/30">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold">{titulo}</p>
+          <p className="text-xs text-muted-foreground">{descricao}</p>
+        </div>
+        {pesquisa && (
+          <div className="flex items-center gap-2">
+            <Badge variant={pesquisa.aberta ? "default" : "secondary"}>
+              {pesquisa.aberta ? "Aberta" : "Encerrada"}
+            </Badge>
+            <Badge variant="outline">
+              {respostas} resposta{respostas === 1 ? "" : "s"}
+            </Badge>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {!pesquisa ? (
+          <Button size="sm" onClick={onCriar} disabled={!canEdit}>
+            <QrCode className="h-4 w-4 mr-1" /> Gerar QR Code único
+          </Button>
+        ) : (
+          <>
+            <Button size="sm" onClick={onQr}>
+              <QrCode className="h-4 w-4 mr-1" /> QR Code e Link
+            </Button>
+            <Button size="sm" variant="outline" disabled={!canEdit} onClick={onPerguntas}>
+              <ClipboardList className="h-4 w-4 mr-1" /> Perguntas
+            </Button>
+            <Button size="sm" variant="ghost" disabled={!canEdit} onClick={onToggle}>
+              {pesquisa.aberta
+                ? <><Lock className="h-4 w-4 mr-1" /> Encerrar</>
+                : <><Unlock className="h-4 w-4 mr-1" /> Reabrir</>}
+            </Button>
+          </>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function PalestraCard({
   palestra, pesquisa, respostas, canEdit,
   onSalvarTema, onGerar, onQr, onEditarPerguntas, onToggle,
