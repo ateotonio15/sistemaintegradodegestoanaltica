@@ -251,46 +251,12 @@ export function ResultadosPesquisa() {
         )}
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard
-          title="Média por empresa"
-          subtitle="Nota média de satisfação (0 a 5)"
-          empty={porEmpresaMedia.length === 0}
-          height={260}
-        >
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={porEmpresaMedia} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-              <XAxis type="number" domain={[0, 5]} hide />
-              <YAxis
-                type="category"
-                dataKey="empresa"
-                width={130}
-                tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <RTooltip
-                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: any) => [`${v}/5`, "Média"]}
-              />
-              <Bar
-                dataKey="media"
-                name="Média"
-                fill="hsl(var(--primary))"
-                radius={[0, 4, 4, 0]}
-                label={{ position: "right", formatter: (v: number) => v, fontSize: 10, fill: "hsl(var(--foreground))" }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="Quantidade de pessoas por empresa"
-          subtitle="Avaliadores únicos"
-          empty={porEmpresa.length === 0}
-          height={260}
-        >
+      <ChartCard
+        title="Quantidade de pessoas por empresa"
+        subtitle="Avaliadores únicos"
+        empty={porEmpresa.length === 0}
+        height={260}
+      >
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={porEmpresa} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 5 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
