@@ -95,6 +95,8 @@ interface LinhaRelatorio {
   status: StatusFinanceiro;
   statusLabel: string;
   data_envio_nota: string | null;
+  /** Data efetiva da nota: campo do envio ou, na falta, o dia em que a NF foi anexada */
+  data_nota_efetiva: string | null;
   data_vencimento: string | null;
   dia_emissao: number | null;
   aguardando_nota_em: string | null;
