@@ -1624,7 +1624,9 @@ export default function Financeiro() {
       }
       if (cnpjsDoArquivo && cnpjsDoArquivo.size > 0) {
         for (const c of cnpjsDoArquivo) if (cnpjsDoContratoAnalise.has(c)) return true;
-        return false;
+        // Só descarta se o CNPJ pertence a OUTRO contrato da competência.
+        for (const c of cnpjsDoArquivo) if (cnpjsReconhecidos.has(c)) return false;
+        return true;
       }
       return true;
     };
