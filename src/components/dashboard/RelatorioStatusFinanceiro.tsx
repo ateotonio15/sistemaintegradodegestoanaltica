@@ -219,6 +219,16 @@ export function RelatorioStatusFinanceiro() {
         const ultimo = anexos
           .slice()
           .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+        const ultimoPor = ultimo?.uploaded_by ? nomeMap.get(ultimo.uploaded_by) ?? "" : "";
+        // Fallback: quando a movimentação não gravou quem enviou a nota,
+        // credita quem anexou a nota fiscal (ou o último anexo do processo).
+        const anexoNota = anexos
+          .filter((a) => a.uploaded_by)
+          .filter((a) => /nota|nfs?e?|\bnf\b/i.test(`${a.nome_arquivo ?? ""} ${a.origem ?? ""}`))
+          .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+        const anexoNotaPor = anexoNota?.uploaded_by
+          ? nomeMap.get(anexoNota.uploaded_by) ?? ""
+          : "";
         return {
           id: r.id,
           empresa_id: r.empresa_id,
@@ -236,13 +246,15 @@ export function RelatorioStatusFinanceiro() {
           aguardando_nota_em: r.aguardando_nota_em,
           faturamento_iniciado_em: r.faturamento_iniciado_em,
           dentro_prazo: r.dentro_prazo,
-          usuario_envio: nomeMap.get(r.enviado_por_user_id) ?? "",
+          usuario_envio:
+            nomeMap.get(r.enviado_por_user_id) ?? (anexoNotaPor || ultimoPor || ""),
           usuario_faturamento:
             r.faturamento_iniciado_por_nome ?? nomeMap.get(r.faturamento_iniciado_por) ?? "",
           atualizado_em: r.updated_at,
           qtd_anexos: anexos.length,
           ultimo_anexo_em: ultimo?.created_at ?? null,
-          ultimo_anexo_por: ultimo?.uploaded_by ? nomeMap.get(ultimo.uploaded_by) ?? "" : "",
+          ultimo_anexo_por: ultimoPor,
+
           anexos_usuarios: anexos
             .filter((a) => a.uploaded_by && a.created_at)
             .map((a) => ({
