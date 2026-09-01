@@ -613,7 +613,7 @@ export function RelatorioStatusFinanceiro() {
       cell.alignment = { vertical: "middle", indent: 1 };
     });
     porUsuario.forEach((u) => {
-      const row = wsUser.addRow([u.usuario, u.faturamentos, u.anexos]);
+      const row = wsUser.addRow([u.usuario, u.enviadas, u.faturamentos, u.anexos]);
       row.height = 20;
       row.eachCell((cell, col) => {
         cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
