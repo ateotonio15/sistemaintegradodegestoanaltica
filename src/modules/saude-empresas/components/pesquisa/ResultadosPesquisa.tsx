@@ -153,14 +153,19 @@ export function ResultadosPesquisa() {
           </SelectContent>
         </Select>
         <div className="ml-auto flex gap-2">
-          <Badge variant="outline">Respostas: {totalRespostas}</Badge>
+          <Badge variant="outline">
+            {totalRespostas} {totalRespostas === 1 ? "pessoa avaliou" : "pessoas avaliaram"}
+          </Badge>
           <Badge variant="secondary">Média geral: {mediaGeral}</Badge>
         </div>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-4">
-          <p className="text-sm font-semibold mb-3">Satisfação por mês</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold">Satisfação por mês</p>
+            <span className="text-xs text-muted-foreground">{totalRespostas} avaliações</span>
+          </div>
           <div style={{ width: "100%", height: 220 }}>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={porMes} margin={{ top: 5, right: 8, bottom: 0, left: 0 }}>
