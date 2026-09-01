@@ -476,8 +476,9 @@ export default function Movimentacoes() {
               responsavel_movimentacao: payload.responsavel_movimentacao ?? null,
               tipo_movimentacao: values.tipo_movimentacao,
             }));
-            await supabase.from("movimentacoes").insert(novas);
-          }
+            const { error: errIns } = await supabase.from("movimentacoes").insert(novas);
+            if (errIns) throw errIns;
+
         }
       }
     },
