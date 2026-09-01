@@ -134,31 +134,6 @@ export function ResultadosPesquisa() {
     [porEmpresa],
   );
 
-  const distribuicaoNotas = useMemo(() => {
-    const map = new Map<string, { empresa: string; pessoas: Set<string>; notas: Record<number, number> }>();
-    notas.forEach((i) => {
-      const label = nomeEmpresa(i.empresa);
-      if (!label) return;
-      const key = label.toLowerCase();
-      const cur = map.get(key) ?? { empresa: label, pessoas: new Set<string>(), notas: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
-      cur.pessoas.add(i.resposta_id);
-      const n = Math.round(i.valor_nota ?? 0);
-      if (n >= 1 && n <= 5) cur.notas[n] = (cur.notas[n] ?? 0) + 1;
-      map.set(key, cur);
-    });
-    return Array.from(map.values())
-      .map((v) => ({
-        empresa: v.empresa,
-        pessoas: v.pessoas.size,
-        nota1: v.notas[1],
-        nota2: v.notas[2],
-        nota3: v.notas[3],
-        nota4: v.notas[4],
-        nota5: v.notas[5],
-      }))
-      .sort((a, b) => b.pessoas - a.pessoas)
-      .slice(0, 12);
-  }, [notas, canonico]);
 
 
 
