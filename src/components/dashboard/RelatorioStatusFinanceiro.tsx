@@ -243,6 +243,8 @@ export function RelatorioStatusFinanceiro() {
           status,
           statusLabel: labelStatusFinanceiro(status),
           data_envio_nota: r.data_envio_nota,
+          data_nota_efetiva:
+            r.data_envio_nota ?? (anexoNota ? anexoNota.created_at.slice(0, 10) : null),
           data_vencimento: r.data_vencimento,
           dia_emissao: r.dia_emissao,
           aguardando_nota_em: r.aguardando_nota_em,
