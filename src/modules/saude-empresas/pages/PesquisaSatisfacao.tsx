@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft, QrCode, Copy, Download, Plus, Trash2, ArrowUp, ArrowDown,
-  Save, Star, Lock, Unlock, ClipboardList, BarChart3, Activity, Building2, CalendarDays, Link2,
+  Save, Star, Lock, Unlock, ClipboardList, BarChart3, Activity, Building2, CalendarDays, Link2, Tablet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -125,7 +125,7 @@ export default function PesquisaSatisfacao() {
       </header>
 
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <PesquisaGeralCard
           icone={ClipboardList}
           titulo="QR Code único · Palestras"
@@ -157,7 +157,28 @@ export default function PesquisaSatisfacao() {
           }
           onToggle={() => geralAcoes && toggle.mutate({ id: geralAcoes.id, aberta: !geralAcoes.aberta })}
         />
+
+        <PesquisaGeralCard
+          icone={Tablet}
+          titulo="Modo Tablet · Palestras"
+          descricao="Link/QR para o tablet da enfermeira: informa a empresa uma vez e o formulário se repete a cada beneficiário."
+          pesquisa={geral}
+          respostas={geral ? contagemGeral[geral.id] ?? 0 : 0}
+          canEdit={canEdit}
+          onCriar={() => criarGeral.mutate()}
+          onQr={() =>
+            setQrPalestra({
+              empresa: "Modo Tablet",
+              tema: "Palestras de Saúde",
+              pesquisa: geral,
+              tablet: true,
+            })
+          }
+          onPerguntas={() => geral && setEditando({ pesquisaId: geral.id, titulo: "Pesquisa geral — Palestras" })}
+          onToggle={() => geral && toggle.mutate({ id: geral.id, aberta: !geral.aberta })}
+        />
       </div>
+
 
 
       <Tabs defaultValue="palestras">
@@ -414,7 +435,9 @@ function PalestraCard({
 function QrDialog({ data, onClose }: { data: any; onClose: () => void }) {
   const [png, setPng] = useState<string>("");
   const token = data?.pesquisa?.token;
-  const url = token ? `${window.location.origin}/pesquisa/${token}` : "";
+  const url = token
+    ? `${window.location.origin}/pesquisa/${data?.tablet ? "tablet/" : ""}${token}`
+    : "";
 
   useEffect(() => {
     let cancel = false;
