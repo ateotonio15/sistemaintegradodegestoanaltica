@@ -3708,6 +3708,7 @@ export type Database = {
           geral: boolean
           id: string
           palestra_id: string | null
+          tipo: string
           titulo: string | null
           token: string
           updated_at: string
@@ -3719,6 +3720,7 @@ export type Database = {
           geral?: boolean
           id?: string
           palestra_id?: string | null
+          tipo?: string
           titulo?: string | null
           token?: string
           updated_at?: string
@@ -3730,6 +3732,7 @@ export type Database = {
           geral?: boolean
           id?: string
           palestra_id?: string | null
+          tipo?: string
           titulo?: string | null
           token?: string
           updated_at?: string
