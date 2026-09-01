@@ -53,6 +53,7 @@ import CalendarioPreventivas from "./modules/saude-empresas/pages/CalendarioPrev
 import CalendarioPalestras from "./modules/saude-empresas/pages/CalendarioPalestras";
 import PesquisaSatisfacao from "./modules/saude-empresas/pages/PesquisaSatisfacao";
 import ResponderPesquisa from "./modules/saude-empresas/pages/ResponderPesquisa";
+import PesquisaTablet from "./modules/saude-empresas/pages/PesquisaTablet";
 import DashboardExecutivo from "./modules/saude-empresas/pages/DashboardExecutivo";
 import MailingBrindes from "./pages/MailingBrindes";
 import ApresentacaoIndicadores from "./pages/ApresentacaoIndicadores";
