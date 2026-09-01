@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft, QrCode, Copy, Download, Plus, Trash2, ArrowUp, ArrowDown,
-  Save, Star, Lock, Unlock, ClipboardList, BarChart3,
+  Save, Star, Lock, Unlock, ClipboardList, BarChart3, Activity, Building2, CalendarDays, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -99,23 +99,37 @@ export default function PesquisaSatisfacao() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-5">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/saude-empresas"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link>
-        </Button>
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Pesquisa de Satisfação</h1>
-          <p className="text-sm text-muted-foreground">
-            Avaliação dos participantes após as palestras de saúde
-          </p>
+    <div className="p-4 md:p-8 space-y-8 max-w-6xl mx-auto">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" asChild className="shrink-0">
+            <Link to="/saude-empresas" aria-label="Voltar"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Pesquisa de Satisfação</h1>
+            <p className="text-sm text-muted-foreground">
+              Gerencie o feedback e o engajamento das palestras e ações de saúde.
+            </p>
+          </div>
         </div>
-      </div>
+        <div className="flex items-center gap-3 text-xs">
+          <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Respostas · Palestras</p>
+            <p className="text-base font-bold">{geral ? contagemGeral[geral.id] ?? 0 : 0}</p>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Respostas · Ações</p>
+            <p className="text-base font-bold">{geralAcoes ? contagemAcoes[geralAcoes.id] ?? 0 : 0}</p>
+          </div>
+        </div>
+      </header>
 
-      <div className="grid gap-3 lg:grid-cols-2">
+
+      <div className="grid gap-4 md:grid-cols-2">
         <PesquisaGeralCard
-          titulo="Palestras — QR Code e Link únicos"
-          descricao="Um único QR Code para todas as palestras — o participante informa o nome da empresa ao responder."
+          icone={ClipboardList}
+          titulo="QR Code único · Palestras"
+          descricao="Acesso simplificado para todas as palestras do período — o participante informa a empresa ao responder."
           pesquisa={geral}
           respostas={geral ? contagemGeral[geral.id] ?? 0 : 0}
           canEdit={canEdit}
@@ -128,8 +142,9 @@ export default function PesquisaSatisfacao() {
         />
 
         <PesquisaGeralCard
-          titulo="Ações — QR Code e Link únicos"
-          descricao="QR Code exclusivo das ações de saúde (triagem, preventivas, bioimpedância), com perguntas próprias."
+          icone={Activity}
+          titulo="QR Code único · Ações"
+          descricao="Link direto para as ações in loco: triagem, sinais vitais, preventivas e bioimpedância."
           pesquisa={geralAcoes}
           respostas={geralAcoes ? contagemAcoes[geralAcoes.id] ?? 0 : 0}
           canEdit={canEdit}
@@ -146,23 +161,23 @@ export default function PesquisaSatisfacao() {
 
 
       <Tabs defaultValue="palestras">
-        <TabsList className="h-12 w-full max-w-md gap-1 rounded-xl border border-border/60 bg-muted/40 p-1.5 shadow-sm">
+        <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b border-border bg-transparent p-0">
           <TabsTrigger
             value="palestras"
-            className="flex-1 gap-2 rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+            className="gap-2 rounded-none border-b-2 border-transparent bg-transparent px-6 py-3 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
           >
             <ClipboardList className="h-4 w-4" /> Palestras
           </TabsTrigger>
           <TabsTrigger
             value="resultados"
-            className="flex-1 gap-2 rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+            className="gap-2 rounded-none border-b-2 border-transparent bg-transparent px-6 py-3 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
           >
-            <BarChart3 className="h-4 w-4" /> Resultados
+            <BarChart3 className="h-4 w-4" /> Resultados consolidados
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="palestras" className="space-y-4 mt-4">
-          <Card className="p-4 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -184,15 +199,18 @@ export default function PesquisaSatisfacao() {
                 {empresas.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
               </SelectContent>
             </Select>
-          </Card>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {lista.length} palestra{lista.length === 1 ? "" : "s"} no período
+            </span>
+          </div>
 
           {lista.length === 0 && (
-            <Card className="p-8 text-center text-sm text-muted-foreground">
+            <Card className="border-dashed p-10 text-center text-sm text-muted-foreground">
               Nenhuma palestra cadastrada neste período.
             </Card>
           )}
 
-          <div className="grid gap-3">
+          <div className="grid gap-2.5">
             {lista.map((p: any) => {
               const pes = pesquisaPorPalestra.get(p.id);
               return (
@@ -231,50 +249,63 @@ export default function PesquisaSatisfacao() {
 }
 
 function PesquisaGeralCard({
-  titulo, descricao, pesquisa, respostas, canEdit, onCriar, onQr, onPerguntas, onToggle,
+  icone: Icone = QrCode, titulo, descricao, pesquisa, respostas, canEdit, onCriar, onQr, onPerguntas, onToggle,
 }: any) {
   return (
-    <Card className="p-4 space-y-3 border-primary/30">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-semibold">{titulo}</p>
-          <p className="text-xs text-muted-foreground">{descricao}</p>
-        </div>
-        {pesquisa && (
-          <div className="flex items-center gap-2">
-            <Badge variant={pesquisa.aberta ? "default" : "secondary"}>
-              {pesquisa.aberta ? "Aberta" : "Encerrada"}
-            </Badge>
-            <Badge variant="outline">
-              {respostas} resposta{respostas === 1 ? "" : "s"}
-            </Badge>
+    <Card className="group relative overflow-hidden rounded-xl border-border/70 bg-card/60 p-6 transition-colors hover:border-primary/50">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold">{titulo}</h3>
+            {pesquisa && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                  pesquisa.aberta
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {pesquisa.aberta ? "Ativa" : "Encerrada"}
+              </span>
+            )}
           </div>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {!pesquisa ? (
-          <Button size="sm" onClick={onCriar} disabled={!canEdit}>
-            <QrCode className="h-4 w-4 mr-1" /> Gerar QR Code único
-          </Button>
-        ) : (
-          <>
-            <Button size="sm" onClick={onQr}>
-              <QrCode className="h-4 w-4 mr-1" /> QR Code e Link
-            </Button>
-            <Button size="sm" variant="outline" disabled={!canEdit} onClick={onPerguntas}>
-              <ClipboardList className="h-4 w-4 mr-1" /> Perguntas
-            </Button>
-            <Button size="sm" variant="ghost" disabled={!canEdit} onClick={onToggle}>
-              {pesquisa.aberta
-                ? <><Lock className="h-4 w-4 mr-1" /> Encerrar</>
-                : <><Unlock className="h-4 w-4 mr-1" /> Reabrir</>}
-            </Button>
-          </>
-        )}
+          <p className="text-sm leading-relaxed text-muted-foreground">{descricao}</p>
+          {pesquisa && (
+            <p className="text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">{respostas}</span>{" "}
+              resposta{respostas === 1 ? "" : "s"} recebida{respostas === 1 ? "" : "s"}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            {!pesquisa ? (
+              <Button size="sm" onClick={onCriar} disabled={!canEdit}>
+                <QrCode className="mr-2 h-4 w-4" /> Gerar QR Code
+              </Button>
+            ) : (
+              <>
+                <Button size="sm" onClick={onQr}>
+                  <QrCode className="mr-2 h-4 w-4" /> QR Code e Link
+                </Button>
+                <Button size="sm" variant="outline" disabled={!canEdit} onClick={onPerguntas}>
+                  <ClipboardList className="mr-2 h-4 w-4" /> Perguntas
+                </Button>
+                <Button size="sm" variant="ghost" disabled={!canEdit} onClick={onToggle}>
+                  {pesquisa.aberta
+                    ? <><Lock className="mr-2 h-4 w-4" /> Encerrar</>
+                    : <><Unlock className="mr-2 h-4 w-4" /> Reabrir</>}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="rounded-lg bg-muted p-3 text-muted-foreground">
+          <Icone className="h-7 w-7" />
+        </div>
       </div>
     </Card>
   );
 }
+
 
 function PalestraCard({
   palestra, pesquisa, respostas, canEdit,
@@ -283,68 +314,102 @@ function PalestraCard({
   const [tema, setTema] = useState(palestra.tema ?? "");
   useEffect(() => setTema(palestra.tema ?? ""), [palestra.tema]);
 
+  const dirty = canEdit && tema !== (palestra.tema ?? "");
+
   return (
-    <Card className="p-4 space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-semibold truncate">{palestra.empresa}</p>
-          <p className="text-xs text-muted-foreground">
-            {format(new Date(`${palestra.data}T12:00:00`), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-          </p>
+    <Card
+      className={`flex flex-col gap-4 rounded-xl border-border/70 p-4 transition-colors md:flex-row md:items-center md:justify-between ${
+        pesquisa && !pesquisa.aberta ? "bg-card/30" : "bg-card/50 hover:bg-card"
+      }`}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-4">
+        <div
+          className={`h-12 w-1 shrink-0 rounded-full ${
+            !pesquisa ? "bg-border" : pesquisa.aberta ? "bg-primary" : "bg-muted-foreground/40"
+          }`}
+        />
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate font-semibold">{palestra.empresa}</p>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                !pesquisa
+                  ? "bg-muted text-muted-foreground"
+                  : pesquisa.aberta
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {!pesquisa ? "Sem pesquisa" : pesquisa.aberta ? "Ativa" : "Encerrada"}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <CalendarDays className="h-3 w-3" />
+              {format(new Date(`${palestra.data}T12:00:00`), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Input
+              value={tema}
+              onChange={(e) => setTema(e.target.value)}
+              placeholder="Tema de saúde do mês (ex: Saúde Mental)"
+              className="h-8 max-w-xs border-transparent bg-muted/40 text-sm hover:border-border focus-visible:border-primary"
+              disabled={!canEdit}
+            />
+            {dirty && (
+              <Button size="sm" variant="secondary" className="h-8" onClick={() => onSalvarTema(palestra.id, tema)}>
+                <Save className="mr-1 h-3.5 w-3.5" /> Salvar
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {pesquisa ? (
-            <>
-              <Badge variant={pesquisa.aberta ? "default" : "secondary"}>
-                {pesquisa.aberta ? "Aberta" : "Encerrada"}
-              </Badge>
-              <Badge variant="outline">{respostas} resposta{respostas === 1 ? "" : "s"}</Badge>
-            </>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-5 md:justify-end">
+        {pesquisa && (
+          <div className="flex flex-col items-start md:items-end">
+            <span className="text-lg font-bold leading-tight">{respostas}</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Respostas
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5">
+          {!pesquisa ? (
+            <Button size="sm" onClick={onGerar} disabled={!canEdit}>
+              <QrCode className="mr-2 h-4 w-4" /> Gerar QR Code
+            </Button>
           ) : (
-            <Badge variant="outline">Sem pesquisa</Badge>
+            <>
+              <Button size="icon" variant="ghost" className="h-9 w-9" title="QR Code e link" onClick={onQr}>
+                <QrCode className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9"
+                title="Perguntas"
+                onClick={onEditarPerguntas}
+                disabled={!canEdit}
+              >
+                <ClipboardList className="h-4 w-4" />
+              </Button>
+              <div className="mx-1 h-6 w-px bg-border" />
+              <Button size="sm" variant="outline" className="h-9" onClick={onToggle} disabled={!canEdit}>
+                {pesquisa.aberta
+                  ? <><Lock className="mr-1.5 h-3.5 w-3.5" /> Encerrar</>
+                  : <><Unlock className="mr-1.5 h-3.5 w-3.5" /> Reabrir</>}
+              </Button>
+            </>
           )}
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={tema}
-          onChange={(e) => setTema(e.target.value)}
-          placeholder="Tema de saúde do mês (ex: Saúde Mental)"
-          className="max-w-sm"
-          disabled={!canEdit}
-        />
-        {canEdit && tema !== (palestra.tema ?? "") && (
-          <Button size="sm" variant="secondary" onClick={() => onSalvarTema(palestra.id, tema)}>
-            <Save className="h-4 w-4 mr-1" /> Salvar tema
-          </Button>
-        )}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {!pesquisa ? (
-          <Button size="sm" onClick={onGerar} disabled={!canEdit}>
-            <QrCode className="h-4 w-4 mr-1" /> Gerar QR Code e Link
-          </Button>
-        ) : (
-          <>
-            <Button size="sm" onClick={onQr}>
-              <QrCode className="h-4 w-4 mr-1" /> QR Code e Link
-            </Button>
-            <Button size="sm" variant="outline" onClick={onEditarPerguntas} disabled={!canEdit}>
-              <ClipboardList className="h-4 w-4 mr-1" /> Perguntas
-            </Button>
-            <Button size="sm" variant="ghost" onClick={onToggle} disabled={!canEdit}>
-              {pesquisa.aberta
-                ? <><Lock className="h-4 w-4 mr-1" /> Encerrar</>
-                : <><Unlock className="h-4 w-4 mr-1" /> Reabrir</>}
-            </Button>
-          </>
-        )}
       </div>
     </Card>
   );
 }
+
 
 function QrDialog({ data, onClose }: { data: any; onClose: () => void }) {
   const [png, setPng] = useState<string>("");
