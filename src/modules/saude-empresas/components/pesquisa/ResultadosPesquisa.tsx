@@ -38,9 +38,10 @@ export function ResultadosPesquisa() {
 
   const empresas = useMemo(
     () =>
-      Array.from(new Set(itens.map((i) => nomeEmpresa(i.empresa))))
+      Array.from(new Set<string>(itens.map((i) => nomeEmpresa(i.empresa))))
         .filter(Boolean)
         .sort(),
+
     [itens, canonico],
   );
 
