@@ -197,6 +197,11 @@ export default function PesquisaTablet() {
   return (
     <Wrapper>
       <div className="mx-auto w-full max-w-2xl">
+        {modoTeste && (
+          <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-center text-xs font-semibold uppercase tracking-wider text-amber-600">
+            Modo teste — as respostas não entram nos resultados
+          </div>
+        )}
         <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Empresa</p>
