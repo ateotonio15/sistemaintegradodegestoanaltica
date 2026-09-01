@@ -413,7 +413,7 @@ export function ResultadosPesquisa() {
                 <div className="min-w-0">
                   <p className="font-medium truncate">{p.empresa}</p>
                   <p className="text-xs text-muted-foreground">
-                    {p.origem === "acao" ? "Ação de saúde" : p.tema ?? "Sem tema"} · {p.data?.split("-").reverse().join("/")}
+                    {[rotuloTema(p.origem, p.tema), p.data?.split("-").reverse().join("/")].filter(Boolean).join(" · ")}
                   </p>
                 </div>
                 <Badge variant="outline">
@@ -458,7 +458,7 @@ export function ResultadosPesquisa() {
               <li key={i} className="rounded-md border p-3 text-sm">
                 <p>{t.valor_texto}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t.empresa} · {t.origem === "acao" ? "ação" : t.tema ?? "sem tema"} · {t.data?.split("-").reverse().join("/")}
+                  {[t.empresa, rotuloTema(t.origem, t.tema), t.data?.split("-").reverse().join("/")].filter(Boolean).join(" · ")}
                 </p>
               </li>
             ))}
