@@ -220,61 +220,36 @@ export function ResultadosPesquisa() {
         </div>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold">Satisfação por mês</p>
-            <span className="text-xs text-muted-foreground">{totalRespostas} avaliações</span>
-          </div>
-          <div style={{ width: "100%", height: 220 }}>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={porMes} margin={{ top: 5, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={28} />
-                <RTooltip
-                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                  formatter={(v: any, n: any, p: any) => [`${v} · ${p?.payload?.pessoas ?? 0} pessoas`, n]}
-                />
-                <Line type="monotone" dataKey="media" name="Média" stroke="#2a78d6" strokeWidth={2} dot />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold">Satisfação por empresa</p>
-            <Badge variant="outline" className="text-[11px]">
-              {porEmpresa.reduce((s, e) => s + e.pessoas, 0)} pessoas · {porEmpresa.length} empresas
-            </Badge>
-          </div>
-          {porEmpresa.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma avaliação no filtro atual.</p>
-          ) : (
-            <div className="space-y-3 max-h-[260px] overflow-auto pr-1">
-              {porEmpresa.map((e) => (
-                <div key={e.empresa} className="space-y-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-xs font-medium truncate" title={e.empresa}>{e.empresa}</span>
-                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                      {e.pessoas} {e.pessoas === 1 ? "pessoa" : "pessoas"} · <span className="text-foreground font-semibold">{e.media}</span>/5
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${Math.max(4, (e.media / 5) * 100)}%` }}
-                    />
-                  </div>
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold">Satisfação por empresa</p>
+          <Badge variant="outline" className="text-[11px]">
+            {porEmpresa.reduce((s, e) => s + e.pessoas, 0)} pessoas · {porEmpresa.length} empresas
+          </Badge>
+        </div>
+        {porEmpresa.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhuma avaliação no filtro atual.</p>
+        ) : (
+          <div className="space-y-3 max-h-[260px] overflow-auto pr-1">
+            {porEmpresa.map((e) => (
+              <div key={e.empresa} className="space-y-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-xs font-medium truncate" title={e.empresa}>{e.empresa}</span>
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    {e.pessoas} {e.pessoas === 1 ? "pessoa" : "pessoas"} · <span className="text-foreground font-semibold">{e.media}</span>/5
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-
-      </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${Math.max(4, (e.media / 5) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartCard
