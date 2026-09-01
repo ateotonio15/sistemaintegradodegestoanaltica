@@ -5,10 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { CheckCircle2, Loader2, AlertTriangle, Star, HeartPulse, Building2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -38,7 +34,6 @@ export default function PesquisaTablet() {
   const [empresaNome, setEmpresaNome] = useState("");
   const [empresaConfirmada, setEmpresaConfirmada] = useState<string | null>(null);
   const [respostas, setRespostas] = useState<Record<string, string | number>>({});
-  const [confirmando, setConfirmando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [salvo, setSalvo] = useState(false);
   const [total, setTotal] = useState(0);
@@ -99,7 +94,6 @@ export default function PesquisaTablet() {
   };
 
   const enviar = async () => {
-    setConfirmando(false);
     setEnviando(true);
     const payload = perguntas
       .filter((p) => respostas[p.id] !== undefined && respostas[p.id] !== "")
