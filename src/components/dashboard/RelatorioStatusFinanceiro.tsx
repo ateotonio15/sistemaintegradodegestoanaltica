@@ -126,14 +126,22 @@ export function RelatorioStatusFinanceiro() {
     refetchInterval: 60_000,
     queryKey: ["fin-relatorio-status", dataIni, dataFim],
     queryFn: async (): Promise<LinhaRelatorio[]> => {
-      const { data: fins, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select(
-          "id, empresa_id, mes_referencia, periodo, tipo_cobranca, tipo_analise, data_envio_nota, data_vencimento, dia_emissao, aguardando_nota_em, faturamento_iniciado_em, faturamento_iniciado_por, faturamento_iniciado_por_nome, enviado_por_user_id, dentro_prazo, updated_at",
-        )
-        .limit(20000);
-      if (error) throw error;
-      const rows = fins ?? [];
+      // Paginação: o backend limita 1000 linhas por requisição
+      const COLS =
+        "id, empresa_id, mes_referencia, periodo, tipo_cobranca, tipo_analise, data_envio_nota, data_vencimento, dia_emissao, aguardando_nota_em, faturamento_iniciado_em, faturamento_iniciado_por, faturamento_iniciado_por_nome, enviado_por_user_id, dentro_prazo, updated_at";
+      const rows: any[] = [];
+      const PAGE = 1000;
+      for (let offset = 0; ; offset += PAGE) {
+        const { data: page, error } = await supabase
+          .from("financeiro_movimentacoes")
+          .select(COLS)
+          .order("id", { ascending: true })
+          .range(offset, offset + PAGE - 1);
+        if (error) throw error;
+        rows.push(...(page ?? []));
+        if (!page || page.length < PAGE || offset > 50_000) break;
+      }
+
 
       const ids = rows.map((r: any) => r.id);
       const anexosAll: any[] = [];
