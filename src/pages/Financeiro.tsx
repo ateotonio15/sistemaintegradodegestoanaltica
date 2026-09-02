@@ -1855,6 +1855,7 @@ export default function Financeiro() {
 
     // ============ FLUXO NORMAL: agrupamento por CNPJ ============
     let blocosTotais: import("@/lib/excel-analysis-utils").AnalisePorCnpj[] = [];
+    const falhasDownload: string[] = [];
     const metaByCnpj = new Map<string, { hashExcel: string | null; arquivo: string | null }>();
     // Marca blocos originados de anexos compartilhados pelo grupo — eles só
     // podem ser exibidos nesta linha se o CNPJ pertencer a este contrato
