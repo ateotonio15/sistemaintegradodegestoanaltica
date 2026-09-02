@@ -22,7 +22,8 @@ import {
 import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { EnviarOrbitDialog } from "@/components/financeiro/EnviarOrbitDialog";
-import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2, Send } from "lucide-react";
+import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2, Send, FileText } from "lucide-react";
+import { gerarRelatorioAnaliseFaturamento } from "@/lib/financeiro-relatorio-analise-pdf";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import {
