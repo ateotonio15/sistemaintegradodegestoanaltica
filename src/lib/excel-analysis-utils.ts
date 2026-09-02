@@ -986,19 +986,6 @@ function parseCoparticipacaoRows(
 ): { nome: string; quantidade: number; total: number }[] {
   const items: { nome: string; quantidade: number; total: number }[] = [];
 
-  // Descobre colunas de Qtd/Valor a partir de qualquer linha-cabeçalho do arquivo.
-  let qtdCol = -1;
-  let valCol = -1;
-  const scanCols = (rr: unknown[]) => {
-    for (let c = 0; c < rr.length; c++) {
-      const t = norm(rr[c]);
-      if (!t) continue;
-      if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
-      if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
-    }
-  };
-  for (const r of rows) scanCols(r || []);
-
   // Localiza qualquer célula com "coparticipação ... empresarial"
   let anchorRow = -1;
   let anchorCol = -1;
@@ -1016,11 +1003,39 @@ function parseCoparticipacaoRows(
   }
   if (anchorRow < 0) return items;
 
-  if (qtdCol < 0) qtdCol = anchorCol + 1;
-  if (valCol < 0) valCol = anchorCol + 2;
+  // Descobre colunas de Qtd/Valor. Prioriza o cabeçalho do PRÓPRIO pivot
+  // (linha acima da âncora, colunas à direita do rótulo) — cabeçalhos de
+  // outras tabelas da planilha apontariam para colunas vazias aqui.
+  let qtdCol = -1;
+  let valCol = -1;
+  const scanCols = (rr: unknown[], minCol: number) => {
+    for (let c = minCol; c < rr.length; c++) {
+      const t = norm(rr[c]);
+      if (!t) continue;
+      if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
+      if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
+    }
+  };
+  for (let i = anchorRow; i >= 0 && i >= anchorRow - 10; i--) {
+    scanCols(rows[i] || [], anchorCol + 1);
+    if (valCol >= 0 || qtdCol >= 0) break;
+  }
+  // Sem cabeçalho próximo: varre a planilha inteira (comportamento antigo).
+  if (qtdCol < 0 && valCol < 0) {
+    for (const r of rows) scanCols(r || [], 0);
+  }
 
-  const anchorQtd = Math.round(toNumber((rows[anchorRow] || [])[qtdCol]));
+  // Pivot com uma única coluna de valor: não há quantidade a ler.
+  const semQtd = qtdCol < 0 && valCol >= 0;
+  if (qtdCol < 0 && !semQtd) qtdCol = anchorCol + 1;
+  if (valCol < 0) valCol = qtdCol >= 0 ? qtdCol + 1 : anchorCol + 2;
+  if (qtdCol === valCol) qtdCol = -1;
+
+  const readQtd = (rr: unknown[]) => (qtdCol < 0 ? 0 : Math.round(toNumber(rr[qtdCol])));
+
+  const anchorQtd = readQtd(rows[anchorRow] || []);
   const anchorVal = toNumber((rows[anchorRow] || [])[valCol]);
+
   const anchorEhLeaf = (!isNaN(anchorQtd) && anchorQtd !== 0) || (!isNaN(anchorVal) && anchorVal !== 0);
 
   const pushItem = (label: string, qtd: number, val: number) => {
@@ -1061,7 +1076,7 @@ function parseCoparticipacaoRows(
       if (!label) continue;
       if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
       if (norml.includes("copartic")) continue;
-      const qtd = Math.round(toNumber(rr[qtdCol]));
+      const qtd = readQtd(rr);
       const val = toNumber(rr[valCol]);
       pushItem(label, qtd, val);
     }
@@ -1080,7 +1095,7 @@ function parseCoparticipacaoRows(
       }
       const proxLabel = norm((rows[j] || [])[anchorCol]);
       if (!(proxLabel && proxLabel.includes("copartic") && proxLabel.includes("empresarial"))) continue;
-      const qtd = Math.round(toNumber(rr[qtdCol]));
+      const qtd = readQtd(rr);
       const val = toNumber(rr[valCol]);
       pushItem(label, qtd, val);
     }
@@ -1096,7 +1111,7 @@ function parseCoparticipacaoRows(
       if (!label) continue;
       if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
       if (norml.includes("copartic")) continue;
-      const qtd = Math.round(toNumber(rr[qtdCol]));
+      const qtd = readQtd(rr);
       const val = toNumber(rr[valCol]);
       pushItem(label, qtd, val);
     }
