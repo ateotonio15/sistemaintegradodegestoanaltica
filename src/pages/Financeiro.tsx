@@ -170,6 +170,31 @@ export default function Financeiro() {
     enabled: !!user && canViewFinanceiro && empresaIds.length > 0,
   });
 
+  // Arquivos de Reajuste / Retroativo cadastrados na competência (aba Arquivos /
+  // tela de Reajuste e Cobrança Retroativa). Mesmo sem vínculo com a movimentação,
+  // o chip deve aparecer na competência em que a cobrança está registrada.
+  const { data: arquivosReajusteInfo = { porMov: new Set<string>(), porEmpresa: new Set<string>() } } = useQuery({
+    queryKey: ["financeiro-arquivos-reajuste", mes, empresaIds.sort().join(",")],
+    queryFn: async () => {
+      const porMov = new Set<string>();
+      const porEmpresa = new Set<string>();
+      if (empresaIds.length === 0) return { porMov, porEmpresa };
+      const { data, error } = await supabase
+        .from("financeiro_arquivos")
+        .select("empresa_id, financeiro_movimentacao_id, categoria, competencia")
+        .eq("competencia", mes)
+        .in("categoria", ["Reajuste", "Retroativo"])
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      (data || []).forEach((r: any) => {
+        if (r.financeiro_movimentacao_id) porMov.add(r.financeiro_movimentacao_id);
+        if (r.empresa_id) porEmpresa.add(r.empresa_id);
+      });
+      return { porMov, porEmpresa };
+    },
+    enabled: !!user && canViewFinanceiro && empresaIds.length > 0,
+  });
+
   const { data: empresasMap = {} } = useQuery({
     queryKey: ["financeiro-empresas", empresaIds.sort().join(",")],
     queryFn: async () => {
