@@ -321,14 +321,19 @@ export function AnexosViewerDialog({
       // 2) Movimentações operacionais (cadastro) — desta empresa e das irmãs
       // do grupo. Os anexos das irmãs são direcionados pelo NOME do arquivo.
       const empresasOp = [empresaId!, ...empresasIrmas];
-      const { data: movsOpTodas } = await supabase
+      const { data: movsOpMes } = await supabase
         .from("movimentacoes")
-        .select("id, empresa_id")
+        .select("id, empresa_id, periodo")
         .in("empresa_id", empresasOp)
-        .eq("mes_referencia", mesReferencia)
-        .eq("periodo", periodo);
+        .eq("mes_referencia", mesReferencia);
+      const todasOp = ((movsOpMes as any[]) ?? []);
+      // O período da movimentação operacional pode divergir do período da linha
+      // do Faturamento (ex.: administradoras). Sem correspondência exata,
+      // usamos todas as movimentações da competência.
+      const doPeriodo = todasOp.filter((m) => m.periodo === periodo);
+      const movsOpTodas = doPeriodo.length ? doPeriodo : todasOp;
       const empresaPorMovOp = new Map<string, string>(
-        ((movsOpTodas as any[]) ?? []).map((m) => [m.id, m.empresa_id]),
+        movsOpTodas.map((m) => [m.id, m.empresa_id]),
       );
       const movOpIds = Array.from(empresaPorMovOp.keys());
 

@@ -289,6 +289,10 @@ export default function Financeiro() {
       const soma = (empresaId: string, periodo: string) => {
         const k = `${empresaId}|${periodo}`;
         anexosCountMap[k] = (anexosCountMap[k] || 0) + 1;
+        // Fallback por competência: o período da movimentação operacional nem
+        // sempre é o mesmo da linha do Faturamento (ex.: administradoras).
+        const kAll = `${empresaId}|*`;
+        anexosCountMap[kAll] = (anexosCountMap[kAll] || 0) + 1;
       };
 
       for (const ids of lotes(movIdsOp)) {
@@ -784,7 +788,9 @@ export default function Financeiro() {
         ),
         anexos_count:
           anexosAll.length +
-          (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] || 0) +
+          (anexosCadastroCountMap[`${f.empresa_id}|${f.periodo}`] ||
+            anexosCadastroCountMap[`${f.empresa_id}|*`] ||
+            0) +
           (((f as any).tipo_lancamento === "primeira_mensalidade" ||
           !empresasComPrimeiraMensalidade.has(`${f.empresa_id}|${f.mes_referencia}`)
             ? (anexosImplantacaoCountMap as Record<string, number>)[f.empresa_id] || 0
