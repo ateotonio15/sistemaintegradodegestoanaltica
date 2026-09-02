@@ -2443,6 +2443,28 @@ export default function Financeiro() {
     }
   };
 
+  const [isGerandoRelatorio, setIsGerandoRelatorio] = useState(false);
+
+  const handleRelatorioAnalise = async () => {
+    if (filteredRows.length === 0) {
+      toast.warning("Nenhum registro para gerar o relatório com os filtros atuais");
+      return;
+    }
+    setIsGerandoRelatorio(true);
+    try {
+      await gerarRelatorioAnaliseFaturamento(
+        filteredRows,
+        mes,
+        `${filteredRows.length} contrato(s) conforme os filtros aplicados na aba Faturamento`,
+      );
+      toast.success("Relatório gerado em PDF");
+    } catch (e: any) {
+      toast.error("Erro ao gerar relatório: " + (e?.message || "falha desconhecida"));
+    } finally {
+      setIsGerandoRelatorio(false);
+    }
+  };
+
   const editingNome = editing ? empresasMap[editing.empresa_id]?.nome : undefined;
 
   return (
