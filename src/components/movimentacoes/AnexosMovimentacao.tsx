@@ -381,7 +381,9 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
               {alvoExclusao?.nome
                 ? `O arquivo "${alvoExclusao.nome}" será removido permanentemente.`
                 : "O arquivo será removido permanentemente."}
+              {alvoExclusao?.origem && ` Este anexo pertence a ${alvoExclusao.origem} e deixará de aparecer para todos os contratos do grupo.`}
             </AlertDialogDescription>
+
           </AlertDialogHeader>
 
           <label className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 cursor-pointer">
