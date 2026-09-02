@@ -232,10 +232,11 @@ export default function Financeiro() {
 
   const { data: operacionaisData = { envioMap: {}, anexosCountMap: {} } } = useQuery({
     queryKey: [
-      "financeiro-operacionais-v2",
+      "financeiro-operacionais-v3",
       mes,
       empresaIds.sort().join(","),
       Array.from(grupoIdPorEmpresa.values()).join(","),
+      Object.keys(empresasMap).length,
     ],
     queryFn: async () => {
       if (empresaIds.length === 0) return { envioMap: {}, anexosCountMap: {} };
@@ -267,45 +268,59 @@ export default function Financeiro() {
         movIdsOp.push(m.id);
       });
 
-      // Contagem por (grupo|periodo) e por (empresa|periodo)
-      const porEmpresaPeriodo: Record<string, number> = {};
-      const porGrupoPeriodo: Record<string, number> = {};
+      // Contratos por grupo (para distribuir os anexos do Cadastro)
+      const membrosPorGrupo = new Map<string, ContratoAlvo[]>();
+      empresaIds.forEach((empresaId) => {
+        const grupoId = grupoIdPorEmpresa.get(empresaId);
+        if (!grupoId) return;
+        const info = (empresasMap as any)[empresaId];
+        const lista = membrosPorGrupo.get(grupoId) ?? [];
+        lista.push({
+          empresaId,
+          nome: info?.nome ?? null,
+          codigo: info?.codigo ?? null,
+          cnpj: info?.cnpj ?? null,
+        });
+        membrosPorGrupo.set(grupoId, lista);
+      });
+
+      const anexosCountMap: Record<string, number> = {};
+      const soma = (empresaId: string, periodo: string) => {
+        const k = `${empresaId}|${periodo}`;
+        anexosCountMap[k] = (anexosCountMap[k] || 0) + 1;
+      };
+
       for (const ids of lotes(movIdsOp)) {
         const { data: anx, error: anxErr } = await supabase
           .from("anexos_movimentacao")
-          .select("movimentacao_id")
+          .select("movimentacao_id, nome_arquivo")
           .in("movimentacao_id", ids);
         if (anxErr) throw anxErr;
         (anx || []).forEach((a: any) => {
           const meta = movMetaById[a.movimentacao_id];
           if (!meta) return;
-          const key = `${meta.empresa_id}|${meta.periodo}`;
-          porEmpresaPeriodo[key] = (porEmpresaPeriodo[key] || 0) + 1;
           const grupoId = grupoIdPorEmpresa.get(meta.empresa_id) ?? null;
-          if (grupoId) {
-            const gk = `${grupoId}|${meta.periodo}`;
-            porGrupoPeriodo[gk] = (porGrupoPeriodo[gk] || 0) + 1;
+          const membros = grupoId ? membrosPorGrupo.get(grupoId) ?? [] : [];
+          if (!grupoId || membros.length <= 1) {
+            soma(meta.empresa_id, meta.periodo);
+            return;
+          }
+          // A IA de leitura do nome define a qual contrato do grupo o anexo
+          // pertence. Sem identificação, o anexo permanece compartilhado.
+          const match = identificarContratoDoAnexo(a.nome_arquivo ?? "", membros);
+          if (match) {
+            soma(match.empresaId, meta.periodo);
+          } else {
+            membros.forEach((m) => soma(m.empresaId, meta.periodo));
           }
         });
       }
-
-      // Contratos de um mesmo Grupo Financeiro compartilham os anexos do
-      // Cadastro (mesma regra do diálogo "Anexos do processo").
-      const anexosCountMap: Record<string, number> = { ...porEmpresaPeriodo };
-      empresaIds.forEach((empresaId) => {
-        const grupoId = grupoIdPorEmpresa.get(empresaId);
-        if (!grupoId) return;
-        Object.entries(porGrupoPeriodo).forEach(([gk, total]) => {
-          const [gId, periodo] = gk.split("|");
-          if (gId !== grupoId) return;
-          anexosCountMap[`${empresaId}|${periodo}`] = total;
-        });
-      });
 
       return { envioMap, anexosCountMap };
     },
     enabled: empresaIds.length > 0,
   });
+
   const operacionaisMap = operacionaisData?.envioMap ?? {};
   const anexosCadastroCountMap = operacionaisData?.anexosCountMap ?? {};
 
