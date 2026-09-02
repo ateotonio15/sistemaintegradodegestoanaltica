@@ -2498,6 +2498,18 @@ export default function Financeiro() {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleRelatorioAnalise}
+              disabled={isGerandoRelatorio || isLoading}
+              className="gap-1.5"
+              title="Gerar análise em PDF dos contratos filtrados (status, percentuais e o que falta)"
+            >
+              <FileText className={`h-3.5 w-3.5 ${isGerandoRelatorio ? "animate-pulse" : ""}`} />
+              {isGerandoRelatorio ? "Gerando..." : "Relatório PDF"}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setRegrasEmpresariaisOpen(true)}
               className="gap-1.5"
               title="Regras especiais aplicadas durante a análise (ex.: Pioneiro)"
