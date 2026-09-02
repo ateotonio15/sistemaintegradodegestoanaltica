@@ -1076,7 +1076,7 @@ function parseCoparticipacaoRows(
       if (!label) continue;
       if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
       if (norml.includes("copartic")) continue;
-      const qtd = Math.round(toNumber(rr[qtdCol]));
+      const qtd = readQtd(rr);
       const val = toNumber(rr[valCol]);
       pushItem(label, qtd, val);
     }
@@ -1095,7 +1095,7 @@ function parseCoparticipacaoRows(
       }
       const proxLabel = norm((rows[j] || [])[anchorCol]);
       if (!(proxLabel && proxLabel.includes("copartic") && proxLabel.includes("empresarial"))) continue;
-      const qtd = Math.round(toNumber(rr[qtdCol]));
+      const qtd = readQtd(rr);
       const val = toNumber(rr[valCol]);
       pushItem(label, qtd, val);
     }
@@ -1111,7 +1111,7 @@ function parseCoparticipacaoRows(
       if (!label) continue;
       if (norml.startsWith("total geral") || norml.startsWith("total ")) break;
       if (norml.includes("copartic")) continue;
-      const qtd = Math.round(toNumber(rr[qtdCol]));
+      const qtd = readQtd(rr);
       const val = toNumber(rr[valCol]);
       pushItem(label, qtd, val);
     }
