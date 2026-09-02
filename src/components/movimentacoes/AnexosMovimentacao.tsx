@@ -50,7 +50,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
-  const [alvoExclusao, setAlvoExclusao] = useState<{ id: string; path: string; nome: string; tipo: string; criadoEm: string } | null>(null);
+  const [alvoExclusao, setAlvoExclusao] = useState<{ id: string; path: string; nome: string; tipo: string; criadoEm: string; origem?: string | null } | null>(null);
   const [registrarObs, setRegistrarObs] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
 
