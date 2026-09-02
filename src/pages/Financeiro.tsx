@@ -792,7 +792,9 @@ export default function Financeiro() {
       const temRetroativo =
         anexosAll.some((a: any) => a.origem === "retroativo") ||
         retroativasInfo.porMov.has(f.id) ||
-        retroativasInfo.porEmpresa.has(f.empresa_id);
+        retroativasInfo.porEmpresa.has(f.empresa_id) ||
+        arquivosReajusteInfo.porMov.has(f.id) ||
+        arquivosReajusteInfo.porEmpresa.has(f.empresa_id);
       // Regra da primeira linha: anexos de implantação (contrato) equivalem ao
       // envio do Cadastro → a linha "Primeira mensalidade" fica "Aguardando Emissão".
       const temAnexoImplantacao =
