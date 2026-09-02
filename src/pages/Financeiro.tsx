@@ -1195,13 +1195,17 @@ export default function Financeiro() {
   // KPIs
   const kpis = useMemo(() => {
     const onlyDigits = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
+    const vigenteNaCompetencia = (p: any, competencia: string | null | undefined) =>
+      !p.inativo_a_partir_de || !competencia || competencia < p.inativo_a_partir_de;
     const empresasUnicas = new Map<string, string | null>();
     kpiRows.forEach((r) => {
       if (!empresasUnicas.has(r.empresa_id)) empresasUnicas.set(r.empresa_id, r.empresa_cnpj);
     });
     let totalPagadores = 0;
     empresasUnicas.forEach((cnpjMae, empId) => {
-      const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
+      const lista = (pagadoresCadastradosMap[empId] || []).filter(
+        (p: any) => p.ativo && vigenteNaCompetencia(p, mes),
+      );
       if (lista.length === 0) {
         totalPagadores += 1;
       } else {
