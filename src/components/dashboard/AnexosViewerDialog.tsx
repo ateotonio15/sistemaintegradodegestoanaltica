@@ -19,6 +19,7 @@ import { formatDateBR } from "@/lib/date-utils";
 import { ConfigFinanceiraEmpresaDialog } from "@/components/financeiro/ConfigFinanceiraEmpresaDialog";
 import { validarConfigFinanceira } from "@/lib/empresa-financeiro-config";
 import { ObservacoesHistorico } from "@/components/movimentacoes/ObservacoesHistorico";
+import { identificarContratoDoAnexo, type ContratoAlvo } from "@/lib/anexo-contrato-match";
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
@@ -317,14 +318,32 @@ export function AnexosViewerDialog({
         : { data: [] as any[] };
       const movFinIrmaosIds = ((movsFinIrmaos as any[]) ?? []).map((m) => m.id);
 
-      // 2) Movimentações operacionais (cadastro) — só desta empresa
-      const { data: movsOp } = await supabase
+      // 2) Movimentações operacionais (cadastro) — desta empresa e das irmãs
+      // do grupo. Os anexos das irmãs são direcionados pelo NOME do arquivo.
+      const empresasOp = [empresaId!, ...empresasIrmas];
+      const { data: movsOpTodas } = await supabase
         .from("movimentacoes")
-        .select("id")
-        .eq("empresa_id", empresaId!)
+        .select("id, empresa_id")
+        .in("empresa_id", empresasOp)
         .eq("mes_referencia", mesReferencia)
         .eq("periodo", periodo);
-      const movOpIds = (movsOp ?? []).map((m) => m.id);
+      const empresaPorMovOp = new Map<string, string>(
+        ((movsOpTodas as any[]) ?? []).map((m) => [m.id, m.empresa_id]),
+      );
+      const movOpIds = Array.from(empresaPorMovOp.keys());
+
+      // Dados dos contratos do grupo para a leitura do nome dos anexos
+      const { data: empresasGrupoInfo } = await supabase
+        .from("empresas")
+        .select("id, nome, codigo_contrato, cnpj")
+        .in("id", empresasOp);
+      const alvosGrupo: ContratoAlvo[] = ((empresasGrupoInfo as any[]) ?? []).map((e) => ({
+        empresaId: e.id,
+        nome: e.nome,
+        codigo: e.codigo_contrato,
+        cnpj: e.cnpj,
+      }));
+
 
       // 3) Anexos da implantação — só desta empresa
       const { data: impls } = await supabase
@@ -383,7 +402,7 @@ export function AnexosViewerDialog({
         movOpIds.length
           ? supabase
               .from("anexos_movimentacao")
-              .select("id, nome_arquivo, storage_path, created_at, uploaded_by")
+              .select("id, movimentacao_id, nome_arquivo, storage_path, created_at, uploaded_by")
               .in("movimentacao_id", movOpIds)
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[], error: null }),
@@ -450,11 +469,26 @@ export function AnexosViewerDialog({
           sistema: true,
         }));
       fin.push(...especiais);
-      const op: AnexoRow[] = (anxOpRes.data ?? []).map((a: any) => ({
-        ...a,
-        bucket: BUCKET_OPERACIONAL,
-        origem_label: "Cadastro" as const,
-      }));
+      // Anexos do Cadastro: quando o contrato faz parte de um grupo, o nome do
+      // arquivo define a qual contrato ele pertence. Anexos sem identificação
+      // continuam compartilhados entre todos os contratos do grupo.
+      const op: AnexoRow[] = (anxOpRes.data ?? [])
+        .filter((a: any) => {
+          const donoId = empresaPorMovOp.get(a.movimentacao_id) ?? empresaId!;
+          if (alvosGrupo.length <= 1) return donoId === empresaId;
+          const match = identificarContratoDoAnexo(a.nome_arquivo ?? "", alvosGrupo);
+          if (match) return match.empresaId === empresaId;
+          return true;
+        })
+        .map((a: any) => {
+          const donoId = empresaPorMovOp.get(a.movimentacao_id) ?? empresaId!;
+          return {
+            ...a,
+            bucket: BUCKET_OPERACIONAL,
+            origem_label: (donoId === empresaId ? "Cadastro" : "Cadastro (grupo)") as any,
+          };
+        });
+
       const impl: AnexoRow[] = ((anxImplRes as any).data ?? []).map((a: any) => ({
         ...a,
         bucket: BUCKET_IMPLANTACAO,
