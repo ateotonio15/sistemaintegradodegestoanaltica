@@ -2479,14 +2479,14 @@ export default function Financeiro() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRelatorioAnalise}
-              disabled={isGerandoRelatorio || isLoading}
+              onClick={() => setRelatorioAnaliseOpen(true)}
               className="gap-1.5"
-              title="Gerar análise em PDF dos contratos filtrados (status, percentuais e o que falta)"
+              title="Análise completa em PDF com filtros de competência, dia de emissão, tipo e status"
             >
-              <FileText className={`h-3.5 w-3.5 ${isGerandoRelatorio ? "animate-pulse" : ""}`} />
-              {isGerandoRelatorio ? "Gerando..." : "Relatório PDF"}
+              <FileText className="h-3.5 w-3.5" />
+              Relatório PDF
             </Button>
+
 
             <Button
               variant="outline"
