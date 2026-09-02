@@ -109,6 +109,21 @@ export function GerenciarPagadoresDialog({
     onError: (e: any) => toast.error(e?.message || "Erro"),
   });
 
+  const encerrarMutation = useMutation({
+    mutationFn: async (payload: { id: string; competencia: string | null }) => {
+      const { error } = await supabase
+        .from("financeiro_pagadores")
+        .update({ inativo_a_partir_de: payload.competencia })
+        .eq("id", payload.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Encerramento atualizado");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao atualizar encerramento"),
+  });
+
   const removeMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("financeiro_pagadores").delete().eq("id", id);
