@@ -2486,6 +2486,220 @@ export async function analisarExcelFinanceiroPorCnpj(
 
 
 
+/** Sub-bloco "CNPJ: xx.xxx.xxx/xxxx-xx NOME" declarado numa aba de totais. */
+interface SubBlocoDeclarado {
+  cnpj: string;
+  nome: string;
+  enfQtd: number;
+  enfMens: number;
+  enfTotal: number;
+  aptQtd: number;
+  aptMens: number;
+  aptTotal: number;
+}
+
+/**
+ * Varre abas de totais (ex.: "TOTAL GERAL NOTA") procurando blocos no formato:
+ *   CNPJ: 07.130.025/0001-59 DIGIBRAS ... - 222 MATRIZ | Qtd | Mensalidade | Total Fatura
+ *   Plano M.Empresarial | 14 | 230,45 | 3.226,30
+ *   Plano M.Executivo   |  0 | 305,51 | -
+ * Um mesmo CNPJ pode aparecer em mais de um bloco (ex.: MATRIZ e
+ * MATRIZ REINTEGRAÇÃO) — cada bloco vira uma análise separada.
+ */
+function lerSubBlocosDeclarados(wb: ExcelJS.Workbook): SubBlocoDeclarado[] {
+  const reCnpjRotulo = /cnpj\s*[:\-]?\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i;
+  const out: SubBlocoDeclarado[] = [];
+
+  wb.worksheets.forEach((ws) => {
+    if (norm(ws.name).includes("resumo")) return;
+    const rows: unknown[][] = [];
+    ws.eachRow({ includeEmpty: true }, (row) => {
+      rows.push((row.values as unknown[]).slice(1));
+    });
+    if (rows.length === 0 || rows.length > 5000) return;
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || [];
+      let col = -1;
+      let m: RegExpMatchArray | null = null;
+      for (let c = 0; c < r.length; c++) {
+        const txt = cellToText(r[c]);
+        const hit = txt.match(reCnpjRotulo);
+        if (hit) { col = c; m = hit; break; }
+      }
+      if (col < 0 || !m) continue;
+
+      const cnpj = normalizarCnpj(m[1]);
+      if (cnpj.length !== 14) continue;
+      const bruto = cellToText(r[col]);
+      const nome = bruto
+        .replace(reCnpjRotulo, "")
+        .replace(/^[\s\-–—:]+/, "")
+        .replace(/[\s\-–—:]+$/, "")
+        .trim();
+
+      // Colunas Qtd / Mensalidade / Total: na própria linha do CNPJ ou na seguinte.
+      let idxQtd = -1;
+      let idxMens = -1;
+      let idxTotal = -1;
+      let linhaInicio = i + 1;
+      for (const cand of [i, i + 1]) {
+        const rc = rows[cand] || [];
+        let q = -1, me = -1, to = -1;
+        for (let c = 0; c < rc.length; c++) {
+          const h = norm(rc[c]);
+          if (!h) continue;
+          if (q < 0 && (h === "qtd" || h.includes("quantidade"))) q = c;
+          else if (me < 0 && h.includes("mensalidade")) me = c;
+          else if (to < 0 && (h.includes("total") || h.includes("valor"))) to = c;
+        }
+        if (q >= 0 && to >= 0) {
+          idxQtd = q; idxMens = me; idxTotal = to;
+          linhaInicio = cand + 1;
+          break;
+        }
+      }
+      if (idxTotal < 0) continue;
+
+      const sub: SubBlocoDeclarado = {
+        cnpj, nome: nome || "Sem nome",
+        enfQtd: 0, enfMens: 0, enfTotal: 0,
+        aptQtd: 0, aptMens: 0, aptTotal: 0,
+      };
+
+      for (let j = linhaInicio; j < rows.length; j++) {
+        const rj = rows[j] || [];
+        const label = cellToText(rj[col]).trim();
+        const labelNorm = norm(label);
+        if (label && reCnpjRotulo.test(label)) break;
+        if (labelNorm.startsWith("total")) break;
+        if (!label) {
+          // Linha vazia encerra o bloco quando já lemos algum plano.
+          if (sub.enfQtd || sub.aptQtd || sub.enfTotal || sub.aptTotal) break;
+          continue;
+        }
+        const cat = classificarPlano(label);
+        if (!cat) continue;
+        const qtd = idxQtd >= 0 ? toNumber(rj[idxQtd]) : NaN;
+        const mens = idxMens >= 0 ? toNumber(rj[idxMens]) : NaN;
+        const tot = toNumber(rj[idxTotal]);
+        const q = isNaN(qtd) ? 0 : Math.round(qtd);
+        const t = isNaN(tot) ? 0 : tot;
+        if (cat === "enfermaria") {
+          sub.enfQtd += q;
+          sub.enfTotal += t;
+          if (!isNaN(mens) && mens !== 0) sub.enfMens = mens;
+        } else {
+          sub.aptQtd += q;
+          sub.aptTotal += t;
+          if (!isNaN(mens) && mens !== 0) sub.aptMens = mens;
+        }
+      }
+
+      if (sub.enfQtd || sub.aptQtd || sub.enfTotal || sub.aptTotal) out.push(sub);
+    }
+  });
+
+  return out;
+}
+
+/**
+ * Quando a planilha declara o mesmo CNPJ em mais de um bloco (ex.: "222 MATRIZ"
+ * e "222 MATRIZ REINTEGRAÇÃO"), separa o bloco consolidado em vários — um por
+ * bloco declarado — para gerar uma análise/histórico por linha da planilha.
+ */
+function dividirBlocosPorSubBlocosDeclarados(
+  wb: ExcelJS.Workbook,
+  blocos: AnalisePorCnpj[],
+): AnalisePorCnpj[] {
+  if (blocos.length === 0) return blocos;
+  const subs = lerSubBlocosDeclarados(wb);
+  if (subs.length === 0) return blocos;
+
+  const porCnpj = new Map<string, SubBlocoDeclarado[]>();
+  subs.forEach((s) => {
+    const arr = porCnpj.get(s.cnpj) || [];
+    arr.push(s);
+    porCnpj.set(s.cnpj, arr);
+  });
+
+  const duplicados = new Map<string, SubBlocoDeclarado[]>();
+  porCnpj.forEach((arr, cnpj) => {
+    if (arr.length > 1) duplicados.set(cnpj, arr);
+  });
+  if (duplicados.size === 0) return blocos;
+
+  const escala = (
+    v: InclusaoResultado | undefined,
+    f: number,
+  ): InclusaoResultado | undefined =>
+    v ? { ...v, quantidade: Math.round(v.quantidade * f), total: v.total * f } : undefined;
+
+  const saida: AnalisePorCnpj[] = [];
+  for (const bloco of blocos) {
+    const arr = bloco.cnpj ? duplicados.get(bloco.cnpj) : undefined;
+    if (!arr) { saida.push(bloco); continue; }
+
+    const totalQtd = arr.reduce((s, x) => s + x.enfQtd + x.aptQtd, 0);
+    const totalVal = arr.reduce((s, x) => s + x.enfTotal + x.aptTotal, 0);
+
+    arr.forEach((sub) => {
+      const peso =
+        totalQtd > 0
+          ? (sub.enfQtd + sub.aptQtd) / totalQtd
+          : totalVal !== 0
+            ? (sub.enfTotal + sub.aptTotal) / totalVal
+            : 1 / arr.length;
+
+      const novo: AnalisePorCnpj = {
+        cnpj: bloco.cnpj,
+        nome: sub.nome,
+        nomeExibicao: formatNomeComCnpj(sub.nome, bloco.cnpj),
+        enfermaria: {
+          beneficiarios: sub.enfQtd,
+          mensalidade: sub.enfMens || (sub.enfQtd > 0 ? sub.enfTotal / sub.enfQtd : 0),
+          total: sub.enfTotal,
+        },
+        apartamento: {
+          beneficiarios: sub.aptQtd,
+          mensalidade: sub.aptMens || (sub.aptQtd > 0 ? sub.aptTotal / sub.aptQtd : 0),
+          total: sub.aptTotal,
+        },
+        inclusoes: escala(bloco.inclusoes, peso) || { quantidade: 0, total: 0 },
+        avisos: [
+          ...bloco.avisos,
+          `Bloco separado conforme a planilha — o CNPJ possui ${arr.length} faturamentos distintos ("${sub.nome}").`,
+        ],
+        totalDeclaradoExcel: sub.enfTotal + sub.aptTotal,
+      };
+      const retro = escala(bloco.retroativas, peso); if (retro) novo.retroativas = retro;
+      const retroR = escala(bloco.retroativasReajuste, peso); if (retroR) novo.retroativasReajuste = retroR;
+      const retroB = escala(bloco.retroativasBeneficiarios, peso); if (retroB) novo.retroativasBeneficiarios = retroB;
+      const exc = escala(bloco.exclusoes, peso); if (exc) novo.exclusoes = exc;
+      const dev = escala(bloco.devolucoes, peso); if (dev) novo.devolucoes = dev;
+      const perm = escala(bloco.permuta, peso); if (perm) novo.permuta = perm;
+      const ade = escala(bloco.taxaAdesao, peso); if (ade) novo.taxaAdesao = ade;
+      if (bloco.coparticipacao) {
+        novo.coparticipacao = {
+          ...bloco.coparticipacao,
+          quantidade: Math.round(bloco.coparticipacao.quantidade * peso),
+          total: bloco.coparticipacao.total * peso,
+        };
+      }
+      if (bloco.faixasEtarias?.length) {
+        novo.faixasEtarias = bloco.faixasEtarias.map((f) => ({
+          ...f,
+          quantidade: Math.round(f.quantidade * peso),
+          total: f.total * peso,
+        }));
+      }
+      saida.push(novo);
+    });
+  }
+  return saida;
+}
+
+
 /**
  * Consolida múltiplos blocos por-CNPJ num único bloco por-nome para pagadores
  * que têm regra especial (matriz + filiais com mesmo subestipulante).
