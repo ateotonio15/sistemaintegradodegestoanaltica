@@ -1881,6 +1881,7 @@ export default function Financeiro() {
           }
         });
       } catch (err: any) {
+        falhasDownload.push(a.nome_arquivo || "arquivo");
         toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
       }
     }
