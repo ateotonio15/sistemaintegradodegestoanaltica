@@ -468,11 +468,26 @@ export function AnexosViewerDialog({
           sistema: true,
         }));
       fin.push(...especiais);
-      const op: AnexoRow[] = (anxOpRes.data ?? []).map((a: any) => ({
-        ...a,
-        bucket: BUCKET_OPERACIONAL,
-        origem_label: "Cadastro" as const,
-      }));
+      // Anexos do Cadastro: quando o contrato faz parte de um grupo, o nome do
+      // arquivo define a qual contrato ele pertence. Anexos sem identificação
+      // continuam compartilhados entre todos os contratos do grupo.
+      const op: AnexoRow[] = (anxOpRes.data ?? [])
+        .filter((a: any) => {
+          const donoId = empresaPorMovOp.get(a.movimentacao_id) ?? empresaId!;
+          if (alvosGrupo.length <= 1) return donoId === empresaId;
+          const match = identificarContratoDoAnexo(a.nome_arquivo ?? "", alvosGrupo);
+          if (match) return match.empresaId === empresaId;
+          return true;
+        })
+        .map((a: any) => {
+          const donoId = empresaPorMovOp.get(a.movimentacao_id) ?? empresaId!;
+          return {
+            ...a,
+            bucket: BUCKET_OPERACIONAL,
+            origem_label: (donoId === empresaId ? "Cadastro" : "Cadastro (grupo)") as any,
+          };
+        });
+
       const impl: AnexoRow[] = ((anxImplRes as any).data ?? []).map((a: any) => ({
         ...a,
         bucket: BUCKET_IMPLANTACAO,
