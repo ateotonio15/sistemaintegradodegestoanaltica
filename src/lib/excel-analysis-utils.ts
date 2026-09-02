@@ -1781,7 +1781,10 @@ export async function analisarExcelFinanceiroPorCnpj(
 
   const viaResumo = analisarResumoSheet(wb);
   if (viaResumo && viaResumo.length > 0) {
-    return mesclarBlocosPorNomeForcado(completarInclusoesDoDetalhe(wb, viaResumo));
+    return dividirBlocosPorSubBlocosDeclarados(
+      wb,
+      mesclarBlocosPorNomeForcado(completarInclusoesDoDetalhe(wb, viaResumo)),
+    );
   }
 
   const ws = wb.worksheets[0];
@@ -2481,7 +2484,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     }
   }
 
-  return mesclarBlocosPorNomeForcado(blocos);
+  return dividirBlocosPorSubBlocosDeclarados(wb, mesclarBlocosPorNomeForcado(blocos));
 }
 
 
