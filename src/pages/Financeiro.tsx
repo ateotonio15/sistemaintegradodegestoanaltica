@@ -289,6 +289,10 @@ export default function Financeiro() {
       const soma = (empresaId: string, periodo: string) => {
         const k = `${empresaId}|${periodo}`;
         anexosCountMap[k] = (anexosCountMap[k] || 0) + 1;
+        // Fallback por competência: o período da movimentação operacional nem
+        // sempre é o mesmo da linha do Faturamento (ex.: administradoras).
+        const kAll = `${empresaId}|*`;
+        anexosCountMap[kAll] = (anexosCountMap[kAll] || 0) + 1;
       };
 
       for (const ids of lotes(movIdsOp)) {
