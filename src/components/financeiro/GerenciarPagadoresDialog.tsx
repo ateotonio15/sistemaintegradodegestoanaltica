@@ -204,35 +204,71 @@ export function GerenciarPagadoresDialog({
             pagadores.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between gap-2 rounded-md border border-border bg-card p-3"
+                className="rounded-md border border-border bg-card p-3 space-y-2"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{p.nome_pagador}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {p.cnpj ? `CNPJ: ${p.cnpj} · ` : ""}
-                    {p.ativo ? "Ativo" : "Inativo"}
-                  </p>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{p.nome_pagador}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {p.cnpj ? `CNPJ: ${p.cnpj} · ` : ""}
+                      {p.ativo ? "Ativo" : "Inativo"}
+                      {p.inativo_a_partir_de
+                        ? ` · encerrado a partir de ${p.inativo_a_partir_de}`
+                        : ""}
+                    </p>
+                  </div>
+                  {!readOnly && (
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={p.ativo}
+                        onCheckedChange={() => toggleMutation.mutate(p)}
+                        disabled={toggleMutation.isPending}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          if (confirm(`Remover o pagador "${p.nome_pagador}"?`)) {
+                            removeMutation.mutate(p.id);
+                          }
+                        }}
+                        disabled={removeMutation.isPending}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 {!readOnly && (
                   <div className="flex items-center gap-2">
-                    <Switch
-                      checked={p.ativo}
-                      onCheckedChange={() => toggleMutation.mutate(p)}
-                      disabled={toggleMutation.isPending}
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      Não cobrar a partir de:
+                    </span>
+                    <Input
+                      type="month"
+                      className="h-8 w-40"
+                      value={p.inativo_a_partir_de ?? ""}
+                      onChange={(e) =>
+                        encerrarMutation.mutate({
+                          id: p.id,
+                          competencia: e.target.value || null,
+                        })
+                      }
+                      disabled={encerrarMutation.isPending}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => {
-                        if (confirm(`Remover o pagador "${p.nome_pagador}"?`)) {
-                          removeMutation.mutate(p.id);
+                    {p.inativo_a_partir_de && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() =>
+                          encerrarMutation.mutate({ id: p.id, competencia: null })
                         }
-                      }}
-                      disabled={removeMutation.isPending}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                      >
+                        Limpar
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
