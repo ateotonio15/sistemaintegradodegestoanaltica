@@ -23,7 +23,7 @@ import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { EnviarOrbitDialog } from "@/components/financeiro/EnviarOrbitDialog";
 import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2, Send, FileText } from "lucide-react";
-import { gerarRelatorioAnaliseFaturamento } from "@/lib/financeiro-relatorio-analise-pdf";
+import { RelatorioAnaliseDialog } from "@/components/financeiro/RelatorioAnaliseDialog";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import {
@@ -2443,27 +2443,8 @@ export default function Financeiro() {
     }
   };
 
-  const [isGerandoRelatorio, setIsGerandoRelatorio] = useState(false);
+  const [relatorioAnaliseOpen, setRelatorioAnaliseOpen] = useState(false);
 
-  const handleRelatorioAnalise = async () => {
-    if (filteredRows.length === 0) {
-      toast.warning("Nenhum registro para gerar o relatório com os filtros atuais");
-      return;
-    }
-    setIsGerandoRelatorio(true);
-    try {
-      await gerarRelatorioAnaliseFaturamento(
-        filteredRows,
-        mes,
-        `${filteredRows.length} contrato(s) conforme os filtros aplicados na aba Faturamento`,
-      );
-      toast.success("Relatório gerado em PDF");
-    } catch (e: any) {
-      toast.error("Erro ao gerar relatório: " + (e?.message || "falha desconhecida"));
-    } finally {
-      setIsGerandoRelatorio(false);
-    }
-  };
 
   const editingNome = editing ? empresasMap[editing.empresa_id]?.nome : undefined;
 
@@ -2498,14 +2479,14 @@ export default function Financeiro() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRelatorioAnalise}
-              disabled={isGerandoRelatorio || isLoading}
+              onClick={() => setRelatorioAnaliseOpen(true)}
               className="gap-1.5"
-              title="Gerar análise em PDF dos contratos filtrados (status, percentuais e o que falta)"
+              title="Análise completa em PDF com filtros de competência, dia de emissão, tipo e status"
             >
-              <FileText className={`h-3.5 w-3.5 ${isGerandoRelatorio ? "animate-pulse" : ""}`} />
-              {isGerandoRelatorio ? "Gerando..." : "Relatório PDF"}
+              <FileText className="h-3.5 w-3.5" />
+              Relatório PDF
             </Button>
+
 
             <Button
               variant="outline"
@@ -3060,6 +3041,13 @@ export default function Financeiro() {
           onOpenChange={setRegrasEmpresariaisOpen}
           canManage={!!canManageFinanceiro}
         />
+
+        <RelatorioAnaliseDialog
+          open={relatorioAnaliseOpen}
+          onOpenChange={setRelatorioAnaliseOpen}
+          mesAtual={mes}
+        />
+
 
         {canManageFinanceiro && (
           <GerarHistoricoDialog
