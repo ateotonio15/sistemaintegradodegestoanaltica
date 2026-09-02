@@ -203,8 +203,13 @@ function normMatch(s: unknown): string {
 
 /** Remove tudo que não é dígito (para comparar CNPJs). */
 export function normalizarCnpj(s: unknown): string {
-  return String(s ?? "").replace(/\D/g, "");
+  const d = String(s ?? "").replace(/\D/g, "");
+  // Células numéricas perdem zeros à esquerda (ex.: 7448261000118 →
+  // 07.448.261/0001-18). Reconstitui o CNPJ com 14 dígitos.
+  if (d.length >= 12 && d.length < 14) return d.padStart(14, "0");
+  return d;
 }
+
 
 /** Retorna "0001-69" a partir dos 14 dígitos do CNPJ (filial + DV). */
 export function formatCnpjSufixo(cnpj: unknown): string {
