@@ -1855,6 +1855,7 @@ export default function Financeiro() {
 
     // ============ FLUXO NORMAL: agrupamento por CNPJ ============
     let blocosTotais: import("@/lib/excel-analysis-utils").AnalisePorCnpj[] = [];
+    const falhasDownload: string[] = [];
     const metaByCnpj = new Map<string, { hashExcel: string | null; arquivo: string | null }>();
     // Marca blocos originados de anexos compartilhados pelo grupo — eles só
     // podem ser exibidos nesta linha se o CNPJ pertencer a este contrato
@@ -1880,6 +1881,7 @@ export default function Financeiro() {
           }
         });
       } catch (err: any) {
+        falhasDownload.push(a.nome_arquivo || "arquivo");
         toast.error(`Erro ao analisar ${a.nome_arquivo}: ${err.message || err}`);
       }
     }
@@ -1909,6 +1911,21 @@ export default function Financeiro() {
       })().catch(() => null);
       const resultados = r
         ? [{ pagador: row.empresa_nome, ...r, _hash: null, _arquivo: xlsAnexos[0]?.nome_arquivo ?? null } as any]
+        : falhasDownload.length > 0
+        ? [
+            {
+              pagador: row.empresa_nome,
+              cnpj: "",
+              enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
+              apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
+              inclusoes: { quantidade: 0, total: 0 },
+              avisos: [
+                `Não foi possível abrir ${falhasDownload.length === 1 ? "o anexo" : "os anexos"} ${falhasDownload.join(", ")} — o arquivo não está mais disponível no armazenamento. Reenvie a planilha para refazer a análise.`,
+              ],
+              _hash: null,
+              _arquivo: falhasDownload[0] ?? null,
+            } as any,
+          ]
         : [];
       const out = { key: cacheKey, resultados, comparacoes: [], notasOrfas: [], temXls: true };
       motherAnalysisCache.current.set(row.id, out);
