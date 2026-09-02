@@ -21,6 +21,7 @@ interface Pagador {
   nome_pagador: string;
   cnpj: string | null;
   ativo: boolean;
+  inativo_a_partir_de: string | null;
 }
 
 interface Props {
